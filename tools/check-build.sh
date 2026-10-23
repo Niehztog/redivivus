@@ -19,8 +19,8 @@ trap 'rm -rf "$WORK"' EXIT
 for tool in git cmake i686-w64-mingw32-g++ i686-w64-mingw32-objdump; do
   command -v "$tool" >/dev/null || { echo "missing tool: $tool" >&2; exit 2; }
 done
-GENERATOR="Unix Makefiles"
-command -v ninja >/dev/null && GENERATOR=Ninja
+GENERATOR="Unix Makefiles"; KEEP_GOING=-k
+command -v ninja >/dev/null && { GENERATOR=Ninja; KEEP_GOING="-k 0"; }
 JOBS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
 
 git clone -q "$SRC" "$WORK/src"
@@ -37,7 +37,7 @@ if grep -q -- '-fpermissive' "$WORK/build/compile_commands.json"; then
 fi
 
 set +e
-cmake --build "$WORK/build" -j "$JOBS" -- -k >"$WORK/build.log" 2>&1
+cmake --build "$WORK/build" -j "$JOBS" -- $KEEP_GOING >"$WORK/build.log" 2>&1
 RC=$?
 set -e
 
@@ -48,7 +48,7 @@ echo "translation units: $TUS, compile errors: $ERRORS"
 echo "undefined symbols at link: $UNDEF"
 
 if [ "$RC" -ne 0 ] || [ ! -f "$WORK/build/d2.exe" ]; then
-  grep -E ' error: |undefined reference' "$WORK/build.log" | head -40 >&2
+  { grep -E ' error: |undefined reference' "$WORK/build.log" || tail -40 "$WORK/build.log"; } | head -40 >&2
   echo "FAIL: no d2.exe" >&2
   exit 1
 fi
