@@ -1,0 +1,271 @@
+// Runtime patches applied from OUR side.
+//
+// WHY NOT EDIT THE ENGINE SOURCE. recon/modified's engine tree is generator
+// output. A hand edit there is debt that has to be justified, counted and
+// retired, and every regen fights it. A patch that lives here fights nothing.
+//
+// WHY CALL SITES AND NOT FUNCTION ENTRIES. The obvious way to hook is to write a
+// five-byte JMP over a function's prologue, which is what D2BS does. That needs a
+// trampoline, which needs an instruction-length decoder, and it does not compose:
+// two hooks on the same function silently clobber each other - D2BS has exactly
+// that bug, where CubeOrgans_Intercept and KillMonster_Hook both patch
+// SERVER_KillMonster and only the second survives.
+//
+// Rewriting the four-byte displacement of a `CALL rel32` instead needs no
+// decoder, no trampoline and no copied prologue. Both ends are named symbols the
+// linker resolves for us, so nothing in this file contains an address. That is
+// the point: D2BS's patch table is a list of hardcoded 1.14d offsets that a
+// recompile invalidates, while "every call to function B now goes to our B" stays
+// true however far the code moves.
+//
+// WHY THE WHOLE .text AND NOT ONE CALLER. The first cut bounded the scan to a
+// caller's first 0x400 bytes and it ran straight off the end of a 0x193-byte
+// function into its neighbour. Bounding by symbol means knowing where a function
+// ends, which we do not at runtime. Scanning the section and matching on the
+// CALL's resolved target has no such edge: a false positive needs a random
+// displacement to land exactly on the callee.
+//
+// WHY IT REFUSES RATHER THAN GUESSES. The scan counts first and writes only if
+// the count is exactly what the patch declared. If a regen changes a function's
+// shape the patch reports and does nothing, instead of rewriting a displacement
+// that now means something else. A patch that silently half-applies is worse than
+// one that never applied - that first overrun is precisely how this was found.
+
+#include "d2_platform.h"
+#include "support/d2_patch.h"
+#include "support/d2_trace.h"
+
+#include "D2CMP/SRC/LRUCache.h"
+
+namespace {
+
+bool WriteBytes(void* pDst, const void* pSrc, size_t n) {
+    DWORD dwOld = 0;
+    if (!VirtualProtect(pDst, n, PAGE_EXECUTE_READWRITE, &dwOld)) return false;
+    memcpy(pDst, pSrc, n);
+    DWORD dwTmp = 0;
+    VirtualProtect(pDst, n, dwOld, &dwTmp);
+    FlushInstructionCache(GetCurrentProcess(), pDst, n);
+    return true;
+}
+
+// The executable section of our own module, from the PE headers. No constants.
+bool TextSection(unsigned char** ppStart, size_t* pnSize) {
+    unsigned char* pBase = (unsigned char*)GetModuleHandleA(0);
+    if (!pBase) return false;
+    IMAGE_DOS_HEADER* pDos = (IMAGE_DOS_HEADER*)pBase;
+    if (pDos->e_magic != IMAGE_DOS_SIGNATURE) return false;
+    IMAGE_NT_HEADERS* pNt = (IMAGE_NT_HEADERS*)(pBase + pDos->e_lfanew);
+    if (pNt->Signature != IMAGE_NT_SIGNATURE) return false;
+    IMAGE_SECTION_HEADER* pSec = IMAGE_FIRST_SECTION(pNt);
+    for (unsigned i = 0; i < pNt->FileHeader.NumberOfSections; i++) {
+        if (pSec[i].Characteristics & IMAGE_SCN_MEM_EXECUTE) {
+            *ppStart = pBase + pSec[i].VirtualAddress;
+            *pnSize = pSec[i].Misc.VirtualSize;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Every readable section of our own module, so a literal can be found by its
+// CONTENT rather than by an address. The string this is used for moves whenever
+// the linker feels like it; its bytes do not.
+bool EachSection(unsigned i, unsigned char** ppStart, size_t* pnSize, unsigned* pnCount) {
+    unsigned char* pBase = (unsigned char*)GetModuleHandleA(0);
+    if (!pBase) return false;
+    IMAGE_DOS_HEADER* pDos = (IMAGE_DOS_HEADER*)pBase;
+    if (pDos->e_magic != IMAGE_DOS_SIGNATURE) return false;
+    IMAGE_NT_HEADERS* pNt = (IMAGE_NT_HEADERS*)(pBase + pDos->e_lfanew);
+    if (pNt->Signature != IMAGE_NT_SIGNATURE) return false;
+    if (pnCount) *pnCount = pNt->FileHeader.NumberOfSections;
+    if (i >= pNt->FileHeader.NumberOfSections) return false;
+    IMAGE_SECTION_HEADER* pSec = IMAGE_FIRST_SECTION(pNt);
+    if (!(pSec[i].Characteristics & IMAGE_SCN_MEM_READ)) return false;
+    *ppStart = pBase + pSec[i].VirtualAddress;
+    *pnSize = pSec[i].Misc.VirtualSize;
+    return true;
+}
+
+volatile long g_bInstalled = 0;
+
+// The original, reached INDIRECTLY so the redirect below cannot rewrite it and
+// turn the wrapper into infinite recursion. A `CALL [mem]` is not a `CALL rel32`.
+void (*g_pfnLRUCacheUnlink)(D2LRUCacheNodeStrc*, D2LRUCacheStrc*) =
+    &D2CMP::SRC::LRUCache::LRUCACHE_Unlink;
+
+// ---------------------------------------------------------------------------
+// LRUCACHE_Unlink writes through a null pointer on a single-entry list:
+//
+//     if (pEntry == pCache->pLRUTail) {
+//         pOldestEntry = pCache->pLRUTail->pPrev;   // null when it is the only node
+//         pCache->pLRUTail = pOldestEntry;
+//         pOldestEntry->pNext = 0;                  // <- writes to 0x0C
+//
+// Blizzard's bug, not a reconstruction artifact - D2BS carries the same fix as
+// GameCrashFix. Pre-empt the case in a wrapper rather than guarding inside the
+// function, because the wrapper is something we can own.
+long g_nLRUSingleNode = 0;
+
+void D2PATCH_LRUCACHE_Unlink(D2LRUCacheNodeStrc* pEntry, D2LRUCacheStrc* pCache) {
+    if (pEntry && pCache) {
+        D2LRUCacheNodeStrc* pNode = pEntry;
+        if (pNode == pCache->pLRUTail && !pNode->pPrev) {
+            // The only node in the list. Unlink it the way the tail branch would
+            // have if it had checked: empty the list, clear the node's links.
+            pCache->pLRUHead = 0;
+            pCache->pLRUTail = 0;
+            pNode->pNext = 0;
+            pNode->pPrev = 0;
+            if (++g_nLRUSingleNode <= 8 || (g_nLRUSingleNode % 256) == 0) {
+                D2TraceFmt("D2PATCH lru-single-node hits=%ld entry=%08X cache=%08X",
+                           g_nLRUSingleNode, (unsigned)(uintptr_t)pEntry,
+                           (unsigned)(uintptr_t)pCache);
+            }
+            return;
+        }
+    }
+    g_pfnLRUCacheUnlink(pEntry, pCache);
+}
+
+} // namespace
+
+int D2PATCH_RedirectAllCalls(void* pOldCallee, void* pNewCallee, int nExpectedSites) {
+    if (!pOldCallee || !pNewCallee) return -1;
+    unsigned char* pText = 0;
+    size_t nText = 0;
+    if (!TextSection(&pText, &nText)) {
+        D2TraceFmt("D2PATCH no .text section");
+        return -1;
+    }
+
+    // Pass one: count, so a shape change is reported instead of half-applied.
+    int nFound = 0;
+    for (size_t i = 0; i + 5 <= nText; i++) {
+        if (pText[i] != 0xE8) continue;                    // CALL rel32
+        int32_t rel = *(int32_t*)(pText + i + 1);
+        if (pText + i + 5 + rel == (unsigned char*)pOldCallee) nFound++;
+    }
+    if (nExpectedSites >= 0 && nFound != nExpectedSites) {
+        D2TraceFmt("D2PATCH REFUSED callee=%08X found=%d expected=%d",
+                   (unsigned)(uintptr_t)pOldCallee, nFound, nExpectedSites);
+        return -1;
+    }
+
+    // Pass two: apply.
+    int nDone = 0;
+    for (size_t i = 0; i + 5 <= nText; i++) {
+        if (pText[i] != 0xE8) continue;
+        int32_t rel = *(int32_t*)(pText + i + 1);
+        if (pText + i + 5 + rel != (unsigned char*)pOldCallee) continue;
+        int32_t relNew = (int32_t)((unsigned char*)pNewCallee - (pText + i + 5));
+        if (WriteBytes(pText + i + 1, &relNew, sizeof(relNew))) nDone++;
+    }
+    D2TraceFmt("D2PATCH redirect %08X -> %08X sites=%d",
+               (unsigned)(uintptr_t)pOldCallee, (unsigned)(uintptr_t)pNewCallee, nDone);
+    return nDone;
+}
+
+// ---------------------------------------------------------------------------
+// Retarget a format-string operand, by content.
+//
+// The splash and the automap both render their version line with
+// `SStrPrintf(buf, n, "v %d.%d%c", 1, 0xe, 'd')`, pushing the format string's
+// address as a PUSH imm32. Neither the string's address nor the push sites are
+// knowable ahead of time in a rebuilt binary, so both are found the same way the
+// call redirect finds its sites: search the image for the literal's exact bytes
+// INCLUDING its terminator, then scan .text for a PUSH of that address.
+//
+// Matching with the terminator is what keeps the replacement from matching
+// itself - "v %d.%d%c Redivivus" contains the original as a prefix, so a match
+// that ignored the NUL would find our own string and patch the push to itself.
+//
+// The operand is matched by VALUE, not by instruction encoding. The first cut
+// looked for `PUSH imm32` (0x68) because that is what the 1.14d binary does, and
+// it found zero sites: we are built with mingw GCC, which materialises a stack
+// argument as `MOV DWORD PTR [ESP+n], imm32` instead. Scanning for the address
+// itself covers both, and every other form the compiler might pick next.
+//
+// The destination buffers are 64 bytes (splash) and 100 (automap), and both
+// calls are length-bounded, so lengthening the rendered text cannot overrun.
+int D2PATCH_RedirectFormatString(const char* pszOld, const char* pszNew, int nExpectedSites) {
+    if (!pszOld || !pszNew) return -1;
+    unsigned char* pText = 0;
+    size_t nText = 0;
+    if (!TextSection(&pText, &nText)) return -1;
+
+    const size_t nOldLen = strlen(pszOld) + 1;   // include the NUL
+
+    // Pass one: every address in the image holding the literal, with terminator.
+    unsigned char* apFound[8];
+    int nFound = 0;
+    unsigned nSections = 0;
+    EachSection(0, &pText, &nText, &nSections);
+    TextSection(&pText, &nText);
+    for (unsigned s = 0; s < nSections && nFound < 8; s++) {
+        unsigned char* pSec = 0;
+        size_t nSec = 0;
+        if (!EachSection(s, &pSec, &nSec, 0)) continue;
+        for (size_t i = 0; i + nOldLen <= nSec && nFound < 8; i++) {
+            if (memcmp(pSec + i, pszOld, nOldLen) == 0) apFound[nFound++] = pSec + i;
+        }
+    }
+    if (!nFound) {
+        D2TraceFmt("D2PATCH fmt REFUSED - literal not found");
+        return -1;
+    }
+
+    // Pass two: count operands anywhere in .text whose value is one of those
+    // addresses, whatever instruction carries them.
+    int nSites = 0;
+    for (size_t i = 0; i + 4 <= nText; i++) {
+        unsigned char* pImm = *(unsigned char**)(pText + i);
+        for (int f = 0; f < nFound; f++) if (pImm == apFound[f]) { nSites++; break; }
+    }
+    if (nExpectedSites >= 0 && nSites != nExpectedSites) {
+        D2TraceFmt("D2PATCH fmt REFUSED copies=%d found=%d expected=%d",
+                   nFound, nSites, nExpectedSites);
+        return -1;
+    }
+
+    // Pass three: apply.
+    int nDone = 0;
+    for (size_t i = 0; i + 4 <= nText; i++) {
+        unsigned char* pImm = *(unsigned char**)(pText + i);
+        bool bHit = false;
+        for (int f = 0; f < nFound; f++) if (pImm == apFound[f]) { bHit = true; break; }
+        if (!bHit) continue;
+        const char* pRepl = pszNew;
+        if (WriteBytes(pText + i, &pRepl, sizeof(pRepl))) nDone++;
+    }
+    D2TraceFmt("D2PATCH fmt '%s' -> '%s' copies=%d sites=%d", pszOld, pszNew, nFound, nDone);
+    return nDone;
+}
+
+void D2PATCH_InstallAll(void) {
+    if (InterlockedExchange(&g_bInstalled, 1)) return;
+
+    // LRUCACHE_Unlink has exactly two direct callers, LRUCACHE_FreeEntry and
+    // LRUCACHE_MoveToFront. If that ever stops being true the patch says so and
+    // does nothing.
+    D2PATCH_RedirectAllCalls((void*)&D2CMP::SRC::LRUCache::LRUCACHE_Unlink,
+                             (void*)&D2PATCH_LRUCACHE_Unlink, 2);
+
+    // Brand the build. This is a deliberate DIVERGENCE from 1.14d, not a
+    // fidelity fix, which is why it lives here and not in Ghidra: the database
+    // has to keep describing the binary Blizzard shipped or the assert oracle
+    // and the byte-matching targets stop meaning anything.
+    // Two sites: UIMENU_MainMenu (splash) and AUTOMAP_DrawVersion.
+    // The needle is derived from the replacement at RUNTIME rather than written
+    // as its own literal. Spelling it out inline put a THIRD copy of
+    // "v %d.%d%c" in .rdata, referenced from this very function - so the scan
+    // found three operands instead of two, and the third was the patch's own
+    // argument. Taking the first nine characters of the replacement leaves
+    // exactly the two engine sites. The NUL terminator is what stops the needle
+    // matching the replacement itself, which merely continues with " Redivivus".
+    static const char kVersionFmt[] = "v %d.%d%c Redivivus";
+    char szNeedle[10];
+    memcpy(szNeedle, kVersionFmt, 9);
+    szNeedle[9] = '\0';
+    D2PATCH_RedirectFormatString(szNeedle, kVersionFmt, 2);
+}

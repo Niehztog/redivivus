@@ -1,0 +1,7 @@
+.idea/
+.DS_Store
+metrics/
+compile-errors.txt
+sites2.tsv
+*.cpp.map
+/build/

@@ -1,0 +1,8 @@
+LIBRARY ijl11.dll
+EXPORTS
+    ijlInit@4 == ijlInit
+    ijlFree@4 == ijlFree
+    ijlRead@8 == ijlRead
+    ijlWrite@8 == ijlWrite
+    ijlErrorStr@4 == ijlErrorStr
+    ijlGetLibVersion@0 == ijlGetLibVersion

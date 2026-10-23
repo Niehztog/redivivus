@@ -1,0 +1,6 @@
+# Source DLLs the checked-in .def files were derived from.
+# Verified: all 18 referenced entry points appear with identical @N
+# decoration in both d2-1.00-binaries and 1.07-lod-base/pe-files.
+a9fec882c1cf59f03c49a43f971c5927cc07254929e4e1ff4ecc6ceea1c39d40  /Users/jaenster/code/re/diablo2/d2-1.00-binaries/binkw32.dll
+5786b7b72667b9ea1cc4bf7762a9e313c2ad1474392907a0f3b52e4e888029bf  /Users/jaenster/code/re/diablo2/d2-1.00-binaries/smackw32.dll
+5a0b1c4e5d91fd67a1ad23e5ce869899b79a7282cb6e5533dc5c074eb59306ec  /Users/jaenster/code/re/diablo2/d2-1.00-binaries/ijl11.dll
