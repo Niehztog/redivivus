@@ -25,7 +25,8 @@ static FILE* TraceLog() {
     if (!g_pLog) {
         char szPath[MAX_PATH];
 #ifndef REDIVIVUS_DEV
-        // A release build writes crash reports only, next to the executable.
+        // A release build logs here only for an armed write watchpoint; crash
+        // reports are support/d2_crash.cpp.
         DWORD nDir = GetModuleFileNameA(0, szPath, MAX_PATH);
         while (nDir > 0 && szPath[nDir - 1] != '\\') nDir--;
         lstrcpyA(szPath + nDir, "d2trace.log");
@@ -126,6 +127,10 @@ static LONG CALLBACK TraceVectoredHandler(EXCEPTION_POINTERS* pExc) {
         if (pLogW) { fputs(szLine, pLogW); fflush(pLogW); }
         return EXCEPTION_CONTINUE_EXECUTION;
     }
+#ifndef REDIVIVUS_DEV
+    // A release build reports crashes through support/d2_crash.cpp only.
+    return EXCEPTION_CONTINUE_SEARCH;
+#endif
     void* pAddr = pExc->ExceptionRecord->ExceptionAddress;
     HMODULE hBase = GetModuleHandleA(0);
     char szLine[512];
@@ -201,11 +206,8 @@ static LONG CALLBACK TraceVectoredHandler(EXCEPTION_POINTERS* pExc) {
 __attribute__((init_priority(150))) static struct TraceInit {
     TraceInit() {
         AddVectoredExceptionHandler(1, TraceVectoredHandler);
-        // A stack overflow leaves no room for the handler itself, so the process dies
-        // with no D2FAULT line and the fault looks uncatchable. Reserving a slice keeps
-        // the handler runnable, which is what tells overflow apart from a plain AV.
-        ULONG ulGuarantee = 64 * 1024;
-        SetThreadStackGuarantee(&ulGuarantee);
+        // The stack guarantee that keeps this handler runnable on a stack overflow
+        // is reserved by support/d2_crash.cpp.
         D2Trace("vectored handler installed");
     }
 } g_traceInit;

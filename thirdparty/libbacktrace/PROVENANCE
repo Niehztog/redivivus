@@ -1,0 +1,20 @@
+libbacktrace, vendored for the crash report (support/d2_crash.cpp).
+
+Upstream:  https://github.com/ianlancetaylor/libbacktrace
+Commit:    0b9b49cf4a2c9229fc052d6716e1528b2f23e91a (2026-09-03)
+License:   BSD-3-Clause, see LICENSE
+
+Only the files the PE/COFF reader needs on Windows are kept:
+  alloc.c dwarf.c fileline.c pecoff.c posix.c read.c sort.c state.c
+  backtrace.h internal.h filenames.h LICENSE README.md
+config.h and backtrace-supported.h are hand-written for i686-w64-mingw32 in
+place of the autoconf output. Compiled as C (gnu99).
+
+Local changes, all in pecoff.c and marked "Redivivus local change":
+  - coff_debug_in_image(): the Windows loader maps every PE section, so the
+    DWARF sections are read from the loaded image instead of being copied out
+    of the file into one allocation the size of all debug info (hundreds of MB
+    for d2.exe, which a 32-bit process near a crash may not have). Falls back
+    to the upstream file read when a section is not mapped and readable.
+  - dll_notification(): upstream assigns the callback's data pointer to
+    error_callback; it now takes context->error_callback.

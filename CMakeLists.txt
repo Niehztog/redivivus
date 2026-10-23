@@ -12,7 +12,7 @@
 # only supported compiler is a mingw-w64 i686 g++ (native or cross).
 
 cmake_minimum_required(VERSION 3.16)
-project(Redivivus LANGUAGES CXX ASM)
+project(Redivivus LANGUAGES C CXX ASM)
 
 if(NOT WIN32 OR NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(FATAL_ERROR "Redivivus targets 32-bit Windows. Configure with "
@@ -50,6 +50,9 @@ file(GLOB_RECURSE D2_HEADERS CONFIGURE_DEPENDS
 foreach(list D2_SOURCES D2_HEADERS)
     list(FILTER ${list} EXCLUDE REGEX "^${CMAKE_BINARY_DIR}/")
     list(FILTER ${list} EXCLUDE REGEX "/\\.git/")
+    # Vendored C library, built as its own target below; its headers (config.h,
+    # internal.h) must not land on the game's include path.
+    list(FILTER ${list} EXCLUDE REGEX "^${CMAKE_SOURCE_DIR}/thirdparty/libbacktrace/")
 endforeach()
 list(SORT D2_SOURCES)
 
@@ -99,6 +102,38 @@ endif()
 if(REDIVIVUS_DEV)
     target_compile_definitions(d2 PRIVATE REDIVIVUS_DEV)
 endif()
+
+# ---------------------------------------------------------------------------
+# Crash reports (support/d2_crash.cpp) symbolise the stack from this build's own
+# DWARF with libbacktrace, vendored as C. The report names the build, so the git
+# describe of the tree is baked in at configure time; only d2_crash.cpp sees it,
+# so a new commit recompiles that one file.
+# ---------------------------------------------------------------------------
+add_library(d2_backtrace STATIC
+    thirdparty/libbacktrace/alloc.c
+    thirdparty/libbacktrace/dwarf.c
+    thirdparty/libbacktrace/fileline.c
+    thirdparty/libbacktrace/pecoff.c
+    thirdparty/libbacktrace/posix.c
+    thirdparty/libbacktrace/read.c
+    thirdparty/libbacktrace/sort.c
+    thirdparty/libbacktrace/state.c)
+set_target_properties(d2_backtrace PROPERTIES C_STANDARD 99 C_EXTENSIONS ON)
+target_include_directories(d2_backtrace PRIVATE "${CMAKE_SOURCE_DIR}/thirdparty/libbacktrace")
+target_compile_options(d2_backtrace PRIVATE -g -w)
+target_link_libraries(d2 PRIVATE d2_backtrace)
+
+if(NOT REDIVIVUS_BUILD_ID)
+    execute_process(COMMAND git describe --always --dirty --tags
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE REDIVIVUS_BUILD_ID OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET RESULT_VARIABLE _describe_rc)
+    if(NOT _describe_rc EQUAL 0 OR NOT REDIVIVUS_BUILD_ID)
+        set(REDIVIVUS_BUILD_ID "unknown")
+    endif()
+endif()
+set_source_files_properties("${CMAKE_SOURCE_DIR}/support/d2_crash.cpp" PROPERTIES
+    COMPILE_DEFINITIONS "REDIVIVUS_BUILD_ID=\"${REDIVIVUS_BUILD_ID}\"")
 
 # ---------------------------------------------------------------------------
 # Link.

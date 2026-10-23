@@ -9,6 +9,16 @@ know* them, not because it gets them wrong.
 |-|-|
 |`d2_hand.h`|Declarations for entities the extraction cannot supply - the DirectDraw import thunks, and the `compiler::` functions dropped by `excludePatterns`.|
 |`d2_crt_support.cpp`|Definitions for the CRT and intrinsic symbols the link needs. Documented below.|
+|`d2_crash.cpp`|The crash report: on a fatal exception, a symbolised stack written next to the exe. See below.|
+
+## If it crashes
+
+The game writes `d2crash-YYYYMMDD-HHMMSS.txt` next to `d2.exe` (or in `%TEMP%` when that folder
+is not writable). **Send that file.** It names the build, the exception, the registers, the stack
+as function and `file:line`, and every loaded module (wrappers such as cnc-ddraw, glide or an
+overlay show up there). The names come from the DWARF in your own `d2.exe`, read with the vendored
+libbacktrace (`thirdparty/libbacktrace`), so the report is readable without your exe - keep the
+build unstripped. One report is written per crash; the game's own error handling runs after it.
 
 `d2_crt_support.cpp` is compiled by the ad-hoc measure build (which globs `*.cpp`) and is listed
 explicitly in the hand-owned `CMakeLists.txt`.
