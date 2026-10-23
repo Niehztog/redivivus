@@ -15,7 +15,8 @@
 #include "D2Client/DataTbls/MonsterTbls.h"
 #include "D2Client/Engine.h"
 #include "D2Client/Engine/GfxInfo.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/GAME/Msg.h"
 #include "D2Client/GAME/Roster.h"
 #include "D2Client/GAME/RosterPets.h"
@@ -29,6 +30,7 @@
 #include "D2Client/UI/ControlConfig.h"
 #include "D2Client/UI/Dialog.h"
 #include "D2Client/UI/Draw.h"
+#include "D2Client/UI/Editbox/EditBoxWrapper.h"
 #include "D2Client/UI/EscMenu.h"
 #include "D2Client/UI/Hireables.h"
 #include "D2Client/UI/Inv.h"
@@ -39,6 +41,7 @@
 #include "D2Client/UI/QuestLog.h"
 #include "D2Client/UI/SkillDesc.h"
 #include "D2Client/UI/SpellSel.h"
+#include "D2Client/UI/Spinner/SpinnerWrapper.h"
 #include "D2Client/UI/Text.h"
 #include "D2Client/UI/Trade.h"
 #include "D2Client/UI/UseItem.h"
@@ -90,7 +93,7 @@
 #include "D2Win/Src/D2WinFont.h"
 #include "D2Win/Src/D2WinPalette.h"
 #include "D2gfx/D2GFX.h"
-#include "EditBoxWrapper/EditBoxWrapper.h"
+#include "Fog/3rdparty/crashy/Report.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Debug.h"
 #include "Fog/File.h"
@@ -98,8 +101,6 @@
 #include "Fog/Memory.h"
 #include "Fog/SMem.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "SpinnerWrapper/SpinnerWrapper.h"
 #include "Storm/D2ArchiveStrc.h"
 #include "Storm/D2MPQFileStrc.h"
 #include "Storm/H/Storm.h"
@@ -108,8 +109,8 @@
 #include "Storm/Source/SReg.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
-#include "crashy/Report.h"
-#include "globals.h"
+#include "globals/globals.h"
+#include "D2Client/UI/Button/ButtonWrapper.h"
 #include "D2Client/UNIT/UnitSnd.h"
 #include "D2Common/Drlg/Drlg.h"
 #include "D2Common/ITEMS/ItemMods.h"
@@ -1873,7 +1874,7 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
           if (!__frame0.pAllocCtx) {
             gpCurrentDialog = 0;
           } else {
-            gpCurrentDialog = Class::SpinnerWrapper::Constructor((::SpinnerWrapper*)__frame0.pAllocCtx, 0xdf, 0xdb, 0, (fpSpinnerRepeatAction)UI_GoldDialogScrollCallback);
+            gpCurrentDialog = Spinner::SpinnerWrapper::Constructor((::SpinnerWrapper*)__frame0.pAllocCtx, 0xdf, 0xdb, 0, (fpSpinnerRepeatAction)UI_GoldDialogScrollCallback);
           }
 
           nCleanupStage = -1;
@@ -1883,7 +1884,7 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
           if (!__frame0.pAllocCtx) {
             gpDialogDefaultActionCallback = 0;
           } else {
-            gpDialogDefaultActionCallback = Class::EditBoxWrapper::Constructor(__frame0.pAllocCtx, 0x102, 0xe4, 100, 1, __frame0.pnCurrentGold, 10, UI_GoldInputCallback_ReturnZero, 1);
+            gpDialogDefaultActionCallback = Editbox::EditBoxWrapper::Constructor(__frame0.pAllocCtx, 0x102, 0xe4, 100, 1, __frame0.pnCurrentGold, 10, UI_GoldInputCallback_ReturnZero, 1);
           }
 
           nCleanupStage = -1;
@@ -1897,7 +1898,7 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
           if (!__frame0.pAllocCtx) {
             gpUiGoldTransactionDialog = 0;
           } else {
-            gpUiGoldTransactionDialog = Class::ButtonWrapper::Constructor((::ButtonWrapper*)__frame0.pAllocCtx, 0xfa, 0x11f, 0, UI_GoldDialogConfirmCallback);
+            gpUiGoldTransactionDialog = Button::ButtonWrapper::Constructor((::ButtonWrapper*)__frame0.pAllocCtx, 0xfa, 0x11f, 0, UI_GoldDialogConfirmCallback);
           }
 
           nCleanupStage = -1;
@@ -1908,7 +1909,7 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
           if (!__frame0.pAllocCtx) {
             gpUiGoldDialogCancelButton = 0;
           } else {
-            gpUiGoldDialogCancelButton = Class::ButtonWrapper::Constructor((::ButtonWrapper*)__frame0.pAllocCtx, 0x163, 0x11f, 1, UI_ButtonCallback_CloseDialog);
+            gpUiGoldDialogCancelButton = Button::ButtonWrapper::Constructor((::ButtonWrapper*)__frame0.pAllocCtx, 0x163, 0x11f, 1, UI_ButtonCallback_CloseDialog);
           }
 
           nCleanupStage = -1;

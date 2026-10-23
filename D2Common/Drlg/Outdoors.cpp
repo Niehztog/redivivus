@@ -31,7 +31,7 @@
 #include "D2Win/DC6Block.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Unit/D2UnitStrc.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

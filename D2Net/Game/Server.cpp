@@ -9,7 +9,7 @@
 #include "Fog/Src/QServer/QServer.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/MiniPanel.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "Fog/D2QServerStrc.h"

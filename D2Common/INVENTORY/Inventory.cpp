@@ -33,7 +33,7 @@
 #include "Fog/Debug.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Common/D2SeedStrc.h"
 #include "D2Common/ITEMS/ItemMods.h"

@@ -4,7 +4,7 @@
 #include "D2Client/D2ClientStrc.h"
 #include "D2Client/DataTbls.h"
 #include "D2Client/Draw/Weather.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Sound.h"
 #include "D2Client/Sound/SoundHdr.h"
 #include "D2Client/UI/EscMenu.h"
@@ -40,7 +40,7 @@
 #include "Storm/D2ArchiveStrc.h"
 #include "Storm/D2MPQFileStrc.h"
 #include "Storm/Source/SFile.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/MiniPanel.h"
 #include "D2Common/Drlg/Drlg.h"
 

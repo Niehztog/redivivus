@@ -3,7 +3,7 @@
 #include "D2Client/Net/SRP.h"
 #include "Bnclient/Bnclient.h"
 #include "Storm/D2Srp.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

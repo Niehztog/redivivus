@@ -17,7 +17,7 @@
 #include "Fog/Skills.h"
 #include "Fog/Src/Excel.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "Storm/D2ArchiveStrc.h"
 

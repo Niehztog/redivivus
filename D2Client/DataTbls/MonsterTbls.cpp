@@ -10,7 +10,7 @@
 #include "D2Common/Drlg/Preset.h"
 #include "D2Game/D2ParsedTreasureClassStrc.h"
 #include "D2Game/UNIT/SUnitDmg.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Monster/AI/AI.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

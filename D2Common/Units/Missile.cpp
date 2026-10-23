@@ -44,7 +44,7 @@
 #include "Fog/Fog.h"
 #include "Fog/Memory.h"
 #include "Fog/Skills.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/D2Common.h"
 #include "D2Common/ITEMS/ItemMods.h"
 #include "D2Game/Monster/Monsters.h"

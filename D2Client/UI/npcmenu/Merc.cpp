@@ -4,11 +4,12 @@
 #include "D2Client/D2DialogStrc.h"
 #include "D2Client/D2GSPacketSrv0x4E.h"
 #include "D2Client/Engine/Gfx.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/RosterPets.h"
 #include "D2Client/Sound/Sound.h"
 #include "D2Client/UI/Dialog.h"
 #include "D2Client/UI/Hireables.h"
+#include "D2Client/UI/ListBox/ListBoxWrapper.h"
 #include "D2Client/UI/npcmenu.h"
 #include "D2Client/UNIT/CUnit.h"
 #include "D2Client/UNIT/Monster.h"
@@ -26,8 +27,7 @@
 #include "D2Game/UNIT/SUnitMsg.h"
 #include "D2Win/DC6.h"
 #include "Fog/D2PoolManagerStrc.h"
-#include "ListBoxWrapper/ListBoxWrapper.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Monster/AI/AI.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

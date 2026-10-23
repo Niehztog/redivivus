@@ -28,7 +28,7 @@
 #include "Storm/Source/SReg.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2CMP/D2CMP.h"
 #include "D2CMP/SRC/TileProjects.h"
 #include "D2Game/Monster/AI/AI.h"

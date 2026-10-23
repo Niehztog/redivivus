@@ -8,7 +8,7 @@
 #include "Fog/Src/ErrorManager.h"
 #include "Fog/Src/LogManager.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "Storm/_unnamespaced.h"
 #include "support/d2_trace.h"

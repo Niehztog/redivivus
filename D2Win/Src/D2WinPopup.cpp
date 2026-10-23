@@ -9,9 +9,8 @@
 #include "D2gfx/D2GFX.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/D2ControlStrc.h"
-#include "D2Win/Src/D2WinProgressBar.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -29,7 +28,7 @@ typedef BOOL (__fastcall *Draw)(D2ControlStrc * pControl);
 typedef BOOL (__fastcall *DrawEx)(D2ControlStrc * pControl);
 #endif
 
-namespace D2Win::Src {
+namespace D2Win::Src::D2WinPopup {
 
 // Destroys the global popup control if it exists. Calls FORMS_DestroyControl and clears the global pointer.
 void __stdcall D2WINPOPUP_Destroy() {
@@ -196,8 +195,8 @@ void __stdcall D2WinPopup() {
     pNewPopup->sControl.dwState = dwState | 0xc;
     pNewPopup->sControl.dwPosX = D2Client::Mouse::nPosX;
     pNewPopup->sControl.dwPosY = D2Client::Mouse::nPosY;
-    pNewPopup->sControl.fpDraw = (::Draw)(BOOL (__fastcall *)(::D2WinPopup*))Src::Draw;
-    pNewPopup->sControl.fpDrawEx = (::DrawEx)(BOOL (__fastcall *)(::D2WinPopup*))Src::DrawEx;
+    pNewPopup->sControl.fpDraw = (::Draw)(BOOL (__fastcall *)(::D2WinPopup*))D2WinPopup::Draw;
+    pNewPopup->sControl.fpDrawEx = (::DrawEx)(BOOL (__fastcall *)(::D2WinPopup*))D2WinPopup::DrawEx;
     pNewPopup->sControl.pNext = 0;
     pNewPopup->sControl.fpPush = 0;
     pNewPopup->sControl.fpMouse = 0;
@@ -209,4 +208,4 @@ void __stdcall D2WinPopup() {
     gpD2WinPopupControl = pNewPopup;
 }
 
-} // namespace D2Win::Src
+} // namespace D2Win::Src::D2WinPopup

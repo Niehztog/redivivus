@@ -51,7 +51,7 @@
 #include "Storm/D2MPQFileStrc.h"
 #include "Storm/Source/SFile.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "Bnclient/BNGatewayAccess.h"
 #include "D2Common/D2Common.h"
 #include "D2Game/Monster/AI/AI.h"

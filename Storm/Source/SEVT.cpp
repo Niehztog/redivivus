@@ -8,7 +8,7 @@
 #include "Storm/Source/SFile.h"
 #include "Storm/Source/SSystem.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -640,6 +640,29 @@ BOOL __stdcall SEvtDispatch(uint32_t dwEventId, uint32_t dwSubId, uint32_t dwKey
 
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_0077930c);
     return _dwResult;
+}
+
+void StaticFini_CriticalSection_0077930c() {
+    DeleteCriticalSection(&lpCriticalSection_0077930c);
+}
+
+// Runs at exit: removes every element from the SEvt break command list, then unlinks the list head itself.
+void StaticFini_gSevtBreakCmdList() {
+    uint32_t* puVar1;
+    SSystem::LINKEDLIST_GetTail(&gpSevtBreakCmdListHead);
+    if (!gpSevtBreakCmdListHead.pPrevLink) {
+      return;
+    }
+    if (gpSevtBreakCmdListHead.pNext < 0) {
+      puVar1 = (uint32_t*)~gpSevtBreakCmdListHead.pNext;
+    } else {
+      puVar1 = (uint32_t*)(gpSevtBreakCmdListHead.pNext + ((int)((char*)&gpSevtBreakCmdListHead + 4) - gpSevtBreakCmdListHead.pPrevLink->pNext));
+    }
+
+    *puVar1 = (uint32_t)(uintptr_t)gpSevtBreakCmdListHead.pPrevLink;
+    gpSevtBreakCmdListHead.pPrevLink->pNext = gpSevtBreakCmdListHead.pNext;
+    gpSevtBreakCmdListHead.pPrevLink = 0;
+    gpSevtBreakCmdListHead.pNext = 0;
 }
 
 } // namespace Storm::Source::SEVT

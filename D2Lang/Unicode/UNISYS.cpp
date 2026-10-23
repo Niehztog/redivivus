@@ -11,7 +11,7 @@
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/SMem.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "D2Launch/MainMenus.h"
 

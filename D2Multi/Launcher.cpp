@@ -20,7 +20,8 @@
 #include "D2Win/Src/D2WinSmack.h"
 #include "D2Win/Src/D2WinTextBox.h"
 #include "Fog/Fog.h"
-#include "globals.h"
+#include "Storm/Source/SSTR.h"
+#include "globals/globals.h"
 #include "D2Win/D2WinEditBox.h"
 #include "D2Win/D2WinImageEx.h"
 #include "D2Win/D2WinScrollbar.h"
@@ -30,7 +31,36 @@
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
 
+#ifndef RECON_FPTD_fnAppModeRun
+#define RECON_FPTD_fnAppModeRun
+typedef int32_t (__fastcall *fnAppModeRun)(D2IniConfigStrc * pD2IniConfig);
+#endif
+
 namespace D2Multi::Launcher {
+
+// App mode multiplayer init: stash module handle and return pointer to fAPPMODE_multiplayer_ReturnAppMode_Caller.
+fnAppModeRun * __fastcall AppModeMultiplayerInit(HMODULE hModule) {
+    // Static local variables (originally global data)
+    static fnAppModeRun gpfnMultiplayerAppModeRun = &D2Multi::OOGUtilities::fAPPMODE_multiplayer_ReturnAppMode_Caller;
+    static HMODULE gbChatRoomListUIActive;
+
+    gbChatRoomListUIActive = hModule;
+    return &gpfnMultiplayerAppModeRun;
+}
+
+// Multiplayer app mode shutdown (no-op).
+void __stdcall AppModeMultiplayerShutdown() {
+
+}
+
+void __fastcall LAUNCHER_StringManipUtility(char * szText, char cSeparator, int32_t bFindLast) {
+    if (bFindLast) {
+      Storm::Source::SSTR::SStrChrR(szText, cSeparator);
+      return;
+    }
+
+    Storm::Source::SSTR::SStrChr(szText, cSeparator);
+}
 
 // Loads all predefined DC6 image resources for the Battle.net launcher UI. Constructs resource paths using sprintf into a reusable buffer, then loads each DC6 file via IMAGE_LoadDC6 and stores the pointers in global variables (PTR_0077bc*). Resources include popup backgrounds, buttons, tabs for each character class, scrollbars, and selection/squelch auras.
 void __stdcall IMAGE_LoadPredefinedImagesExEx() {

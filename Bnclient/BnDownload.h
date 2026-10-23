@@ -52,5 +52,6 @@ void __fastcall BNDOWNLOAD_InitiateFileDownload(struct D2BnetDownloadStateStrc *
 // Processes downloaded BNFTP files: version info, cache files, ads, bnserver.ini, and ExtraWork DLLs. Handles extraction, loading, and cleanup.
 void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t nOpcode, FILETIME * pModTime, LPCSTR szSourcePath, char * szDestPath, uint32_t * pPoolMgr, size_t nSize, int32_t bDeleteSource, int32_t bIsExtraWork);
 uintptr_t __fastcall BNDOWNLOAD_InitiatePatchDownload(BYTE * pbParam, size_t nSize);
+void StaticFini_CriticalSection_00881f64();
 
 } // namespace Bnclient::BnDownload

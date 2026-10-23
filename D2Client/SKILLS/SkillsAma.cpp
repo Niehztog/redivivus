@@ -34,7 +34,7 @@
 #include "D2Win/DC6.h"
 #include "D2Win/DC6Block.h"
 #include "Fog/D2PoolManagerStrc.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/SKILLS/SkillsMon.h"
 #include "D2Client/UNIT/Missile.h"
 #include "D2Common/Unit/Unit.h"

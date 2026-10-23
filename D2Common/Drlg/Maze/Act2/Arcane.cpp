@@ -14,7 +14,7 @@
 #include "D2Common/Drlg/DrlgRoom.h"
 #include "D2Common/Drlg/Maze.h"
 #include "D2Common/Drlg/Preset.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Drlg/D2DrlgCoordsStrc.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

@@ -12,7 +12,7 @@
 #include "Storm/Source/SFile.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

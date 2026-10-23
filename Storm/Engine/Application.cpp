@@ -2,7 +2,7 @@
 
 #include "Storm/Engine/Application.h"
 #include "Fog/Debug.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "Fog/Src/ErrorManager.h"
 

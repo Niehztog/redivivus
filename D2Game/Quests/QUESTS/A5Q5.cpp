@@ -2,6 +2,7 @@
 
 #include "D2Game/Quests/QUESTS/A5Q5.h"
 #include "D2Client/D2ClientStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/SKILLS/SkillsPal.h"
 #include "D2Client/UI/SkillDesc.h"
 #include "D2Client/UNIT/Monster.h"
@@ -52,8 +53,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/D2GossipTextStrc.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Client/UI/QuestLog.h"

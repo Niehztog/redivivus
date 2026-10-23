@@ -2,6 +2,7 @@
 
 #include "D2Game/Quests/QUESTS/A4Q2.h"
 #include "D2Client/D2ClientStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/Units.h"
 #include "D2Common/Collision.h"
 #include "D2Common/D2BitBufferStrc.h"
@@ -45,8 +46,7 @@
 #include "Fog/Debug.h"
 #include "Fog/Memory.h"
 #include "Fog/SMem.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/D2GossipTextStrc.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Client/UI/QuestLog.h"

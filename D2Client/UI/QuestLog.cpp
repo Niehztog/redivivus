@@ -6,7 +6,7 @@
 #include "D2Client/D2Client.h"
 #include "D2Client/D2ClientStrc.h"
 #include "D2Client/Engine/Gfx.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Msg.h"
 #include "D2Client/GAME/SCmd.h"
 #include "D2Client/Sound/Sound.h"
@@ -52,7 +52,7 @@
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/H/Storm.h"
 #include "Storm/Source/SReg.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Launch/MainMenus.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

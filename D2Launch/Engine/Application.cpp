@@ -3,7 +3,7 @@
 #include "D2Launch/Engine/Application.h"
 #include "Fog/Debug.h"
 #include "Storm/Source/SReg.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

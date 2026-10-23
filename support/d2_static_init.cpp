@@ -18,7 +18,7 @@
 
 #include <windows.h>
 
-#include "globals.h"
+#include "globals/globals.h"
 #include "support/d2_trace.h"
 #include "D2Net/SRP.h"
 #include "Fog/Src/LogManager.h"

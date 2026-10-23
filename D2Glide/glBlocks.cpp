@@ -16,7 +16,7 @@
 #include "Fog/Source/SFile.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/Source/SFile.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

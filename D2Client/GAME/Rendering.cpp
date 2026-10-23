@@ -3,12 +3,12 @@
 #include "D2Client/GAME/Rendering.h"
 #include "D2CMP/SRC/SpriteCache.h"
 #include "D2Client/Engine/Gfx.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/Sound/SoundHdr.h"
 #include "D2gfx/D2GFX.h"
 #include "Fog/Fog.h"
 #include "Fog/SMem.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Panel.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

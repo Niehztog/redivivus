@@ -9,7 +9,12 @@
 #include "d2_platform.h"
 
 // Forward declarations
+struct D2IniConfigStrc;
 struct D2WinTextBox;
+#ifndef RECON_FPTD_fnAppModeRun
+#define RECON_FPTD_fnAppModeRun
+typedef int32_t (__fastcall *fnAppModeRun)(struct D2IniConfigStrc * pD2IniConfig);
+#endif
 
 // Data types
 struct D2UiLevelLineTextStrc {
@@ -20,6 +25,11 @@ struct D2UiLevelLineTextStrc {
 namespace D2Multi::Launcher {
 
 // Function declarations
+// App mode multiplayer init: stash module handle and return pointer to fAPPMODE_multiplayer_ReturnAppMode_Caller.
+fnAppModeRun * __fastcall AppModeMultiplayerInit(HMODULE hModule);
+// Multiplayer app mode shutdown (no-op).
+void __stdcall AppModeMultiplayerShutdown();
+void __fastcall LAUNCHER_StringManipUtility(char * szText, char cSeparator, int32_t bFindLast);
 // Loads all predefined DC6 image resources for the Battle.net launcher UI. Constructs resource paths using sprintf into a reusable buffer, then loads each DC6 file via IMAGE_LoadDC6 and stores the pointers in global variables (PTR_0077bc*). Resources include popup backgrounds, buttons, tabs for each character class, scrollbars, and selection/squelch auras.
 void __stdcall IMAGE_LoadPredefinedImagesExEx();
 void __stdcall LAUNCHER_FreeLauncherImages();

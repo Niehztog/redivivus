@@ -11,7 +11,7 @@
 #include "D2Common/Drlg/OutPlace.h"
 #include "D2Common/Drlg/Outdoors.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

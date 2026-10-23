@@ -2,6 +2,7 @@
 
 #include "D2Common/Drlg/OutPlace.h"
 #include "D2CMP/SRC/TileProjects.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/UI/SkillDesc.h"
 #include "D2Common/D2RoomExStrc.h"
 #include "D2Common/D2RoomStrc.h"
@@ -28,8 +29,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Unit/D2UnitStrc.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

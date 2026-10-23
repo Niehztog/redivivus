@@ -5,7 +5,7 @@
 #include "D2Client/Renderer/Glide.h"
 #include "D2Direct3D/Renderer/Direct3D.h"
 #include "D2Glide/Renderer/Glide.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2CMP/tagPALETTEENTRY.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -19,7 +19,7 @@ typedef HRESULT (__stdcall *DDS_Flip)(void * This, void * lpDDSurfaceTargetOverr
 namespace D2Client::Renderer {
 
 BOOL CheckCutScene() {
-    return Global::g_bCutscenePlaying;
+    return D2Direct3D::Renderer::g_bCutscenePlaying;
 }
 
 void __fastcall UpdateScaleFactor(int nScaleFactor) {
@@ -27,7 +27,7 @@ void __fastcall UpdateScaleFactor(int nScaleFactor) {
 }
 
 int CheckGamma() {
-    return Global::gnD3DTextureCapFlags & 0x10;
+    return D2Direct3D::Renderer::gnD3DTextureCapFlags & 0x10;
 }
 
 BOOL EndScene2() {

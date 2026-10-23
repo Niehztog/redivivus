@@ -8,7 +8,7 @@
 #include "Storm/SMem.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/Source/SSystem.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/BNGatewayAccess.h"
 #include "D2Client/WindowHandle.h"
 

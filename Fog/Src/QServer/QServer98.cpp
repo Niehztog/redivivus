@@ -9,7 +9,7 @@
 #include "Fog/Src/LogManager.h"
 #include "Fog/Src/QServer/QServer.h"
 #include "Fog/Src/Safesock.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "D2Net/in_addr.h"
 #include "Fog/QServer.h"

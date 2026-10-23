@@ -12,6 +12,7 @@
 #include "D2Client/UNIT/Player.h"
 #include "D2Client/UNIT/PlayerList.h"
 #include "D2Common/Chat/Ignorelist.h"
+#include "D2Common/Chat/Ignorelist/IgnoreList.h"
 #include "D2Common/D2BitBufferStrc.h"
 #include "D2Common/D2InventoryStrc.h"
 #include "D2Common/D2SeedStrc.h"
@@ -30,8 +31,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "IgnoreList/IgnoreList.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Drlg/Drlg.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

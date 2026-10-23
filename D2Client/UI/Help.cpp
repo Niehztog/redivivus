@@ -3,7 +3,7 @@
 #include "D2Client/UI/Help.h"
 #include "D2Client/Core/Archive.h"
 #include "D2Client/Engine/GfxInfo.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/UI/CmdTbl.h"
 #include "D2Client/UI/Draw.h"
 #include "D2Client/UI/Inv.h"
@@ -18,7 +18,7 @@
 #include "D2gfx/D2GFX.h"
 #include "Storm/H/Storm.h"
 #include "Storm/Source/SReg.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Gdi/Renderer/Windowed.h"
 #include "D2Launch/MainMenus.h"
 

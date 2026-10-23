@@ -2,7 +2,7 @@
 
 #include "D2Client/GAME/Sound.h"
 #include "D2Client/DataTbls.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/Sound/Sound.h"
 #include "D2Client/Sound/SoundHdr.h"
 #include "D2Client/Utils.h"
@@ -25,7 +25,7 @@
 #include "Storm/D2ArchiveStrc.h"
 #include "Storm/D2MPQFileStrc.h"
 #include "Storm/Source/SFile.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

@@ -8,7 +8,7 @@
 #include "Storm/Source/SFile.h"
 #include "Storm/Source/SSComp.h"
 #include "Storm/Source/SSystem.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -392,6 +392,15 @@ void __stdcall SLogSetTimestamp(uint32_t nHandle, uint32_t bTimestamps) {
 int __stdcall SMsgBreakHandlerChain(void * pUnderMouse) {
     int iVar1 = Source::SEVT::SEvtBreakHandlerChain(pUnderMouse);
     return iVar1;
+}
+
+void StaticFini_Empty_6cb400() {
+
+}
+
+void StaticFini_gFaultHandlerList() {
+    Source::SSystem::LINKEDLIST_FreeNode(&gFaultHandlerList);
+    Source::SSystem::LINKEDLIST_UnlinkNodeSelf(&gFaultHandlerList.head);
 }
 
 } // namespace Storm

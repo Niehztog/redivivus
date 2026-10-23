@@ -245,5 +245,6 @@ void PKWARE_CopyMemoryValue(uint32_t * pdwParam1, uint32_t * pdwParam2, uint32_t
 void PKWARE_SetByteValue(uint32_t * pnParam, uint8_t bParam, uint32_t nParam);
 void PKWARE_ProcessBuffer(struct TCmpStruct * nParam);
 void PKWARE_CopyBufferData(struct TCmpStruct * nParam, uint8_t * pbStart, uint8_t * pbEnd);
+void StaticFini_CriticalSection_00779214();
 
 } // namespace Storm::Source::SSComp

@@ -11,10 +11,19 @@
 // Forward declarations
 struct D2ControlMsg;
 struct D2ControlStrc;
+struct D2IniConfigStrc;
+#ifndef RECON_FPTD_fnAppModeRun
+#define RECON_FPTD_fnAppModeRun
+typedef int32_t (__fastcall *fnAppModeRun)(struct D2IniConfigStrc * pD2IniConfig);
+#endif
 
 namespace D2Launch {
 
 // Function declarations
+// App mode launcher init: stash module handle and return pointer to fAPPMODE_launcher_ReturnAppMode_Caller.
+fnAppModeRun * __fastcall AppModeLauncherInit(HMODULE hModule);
+// Launcher app mode shutdown (no-op).
+void __stdcall AppModeLauncherShutdown();
 uint32_t MAINMENU_ShowBnetConnectionError();
 BOOL __stdcall UIMENU_ToggleHardcoreMode(struct D2ControlMsg * pControlMsg);
 BOOL __stdcall UIMENU_TCPIPAddressInput(struct D2ControlMsg * pControlMsg);

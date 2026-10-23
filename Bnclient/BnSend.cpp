@@ -10,6 +10,7 @@
 #include "Bnclient/net_sid.h"
 #include "D2Client/D2BNetGatewayAccessStr.h"
 #include "D2Common/Chat/Ignorelist.h"
+#include "D2Common/Chat/Ignorelist/IgnoreList.h"
 #include "D2Net/Game/Server.h"
 #include "D2Net/sockaddr.h"
 #include "Fog/D2QSSocketStrc.h"
@@ -19,7 +20,6 @@
 #include "Fog/Source/SSignature.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Fog/Src/Safesock.h"
-#include "IgnoreList/IgnoreList.h"
 #include "Storm/D2SHA1.h"
 #include "Storm/SMem.h"
 #include "Storm/Source/SReg.h"
@@ -28,7 +28,7 @@
 #include "Storm/Source/SSystem.h"
 #include "Storm/_unnamespaced.h"
 #include "compiler/compiler.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Chat.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "D2Net/in_addr.h"
@@ -3481,6 +3481,14 @@ void __fastcall NET_SID_CLIENT_Send_0x33_GetFileTime(char * szText, uint32_t dwR
     uint32_t nTextLen = Storm::Source::SSTR::SStrCopy(&__frame1.szTextBuf, szText, 0x104);
     NET_SID_CLIENT_Send(0x33, (char*)&__frame0.dwFileTimeParam, (size_t)(__frame1.auStack_10b + (nTextLen - (uintptr_t)&__frame0.dwFileTimeParam)));
     Fog::Debug::GuardStack();
+}
+
+void StaticFini_gpBNetNewsCache() {
+    if (!gpBNetNewsCache) {
+      return;
+    }
+
+    Storm::SMem::SMemFree(gpBNetNewsCache, s___AUItem_NewsTable___0072ff8c, -2, 0);
 }
 
 } // namespace Bnclient::BnSend

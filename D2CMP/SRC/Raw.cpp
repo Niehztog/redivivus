@@ -3,7 +3,7 @@
 #include "D2CMP/SRC/Raw.h"
 #include "D2CMP/SRC/CelCmp.h"
 #include "Fog/Memory.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

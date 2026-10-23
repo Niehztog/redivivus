@@ -11,7 +11,7 @@
 #include "D2Common/Drlg/Preset.h"
 #include "Fog/D2MemoryManagerStrc.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Drlg/D2DrlgStrc.h"
 #include "Fog/D2PoolManagerStrc.h"
 

@@ -41,7 +41,7 @@
 #include "Storm/D2MPQFileStrc.h"
 #include "Storm/Source/SFile.h"
 #include "Storm/Source/SReg.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UNIT/UnitSnd.h"
 #include "D2Common/Drlg/Drlg.h"
 

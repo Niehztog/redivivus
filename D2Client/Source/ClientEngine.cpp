@@ -57,7 +57,7 @@
 #include "Fog/Src/ErrorManager.h"
 #include "Fog/Src/LogManager.h"
 #include "Fog/Src/QServer/QServer.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Common/Drlg/Drlg.h"
 #include "D2Common/Unit/Unit.h"

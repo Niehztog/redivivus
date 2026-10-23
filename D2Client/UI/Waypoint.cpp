@@ -4,7 +4,7 @@
 #include "D2Client/UI/Waypoint.h"
 #include "D2Client/Core/Archive.h"
 #include "D2Client/D2ClientStrc.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Msg.h"
 #include "D2Client/Sound/Sound.h"
 #include "D2Client/UI/Draw.h"
@@ -40,7 +40,7 @@
 #include "Fog/Fog.h"
 #include "Fog/Memory.h"
 #include "Storm/H/Storm.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/QuestLog.h"
 #include "D2Launch/MainMenus.h"
 

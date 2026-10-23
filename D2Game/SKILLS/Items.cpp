@@ -2,6 +2,7 @@
 
 #include "D2Game/SKILLS/Items.h"
 #include "D2Client/Archive.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/SKILLS/SkillsPal.h"
 #include "D2Client/Seed.h"
 #include "D2Client/UI/SkillDesc.h"
@@ -34,8 +35,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Debug.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Monster/AI/AI.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "D2Game/SKILLS/SkillAss.h"

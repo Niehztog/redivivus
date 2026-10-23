@@ -8,7 +8,7 @@
 #include "Storm/Source/SEVT.h"
 #include "Storm/Source/SErr.h"
 #include "Storm/Source/SFile.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Launch/MainMenus.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -565,6 +565,25 @@ int32_t __fastcall WND_EntryArray_AllocOrReuse(int32_t pThis, int32_t pReuseEntr
     int nIndex = *(int*)(pThis + 0x140);
     *(int*)(pThis + 0x140) = nIndex + 1;
     return pThis + nIndex * 0x14;
+}
+
+// Runs at exit: removes every element from the tracked window list, then unlinks the list head itself.
+void StaticFini_gWndTrackingList() {
+    uint32_t* puVar1;
+    WND_RemoveAllChildren(&gpWndTrackingListHead);
+    if (!gpWndTrackingListHead.pPrevLink) {
+      return;
+    }
+    if (gpWndTrackingListHead.pNext < 0) {
+      puVar1 = (uint32_t*)~gpWndTrackingListHead.pNext;
+    } else {
+      puVar1 = (uint32_t*)(gpWndTrackingListHead.pNext + ((int)((char*)&gpWndTrackingListHead + 4) - gpWndTrackingListHead.pPrevLink->pNext));
+    }
+
+    *puVar1 = (uint32_t)(uintptr_t)gpWndTrackingListHead.pPrevLink;
+    gpWndTrackingListHead.pPrevLink->pNext = gpWndTrackingListHead.pNext;
+    gpWndTrackingListHead.pPrevLink = 0;
+    gpWndTrackingListHead.pNext = 0;
 }
 
 } // namespace Storm::WindowHandle

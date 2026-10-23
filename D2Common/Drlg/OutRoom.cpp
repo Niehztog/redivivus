@@ -12,7 +12,7 @@
 #include "D2Common/Drlg/Preset.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Drlg/D2DrlgStrc.h"
 #include "D2Common/Drlg/D2DrlgVertexStrc.h"
 

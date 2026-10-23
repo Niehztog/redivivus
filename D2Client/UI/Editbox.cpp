@@ -2,7 +2,7 @@
 
 #include "D2Client/UI/Editbox.h"
 #include "Fog/Debug.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 
 namespace D2Client::UI::Editbox {

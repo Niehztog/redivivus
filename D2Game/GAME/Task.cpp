@@ -2,6 +2,7 @@
 
 #include "D2Game/GAME/Task.h"
 #include "D2Client/D2ClientStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Common/D2RoomStrc.h"
 #include "D2Common/Drlg/D2DrlgActStrc.h"
 #include "D2Common/Unit/D2UnitStrc.h"
@@ -15,9 +16,9 @@
 #include "Fog/SMem.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Fog/Src/LogManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
+#include "Fog/Fog.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -551,6 +552,14 @@ BOOL __stdcall TASK_ReturnTrue() {
 
 void __stdcall TASK_Nop() {
 
+}
+
+void StaticFini_CriticalSection_0088caa8() {
+    DeleteCriticalSection(&lpCriticalSection_0088caa8);
+}
+
+void StaticFini_aTaskQueueCriticalSections() {
+    _eh_vector_destructor_iterator_(aTaskQueueCriticalSections, 0x18, 0x20, Fog::THREADING_DeleteCriticalSection_Thunk);
 }
 
 } // namespace D2Game::GAME::Task

@@ -7,7 +7,7 @@
 #include "D2Client/DataTbls.h"
 #include "D2Client/DataTbls/MonsterTbls.h"
 #include "D2Client/Engine/GfxInfo.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Msg.h"
 #include "D2Client/GAME/PalShift.h"
 #include "D2Client/GAME/Roster.h"
@@ -88,13 +88,13 @@
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/H/Storm.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Client/UI/MiniPanel.h"
 #include "D2Client/UI/QuestLog.h"
 #include "D2Common/Unit/Unit.h"
 #include "D2Game/Monster/AI/AI.h"
-#include "SGAMEDATA/SGAMEDATA.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

@@ -100,5 +100,7 @@ int32_t __stdcall SLogSetIndent(uint32_t nHandle, int32_t nDelta);
 void __stdcall SLogSetTimestamp(uint32_t nHandle, uint32_t bTimestamps);
 // @blizzard SMsgBreakHandlerChain (SMSG.CPP)
 int __stdcall SMsgBreakHandlerChain(void * pUnderMouse);
+void StaticFini_Empty_6cb400();
+void StaticFini_gFaultHandlerList();
 
 } // namespace Storm

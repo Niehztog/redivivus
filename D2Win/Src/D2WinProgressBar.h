@@ -11,11 +11,11 @@
 // Forward declarations
 struct D2WinProgressBar;
 
-namespace D2Win::Src {
+namespace D2Win::Src::D2WinProgressBar {
 
 // Function declarations
 void __fastcall FORMS_DestroyD2WinProgressBar(::D2WinProgressBar * pProgressBar);
 BOOL __fastcall Draw(::D2WinProgressBar * pProgressBar);
 ::D2WinProgressBar * __fastcall D2WinProgressBar(int32_t dwPosX, int32_t dwPosY, int32_t dwSizeX, int32_t dwSizeY);
 
-} // namespace D2Win::Src
+} // namespace D2Win::Src::D2WinProgressBar

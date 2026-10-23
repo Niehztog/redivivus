@@ -4,6 +4,7 @@
 #include "D2Client/D2ClientStrc.h"
 #include "D2Client/D2GSPacketSrv0x27.h"
 #include "D2Client/DataTbls/MonsterTbls.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/GAME/SCmd.h"
 #include "D2Client/SKILLS/SkillsPal.h"
 #include "D2Client/UI/SkillDesc.h"
@@ -55,8 +56,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Game/SKILLS/SkillAss.h"
 

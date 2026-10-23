@@ -28,7 +28,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Drlg/D2DrlgRoomCoordsStrc.h"
 #include "D2Game/Monster/AI/AI.h"
 

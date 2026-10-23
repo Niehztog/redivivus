@@ -6,7 +6,7 @@
 #include "Fog/Memory.h"
 #include "Fog/SMem.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "D2Net/in_addr.h"
 #include "D2Net/sockaddr.h"

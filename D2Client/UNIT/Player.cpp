@@ -11,7 +11,7 @@
 #include "D2Client/Engine.h"
 #include "D2Client/Engine/Gfx.h"
 #include "D2Client/Engine/GfxInfo.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Msg.h"
 #include "D2Client/GAME/RosterPets.h"
 #include "D2Client/GAME/SCmd.h"
@@ -76,7 +76,8 @@
 #include "D2Game/UNIT/SUnitMsg.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Common/Drlg/D2DrlgRoomCoordsStrc.h"
 #include "D2Common/Drlg/Drlg.h"
@@ -85,7 +86,6 @@
 #include "D2Game/Monster/AI/AI.h"
 #include "D2Game/SKILLS/SkillAss.h"
 #include "D2Launch/CharSel.h"
-#include "SGAMEDATA/SGAMEDATA.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

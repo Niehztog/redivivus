@@ -18,7 +18,7 @@
 #include "Fog/Src/Safesock.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/Net/MCP.h"
 #include "D2Launch/MainMenus.h"
 #include "D2Net/in_addr.h"

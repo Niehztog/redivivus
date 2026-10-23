@@ -7,7 +7,7 @@
 #include "D2Client/D2RosterStrc.h"
 #include "D2Client/D2UiPartyStrc.h"
 #include "D2Client/Engine/GfxInfo.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Roster.h"
 #include "D2Client/UI/Draw.h"
 #include "D2Client/UI/Inv.h"
@@ -40,7 +40,7 @@
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/H/Storm.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/D2IniConfigStrc.h"
 #include "D2Common/Drlg/Drlg.h"
 

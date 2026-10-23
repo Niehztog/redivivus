@@ -18,7 +18,7 @@
 #include "Fog/Src/D2Net.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/Source/SReg.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/Engine.h"
 #include "support/d2_trace.h"
 #include "D2Client/UI/Panel.h"

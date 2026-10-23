@@ -17,7 +17,7 @@
 #include "D2Lang/Unicode/UNISYS.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "Bnclient/BNGatewayAccess.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

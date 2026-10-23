@@ -2,7 +2,7 @@
 
 #include "D2Client/GAME/PalShift.h"
 #include "D2Client/DataTbls/MonsterTbls.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/SCmd.h"
 #include "D2Client/SKILLS/SkillsPal.h"
 #include "D2Client/UI/SkillDesc.h"
@@ -29,7 +29,7 @@
 #include "Storm/D2MPQFileStrc.h"
 #include "Storm/Source/SFile.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

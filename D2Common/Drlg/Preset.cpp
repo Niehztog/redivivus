@@ -6,6 +6,7 @@
 #include "D2CMP/SRC/TileProjects.h"
 #include "D2Client/Archive.h"
 #include "D2Client/DataTbls.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/SKILLS/SkillsPal.h"
 #include "D2Client/UI/SkillDesc.h"
 #include "D2Client/UNIT/Monster.h"
@@ -55,13 +56,12 @@
 #include "Fog/Memory.h"
 #include "Fog/SMem.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
 #include "Storm/D2ArchiveStrc.h"
 #include "Storm/D2MPQFileStrc.h"
 #include "Storm/Source/SFile.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -2267,6 +2267,10 @@ void __stdcall CreatesPresets(D2DrlgTileDataStrc * pTileData, D2RoomExStrc * pRo
     if (pPresetUnit) {
       pPresetUnit[5] |= 0x20;
     }
+}
+
+void StaticFini_CriticalSection_0096d610() {
+    DeleteCriticalSection(&lpCriticalSection_0096d610);
 }
 
 } // namespace D2Common::Drlg::Preset

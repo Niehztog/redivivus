@@ -12,7 +12,7 @@
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/D2MPQFileStrc.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Monster/AI/AI.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

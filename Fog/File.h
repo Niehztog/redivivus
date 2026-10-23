@@ -30,6 +30,13 @@ typedef CONTEXT * PCONTEXT;
 
 typedef EXCEPTION_RECORD * PEXCEPTION_RECORD;
 
+struct _PROCESS_INFORMATION {
+    /* 0x00 */ HANDLE hProcess;
+    /* 0x04 */ HANDLE hThread;
+    /* 0x08 */ DWORD dwProcessId;
+    /* 0x0C */ DWORD dwThreadId;
+};
+
 struct _STARTUPINFOW {
     /* 0x00 */ DWORD cb;
     /* 0x04 */ LPWSTR lpReserved;

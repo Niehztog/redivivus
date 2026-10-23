@@ -6,7 +6,7 @@
 #include "Fog/Debug.h"
 #include "Storm/SMem.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -731,6 +731,10 @@ BOOL __fastcall CACHE_WriteData(char * szCacheKey, LPCVOID pDataToWrite, uint32_
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00881894);
     Fog::Debug::GuardStack();
     return (uint32_t)!nRebuildReason;
+}
+
+void StaticFini_CriticalSection_00881894() {
+    /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&lpCriticalSection_00881894);
 }
 
 } // namespace Bnclient::Cache

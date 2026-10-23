@@ -167,5 +167,6 @@ void __fastcall BNSEND_HashCDKeyByType(struct D2CDKeyHashStrc * pOutHash, uint32
 void __fastcall BNSEND_SendRawBytes(void * pBytes, size_t nSize);
 void __fastcall BNSEND_SendString(char * szString);
 void __fastcall NET_SID_CLIENT_Send_0x33_GetFileTime(char * szText, uint32_t dwRequestId);
+void StaticFini_gpBNetNewsCache();
 
 } // namespace Bnclient::BnSend

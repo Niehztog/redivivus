@@ -2,6 +2,7 @@
 
 #include "D2Game/GAME/Level.h"
 #include "D2Client/D2ClientStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/Units.h"
 #include "D2Common/Collision.h"
 #include "D2Common/D2InventoryStrc.h"
@@ -36,8 +37,7 @@
 #include "D2Game/UNIT/sunitproxy.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/D2DynamicPathStrc.h"
 #include "D2Common/D2SeedStrc.h"
 

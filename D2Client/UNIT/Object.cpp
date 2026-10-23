@@ -53,7 +53,7 @@
 #include "Fog/SMem.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Client/UNIT/Missile.h"
 #include "D2Common/D2SeedStrc.h"

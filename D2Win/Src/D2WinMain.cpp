@@ -36,7 +36,7 @@
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/H/Storm.h"
 #include "Storm/WindowHandle.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "support/d2_control.h"
 #include "D2Client/UI/Panel.h"
 #include "D2Game/D2QuestDataStrc.h"
@@ -45,6 +45,7 @@
 #include "D2Win/D2WinImage.h"
 #include "D2Win/D2WinImageEx.h"
 #include "D2Win/D2WinList.h"
+#include "D2Win/D2WinPopup.h"
 #include "D2Win/D2WinProgressBar.h"
 #include "D2Win/D2WinScrollbar.h"
 #include "D2Win/D2WinTimer.h"
@@ -275,7 +276,7 @@ D2ControlStrc * __stdcall FORMS_CreateAnyForm(FORMS_PredefinedFormStrc * pForm) 
         pSmack = D2WinSmack::D2WinSmack(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pForm->fpOnPressCallback);
       return (D2ControlStrc*)pSmack;
       case FORM_ProgressBar:
-        pProgressBar = D2WinProgressBar(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3]);
+        pProgressBar = D2WinProgressBar::D2WinProgressBar(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3]);
       return &pProgressBar->sControl;
       case FORM_AccountList:
         pAccountList = D2WinAccountList::D2WinAccountList(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pForm->nFlagsOrType, (uint32_t*)pForm->pTypeArg2);
@@ -337,7 +338,7 @@ void __stdcall FORMS_DestroyAnyForm(D2ControlStrc * * pForm) {
       *pForm = 0;
       return;
       case FORM_ProgressBar:
-        FORMS_DestroyD2WinProgressBar((::D2WinProgressBar*)pWinEditBox_00);
+        D2WinProgressBar::FORMS_DestroyD2WinProgressBar((::D2WinProgressBar*)pWinEditBox_00);
       *pForm = 0;
       return;
       case FORM_AccountList:
@@ -1033,7 +1034,7 @@ void __stdcall INPUT_FormMouseWheel(D2UIMouseMsgStrc * pMsg) {
     int nWheelDelta;
     nWheelDelta = (int)*(short int*)((uintptr_t)&pMsg->nWParam + 2) / 0x78;
     BOOL bHandled;
-    bHandled = D2WINPOPUP_IsActiveAndVisible();
+    bHandled = D2WinPopup::D2WINPOPUP_IsActiveAndVisible();
     if (bHandled) {
       return;
     }
@@ -1327,10 +1328,10 @@ void __stdcall INPUT_FormMouseHandler(D2UIMouseMsgStrc * pMsg) {
     int iVar1;
     MOUSE_CaptureMousePosition(&pMsg->hWnd);
     BOOL bHandled;
-    bHandled = D2WINPOPUP_IsActiveAndVisible();
+    bHandled = D2WinPopup::D2WINPOPUP_IsActiveAndVisible();
     if (bHandled) {
-      bHandled = D2WINPOPUP_HandleClick(pMsg);
-      D2WINPOPUP_Destroy();
+      bHandled = D2WinPopup::D2WINPOPUP_HandleClick(pMsg);
+      D2WinPopup::D2WINPOPUP_Destroy();
       if (bHandled) {
         return;
       }

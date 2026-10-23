@@ -15,7 +15,7 @@
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
 #include "compiler/compiler.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -1965,6 +1965,14 @@ void __stdcall LOGMGR_InitMessageQueue() {
     uint32_t dwSEHTryLevel = -1;
     atexit(StaticFini_gLogMessageQueueHead);
     ExceptionList = pPrevExceptionList;
+}
+
+void StaticFini_gLogMessageQueueCS() {
+    DeleteCriticalSection(&gLogMessageQueueCS);
+}
+
+void StaticFini_gLogFileCS() {
+    DeleteCriticalSection(&gLogFileCS);
 }
 
 // Runs at exit: removes every element still on the log message queue gLogMessageQueueHead, then unlinks the list head itself.

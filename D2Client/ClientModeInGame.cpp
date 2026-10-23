@@ -3,7 +3,7 @@
 #include "D2Client/ClientModeInGame.h"
 #include "D2Client/D2GFX.h"
 #include "D2Client/D2IniConfigStrc.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Record.h"
 #include "D2Client/GAME/SCmd.h"
 #include "D2Client/Lng.h"
@@ -32,7 +32,7 @@
 #include "Storm/Source/SCMD.h"
 #include "Storm/Source/SReg.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/Engine.h"
 #include "Fog/D2QServerStrc.h"
 

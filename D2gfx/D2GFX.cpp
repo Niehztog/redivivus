@@ -23,7 +23,7 @@
 #include "Fog/Src/LogManager.h"
 #include "Storm/Source/SReg.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Panel.h"
 #include "D2Win/Src/D2WinFont.h"
 

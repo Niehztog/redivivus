@@ -2,7 +2,7 @@
 
 #include "D2Multi/OOG.h"
 #include "D2Win/Src/D2WinMain.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

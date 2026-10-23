@@ -9,7 +9,7 @@
 #include "D2Client/D2GSPacketSrv0x91.h"
 #include "D2Client/D2GameViewStrc.h"
 #include "D2Client/Engine/GfxInfo.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Msg.h"
 #include "D2Client/GAME/Select.h"
 #include "D2Client/GAME/Sound.h"
@@ -20,6 +20,7 @@
 #include "D2Client/UI/Draw.h"
 #include "D2Client/UI/Hireables.h"
 #include "D2Client/UI/Inv.h"
+#include "D2Client/UI/ListBox/ListBoxWrapper.h"
 #include "D2Client/UI/SkillDesc.h"
 #include "D2Client/UI/Text.h"
 #include "D2Client/UI/npcmenu/Merc.h"
@@ -57,24 +58,23 @@
 #include "D2Lang/Unicode/UNISYS.h"
 #include "D2Win/DC6.h"
 #include "D2Win/DC6Block.h"
+#include "Fog/3rdparty/crashy/Report.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Debug.h"
 #include "Fog/File.h"
 #include "Fog/Fog.h"
 #include "Fog/SMem.h"
 #include "Fog/Src/ErrorManager.h"
-#include "ListBoxWrapper/ListBoxWrapper.h"
 #include "Storm/SMem.h"
-#include "crashy/Report.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/D2Client.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Client/UI/MiniPanel.h"
 #include "D2Common/Collision.h"
 #include "D2Common/ITEMS/ItemMods.h"
 #include "D2Game/Monster/AI/AI.h"
 #include "D2Launch/MainMenus.h"
-#include "SGAMEDATA/SGAMEDATA.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -3611,7 +3611,7 @@ int __stdcall NPCMENU_BuildMercHireMenu() {
     if (!ppListBox) {
       gpNpcMenuMercListBox = 0;
     } else {
-      gpNpcMenuMercListBox = Class::ListBoxWrapper::Constructor(ppListBox, (ScreenSizeX - 0x1ea) / 2, WindowSizeY / 2 - 0xa0, 0x1ea, 0x118, 6, 0, 1, (fpListBoxItemActivated)Merc::NPCMENU_ShowMercResurrectDialog, false);
+      gpNpcMenuMercListBox = ListBox::ListBoxWrapper::Constructor(ppListBox, (ScreenSizeX - 0x1ea) / 2, WindowSizeY / 2 - 0xa0, 0x1ea, 0x118, 6, 0, 1, (fpListBoxItemActivated)Merc::NPCMENU_ShowMercResurrectDialog, false);
     }
 
     nEHState = -1;

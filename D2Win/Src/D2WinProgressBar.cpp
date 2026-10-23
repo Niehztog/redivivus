@@ -7,10 +7,9 @@
 #include "D2gfx/D2GFX.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/D2ControlStrc.h"
 #include "D2Win/D2WinProgressBar.h"
-#include "D2Win/Src/D2WinPopup.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -20,7 +19,7 @@
 typedef BOOL (__fastcall *Draw)(D2ControlStrc * pControl);
 #endif
 
-namespace D2Win::Src {
+namespace D2Win::Src::D2WinProgressBar {
 
 void __fastcall FORMS_DestroyD2WinProgressBar(::D2WinProgressBar * pProgressBar) {
     D2WinMain::FORMS_DestroyControl(&pProgressBar->sControl);
@@ -63,7 +62,7 @@ BOOL __fastcall Draw(::D2WinProgressBar * pProgressBar) {
     pNewBar->sControl.dwPosY = dwPosY;
     pNewBar->sControl.dwSizeX = dwSizeX;
     pNewBar->sControl.dwSizeY = dwSizeY;
-    pNewBar->sControl.fpDraw = (::Draw)(BOOL (__fastcall *)(::D2WinProgressBar*))Src::Draw;
+    pNewBar->sControl.fpDraw = (::Draw)(BOOL (__fastcall *)(::D2WinProgressBar*))D2WinProgressBar::Draw;
     pNewBar->sControl.pNext = 0;
     pNewBar->sControl.fpPush = 0;
     pNewBar->sControl.fpMouse = 0;
@@ -74,4 +73,4 @@ BOOL __fastcall Draw(::D2WinProgressBar * pProgressBar) {
     return pNewBar;
 }
 
-} // namespace D2Win::Src
+} // namespace D2Win::Src::D2WinProgressBar

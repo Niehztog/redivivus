@@ -10,7 +10,7 @@
 #include "D2Client/DataTbls/MonsterTbls.h"
 #include "D2Common/DATATBLS/MonsterTbls.h"
 #include "D2Client/UNIT/Monster.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Win/Src/D2WinMain.h"
 #include "D2Client/GAME/View.h"
 #include "D2Common/Drlg/D2DrlgFileStrc.h"

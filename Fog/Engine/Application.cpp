@@ -10,22 +10,23 @@
 #include "D2Launch/Engine/Application.h"
 #include "D2Win/DC6.h"
 #include "D2Win/DC6Block.h"
+#include "Fog/3rdparty/crashy.h"
 #include "Fog/Debug.h"
 #include "Fog/Engine/Application/Service.h"
 #include "Fog/Fog.h"
 #include "Fog/Memory.h"
 #include "Fog/Source/SFile.h"
 #include "Fog/Src/ErrorManager.h"
-#include "Fog/System.h"
 #include "Storm/Engine/Application.h"
 #include "Storm/SMem.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
 #include "support/d2_trace.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/ClientModeInGame.h"
 #include "D2Game/Objects/ObjectsRgn.h"
-#include "Game/Launcher.h"
+#include "D2Launch/D2Launch.h"
+#include "D2Multi/Launcher.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -640,7 +641,7 @@ int __stdcall DEBUG_UnwindStackFrames(DWORD dwThreadId, int pFrameArray, uint32_
       __frame0.nFramesWritten = 0;
       __frame0.nCurEip = threadContext.Eip;
       __frame0.pCurEsp = (uint32_t*)threadContext.Esp;
-      cVar1 = System::SYSTEM_CaptureThreadContext((int*)&__frame0.pStackTop, dwThreadId, &__frame0.nStackLimit, &pStackBase);
+      cVar1 = _3rdparty::crashy::SYSTEM_CaptureThreadContext((int*)&__frame0.pStackTop, dwThreadId, &__frame0.nStackLimit, &pStackBase);
       hThread = hOpenedThread;
       if (cVar1 != '\0') {
         for (__frame0.nWalkIndex = 0; __frame0.nWalkIndex < 0x80; __frame0.nWalkIndex++) {
@@ -1094,12 +1095,12 @@ int32_t __stdcall ApplicationRunCurrentMode(D2IniConfigStrc * pD2IniData) {
         /* .pfnShutdown = */ nullptr
     },
     {
-        /* .pfnInit = */ &Game::Launcher::AppModeMultiplayerInit,
-        /* .pfnShutdown = */ &Game::Launcher::AppModeMultiplayerShutdown
+        /* .pfnInit = */ &D2Multi::Launcher::AppModeMultiplayerInit,
+        /* .pfnShutdown = */ &D2Multi::Launcher::AppModeMultiplayerShutdown
     },
     {
-        /* .pfnInit = */ &Game::Launcher::AppModeLauncherInit,
-        /* .pfnShutdown = */ &Game::Launcher::AppModeLauncherShutdown
+        /* .pfnInit = */ &D2Launch::AppModeLauncherInit,
+        /* .pfnShutdown = */ &D2Launch::AppModeLauncherShutdown
     },
     {
         /* .pfnInit = */ &D2Client::ClientModeInGame::AppModeClientInit,

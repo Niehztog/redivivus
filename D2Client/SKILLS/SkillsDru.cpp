@@ -26,7 +26,7 @@
 #include "D2Game/UNIT/SUnitDmg.h"
 #include "D2Game/UNIT/SUnitMsg.h"
 #include "Fog/D2PoolManagerStrc.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/SKILLS/SkillsMon.h"
 #include "D2Client/UNIT/Missile.h"
 #include "D2Common/Unit/Unit.h"

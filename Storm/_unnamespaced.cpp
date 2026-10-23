@@ -25,6 +25,7 @@
 #include "D2Win/DC6.h"
 #include "D2Win/DC6Block.h"
 #include "D2gfx/D2GFX.h"
+#include "Fog/3rdparty/crashy/Report.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/D2QSSocketStrc.h"
 #include "Fog/Debug.h"
@@ -39,19 +40,29 @@
 #include "Storm/Source/SReg.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/Source/SSystem.h"
-#include "crashy/Report.h"
-#include "globals.h"
+#include "globals/globals.h"
+#include "Bnclient/BnDownload.h"
+#include "Bnclient/BnSend.h"
 #include "Bnclient/Bnclient.h"
-#include "CELLIST/CELLIST.h"
+#include "Bnclient/Bnet.h"
+#include "Bnclient/Cache.h"
+#include "D2CMP/SRC/CelCmp.h"
+#include "D2CMP/SRC/CelCmp/CELLIST.h"
 #include "D2Client/D2Client.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
+#include "D2Common/Drlg/Preset.h"
+#include "D2Game/GAME/Task.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "D2Launch/MainMenus.h"
 #include "Fog/Fog.h"
 #include "Fog/Src/LogManager.h"
-#include "Global/Global.h"
-#include "SGAMEDATA/SGAMEDATA.h"
 #include "Storm/H/CCritSect.h"
 #include "Storm/H/stpl.h"
+#include "Storm/Source/SCMD.h"
+#include "Storm/Source/SEVT.h"
+#include "Storm/Source/SErr.h"
+#include "Storm/Source/SSComp.h"
+#include "Storm/WindowHandle.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -68,36 +79,6 @@ typedef BOOL (__stdcall *pfnStormErrorHandler)(DWORD dwErrorCode, char * szBuffe
 #define RECON_FPTD_fpD2QSSocketPacketHandler
 typedef int (__stdcall *fpD2QSSocketPacketHandler)(void * pContext);
 #endif
-
-void __fastcall CRT_LocalTime_Thunk(uint8_t * bParam, uint32_t * pnParam) {
-    /* MCP write-path test — safe to delete */ CRT_LocalTime_S((tm*)bParam, pnParam);
-}
-
-bool __stdcall FILETOOLS_GetTempPath_UTF8(char * pSrc) {
-    char* pSrcCur = gszCrashLogTempDir;
-    int nRemainingCapacity = 0x3ff;
-    char* pSrcScan = pSrc;
-    do {
-      char cCh;
-      cCh = *pSrcScan;
-      *pSrcCur = cCh;
-      pSrcCur++;
-      pSrcScan++;
-      if (cCh == '\0') {
-        if (nRemainingCapacity) {
-          return pSrcScan + (-1 - (int)pSrc) < (char*)0x400;
-        }
-
-        break;
-      }
-
-      nRemainingCapacity--;
-    } while (nRemainingCapacity);
-
-    *pSrcCur = '\0';
-    pSrcScan = pSrcScan + strlen(pSrcScan) + 1;
-    return pSrcScan + (-1 - (int)pSrc) < (char*)0x400;
-}
 
 void thunk__strstr(char * szText1, char * szText2) {
     strstr(szText1, szText2);
@@ -655,72 +636,72 @@ _EXCEPTION_DISPOSITION SehHandler_6ca263(EHExceptionRecord * pExceptionRecord, E
 
 void StaticInit_6ca700() {
     InitializeCriticalSection(&gLogMessageQueueCS);
-    atexit(Global::StaticFini_gLogMessageQueueCS);
+    atexit(Fog::Src::LogManager::StaticFini_gLogMessageQueueCS);
 }
 
 void StaticInit_6ca720() {
     InitializeCriticalSection(&gLogFileCS);
-    atexit(Global::StaticFini_gLogFileCS);
+    atexit(Fog::Src::LogManager::StaticFini_gLogFileCS);
 }
 
 void StaticInit_6ca7b0() {
     gMpqArchiveList.pNext = ~(uintptr_t)((char*)&gMpqArchiveList + 4);
-    atexit(Global::StaticFini_gMpqArchiveList);
+    atexit(Storm::Source::SFile::StaticFini_gMpqArchiveList);
 }
 
 void StaticInit_6ca7d0() {
     gSFileAsyncReqQueue.pNext = ~(uintptr_t)((char*)&gSFileAsyncReqQueue + 4);
-    atexit(Global::StaticFini_gSFileAsyncReqQueue);
+    atexit(Storm::Source::SFile::StaticFini_gSFileAsyncReqQueue);
 }
 
 void StaticInit_6ca7f0() {
     InitializeCriticalSection(&lpCriticalSection_00779068);
-    atexit(Global::StaticFini_CriticalSection_00779068);
+    atexit(Storm::Source::SFile::StaticFini_CriticalSection_00779068);
 }
 
 void StaticInit_6ca810() {
     gSFileOpenFileList.pNext = ~(uintptr_t)((char*)&gSFileOpenFileList + 4);
-    atexit(Global::StaticFini_gSFileOpenFileList);
+    atexit(Storm::Source::SFile::StaticFini_gSFileOpenFileList);
 }
 
 void StaticInit_6ca830() {
     gSFileAudioStreamList.pNext = ~(uintptr_t)((char*)&gSFileAudioStreamList + 4);
-    atexit(Global::StaticFini_gSFileAudioStreamList);
+    atexit(Storm::Source::SFile::StaticFini_gSFileAudioStreamList);
 }
 
 void StaticInit_6ca850() {
     gSFileStreamRecordList.pNext = ~(uintptr_t)((char*)&gSFileStreamRecordList + 4);
-    atexit(Global::StaticFini_gSFileStreamRecordList);
+    atexit(Storm::Source::SFile::StaticFini_gSFileStreamRecordList);
 }
 
 void StaticInit_6ca870() {
     InitializeCriticalSection(&lpCriticalSection_00779080);
-    atexit(Global::StaticFini_CriticalSection_00779080);
+    atexit(Storm::Source::SFile::StaticFini_CriticalSection_00779080);
 }
 
 void StaticInit_6ca8a0() {
     gnStormErrorCallbackCount.pNext = ~(uintptr_t)((char*)&gnStormErrorCallbackCount + 4);
-    atexit(Global::StaticFini_gStormErrorCallbackList);
+    atexit(Storm::Source::SErr::StaticFini_gStormErrorCallbackList);
 }
 
 void StaticInit_6ca8c0() {
     InitializeCriticalSection(&lpCriticalSection_00779214);
-    atexit(Global::StaticFini_CriticalSection_00779214);
+    atexit(Storm::Source::SSComp::StaticFini_CriticalSection_00779214);
 }
 
 void StaticInit_6ca8e0() {
     gpWndTrackingListHead.pNext = ~(uintptr_t)((char*)&gpWndTrackingListHead + 4);
-    atexit(Global::StaticFini_gWndTrackingList);
+    atexit(Storm::WindowHandle::StaticFini_gWndTrackingList);
 }
 
 void StaticInit_6ca900() {
     gpSevtBreakCmdListHead.pNext = ~(uintptr_t)((char*)&gpSevtBreakCmdListHead + 4);
-    atexit(Global::StaticFini_gSevtBreakCmdList);
+    atexit(Storm::Source::SEVT::StaticFini_gSevtBreakCmdList);
 }
 
 void StaticInit_6ca920() {
     InitializeCriticalSection(&lpCriticalSection_0077930c);
-    atexit(Global::StaticFini_CriticalSection_0077930c);
+    atexit(Storm::Source::SEVT::StaticFini_CriticalSection_0077930c);
 }
 
 void StaticInit_6ca940() {
@@ -919,7 +900,7 @@ void StaticInit_6cadb0() {
 }
 
 void StaticInit_6cade0() {
-    atexit(Global::StaticFini_Empty_6cb400);
+    atexit(Storm::StaticFini_Empty_6cb400);
 }
 
 void StaticInit_6cadf0() {
@@ -969,26 +950,26 @@ void StaticInit_6cae50() {
 // the ORIGINAL image address. Address-relative, not a constant.
 void StaticInit_gFaultHandlerList() {
     gFaultHandlerList.head.pNext = ~(uintptr_t)((char*)&gFaultHandlerList + 4);
-    atexit(Global::StaticFini_gFaultHandlerList);
+    atexit(Storm::StaticFini_gFaultHandlerList);
 }
 
 void StaticInit_6cae80() {
     InitializeCriticalSection(&lpCriticalSection_00881860);
-    atexit(Global::StaticFini_CriticalSection_00881860);
+    atexit(Bnclient::Bnet::StaticFini_CriticalSection_00881860);
 }
 
 void StaticInit_6caea0() {
     InitializeCriticalSection(&lpCriticalSection_00881894);
-    atexit(Global::StaticFini_CriticalSection_00881894);
+    atexit(Bnclient::Cache::StaticFini_CriticalSection_00881894);
 }
 
 void StaticInit_6caec0() {
-    atexit(Global::StaticFini_gpBNetNewsCache);
+    atexit(Bnclient::BnSend::StaticFini_gpBNetNewsCache);
 }
 
 void StaticInit_6caed0() {
     InitializeCriticalSection(&lpCriticalSection_00881f64);
-    atexit(Global::StaticFini_CriticalSection_00881f64);
+    atexit(Bnclient::BnDownload::StaticFini_CriticalSection_00881f64);
 }
 
 void StaticInit_6caf10() {
@@ -1008,12 +989,12 @@ void StaticInit_6caf60() {
 
 void StaticInit_6caf70() {
     InitializeCriticalSection(&lpCriticalSection_0088caa8);
-    atexit(Global::StaticFini_CriticalSection_0088caa8);
+    atexit(D2Game::GAME::Task::StaticFini_CriticalSection_0088caa8);
 }
 
 void StaticInit_6caf90() {
     _eh_vector_constructor_iterator_(aTaskQueueCriticalSections, 0x18, 0x20, Fog::Src::LogManager::InitCriticalSection, Fog::THREADING_DeleteCriticalSection_Thunk);
-    atexit(Global::StaticFini_aTaskQueueCriticalSections);
+    atexit(D2Game::GAME::Task::StaticFini_aTaskQueueCriticalSections);
 }
 
 void StaticInit_6cafc0() {
@@ -1022,22 +1003,22 @@ void StaticInit_6cafc0() {
     gCelCmpCacheHandler.bWrapped = 0;
     gCelCmpCacheHandler.pVtable = (TSHashTable<::CELLIST, HASHKEY_NONE>::Vtable*)(void*)TSExportTableSync<::CELLIST, HCELLIST__*, HLOCKEDCELLIST__*, CCritSect, 0>::vftable;
     InitializeCriticalSection(&gCelCmpCacheHandler.tSync.m_critsect);
-    atexit(Global::StaticFini_gCelCmpCacheHandler);
+    atexit(D2CMP::SRC::CelCmp::StaticFini_gCelCmpCacheHandler);
 }
 
 void StaticInit_6cb010() {
     InitializeCriticalSection(&lpCriticalSection_0096d610);
-    atexit(Global::StaticFini_CriticalSection_0096d610);
+    atexit(D2Common::Drlg::Preset::StaticFini_CriticalSection_0096d610);
 }
 
 void StaticInit_6cb030() {
     gStormCmdListHeadBackslash.pNext = ~(uintptr_t)((char*)&gStormCmdListHeadBackslash + 4);
-    atexit(Global::StaticFini_gStormCmdListBackslash);
+    atexit(Storm::Source::StaticFini_gStormCmdListBackslash);
 }
 
 void StaticInit_6cb050() {
     gStormCmdListHeadSlash.pNext = ~(uintptr_t)((char*)&gStormCmdListHeadSlash + 4);
-    atexit(Global::StaticFini_gStormCmdListSlash);
+    atexit(Storm::Source::StaticFini_gStormCmdListSlash);
 }
 
 void QSERVER_DestroyGlobalGameState() {

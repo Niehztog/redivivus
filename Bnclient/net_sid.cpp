@@ -25,7 +25,7 @@
 #include "Storm/Source/SSystem.h"
 #include "Storm/_unnamespaced.h"
 #include "compiler/compiler.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Chat.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "D2Net/sockaddr.h"

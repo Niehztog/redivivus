@@ -32,7 +32,7 @@
 #include "Storm/Source/SFile.h"
 #include "Storm/Source/SReg.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "Bnclient/BNGatewayAccess.h"
 #include "Fog/Debug.h"
 #include "Fog/Engine/Application.h"
@@ -607,7 +607,7 @@ void __stdcall RENDERER_D3D_AllocateTextureCaches() {
     g_nBytesPerPixel = 2;
     g_bSupportsTextureCachingInternal = 0;
     uint32_t uSmallCacheAlloc = g_nVideoMemoryTotal;
-    if (!(Global::gnD3DTextureCapFlags & 2) || 0xcfffff < g_nVideoMemoryTotal) {
+    if (!(gnD3DTextureCapFlags & 2) || 0xcfffff < g_nVideoMemoryTotal) {
       if (0x1ffffff < g_nVideoMemoryTotal) {
         uSmallCacheAlloc = 0x2000000;
       }
@@ -629,7 +629,7 @@ void __stdcall RENDERER_D3D_AllocateTextureCaches() {
       uSubtileCacheAlloc = (uint32_t)((uint64_t)((uSmallCacheAlloc - nSmackerBase) * 0x50) * 0x51eb851f >> 0x20);
     } else {
       uint32_t uVideoMemBudget;
-      if (!(Global::gnD3DTextureCapFlags & 0x40)) {
+      if (!(gnD3DTextureCapFlags & 0x40)) {
         gnD3DTextureCacheBlockSize = 0x100;
         gnD3DTextureCacheCount = 0x80;
       } else {
@@ -745,8 +745,8 @@ BOOL __stdcall RENDERER_D3D_InitializeCutsceneMode() {
     RENDERER_nWindowWidth = 0x280;
     RENDERER_nWindowHeight = 0x1e0;
     uint32_t nBitsPerPixel = 0x10;
-    if (!(Global::gnD3DTextureCapFlags & 0x80)) {
-      if (Global::gnD3DTextureCapFlags & 0x100) {
+    if (!(gnD3DTextureCapFlags & 0x80)) {
+      if (gnD3DTextureCapFlags & 0x100) {
         nBitsPerPixel = 0x18;
       }
     } else {
@@ -780,7 +780,7 @@ BOOL __stdcall BeginCutScene() {
     if (gnRenderState) {
       return 0;
     }
-    if (!(Global::gnD3DTextureCapFlags & 0x80) && !(Global::gnD3DTextureCapFlags & 0x100)) {
+    if (!(gnD3DTextureCapFlags & 0x80) && !(gnD3DTextureCapFlags & 0x100)) {
       return 1;
     }
 
@@ -794,7 +794,7 @@ void __fastcall SetGamma(int nGamma) {
     uint32_t aGammaRampRed[128];
     uint32_t aGammaRampGreen[128];
     uint32_t aGammaRampBlue[128];
-    if (!(Global::gnD3DTextureCapFlags & 0x10)) {
+    if (!(gnD3DTextureCapFlags & 0x10)) {
       return;
     }
 
@@ -1855,9 +1855,9 @@ BOOL __fastcall Initialize(HINSTANCE hInstance) {
     do {
       nDeviceNameLoaded = Storm::Source::SReg::SRegLoadString(szRegPathHead, "DeviceName", 0, (LPSTR)&gD3DAdapterInfoBuffer, 0x100);
       if (nDeviceNameLoaded) {
-        iVar1 = Storm::Source::SReg::SRegLoadValue(szRegPathHead, "dwFlags", 0, (int32_t*)&Global::gnD3DTextureCapFlags);
+        iVar1 = Storm::Source::SReg::SRegLoadValue(szRegPathHead, "dwFlags", 0, (int32_t*)&gnD3DTextureCapFlags);
         if (iVar1) {
-          if (Global::gnD3DTextureCapFlags & 1) {
+          if (gnD3DTextureCapFlags & 1) {
             return 1;
           }
 
@@ -1960,7 +1960,7 @@ BOOL __stdcall RENDERER_D3D_InitializeDevice(int nResolutionMode, int hWnd) {
     __frame0.iidData2 = 4;
     nResult = g_pD3DSurfaceBackbuffer->lpVtbl->GetAttachedSurface(g_pD3DSurfaceBackbuffer, &__frame0.iidData2, (void**)&D3DSurfaceSecondary);
     if (!nResult) {
-      if (Global::gnD3DTextureCapFlags & 0x10) {
+      if (gnD3DTextureCapFlags & 0x10) {
         nResult = g_pD3DSurfaceBackbuffer->lpVtbl->QueryInterface(g_pD3DSurfaceBackbuffer, (GUID*)&gszRendererD3DDeviceInitializationCode, (void**)&g_pDDGammaControl);
         if (nResult) {
           DIRECTD3D_LogError("Failed to get gamma control interface!", nResult);
@@ -2025,7 +2025,7 @@ BOOL __stdcall RENDERER_D3D_InitializeDevice(int nResolutionMode, int hWnd) {
                 if (nResult) {
                   DIRECTD3D_LogError("Failed to get available local texture memory", nResult);
                 }
-                if (Global::gnD3DTextureCapFlags & 2) {
+                if (gnD3DTextureCapFlags & 2) {
                   __frame0.iidData3 = 0;
                   __frame0.iidData4a = 0;
                   __frame0.iidData4b = 0;
@@ -2155,7 +2155,7 @@ void __fastcall PlayCutScene(char * szFile, int nResolutionMode, void * fpFrame)
       return;
     }
 
-    Global::g_bCutscenePlaying = 1;
+    g_bCutscenePlaying = 1;
     RENDERER_D3D_ClearBackbuffer();
     if (!pD2GFXRenderedDataStrc->bVSync) {
       dwFlags = 9;
@@ -2165,7 +2165,7 @@ void __fastcall PlayCutScene(char * szFile, int nResolutionMode, void * fpFrame)
 
     g_pD3DSurfaceBackbuffer->lpVtbl->Flip(g_pD3DSurfaceBackbuffer, nullptr, dwFlags);
     Fog::d3dFloorCache::D3D_PlayBinkVideo(szFile, nResolutionMode, (fnBinkFrameCallback)fpFrame);
-    Global::g_bCutscenePlaying = 0;
+    g_bCutscenePlaying = 0;
 }
 
 BOOL __fastcall BeginScene(BOOL bClear, BYTE nRed, BYTE nGreen, BYTE nBlue) {
@@ -2283,7 +2283,7 @@ BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x687);
       exit(-1);
     }
-    if (!(Global::gnD3DTextureCapFlags & 1)) {
+    if (!(gnD3DTextureCapFlags & 1)) {
       lpGUID = (_GUID*)&gsD3DAdapterGuid;
     } else {
       lpGUID = 0;
@@ -2583,7 +2583,7 @@ int32_t RENDERER_DIRECT3D_UploadTextureToCache(int * pTexInfo, BYTE * pPalette, 
             if (dwHResult) {
               DIRECTD3D_LogError("Failed to unlock memory surface", dwHResult);
             }
-            if (!(Global::gnD3DTextureCapFlags & 0x400)) {
+            if (!(gnD3DTextureCapFlags & 0x400)) {
               (*(dt_df2bbc22*)((char*)*(void**)(uintptr_t)*(int**)(iMipLevel + 0x14) + 20))(*(int**)(iMipLevel + 0x14), lpD3DTexture);
             } else {
               RENDERER_D3D_CopySurfacePixels(*(IDirectDrawSurface7**)(iMipLevel + 0x10), pDestSurface_00, pTexInfo[6]);
@@ -3328,7 +3328,7 @@ void __stdcall RENDERER_D3D_CreateFontTextures() {
       if (!BVar1) {
         break;
       }
-      if (!(Global::gnD3DTextureCapFlags & 0x400)) {
+      if (!(gnD3DTextureCapFlags & 0x400)) {
         pVtbl = (IDirect3DTexture2*)*pTextureHandle;
         pVtbl->lpVtbl->Load(pVtbl, __frame0.pMemoryTexture);
       } else {
@@ -3881,7 +3881,7 @@ void __fastcall ClearScreen(BOOL bPartial) {
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    if (Global::gnD3DTextureCapFlags & 0x400) {
+    if (gnD3DTextureCapFlags & 0x400) {
       RENDERER_D3D_ClearBackbuffer();
       return;
     }
@@ -4906,7 +4906,7 @@ void __stdcall RENDERER_D3D_ResetSmackerSurfaces() {
     if (!gpD3DSmackerSystemSurface0[0]) {
       return;
     }
-    if (Global::gnD3DTextureCapFlags & 0x400) {
+    if (gnD3DTextureCapFlags & 0x400) {
       RENDERER_D3D_CopySurfacePixels(gpD3DSmackerVideoSurface0[0], gpD3DSmackerSystemSurface0[0], 0x40);
       RENDERER_D3D_CopySurfacePixels(gpD3DSmackerVideoSurface0[1], gpD3DSmackerSystemSurface0[1], 0x40);
       return;

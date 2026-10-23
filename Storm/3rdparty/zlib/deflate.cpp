@@ -5,7 +5,7 @@
 #include "Fog/Source/SSComp.h"
 #include "Storm/3rdparty/zlib/crc32.h"
 #include "Storm/3rdparty/zlib/trees.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "Storm/3rdparty/zlib/zutil.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

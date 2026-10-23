@@ -7,7 +7,7 @@
 #include "D2Win/Src/D2WinTextBox.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/WindowHandle.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/D2ControlStrc.h"
 #include "D2Launch/MainMenus.h"
 #include "D2Win/D2WinList.h"

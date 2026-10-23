@@ -3,7 +3,7 @@
 #include "D2Client/UI/ControlConfig.h"
 #include "D2Client/Core/Archive.h"
 #include "D2Client/Engine/GfxInfo.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Select.h"
 #include "D2Client/UI/CmdTbl.h"
 #include "D2Client/UI/Inv.h"
@@ -16,7 +16,7 @@
 #include "D2gfx/D2GFX.h"
 #include "Fog/SMem.h"
 #include "Storm/H/Storm.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Launch/MainMenus.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

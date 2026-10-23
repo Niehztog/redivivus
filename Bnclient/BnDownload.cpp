@@ -25,7 +25,7 @@
 #include "Storm/Source/SSTR.h"
 #include "Storm/Source/SSystem.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -1370,6 +1370,10 @@ uintptr_t __fastcall BNDOWNLOAD_InitiatePatchDownload(BYTE * pbParam, size_t nSi
     /* LONG * lpAddend for InterlockedIncrement */ InterlockedIncrement((LONG*)&lpAddend_00881d5c);
     uintptr_t nThreadHandle = __beginthreadex(nullptr, 0, BnetDownloadFile_II, pThreadCtx, 0, &__frame0.nThreadId);
     return nThreadHandle;
+}
+
+void StaticFini_CriticalSection_00881f64() {
+    DeleteCriticalSection(&lpCriticalSection_00881f64);
 }
 
 } // namespace Bnclient::BnDownload

@@ -2,7 +2,7 @@
 
 #include "compiler/compiler.h"
 #include "Bnclient/net_sid.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

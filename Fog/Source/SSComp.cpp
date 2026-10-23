@@ -3,9 +3,9 @@
 #include "Fog/Source/SSComp.h"
 #include "Fog/Debug.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
-#include "Fog/System.h"
+#include "Fog/3rdparty/crashy.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

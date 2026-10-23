@@ -123,6 +123,8 @@ _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e11(struct EHExceptionRecord * pEx
 _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e38(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
 int SehHandler_6c9e6a(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
 void __stdcall LOGMGR_InitMessageQueue();
+void StaticFini_gLogMessageQueueCS();
+void StaticFini_gLogFileCS();
 // Runs at exit: removes every element still on the log message queue gLogMessageQueueHead, then unlinks the list head itself.
 void StaticFini_gLogMessageQueueHead();
 

@@ -4,7 +4,7 @@
 #include "D2Client/ClientModeInGame.h"
 #include "D2Client/D2Client.h"
 #include "D2Client/D2IniConfigStrc.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/SCmd.h"
 #include "D2Client/UI/Draw.h"
 #include "D2Lang/StrTable/strtable.h"
@@ -18,7 +18,7 @@
 #include "Fog/Source/SFile.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

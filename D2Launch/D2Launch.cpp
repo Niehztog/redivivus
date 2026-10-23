@@ -14,7 +14,7 @@
 #include "D2Win/Src/D2WinTimer.h"
 #include "Fog/Src/Safesock.h"
 #include "Storm/Source/SReg.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Win/D2WinEditBox.h"
 #include "D2Win/D2WinImageEx.h"
 #include "D2Win/D2WinScrollbar.h"
@@ -23,7 +23,27 @@
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
 
+#ifndef RECON_FPTD_fnAppModeRun
+#define RECON_FPTD_fnAppModeRun
+typedef int32_t (__fastcall *fnAppModeRun)(D2IniConfigStrc * pD2IniConfig);
+#endif
+
 namespace D2Launch {
+
+// App mode launcher init: stash module handle and return pointer to fAPPMODE_launcher_ReturnAppMode_Caller.
+fnAppModeRun * __fastcall AppModeLauncherInit(HMODULE hModule) {
+    // Static local variables (originally global data)
+    static fnAppModeRun gpfnLauncherAppModeRun = &D2Launch::MainMenus::fAPPMODE_launcher_ReturnAppMode_Caller;
+    static uint32_t GameModuleOffset;
+
+    GameModuleOffset = (uint32_t)hModule;
+    return &gpfnLauncherAppModeRun;
+}
+
+// Launcher app mode shutdown (no-op).
+void __stdcall AppModeLauncherShutdown() {
+
+}
 
 uint32_t MAINMENU_ShowBnetConnectionError() {
     D2ControlStrc* pDVar1 = MainMenus::FORMS_CreateAnyFormFromList(0xde);

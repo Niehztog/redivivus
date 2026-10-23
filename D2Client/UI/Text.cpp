@@ -11,7 +11,7 @@
 #include "D2Client/D2RosterStrc.h"
 #include "D2Client/DataTbls/MonsterTbls.h"
 #include "D2Client/Engine/GfxInfo.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Msg.h"
 #include "D2Client/GAME/Roster.h"
 #include "D2Client/GAME/SCmd.h"
@@ -24,6 +24,7 @@
 #include "D2Client/UI/Dialog.h"
 #include "D2Client/UI/Draw.h"
 #include "D2Client/UI/Inv.h"
+#include "D2Client/UI/ListBox/ListBoxWrapper.h"
 #include "D2Client/UI/Path.h"
 #include "D2Client/UI/SkillDesc.h"
 #include "D2Client/UI/npcmenu.h"
@@ -34,6 +35,7 @@
 #include "D2Client/UNIT/UnitSnd.h"
 #include "D2Common/Chat.h"
 #include "D2Common/Chat/Ignorelist.h"
+#include "D2Common/Chat/Ignorelist/IgnoreList.h"
 #include "D2Common/D2InventoryStrc.h"
 #include "D2Common/D2MonStatsTxt.h"
 #include "D2Common/D2RoomExStrc.h"
@@ -63,21 +65,19 @@
 #include "D2Win/DC6Block.h"
 #include "D2Win/Src/D2WinFont.h"
 #include "D2gfx/D2GFX.h"
+#include "Fog/3rdparty/crashy/Report.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Debug.h"
 #include "Fog/File.h"
 #include "Fog/Memory.h"
 #include "Fog/SMem.h"
 #include "Fog/Src/ErrorManager.h"
-#include "IgnoreList/IgnoreList.h"
-#include "ListBoxWrapper/ListBoxWrapper.h"
 #include "Storm/H/Storm.h"
 #include "Storm/MessageStrc.h"
 #include "Storm/SMem.h"
 #include "Storm/Source/SReg.h"
 #include "Storm/Source/SSTR.h"
-#include "crashy/Report.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "Bnclient/BNGatewayAccess.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Game/Monster/AI/AI.h"
@@ -4347,7 +4347,7 @@ void __stdcall TEXT_OpenMessageLogDialog() {
       if (!pLogListAlloc) {
         gpTextMessageLogHead = 0;
       } else {
-        gpTextMessageLogHead = Class::ListBoxWrapper::Constructor(pLogListAlloc, 5, 0x41, ScreenSizeX - 0x14, ScreenSizeY - 200, 2, 0, 0xd, nullptr, true);
+        gpTextMessageLogHead = ListBox::ListBoxWrapper::Constructor(pLogListAlloc, 5, 0x41, ScreenSizeX - 0x14, ScreenSizeY - 200, 2, 0, 0xd, nullptr, true);
       }
 
       nSehTryLevel = -1;

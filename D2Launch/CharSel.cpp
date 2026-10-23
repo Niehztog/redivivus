@@ -34,7 +34,7 @@
 #include "Storm/Source/SSTR.h"
 #include "Storm/Source/SSystem.h"
 #include "compiler/compiler.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "Bnclient/net_sid.h"
 #include "D2Win/D2WinEditBox.h"
 #include "D2Win/D2WinImageEx.h"

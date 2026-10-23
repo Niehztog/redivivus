@@ -9,8 +9,8 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/SMem.h"
-#include "globals.h"
-#include "D2Win/Src/D2WinProgressBar.h"
+#include "globals/globals.h"
+#include "D2Win/D2WinAnimImage.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

@@ -2,6 +2,7 @@
 
 #include "D2Game/UNIT/Item.h"
 #include "D2Client/D2ClientStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/UNIT/MonUnique.h"
 #include "D2Client/Units.h"
 #include "D2Common/D2DynamicPathStrc.h"
@@ -37,8 +38,7 @@
 #include "D2Game/UNIT/sunitproxy.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Common/Unit/Unit.h"
 #include "D2Game/Ai/AiGeneral.h"

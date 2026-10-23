@@ -19,7 +19,7 @@
 #include "Storm/Source/SSignature.h"
 #include "Storm/Source/SSystem.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "support/d2_trace.h"
 
@@ -7904,6 +7904,109 @@ _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e98(EHExceptionRecord * pException
 // compiler-generated C++ EH handler; its frame is never registered with the OS
 _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9ec8(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
+}
+
+void StaticFini_CriticalSection_00779068() {
+    DeleteCriticalSection(&lpCriticalSection_00779068);
+}
+
+void StaticFini_CriticalSection_00779080() {
+    DeleteCriticalSection(&lpCriticalSection_00779080);
+}
+
+// Runs at exit: removes every element from the open MPQ archive list gMpqArchiveList, then unlinks the list head itself.
+void StaticFini_gMpqArchiveList() {
+    uint32_t* puVar1;
+    SFILE_CloseStreamHandle1(&gMpqArchiveList);
+    if (!gMpqArchiveList.pPrevLink) {
+      return;
+    }
+    if (gMpqArchiveList.pNext < 0) {
+      puVar1 = (uint32_t*)~gMpqArchiveList.pNext;
+    } else {
+      puVar1 = (uint32_t*)(gMpqArchiveList.pNext + ((int)((char*)&gMpqArchiveList + 4) - gMpqArchiveList.pPrevLink->pNext));
+    }
+
+    *puVar1 = (uint32_t)(uintptr_t)gMpqArchiveList.pPrevLink;
+    gMpqArchiveList.pPrevLink->pNext = gMpqArchiveList.pNext;
+    gMpqArchiveList.pPrevLink = 0;
+    gMpqArchiveList.pNext = 0;
+}
+
+// Runs at exit: removes every element from the async file request queue gSFileAsyncReqQueue, then unlinks the list head itself.
+void StaticFini_gSFileAsyncReqQueue() {
+    uint32_t* puVar1;
+    SFILE_CloseStreamHandle2(&gSFileAsyncReqQueue);
+    if (!gSFileAsyncReqQueue.pPrevLink) {
+      return;
+    }
+    if (gSFileAsyncReqQueue.pNext < 0) {
+      puVar1 = (uint32_t*)~gSFileAsyncReqQueue.pNext;
+    } else {
+      puVar1 = (uint32_t*)(gSFileAsyncReqQueue.pNext + ((int)((char*)&gSFileAsyncReqQueue + 4) - gSFileAsyncReqQueue.pPrevLink->pNext));
+    }
+
+    *puVar1 = (uint32_t)(uintptr_t)gSFileAsyncReqQueue.pPrevLink;
+    gSFileAsyncReqQueue.pPrevLink->pNext = gSFileAsyncReqQueue.pNext;
+    gSFileAsyncReqQueue.pPrevLink = 0;
+    gSFileAsyncReqQueue.pNext = 0;
+}
+
+// Runs at exit: removes every element from the open file list gSFileOpenFileList, then unlinks the list head itself.
+void StaticFini_gSFileOpenFileList() {
+    uint32_t* puVar1;
+    SFILE_CloseStreamHandle3(&gSFileOpenFileList);
+    if (!gSFileOpenFileList.pPrevLink) {
+      return;
+    }
+    if (gSFileOpenFileList.pNext < 0) {
+      puVar1 = (uint32_t*)~gSFileOpenFileList.pNext;
+    } else {
+      puVar1 = (uint32_t*)(gSFileOpenFileList.pNext + ((int)((char*)&gSFileOpenFileList + 4) - gSFileOpenFileList.pPrevLink->pNext));
+    }
+
+    *puVar1 = (uint32_t)(uintptr_t)gSFileOpenFileList.pPrevLink;
+    gSFileOpenFileList.pPrevLink->pNext = gSFileOpenFileList.pNext;
+    gSFileOpenFileList.pPrevLink = 0;
+    gSFileOpenFileList.pNext = 0;
+}
+
+// Runs at exit: removes every element from the audio stream list gSFileAudioStreamList, then unlinks the list head itself.
+void StaticFini_gSFileAudioStreamList() {
+    uint32_t* puVar1;
+    SFILE_CloseStreamHandle4(&gSFileAudioStreamList);
+    if (!gSFileAudioStreamList.pPrevLink) {
+      return;
+    }
+    if (gSFileAudioStreamList.pNext < 0) {
+      puVar1 = (uint32_t*)~gSFileAudioStreamList.pNext;
+    } else {
+      puVar1 = (uint32_t*)(gSFileAudioStreamList.pNext + ((int)((char*)&gSFileAudioStreamList + 4) - gSFileAudioStreamList.pPrevLink->pNext));
+    }
+
+    *puVar1 = (uint32_t)(uintptr_t)gSFileAudioStreamList.pPrevLink;
+    gSFileAudioStreamList.pPrevLink->pNext = gSFileAudioStreamList.pNext;
+    gSFileAudioStreamList.pPrevLink = 0;
+    gSFileAudioStreamList.pNext = 0;
+}
+
+// Runs at exit: removes every element from the stream record list gSFileStreamRecordList, then unlinks the list head itself.
+void StaticFini_gSFileStreamRecordList() {
+    uint32_t* puVar1;
+    SFILE_CloseStreamHandle5(&gSFileStreamRecordList);
+    if (!gSFileStreamRecordList.pPrevLink) {
+      return;
+    }
+    if (gSFileStreamRecordList.pNext < 0) {
+      puVar1 = (uint32_t*)~gSFileStreamRecordList.pNext;
+    } else {
+      puVar1 = (uint32_t*)(gSFileStreamRecordList.pNext + ((int)((char*)&gSFileStreamRecordList + 4) - gSFileStreamRecordList.pPrevLink->pNext));
+    }
+
+    *puVar1 = (uint32_t)(uintptr_t)gSFileStreamRecordList.pPrevLink;
+    gSFileStreamRecordList.pPrevLink->pNext = gSFileStreamRecordList.pNext;
+    gSFileStreamRecordList.pPrevLink = 0;
+    gSFileStreamRecordList.pNext = 0;
 }
 
 } // namespace Storm::Source::SFile

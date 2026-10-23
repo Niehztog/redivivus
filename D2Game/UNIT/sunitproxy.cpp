@@ -2,6 +2,7 @@
 
 #include "D2Game/UNIT/sunitproxy.h"
 #include "D2Client/D2ClientStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/SKILLS/SkillsPal.h"
 #include "D2Client/UI/SkillDesc.h"
 #include "D2Client/UNIT/Item.h"
@@ -44,8 +45,7 @@
 #include "Fog/Memory.h"
 #include "Fog/SMem.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Drlg/Drlg.h"
 #include "D2Common/Unit/Unit.h"
 #include "D2Game/Quests/QUESTS/Quest40.h"

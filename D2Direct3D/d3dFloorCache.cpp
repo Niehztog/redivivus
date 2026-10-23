@@ -20,7 +20,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "Bnclient/BNGatewayAccess.h"
 #include "D2Client/UI/Automap.h"
 #include "D2DDraw/Renderer/DirectDraw.h"
@@ -640,7 +640,7 @@ BOOL __fastcall D3D_RenderFloorTileToTexture(D2TileLibraryEntryStrc * pTileLibra
       if (dwSurfaceOpResult) {
         Renderer::DIRECTD3D_LogError("Failed to unlock memory surface", dwSurfaceOpResult);
       }
-      if (!(Global::gnD3DTextureCapFlags & 0x400)) {
+      if (!(Renderer::gnD3DTextureCapFlags & 0x400)) {
         pFloorCacheNodes[iVar2 - 1].pTexture->lpVtbl->Load(pFloorCacheNodes[iVar2 - 1].pTexture, gpD3DFloorTileMemoryTexture);
         pTexture = pFloorCacheNodes[iVar2 - 1].pTexture;
       } else {
@@ -699,7 +699,7 @@ void __fastcall D3D_RenderSubtileToTexture(D2GroundSubTileStrc * pSubTile) {
           if (dwSurfaceResult) {
             Renderer::DIRECTD3D_LogError("Failed to unlock memory surface", dwSurfaceResult);
           }
-          if (!(Global::gnD3DTextureCapFlags & 0x400)) {
+          if (!(Renderer::gnD3DTextureCapFlags & 0x400)) {
             pSubtileNodeBuffer[iVar2 - 1].pTexture->lpVtbl->Load(pSubtileNodeBuffer[iVar2 - 1].pTexture, gpD3DSubtileMemoryTexture);
           } else {
             Renderer::RENDERER_D3D_CopySurfacePixels(pSubtileNodeBuffer[iVar2 - 1].pSurface, gpD3DSubtileSystemSurface, 0x20);

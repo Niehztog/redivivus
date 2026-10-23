@@ -15,7 +15,7 @@
 #include "Fog/Source/SFile.h"
 #include "Storm/D2ArchiveStrc.h"
 #include "Storm/Source/SSTR.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "support/d2_trace.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

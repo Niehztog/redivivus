@@ -50,7 +50,7 @@
 #include "D2Win/DC6Block.h"
 #include "D2gfx/D2GFX.h"
 #include "Fog/D2PoolManagerStrc.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/GAME/PalShift.h"
 #include "D2Common/Unit/Unit.h"
 #include "D2Game/Monster/AI/AI.h"

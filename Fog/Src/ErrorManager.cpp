@@ -4,6 +4,8 @@
 #include "D2Lang/StrTable/strtable.h"
 #include "D2Win/DC6.h"
 #include "D2Win/DC6Block.h"
+#include "Fog/3rdparty/crashy.h"
+#include "Fog/3rdparty/crashy/Report.h"
 #include "Fog/Debug.h"
 #include "Fog/File.h"
 #include "Fog/Memory.h"
@@ -12,15 +14,13 @@
 #include "Fog/Src/AsyncData.h"
 #include "Fog/Src/LogManager.h"
 #include "Fog/Src/Safesock.h"
-#include "Fog/System.h"
 #include "Storm/SMem.h"
 #include "Storm/Source/SErr.h"
 #include "Storm/Source/SReg.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
 #include "support/d2_trace.h"
-#include "crashy/Report.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -42,7 +42,7 @@ void __stdcall CrashGame() {
 }
 
 void __fastcall FILETOOLS_WriteOneStringToFile(::Report * pReport, char * szString) {
-    crashy::Printf(pReport, "%s", szString);
+    _3rdparty::crashy::Printf(pReport, "%s", szString);
 }
 
 DWORD __fastcall GetParentProcessId(int32_t nProcessId) {
@@ -115,22 +115,22 @@ void __fastcall WriteCrashReportProcessInfo(::Report * pReport) {
     PSID pAdminSid;
     _SID_IDENTIFIER_AUTHORITY sNtAuthority;
     uint32_t uSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    int8_t iVar1 = crashy::IsOpen(pReport);
+    int8_t iVar1 = _3rdparty::crashy::IsOpen(pReport);
     if (iVar1 == '\0') {
       Debug::GuardStack();
       return;
     }
 
-    crashy::Printf(pReport, "<Application>%s\n", g_szApplicationName);
-    crashy::Printf(pReport, "<Inspector.ProjectId>%d\n", g_nProjectId);
-    crashy::Printf(pReport, "<Inspector.Module>%s\n", g_szModuleName);
-    crashy::Printf(pReport, "<Inspector.Milestone>%s\n", g_szMilestone);
-    crashy::Printf(pReport, "<Inspector.BuildNumber>%s\n", g_szBuildNumber);
-    crashy::Printf(pReport, "<Inspector.Platform>%s\n", g_szPlatform);
-    crashy::Printf(pReport, "<Inspector.IssueType>%s\n", "Exception");
-    crashy::Printf(pReport, "<Inspector.Priority>%s\n", "1 - Critical");
-    crashy::Printf(pReport, "<Inspector.PrimaryAssignment>%s\n", g_szPrimaryAssignment);
-    crashy::Printf(pReport, "<Inspector.Assignments>%s\n", g_szAssignments);
+    _3rdparty::crashy::Printf(pReport, "<Application>%s\n", g_szApplicationName);
+    _3rdparty::crashy::Printf(pReport, "<Inspector.ProjectId>%d\n", g_nProjectId);
+    _3rdparty::crashy::Printf(pReport, "<Inspector.Module>%s\n", g_szModuleName);
+    _3rdparty::crashy::Printf(pReport, "<Inspector.Milestone>%s\n", g_szMilestone);
+    _3rdparty::crashy::Printf(pReport, "<Inspector.BuildNumber>%s\n", g_szBuildNumber);
+    _3rdparty::crashy::Printf(pReport, "<Inspector.Platform>%s\n", g_szPlatform);
+    _3rdparty::crashy::Printf(pReport, "<Inspector.IssueType>%s\n", "Exception");
+    _3rdparty::crashy::Printf(pReport, "<Inspector.Priority>%s\n", "1 - Critical");
+    _3rdparty::crashy::Printf(pReport, "<Inspector.PrimaryAssignment>%s\n", g_szPrimaryAssignment);
+    _3rdparty::crashy::Printf(pReport, "<Inspector.Assignments>%s\n", g_szAssignments);
     BOOL bIsAdmin = 0;
     memset(sNtAuthority.Value, 0, 5 * sizeof(sNtAuthority.Value[0]));
     sNtAuthority.Value[5] = '\x05';
@@ -142,11 +142,11 @@ void __fastcall WriteCrashReportProcessInfo(::Report * pReport) {
         szProcessName = "FALSE";
       }
 
-      crashy::Printf(pReport, "<Process.UserIsAdmin> %s\n", szProcessName);
+      _3rdparty::crashy::Printf(pReport, "<Process.UserIsAdmin> %s\n", szProcessName);
       /* PSID pSid for FreeSid */ FreeSid(pAdminSid);
     }
 
-    crashy::Printf(pReport, "<Process.Elevated> %s\n", "UNKNOWN");
+    _3rdparty::crashy::Printf(pReport, "<Process.Elevated> %s\n", "UNKNOWN");
     DWORD dwProcessId = GetCurrentProcessId();
     uint32_t bGotModuleName = GetModuleFileNameForProcess(dwProcessId, gszCrashReportProcessPath, 0x800);
     szProcessName = gszCrashReportProcessPath;
@@ -154,13 +154,13 @@ void __fastcall WriteCrashReportProcessInfo(::Report * pReport) {
       szProcessName = "Unknown";
     }
 
-    crashy::Printf(pReport, "<Process.Path> %s\n", szProcessName);
+    _3rdparty::crashy::Printf(pReport, "<Process.Path> %s\n", szProcessName);
     szProcessName = strrchr(gszCrashReportProcessPath, 0x5c);
     if (!szProcessName || (szProcessName++ , !szProcessName) || (char)bGotModuleName == '\0') {
       szProcessName = "Unknown";
     }
 
-    crashy::Printf(pReport, "<Process.Name> %s\n", szProcessName);
+    _3rdparty::crashy::Printf(pReport, "<Process.Name> %s\n", szProcessName);
     dwProcessId = GetParentProcessId(dwProcessId);
     bGotModuleName = GetModuleFileNameForProcess(dwProcessId, gszCrashReportProcessPath, 0x800);
     szProcessName = gszCrashReportProcessPath;
@@ -168,13 +168,13 @@ void __fastcall WriteCrashReportProcessInfo(::Report * pReport) {
       szProcessName = "Unknown";
     }
 
-    crashy::Printf(pReport, "<Process.ParentProcessPath> %s\n", szProcessName);
+    _3rdparty::crashy::Printf(pReport, "<Process.ParentProcessPath> %s\n", szProcessName);
     szProcessName = strrchr(gszCrashReportProcessPath, 0x5c);
     if (!szProcessName || (szProcessName++ , !szProcessName) || (char)bGotModuleName == '\0') {
       szProcessName = "Unknown";
     }
 
-    crashy::Printf(pReport, "<Process.ParentProcessName> %s\n", szProcessName);
+    _3rdparty::crashy::Printf(pReport, "<Process.ParentProcessName> %s\n", szProcessName);
     dwProcessId = GetParentProcessId(dwProcessId);
     bGotModuleName = GetModuleFileNameForProcess(dwProcessId, gszCrashReportProcessPath, 0x800);
     szProcessName = gszCrashReportProcessPath;
@@ -182,26 +182,26 @@ void __fastcall WriteCrashReportProcessInfo(::Report * pReport) {
       szProcessName = "Unknown";
     }
 
-    crashy::Printf(pReport, "<Process.GrandParentProcessPath> %s\n", szProcessName);
+    _3rdparty::crashy::Printf(pReport, "<Process.GrandParentProcessPath> %s\n", szProcessName);
     szProcessName = strrchr(gszCrashReportProcessPath, 0x5c);
     if (!szProcessName || (szProcessName++ , !szProcessName) || (char)bGotModuleName == '\0') {
       szProcessName = "Unknown";
     }
 
-    crashy::Printf(pReport, "<Process.GrandParentProcessName> %s\n", szProcessName);
+    _3rdparty::crashy::Printf(pReport, "<Process.GrandParentProcessName> %s\n", szProcessName);
     bGotModuleName = D2Lang::StrTable::strtable::MISC_GetLanguageCode();
-    crashy::Printf(pReport, "<Locale.Game> %s\n", gaLanguageNames[bGotModuleName]);
+    _3rdparty::crashy::Printf(pReport, "<Locale.Game> %s\n", gaLanguageNames[bGotModuleName]);
     bGotModuleName = D2Lang::StrTable::strtable::STRTABLE_GetRegistryLanguage();
-    crashy::Printf(pReport, "<Locale.System> %s\n", gaLanguageNames[bGotModuleName]);
-    crashy::Printf(pReport, "<Game.Type> %s\n", "Client");
-    crashy::Printf(pReport, "DATA\\LOCAL", "79b7ae8fe1e97d05d57ebdc4b65bf012d38c797e");
+    _3rdparty::crashy::Printf(pReport, "<Locale.System> %s\n", gaLanguageNames[bGotModuleName]);
+    _3rdparty::crashy::Printf(pReport, "<Game.Type> %s\n", "Client");
+    _3rdparty::crashy::Printf(pReport, "DATA\\LOCAL", "79b7ae8fe1e97d05d57ebdc4b65bf012d38c797e");
     memset(aLogFilePaths, 0, 0x54);
     LogManager::InitLogFilePathPointers(aLogFilePaths, 0x15);
     uint32_t nLogIdx = 0;
     do {
       szPath = aLogFilePaths[nLogIdx];
       if (szPath && *szPath) {
-        crashy::AddAttachment(pReport, (char*)szPath, '\x01');
+        _3rdparty::crashy::AddAttachment(pReport, (char*)szPath, '\x01');
       }
 
       nLogIdx++;
@@ -429,21 +429,21 @@ int __fastcall DumpLog(void * pCrashInfo, void * pUserContext) {
     uint32_t dwDumpFlags = 0;
     if (!nRecursionGuard) {
       g_dwErrorState = 1;
-      crashy::Constructor(&crashFile);
+      _3rdparty::crashy::Constructor(&crashFile);
       nSehState = 0;
-      iVar1 = crashy::Open(&crashFile, "Crash.txt");
+      iVar1 = _3rdparty::crashy::Open(&crashFile, "Crash.txt");
       if (iVar1 != '\0') {
         WriteCrashReportProcessInfo(&crashFile);
-        crashy::Printf(&crashFile, "<Inspector.Summary:>\n%s", *(uint32_t*)pCrashInfo, nAttachIndex);
+        _3rdparty::crashy::Printf(&crashFile, "<Inspector.Summary:>\n%s", *(uint32_t*)pCrashInfo, nAttachIndex);
         if (**(char**)((int)pCrashInfo + 4) != '\0') {
-          crashy::Printf(&crashFile, " (%s)", *(char**)((int)pCrashInfo + 4));
+          _3rdparty::crashy::Printf(&crashFile, " (%s)", *(char**)((int)pCrashInfo + 4));
         }
 
-        crashy::Printf(&crashFile, "\n<:Inspector.Summary>\n");
-        crashy::Printf(&crashFile, "<Inspector.Assertion:>\n");
+        _3rdparty::crashy::Printf(&crashFile, "\n<:Inspector.Summary>\n");
+        _3rdparty::crashy::Printf(&crashFile, "<Inspector.Assertion:>\n");
         if (!pExceptionContext && !*(int*)((int)pCrashInfo + 8)) {
           dwDumpFlags = *(uint32_t*)((int)pCrashInfo + 0x10);
-          dwThreadId = System::GetCurrentThreadId();
+          dwThreadId = _3rdparty::crashy::GetCurrentThreadId();
           if (*(DWORD*)((int)pCrashInfo + 0x14) == dwThreadId) {
             dwDumpFlags += 2;
           }
@@ -454,32 +454,32 @@ int __fastcall DumpLog(void * pCrashInfo, void * pUserContext) {
           File::CRASH_FormatStackTrace(*(DWORD*)((int)pCrashInfo + 0x14), *(void***)((int)pCrashInfo + 8), *(int32_t*)((int)pCrashInfo + 0xc), FILETOOLS_WriteOneStringToFile, &crashFile, '\0', '\x01');
         }
 
-        crashy::Printf(&crashFile, "<:Inspector.Assertion>\n");
-        crashy::Printf(&crashFile, "Registers:\n");
+        _3rdparty::crashy::Printf(&crashFile, "<:Inspector.Assertion>\n");
+        _3rdparty::crashy::Printf(&crashFile, "Registers:\n");
         File::CRASH_DumpRegisters(*(DWORD*)((int)pCrashInfo + 0x14), FILETOOLS_WriteOneStringToFile, &crashFile);
-        crashy::Printf(&crashFile, "Threads:\n");
+        _3rdparty::crashy::Printf(&crashFile, "Threads:\n");
         File::CRASH_EnumerateThreads(FILETOOLS_WriteOneStringToFile, &crashFile, *(DWORD*)((int)pCrashInfo + 0x14));
-        crashy::Printf(&crashFile, "<Inspector.DebugModules:>\n");
+        _3rdparty::crashy::Printf(&crashFile, "<Inspector.DebugModules:>\n");
         Debug::EnumerateAndDumpAllFunctions(FILETOOLS_WriteOneStringToFile, &crashFile);
-        crashy::Printf(&crashFile, "<:Inspector.DebugModules>\n");
-        crashy::Printf(&crashFile, "<Inspector.HashBlock:>\n");
-        crashy::Printf(&crashFile, "[JOIN]  SrvRecvDatabaseCharacter: Didn\'t recv full char from db - CSResult(%d), ClientID(%d)");
+        _3rdparty::crashy::Printf(&crashFile, "<:Inspector.DebugModules>\n");
+        _3rdparty::crashy::Printf(&crashFile, "<Inspector.HashBlock:>\n");
+        _3rdparty::crashy::Printf(&crashFile, "[JOIN]  SrvRecvDatabaseCharacter: Didn\'t recv full char from db - CSResult(%d), ClientID(%d)");
         if (!*(void***)((int)pCrashInfo + 8)) {
           File::CRASH_DumpThreadContext(*(DWORD*)((int)pCrashInfo + 0x14), pExceptionContext, FILETOOLS_WriteOneStringToFile, &crashFile, '\0', '\0', dwDumpFlags);
         } else {
           File::CRASH_FormatStackTrace(*(DWORD*)((int)pCrashInfo + 0x14), *(void***)((int)pCrashInfo + 8), *(int32_t*)((int)pCrashInfo + 0xc), FILETOOLS_WriteOneStringToFile, &crashFile, '\0', '\0');
         }
 
-        crashy::Printf(&crashFile, "DBG-OPTIONS<>\n");
+        _3rdparty::crashy::Printf(&crashFile, "DBG-OPTIONS<>\n");
         Storm::Source::SSTR::SStrCopy(gszCrashReportProcessPath, crashFile.szReportDir, 0x800);
         Storm::Source::SSTR::SStrPack(gszCrashReportProcessPath, "/Minidump.dmp", 0x800);
         bMinidumpCreated = Debug::CrashDumpWriterThread(gszCrashReportProcessPath, (uint32_t)"", *(uint32_t*)((int)pCrashInfo + 0x18), 0);
         if (bMinidumpCreated) {
-          crashy::AddAttachment(&crashFile, gszCrashReportProcessPath, '\0');
+          _3rdparty::crashy::AddAttachment(&crashFile, gszCrashReportProcessPath, '\0');
         }
 
-        crashy::Printf(&crashFile, "<:Inspector.HashBlock>\n");
-        crashy::Close(&crashFile);
+        _3rdparty::crashy::Printf(&crashFile, "<:Inspector.HashBlock>\n");
+        _3rdparty::crashy::Close(&crashFile);
         memset(&errorArg, 0, 0x54);
         errorArg.szProduct = szProduct;
         nAttachIndex = 0;
@@ -496,14 +496,14 @@ int __fastcall DumpLog(void * pCrashInfo, void * pUserContext) {
           } while ((int)nAttachIndex < crashFile.nAttachmentCount);
         }
 
-        System::ErrorReportingLaunch(crashFile.szFilePath, &errorArg);
+        _3rdparty::crashy::ErrorReportingLaunch(crashFile.szFilePath, &errorArg);
       }
 
       /* LONG * lpAddend for InterlockedDecrement */ g_dwErrorState = 0;
       InterlockedDecrement((LONG*)&lpAddend_007076b8);
-      System::SYSTEM_Win32TerminateProcess(-1);
+      _3rdparty::crashy::SYSTEM_Win32TerminateProcess(-1);
       nSehState = -1;
-      crashy::Destructor(&crashFile);
+      _3rdparty::crashy::Destructor(&crashFile);
     }
 
     ExceptionList = pPrevSehFrame;
@@ -554,33 +554,33 @@ void __fastcall CRASH_FillupCrashTxt(char * szSummary, char * szReason, char * *
     __frame0.pPrevSehFrame = ExceptionList;
     uint32_t nAttachIndex = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     ExceptionList = &__frame0.pPrevSehFrame;
-    crashy::Constructor(&crashFile);
+    _3rdparty::crashy::Constructor(&crashFile);
     __frame0.nSehState = 0;
     LONG nRecursionGuard = InterlockedIncrement((LONG*)&lpAddend_007076bc);
     if (!nRecursionGuard) {
       g_dwErrorState = 1;
-      iVar1 = crashy::Open(&crashFile, "Crash.txt");
+      iVar1 = _3rdparty::crashy::Open(&crashFile, "Crash.txt");
       if (iVar1 != '\0') {
         WriteCrashReportProcessInfo(&crashFile);
-        crashy::Printf(&crashFile, "<Inspector.Summary:>\n%s\n<:Inspector.Summary>\n", szSummary, nAttachIndex);
+        _3rdparty::crashy::Printf(&crashFile, "<Inspector.Summary:>\n%s\n<:Inspector.Summary>\n", szSummary, nAttachIndex);
         if (nLineNumber) {
-          crashy::Printf(&crashFile, "<Inspector.LineNumber>%u\n", nLineNumber);
+          _3rdparty::crashy::Printf(&crashFile, "<Inspector.LineNumber>%u\n", nLineNumber);
         }
 
-        crashy::Printf(&crashFile, "<Inspector.Assertion:>\n");
+        _3rdparty::crashy::Printf(&crashFile, "<Inspector.Assertion:>\n");
         dwThreadId = GetCurrentThreadId();
         File::CRASH_DumpThreadContext(dwThreadId, nullptr, FILETOOLS_WriteOneStringToFile, &crashFile, '\0', '\x01', 4);
-        crashy::Printf(&crashFile, "<:Inspector.Assertion>\n");
-        crashy::Printf(&crashFile, "Registers:\n");
+        _3rdparty::crashy::Printf(&crashFile, "<:Inspector.Assertion>\n");
+        _3rdparty::crashy::Printf(&crashFile, "Registers:\n");
         File::CRASH_DumpRegisters(dwThreadId, FILETOOLS_WriteOneStringToFile, &crashFile);
-        crashy::Printf(&crashFile, "Threads:\n");
+        _3rdparty::crashy::Printf(&crashFile, "Threads:\n");
         File::CRASH_EnumerateThreads(FILETOOLS_WriteOneStringToFile, &crashFile, dwThreadId);
         ppszAttachEnd = ppszAttachPaths + nAttachPathCount;
         for (; ppszAttachPaths != ppszAttachEnd; ppszAttachPaths++) {
-          crashy::AddAttachment(&crashFile, *ppszAttachPaths, '\x01');
+          _3rdparty::crashy::AddAttachment(&crashFile, *ppszAttachPaths, '\x01');
         }
 
-        crashy::Close(&crashFile);
+        _3rdparty::crashy::Close(&crashFile);
         memset(&errorArg, 0, 0x54);
         errorArg.szProduct = szProduct;
         if (bSilentFlag) {
@@ -601,11 +601,11 @@ void __fastcall CRASH_FillupCrashTxt(char * szSummary, char * szReason, char * *
           } while ((int)nAttachIndex < crashFile.nAttachmentCount);
         }
 
-        System::ErrorReportingLaunch(crashFile.szFilePath, &errorArg);
+        _3rdparty::crashy::ErrorReportingLaunch(crashFile.szFilePath, &errorArg);
         /* LONG * lpAddend for InterlockedDecrement */ g_dwErrorState = 0;
         InterlockedDecrement((LONG*)&lpAddend_007076bc);
         __frame0.nSehState = -1;
-        crashy::Destructor(&crashFile);
+        _3rdparty::crashy::Destructor(&crashFile);
         ExceptionList = __frame0.pPrevSehFrame;
         Debug::GuardStack();
         return;
@@ -615,7 +615,7 @@ void __fastcall CRASH_FillupCrashTxt(char * szSummary, char * szReason, char * *
     /* LONG * lpAddend for InterlockedDecrement */ g_dwErrorState = 0;
     InterlockedDecrement((LONG*)&lpAddend_007076bc);
     __frame0.nSehState = -1;
-    crashy::Destructor(&crashFile);
+    _3rdparty::crashy::Destructor(&crashFile);
     ExceptionList = __frame0.pPrevSehFrame;
     Debug::GuardStack();
 }
@@ -658,7 +658,7 @@ void FOG_ErrorHandler(eFOG_ErrorType eErrorType, char * szFile, int32_t nLine, c
         bIsFatalErrorType = true;
       }
 
-      uVar1 = System::isDebuggerPresent();
+      uVar1 = _3rdparty::crashy::isDebuggerPresent();
       if ((char)uVar1 == '\0') {
         Storm::Source::SSTR::SStrPrintf(szFormattedReasonBuffer, 0x1000, szReasonFormat, (va_list)((uint8_t*)&szReasonFormat + 4));
         nLineSaved = nLine;
@@ -4904,11 +4904,11 @@ void __fastcall ERRORMANAGER_InitErrorManager(char * dwUnused1, char * szText, B
     int32_t nBadAddr;
     if (!gbFogErrorManagerInitialized) {
       int iBitIdx;
-      System::thunk_InitializeDebugSubsystem();
+      _3rdparty::crashy::thunk_InitializeDebugSubsystem();
       File::CRASH_SetExceptionHandler(DumpLog, nullptr, 0);
       iBitIdx = Source::SFile::SFILE_GetExecutableDirectory(__frame0.szPathBuffer, 0x1000);
       if (iBitIdx) {
-        System::SYSTEM_SetGlobalString(__frame0.szPathBuffer);
+        _3rdparty::crashy::SYSTEM_SetGlobalString(__frame0.szPathBuffer);
       }
 
       g_nProjectId = 0x108;

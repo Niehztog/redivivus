@@ -2,7 +2,16 @@ name: build
 
 on:
   push:
+    branches: [main]
+    paths-ignore: ['**.md']
   pull_request:
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+# A newer push makes an older build of the same ref pointless.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   mingw-i686:

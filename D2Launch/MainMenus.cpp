@@ -53,7 +53,7 @@
 #include "Storm/Source/SSTR.h"
 #include "Storm/Source/SSystem.h"
 #include "compiler/compiler.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Launch/D2Launch.h"
 #include "D2Win/D2WinEditBox.h"
 #include "D2Win/D2WinImageEx.h"

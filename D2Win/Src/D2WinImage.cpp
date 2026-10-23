@@ -16,7 +16,7 @@
 #include "D2gfx/D2GFX.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Win/D2WinImageEx.h"
 #include "D2Win/D2WinScrollbar.h"
 #include "D2Win/Src/D2WinFont.h"

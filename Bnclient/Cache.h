@@ -56,5 +56,6 @@ BOOL __fastcall CACHE_ReadData(char * szKey, uint32_t * pCrc32Out, uint32_t * * 
 // Writes data to Fog cache file. Encrypts data using CACHE_EncryptBlock, computes CRC32, seeks to entry offset in ghCacheFileHandle, writes encrypted data. Updates hash table entry with file time, size, and offset.
 // @sourcefile .\CACHE.CPP
 BOOL __fastcall CACHE_WriteData(char * szCacheKey, LPCVOID pDataToWrite, uint32_t nDataSize, uint32_t * pFileTime, uint32_t nExpiryTime, int32_t nCacheExpiry);
+void StaticFini_CriticalSection_00881894();
 
 } // namespace Bnclient::Cache

@@ -10,7 +10,7 @@
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/D2ArchiveStrc.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "support/d2_trace.h"
 #define POOLPROBE(tag) D2TraceFmt("poolprobe %-22s nPoolId=%d", tag, \

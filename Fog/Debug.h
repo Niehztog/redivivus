@@ -99,13 +99,6 @@ struct KDHELP {
     /* 0x2C */ DWORD Reserved[5];
 };
 
-struct THREADNAME_INFO {
-    /* 0x00 */ DWORD dwType; // must be 0x1000
-    /* 0x04 */ char * szName;
-    /* 0x08 */ DWORD dwThreadID; // -1 = calling thread
-    /* 0x0C */ DWORD dwFlags;
-};
-
 #ifndef _WIN32  // provided by the Win32 SDK / CRT on Windows
 
 struct _CONTEXT {
@@ -155,7 +148,6 @@ struct __attribute__((packed)) STACKFRAME {
 namespace Fog::Debug {
 
 // Function declarations
-void __stdcall DebugThread();
 // Loads dbghelp.dll once and resolves its 64-bit symbol APIs into globals. Returns true when the library is (already) loaded and every API resolved, in AL.
 bool __stdcall DEBUG_LoadDbgHelp64Apis();
 int __stdcall InitializeDebugSymbols();

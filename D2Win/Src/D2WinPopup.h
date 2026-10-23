@@ -13,7 +13,7 @@ struct D2UIMouseMsgStrc;
 struct D2WinPopup;
 struct D2WinPopupEntry;
 
-namespace D2Win::Src {
+namespace D2Win::Src::D2WinPopup {
 
 // Function declarations
 // Destroys the global popup control if it exists. Calls FORMS_DestroyControl and clears the global pointer.
@@ -28,4 +28,4 @@ BOOL __fastcall DrawEx(::D2WinPopup * pPopup);
 BOOL __fastcall Draw(::D2WinPopup * pPopup);
 void __stdcall D2WinPopup();
 
-} // namespace D2Win::Src
+} // namespace D2Win::Src::D2WinPopup

@@ -3,6 +3,7 @@
 #include "D2Common/Unit/Unit.h"
 #include "D2Client/D2ClientStrc.h"
 #include "D2Client/D2LightMapStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/UNIT/CUnitEvent.h"
 #include "D2Client/UNIT/Object.h"
 #include "D2Common/D2BitBufferStrc.h"
@@ -45,8 +46,7 @@
 #include "D2Game/UNIT/SUnitMsg.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Src/ErrorManager.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

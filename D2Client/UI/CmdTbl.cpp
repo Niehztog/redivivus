@@ -2,7 +2,7 @@
 
 #include "D2Client/UI/CmdTbl.h"
 #include "D2Client/D2Client.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Msg.h"
 #include "D2Client/GAME/RosterPets.h"
 #include "D2Client/Message.h"
@@ -29,7 +29,7 @@
 #include "Fog/Source/SFile.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/H/Storm.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Common/Drlg/Drlg.h"
 #include "D2Common/Unit/D2UnitStrc.h"

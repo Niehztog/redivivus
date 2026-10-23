@@ -9,7 +9,7 @@
 #include "D2Win/Src/D2WinTextBox.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/D2ControlStrc.h"
 #include "D2Win/D2WinImageEx.h"
 

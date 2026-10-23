@@ -18,12 +18,11 @@
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/SMem.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Inv.h"
 #include "D2Win/D2WinEditBox.h"
 #include "D2Win/D2WinScrollbar.h"
 #include "D2Win/Src/D2WinList.h"
-#include "D2Win/Src/D2WinPopup.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

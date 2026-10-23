@@ -2,6 +2,7 @@
 
 #include "D2Game/Monster/MonsterMsg.h"
 #include "D2Client/D2ClientStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/GAME/RosterPets.h"
 #include "D2Common/D2InventoryStrc.h"
 #include "D2Common/D2RoomStrc.h"
@@ -19,8 +20,7 @@
 #include "D2Game/UNIT/SUnit.h"
 #include "D2Game/UNIT/SUnitMsg.h"
 #include "Fog/D2PoolManagerStrc.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Skills.h"
 #include "D2Game/SKILLS/SkillAss.h"
 

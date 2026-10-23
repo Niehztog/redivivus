@@ -19,7 +19,7 @@
 #include "Storm/Source/SFile.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/Source/SSystem.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -1165,6 +1165,44 @@ void __stdcall SCmdProcessCommandLine(pfnSCmdUnknownArgCallback pfnUnknownCallba
     int bSkipFirstToken = 1;
     LPSTR szCommandLine = GetCommandLineA();
     SCmdProcess(szCommandLine, bSkipFirstToken, pfnUnknownCallback, pfnErrorCallback);
+}
+
+// Runs at exit: removes every element from the Storm command-argument list gStormCmdListHeadBackslash, then unlinks the list head itself.
+void StaticFini_gStormCmdListBackslash() {
+    uint32_t* puVar1;
+    SCMD_ClearList(&gStormCmdListHeadBackslash);
+    if (!gStormCmdListHeadBackslash.pPrevLink) {
+      return;
+    }
+    if (gStormCmdListHeadBackslash.pNext < 0) {
+      puVar1 = (uint32_t*)~gStormCmdListHeadBackslash.pNext;
+    } else {
+      puVar1 = (uint32_t*)(gStormCmdListHeadBackslash.pNext + ((int)((char*)&gStormCmdListHeadBackslash + 4) - gStormCmdListHeadBackslash.pPrevLink->pNext));
+    }
+
+    *puVar1 = (uint32_t)(uintptr_t)gStormCmdListHeadBackslash.pPrevLink;
+    gStormCmdListHeadBackslash.pPrevLink->pNext = gStormCmdListHeadBackslash.pNext;
+    gStormCmdListHeadBackslash.pPrevLink = 0;
+    gStormCmdListHeadBackslash.pNext = 0;
+}
+
+// Runs at exit: removes every element from the Storm command-argument list gStormCmdListHeadSlash, then unlinks the list head itself.
+void StaticFini_gStormCmdListSlash() {
+    uint32_t* puVar1;
+    SCMD_ClearList(&gStormCmdListHeadSlash);
+    if (!gStormCmdListHeadSlash.pPrevLink) {
+      return;
+    }
+    if (gStormCmdListHeadSlash.pNext < 0) {
+      puVar1 = (uint32_t*)~gStormCmdListHeadSlash.pNext;
+    } else {
+      puVar1 = (uint32_t*)(gStormCmdListHeadSlash.pNext + ((int)((char*)&gStormCmdListHeadSlash + 4) - gStormCmdListHeadSlash.pPrevLink->pNext));
+    }
+
+    *puVar1 = (uint32_t)(uintptr_t)gStormCmdListHeadSlash.pPrevLink;
+    gStormCmdListHeadSlash.pPrevLink->pNext = gStormCmdListHeadSlash.pNext;
+    gStormCmdListHeadSlash.pPrevLink = 0;
+    gStormCmdListHeadSlash.pNext = 0;
 }
 
 } // namespace Storm::Source

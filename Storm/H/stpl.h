@@ -754,7 +754,7 @@ void Destructor_Unreferenced(TSExplicitList<::CELLIST, -572662307>* pThis);
 void Destructor_Unreferenced(TSExplicitList<TSHashObjectChunk<::CELLIST, HASHKEY_NONE>, 16>* pThis);
 // stpl-orphan: a COMDAT copy in TSExplicitList<CELLIST, -572662307> that no member owns
 void Destructor_Unreferenced2(TSExplicitList<::CELLIST, -572662307>* pThis);
-// stpl-orphan: a COMDAT copy in CELLIST that no member owns
+// stpl-orphan: a COMDAT copy in D2CMP::SRC::CelCmp::CELLIST that no member owns
 void Destructor_Unreferenced(::CELLIST * pThis);
 // stpl-orphan: a COMDAT copy in TSGrowableArray<TSExplicitList<CELLIST, -572662307>> that no member owns
 void Destructor_UnwindThunk(TSGrowableArray<TSExplicitList<CELLIST, -572662307>> * pThis);

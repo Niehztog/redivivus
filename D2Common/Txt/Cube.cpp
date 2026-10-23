@@ -24,7 +24,7 @@
 #include "Fog/Debug.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Fog/Src/Excel.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "Storm/D2MPQFileStrc.h"
 

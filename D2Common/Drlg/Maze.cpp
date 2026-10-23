@@ -36,7 +36,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Drlg/Maze/Act5/IceCaves.h"
 #include "D2Common/Drlg/Maze/Act5/Temple.h"
 

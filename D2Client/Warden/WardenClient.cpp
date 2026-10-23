@@ -4,6 +4,8 @@
 #include "Bnclient/Bnclient.h"
 #include "D2Client/D2Client.h"
 #include "D2Client/D2IniConfigStrc.h"
+#include "D2Client/GAME/Msg.h"
+#include "Fog/3rdparty/crashy/Report.h"
 #include "Fog/Source/SSignature.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/3rdparty/zlib/uncompr.h"
@@ -13,8 +15,7 @@
 #include "Storm/Source/SSTR.h"
 #include "Storm/Source/SSignature.h"
 #include "Storm/Source/SSystem.h"
-#include "WardenClient/WardenClient.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -597,6 +598,83 @@ uint32_t __stdcall WARDEN_DownloadModule(char * dwParam1, void * dwParam2, uint3
     return bResult;
 }
 
+void SendPacket(::WardenClient * pThis, void * pData, uint32_t nLen) {
+    GAME::Msg::NET_D2GS_CLIENT_Send_0x66(pData, nLen);
+}
+
+bool CheckModule(::WardenClient * pThis, uint8_t * pModuleHash, void * pRc4Key) {
+    BOOL bResult = WARDEN_ResolveAndLoadModule(pRc4Key, pModuleHash);
+    return bResult != 0;
+}
+
+void LoadModule(::WardenClient * pThis, uint8_t * pModuleHash, void * pData, uint32_t nSize) {
+    char szHexBuf;
+    char szExt[8];
+    _FILETIME fileTime;
+    uint32_t i = 0;
+    char* pszHexCursor = &szHexBuf;
+    do {
+      sprintf(pszHexCursor, "%02x", (uint32_t)pModuleHash[i]);
+      i++;
+      pszHexCursor += 2;
+    } while (i < 0x10);
+
+    Storm::Source::SSTR::SStrCopy(szExt, ".mod", 5);
+    if (!sgpUnknownSequence) {
+      return;
+    }
+
+    /* LPFILETIME lpSystemTimeAsFileTime for GetSystemTimeAsFileTime */ GetSystemTimeAsFileTime(&fileTime);
+    sgpUnknownSequence->pfnCacheWriteData(&szHexBuf, pData, nSize, (int*)&fileTime, -1, -1);
+}
+
+// @sourcefile .\WARDEN\WardenClient.cpp
+void * AllocateMemory(::WardenClient * pThis, uint32_t nSize) {
+    void* pvVar1 = Storm::SMem::SMemAlloc(nSize, ".\\WARDEN\\WardenClient.cpp", 0x274, 0);
+    return pvVar1;
+}
+
+// @sourcefile .\WARDEN\WardenClient.cpp
+void FreeMemory(::WardenClient * pThis, void * pMem) {
+    Storm::SMem::SMemFree(pMem, ".\\WARDEN\\WardenClient.cpp", 0x27b, 0);
+}
+
+// @sourcefile .\WARDEN\WardenClient.cpp
+void SetRC4Data(::WardenClient * pThis, void * pData, uint32_t nSize) {
+    if (gpWardenResponseData) {
+      Storm::SMem::SMemFree(gpWardenResponseData, ".\\WARDEN\\WardenClient.cpp", 0x283, 0);
+    }
+
+    gpWardenResponseData = Storm::SMem::SMemAlloc(nSize, ".\\WARDEN\\WardenClient.cpp", 0x284, 0);
+    gnWardenResponseSize = nSize;
+    Storm::Source::SSystem::SMemCopy(gpWardenResponseData, pData, nSize);
+}
+
+// @sourcefile .\WARDEN\WardenClient.cpp
+bool GetRC4Data(::WardenClient * pThis, void * pDest, uint32_t * pnSize) {
+    void* pSrc = gpWardenResponseData;
+    if (!gpWardenResponseData) {
+      return false;
+    }
+
+    uint32_t nCopySize = *pnSize;
+    if (gnWardenResponseSize <= *pnSize) {
+      nCopySize = gnWardenResponseSize;
+    }
+
+    *pnSize = nCopySize;
+    Storm::Source::SSystem::SMemCopy(pDest, pSrc, nCopySize);
+    Storm::SMem::SMemFree(gpWardenResponseData, ".\\WARDEN\\WardenClient.cpp", 0x292, 0);
+    gpWardenResponseData = 0;
+    gnWardenResponseSize = 0;
+    return true;
+}
+
+::WardenClient * Constructor(::WardenClient * pThis) {
+    pThis->_vfptr = (WardenClientVtable*)(void*)Warden::vftable;
+    return pThis;
+}
+
 // @sourcefile .\WARDEN\WardenClient.cpp
 void __stdcall WARDEN_UnloadActiveModule() {
     if (gpWardenActiveModule) {
@@ -620,7 +698,7 @@ void __stdcall WARDEN_UnloadActiveModule() {
 void __fastcall WARDEN_ActivatePendingModule(uint32_t dwModuleParam) {
     // Static local variables (originally global data)
     static WardenClient gWardenClient = {
-    /* ._vfptr = */ (WardenClientVtable*)&Class::WardenClient::vftable
+    /* ._vfptr = */ (WardenClientVtable*)&D2Client::Warden::vftable
 };
 
     D2WardenModuleObjectStrc* pVtable;

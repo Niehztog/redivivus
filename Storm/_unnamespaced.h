@@ -39,13 +39,6 @@ typedef _s_FuncInfo FuncInfo;
 
 typedef struct _RTL_CRITICAL_SECTION_DEBUG * PRTL_CRITICAL_SECTION_DEBUG;
 
-struct _PROCESS_INFORMATION {
-    /* 0x00 */ HANDLE hProcess;
-    /* 0x04 */ HANDLE hThread;
-    /* 0x08 */ DWORD dwProcessId;
-    /* 0x0C */ DWORD dwThreadId;
-};
-
 struct _STARTUPINFOA {
     /* 0x00 */ DWORD cb;
     /* 0x04 */ LPSTR lpReserved;
@@ -115,8 +108,6 @@ struct _RTL_CRITICAL_SECTION {
 #endif // _WIN32
 
 // Function declarations
-void __fastcall CRT_LocalTime_Thunk(uint8_t * bParam, uint32_t * pnParam);
-bool __stdcall FILETOOLS_GetTempPath_UTF8(char * pSrc);
 void thunk__strstr(char * szText1, char * szText2);
 void __fastcall UI_SLIDER_LoadAndApplyNpcSpeech(struct D2EscMenuItemStrc * pItem, struct D2UIMouseMsgStrc * pMsg);
 void __fastcall UI_SLIDER_LoadAndApplyResolution(struct D2EscMenuItemStrc * pItem, struct D2UIMouseMsgStrc * pMsg);

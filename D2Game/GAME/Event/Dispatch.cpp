@@ -2,6 +2,7 @@
 
 #include "D2Game/GAME/Event/Dispatch.h"
 #include "D2Client/D2ClientStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Common/Drlg/D2DrlgActStrc.h"
 #include "D2Common/Unit/D2UnitStrc.h"
 #include "D2Game/D2TimerListStrc.h"
@@ -15,8 +16,7 @@
 #include "D2Game/UNIT/SUnit.h"
 #include "D2Game/UNIT/SUnitInactive.h"
 #include "Fog/D2PoolManagerStrc.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

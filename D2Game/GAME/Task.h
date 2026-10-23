@@ -77,5 +77,7 @@ int32_t __fastcall TASK_DequeueReadyTask(uint32_t nSlotToken, struct D2TaskNodeS
 void __fastcall TASK_Dispatch(uint32_t nParam, struct D2TaskNodeStrc * pTaskNode);
 BOOL __stdcall TASK_ReturnTrue();
 void __stdcall TASK_Nop();
+void StaticFini_CriticalSection_0088caa8();
+void StaticFini_aTaskQueueCriticalSections();
 
 } // namespace D2Game::GAME::Task

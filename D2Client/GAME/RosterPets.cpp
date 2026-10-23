@@ -30,7 +30,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Common/Drlg/Drlg.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

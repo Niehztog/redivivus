@@ -2,7 +2,7 @@
 
 #include "Fog/Source/SSignature.h"
 #include "Storm/Source/SSignature.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

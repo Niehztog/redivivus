@@ -32,7 +32,7 @@
 #include "Fog/Memory.h"
 #include "Fog/SMem.h"
 #include "Storm/H/Storm.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Launch/MainMenus.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

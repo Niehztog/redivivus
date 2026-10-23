@@ -5,7 +5,7 @@
 #include "D2Common/D2SeedStrc.h"
 #include "Fog/SMem.h"
 #include "compiler/compiler.h"
-#include "globals.h"
+#include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

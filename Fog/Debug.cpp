@@ -6,6 +6,8 @@
 #include "D2Game/GAME/Event.h"
 #include "D2Launch/CharSel.h"
 #include "D2Win/DC6.h"
+#include "Fog/3rdparty/crashy.h"
+#include "Fog/3rdparty/crashy/Report.h"
 #include "Fog/Engine/Application.h"
 #include "Fog/File.h"
 #include "Fog/Memory.h"
@@ -13,13 +15,11 @@
 #include "Fog/Source/SSComp.h"
 #include "Fog/Src/ErrorManager.h"
 #include "Fog/Src/LogManager.h"
-#include "Fog/System.h"
 #include "Storm/Source/SReg.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/Source/SSystem.h"
 #include "Storm/_unnamespaced.h"
-#include "crashy/Report.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/D2QuestGUIDStrc.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
@@ -168,28 +168,6 @@ typedef DWORD (__stdcall *pfnUnDecorateSymbolName)(char * DecoratedName, char * 
 #endif
 
 namespace Fog::Debug {
-
-void __stdcall DebugThread() {
-    void* pSavedEsp;
-    EH4_EXCEPTION_REGISTRATION tSehFrame;
-    tSehFrame.TryLevel = -2;
-    tSehFrame.ExceptionHandler = __except_handler4;
-    tSehFrame.Next = (EH4_EXCEPTION_REGISTRATION*)ExceptionList;
-    tSehFrame.EncodedScopeTable = DEFAULT_SECURITY_COOKIE ^ 0x702290;
-    ExceptionList = &tSehFrame;
-    BOOL bDebuggerPresent = IsDebuggerPresent();
-    if (bDebuggerPresent == 1) {
-      THREADNAME_INFO tThreadNameInfo;
-      tThreadNameInfo.dwType = 0x1000;
-      tThreadNameInfo.szName = "MiniDump Thread";
-      tThreadNameInfo.dwThreadID = -1;
-      tThreadNameInfo.dwFlags = 0;
-      tSehFrame.TryLevel = 0;
-      /* ULONG_PTR * lpArguments for RaiseException */ /* DWORD nNumberOfArguments for RaiseException */ /* DWORD dwExceptionFlags for RaiseException */ /* DWORD dwExceptionCode for RaiseException */ RaiseException(0x406d1388, 0, 4, &tThreadNameInfo.dwType);
-    }
-
-    ExceptionList = tSehFrame.Next;
-}
 
 // Loads dbghelp.dll once and resolves its 64-bit symbol APIs into globals. Returns true when the library is (already) loaded and every API resolved, in AL.
 bool __stdcall DEBUG_LoadDbgHelp64Apis() {
@@ -791,7 +769,7 @@ void __stdcall WriteCrashDumpViaThread() {
 
 // lpStartAddress parameter of CreateThread
 DWORD __stdcall DEBUG_CrashDumpRequestThreadProc(void * lpThreadParam) {
-    DebugThread();
+    _3rdparty::crashy::DebugThread();
     /* DWORD dwMilliseconds for WaitForSingleObject */ /* HANDLE hHandle for WaitForSingleObject */ WaitForSingleObject(hCrashDumpRequestEvent, -1);
     while (pCrashDumpInfo) {
       WriteCrashDumpViaThread();

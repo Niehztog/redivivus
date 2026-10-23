@@ -19,7 +19,7 @@
 #include "Storm/Source/SSComp.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "Bnclient/Bnet.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 

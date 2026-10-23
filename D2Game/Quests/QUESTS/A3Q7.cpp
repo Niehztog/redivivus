@@ -2,6 +2,7 @@
 
 #include "D2Game/Quests/QUESTS/A3Q7.h"
 #include "D2Client/D2ClientStrc.h"
+#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/UNIT/Player.h"
 #include "D2Common/D2BitBufferStrc.h"
 #include "D2Common/D2InventoryStrc.h"
@@ -35,8 +36,7 @@
 #include "D2Game/UNIT/SUnitMsg.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
-#include "SGAMEDATA/SGAMEDATA.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/D2Game.h"
 #include "D2Game/Quests/QUESTS/A3Q6.h"
 #include "Fog/Src/Safesock.h"

@@ -4,7 +4,7 @@
 #include "D2CMP/SRC/CelCmp.h"
 #include "D2Client/Core/Archive.h"
 #include "D2Client/D2ClientStrc.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/Seed.h"
 #include "D2Client/Sound/Sound.h"
 #include "D2Client/UI/Path.h"
@@ -38,7 +38,7 @@
 #include "Fog/Memory.h"
 #include "Fog/Src/DataArrays.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Panel.h"
 #include "D2Common/D2MissilesTxt.h"
 

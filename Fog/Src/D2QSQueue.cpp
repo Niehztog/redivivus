@@ -5,7 +5,7 @@
 #include "Fog/D2QSSocketStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "Storm/_unnamespaced.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

@@ -2,7 +2,7 @@
 
 #include "D2Client/UNIT/UnitMode.h"
 #include "D2Client/Engine/Gfx.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Msg.h"
 #include "D2Client/GAME/Roster.h"
 #include "D2Client/GAME/RosterPets.h"
@@ -46,7 +46,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/SMem.h"
 #include "Fog/Src/ErrorManager.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Automap.h"
 #include "D2Common/D2DynamicPathStrc.h"
 #include "D2Common/Unit/Unit.h"

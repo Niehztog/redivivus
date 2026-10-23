@@ -6,7 +6,7 @@
 #include "D2Client/Core/Archive.h"
 #include "D2Client/D2GameViewStrc.h"
 #include "D2Client/Engine/GfxInfo.h"
-#include "D2Client/GAME/Game.h"
+#include "D2Client/GAME/Game/Game.h"
 #include "D2Client/GAME/Rendering.h"
 #include "D2Client/GAME/View.h"
 #include "D2Client/Sound/Sound.h"
@@ -27,7 +27,7 @@
 #include "Fog/Src/ErrorManager.h"
 #include "Storm/H/Storm.h"
 #include "Storm/Source/SReg.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Client/UI/Panel.h"
 #include "D2Launch/MainMenus.h"
 

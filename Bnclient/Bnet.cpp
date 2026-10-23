@@ -8,7 +8,7 @@
 #include "Storm/H/Storm.h"
 #include "Storm/Source/SSComp.h"
 #include "Storm/_unnamespaced.h"
-#include "globals.h"
+#include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -60,6 +60,10 @@ void BnetLog_WriteLine(char * Format, ...) {
     Storm::Source::SSComp::SLogWrite(gnBnetLogFileHandle, szBuf);
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00881860);
     Fog::Debug::GuardStack();
+}
+
+void StaticFini_CriticalSection_00881860() {
+    /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&lpCriticalSection_00881860);
 }
 
 void StaticFini_gnBnetLogFileHandle() {
