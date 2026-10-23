@@ -5,6 +5,13 @@
 
 static FILE* g_pLog = 0;
 
+#ifndef REDIVIVUS_DEV
+// Per-opcode packet counters. The control channel defines and reports them in a
+// development build; without it they are counted and never read.
+unsigned g_anClientPktCount[256];
+unsigned g_anServerPktCount[256];
+#endif
+
 #ifdef REDIVIVUS_DEV
 // Prefer the host share. Reading the log back out of the VM's %TEMP% costs a PowerShell
 // round trip that times out entirely once the file passes a few hundred thousand lines,
