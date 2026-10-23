@@ -41,24 +41,13 @@ void DRLGMAZE_GenerateRiverOfFlames(D2DrlgLevelStrc * pDrlgLevelStrc) {
     }
 };
 
-    // Frame slots -24..-4 are ONE object: &nMaxX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nMaxX;
-      int nMaxY;
-      int nMinY;
-      int nMinX;
-      D2DrlgLevelStrc* pChaosLevel;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2DrlgPresetRoomStrc* pRoomExDataInner;
     LONG* pWorldPosY;
     if (pDrlgLevelStrc->pDrlg->nActNo == 4) {
       return;
     }
 
-    __frame0.pChaosLevel = GetLevelAndAlloc(pDrlgLevelStrc->pDrlg, 0x6c);
+    D2DrlgLevelStrc* pChaosLevel = GetLevelAndAlloc(pDrlgLevelStrc->pDrlg, 0x6c);
     D2RoomExStrc* pNewRoom = DRLGMAZE_FindBottomMostRoom(pDrlgLevelStrc);
     DRLGMAZE_AllocRoomExAndPickPreset(DIRECTION_NORTHWEST, pNewRoom, 0x354, -1, 1);
     pNewRoom = DRLGMAZE_FindTopMostRoom(pDrlgLevelStrc);
@@ -98,13 +87,13 @@ void DRLGMAZE_GenerateRiverOfFlames(D2DrlgLevelStrc * pDrlgLevelStrc) {
       pRoomExDataInner->nPickedFile = -1;
     }
 
-    DrlgRoom::AllocDrlgOrth(pNewRoom, __frame0.pChaosLevel, DIRECTION_NORTHEAST, 0);
-    fReplaceResult = __frame0.pChaosLevel->sCoordinatesAndSize.WorldSize.y;
+    DrlgRoom::AllocDrlgOrth(pNewRoom, pChaosLevel, DIRECTION_NORTHEAST, 0);
+    fReplaceResult = pChaosLevel->sCoordinatesAndSize.WorldSize.y;
     int nRoomPosY = pNewRoom->sCoords.WorldPosition.y;
     int nRoomSizeX = pNewRoom->sCoords.WorldSize.x;
-    int nChaosLevelY = __frame0.pChaosLevel->sCoordinatesAndSize.WorldPosition.y;
+    int nChaosLevelY = pChaosLevel->sCoordinatesAndSize.WorldPosition.y;
     int nRoomPosX = pNewRoom->sCoords.WorldPosition.x;
-    int nChaosLevelX = __frame0.pChaosLevel->sCoordinatesAndSize.WorldPosition.x;
+    int nChaosLevelX = pChaosLevel->sCoordinatesAndSize.WorldPosition.x;
     D2SeedStrc DVar2 = D2_SEED_NEXT(pDrlgLevelStrc->sSeed);
     pDrlgLevelStrc->sSeed = DVar2;
     ReplaceRoom(gaDrlgRiverOfFlamesReplacements + (DVar2.nSeedLow & 1), pDrlgLevelStrc, nullptr);
@@ -115,15 +104,15 @@ void DRLGMAZE_GenerateRiverOfFlames(D2DrlgLevelStrc * pDrlgLevelStrc) {
       *pWorldPosY = *pWorldPosY + (fReplaceResult - nRoomPosY) + nChaosLevelY;
     }
 
-    __frame0.nMinX = 0;
-    __frame0.nMinY = 0;
-    __frame0.nMaxY = 0;
-    __frame0.nMaxX = 0;
-    GetMinAndMaxCoordinatesFromLevel(pDrlgLevelStrc, &__frame0.nMinX, &__frame0.nMinY, &__frame0.nMaxY, &__frame0.nMaxX);
-    pDrlgLevelStrc->sCoordinatesAndSize.WorldPosition.x = __frame0.nMinX;
-    pDrlgLevelStrc->sCoordinatesAndSize.WorldPosition.y = __frame0.nMinY;
-    pDrlgLevelStrc->sCoordinatesAndSize.WorldSize.x = __frame0.nMaxY - __frame0.nMinX;
-    pDrlgLevelStrc->sCoordinatesAndSize.WorldSize.y = __frame0.nMaxX - __frame0.nMinY;
+    int nMinX = 0;
+    int nMinY = 0;
+    int nMaxY = 0;
+    int nMaxX = 0;
+    GetMinAndMaxCoordinatesFromLevel(pDrlgLevelStrc, &nMinX, &nMinY, &nMaxY, &nMaxX);
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldPosition.x = nMinX;
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldPosition.y = nMinY;
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldSize.x = nMaxY - nMinX;
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldSize.y = nMaxX - nMinY;
 }
 
 } // namespace D2Common::Drlg::Maze::Act4::RiverOfFlames

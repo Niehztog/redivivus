@@ -834,18 +834,12 @@ void __stdcall PLRMODES_ReequipWeaponAfterThrow(::SGAMEDATA * pGame, uint32_t nB
 // Called when a stackable ammo or throwable weapon reaches quantity 0. If the item is a throwable stat holder, zeroes the quantity stat and returns. Otherwise: unequips the item via EquipItem, marks it deleted, and searches the inventory for a reload-compatible replacement of the same type/classId to auto-reequip into the same body-loc slot. If the item has the reequip flag, calls PLRMODES_ReequipWeaponAfterThrow.
 // @sourcefile .\PLAYER\PlrModes.cpp
 void __stdcall PLRMODES_HandleDepletedAmmoOrThrowable(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pWeaponOwner) {
-    // Frame slots -24..-16 are ONE object: &dwEquipResult is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t dwEquipResult;
-      uint32_t bCanReequip;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bIsStackable;
     int32_t nThrowableStat;
     D2UnitStrc* pReloadItem;
     D2UnitStrc* pSlotItem;
+    uint32_t dwEquipResult;
+    uint32_t bCanReequip;
     eD2ItemTypes eItemType;
     int nReloadClassId;
     uint32_t nBodyLocWord;
@@ -872,9 +866,9 @@ void __stdcall PLRMODES_HandleDepletedAmmoOrThrowable(::SGAMEDATA * pGame, D2Uni
       eItemType = D2Common::ITEMS::Items::ITEM_GetItemData_wType(pUnit);
       eBodyLoc = D2Common::ITEMS::Items::GetBodyLocation(pUnit);
       nBodyLocWord = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&nBodyLocWord + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)eBodyLoc);
-      __frame0.bCanReequip = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_reequip(pUnit);
+      bCanReequip = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_reequip(pUnit);
       D2Common::Units::SetupUpdateFlag(pWeaponOwner, 1);
-      ITEMS::ItemMode::EquipItem(pGame, pWeaponOwner, (eD2BodyLoc)nBodyLocWord, 1, &__frame0.dwEquipResult);
+      ITEMS::ItemMode::EquipItem(pGame, pWeaponOwner, (eD2BodyLoc)nBodyLocWord, 1, &dwEquipResult);
       D2Common::ITEMS::Items::ITEM_EditItemData_eD2ItemCmd(pUnit, ITEMCMD_DELETE, 1);
       if (bIsWeapon) {
         for (pReloadItem = D2Common::INVENTORY::Inventory::INVENTORY_FindItemByType(pWeaponOwner->pInventory, eItemType, nullptr); pReloadItem; pReloadItem = D2Common::INVENTORY::Inventory::INVENTORY_FindItemByType(pWeaponOwner->pInventory, eItemType, pReloadItem)) {
@@ -905,7 +899,7 @@ void __stdcall PLRMODES_HandleDepletedAmmoOrThrowable(::SGAMEDATA * pGame, D2Uni
           }
         }
       }
-      if (__frame0.bCanReequip) {
+      if (bCanReequip) {
         PLRMODES_ReequipWeaponAfterThrow(pGame, nBodyLocWord, pWeaponOwner);
       }
     } else {

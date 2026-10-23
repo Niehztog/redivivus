@@ -42,24 +42,17 @@ void __fastcall SHA1_BigIntMod(BigData * pResult, BigData * pBigA, BigData * pMo
 }
 
 uint32_t __fastcall SHA1_BigIntModToInt(BigData * pBigInt, uint32_t dwModulus) {
-    // Frame slots -16..-4 are ONE object: &pRemBigInt is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      BigData* pRemBigInt;
-      BigData* pModBigInt;
-      uint32_t dwResult;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    Storm::Source::SBig::SBigNew(&__frame0.pModBigInt);
-    Storm::Source::SBig::SBigNew(&__frame0.pRemBigInt);
-    Storm::Source::SBig::SBigFromUnsigned(__frame0.pModBigInt, dwModulus);
-    Storm::Source::SBig::SBigMod(__frame0.pRemBigInt, pBigInt, __frame0.pModBigInt);
-    __frame0.dwResult = 0;
-    Storm::Source::SBig::SBigToBinaryBuffer(__frame0.pRemBigInt, &__frame0.dwResult, 4, nullptr);
-    Storm::Source::SBig::SBigDel(__frame0.pModBigInt);
-    Storm::Source::SBig::SBigDel(__frame0.pRemBigInt);
-    return __frame0.dwResult;
+    BigData* pRemBigInt;
+    BigData* pModBigInt;
+    Storm::Source::SBig::SBigNew(&pModBigInt);
+    Storm::Source::SBig::SBigNew(&pRemBigInt);
+    Storm::Source::SBig::SBigFromUnsigned(pModBigInt, dwModulus);
+    Storm::Source::SBig::SBigMod(pRemBigInt, pBigInt, pModBigInt);
+    uint32_t dwResult = 0;
+    Storm::Source::SBig::SBigToBinaryBuffer(pRemBigInt, &dwResult, 4, nullptr);
+    Storm::Source::SBig::SBigDel(pModBigInt);
+    Storm::Source::SBig::SBigDel(pRemBigInt);
+    return dwResult;
 }
 
 } // namespace D2Net::SHA

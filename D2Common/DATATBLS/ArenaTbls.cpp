@@ -15,6 +15,7 @@
 #include "D2Game/UNIT/SUnitDmg.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Src/ErrorManager.h"
+#include "Fog/Src/Excel.h"
 #include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E

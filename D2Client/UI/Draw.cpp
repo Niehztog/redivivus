@@ -245,15 +245,6 @@ void __stdcall DRAW_MonsterUnderCursorImmunites() {
 }
 
 void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
-    // Frame slots -16..-4 are ONE object: &bIsMercenary is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int bIsMercenary;
-      uint16_t wszParen[2];
-      DWORD nNameColor;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2MonStats2Txt* pMonStats2;
     uint16_t* pwszStr;
     BOOL bResult;
@@ -266,8 +257,10 @@ void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
     uint16_t wszNameBuf[2048];
     uint16_t wszDescBuf[512];
     int anViewportBounds[4];
+    uint16_t wszParen[2];
     int32_t nTextWidth;
-    __frame0.nNameColor = 0x454add;
+    DWORD nNameColor;
+    nNameColor = 0x454add;
     int32_t nFontId;
     nFontId = D2Win::Src::D2WinFont::SetAndReturnLastFont(1);
     if (!pUnit) {
@@ -289,7 +282,7 @@ void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
       pwszStr += 2;
     }
 
-    __frame0.bIsMercenary = 0;
+    int bIsMercenary = 0;
     if (!pMonStats->interact && pMonStats->killable && pMonStats->NameStr) {
       D2RoomStrc* pRoom;
       if (!pUnit) {
@@ -318,20 +311,20 @@ void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
           return;
         }
 
-        __frame0.bIsMercenary = 1;
+        bIsMercenary = 1;
         nResult = D2Lang::StrTable::strtable::MISC_GetLanguageCode();
         if (!nResult) {
           pwszStr = D2Lang::StrTable::strtable::GetLocaleString(0x90b);
         } else {
-          Fog::File::CONTAINER_InitializeBuffer(__frame0.wszParen, 2, 2, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
-          *(uint16_t*)(char*)&__frame0.nNameColor = 0x28;
-          D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(__frame0.wszParen, (char*)&__frame0.nNameColor, 2);
-          D2Lang::Unicode::UNISYS::AppendToBuffer(wszNameBuf, __frame0.wszParen);
+          Fog::File::CONTAINER_InitializeBuffer(wszParen, 2, 2, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
+          *(uint16_t*)(char*)&nNameColor = 0x28;
+          D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszParen, (char*)&nNameColor, 2);
+          D2Lang::Unicode::UNISYS::AppendToBuffer(wszNameBuf, wszParen);
           pwszStr = D2Lang::StrTable::strtable::GetLocaleString(0x90b);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wszNameBuf, pwszStr);
-          __frame0.nNameColor = (uint32_t)((uint32_t)(uint16_t)*(uint16_t*)((char*)&__frame0.nNameColor + 2) << 16 | (uint32_t)(uint16_t)0x29);
-          D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(__frame0.wszParen, (char*)&__frame0.nNameColor, 2);
-          pwszStr = __frame0.wszParen;
+          nNameColor = (uint32_t)((uint32_t)(uint16_t)*(uint16_t*)((char*)&nNameColor + 2) << 16 | (uint32_t)(uint16_t)0x29);
+          D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszParen, (char*)&nNameColor, 2);
+          pwszStr = wszParen;
         }
 
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszNameBuf, pwszStr);
@@ -342,28 +335,28 @@ void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
       pwszStr = D2Lang::StrTable::strtable::GetLocaleString(0xf9b);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszNameBuf, pwszStr);
       nHpBarValue = ui::UI_GetMonsterHpBarValue(pUnit);
-      __frame0.nNameColor = 0;
+      nNameColor = 0;
       bResult = UNIT::Monster::IsMonsterUnique(pUnit);
       if (bResult) {
-        __frame0.nNameColor = 4;
+        nNameColor = 4;
       }
 
       bResult = UNIT::Monster::IsMonsterChampion(pUnit);
       if (bResult) {
-        __frame0.nNameColor = 3;
+        nNameColor = 3;
       }
-      if (__frame0.bIsMercenary) {
-        __frame0.nNameColor = 1;
+      if (bIsMercenary) {
+        nNameColor = 1;
       }
       if (nClassId == 0xf3 || nClassId == 0x14d || nClassId == 0xf2 || nClassId == 0xd3 || nClassId == 0x220 || nClassId == 0x23a || nClassId == 0xe5 || nClassId == 0x2c4 || nClassId == 0x2c3 || nClassId == 0x2c2 || nClassId == 0x2c1 || nClassId == 0x2c5 || nClassId == 0x2c0) {
-        __frame0.nNameColor = 4;
+        nNameColor = 4;
       }
 
       nResult = DRAW_GetVisibleViewportBounds(anViewportBounds);
       if (nResult) {
         nTextWidth = D2Win::Src::D2WinFont::DRAW_text0(wszNameBuf);
-        D2Win::Src::D2WinFont::D2WINFONT_SetTooltipAttributesWithCustomField(wszNameBuf, (anViewportBounds[0] + anViewportBounds[2] >> 1) - (nTextWidth >> 1), 0x20, __frame0.nNameColor, 0, nHpBarValue);
-        if (__frame0.bIsMercenary) {
+        D2Win::Src::D2WinFont::D2WINFONT_SetTooltipAttributesWithCustomField(wszNameBuf, (anViewportBounds[0] + anViewportBounds[2] >> 1) - (nTextWidth >> 1), 0x20, nNameColor, 0, nHpBarValue);
+        if (bIsMercenary) {
           gnMonsterHealthBarValue = 0;
           D2Win::Src::D2WinFont::SetAndReturnLastFont(nFontId);
           return;
@@ -399,14 +392,14 @@ void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
               D2Lang::Unicode::UNISYS::AppendToBuffer(wszDescBuf, pwszStr);
             }
 
-            ui::UI_StoreGlobalUIText(wszDescBuf, __frame0.nNameColor);
+            ui::UI_StoreGlobalUIText(wszDescBuf, nNameColor);
             ui::UI_BuildUberBossImmunityString(pUnit);
             D2Win::Src::D2WinFont::SetAndReturnLastFont(nFontId);
             return;
           }
           if (pMonStats->DescStr != 0x1506) {
             pwszStr = D2Lang::StrTable::strtable::GetLocaleString(pMonStats->DescStr);
-            ui::UI_StoreGlobalUIText(pwszStr, __frame0.nNameColor);
+            ui::UI_StoreGlobalUIText(pwszStr, nNameColor);
           }
         }
 
@@ -416,7 +409,7 @@ void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
       }
     } else {
       gnMonsterHealthBarValue = 0;
-      bResult = npcmenu::GetInteractedUnitGuid(&__frame0.bIsMercenary);
+      bResult = npcmenu::GetInteractedUnitGuid(&bIsMercenary);
       if (!bResult) {
         nResult = Text::TEXT_IsScrollingTextActive();
         if (!nResult) {
@@ -1686,22 +1679,16 @@ void __fastcall Draw_UI_LoadGame(int32_t bAdvanceFrame) {
 }
 
 void __stdcall UI_ToggleMiniPanel() {
-    // Frame slots -12..-4 are ONE object: &nInteractGuid is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nInteractGuid;
-      int nMiniPanelRegVal;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bRegistryRead;
     bool bRegistryRead;
     int32_t nHandlerCount;
     HWND pHwnd;
     eD2UIvars eUI;
-    _bRegistryRead = Storm::Source::SReg::SRegLoadValue("Diablo II", "Mini Panel", 1, &__frame0.nMiniPanelRegVal);
+    int32_t nInteractGuid;
+    int nMiniPanelRegVal;
+    _bRegistryRead = Storm::Source::SReg::SRegLoadValue("Diablo II", "Mini Panel", 1, &nMiniPanelRegVal);
     BOOL bWasMiniPanelOpen = GFX_bShowUIFlag.MiniPanel;
-    if (_bRegistryRead && __frame0.nMiniPanelRegVal) {
+    if (_bRegistryRead && nMiniPanelRegVal) {
       return;
     }
 
@@ -1733,9 +1720,9 @@ void __stdcall UI_ToggleMiniPanel() {
               default:
                 return;
               case 4:
-                bIsExpansion = npcmenu::GetInteractedUnitGuid(&__frame0.nInteractGuid);
+                bIsExpansion = npcmenu::GetInteractedUnitGuid(&nInteractGuid);
               if (bIsExpansion) {
-                npcmenu::NPCMENU_CloseNpcInteraction(__frame0.nInteractGuid);
+                npcmenu::NPCMENU_CloseNpcInteraction(nInteractGuid);
               }
             }
           }

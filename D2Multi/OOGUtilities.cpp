@@ -687,14 +687,6 @@ int __fastcall CHATDLG_RunChatLobbyScreen(D2IniConfigStrc * pD2IniConfig) {
     static uint8_t gnOogReplyCommandIndex;
     static int gnLobbyTabCompletionIndex;
 
-    // Frame slots -12..-4 are ONE object: &pGameListForm is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2ControlStrc* pGameListForm;
-      D2ControlStrc* pGameInfoForm;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2ControlStrc* pCreatedForm;
     ::D2WinButton* pUserListButton;
     uint32_t dwFlags;
@@ -788,13 +780,13 @@ int __fastcall CHATDLG_RunChatLobbyScreen(D2IniConfigStrc * pD2IniConfig) {
     D2Win::Src::D2WinButton::D2WINBUTTON_SetPressed(gpLobbyForm0.pCtlLobbyJoinButton, 0);
     D2Win::Src::D2WinButton::D2WINBUTTON_SetPressed(gpLobbyForm0.pCtlLobbyLadderButton, 0);
     gpChatFormList = 0;
-    __frame0.pGameListForm = D2Win::Src::D2WinMain::FORMS_CreateAnyForm(gaPredefinedForms_b + 0x18);
+    D2ControlStrc* pGameListForm = D2Win::Src::D2WinMain::FORMS_CreateAnyForm(gaPredefinedForms_b + 0x18);
     ghWndGameNameEditBox = D2Win::Src::D2WinMain::FORMS_CreateAnyForm(gaPredefinedForms_b + 0x19);
     pGameListCache = (::D2WinTextBox*)D2Win::Src::D2WinMain::FORMS_CreateAnyForm(gaPredefinedForms_b + 0x1a);
     D2Client::McpConnect::MCPCONNECT_SetMessageCallback(ChatDlg::CHATDLG_StorePlayerName);
     D2MCPClient::McpConnect::NET_MCP_CLIENT_Send_0x12_MOTD();
     ChatDlg::CHATDLG_RefreshGameNameDisplay();
-    __frame0.pGameInfoForm = D2Win::Src::D2WinMain::FORMS_CreateAnyForm(gaPredefinedForms_b + 0x1b);
+    D2ControlStrc* pGameInfoForm = D2Win::Src::D2WinMain::FORMS_CreateAnyForm(gaPredefinedForms_b + 0x1b);
     if (D2IniData_multiplayer->eCTEMP_eD2PlayerStatus & PLAYERSTATUS_Died && D2IniData_multiplayer->eCTEMP_eD2PlayerStatus & PLAYERSTATUS_Hardcore) {
       D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpLobbyForm0.pCtlLobbyCreateButton->sControl, 0);
       D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpLobbyForm0.pCtlLobbyJoinButton->sControl, 0);
@@ -864,8 +856,8 @@ int __fastcall CHATDLG_RunChatLobbyScreen(D2IniConfigStrc * pD2IniConfig) {
       D2Win::Src::D2WinMain::FORMS_DestroyAnyForm((D2ControlStrc**)&BattleNetNews);
     }
 
-    D2Win::Src::D2WinMain::FORMS_DestroyAnyForm(&__frame0.pGameListForm);
-    D2Win::Src::D2WinMain::FORMS_DestroyAnyForm(&__frame0.pGameInfoForm);
+    D2Win::Src::D2WinMain::FORMS_DestroyAnyForm(&pGameListForm);
+    D2Win::Src::D2WinMain::FORMS_DestroyAnyForm(&pGameInfoForm);
     D2Win::Src::D2WinMain::FORMS_DestroyAnyForm(&ghWndGameNameEditBox);
     D2Win::Src::D2WinMain::FORMS_DestroyAnyForm((D2ControlStrc**)&pGameListCache);
     if (gpCtlLobbyLadderNewsToggle) {

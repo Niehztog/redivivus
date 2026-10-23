@@ -3342,14 +3342,6 @@ void __fastcall ITEM_HandleItemMoveToBodyLoc(uint8_t * pbParam) {
 // Client-side handler for a server item-update packet. Parses item details (ExtractItemDetails) then dispatches on the action code: place item into inventory grid (creates the item, applies socketable/equip stats, charm activation), equip-on-body / remove-from-body (mode 1: swaps primary weapon, clears CelCmp mode flags, runs the full re-equip pass that disables/enables items by ITEM_CheckItemEquipRequirements, recalcs equipped items and reloads the unit COF), put-in-belt (mode 2), or set-on-cursor (mode 4). Resolves the owning unit via UNITS_FindClientSideUnit, updates the local player's hand/weapon class ids and UI. Returns the affected item unit (or NULL); calls the unrecoverable-error halt on consistency failures. __fastcall(pbPacket).
 // @sourcefile .\UNIT\Item.cpp
 D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
-    // Frame slots -12..-4 are ONE object: &pRemovedItem is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2UnitStrc* pRemovedItem;
-      uint8_t* pbPacketSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2InventoryGridType eInvGridType;
     D2UnitStrc* pCursorItem_lcl;
     uint32_t bFlag;
@@ -3358,11 +3350,13 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
     uint32_t nMaxModeComp;
     eD2UnitType eRemovedItemUnitType;
     D2UnitDataItemDetailsStrc stItemDetails;
+    D2UnitStrc* pRemovedItem;
     eD2PlayerAnimMode eItemAnimMode;
     uint8_t byPacketAnimMode;
     int32_t nLine;
     uint8_t* pbVar2;
-    __frame0.pbPacketSaved = pbPacket;
+    uint8_t* pbPacketSaved;
+    pbPacketSaved = pbPacket;
     D2Common::ITEMS::Items::ExtractItemDetails(pbPacket + 0xd, pbPacket[2] - 0xd, 0, &stItemDetails);
     D2UnitStrc* pLocalPlayer;
     pLocalPlayer = Player::GetPlayerUnit_UI();
@@ -3381,7 +3375,7 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
       return nullptr;
     }
     if (pUnit == pLocalPlayer && !stItemDetails.nAnimMode) {
-      pLocalPlayer = Player::UNITS_FindClientSideUnit(*(int32_t*)(__frame0.pbPacketSaved + 4), UNIT_ITEM);
+      pLocalPlayer = Player::UNITS_FindClientSideUnit(*(int32_t*)(pbPacketSaved + 4), UNIT_ITEM);
       if (pLocalPlayer) {
         pCursorItem_lcl = D2Common::INVENTORY::Inventory::ItemBelongsToInventoryOfPlayer(pInventory, pLocalPlayer);
         if (pCursorItem_lcl != pLocalPlayer) {
@@ -3408,24 +3402,24 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
         return nullptr;
       }
 
-      pCursorItem_lcl = ITEM_CreateItemFromBodyPacket(0, 0, 0, __frame0.pbPacketSaved, &stItemDetails);
+      pCursorItem_lcl = ITEM_CreateItemFromBodyPacket(0, 0, 0, pbPacketSaved, &stItemDetails);
       ITEM_PlaceItemInContainer(pCursorItem_lcl, (uint32_t)((uint32_t)(uint8_t)stItemDetails.reserved_09_0B[0] << 24 | (uint32_t)((uint32_t)((uint32_t)(uint8_t)stItemDetails.nAnimMode << 16 | (uint32_t)(uint16_t)stItemDetails.y) & 0xffffffu)), (uint32_t)((uint32_t)(uint16_t)stItemDetails.reserved_12_13 << 16 | (uint32_t)(uint16_t)((uint16_t)(uint8_t)stItemDetails.nBodyLoc << 8 | (uint16_t)(uint8_t)stItemDetails.nInvPage)), pUnit, (uint32_t)((uint32_t)(uint16_t)stItemDetails.y << 16 | (uint32_t)(uint16_t)stItemDetails.x));
       bFlag = D2Common::ITEMS::Items::ITEM_IsActiveCharm(pCursorItem_lcl, pUnit);
       if (bFlag) {
         ITEM_ApplySocketableAndEquipStats(0, pUnit, pCursorItem_lcl);
       }
     } else if (stItemDetails.nAnimMode == 1) {
-      __frame0.pRemovedItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pInventory, (uint32_t)stItemDetails.nBodyLoc);
+      pRemovedItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pInventory, (uint32_t)stItemDetails.nBodyLoc);
       Units::IfPlayer(pUnit);
-      if (!__frame0.pRemovedItem) {
+      if (!pRemovedItem) {
         return nullptr;
       }
 
-      D2Common::INVENTORY::Inventory::INVENTORY_SwapPrimaryWeaponOnRemoval(pInventory, __frame0.pRemovedItem);
-      SRC::CelCmp::GFX_ClearAllModeFlags(pUnit, (uint32_t)__frame0.pbPacketSaved[3]);
-      D2Common::INVENTORY::Inventory::GetCurrentItemOnBodyLocation(pUnit, pInventory, &__frame0.pRemovedItem, (uint32_t)stItemDetails.nBodyLoc);
-      pCursorItem_lcl = D2Common::INVENTORY::Inventory::ItemBelongsToInventoryOfPlayer(pInventory, __frame0.pRemovedItem);
-      if (pCursorItem_lcl != __frame0.pRemovedItem) {
+      D2Common::INVENTORY::Inventory::INVENTORY_SwapPrimaryWeaponOnRemoval(pInventory, pRemovedItem);
+      SRC::CelCmp::GFX_ClearAllModeFlags(pUnit, (uint32_t)pbPacketSaved[3]);
+      D2Common::INVENTORY::Inventory::GetCurrentItemOnBodyLocation(pUnit, pInventory, &pRemovedItem, (uint32_t)stItemDetails.nBodyLoc);
+      pCursorItem_lcl = D2Common::INVENTORY::Inventory::ItemBelongsToInventoryOfPlayer(pInventory, pRemovedItem);
+      if (pCursorItem_lcl != pRemovedItem) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc1e);
         exit(-1);
       }
@@ -3441,16 +3435,16 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
       D2Common::ITEM_ProcessSetItemEquip(pUnit, pCursorItem_lcl, 1, 1);
       D2Common::INVENTORY::Inventory::NullSub_2Arg(pInventory, (uint32_t)stItemDetails.nBodyLoc);
       Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
-      if (!__frame0.pRemovedItem) {
+      if (!pRemovedItem) {
         eRemovedItemUnitType = UNIT_COUNT;
         bFlag = -1;
       } else {
-        eRemovedItemUnitType = __frame0.pRemovedItem->eUnitType;
-        bFlag = __frame0.pRemovedItem->nUnitGUID;
+        eRemovedItemUnitType = pRemovedItem->eUnitType;
+        bFlag = pRemovedItem->nUnitGUID;
       }
 
       CUnit::RemoveObjectFromServerObjectTable(eRemovedItemUnitType, bFlag);
-      __frame0.pRemovedItem = 0;
+      pRemovedItem = 0;
       if (pUnit == pLocalPlayer) {
         UI::Inv::INV_ResetHoverAndContextState();
         if (stItemDetails.nBodyLoc == 4) {
@@ -3460,7 +3454,7 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
         }
       }
 
-      pCursorItem_lcl = ITEM_CreateItemFromBodyPacket(0, 0, 0, __frame0.pbPacketSaved, &stItemDetails);
+      pCursorItem_lcl = ITEM_CreateItemFromBodyPacket(0, 0, 0, pbPacketSaved, &stItemDetails);
       D2Common::ITEMS::Items::SetBodyLoc(pCursorItem_lcl, stItemDetails.nBodyLoc);
       nInvSlot = 3;
       if (stItemDetails.nBodyLoc == 0xb || stItemDetails.nBodyLoc == 0xc) {
@@ -3479,7 +3473,7 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
 
       D2Common::INVENTORY::Inventory::INVENTORY_UpdatePrimaryWeapon(pInventory, pCursorItem_lcl);
       Engine::GfxInfo::GFX_SetAllGfxInfoFlags(pUnit, '\0');
-      byPacketAnimMode = __frame0.pbPacketSaved[3];
+      byPacketAnimMode = pbPacketSaved[3];
       if (!byPacketAnimMode || byPacketAnimMode == 1) {
         SRC::CelCmp::GFX_ClearAllModeFlags(pUnit, (uint32_t)byPacketAnimMode);
       }
@@ -3503,7 +3497,7 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
         return nullptr;
       }
       if (stItemDetails.nAnimMode == 2) {
-        pLocalPlayer = Player::UNITS_FindClientSideUnit(*(int32_t*)(__frame0.pbPacketSaved + 4), UNIT_ITEM);
+        pLocalPlayer = Player::UNITS_FindClientSideUnit(*(int32_t*)(pbPacketSaved + 4), UNIT_ITEM);
         if (pLocalPlayer) {
           pCursorItem_lcl = D2Common::INVENTORY::Inventory::ItemBelongsToInventoryOfPlayer(pInventory, pLocalPlayer);
           if (pCursorItem_lcl != pLocalPlayer) {
@@ -3528,7 +3522,7 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
         }
 
         UI::Panel::PANEL_ClearBeltSlotHover();
-        pCursorItem_lcl = ITEM_CreateItemFromBodyPacket(0, 0, 0, __frame0.pbPacketSaved, &stItemDetails);
+        pCursorItem_lcl = ITEM_CreateItemFromBodyPacket(0, 0, 0, pbPacketSaved, &stItemDetails);
         if (stItemDetails.nAnimMode != 2) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc69);
           exit(-1);
@@ -3571,8 +3565,8 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
       }
 
       UI::Panel::PANEL_ClearBeltSlotHover();
-      pbVar2 = __frame0.pbPacketSaved;
-      pLocalPlayer = Player::UNITS_FindClientSideUnit(*(int32_t*)(__frame0.pbPacketSaved + 4), UNIT_ITEM);
+      pbVar2 = pbPacketSaved;
+      pLocalPlayer = Player::UNITS_FindClientSideUnit(*(int32_t*)(pbPacketSaved + 4), UNIT_ITEM);
       if (pLocalPlayer) {
         CUnit::RemoveObjectFromServerObjectTable(pLocalPlayer->eUnitType, pLocalPlayer->nUnitGUID);
       }

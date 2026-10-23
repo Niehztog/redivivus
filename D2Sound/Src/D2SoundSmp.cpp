@@ -203,15 +203,9 @@ void SOUNDSMP_Set3DPosition(D2SoundSmpStrc * pThis, float nSoundHandle, float dw
 }
 
 uint32_t __fastcall SOUNDSMP_GetStreamProgress(D2SoundSmpStrc * nParam) {
-    // Frame slots -12..-4 are ONE object: &nStreamSizeBytes is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nStreamSizeBytes;
-      uint32_t nByteOffset;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL bStreamInfoOk;
+    uint32_t nStreamSizeBytes;
+    uint32_t nByteOffset;
     if (!nParam) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x310);
       exit(-1);
@@ -219,10 +213,10 @@ uint32_t __fastcall SOUNDSMP_GetStreamProgress(D2SoundSmpStrc * nParam) {
 
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&gSoundSmpCs);
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ if (nParam->pStreamFile) {
-      bStreamInfoOk = Storm::Source::SFile::SFileDdaGetPos(nParam->pStreamFile, &__frame0.nByteOffset, &__frame0.nStreamSizeBytes);
+      bStreamInfoOk = Storm::Source::SFile::SFileDdaGetPos(nParam->pStreamFile, &nByteOffset, &nStreamSizeBytes);
       if (bStreamInfoOk) {
         LeaveCriticalSection(&gSoundSmpCs);
-        return __frame0.nByteOffset >> 2;
+        return nByteOffset >> 2;
       }
     }
 

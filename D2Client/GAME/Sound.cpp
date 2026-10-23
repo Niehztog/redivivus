@@ -418,55 +418,49 @@ int * * __stdcall SOUND_FindAvailableChannel(uint32_t nParam, int * pnParam) {
 
 // Recomputes and re-applies a positional sound channel's mixing state (__fastcall, ECX=pSoundChannel). Reads the channel's sound descriptor (pSoundChannel[2]) and its sounds.txt line; halts via Fog::ErrorManager if descriptor is null. Computes effective volume by chaining music/master volume, per-channel left/right multipliers (skipping certain reserved sound-id ranges and Solo lines), and positional bias from the mixer. If the new volume and the descriptor's 3D position (offsets 0xC/0x10/0x14/0x20) match the channel's cached copy (pSoundChannel[3..7]) it returns 0 early (no change); otherwise distance-attenuates volume via falloff min/max, calls SOUNDSMP_CalculateVolumeAndPan/SetPan/Set3DPosition/SetEaxObstruction/SetVolume, caches the new pos+volume into the channel, and returns the descriptor pointer. Side-effects: drives the underlying audio mixer sample.
 int __fastcall SOUND_UpdateChannelParams(int * pSoundChannel) {
-    // Frame slots -28..-4 are ONE object: &fFalloffMax is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      float fFalloffMax;
-      float fFalloffMin;
-      D2SoundsTxt* pSoundsTxtLine;
-      int* pChannelEntry;
-      float fEaxObstruction;
-      int nSoundDescSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nMixerMode;
     uint32_t nBytesRemaining;
     uint8_t* pByteA;
     uint8_t* pByteB;
     int nSoundDescOffset;
     nSoundDescOffset = pSoundChannel[2];
-    __frame0.pChannelEntry = pSoundChannel;
-    __frame0.nSoundDescSaved = nSoundDescOffset;
+    int* pChannelEntry;
+    pChannelEntry = pSoundChannel;
+    int nSoundDescSaved;
+    nSoundDescSaved = nSoundDescOffset;
     if (!nSoundDescOffset) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1e7);
       exit(-1);
     }
 
-    __frame0.pSoundsTxtLine = DataTbls::TXT_sounds_GetLineBySoundId(*(int32_t*)(nSoundDescOffset + 4));
-    __frame0.fFalloffMin = D2Client::Sound::SoundHdr::SOUNDHDR_GetFalloffMin(*(int32_t*)(nSoundDescOffset + 4));
-    __frame0.fFalloffMax = D2Client::Sound::SoundHdr::SOUNDHDR_GetFalloffMax(*(int32_t*)(nSoundDescOffset + 4));
+    D2SoundsTxt* pSoundsTxtLine;
+    pSoundsTxtLine = DataTbls::TXT_sounds_GetLineBySoundId(*(int32_t*)(nSoundDescOffset + 4));
+    float fFalloffMin;
+    fFalloffMin = D2Client::Sound::SoundHdr::SOUNDHDR_GetFalloffMin(*(int32_t*)(nSoundDescOffset + 4));
+    float fFalloffMax;
+    fFalloffMax = D2Client::Sound::SoundHdr::SOUNDHDR_GetFalloffMax(*(int32_t*)(nSoundDescOffset + 4));
     int nTmpCalc;
     nTmpCalc = *(int*)(nSoundDescOffset + 0x1c);
-    if (__frame0.pSoundsTxtLine->Music_Vol) {
+    if (pSoundsTxtLine->Music_Vol) {
       nMixerMode = D2Sound::Src::D2SoundFast::SOUND_GetMusicVolume();
       nTmpCalc = nMixerMode * nTmpCalc / 100;
     }
 
     nMixerMode = D2Sound::Src::D2SoundFast::SOUND_GetMasterVolume();
-    __frame0.fEaxObstruction = (float)(nMixerMode * nTmpCalc / 100);
+    float fEaxObstruction;
+    fEaxObstruction = (float)(nMixerMode * nTmpCalc / 100);
     if (nSoundVolumeLeftChannel != 100) {
       nTmpCalc = *(int*)(nSoundDescOffset + 4);
       if ((nTmpCalc < 0x1231 || 0x125a < nTmpCalc) && (nTmpCalc < 0x34 || 0x47 < nTmpCalc) && (nTmpCalc < 1 || 0xf < nTmpCalc)) {
-        __frame0.fEaxObstruction = (float)(nSoundVolumeLeftChannel * (int)__frame0.fEaxObstruction / 100);
+        fEaxObstruction = (float)(nSoundVolumeLeftChannel * (int)fEaxObstruction / 100);
       }
     }
-    if (nSoundVolumeRightChannel != 100 && !__frame0.pSoundsTxtLine->Solo) {
-      __frame0.fEaxObstruction = (float)(nSoundVolumeRightChannel * (int)__frame0.fEaxObstruction / 100);
+    if (nSoundVolumeRightChannel != 100 && !pSoundsTxtLine->Solo) {
+      fEaxObstruction = (float)(nSoundVolumeRightChannel * (int)fEaxObstruction / 100);
     }
 
     float fVolume;
-    fVolume = __frame0.fEaxObstruction;
+    fVolume = fEaxObstruction;
     if (pAudioMixerInterface) {
       nTmpCalc = D2Sound::Src::D2SoundFast::SOUND_GetSoundMixer();
       if (nTmpCalc == 1 || nTmpCalc == 2) {
@@ -476,12 +470,12 @@ int __fastcall SOUND_UpdateChannelParams(int * pSoundChannel) {
           nTmpCalc = (nTmpCalc * 2 - 100) / 3;
           if (*pSoundChannel && 0 < nTmpCalc) {
             fVolume = (float)((0xff - nTmpCalc * 0xff / 0x32) * (int)fVolume / 0xff);
-            nSoundDescOffset = __frame0.nSoundDescSaved;
-            __frame0.fEaxObstruction = fVolume;
+            nSoundDescOffset = nSoundDescSaved;
+            fEaxObstruction = fVolume;
           }
           if (*(uint8_t*)(pSoundChannel + 1) & 2 && nTmpCalc < 0) {
             fVolume = (float)((nTmpCalc * 0xff / 0x32 + 0xff) * (int)fVolume / 0xff);
-            __frame0.fEaxObstruction = fVolume;
+            fEaxObstruction = fVolume;
           }
         }
       }
@@ -506,7 +500,7 @@ int __fastcall SOUND_UpdateChannelParams(int * pSoundChannel) {
       } else {
         compare_mismatched_bytes:
         nSoundDescOffset = (uint32_t)*pByteB - (uint32_t)*pByteA;
-        pSoundChannel = __frame0.pChannelEntry;
+        pSoundChannel = pChannelEntry;
         if (!nSoundDescOffset) {
           if (nBytesRemaining == 1) {
             goto position_unchanged;
@@ -535,35 +529,35 @@ int __fastcall SOUND_UpdateChannelParams(int * pSoundChannel) {
       }
     }
 
-    float fVar1 = _Utils::CalculateHypotenuse(*(float*)(__frame0.nSoundDescSaved + 0xc), *(float*)(__frame0.nSoundDescSaved + 0x10));
+    float fVar1 = _Utils::CalculateHypotenuse(*(float*)(nSoundDescSaved + 0xc), *(float*)(nSoundDescSaved + 0x10));
     nSoundDescOffset = (int)fVolume;
-    if (__frame0.fFalloffMin < fVar1) {
-      fVar1 = __frame0.fFalloffMax - fVar1;
-      __frame0.fFalloffMax -= __frame0.fFalloffMin;
-      nSoundDescOffset = (int)(fVar1 * (float)(int)__frame0.fEaxObstruction / __frame0.fFalloffMax);
+    if (fFalloffMin < fVar1) {
+      fVar1 = fFalloffMax - fVar1;
+      fFalloffMax -= fFalloffMin;
+      nSoundDescOffset = (int)(fVar1 * (float)(int)fEaxObstruction / fFalloffMax);
     }
 
-    nSoundDescOffset = (int)((uint32_t)__frame0.pSoundsTxtLine->Volume * nSoundDescOffset) / 0xff;
-    __frame0.fEaxObstruction = *(float*)(__frame0.nSoundDescSaved + 0xc) * 0.003125;
-    __frame0.pChannelEntry = (int*)d2_bits_of(*(float*)(__frame0.nSoundDescSaved + 0x10) * 0.003125);
-    __frame0.pSoundsTxtLine = (D2SoundsTxt*)d2_bits_of(*(float*)(__frame0.nSoundDescSaved + 0x14) * 0.003125);
+    nSoundDescOffset = (int)((uint32_t)pSoundsTxtLine->Volume * nSoundDescOffset) / 0xff;
+    fEaxObstruction = *(float*)(nSoundDescSaved + 0xc) * 0.003125;
+    pChannelEntry = (int*)d2_bits_of(*(float*)(nSoundDescSaved + 0x10) * 0.003125);
+    pSoundsTxtLine = (D2SoundsTxt*)d2_bits_of(*(float*)(nSoundDescSaved + 0x14) * 0.003125);
     if (!pSoundChannel[1]) {
-      D2Sound::Src::D2SoundSmp::SOUNDSMP_CalculateVolumeAndPan((uint32_t*)&__frame0.fFalloffMin, (uint32_t*)&__frame0.fFalloffMax, __frame0.fEaxObstruction, (float)d2_bits_to_float(__frame0.pChannelEntry), (float)d2_bits_to_float(__frame0.pSoundsTxtLine));
-      D2Sound::Src::D2SoundSmp::SOUNDSMP_SetPan((D2SoundSmpStrc*)*pSoundChannel, (int32_t)__frame0.fFalloffMax);
-      nSoundDescOffset = (int)__frame0.fFalloffMin * nSoundDescOffset / 0xff;
+      D2Sound::Src::D2SoundSmp::SOUNDSMP_CalculateVolumeAndPan((uint32_t*)&fFalloffMin, (uint32_t*)&fFalloffMax, fEaxObstruction, (float)d2_bits_to_float(pChannelEntry), (float)d2_bits_to_float(pSoundsTxtLine));
+      D2Sound::Src::D2SoundSmp::SOUNDSMP_SetPan((D2SoundSmpStrc*)*pSoundChannel, (int32_t)fFalloffMax);
+      nSoundDescOffset = (int)fFalloffMin * nSoundDescOffset / 0xff;
     }
     if (*(uint8_t*)(pSoundChannel + 1) & 2) {
-      D2Sound::Src::D2SoundSmp::SOUNDSMP_Set3DPosition((D2SoundSmpStrc*)*pSoundChannel, __frame0.fEaxObstruction, (float)d2_bits_to_float(__frame0.pChannelEntry), (float)d2_bits_to_float(__frame0.pSoundsTxtLine));
+      D2Sound::Src::D2SoundSmp::SOUNDSMP_Set3DPosition((D2SoundSmpStrc*)*pSoundChannel, fEaxObstruction, (float)d2_bits_to_float(pChannelEntry), (float)d2_bits_to_float(pSoundsTxtLine));
     }
 
-    D2Sound::Src::D2SoundSmp::SOUNDSMP_SetEaxObstruction((D2SoundSmpStrc*)*pSoundChannel, *(float*)(__frame0.nSoundDescSaved + 0x20));
+    D2Sound::Src::D2SoundSmp::SOUNDSMP_SetEaxObstruction((D2SoundSmpStrc*)*pSoundChannel, *(float*)(nSoundDescSaved + 0x20));
     D2Sound::Src::D2SoundSmp::SOUNDSMP_SetVolume((D2SoundSmpStrc*)*pSoundChannel, nSoundDescOffset);
-    pSoundChannel[3] = *(int*)(__frame0.nSoundDescSaved + 0xc);
-    pSoundChannel[4] = *(int*)(__frame0.nSoundDescSaved + 0x10);
-    pSoundChannel[5] = *(int*)(__frame0.nSoundDescSaved + 0x14);
+    pSoundChannel[3] = *(int*)(nSoundDescSaved + 0xc);
+    pSoundChannel[4] = *(int*)(nSoundDescSaved + 0x10);
+    pSoundChannel[5] = *(int*)(nSoundDescSaved + 0x14);
     pSoundChannel[6] = (int)fVolume;
-    pSoundChannel[7] = *(int*)(__frame0.nSoundDescSaved + 0x20);
-    return __frame0.nSoundDescSaved;
+    pSoundChannel[7] = *(int*)(nSoundDescSaved + 0x20);
+    return nSoundDescSaved;
 }
 
 BOOL __fastcall SOUND_SetSoundMixer(int32_t nParam) {

@@ -295,16 +295,8 @@ void __fastcall Q31_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 
 // A5Q1: per-player "am I near Shenk's room?" check, run after Shenk dies. Skips if quest already Completed. Compares player's current room (and its adjacent rooms) against the saved Shenk-room GUID; if the player witnessed the kill, sets RewardAwaits(1) + JustCompleted(0xd) on their quest record so Larzuk will offer the socket reward. Iterator cb, returns 0.
 BOOL __fastcall Q31_CheckNearShenk(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
-    // Frame slots -16..-4 are ONE object: &pAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjacentRooms;
-      uint32_t nAdjRoomCount;
-      uint8_t __pad8[3];
-      char bIsNearShenkRoom;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** pAdjacentRooms;
+    uint32_t nAdjRoomCount;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
     D2BitBufferStrc* pBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
@@ -320,28 +312,28 @@ BOOL __fastcall Q31_CheckNearShenk(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void
 
     D2QuestDataStrc* pQuestData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_SiegeOnHaggorath);
     D2QuestDataA5Q1Strc* pA5Q1Data = pQuestData->pQuestSpecificData.pA5Q1;
-    __frame0.bIsNearShenkRoom = '\0';
+    char bIsNearShenkRoom = '\0';
     if (pRoom == pA5Q1Data->pShenkRoom) {
-      __frame0.bIsNearShenkRoom = '\x01';
+      bIsNearShenkRoom = '\x01';
     } else {
       uint32_t nAdjRoomIdx;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.pAdjacentRooms, (int*)&__frame0.nAdjRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pAdjacentRooms, (int*)&nAdjRoomCount);
       nAdjRoomIdx = 0;
-      if (__frame0.nAdjRoomCount) {
+      if (nAdjRoomCount) {
         do {
-          if (__frame0.pAdjacentRooms[nAdjRoomIdx] == pA5Q1Data->pShenkRoom) {
-            __frame0.bIsNearShenkRoom = '\x01';
+          if (pAdjacentRooms[nAdjRoomIdx] == pA5Q1Data->pShenkRoom) {
+            bIsNearShenkRoom = '\x01';
             break;
           }
 
           nAdjRoomIdx++;
-        } while (nAdjRoomIdx < __frame0.nAdjRoomCount);
+        } while (nAdjRoomIdx < nAdjRoomCount);
       }
     }
 
     pPlayerData = D2Common::Units::GetPlayerData(pUnit);
     pBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];
-    if (__frame0.bIsNearShenkRoom == '\0') {
+    if (bIsNearShenkRoom == '\0') {
       return 0;
     }
 

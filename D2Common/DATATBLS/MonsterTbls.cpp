@@ -2182,19 +2182,13 @@ void __stdcall TC_ParseTreasureClassEntry(D2ParsedTreasureClassStrc * pParsedTC,
 
 // Loads and compiles TreasureClassEx.txt (drop tables). Builds the D2BinFieldInputStrc descriptor array (treasure class name, group, level, picks, unique/set/rare/magic chances, nodrop, and item1..item10 with prob1..prob10), compiles into D2TreasureClassExTxt records, then post-processes each line: allocates a parsed-TC record via TC_ExtendTreasureClassSize, fills group(+base offset)/level/prob(min 1)/nodrop/magic/rare/set/unique, and parses up to 10 item entries via TC_ParseTreasureClassEntry. Frees the raw bin afterward (UnloadBin). One-time table init; allocates from pMemory. Note: many fields accessed via raw pointer arithmetic over D2PoolManagerStrc casts (decompiler smell), not real pool fields.
 void __stdcall TXT_AllocTxt_TreasureClassEx(D2PoolManagerStrc * pMemory) {
-    // Frame slots -20..-4 are ONE object: &nTxtTreasureClassExSize is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTxtTreasureClassExSize;
-      D2TreasureClassExSubSubTxt* nSubOffset;
-      int nOffset;
-      HANDLE* pTCItemArray;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nTCCount;
     D2TreasureClassExSubSubTxt* pSubSubPointer;
     D2BinFieldInputStrc treasureclassex[30];
+    int nTxtTreasureClassExSize;
+    D2TreasureClassExSubSubTxt* nSubOffset;
+    int nOffset;
+    HANDLE* pTCItemArray;
     short int nGroupField;
     treasureclassex[1].eType = FIELDTYPE_SHORT;
     treasureclassex[2].eType = FIELDTYPE_SHORT;
@@ -2346,15 +2340,15 @@ void __stdcall TXT_AllocTxt_TreasureClassEx(D2PoolManagerStrc * pMemory) {
     treasureclassex[0x1d].nSize = 0;
     treasureclassex[0x1d].nOffset = 0;
     treasureclassex[0x1d].fpLinker = 0;
-    D2TreasureClassExTxt* pTxtTreasureClassEx = (D2TreasureClassExTxt*)DataTbls::CompileTxt(pMemory, "treasureclassex", treasureclassex, &__frame0.nTxtTreasureClassExSize, 0x2e0);
+    D2TreasureClassExTxt* pTxtTreasureClassEx = (D2TreasureClassExTxt*)DataTbls::CompileTxt(pMemory, "treasureclassex", treasureclassex, &nTxtTreasureClassExSize, 0x2e0);
     int nIndex = 0;
-    if (0 < __frame0.nTxtTreasureClassExSize) {
+    if (0 < nTxtTreasureClassExSize) {
       D2ParsedTreasureClassStrc* pParsedTCTmp;
       /* This here should be new variable... As it is now it is complete mess... */ pMemory = (D2PoolManagerStrc*)&pTxtTreasureClassEx->group;
       pSubSubPointer = (D2TreasureClassExSubSubTxt*)&pTxtTreasureClassEx->rare;
-      __frame0.nOffset = 0xae;
+      nOffset = 0xae;
       do {
-        __frame0.nSubOffset = pSubSubPointer;
+        nSubOffset = pSubSubPointer;
         if ((char)pMemory[-1].dwMemory == '\0') {
           break;
         }
@@ -2380,27 +2374,27 @@ void __stdcall TXT_AllocTxt_TreasureClassEx(D2PoolManagerStrc * pMemory) {
           pParsedTCTmp->nUnique = pSubSubPointer->unique;
           pParsedTCTmp->nFromTCOffset0x30 = pSubSubPointer->field3_0x6;
           nTCCount = 0;
-          __frame0.pTCItemArray = &pMemory->pSync.LockSemaphore;
+          pTCItemArray = &pMemory->pSync.LockSemaphore;
           pParsedTCTmp->nFromTCOffset0x32 = pSubSubPointer->field4_0x8;
           do {
-            pSubSubPointer = __frame0.nSubOffset;
-            if (*(char*)__frame0.pTCItemArray == '\0') {
+            pSubSubPointer = nSubOffset;
+            if (*(char*)pTCItemArray == '\0') {
               break;
             }
 
-            TC_ParseTreasureClassEntry(pParsedTCTmp, *(int32_t*)(pTxtTreasureClassEx->treasure_class + (nTCCount + __frame0.nOffset) * 4), (char*)__frame0.pTCItemArray);
-            __frame0.pTCItemArray += 0x10;
+            TC_ParseTreasureClassEntry(pParsedTCTmp, *(int32_t*)(pTxtTreasureClassEx->treasure_class + (nTCCount + nOffset) * 4), (char*)pTCItemArray);
+            pTCItemArray += 0x10;
             nTCCount++;
-            pSubSubPointer = __frame0.nSubOffset;
+            pSubSubPointer = nSubOffset;
           } while (nTCCount < 10);
         }
 
         pMemory = (D2PoolManagerStrc*)&pMemory->pPools[0xe].nSize;
-        __frame0.nOffset += 0xb8;
+        nOffset += 0xb8;
         nIndex++;
         pSubSubPointer = (D2TreasureClassExSubSubTxt*)(pSubSubPointer[1].item[0] + 0x1c);
-        __frame0.nSubOffset = pSubSubPointer;
-      } while (nIndex < __frame0.nTxtTreasureClassExSize);
+        nSubOffset = pSubSubPointer;
+      } while (nIndex < nTxtTreasureClassExSize);
     }
 
     DataTbls::UnloadBin(pTxtTreasureClassEx);

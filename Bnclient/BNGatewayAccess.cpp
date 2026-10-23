@@ -255,25 +255,18 @@ void __fastcall GetBattlenetRealmsList(int32_t nGatewayAccess) {
 }
 
 uint32_t * __stdcall WritingDefaultGatewayList(DWORD * pdwFileSize) {
-    // Frame slots -12..-4 are ONE object: &pFileData is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t* pFileData;
-      DWORD dwFileSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bFileLoaded;
     bool bFileLoaded;
-    __frame0.dwFileSize = 0;
-    _bFileLoaded = Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)"DATA\\GLOBAL\\gateways.txt", (void**)&__frame0.pFileData, &__frame0.dwFileSize, 0, 0);
+    uint32_t* pFileData;
+    DWORD dwFileSize = 0;
+    _bFileLoaded = Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)"DATA\\GLOBAL\\gateways.txt", (void**)&pFileData, &dwFileSize, 0, 0);
     if (!_bFileLoaded) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1f9);
       exit(-1);
     }
 
-    *pdwFileSize = __frame0.dwFileSize;
-    return __frame0.pFileData;
+    *pdwFileSize = dwFileSize;
+    return pFileData;
 }
 
 void __fastcall WriteDefaultGatewayList(char * szText) {

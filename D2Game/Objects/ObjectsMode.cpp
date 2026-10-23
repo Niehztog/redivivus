@@ -580,15 +580,9 @@ void AUTOMAP_RevealAfterTeleport(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, D2Room
 
 // Object operate-fn: searches the victim object's room and all adjacent rooms for another object of the same classId, then calls AUTOMAP_RevealAfterTeleport on the first match found. Used by Waygate-style objects that need to reveal the automap of their destination area. Always returns 0.
 BOOL __fastcall OBJOP_RevealAutomapArea(D2ObjectOperateFnArg * pOperation) {
-    // Frame slots -12..-4 are ONE object: &pAdjRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjRooms;
-      uint32_t nAdjRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nTargetClassId;
+    D2RoomStrc** pAdjRooms;
+    uint32_t nAdjRoomCount;
     D2UnitStrc* pUnit;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim);
     if (!pRoom) {
@@ -609,24 +603,24 @@ BOOL __fastcall OBJOP_RevealAutomapArea(D2ObjectOperateFnArg * pOperation) {
       }
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.pAdjRooms, (int*)&__frame0.nAdjRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pAdjRooms, (int*)&nAdjRoomCount);
     uint32_t uAdjRoomIdx = 0;
-    if (!__frame0.nAdjRoomCount) {
+    if (!nAdjRoomCount) {
       return 0;
     }
 
     do {
-      if (__frame0.pAdjRooms[uAdjRoomIdx] != pRoom) {
-        for (pVictimUnit = __frame0.pAdjRooms[uAdjRoomIdx]->pUnitList; pVictimUnit; pVictimUnit = pVictimUnit->pRoomNext) {
+      if (pAdjRooms[uAdjRoomIdx] != pRoom) {
+        for (pVictimUnit = pAdjRooms[uAdjRoomIdx]->pUnitList; pVictimUnit; pVictimUnit = pVictimUnit->pRoomNext) {
           if (pVictimUnit->eUnitType == UNIT_OBJECT && pVictimUnit != pOperation->sArg.pVictim && pVictimUnit->nClassId == nTargetClassId) {
-            AUTOMAP_RevealAfterTeleport(pVictimUnit, pOperation->pAttacker, __frame0.pAdjRooms[uAdjRoomIdx]);
+            AUTOMAP_RevealAfterTeleport(pVictimUnit, pOperation->pAttacker, pAdjRooms[uAdjRoomIdx]);
             return 0;
           }
         }
       }
 
       uAdjRoomIdx++;
-      if (__frame0.nAdjRoomCount <= uAdjRoomIdx) {
+      if (nAdjRoomCount <= uAdjRoomIdx) {
         return 0;
       }
     } while (true);
@@ -753,18 +747,12 @@ BOOL __fastcall OBJOP_UseStairway(D2ObjectOperateFnArg * pOperation) {
 
 // Object operate-fn for waygate interaction. If the waygate is in Death mode (inactive/just activated), marks it updated and schedules its opening animation. If in Walk mode (active), searches the waygate's room and adjacent rooms for the first UNIT_WARP and calls TakeStairs on the attacking player to warp them. Returns 1 on success.
 BOOL __fastcall OBJOP_UseWaygate(D2ObjectOperateFnArg * pOperation) {
-    // Frame slots -12..-4 are ONE object: &pAdjRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjRooms;
-      uint32_t nAdjRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     ::SGAMEDATA* pGame;
     eD2PlayerAnimMode eAnimMode;
     uint32_t uAdjRoomIdx;
     POINT ptCoords;
+    D2RoomStrc** pAdjRooms;
+    uint32_t nAdjRoomCount;
     D2RoomStrc* pRoom;
     pRoom = D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim);
     D2Common::Units::GetCoords(pOperation->sArg.pVictim, &ptCoords);
@@ -792,12 +780,12 @@ BOOL __fastcall OBJOP_UseWaygate(D2ObjectOperateFnArg * pOperation) {
         }
       }
 
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.pAdjRooms, (int*)&__frame0.nAdjRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pAdjRooms, (int*)&nAdjRoomCount);
       uAdjRoomIdx = 0;
-      if (__frame0.nAdjRoomCount) {
+      if (nAdjRoomCount) {
         do {
-          if (__frame0.pAdjRooms[uAdjRoomIdx] != pRoom) {
-            for (pWarpUnit = __frame0.pAdjRooms[uAdjRoomIdx]->pUnitList; pWarpUnit; pWarpUnit = pWarpUnit->pRoomNext) {
+          if (pAdjRooms[uAdjRoomIdx] != pRoom) {
+            for (pWarpUnit = pAdjRooms[uAdjRoomIdx]->pUnitList; pWarpUnit; pWarpUnit = pWarpUnit->pRoomNext) {
               if (pWarpUnit->eUnitType == UNIT_WARP) {
                 goto use_found_warp;
               }
@@ -805,7 +793,7 @@ BOOL __fastcall OBJOP_UseWaygate(D2ObjectOperateFnArg * pOperation) {
           }
 
           uAdjRoomIdx++;
-          if (__frame0.nAdjRoomCount <= uAdjRoomIdx) {
+          if (nAdjRoomCount <= uAdjRoomIdx) {
             return 1;
           }
         } while (true);
@@ -2843,14 +2831,6 @@ BOOL __fastcall Objects_OperateFn15_Portal(D2ObjectOperateFnArg * pOperation) {
 
 // Object-operate callback that activates a portal object (e.g. Duriel's lair portal or a Rift). Only processes UNIT_PLAYER attackers; halts otherwise. Sets portal flags |= 5 on the victim object. Determines destination level (LEVEL_DurielsLair for classId 100, or Components[0] for classId 0x179). Calls SpawnUnit on the destination act, finds free collision-safe coordinates, then relocates the attacking player to that position via SUNIT_RelocateUnit. Halts with an internal error if the act index is out of range, no room is found, or relocation fails.
 BOOL __fastcall OBJOP_ActivatePortalObject(D2ObjectOperateFnArg * pOperation) {
-    // Frame slots -12..-4 are ONE object: &nSpawnY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nSpawnY;
-      uint32_t nSpawnX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bRelocated;
     eAct eDestAct;
     int32_t nErrAddrOrUnitSizeX;
@@ -2859,6 +2839,8 @@ BOOL __fastcall OBJOP_ActivatePortalObject(D2ObjectOperateFnArg * pOperation) {
     eD2LevelId eLevel;
     POINT ptDest;
     uint32_t dwPortalFlagsMerged;
+    uint32_t nSpawnY;
+    uint32_t nSpawnX;
     eCollisionFlags eCollisionFlag;
     BOOL bAllowNeighboorRooms;
     int32_t nLine;
@@ -2881,17 +2863,17 @@ BOOL __fastcall OBJOP_ActivatePortalObject(D2ObjectOperateFnArg * pOperation) {
         }
       }
 
-      __frame0.nSpawnX = 0;
-      __frame0.nSpawnY = 0;
+      nSpawnX = 0;
+      nSpawnY = 0;
       eDestAct = D2Common::Drlg::GetActNoFromLevelNumber(eLevel);
       if (eDestAct < (ACT_V | ACT_II)) {
         nUnitSizeX = D2Common::Units::GetUnitSizeX(pOperation->pAttacker);
-        pRoom = D2Common::DUNGEON::Dungeon::SpawnUnit(pOperation->sArg.pGame->pAct[eDestAct], eLevel, 0, (int*)&__frame0.nSpawnX, (int*)&__frame0.nSpawnY, nUnitSizeX);
+        pRoom = D2Common::DUNGEON::Dungeon::SpawnUnit(pOperation->sArg.pGame->pAct[eDestAct], eLevel, 0, (int*)&nSpawnX, (int*)&nSpawnY, nUnitSizeX);
         if (pRoom) {
           bAllowNeighboorRooms = 0;
           nErrAddrOrUnitSizeX = 0x1c09;
-          ptDest.x = __frame0.nSpawnX;
-          ptDest.y = __frame0.nSpawnY;
+          ptDest.x = nSpawnX;
+          ptDest.y = nSpawnY;
           nLine = D2Common::Units::GetUnitSizeX(pOperation->pAttacker);
           pRoom = D2Common::Collision::GetFreeCoordinates_WithNeighboorRooms(pRoom, &ptDest, nLine, nErrAddrOrUnitSizeX, bAllowNeighboorRooms);
           if (!pRoom) {
@@ -3804,14 +3786,6 @@ void __fastcall SERVER_MissleKilled(D2ObjectOperateFnArg * pKill) {
 // Server-side object-operate handler for opening a sparkly/special chest (and the Hardcore corpse/necro variant). Validates the chest is in its death/opened anim, then rolls its loot table via RollChestDrops using seed RNG: special classes (e.g. classId 0x18d) roll a weighted item-type bucket (body part / bow/crossbow quiver / gold piles), with retry loops to guarantee at least some magic-or-better drops; the necro-flagged variant (Components[0] bit 0x80) gates on the attacker class and forces extra gold/potion (gld/hp3/mp3) SpawnDrop bursts. Finally sets the chest's opened update-flag (immediate or timed via SetEvent on FrameCnt), clears UNITFLAG_TARGETABLE, drops any attached reward item, and dispatches the operate callback. Returns 1.
 // @sourcefile .\OBJECTS\ObjMode.cpp
 BOOL __fastcall OBJOP_OpenSparklyChest(D2ObjectOperateFnArg * pOperation) {
-    // Frame slots -24..-16 are ONE object: &pTxtObjects is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2ObjectsTxt* pTxtObjects;
-      int nDropCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SeedStrc* pDVar2;
     ::SGAMEDATA* pGame;
     bool bMagicCheck5;
@@ -3844,10 +3818,12 @@ BOOL __fastcall OBJOP_OpenSparklyChest(D2ObjectOperateFnArg * pOperation) {
     D2RoomStrc* pRoom;
     pRoom = D2Common::Units::UNITS_GetRoom(pVictim);
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-    __frame0.pTxtObjects = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pOperation->nObjectClassId);
+    D2ObjectsTxt* pTxtObjects;
+    pTxtObjects = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pOperation->nObjectClassId);
     uint8_t byComponents0;
     byComponents0 = pOperation->sArg.pVictim->pUnitData.pUnitDataMonster->Components[0];
-    __frame0.nDropCount = 0;
+    int nDropCount;
+    nDropCount = 0;
     uint8_t byNecroFlag;
     byNecroFlag = byComponents0 & 0x80;
     if (byNecroFlag) {
@@ -3863,10 +3839,10 @@ BOOL __fastcall OBJOP_OpenSparklyChest(D2ObjectOperateFnArg * pOperation) {
       UNIT::SUnit::SetupUpdateEvent_AttachEventSound(pOperation->pAttacker, UNITEVENTCALLBACK_DELAYEDPORTAL, pOperation->pAttacker);
       pClient = UNIT::SUnit::SUNIT_GetClient(pOperation->pAttacker, ".\\OBJECTS\\ObjMode.cpp", 0x5d4);
       UNIT::SUnitMsg::UNITMSG_SendSoundPacketToClient(pOperation->pAttacker, pClient);
-      __frame0.nDropCount = 1;
+      nDropCount = 1;
     }
 
-    __frame0.nDropCount++;
+    nDropCount++;
     D2Common::Units::GetCoords(pOperation->sArg.pVictim, &ptPos);
     int nGoldDropped;
     nGoldDropped = 0;
@@ -3891,7 +3867,7 @@ BOOL __fastcall OBJOP_OpenSparklyChest(D2ObjectOperateFnArg * pOperation) {
       *pDVar2 = sNextSeed;
       if (0x18 < (int)(sNextSeed.nSeedLow + (int)(((uint64_t)d2_bits_of(sNextSeed) & 0xffffffff) / 100) * -100) || nGoldDropped || byNecroFlag) {
         iVar4 = 0;
-        for (; __frame0.nDropCount; __frame0.nDropCount--) {
+        for (; nDropCount; nDropCount--) {
           pRolledItem = (D2UnitStrc*)RollChestDrops(pOperation, eDropType);
           if (pRolledItem) {
             bMagicCheck0 = D2Common::ITEMS::Items::ITEM_CheckItemData_ItemQualityIsMagicOrBetter(pRolledItem);
@@ -3901,7 +3877,7 @@ BOOL __fastcall OBJOP_OpenSparklyChest(D2ObjectOperateFnArg * pOperation) {
           }
         }
 
-        __frame0.nDropCount = 0;
+        nDropCount = 0;
         if (nGoldDropped) {
           nRetryCount = 0;
           if (!iVar4) {
@@ -4071,8 +4047,8 @@ BOOL __fastcall OBJOP_OpenSparklyChest(D2ObjectOperateFnArg * pOperation) {
     } while (iVar4);
 
     finish_opening:
-    pTxtObjectsFinal = __frame0.pTxtObjects;
-    if (!__frame0.pTxtObjects->Mode[1]) {
+    pTxtObjectsFinal = pTxtObjects;
+    if (!pTxtObjects->Mode[1]) {
       D2Common::Units::SetupUpdateFlag(pOperation->sArg.pVictim, 2);
     } else {
       D2Common::Units::SetupUpdateFlag(pOperation->sArg.pVictim, 1);
@@ -4089,7 +4065,7 @@ BOOL __fastcall OBJOP_OpenSparklyChest(D2ObjectOperateFnArg * pOperation) {
 
     pVictim = pOperation->sArg.pVictim;
     if (pVictim->dwDropItemCode) {
-      ITEMS::Items::Drop::ITEM_RewardItemToDrop(pOperation->sArg.pGame, pVictim, ITEMTYPE_Shield, (int32_t*)&__frame0.pTxtObjects, nullptr, -1, 1);
+      ITEMS::Items::Drop::ITEM_RewardItemToDrop(pOperation->sArg.pGame, pVictim, ITEMTYPE_Shield, (int32_t*)&pTxtObjects, nullptr, -1, 1);
     }
 
     OBJMODE_DispatchOperateCallback(pOperation, byComponents0 & 0x7f);

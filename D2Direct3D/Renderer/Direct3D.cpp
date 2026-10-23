@@ -2795,14 +2795,6 @@ uint8_t __stdcall SetDrawModeAndGetAlpha(int nDrawMode) {
 
 // Stack-slot reuse: the nScreenMode slot first holds the clip bottom RENDERER_nWindowHeight - 0x2f (whole dword, 006b694e) that the quad's y coordinates are tested against; then its low byte holds the alpha returned by SetDrawModeAndGetAlpha(nDrawMode) (006b6999).
 void __fastcall DrawPerspectiveImage(D2GfxDataStrc * pData, int nPosX, int nPosY, DWORD dwGamma, int nDrawMode, int nScreenMode, BYTE * pPalette) {
-    // Frame slots -12..-4 are ONE object: &nAdjPosY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nAdjPosY;
-      int nAdjPosXOut;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     float* pfDst;
     float* pfSrc;
     int spriteInfo[3];
@@ -2815,6 +2807,8 @@ void __fastcall DrawPerspectiveImage(D2GfxDataStrc * pData, int nPosX, int nPosY
     uint32_t fTexV0;
     uint32_t fTexV1;
     float aQuadVertexData[6];
+    int nAdjPosY;
+    int nAdjPosXOut;
     float fHalfWidth;
     BOOL nBaseX = RENDERER_D3D_ExtractSpriteInfo(pData, spriteInfo);
     if (!nBaseX) {
@@ -2825,30 +2819,30 @@ void __fastcall DrawPerspectiveImage(D2GfxDataStrc * pData, int nPosX, int nPosY
     int iVar3 = nPosX + nSpriteOffsetY * 0x1000 + nSpriteOffsetX * 0x800;
     nPosY = nPosY + nSpriteOffsetY * 0x1000 + nSpriteOffsetX * -0x800;
     int nAdjPosX = nPosY + nSpriteHeight * -0x1000;
-    Renderer::AdjustPerspectivePosition(iVar3 + nSpriteHeight * -0x1000, nAdjPosX, 0, &__frame0.nAdjPosXOut, &__frame0.nAdjPosY);
-    aQuadVertexData[0] = (float)__frame0.nAdjPosXOut;
-    aQuadVertexData[1] = (float)__frame0.nAdjPosY;
+    Renderer::AdjustPerspectivePosition(iVar3 + nSpriteHeight * -0x1000, nAdjPosX, 0, &nAdjPosXOut, &nAdjPosY);
+    aQuadVertexData[0] = (float)nAdjPosXOut;
+    aQuadVertexData[1] = (float)nAdjPosY;
     aQuadVertexData[2] = 0.5;
     aQuadVertexData[3] = 1.0;
     uint32_t fV0u = fTexU0;
     uint32_t fV0v = fTexV0;
-    Renderer::AdjustPerspectivePosition(iVar3, nPosY, 0, &__frame0.nAdjPosXOut, &__frame0.nAdjPosY);
-    float fV1x = (float)__frame0.nAdjPosXOut;
-    float fV1y = (float)__frame0.nAdjPosY;
+    Renderer::AdjustPerspectivePosition(iVar3, nPosY, 0, &nAdjPosXOut, &nAdjPosY);
+    float fV1x = (float)nAdjPosXOut;
+    float fV1y = (float)nAdjPosY;
     uint32_t fV0z = 0x3f000000;
     uint32_t fV0rhw = 0x3f800000;
     uint32_t fV1u = fTexU0;
     uint32_t fV1v = fTexV1;
-    Renderer::AdjustPerspectivePosition(nSpriteWidth * 0x800 + iVar3, nPosY + nSpriteWidth * -0x800, 0, &__frame0.nAdjPosXOut, &__frame0.nAdjPosY);
-    float fV2x = (float)__frame0.nAdjPosXOut;
-    float fV2y = (float)__frame0.nAdjPosY;
+    Renderer::AdjustPerspectivePosition(nSpriteWidth * 0x800 + iVar3, nPosY + nSpriteWidth * -0x800, 0, &nAdjPosXOut, &nAdjPosY);
+    float fV2x = (float)nAdjPosXOut;
+    float fV2y = (float)nAdjPosY;
     uint32_t fV1z = 0x3f000000;
     uint32_t fV1rhw = 0x3f800000;
     uint32_t fV2u = fTexU1;
     uint32_t fV2v = fTexV1;
-    Renderer::AdjustPerspectivePosition(nSpriteWidth * 0x800 + nSpriteHeight * -0x1000 + iVar3, nAdjPosX + nSpriteWidth * -0x800, 0, &__frame0.nAdjPosXOut, &__frame0.nAdjPosY);
-    float fV3x = (float)__frame0.nAdjPosXOut;
-    float fV3y = (float)__frame0.nAdjPosY;
+    Renderer::AdjustPerspectivePosition(nSpriteWidth * 0x800 + nSpriteHeight * -0x1000 + iVar3, nAdjPosX + nSpriteWidth * -0x800, 0, &nAdjPosXOut, &nAdjPosY);
+    float fV3x = (float)nAdjPosXOut;
+    float fV3y = (float)nAdjPosY;
     uint32_t fV2z = 0x3f000000;
     uint32_t fV2rhw = 0x3f800000;
     uint32_t fV3u = fTexU1;
@@ -4252,14 +4246,6 @@ BOOL __stdcall RENDERER_D3D_RenderWallTileWithPerspective(int nScreenPanels, D2T
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -12..-4 are ONE object: &nScreenY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      int nScreenY;
-      int nScreenX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     short int* psVar1;
     int nTileTableIdx;
     D2D3DVertexStrc* pfVertexOuter;
@@ -4275,6 +4261,8 @@ BOOL __stdcall RENDERER_D3D_RenderWallTileWithPerspective(int nScreenPanels, D2T
     int nX1;
     int nY1;
     int nZ1;
+    int nScreenY;
+    int nScreenX;
     D2FloatIntUnion fLayerIter;
     uint32_t nVertexColor;
     BOOL nMidZ = 0;
@@ -4311,18 +4299,18 @@ BOOL __stdcall RENDERER_D3D_RenderWallTileWithPerspective(int nScreenPanels, D2T
       nX0 = nTileTableIdx;
       nY0 = nFixedY0;
       nZ0 = nBias;
-      Renderer::AdjustPerspectivePosition(nTileTableIdx, nFixedY0, nBias, &__frame1.nScreenX, &__frame1.nScreenY);
-      gaD3DPerspectiveStripVertices[0].fX = (float)__frame1.nScreenX;
-      gaD3DPerspectiveStripVertices[0].fY = (float)__frame1.nScreenY;
-      Renderer::AdjustPerspectivePosition(nTileTableIdx, nFixedY0, nBias - 0x20, &__frame1.nScreenX, &__frame1.nScreenY);
-      gaD3DPerspectiveStripVertices[0xc].fX = (float)__frame1.nScreenX;
-      gaD3DPerspectiveStripVertices[0xc].fY = (float)__frame1.nScreenY;
-      Renderer::AdjustPerspectivePosition(nX1, nY1, nZ1 - 0x20, &__frame1.nScreenX, &__frame1.nScreenY);
-      gaD3DPerspectiveStripVertices[0xe].fX = (float)__frame1.nScreenX;
-      gaD3DPerspectiveStripVertices[0xe].fY = (float)__frame1.nScreenY;
-      Renderer::AdjustPerspectivePosition(nX1, nY1, nZ1, &__frame1.nScreenX, &__frame1.nScreenY);
-      gaD3DPerspectiveStripVertices[2].fX = (float)__frame1.nScreenX;
-      gaD3DPerspectiveStripVertices[2].fY = (float)__frame1.nScreenY;
+      Renderer::AdjustPerspectivePosition(nTileTableIdx, nFixedY0, nBias, &nScreenX, &nScreenY);
+      gaD3DPerspectiveStripVertices[0].fX = (float)nScreenX;
+      gaD3DPerspectiveStripVertices[0].fY = (float)nScreenY;
+      Renderer::AdjustPerspectivePosition(nTileTableIdx, nFixedY0, nBias - 0x20, &nScreenX, &nScreenY);
+      gaD3DPerspectiveStripVertices[0xc].fX = (float)nScreenX;
+      gaD3DPerspectiveStripVertices[0xc].fY = (float)nScreenY;
+      Renderer::AdjustPerspectivePosition(nX1, nY1, nZ1 - 0x20, &nScreenX, &nScreenY);
+      gaD3DPerspectiveStripVertices[0xe].fX = (float)nScreenX;
+      gaD3DPerspectiveStripVertices[0xe].fY = (float)nScreenY;
+      Renderer::AdjustPerspectivePosition(nX1, nY1, nZ1, &nScreenX, &nScreenY);
+      gaD3DPerspectiveStripVertices[2].fX = (float)nScreenX;
+      gaD3DPerspectiveStripVertices[2].fY = (float)nScreenY;
       fLayerIndex.fValue = (float)__frame0.nViewportLeft;
       if (fLayerIndex.fValue < gaD3DPerspectiveStripVertices[0].fX != (fLayerIndex.fValue == gaD3DPerspectiveStripVertices[0].fX) && gaD3DPerspectiveStripVertices[0].fX < (float)__frame0.nViewportRight && (float)__frame0.nViewportTop < gaD3DPerspectiveStripVertices[0].fY != ((float)__frame0.nViewportTop == gaD3DPerspectiveStripVertices[0].fY) && gaD3DPerspectiveStripVertices[0].fY < (float)__frame0.nViewportBottom || fLayerIndex.fValue <= gaD3DPerspectiveStripVertices[0xc].fX && gaD3DPerspectiveStripVertices[0xc].fX < (float)__frame0.nViewportRight && (float)__frame0.nViewportTop < gaD3DPerspectiveStripVertices[0xc].fY != ((float)__frame0.nViewportTop == gaD3DPerspectiveStripVertices[0xc].fY) && gaD3DPerspectiveStripVertices[0xc].fY < (float)__frame0.nViewportBottom || fLayerIndex.fValue <= gaD3DPerspectiveStripVertices[0xe].fX && gaD3DPerspectiveStripVertices[0xe].fX < (float)__frame0.nViewportRight && (float)__frame0.nViewportTop < gaD3DPerspectiveStripVertices[0xe].fY != ((float)__frame0.nViewportTop == gaD3DPerspectiveStripVertices[0xe].fY) && gaD3DPerspectiveStripVertices[0xe].fY < (float)__frame0.nViewportBottom || fLayerIndex.fValue <= gaD3DPerspectiveStripVertices[2].fX && gaD3DPerspectiveStripVertices[2].fX < (float)__frame0.nViewportRight && (float)__frame0.nViewportTop < gaD3DPerspectiveStripVertices[2].fY != ((float)__frame0.nViewportTop == gaD3DPerspectiveStripVertices[2].fY) && gaD3DPerspectiveStripVertices[2].fY < (float)__frame0.nViewportBottom) {
         aVertexColors[0] = *(uint32_t*)(pLightColors + (int)fSubtileIndex * 4);
@@ -4340,19 +4328,19 @@ BOOL __stdcall RENDERER_D3D_RenderWallTileWithPerspective(int nScreenPanels, D2T
           fLayerIter = fLayerIndex;
           if (fLayerIndex.nValue && fLayerIndex.nValue != 4) {
             nTileTableIdx = fLayerIndex.nValue * -8;
-            Renderer::AdjustPerspectivePosition(nX0, nY0, nTileTableIdx + nZ0, &__frame1.nScreenX, &__frame1.nScreenY);
-            pfVertexOuter[-2].fX = (float)__frame1.nScreenX;
-            pfVertexOuter[-2].fY = (float)__frame1.nScreenY;
-            Renderer::AdjustPerspectivePosition(nX1, nY1, nTileTableIdx + nZ1, &__frame1.nScreenX, &__frame1.nScreenY);
-            pfVertexOuter->fX = (float)__frame1.nScreenX;
-            pfVertexOuter->fY = (float)__frame1.nScreenY;
+            Renderer::AdjustPerspectivePosition(nX0, nY0, nTileTableIdx + nZ0, &nScreenX, &nScreenY);
+            pfVertexOuter[-2].fX = (float)nScreenX;
+            pfVertexOuter[-2].fY = (float)nScreenY;
+            Renderer::AdjustPerspectivePosition(nX1, nY1, nTileTableIdx + nZ1, &nScreenX, &nScreenY);
+            pfVertexOuter->fX = (float)nScreenX;
+            pfVertexOuter->fY = (float)nScreenY;
           }
 
-          Renderer::AdjustPerspectivePosition(aVertexColors[3], nMidY, nMidZ + fLayerIter.nValue * -8, &__frame1.nScreenX, &__frame1.nScreenY);
+          Renderer::AdjustPerspectivePosition(aVertexColors[3], nMidY, nMidZ + fLayerIter.nValue * -8, &nScreenX, &nScreenY);
           nTileTableIdx = 0;
           pfVertex = pfVertexOuter - 2;
-          pfVertexOuter[-1].fX = (float)__frame1.nScreenX;
-          pfVertexOuter[-1].fY = (float)__frame1.nScreenY;
+          pfVertexOuter[-1].fX = (float)nScreenX;
+          pfVertexOuter[-1].fY = (float)nScreenY;
           do {
             nVertexColor = aVertexColors[nTileTableIdx];
             pfVertex->fX = fSubtileIndex + pfVertex->fX;
@@ -5062,18 +5050,6 @@ void __stdcall RENDERER_D3D_PresentSmackerFrame() {
 }
 
 void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, int nVersion) {
-    // Frame slots -28..-4 are ONE object: &nImgBpp is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nImgBpp;
-      uint32_t nImgHeight;
-      uint32_t nImgWidth;
-      int nRowsRemaining;
-      DWORD nFileSize;
-      uint16_t* pCurOutputRow;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     void* nResult;
     uint32_t bFileLoaded;
     int nPixelCol;
@@ -5083,7 +5059,12 @@ void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, 
     uint8_t aPixelData;
     uint8_t aImagePixelData[28079];
     uint8_t aPaletteRGBA[1024];
-    __frame0.pCurOutputRow = (uint16_t*)0x6ba01d;
+    uint32_t nImgBpp;
+    uint32_t nImgHeight;
+    uint32_t nImgWidth;
+    int nRowsRemaining;
+    DWORD nFileSize;
+    uint16_t* pCurOutputRow = (uint16_t*)0x6ba01d;
     if (!gnRenderState) {
       if (!pSmackerDecodeBuffer) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x94);
@@ -5098,18 +5079,18 @@ void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, 
     pBuffer->eMode = (char)nVersion;
     if ((char)nVersion == 'p') {
       nVersion = 0;
-      __frame0.nFileSize = 0;
-      bFileLoaded = Storm::Source::SFile::SFileLoadFileEx(nullptr, (uint32_t*)szSmacker, (void**)&nVersion, &__frame0.nFileSize, 0, 3, 0);
+      nFileSize = 0;
+      bFileLoaded = Storm::Source::SFile::SFileLoadFileEx(nullptr, (uint32_t*)szSmacker, (void**)&nVersion, &nFileSize, 0, 3, 0);
       if (bFileLoaded && nVersion) {
-        nPixelCol = Storm::Source::SBMP::SBmpDecodeImage(2, (void*)nVersion, __frame0.nFileSize, aPaletteRGBA, &aPixelData, 0x6db0, &__frame0.nImgWidth, &__frame0.nImgBpp, &__frame0.nImgHeight);
+        nPixelCol = Storm::Source::SBMP::SBmpDecodeImage(2, (void*)nVersion, nFileSize, aPaletteRGBA, &aPixelData, 0x6db0, &nImgWidth, &nImgBpp, &nImgHeight);
         Storm::SMem::SMemFree((void*)nVersion, ".\\Src\\d3dSmack.cpp", 0xda, 0);
-        if (nPixelCol && __frame0.nImgWidth == 0x1d4 && __frame0.nImgBpp == 0x3c && __frame0.nImgHeight == 8) {
+        if (nPixelCol && nImgWidth == 0x1d4 && nImgBpp == 0x3c && nImgHeight == 8) {
           pOutputPixel = aImagePixelData;
-          __frame0.pCurOutputRow = (uint16_t*)pSmackerDecodeBuffer;
-          __frame0.nRowsRemaining = 0x3c;
+          pCurOutputRow = (uint16_t*)pSmackerDecodeBuffer;
+          nRowsRemaining = 0x3c;
           do {
             nPixelCol = 0;
-            pIndexedPixels = __frame0.pCurOutputRow;
+            pIndexedPixels = pCurOutputRow;
             do {
               nPaletteIdx = (uint32_t)(uint8_t)pOutputPixel[nPixelCol - 1];
               *pIndexedPixels = ((uint16_t)(aPaletteRGBA[nPaletteIdx * 4] & 0xf8) << 5 | (uint16_t)(aPaletteRGBA[nPaletteIdx * 4 + 1] & 0xf8)) * 4 | (uint16_t)(aPaletteRGBA[nPaletteIdx * 4 + 2] >> 3);
@@ -5127,10 +5108,10 @@ void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, 
               pIndexedPixels += 6;
             } while (nPixelCol < 0x1d4);
 
-            __frame0.pCurOutputRow += 0x200;
+            pCurOutputRow += 0x200;
             pOutputPixel += 0x1d4;
-            __frame0.nRowsRemaining--;
-          } while (__frame0.nRowsRemaining);
+            nRowsRemaining--;
+          } while (nRowsRemaining);
 
           if (gnRenderState) {
             return;

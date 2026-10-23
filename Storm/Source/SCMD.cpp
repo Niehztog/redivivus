@@ -202,14 +202,7 @@ void __stdcall SCMD_GenerateError(uint32_t errorCode, pfnSCmdErrorCallback pfnCa
 
 // @blizzard ProcessFile (SCMD.CPP)
 BOOL __stdcall SCMD_ProcessFile(char * filename, int * pnParam, uint32_t dwParam, pfnSCmdUnknownArgCallback pfnCallback, pfnSCmdErrorCallback pfnErrorCallback) {
-    // Frame slots -12..-4 are ONE object: &pFileData is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      void* pFileData;
-      DWORD dwBytesRead;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    DWORD dwBytesRead;
     HANDLE hFile = CreateFileA(filename, 0x80000000, 1, (LPSECURITY_ATTRIBUTES)0x0, 3, 0x8000000, (HANDLE)0x0);
     if (hFile == (HANDLE)-1) {
       if (!pfnErrorCallback) {
@@ -222,11 +215,11 @@ BOOL __stdcall SCMD_ProcessFile(char * filename, int * pnParam, uint32_t dwParam
 
     DWORD nNumberOfBytesToRead = GetFileSize(hFile, (LPDWORD)0x0);
     void* lpBuffer = SMem::SMemAlloc(nNumberOfBytesToRead + 1, ".\\SOURCE\\SCMD.CPP", 0x153, 0);
-    /* LPOVERLAPPED lpOverlapped for ReadFile */ /* LPDWORD lpNumberOfBytesRead for ReadFile */ /* DWORD nNumberOfBytesToRead for ReadFile */ /* LPVOID lpBuffer for ReadFile */ /* HANDLE hFile for ReadFile */ ReadFile(hFile, lpBuffer, nNumberOfBytesToRead, &__frame0.dwBytesRead, (LPOVERLAPPED)0x0);
+    /* LPOVERLAPPED lpOverlapped for ReadFile */ /* LPDWORD lpNumberOfBytesRead for ReadFile */ /* DWORD nNumberOfBytesToRead for ReadFile */ /* LPVOID lpBuffer for ReadFile */ /* HANDLE hFile for ReadFile */ ReadFile(hFile, lpBuffer, nNumberOfBytesToRead, &dwBytesRead, (LPOVERLAPPED)0x0);
     /* HANDLE hObject for CloseHandle */ CloseHandle(hFile);
-    *(uint8_t*)(__frame0.dwBytesRead + (int)lpBuffer) = 0;
-    __frame0.pFileData = lpBuffer;
-    BOOL nResult = SCMD_ProcessString((uint32_t*)&__frame0.pFileData, pnParam, (uint32_t*)dwParam, pfnCallback, pfnErrorCallback);
+    *(uint8_t*)(dwBytesRead + (int)lpBuffer) = 0;
+    void* pFileData = lpBuffer;
+    BOOL nResult = SCMD_ProcessString((uint32_t*)&pFileData, pnParam, (uint32_t*)dwParam, pfnCallback, pfnErrorCallback);
     SMem::SMemFree(lpBuffer, ".\\SOURCE\\SCMD.CPP", 0x164, 0);
     return nResult;
 }
@@ -763,15 +756,6 @@ BOOL SCMD_ProcessCurrentFlag(int pCmdCtx, char * szArgLine, int * outConsumed) {
 
 // @blizzard ProcessFlags (SCMD.CPP)
 BOOL __fastcall SCMD_ProcessFlags(pfnSCmdErrorCallback pfnErrorCallback, char * szText, int * pnOutConsumed) {
-    // Frame slots -276..-264 are ONE object: &nConsumed is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nConsumed;
-      int* pCmdCtx;
-      int nMatchLen;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t uVar1;
     int nMatchNameLen;
     char* pcDelimChar;
@@ -779,15 +763,18 @@ BOOL __fastcall SCMD_ProcessFlags(pfnSCmdErrorCallback pfnErrorCallback, char * 
     char* szArgLine;
     uint32_t uVar3;
     int pCmdEntry;
+    int nConsumed;
+    int nMatchLen;
     char szMatchBuf[256];
     uint32_t dwStackCookie;
     dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     szMatchBuf[0] = '\0';
     char cCurChar;
     cCurChar = *szText;
-    __frame0.pCmdCtx = pnOutConsumed;
+    int* pCmdCtx;
+    pCmdCtx = pnOutConsumed;
     while (cCurChar != '\0') {
-      __frame0.nMatchLen = SSTR::SStrLen(szText);
+      nMatchLen = SSTR::SStrLen(szText);
       uVar1 = SSTR::SStrLen(szMatchBuf);
       if (!uVar1) {
         uVar1 = 1;
@@ -797,14 +784,14 @@ BOOL __fastcall SCMD_ProcessFlags(pfnSCmdErrorCallback pfnErrorCallback, char * 
 
       pCmdEntry = 0;
       if (uVar1) {
-        nMatchNameLen = __frame0.nMatchLen - (int)szMatchBuf;
-        __frame0.nMatchLen = nMatchNameLen;
+        nMatchNameLen = nMatchLen - (int)szMatchBuf;
+        nMatchLen = nMatchNameLen;
         do {
           uVar3 = uVar1 - 1;
           if ((int)(szMatchBuf + nMatchNameLen + uVar3) < 0x100) {
             SSTR::SStrCopy(szMatchBuf + (uVar1 - 1), szText, 0x100);
             pCmdEntry = SCMD_FindFlagDef((D2UnitDataClientSide*)(gStormCmdListHeadSlash.pNext < 1 ? 0 : gStormCmdListHeadSlash.pNext), szMatchBuf, 0);
-            nMatchNameLen = __frame0.nMatchLen;
+            nMatchNameLen = nMatchLen;
             if (pCmdEntry) {
               nMatchNameLen = *(int*)(pCmdEntry + 0x20);
               szMatchBuf[nMatchNameLen] = '\0';
@@ -832,20 +819,20 @@ BOOL __fastcall SCMD_ProcessFlags(pfnSCmdErrorCallback pfnErrorCallback, char * 
         szArgLine++;
       }
 
-      *__frame0.pCmdCtx = pCmdEntry;
-      __frame0.pCmdCtx[5] = nMatchNameLen;
-      SSTR::SStrCopy((char*)(__frame0.pCmdCtx + 1), szMatchBuf, 0x7fffffff);
+      *pCmdCtx = pCmdEntry;
+      pCmdCtx[5] = nMatchNameLen;
+      SSTR::SStrCopy((char*)(pCmdCtx + 1), szMatchBuf, 0x7fffffff);
       if (*szArgLine == '\0' && *(uint32_t*)(pCmdEntry + 8) & 0x30000) {
         break;
       }
 
-      BVar2 = SCMD_ProcessCurrentFlag((int)__frame0.pCmdCtx, szArgLine, &__frame0.nConsumed);
+      BVar2 = SCMD_ProcessCurrentFlag((int)pCmdCtx, szArgLine, &nConsumed);
       if (!BVar2) {
         Fog::Debug::GuardStack();
         return 0;
       }
 
-      szText = szArgLine + __frame0.nConsumed;
+      szText = szArgLine + nConsumed;
       cCurChar = *szText;
     }
 
@@ -1047,31 +1034,25 @@ BOOL __stdcall SCmdRegisterArgList(ARGLIST * pArgList, uint32_t nCount) {
 
 // @blizzard ProcessString (SCMD.CPP)
 BOOL __fastcall SCMD_ProcessString(uint32_t * ppszCursor, int * pCmdCtx, uint32_t * pCmdList, pfnSCmdUnknownArgCallback pfnUnknownCallback, pfnSCmdErrorCallback pfnErrorCallback) {
-    // Frame slots -272..-264 are ONE object: &nTokenLen is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTokenLen;
-      char* pszPos;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL bDispatchResult;
+    int nTokenLen;
+    char* pszPos;
     char szTokenBuf[256];
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     char cCursorChar = *(char*)*ppszCursor;
     while (cCursorChar != '\0') {
-      __frame0.pszPos = (char*)*ppszCursor;
-      __frame0.nTokenLen = 0;
-      SSTR::SStrTokenize(&__frame0.pszPos, szTokenBuf, (char*)0x100, " ,;\"\t\n\r\x1a", (uint32_t*)&__frame0.nTokenLen);
+      pszPos = (char*)*ppszCursor;
+      nTokenLen = 0;
+      SSTR::SStrTokenize(&pszPos, szTokenBuf, (char*)0x100, " ,;\"\t\n\r\x1a", (uint32_t*)&nTokenLen);
       if (szTokenBuf[0] != '\0') {
-        bDispatchResult = SCMD_ProcessToken(pCmdList, szTokenBuf, pCmdCtx, __frame0.nTokenLen, pfnUnknownCallback, pfnErrorCallback);
+        bDispatchResult = SCMD_ProcessToken(pCmdList, szTokenBuf, pCmdCtx, nTokenLen, pfnUnknownCallback, pfnErrorCallback);
         if (!bDispatchResult) {
           break;
         }
       }
 
-      *ppszCursor = (uint32_t)(uintptr_t)__frame0.pszPos;
-      cCursorChar = *__frame0.pszPos;
+      *ppszCursor = (uint32_t)(uintptr_t)pszPos;
+      cCursorChar = *pszPos;
     }
 
     cCursorChar = *(char*)*ppszCursor;
@@ -1095,34 +1076,28 @@ bool __stdcall SCmdGetBool(int nCmdId) {
 // @rename-basis Behaviour plus a cross-architecture body match. .SCmdProcess reads r3..r6, i.e. exactly four arguments, and is the target of the two-argument command-line wrapper at 10008640 which supplies its own second argument as the literal 1. This function has the same four arguments and is likewise the target of SCmdProcessCommandLine 006c50b0, which calls it as (GetCommandLineA(), 1, arg1, arg2) - the same literal 1 in the same slot, which is the skip-argv[0] flag.
 // @former-name SCMD_ParseCommandLine (also resolves a duplicate-name collision: 006c4a00 carried the same name)
 void __stdcall SCmdProcess(char * szCommandLine, int bSkipFirstToken, pfnSCmdUnknownArgCallback pfnUnknownCallback, pfnSCmdErrorCallback pfnErrorCallback) {
-    // Frame slots -40..-32 are ONE object: &pszCursor is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      char* pszCursor;
-      uint32_t pCmdList;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bVar1;
     BOOL BVar2;
+    uint32_t pCmdList;
     int cmdCtx[6];
     uint32_t nCmdNode;
     uint32_t local_8;
     local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    __frame0.pszCursor = szCommandLine;
+    char* pszCursor;
+    pszCursor = szCommandLine;
     if (!szCommandLine) {
       SErr::SErrSetLastError(0x57);
     } else {
       if (bSkipFirstToken) {
-        SSTR::SStrTokenize(&__frame0.pszCursor, nullptr, nullptr, " ,;\"\t\n\r\x1a", nullptr);
+        SSTR::SStrTokenize(&pszCursor, nullptr, nullptr, " ,;\"\t\n\r\x1a", nullptr);
       }
 
       SSystem::SMemZero(cmdCtx, 0x18);
-      __frame0.pCmdList = gStormCmdListHeadBackslash.pNext < 1 ? 0 : gStormCmdListHeadBackslash.pNext;
-      BVar2 = SCMD_ProcessString((uint32_t*)&__frame0.pszCursor, cmdCtx, &__frame0.pCmdList, pfnUnknownCallback, pfnErrorCallback);
+      pCmdList = gStormCmdListHeadBackslash.pNext < 1 ? 0 : gStormCmdListHeadBackslash.pNext;
+      BVar2 = SCMD_ProcessString((uint32_t*)&pszCursor, cmdCtx, &pCmdList, pfnUnknownCallback, pfnErrorCallback);
       if (BVar2) {
         bVar1 = true;
-        nCmdNode = __frame0.pCmdList;
+        nCmdNode = pCmdList;
         while (true) {
           while (true) {
             if (!nCmdNode || !bVar1) {
@@ -1140,10 +1115,10 @@ void __stdcall SCmdProcess(char * szCommandLine, int bSkipFirstToken, pfnSCmdUnk
           }
 
           nCmdNode = *(uint32_t*)(nCmdNode + 4);
-          __frame0.pCmdList = nCmdNode;
+          pCmdList = nCmdNode;
         }
 
-        __frame0.pCmdList = 0;
+        pCmdList = 0;
         report_missing_required_arg:
         if (pfnErrorCallback && !bVar1) {
           SCMD_GenerateError(0x8510006d, pfnErrorCallback);

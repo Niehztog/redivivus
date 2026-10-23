@@ -1073,15 +1073,14 @@ void __stdcall SBMP_CompressGifByte(int * pState, int pDstBuf, uint32_t nNewCode
 
 // @blizzard CompressGifImage (SBMP.CPP)
 int __fastcall SBMP_CompressGifImage(int nSrcLen, uint8_t * pSrcPixels, int pDstBuf) {
-    // Frame slots -320..-4 are ONE object: &nDstOffset is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -316..-4 are ONE object: &lzwState is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      int nDstOffset;
       int lzwState;
       int nMaxCode;
       int nBitLen;
       uint8_t byLastByte;
-      uint8_t __pad17[3];
+      uint8_t __pad13[3];
       int nPendingBits;
       int nLastCode;
       int bFirst;
@@ -1091,14 +1090,14 @@ int __fastcall SBMP_CompressGifImage(int nSrcLen, uint8_t * pSrcPixels, int pDst
       void* pHashTable;
       void* pCodeTable;
       int nRLEBufLen;
-      uint8_t __pad56[1];
+      uint8_t __pad52[1];
       uint8_t aRLEBuffer[255];
       uint32_t dwStackCookie;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 316, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 312, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    __frame0.nDstOffset = pDstBuf;
+    int nDstOffset = pDstBuf;
     SSystem::SMemZero(&__frame0.lzwState, 0x134);
     __frame0.lzwState = 9;
     __frame0.nBitLen = 9;
@@ -1109,26 +1108,26 @@ int __fastcall SBMP_CompressGifImage(int nSrcLen, uint8_t * pSrcPixels, int pDst
     __frame0.bFirst = 1;
     __frame0.pHashTable = SMem::SMemAlloc(0x4e2c, ".\\SOURCE\\SBMP.CPP", 0x388, 8);
     __frame0.pCodeTable = SMem::SMemAlloc(0x4e2c, ".\\SOURCE\\SBMP.CPP", 0x389, 8);
-    SBMP_Output(__frame0.nClearCode, &__frame0.nDstOffset, &__frame0.lzwState);
+    SBMP_Output(__frame0.nClearCode, &nDstOffset, &__frame0.lzwState);
     for (; nSrcLen; nSrcLen--) {
-      SBMP_CompressGifByte(&__frame0.lzwState, (uintptr_t)&__frame0.nDstOffset, (uint32_t)*pSrcPixels);
+      SBMP_CompressGifByte(&__frame0.lzwState, (uintptr_t)&nDstOffset, (uint32_t)*pSrcPixels);
       pSrcPixels++;
     }
 
     if (!__frame0.bFirst) {
-      SBMP_Output(__frame0.nLastCode, &__frame0.nDstOffset, &__frame0.lzwState);
+      SBMP_Output(__frame0.nLastCode, &nDstOffset, &__frame0.lzwState);
     }
 
-    SBMP_Output(__frame0.nEOFCode, &__frame0.nDstOffset, &__frame0.lzwState);
+    SBMP_Output(__frame0.nEOFCode, &nDstOffset, &__frame0.lzwState);
     if (0 < __frame0.nPendingBits) {
       __frame0.aRLEBuffer[__frame0.nRLEBufLen] = __frame0.byLastByte;
       __frame0.nRLEBufLen++;
     }
 
-    SBMP_FlushPacket(&__frame0.lzwState, &__frame0.nDstOffset);
+    SBMP_FlushPacket(&__frame0.lzwState, &nDstOffset);
     SMem::SMemFree(__frame0.pHashTable, ".\\SOURCE\\SBMP.CPP", 0x3a4, 0);
     SMem::SMemFree(__frame0.pCodeTable, ".\\SOURCE\\SBMP.CPP", 0x3a5, 0);
-    int iVar1 = __frame0.nDstOffset - pDstBuf;
+    int iVar1 = nDstOffset - pDstBuf;
     Fog::Debug::GuardStack();
     return iVar1;
 }
@@ -1497,22 +1496,16 @@ void __stdcall SBmpSaveImageEx(LPCSTR szText, int nPalette, uint8_t * pbPixels, 
 // @former-name SBMP_LoadImageAllocated
 // @sourcefile .\SOURCE\SBMP.CPP
 uint32_t __stdcall SBmpAllocLoadImage(char * szText, void * pPalette, uint32_t * ppOutputBuf, uint32_t * pnWidth, uint32_t * pnHeight, uint32_t * pnBpp, uint32_t nBppOverride, pfnSBmpAllocCallback pfnAlloc) {
-    // Frame slots -20..-4 are ONE object: &nHeight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nHeight;
-      uint32_t nWidth;
-      uint32_t nBpp;
-      D2MPQFileStrc* hArchiveFile;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     DWORD nSize;
     void* pOutputBuffer;
     int iProbeResult;
     void* pvAllocResult;
     uint32_t nSize_00;
     int bSuccess;
+    uint32_t nHeight;
+    uint32_t nWidth;
+    uint32_t nBpp;
+    D2MPQFileStrc* hArchiveFile;
     if (ppOutputBuf) {
       *ppOutputBuf = 0;
     }
@@ -1529,22 +1522,22 @@ uint32_t __stdcall SBmpAllocLoadImage(char * szText, void * pPalette, uint32_t *
       SErr::SErrSetLastError(0x57);
     } else {
       int32_t iOpenResult;
-      iOpenResult = SFile::SFileOpenFile(szText, &__frame0.hArchiveFile);
+      iOpenResult = SFile::SFileOpenFile(szText, &hArchiveFile);
       if (iOpenResult) {
-        nSize = SFile::SFileGetFileSize(__frame0.hArchiveFile, (LPDWORD)0x0);
+        nSize = SFile::SFileGetFileSize(hArchiveFile, (LPDWORD)0x0);
         pOutputBuffer = SMem::SMemAlloc(nSize, ".\\SOURCE\\SBMP.CPP", 0x5b6, 0);
-        SFile::SFileReadFile(__frame0.hArchiveFile, pOutputBuffer, nSize, nullptr, 0);
-        SFile::SFileCloseFile(__frame0.hArchiveFile);
+        SFile::SFileReadFile(hArchiveFile, pOutputBuffer, nSize, nullptr, 0);
+        SFile::SFileCloseFile(hArchiveFile);
         bSuccess = 0;
-        iProbeResult = SBmpDecodeImage(0, pOutputBuffer, nSize, nullptr, nullptr, 0, &__frame0.nWidth, &__frame0.nHeight, &__frame0.nBpp);
+        iProbeResult = SBmpDecodeImage(0, pOutputBuffer, nSize, nullptr, nullptr, 0, &nWidth, &nHeight, &nBpp);
         if (iProbeResult) {
           if (!nBppOverride) {
-            nBppOverride = __frame0.nBpp;
-          } else if (nBppOverride != __frame0.nBpp) {
+            nBppOverride = nBpp;
+          } else if (nBppOverride != nBpp) {
             goto cleanup;
           }
 
-          iProbeResult = __frame0.nWidth * __frame0.nHeight * nBppOverride;
+          iProbeResult = nWidth * nHeight * nBppOverride;
           nSize_00 = (int)(iProbeResult + (iProbeResult >> 0x1f & 7U)) >> 3;
           if (!pfnAlloc) {
             pvAllocResult = SMem::SMemAlloc(nSize_00, szText, -4, 0);
@@ -1556,10 +1549,10 @@ uint32_t __stdcall SBmpAllocLoadImage(char * szText, void * pPalette, uint32_t *
           if ((uint8_t*)*ppOutputBuf) {
             SBmpDecodeImage(0, pOutputBuffer, nSize, pPalette, (uint8_t*)*ppOutputBuf, nSize_00, nullptr, nullptr, nullptr);
             if (pnWidth) {
-              *pnWidth = __frame0.nWidth;
+              *pnWidth = nWidth;
             }
             if (pnHeight) {
-              *pnHeight = __frame0.nHeight;
+              *pnHeight = nHeight;
             }
             if (pnBpp) {
               *pnBpp = nBppOverride;

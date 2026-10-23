@@ -1147,62 +1147,55 @@ uint8_t __fastcall Q04_TimerDespawnRogueGuards(::SGAMEDATA * pGame, D2QuestDataS
 // loops and broadcasts step 6 (Cain freed). Asserts/halts if quest data missing.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
 void __fastcall MakeTownPortalFromScroolTree(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    // Frame slots -20..-4 are ONE object: &pSpawnRoom is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc* pSpawnRoom;
-      D2RoomStrc* pUnitRoom;
-      D2UnitStrc* pTriggerUnit;
-      D2QuestDataA1Q4Strc* pQuestSpecificData;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bPortalSpawned;
     int32_t nSpawnX;
     int32_t nSpawnY;
     D2UnitStrc* pCainUnit;
     POINT ptCainSpawnPos2;
-    __frame0.pTriggerUnit = pUnit;
+    D2RoomStrc* pSpawnRoom;
+    D2RoomStrc* pUnitRoom;
+    D2QuestDataA1Q4Strc* pQuestSpecificData;
+    D2UnitStrc* pTriggerUnit = pUnit;
     D2QuestDataStrc* pQuestData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_TheSearchForCain);
     if (pQuestData) {
       bool bPortalSpawned;
-      __frame0.pQuestSpecificData = pQuestData->pQuestSpecificData.pA1Q4;
-      if (!(pQuestData->bIsNotIntroduction && !__frame0.pQuestSpecificData->sSub.bQuestObjectsActivated)) {
+      pQuestSpecificData = pQuestData->pQuestSpecificData.pA1Q4;
+      if (!(pQuestData->bIsNotIntroduction && !pQuestSpecificData->sSub.bQuestObjectsActivated)) {
         return;
       }
 
-      __frame0.pQuestSpecificData->sSub.nCairnAnimState = 3;
+      pQuestSpecificData->sSub.nCairnAnimState = 3;
       D2Common::Units::SetupUpdateFlag(pUnit, 3);
       nSpawnX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
       nSpawnY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-      __frame0.pUnitRoom = D2Common::Units::UNITS_GetRoom(__frame0.pTriggerUnit);
-      pCainUnit = Monster::Create::SpawnMonsterAtRoomPos(pGame, __frame0.pUnitRoom, nSpawnX + 3, nSpawnY + 3, 0x92, eD2MonsterAnimMode_ns::Neutral, -1, 0);
-      /* DeckardCain */ if (!pCainUnit && (ptCainSpawnPos2.x = nSpawnX + 3 , ptCainSpawnPos2.y = nSpawnY + 3 , FindSpawnableLocation(__frame0.pUnitRoom, &ptCainSpawnPos2, 2, 0x100, &__frame0.pSpawnRoom, 3, 100) , !__frame0.pSpawnRoom || (pCainUnit = Monster::Create::SpawnMonsterAtRoomPos(pGame, __frame0.pSpawnRoom, ptCainSpawnPos2.x, ptCainSpawnPos2.y, 0x92, eD2MonsterAnimMode_ns::Neutral, -1, 0) , !pCainUnit))) {
+      pUnitRoom = D2Common::Units::UNITS_GetRoom(pTriggerUnit);
+      pCainUnit = Monster::Create::SpawnMonsterAtRoomPos(pGame, pUnitRoom, nSpawnX + 3, nSpawnY + 3, 0x92, eD2MonsterAnimMode_ns::Neutral, -1, 0);
+      /* DeckardCain */ if (!pCainUnit && (ptCainSpawnPos2.x = nSpawnX + 3 , ptCainSpawnPos2.y = nSpawnY + 3 , FindSpawnableLocation(pUnitRoom, &ptCainSpawnPos2, 2, 0x100, &pSpawnRoom, 3, 100) , !pSpawnRoom || (pCainUnit = Monster::Create::SpawnMonsterAtRoomPos(pGame, pSpawnRoom, ptCainSpawnPos2.x, ptCainSpawnPos2.y, 0x92, eD2MonsterAnimMode_ns::Neutral, -1, 0) , !pCainUnit))) {
         QUEST_DebugPrint(pGame, "Cain not created, look in town, dammit\n", "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a1q4.cpp", 0x6b6);
-        __frame0.pQuestSpecificData->sSub.pUnit = 0;
-        UNIT::SUnit::IteratePlayerOrMonsterUnits(pGame, 0, __frame0.pTriggerUnit, (::fpExecuteOnUnitFunction)Q04_RegisterTristramVisitor);
-        pCainUnit = __frame0.pQuestSpecificData->sSub.pUnit;
-        /* Town portal */ if (pCainUnit && !__frame0.pQuestSpecificData->sSub.bPortalSpawned) {
-          _bPortalSpawned = SKILLS::SkillsServer::SERVER_SpawnPortal(pGame, pCainUnit, __frame0.pUnitRoom, nSpawnX + 6, nSpawnY + 6, LEVEL_RogueEncampment, nullptr, 0x3b, 0);
+        pQuestSpecificData->sSub.pUnit = 0;
+        UNIT::SUnit::IteratePlayerOrMonsterUnits(pGame, 0, pTriggerUnit, (::fpExecuteOnUnitFunction)Q04_RegisterTristramVisitor);
+        pCainUnit = pQuestSpecificData->sSub.pUnit;
+        /* Town portal */ if (pCainUnit && !pQuestSpecificData->sSub.bPortalSpawned) {
+          _bPortalSpawned = SKILLS::SkillsServer::SERVER_SpawnPortal(pGame, pCainUnit, pUnitRoom, nSpawnX + 6, nSpawnY + 6, LEVEL_RogueEncampment, nullptr, 0x3b, 0);
           if (_bPortalSpawned) {
-            __frame0.pQuestSpecificData->sSub.bPortalSpawned = true;
+            pQuestSpecificData->sSub.bPortalSpawned = true;
           }
         }
-        if (!__frame0.pQuestSpecificData->sSub.bCairnMonsterSaved) {
-          __frame0.pQuestSpecificData->sSub.bPendingCairnActivation = true;
+        if (!pQuestSpecificData->sSub.bCairnMonsterSaved) {
+          pQuestSpecificData->sSub.bPendingCairnActivation = true;
         }
 
-        __frame0.pQuestSpecificData->sSub.bStonesRolled = true;
+        pQuestSpecificData->sSub.bStonesRolled = true;
       } else {
         pCainUnit->eUnitFlags |= UNITFLAG_ISRESURRECT | UNITFLAG_ISINIT;
-        pCainUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_PLAYER, __frame0.pQuestSpecificData->sSub.nPlayerGUID);
+        pCainUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_PLAYER, pQuestSpecificData->sSub.nPlayerGUID);
         if (pCainUnit) {
           UNIT::SUnit::SetupUpdateEvent_AttachEventSound(pCainUnit, 0x30, nullptr);
         }
       }
 
-      pCainUnit = __frame0.pTriggerUnit;
-      UNIT::SUnit::IteratePlayerOrMonsterUnits(pGame, 0, __frame0.pTriggerUnit, (::fpExecuteOnUnitFunction)Q04_CompleteOnEnterTristram);
+      pCainUnit = pTriggerUnit;
+      UNIT::SUnit::IteratePlayerOrMonsterUnits(pGame, 0, pTriggerUnit, (::fpExecuteOnUnitFunction)Q04_CompleteOnEnterTristram);
       UNIT::SUnit::IteratePlayerOrMonsterUnits(pGame, 0, pCainUnit, (::fpExecuteOnUnitFunction)Q04_SetQuestCannotComplete);
       pQuestData->nQuestPacketFlags = '\0';
       QUEST_SetStateAndBroadcast(pQuestData, 6, nullptr, (::fpExecuteOnUnitFunction)Q04_NotifyQuestStateToPlayer, true);

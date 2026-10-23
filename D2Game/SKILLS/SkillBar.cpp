@@ -835,20 +835,11 @@ void __fastcall SKILLBAR_OnWarCryExpire(D2UnitStrc * pUnit, eD2States eState, in
 
 // Server-side skill "start" function (srvstfunc 38): a charge/leap-to-target movement skill (e.g. War Cry / charge class). Validates eSkill against skills.txt and that the unit has the skill; resolves target/cursor position. If a melee target is already in range, queues client packet 0xA5 and force-attacks it. Otherwise sets the unit's dynamic path collision pattern/type, calculates a path toward the cursor, applies walk velocities, lands the unit at the final path point, registers collision there, sets uninterruptable + skill_move state, and stores the destination into the skill's Param1-4. Finally applies the skill's aurastate (if valid): updates state, sets an expiry-timed state via SetStateWithExpiryTime (OnWarCryExpire callback), copies aura/passive stats and the modifier skill/level stats, and fires up to 3 auraevent handlers. Returns 1 on success, 0 on any validation/path failure (queuing 0xA5 to the client on failure).
 BOOL __fastcall SKILLBAR_SrvStFn38_Whirlwind(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -28..-4 are ONE object: &pPathPoints is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2PathPointStrc* pPathPoints;
-      D2UnitStrc* pNearbyTarget;
-      uint32_t nTargetY;
-      uint32_t nTargetX;
-      ::SGAMEDATA* pGame2;
-      D2DynamicPathStrc* pDynPath;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL bHasTargetPos;
     D2StateExArgStrc sStateArgs;
+    D2PathPointStrc* pPathPoints;
+    uint32_t nTargetY;
+    uint32_t nTargetX;
     if ((int)eSkill < 0) {
       return 0;
     }
@@ -861,10 +852,10 @@ BOOL __fastcall SKILLBAR_SrvStFn38_Whirlwind(::SGAMEDATA * pGame, D2UnitStrc * p
       return 0;
     }
 
-    __frame0.pGame2 = pGame;
+    ::SGAMEDATA* pGame2 = pGame;
     D2SkillStrc* pCurrentSkill = D2Common::Skills::SKILLS_GetSkillByEnum(eSkill, pUnit);
     uint16_t wSkillId = (uint16_t)eSkill;
-    if (!pCurrentSkill || (bHasTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGame2, pUnit, &__frame0.nTargetX, &__frame0.nTargetY) , !bHasTargetPos)) {
+    if (!pCurrentSkill || (bHasTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame2, pUnit, &nTargetX, &nTargetY) , !bHasTargetPos)) {
       UNIT::SUnitMsg::UnitQueuePacket0xA5(pUnit, wSkillId);
       return 0;
     }
@@ -874,12 +865,12 @@ BOOL __fastcall SKILLBAR_SrvStFn38_Whirlwind(::SGAMEDATA * pGame, D2UnitStrc * p
       return 0;
     }
 
-    __frame0.pNearbyTarget = UNIT::SUnit::GetTargetEx(__frame0.pGame2, pUnit);
-    if (__frame0.pNearbyTarget) {
-      bHasTargetPos = D2Common::Units::IsInMeleeRange(pUnit, __frame0.pNearbyTarget, 0);
+    D2UnitStrc* pNearbyTarget = UNIT::SUnit::GetTargetEx(pGame2, pUnit);
+    if (pNearbyTarget) {
+      bHasTargetPos = D2Common::Units::IsInMeleeRange(pUnit, pNearbyTarget, 0);
       if (bHasTargetPos) {
         UNIT::SUnitMsg::UnitQueuePacket0xA5(pUnit, wSkillId);
-        bHasTargetPos = SkillsServer::SKILLS_ForceAttackTarget(__frame0.pGame2, pUnit, __frame0.pNearbyTarget);
+        bHasTargetPos = SkillsServer::SKILLS_ForceAttackTarget(pGame2, pUnit, pNearbyTarget);
         return bHasTargetPos;
       }
     }
@@ -889,48 +880,48 @@ BOOL __fastcall SKILLBAR_SrvStFn38_Whirlwind(::SGAMEDATA * pGame, D2UnitStrc * p
       eUnitType = pUnit->eUnitType;
     }
 
-    __frame0.pDynPath = pUnit->pPath.pDynamicPath;
-    if (!__frame0.pDynPath) {
+    D2DynamicPathStrc* pDynPath = pUnit->pPath.pDynamicPath;
+    if (!pDynPath) {
       UNIT::SUnitMsg::UnitQueuePacket0xA5(pUnit, wSkillId);
       return 0;
     }
 
-    __frame0.pNearbyTarget = (D2UnitStrc*)((eUnitType == UNIT_PLAYER ? -8184 : 0) + 0x3c01);
-    D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(__frame0.pDynPath, 0xc01);
-    D2Common::PATH::DynamicPath::PATH_SetPathType(__frame0.pDynPath, 7);
-    uint32_t bPathOk = D2Common::PATH::DynamicPath::PATH_CalculatePath(__frame0.pDynPath, pUnit, 0);
+    pNearbyTarget = (D2UnitStrc*)((eUnitType == UNIT_PLAYER ? -8184 : 0) + 0x3c01);
+    D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pDynPath, 0xc01);
+    D2Common::PATH::DynamicPath::PATH_SetPathType(pDynPath, 7);
+    uint32_t bPathOk = D2Common::PATH::DynamicPath::PATH_CalculatePath(pDynPath, pUnit, 0);
     if (!bPathOk) {
       UNIT::SUnitMsg::UnitQueuePacket0xA5(pUnit, wSkillId);
-      D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(__frame0.pDynPath, (int32_t)__frame0.pNearbyTarget);
+      D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pDynPath, (int32_t)pNearbyTarget);
       return 0;
     }
 
     int32_t nLine = 0x3d9;
     char* pSkillAssTable = ".\\SKILLS\\SkillBar.cpp";
     int32_t nCalcResult = SkillsServer::SKILLS_GetUnitWalkVelocity(pUnit);
-    D2Common::PATH::DynamicPath::SetVelocities(__frame0.pDynPath, nCalcResult, pSkillAssTable, nLine);
-    D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(__frame0.pDynPath, 0x401);
-    nCalcResult = D2Common::PATH::DynamicPath::GetPathPoint(__frame0.pDynPath, &__frame0.pPathPoints);
+    D2Common::PATH::DynamicPath::SetVelocities(pDynPath, nCalcResult, pSkillAssTable, nLine);
+    D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pDynPath, 0x401);
+    nCalcResult = D2Common::PATH::DynamicPath::GetPathPoint(pDynPath, &pPathPoints);
     if (nCalcResult < 1) {
       UNIT::SUnitMsg::UnitQueuePacket0xA5(pUnit, wSkillId);
-      D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(__frame0.pDynPath, (int32_t)__frame0.pNearbyTarget);
+      D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pDynPath, (int32_t)pNearbyTarget);
       return 0;
     }
 
-    __frame0.nTargetX = (uint32_t)(uint16_t)__frame0.pPathPoints[nCalcResult - 1].nX;
-    __frame0.nTargetY = (uint32_t)(uint16_t)__frame0.pPathPoints[nCalcResult - 1].nY;
+    nTargetX = (uint32_t)(uint16_t)pPathPoints[nCalcResult - 1].nX;
+    nTargetY = (uint32_t)(uint16_t)pPathPoints[nCalcResult - 1].nY;
     int eCollisionFlag = (eUnitType == UNIT_PLAYER ? -128 : 0) + 0x100;
     eD2CollisionShapeType nType = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-    uint32_t nCollideX = __frame0.nTargetX;
-    uint32_t nCollideY = __frame0.nTargetY;
+    uint32_t nCollideX = nTargetX;
+    uint32_t nCollideY = nTargetY;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     D2Common::Collision::AddCollision_Type(pRoom, nCollideX, nCollideY, nType, eCollisionFlag);
     UNIT::SUnit::SetUninterruptableState(pUnit, 1);
     D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_skill_move, 1);
     D2SkillStrc* pSkill = pCurrentSkill;
     D2Common::Skills::SKILL_SetFlags(pCurrentSkill, 1);
-    D2Common::Skills::SKILL_SetParam1(pSkill, __frame0.nTargetX);
-    D2Common::Skills::SKILL_SetParam2(pSkill, __frame0.nTargetY);
+    D2Common::Skills::SKILL_SetParam1(pSkill, nTargetX);
+    D2Common::Skills::SKILL_SetParam2(pSkill, nTargetY);
     D2Common::Skills::SKILL_SetParam3(pSkill, -1);
     D2Common::Skills::SKILL_SetParam4(pSkill, 0);
     short int eAuraState = pSkillsTxt->aurastate;
@@ -963,17 +954,17 @@ BOOL __fastcall SKILLBAR_SrvStFn38_Whirlwind(::SGAMEDATA * pGame, D2UnitStrc * p
     D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_modifierlist_level, nSkillLvl, 0);
     if (-1 < pSkillsTxt->auraevent[0]) {
       short int* pAuraEventCursor = pSkillsTxt->auraevent;
-      UNIT::SUnitEvent::SUNITEVENT_RemoveEventsByQueueAndOwner(__frame0.pGame2, pUnit, 1, (int)pSkillsTxt->aurastate);
-      __frame0.pNearbyTarget = 0;
+      UNIT::SUnitEvent::SUNITEVENT_RemoveEventsByQueueAndOwner(pGame2, pUnit, 1, (int)pSkillsTxt->aurastate);
+      pNearbyTarget = 0;
       do {
         if (*pAuraEventCursor < 0) {
           break;
         }
 
-        SkillsServer::D2SetAuraEvent(__frame0.pGame2, pUnit, (uint8_t)*pAuraEventCursor, eSkill, nSkillLvl, (int)pAuraEventCursor[3], 1, (int)pSkillsTxt->aurastate);
-        __frame0.pNearbyTarget = (D2UnitStrc*)((int)__frame0.pNearbyTarget + 1);
+        SkillsServer::D2SetAuraEvent(pGame2, pUnit, (uint8_t)*pAuraEventCursor, eSkill, nSkillLvl, (int)pAuraEventCursor[3], 1, (int)pSkillsTxt->aurastate);
+        pNearbyTarget = (D2UnitStrc*)((int)pNearbyTarget + 1);
         pAuraEventCursor++;
-      } while ((int)__frame0.pNearbyTarget < 3);
+      } while ((int)pNearbyTarget < 3);
     }
 
     D2Common::DATATBLS::ItemStats::D2StatesTogglegfx(pUnit, (int)pSkillsTxt->aurastate, 1);

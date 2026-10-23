@@ -424,14 +424,6 @@ BOOL __stdcall WARDEN_DecryptAndLoadModule(void * pSrcData, void * pRc4Key, uint
     0xc7
 };
 
-    // Frame slots -20..-4 are ONE object: &nDecompressedSize is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nDecompressedSize;
-      char szModuleName[12];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t byUnusedVar;
     int32_t nErrLine;
     D2WardenModuleStrc* ppModule;
@@ -439,19 +431,21 @@ BOOL __stdcall WARDEN_DecryptAndLoadModule(void * pSrcData, void * pRc4Key, uint
     pfnWardenCreateInterface pLoadedLib;
     uint32_t dwUnusedEDX;
     D2RC4StateStrc rc4State;
-    __frame0.szModuleName[0] = '_';
-    __frame0.szModuleName[1] = 0x7b;
-    __frame0.szModuleName[2] = 0x53;
-    __frame0.szModuleName[3] = 0xe7;
-    __frame0.szModuleName[4] = 0xf2;
-    __frame0.szModuleName[5] = 0x5a;
-    __frame0.szModuleName[6] = 0xbf;
-    __frame0.szModuleName[7] = 0x75;
-    __frame0.szModuleName[8] = 0x8c;
-    __frame0.szModuleName[9] = 0;
+    uint32_t nDecompressedSize;
+    char szModuleName[12];
+    szModuleName[0] = '_';
+    szModuleName[1] = 0x7b;
+    szModuleName[2] = 0x53;
+    szModuleName[3] = 0xe7;
+    szModuleName[4] = 0xf2;
+    szModuleName[5] = 0x5a;
+    szModuleName[6] = 0xbf;
+    szModuleName[7] = 0x75;
+    szModuleName[8] = 0x8c;
+    szModuleName[9] = 0;
     uint32_t i = 0;
     do {
-      __frame0.szModuleName[i] *= -0x2d;
+      szModuleName[i] *= -0x2d;
       i++;
     } while (i < 10);
 
@@ -474,17 +468,17 @@ BOOL __stdcall WARDEN_DecryptAndLoadModule(void * pSrcData, void * pRc4Key, uint
 
     WARDEN_RC4Init(&rc4State, (uint8_t*)pRc4Key, 0x10);
     WARDEN_RC4Decrypt(&rc4State, (int32_t)pDecrypted, nSize);
-    bool bSigValid = WARDEN_VerifyModuleSignature(0x100, __frame0.szModuleName, (int32_t)pDecrypted, gabWardenModuleRsaModulus, &gdwWardenModuleRsaExponent, 4, 0, nSize);
+    bool bSigValid = WARDEN_VerifyModuleSignature(0x100, szModuleName, (int32_t)pDecrypted, gabWardenModuleRsaModulus, &gdwWardenModuleRsaExponent, 4, 0, nSize);
     if ((uint32_t)((uint32_t)((uint32_t)byUnusedVar & 0xffffffu) << 8 | (uint32_t)(uint8_t)bSigValid)) {
       uint32_t** pDecompressed;
-      __frame0.nDecompressedSize = *pDecrypted;
-      pDecompressed = (uint32_t**)Storm::SMem::SMemAlloc(__frame0.nDecompressedSize, ".\\WARDEN\\WardenClient.cpp", 0x182, 0);
+      nDecompressedSize = *pDecrypted;
+      pDecompressed = (uint32_t**)Storm::SMem::SMemAlloc(nDecompressedSize, ".\\WARDEN\\WardenClient.cpp", 0x182, 0);
       if (!pDecompressed) {
         Storm::SMem::SMemFree(pDecrypted, ".\\WARDEN\\WardenClient.cpp", 0x185, 0);
         return 0;
       }
 
-      nErrLine = Storm::_3rdparty::zlib::uncompr::uncompress((uint8_t*)pDecompressed, (int*)&__frame0.nDecompressedSize, (uint8_t*)(pDecrypted + 1), nSize - 4);
+      nErrLine = Storm::_3rdparty::zlib::uncompr::uncompress((uint8_t*)pDecompressed, (int*)&nDecompressedSize, (uint8_t*)(pDecrypted + 1), nSize - 4);
       if (nErrLine) {
         Storm::SMem::SMemFree(pDecrypted, ".\\WARDEN\\WardenClient.cpp", 0x18d, 0);
         Storm::SMem::SMemFree(pDecompressed, ".\\WARDEN\\WardenClient.cpp", 0x18e, 0);
@@ -503,7 +497,7 @@ BOOL __stdcall WARDEN_DecryptAndLoadModule(void * pSrcData, void * pRc4Key, uint
       ppModule->field_0x8 = 0;
       ppModule->pModuleObject = 0;
       ppModule->pfnCreateInterface = 0;
-      bDecryptOk = WARDEN_DecryptModule((uint32_t**)&ppModule->pLibrary, dwUnusedEDX, pDecompressed, __frame0.nDecompressedSize);
+      bDecryptOk = WARDEN_DecryptModule((uint32_t**)&ppModule->pLibrary, dwUnusedEDX, pDecompressed, nDecompressedSize);
       if ((char)bDecryptOk == '\0') {
         nErrLine = 0x1a0;
       } else {

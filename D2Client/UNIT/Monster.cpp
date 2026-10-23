@@ -852,19 +852,10 @@ void MONSTER_InitSpecialMonster(D2UnitStrc * pUnit, int32_t nClassId) {
 
 // Returns the catapult's facing direction if pUnit2 is a Catapult (BaseId 0x12a), is within collision distance 2 of pUnit, and pUnit is positioned exactly 3*composite-sprite-dims ahead in the catapult's facing direction. Returns 0 if any condition fails, indicating pUnit is not at the valid firing position.
 uint32_t __fastcall MONSTER_CheckCatapultFiringPosition(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, uint32_t dwParam1, uint32_t dwParam2) {
-    // Frame slots -20..-4 are ONE object: &nDimY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nDimY;
-      int nDimX;
-      uint8_t byDirIndex;
-      uint8_t __pad9[3];
-      D2UnitStrc* pAttacker;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t _byDirIndex;
     uint8_t byDirTable[8];
+    int nDimY;
+    int nDimX;
     uint32_t uStack_b;
     if (!(pUnit2 && pUnit2->eUnitType == UNIT_MONSTER)) {
       return 0;
@@ -881,7 +872,7 @@ uint32_t __fastcall MONSTER_CheckCatapultFiringPosition(D2UnitStrc * pUnit, D2Un
       return 0;
     }
 
-    __frame0.pAttacker = pUnit;
+    D2UnitStrc* pAttacker = pUnit;
     int32_t nCollisionDist = D2Common::Collision::GetCollisionDistance(pUnit, pUnit2);
     if (nCollisionDist >= 2) {
       return 0;
@@ -896,19 +887,19 @@ uint32_t __fastcall MONSTER_CheckCatapultFiringPosition(D2UnitStrc * pUnit, D2Un
     byDirTable[5] = 3;
     byDirTable[6] = 4;
     byDirTable[7] = 5;
-    __frame0.byDirIndex = byDirection;
+    uint8_t byDirIndex = byDirection;
     uint32_t nDirTableOffset = D2Common::Monsters::MONSTERS::MONSTERS_GetGfxOffsetTable2(byDirection);
     _byDirIndex = (uint32_t)((uint32_t)((uint32_t)uStack_b & 0xffffffu) << 8 | (uint32_t)(uint8_t)byDirTable[nDirTableOffset & 0xff]);
-    D2Common::Monsters::MONSTERS::MONSTERS_GetCompositeDimensions(byDirTable[nDirTableOffset & 0xff], &__frame0.nDimX, &__frame0.nDimY);
+    D2Common::Monsters::MONSTERS::MONSTERS_GetCompositeDimensions(byDirTable[nDirTableOffset & 0xff], &nDimX, &nDimY);
     nCollisionDist = Units::GetXPosFromDynamicPathUnit(pUnit2);
     int32_t nCatapultPosY = Units::GetYPosFromDynamicPathUnit(pUnit2);
-    int32_t nAttackerPosX = Units::GetXPosFromDynamicPathUnit(__frame0.pAttacker);
-    if (nCollisionDist + __frame0.nDimX * 3 != nAttackerPosX) {
+    int32_t nAttackerPosX = Units::GetXPosFromDynamicPathUnit(pAttacker);
+    if (nCollisionDist + nDimX * 3 != nAttackerPosX) {
       return 0;
     }
 
-    nCollisionDist = Units::GetYPosFromDynamicPathUnit(__frame0.pAttacker);
-    if (nCatapultPosY + __frame0.nDimY * 3 != nCollisionDist) {
+    nCollisionDist = Units::GetYPosFromDynamicPathUnit(pAttacker);
+    if (nCatapultPosY + nDimY * 3 != nCollisionDist) {
       return 0;
     }
 
@@ -1959,15 +1950,9 @@ D2MonStats2Txt * __fastcall MONSTER_SpawnBloodParticles(D2UnitStrc * pUnit, D2Mo
 }
 
 void MONSTER_PreloadSequenceAnimations(D2UnitStrc * pUnit) {
-    // Frame slots -24..-12 are ONE object: &nFrameSpeed is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nFrameSpeed;
-      uint32_t nFrameEnd;
-      uint32_t nFrameStart;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nFrameSpeed;
+    uint32_t nFrameEnd;
+    uint32_t nFrameStart;
     D2MonSeqTxt* pSeqTxt = D2Common::Merc::MERC_GetSequenceTxt(pUnit);
     int32_t nFrameCount = D2Common::Merc::GetCounter1(pUnit);
     int i = 0;
@@ -1977,7 +1962,7 @@ void MONSTER_PreloadSequenceAnimations(D2UnitStrc * pUnit) {
 
     do {
       uD2UnitMode nAnimMode;
-      D2Common::Merc::ANIM_GetSequenceFrameInfo((uint8_t*)pSeqTxt, i << 8, i << 8, (uint32_t*)&nAnimMode.ePlayerMode, &__frame0.nFrameSpeed, &__frame0.nFrameEnd, &__frame0.nFrameStart);
+      D2Common::Merc::ANIM_GetSequenceFrameInfo((uint8_t*)pSeqTxt, i << 8, i << 8, (uint32_t*)&nAnimMode.ePlayerMode, &nFrameSpeed, &nFrameEnd, &nFrameStart);
       pUnit->eAnimMode = nAnimMode;
       Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
       i++;

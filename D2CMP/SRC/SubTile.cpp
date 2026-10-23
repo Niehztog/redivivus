@@ -46,38 +46,32 @@ int __fastcall SUBTILE_CountRunLength(char cParam, char * pCur, char * pEnd, int
 }
 
 char * __fastcall SUBTILE_CompressToRLE(char * pDataStart, char * * ppCompressedEnd) {
-    // Frame slots -20..-4 are ONE object: &bExactMatch is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t bExactMatch;
-      int bAtEnd;
-      uint32_t iRow;
-      char* pRowEnd;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nRunLength;
     int iVar2;
     char* pNextRowStart;
     char cZeroRunLen;
+    uint32_t bExactMatch;
+    int bAtEnd;
     char* pWorkBuf;
     pWorkBuf = (char*)Fog::Memory::AllocClientMemory(0xc20, ".\\SRC\\SubTile.cpp", 0x1c, 0);
-    __frame0.pRowEnd = pDataStart + 0x20;
-    __frame0.iRow = 0;
+    char* pRowEnd;
+    pRowEnd = pDataStart + 0x20;
+    uint32_t iRow;
+    iRow = 0;
     char* pRowStart;
-    pRowStart = __frame0.pRowEnd;
+    pRowStart = pRowEnd;
     char* pDstPtr;
     pDstPtr = pWorkBuf;
     do {
-      nRunLength = SubTile::SUBTILE_CountRunLength('\0', pDataStart, __frame0.pRowEnd, 0x7f, (uint32_t*)&__frame0.bAtEnd, &__frame0.bExactMatch);
+      nRunLength = SubTile::SUBTILE_CountRunLength('\0', pDataStart, pRowEnd, 0x7f, (uint32_t*)&bAtEnd, &bExactMatch);
       pDataStart += nRunLength;
-      if (!__frame0.bAtEnd && !__frame0.bExactMatch) {
+      if (!bAtEnd && !bExactMatch) {
         pNextRowStart = pRowStart;
         if (nRunLength == 0x7f) {
           *pDstPtr = '\x7f';
           pDstPtr++;
         } else {
-          iVar2 = SUBTILE_CountRunLengthForByte(pDataStart, __frame0.pRowEnd, '\0', 0x7f, (uint32_t*)&__frame0.bAtEnd, &__frame0.bExactMatch);
+          iVar2 = SUBTILE_CountRunLengthForByte(pDataStart, pRowEnd, '\0', 0x7f, (uint32_t*)&bAtEnd, &bExactMatch);
           cZeroRunLen = (char)nRunLength;
           *pDstPtr = cZeroRunLen;
           pDstPtr[1] = (char)iVar2;
@@ -88,23 +82,23 @@ char * __fastcall SUBTILE_CompressToRLE(char * pDataStart, char * * ppCompressed
             pDataStart++;
           }
 
-          if (__frame0.bAtEnd || __frame0.bExactMatch) {
+          if (bAtEnd || bExactMatch) {
             goto end_row;
           }
         }
       } else {
         end_row:
-        __frame0.pRowEnd += 0x20;
+        pRowEnd += 0x20;
         *pDstPtr = '\0';
         pDstPtr[1] = '\0';
         pDstPtr += 2;
         pNextRowStart = pRowStart + 0x20;
-        __frame0.iRow++;
+        iRow++;
         pDataStart = pRowStart;
       }
 
       pRowStart = pNextRowStart;
-      if (0x1f < __frame0.iRow) {
+      if (0x1f < iRow) {
         *ppCompressedEnd = pDstPtr - (int)pWorkBuf;
         return pWorkBuf;
       }
@@ -284,16 +278,6 @@ BOOL SUBTILE_CheckIfIsometricEmpty(int32_t pSubTileData) {
 }
 
 void __stdcall SUBTILE_CompressIsometricShape(int32_t pSubTileEntry, char * pPixelData) {
-    // Frame slots -20..-4 are ONE object: &bExactMatch is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t bExactMatch;
-      int bAtEnd;
-      uint32_t iRow;
-      char* pWorkPtr;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nNonZeroLen;
     void* pFinalBuf;
     char* pSrc;
@@ -301,6 +285,10 @@ void __stdcall SUBTILE_CompressIsometricShape(int32_t pSubTileEntry, char * pPix
     char* pDst;
     size_t nAllocSize;
     char cZeroCount;
+    uint32_t bExactMatch;
+    int bAtEnd;
+    uint32_t iRow;
+    char* pWorkPtr;
     char* pWorkBuf;
     pWorkBuf = (char*)Fog::Memory::AllocClientMemory(0x5af, ".\\SRC\\SubTile.cpp", 0x128, 0);
     if (!pWorkBuf) {
@@ -309,20 +297,20 @@ void __stdcall SUBTILE_CompressIsometricShape(int32_t pSubTileEntry, char * pPix
     } else {
       int nZeroRunLen;
       memset(pWorkBuf, 0, 0x5af);
-      __frame0.pWorkPtr = pPixelData + 0x20;
-      __frame0.iRow = 0;
-      pSrc = __frame0.pWorkPtr;
+      pWorkPtr = pPixelData + 0x20;
+      iRow = 0;
+      pSrc = pWorkPtr;
       pDst = pWorkBuf;
       do {
-        nZeroRunLen = SubTile::SUBTILE_CountRunLength('\0', pPixelData, __frame0.pWorkPtr, 0x7f, (uint32_t*)&__frame0.bAtEnd, &__frame0.bExactMatch);
+        nZeroRunLen = SubTile::SUBTILE_CountRunLength('\0', pPixelData, pWorkPtr, 0x7f, (uint32_t*)&bAtEnd, &bExactMatch);
         pPixelData += nZeroRunLen;
-        if (!__frame0.bAtEnd && !__frame0.bExactMatch) {
+        if (!bAtEnd && !bExactMatch) {
           pRowEnd = pSrc;
           if (nZeroRunLen == 0x7f) {
             *pDst = '\x7f';
             pDst++;
           } else {
-            nNonZeroLen = SUBTILE_CountRunLengthForByte(pPixelData, __frame0.pWorkPtr, '\0', 0x7f, (uint32_t*)&__frame0.bAtEnd, &__frame0.bExactMatch);
+            nNonZeroLen = SUBTILE_CountRunLengthForByte(pPixelData, pWorkPtr, '\0', 0x7f, (uint32_t*)&bAtEnd, &bExactMatch);
             cZeroCount = (char)nZeroRunLen;
             *pDst = cZeroCount;
             pDst[1] = (char)nNonZeroLen;
@@ -335,23 +323,23 @@ void __stdcall SUBTILE_CompressIsometricShape(int32_t pSubTileEntry, char * pPix
                 nNonZeroLen--;
               } while (nNonZeroLen);
             }
-            if (__frame0.bAtEnd || __frame0.bExactMatch) {
+            if (bAtEnd || bExactMatch) {
               goto end_row;
             }
           }
         } else {
           end_row:
-          __frame0.pWorkPtr += 0x20;
+          pWorkPtr += 0x20;
           *pDst = '\0';
           pDst[1] = '\0';
           pDst += 2;
           pRowEnd = pSrc + 0x20;
-          __frame0.iRow++;
+          iRow++;
           pPixelData = pSrc;
         }
 
         pSrc = pRowEnd;
-      } while (__frame0.iRow < 0xf);
+      } while (iRow < 0xf);
 
       nAllocSize = (int)pDst - (int)pWorkBuf;
       if ((int)nAllocSize < 0x10000) {

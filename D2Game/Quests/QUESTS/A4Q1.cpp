@@ -320,17 +320,10 @@ uint8_t __fastcall Q26_QuestUpdate_SpawnIzual(::SGAMEDATA * pGame, D2QuestDataSt
 
 // Q26_PlayerCheckNearIzual — per-player proximity completion check (run via IteratePlayerOrMonsterUnits on Izual death). If the player's room == Izual's room or an adjacent room, and quest not Completed/RewardAwaits, marks that player's record JustCompleted + RewardAwaits. Grants kill credit to players near Izual when he dies.
 BOOL __fastcall Q26_PlayerCheckNearIzual(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
-    // Frame slots -16..-4 are ONE object: &pAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjacentRooms;
-      uint32_t nAdjacentRoomCount;
-      int bIsNearIzual;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bQuestState;
     bool bQuestState;
+    D2RoomStrc** pAdjacentRooms;
+    uint32_t nAdjacentRoomCount;
     D2RoomStrc* pPlayerRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     D2QuestDataStrc* pPlayerData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_TheFallenAngel);
     if (!pPlayerData) {
@@ -343,9 +336,9 @@ BOOL __fastcall Q26_PlayerCheckNearIzual(::SGAMEDATA * pGame, D2UnitStrc * pUnit
       return 0;
     }
 
-    __frame0.bIsNearIzual = 0;
+    int bIsNearIzual = 0;
     if (pPlayerRoom == pQuestData) {
-      __frame0.bIsNearIzual = 1;
+      bIsNearIzual = 1;
     } else {
       uint32_t nRoomIdx;
       pPlayerRoom = D2Common::Units::UNITS_GetRoom(pUnit);
@@ -354,17 +347,17 @@ BOOL __fastcall Q26_PlayerCheckNearIzual(::SGAMEDATA * pGame, D2UnitStrc * pUnit
         exit(-1);
       }
 
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pPlayerRoom, &__frame0.pAdjacentRooms, (int*)&__frame0.nAdjacentRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pPlayerRoom, &pAdjacentRooms, (int*)&nAdjacentRoomCount);
       nRoomIdx = 0;
-      if (__frame0.nAdjacentRoomCount) {
+      if (nAdjacentRoomCount) {
         do {
-          if (__frame0.pAdjacentRooms[nRoomIdx] == pQuestData) {
-            __frame0.bIsNearIzual = 1;
+          if (pAdjacentRooms[nRoomIdx] == pQuestData) {
+            bIsNearIzual = 1;
             break;
           }
 
           nRoomIdx++;
-        } while (nRoomIdx < __frame0.nAdjacentRoomCount);
+        } while (nRoomIdx < nAdjacentRoomCount);
       }
     }
 
@@ -376,7 +369,7 @@ BOOL __fastcall Q26_PlayerCheckNearIzual(::SGAMEDATA * pGame, D2UnitStrc * pUnit
     }
 
     _bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheFallenAngel, QUESTSTATE_RewardAwaits);
-    if (!(!_bQuestState && __frame0.bIsNearIzual)) {
+    if (!(!_bQuestState && bIsNearIzual)) {
       return 0;
     }
 

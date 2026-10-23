@@ -56,14 +56,8 @@ void __fastcall FORMS_DestroyD2WinList(::D2WinList * pList) {
 
 // Adds item to D2WinList control. Allocates 0x224 byte entry, copies text (max 256 chars), calculates text width, updates max list width. Appends to linked list or prepends based on bPrepend flag. Updates item count and optional selection index.
 void __fastcall D2WINLIST_AddListItem(::D2WinList * pList, uint16_t * wszText, fpListEntryCallback nItemData, uint8_t bItemFlags, int32_t nUserData, int32_t bPrepend, int32_t bSelect) {
-    // Frame slots -12..-4 are ONE object: &nTextHeight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTextHeight;
-      int pTextWidth;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nTextHeight;
+    int pTextWidth;
     int32_t nLine;
     D2WinListEntry* nNextNode;
     int* pItemCount;
@@ -75,13 +69,13 @@ void __fastcall D2WINLIST_AddListItem(::D2WinList * pList, uint16_t * wszText, f
       nLine = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszText);
       if (nLine < 0x100) {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(pNewEntry->wszText, wszText);
-        D2WinFont::TEXT_CalcTextDimensions(wszText, &__frame0.pTextWidth, &__frame0.nTextHeight);
-        __frame0.pTextWidth += 8;
-        if (pList->sEntriesControl.nMaxTextWidth < __frame0.pTextWidth) {
-          pList->sEntriesControl.nMaxTextWidth = __frame0.pTextWidth;
+        D2WinFont::TEXT_CalcTextDimensions(wszText, &pTextWidth, &nTextHeight);
+        pTextWidth += 8;
+        if (pList->sEntriesControl.nMaxTextWidth < pTextWidth) {
+          pList->sEntriesControl.nMaxTextWidth = pTextWidth;
         }
 
-        pNewEntry->nTextWidth = __frame0.pTextWidth;
+        pNewEntry->nTextWidth = pTextWidth;
         pNewEntry->pfnOnActivate = nItemData;
         pNewEntry->nLeft = 0;
         pNewEntry->nRight = 0;

@@ -1105,20 +1105,12 @@ uint32_t __fastcall SKILL_CheckAuraRange(D2SkillStrc * pSkill, D2UnitStrc * pUni
 
 // Client-side aura movement handler: checks SKILL_CheckAuraRange for the active aura skill; if the caster is in range, records last skill hits for unk1 and unk3|Poison aura types, then interpolates the caster's position along the remaining steps toward the target and calls CLIENT_MovePlayerToPosition. Falls back to PLAYER_ExecuteModeBasedAction if the caster has left range.
 void PLAYER_ExecuteSkillWithAura(int32_t nTargetGUID, eD2UnitType eTargetUnitType, D2UnderMouseStrc * pUnderMouse) {
-    // Frame slots -12..-4 are ONE object: &nCurDist is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nCurDist;
-      int nTotalDist;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nSrcX;
     int32_t nDstX;
     int32_t nDstY;
     int nStepsRemaining;
-    __frame0.nCurDist = 0;
-    __frame0.nTotalDist = 0;
+    int nCurDist = 0;
+    int nTotalDist = 0;
     if (!pUnderMouse->pTarget) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x52f);
       exit(-1);
@@ -1126,7 +1118,7 @@ void PLAYER_ExecuteSkillWithAura(int32_t nTargetGUID, eD2UnitType eTargetUnitTyp
       uint32_t bOutOfRange;
       if (pUnderMouse->pPlayer) {
         if (!(*(uint8_t*)&pUnderMouse->flags & 0x20)) {
-          bOutOfRange = SKILL_CheckAuraRange(pUnderMouse->pSkill, pUnderMouse->pTarget, &__frame0.nCurDist, &__frame0.nTotalDist);
+          bOutOfRange = SKILL_CheckAuraRange(pUnderMouse->pSkill, pUnderMouse->pTarget, &nCurDist, &nTotalDist);
           if (!bOutOfRange) {
             if (*(uint8_t*)&pUnderMouse->flags & 1) {
               Engine::StoreLastSkillHit(unk1, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID);
@@ -1135,18 +1127,18 @@ void PLAYER_ExecuteSkillWithAura(int32_t nTargetGUID, eD2UnitType eTargetUnitTyp
               Engine::StoreLastSkillHit(unk3 | Poison, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID);
             }
 
-            nStepsRemaining = __frame0.nTotalDist - __frame0.nCurDist;
+            nStepsRemaining = nTotalDist - nCurDist;
             if (nStepsRemaining < 1) {
               Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x548);
               exit(-1);
             } else {
-              if (__frame0.nTotalDist) {
+              if (nTotalDist) {
                 nSrcX = Units::GetXPosFromDynamicPathUnit(pUnderMouse->pPlayer);
-                __frame0.nCurDist = Units::GetYPosFromDynamicPathUnit(pUnderMouse->pPlayer);
+                nCurDist = Units::GetYPosFromDynamicPathUnit(pUnderMouse->pPlayer);
                 nDstX = Units::GetXPosFromDynamicPathUnit(pUnderMouse->pTarget);
                 nDstY = Units::GetYPosFromDynamicPathUnit(pUnderMouse->pTarget);
-                __frame0.nCurDist = (nDstY - __frame0.nCurDist) * nStepsRemaining / __frame0.nTotalDist + __frame0.nCurDist;
-                CLIENT_MovePlayerToPosition(pUnderMouse->pPlayer, (short int)((nDstX - nSrcX) * nStepsRemaining / __frame0.nTotalDist) + (short int)nSrcX, (int16_t)__frame0.nCurDist, pUnderMouse->nMoveActionType);
+                nCurDist = (nDstY - nCurDist) * nStepsRemaining / nTotalDist + nCurDist;
+                CLIENT_MovePlayerToPosition(pUnderMouse->pPlayer, (short int)((nDstX - nSrcX) * nStepsRemaining / nTotalDist) + (short int)nSrcX, (int16_t)nCurDist, pUnderMouse->nMoveActionType);
                 return;
               }
 
@@ -1879,20 +1871,14 @@ BOOL INPUT_HandleLeftClickRepeat(D2UnderMouseStrc * pUnderMouse) {
 
 // Player input handler that issues a walk/move command toward the coordinate or unit under the cursor (pMouse is the under-mouse input context). Bails if the player is already moving or cannot be interrupted. Computes the player's run/walk velocity (scaled by velocitypercent) and detects a run/walk toggle mismatch against the current path velocity and the input flags. If a target unit is set and it differs from the confirmed target (or a velocity mismatch), it retargets the dynamic path and re-issues the skill command; otherwise it flags the move and runs INPUT_ExecuteSkillCommand. Returns 1. Custom-register convention (pMouse in EDI).
 uint32_t WalkToCoordOrUnit(D2UnderMouseStrc * pMouse) {
-    // Frame slots -16..-4 are ONE object: &nRunVelocity is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nRunVelocity;
-      int bRunWalkMismatch;
-      int nWalkVelocity;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nVelocityPct;
     int32_t nClassId;
+    int nRunVelocity;
+    int nWalkVelocity;
     uint32_t dwFlags;
     D2DynamicPathStrc* pDynamicPath;
-    __frame0.bRunWalkMismatch = 0;
+    int bRunWalkMismatch;
+    bRunWalkMismatch = 0;
     BOOL bResult;
     bResult = IsUnitNotMoving(pMouse);
     if (!bResult) {
@@ -1915,11 +1901,11 @@ uint32_t WalkToCoordOrUnit(D2UnderMouseStrc * pMouse) {
       nClassId = pPlayerUnit_lcl->nClassId;
     }
 
-    D2Common::Units::GetRunAndWalkVelocityForPlayer((int32_t)pPlayerUnit_lcl, nClassId, &__frame0.nWalkVelocity, &__frame0.nRunVelocity);
-    __frame0.nWalkVelocity <<= 8;
+    D2Common::Units::GetRunAndWalkVelocityForPlayer((int32_t)pPlayerUnit_lcl, nClassId, &nWalkVelocity, &nRunVelocity);
+    nWalkVelocity <<= 8;
     pDynamicPath = pMouse->pPlayer->pPath.pDynamicPath;
     nVelocityPct = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pMouse->pPlayer, UNITSTAT_velocitypercent, 0);
-    nVelocityPct *= __frame0.nWalkVelocity;
+    nVelocityPct *= nWalkVelocity;
     nClassId = D2Common::PATH::DynamicPath::GetVelocity(pDynamicPath);
     dwFlags = pMouse->flags;
     if (nClassId == nVelocityPct / 100) {
@@ -1930,7 +1916,7 @@ uint32_t WalkToCoordOrUnit(D2UnderMouseStrc * pMouse) {
       goto dispatch_move_command;
     }
 
-    __frame0.bRunWalkMismatch = 1;
+    bRunWalkMismatch = 1;
     dispatch_move_command:
     if (!pMouse->pTarget) {
       if (!(dwFlags & 0x20)) {
@@ -1943,7 +1929,7 @@ uint32_t WalkToCoordOrUnit(D2UnderMouseStrc * pMouse) {
       }
     } else {
       pPlayerUnit_lcl = CUnit::GetConfirmedTargetUnit(pMouse->pPlayer);
-      if (pMouse->pTarget != pPlayerUnit_lcl || __frame0.bRunWalkMismatch) {
+      if (pMouse->pTarget != pPlayerUnit_lcl || bRunWalkMismatch) {
         D2Common::PATH::DynamicPath::SetTarget(pDynamicPath, pMouse->pTarget);
         pMouse->flags |= 0x80;
         INPUT_ExecuteSkillCommand(pMouse);
@@ -2300,33 +2286,24 @@ uint32_t __fastcall PLAYER_GetMercAppearanceBytes(uint32_t * pAppearanceOut, uin
 
 // Teleports a player unit to a new room/position (via PATH_CheckCollisionFlags) and, if the unit was in a movement mode, re-issues the appropriate walk/run PlayerMessage to resume movement toward the previous target unit or coordinates.
 void __fastcall CLIENT_WarpPlayerAndContinueMove(D2UnitStrc * pUnit, D2RoomStrc * pRoom, uint16_t nNewX, uint16_t nNewY) {
-    // Frame slots -16..-4 are ONE object: &nDestY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nDestY;
-      int32_t nDestX;
-      int bWasMoveMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2ServerMessageHandleStrc sMoveMessage;
     eD2PlayerAnimMode eAnimMode = pUnit->eAnimMode.ePlayerMode;
     D2DynamicPathStrc* local_18 = pUnit->pPath.pDynamicPath;
     D2UnitStrc* pTargetUnit = 0;
-    __frame0.bWasMoveMode = 0;
-    __frame0.nDestX = 0;
-    __frame0.nDestY = 0;
+    int bWasMoveMode = 0;
+    int32_t nDestX = 0;
+    int32_t nDestY = 0;
     D2RoomStrc* pTargetRoom = pRoom;
     if (1 < (int)eAnimMode && ((int)eAnimMode < 4 || eAnimMode == TownWalk)) {
-      __frame0.bWasMoveMode = 1;
+      bWasMoveMode = 1;
       pTargetUnit = CUnit::GetConfirmedTargetUnit(pUnit);
       if (!pTargetUnit) {
-        SKILLS::Skills::GetCooordinates(pUnit, &__frame0.nDestX, &__frame0.nDestY);
+        SKILLS::Skills::GetCooordinates(pUnit, &nDestX, &nDestY);
       }
     }
 
     D2Common::PATH::Path::PATH_CheckCollisionFlags(local_18, (uint32_t)pUnit, pTargetRoom, nNewX, nNewY);
-    if (!__frame0.bWasMoveMode) {
+    if (!bWasMoveMode) {
       return;
     }
 
@@ -2342,8 +2319,8 @@ void __fastcall CLIENT_WarpPlayerAndContinueMove(D2UnitStrc * pUnit, D2RoomStrc 
       return;
     }
 
-    sMoveMessage.nItemId = __frame0.nDestY;
-    sMoveMessage.nSkillId = __frame0.nDestX;
+    sMoveMessage.nItemId = nDestY;
+    sMoveMessage.nSkillId = nDestX;
     PlayerMessage((eAnimMode != eD2PlayerAnimMode_ns::Run ? -22 : 0) + 0x17, pUnit, &sMoveMessage, 0);
 }
 
@@ -2729,14 +2706,6 @@ uint32_t __fastcall CheckFlagWithMask(D2UnitStrc * pUnit, uint32_t nParam) {
 }
 
 D2RoomStrc * __fastcall DRLGROOM_FindBetterNearbyRoom(D2RoomStrc * pRoom, int32_t nX, int32_t nY) {
-    // Frame slots -12..-4 are ONE object: &ppRoomList is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppRoomList;
-      DWORD nRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     if (!pRoom) {
       return nullptr;
     }
@@ -2746,22 +2715,22 @@ D2RoomStrc * __fastcall DRLGROOM_FindBetterNearbyRoom(D2RoomStrc * pRoom, int32_
       return pRoom;
     }
 
-    __frame0.ppRoomList = 0;
-    __frame0.nRoomCount = 0;
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppRoomList, (int*)&__frame0.nRoomCount);
+    D2RoomStrc** ppRoomList = 0;
+    DWORD nRoomCount = 0;
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppRoomList, (int*)&nRoomCount);
     uint32_t nRoomIdx = 0;
-    if (__frame0.nRoomCount) {
+    if (nRoomCount) {
       D2RoomStrc* pTestRoom;
       do {
-        if (__frame0.ppRoomList[nRoomIdx]) {
-          pTestRoom = __frame0.ppRoomList[nRoomIdx];
+        if (ppRoomList[nRoomIdx]) {
+          pTestRoom = ppRoomList[nRoomIdx];
           if (pTestRoom->sCoords.dwXStart <= nX && nX < pTestRoom->sCoords.dwXSize + pTestRoom->sCoords.dwXStart && pTestRoom->sCoords.dwYStart <= nY && nY < pTestRoom->sCoords.dwYSize + pTestRoom->sCoords.dwYStart) {
             return pTestRoom;
           }
         }
 
         nRoomIdx++;
-      } while (nRoomIdx < __frame0.nRoomCount);
+      } while (nRoomIdx < nRoomCount);
     }
 
     pRoom = 0;

@@ -109,18 +109,12 @@ void SKILLSOR_OnInfernoExpire(D2UnitStrc * pUnit, ::SGAMEDATA * pGame) {
 
 // Per-tick server handler for the Sorceress Inferno skill. Validates the skill/missile records, retrieves the cursor target position, then spawns an Inferno missile each tick for as many frames as the calc specifies. For monsters using Inferno it manages the inferno state and schedules the end-anim event via SetEvent; for players it sets up the anim timer events.
 BOOL __fastcall INFERNO_CastInfernoTick(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl2, eMissilesId eMissileId) {
-    // Frame slots -12..-4 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetY;
-      uint32_t nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bHasTarget;
     bool bHasTarget;
     D2SkillArgStrc sSkillArg;
     int32_t nCalcDuration;
+    uint32_t nTargetY;
+    uint32_t nTargetX;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
@@ -130,7 +124,7 @@ BOOL __fastcall INFERNO_CastInfernoTick(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
       return 0;
     }
 
-    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
     if (!_bHasTarget) {
       return 0;
     }
@@ -151,9 +145,9 @@ BOOL __fastcall INFERNO_CastInfernoTick(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
       sSkillArg.eSkillNo = eSkill;
       sSkillArg.nMissileTxtNo = eMissileId;
       sSkillArg.nSkillLevel = nSkillLvl2;
-      sSkillArg.nUnitY = __frame0.nTargetY;
+      sSkillArg.nUnitY = nTargetY;
       sSkillArg.nFlags = 0x8020;
-      sSkillArg.nUnitX = __frame0.nTargetX;
+      sSkillArg.nUnitX = nTargetX;
       sSkillArg.pOwner = pUnit;
       sSkillArg.pMissile = pUnit;
       MISSILES::Missiles::CreatingMissile(pGame, &sSkillArg);
@@ -357,27 +351,21 @@ BOOL __fastcall SKILLSOR_SrvStFn13_ThunderStorm(::SGAMEDATA * pGame, D2UnitStrc 
 }
 
 BOOL __fastcall SKILLSOR_SrvStFn14_Hydra(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetX;
-      uint32_t nTargetY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bHasTarget;
     bool bHasTarget;
+    uint32_t nTargetX;
+    uint32_t nTargetY;
     D2RoomStrc* pTargetRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pTargetRoom) {
       return 0;
     }
 
-    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
     if (!_bHasTarget) {
       return 0;
     }
 
-    pTargetRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pTargetRoom, __frame0.nTargetX, __frame0.nTargetY);
+    pTargetRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pTargetRoom, nTargetX, nTargetY);
     if (!pTargetRoom) {
       return 0;
     }
@@ -1138,16 +1126,10 @@ BOOL __fastcall Skills_SrvDoFunc_151_FireDirectionalMissile(::SGAMEDATA * pGame,
 }
 
 BOOL __fastcall Skills_SrvDoFunc_027_Teleport(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nCursorX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nCursorX;
-      uint32_t nCursorY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL bResult;
-    SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nCursorX, &__frame0.nCursorY);
+    uint32_t nCursorX;
+    uint32_t nCursorY;
+    SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nCursorX, &nCursorY);
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pRoom) {
       return 0;
@@ -1159,13 +1141,13 @@ BOOL __fastcall Skills_SrvDoFunc_027_Teleport(::SGAMEDATA * pGame, D2UnitStrc * 
       return 0;
     }
     if (pLevelTxt->Teleport == '\x02') {
-      bResult = D2Common::Units::TestCollisionByCoordinates(pUnit, __frame0.nCursorX, __frame0.nCursorY, 0x804);
+      bResult = D2Common::Units::TestCollisionByCoordinates(pUnit, nCursorX, nCursorY, 0x804);
       if (bResult) {
         return 0;
       }
     }
 
-    bResult = UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, nullptr, __frame0.nCursorX, __frame0.nCursorY, 0, 0);
+    bResult = UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, nullptr, nCursorX, nCursorY, 0, 0);
     return bResult;
 }
 
@@ -1432,17 +1414,6 @@ BOOL __fastcall Skills_SrvDoFunc_144_Hydra(::SGAMEDATA * pGame, D2UnitStrc * pUn
     // Static local variables (originally global data)
     static uint32_t gnSkillMissileCount_Hydra[3] = { 0xffffffff, 0x0, 0x1 };
 
-    // Frame slots -24..-4 are ONE object: &nAnimMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nAnimMode;
-      BOOL nPetType;
-      uint32_t nSpawnY;
-      uint32_t nSpawnX;
-      ::SGAMEDATA* pGameSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bGotTarget;
     bool bGotTarget;
     D2UnitStrc* pSummon;
@@ -1450,6 +1421,9 @@ BOOL __fastcall Skills_SrvDoFunc_144_Hydra(::SGAMEDATA * pGame, D2UnitStrc * pUn
     eD2UnitType eOwnerUnitType;
     uint32_t nAlignmentHi;
     D2MonsterCastPetStrc sSummonParams;
+    int nAnimMode;
+    uint32_t nSpawnY;
+    uint32_t nSpawnX;
     eD2Skills eSkillOrig = iHydraIdx;
     if (!(-1 < (int)iHydraIdx && (int)iHydraIdx < sgptDataTable->nTxtSkillsCount)) {
       return 0;
@@ -1460,14 +1434,14 @@ BOOL __fastcall Skills_SrvDoFunc_144_Hydra(::SGAMEDATA * pGame, D2UnitStrc * pUn
       return 0;
     }
 
-    __frame0.pGameSaved = pGame;
-    sSummonParams.pSkillTxt = (D2SkillsTxt*)SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, iHydraIdx, nSkillLvl, &__frame0.nAnimMode, nullptr, nullptr);
+    ::SGAMEDATA* pGameSaved = pGame;
+    sSummonParams.pSkillTxt = (D2SkillsTxt*)SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, iHydraIdx, nSkillLvl, &nAnimMode, nullptr, nullptr);
     if (-1 >= (int)sSummonParams.pSkillTxt) {
       return 0;
     }
 
-    __frame0.nPetType = (BOOL)pSkillTxt->pettype;
-    if (!(-1 < __frame0.nPetType && __frame0.nPetType < sgptDataTable->nTxtPetTypeSize)) {
+    BOOL nPetType = (BOOL)pSkillTxt->pettype;
+    if (!(-1 < nPetType && nPetType < sgptDataTable->nTxtPetTypeSize)) {
       return 0;
     }
 
@@ -1476,12 +1450,12 @@ BOOL __fastcall Skills_SrvDoFunc_144_Hydra(::SGAMEDATA * pGame, D2UnitStrc * pUn
       return 0;
     }
 
-    _bGotTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGameSaved, pUnit, &__frame0.nSpawnX, &__frame0.nSpawnY);
+    _bGotTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGameSaved, pUnit, &nSpawnX, &nSpawnY);
     if (!_bGotTarget) {
       return 0;
     }
 
-    pRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, __frame0.nSpawnX, __frame0.nSpawnY);
+    pRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nSpawnX, nSpawnY);
     if (!pRoom) {
       return 0;
     }
@@ -1502,28 +1476,28 @@ BOOL __fastcall Skills_SrvDoFunc_144_Hydra(::SGAMEDATA * pGame, D2UnitStrc * pUn
     }
 
     int32_t nSkillRange = D2Client::DataTbls::TXT_Skills_GetSkillRange(iHydraIdx, nSkillLvl);
-    sSummonParams.nPetType = nSkillRange + __frame0.pGameSaved->dwGameFrame;
+    sSummonParams.nPetType = nSkillRange + pGameSaved->dwGameFrame;
     sSummonParams.classId = 0;
     sSummonParams.nX = 0;
     sSummonParams.nY2 = 0;
     sSummonParams.nSkillCalc = 0;
     sSummonParams.nFlags = 1;
     sSummonParams.nFunctionId = 0;
-    sSummonParams.nMode = __frame0.nAnimMode;
-    sSummonParams.nType = __frame0.nPetType;
+    sSummonParams.nMode = nAnimMode;
+    sSummonParams.nType = nPetType;
     sSummonParams.pPlayer = pUnit;
     sSummonParams.nSkillCalc = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->petmax, iHydraIdx, nSkillLvl);
-    __frame0.nPetType = 0;
+    nPetType = 0;
     iHydraIdx = SKILL_Attack;
     do {
       sSummonParams.classId = (int)sSummonParams.pSkillTxt->srvprgfunc + (iHydraIdx - SKILL_Nova);
-      sSummonParams.nX = gnSkillMissileCount_Hydra[iHydraIdx] + __frame0.nSpawnX;
-      sSummonParams.nY2 = gnAuraDamageScale_ManaAbsorb[iHydraIdx] + __frame0.nSpawnY;
-      pSummon = SkillsServer::SKILL_CreateSummon(__frame0.pGameSaved, &sSummonParams);
+      sSummonParams.nX = gnSkillMissileCount_Hydra[iHydraIdx] + nSpawnX;
+      sSummonParams.nY2 = gnAuraDamageScale_ManaAbsorb[iHydraIdx] + nSpawnY;
+      pSummon = SkillsServer::SKILL_CreateSummon(pGameSaved, &sSummonParams);
       if (pSummon) {
         SkillsServer::SetSkill(pSummon, eSkillOrig, nSkillLvl, 1);
-        SkillNec::SKILLNEC_ApplySummonBuffs(__frame0.pGameSaved, pUnit, pSummon, eSkillOrig, nSkillLvl, 0);
-        __frame0.nPetType = 1;
+        SkillNec::SKILLNEC_ApplySummonBuffs(pGameSaved, pUnit, pSummon, eSkillOrig, nSkillLvl, 0);
+        nPetType = 1;
         pSummonAi = UNIT::Monster::GetAiGeneral(pSummon);
         if (pSummonAi) {
           Monster::AI::SetDwArgsIfNotNeg0x29a(pSummonAi, sSummonParams.nPetType, -0x29a, -0x29a);
@@ -1539,7 +1513,7 @@ BOOL __fastcall Skills_SrvDoFunc_144_Hydra(::SGAMEDATA * pGame, D2UnitStrc * pUn
       iHydraIdx += SKILL_Kick;
     } while ((int)iHydraIdx < 3);
 
-    return __frame0.nPetType;
+    return nPetType;
 }
 
 } // namespace D2Game::SKILLS::SkillSor

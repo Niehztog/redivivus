@@ -362,34 +362,26 @@ uint32_t __stdcall ThreadHandler() {
     static unsigned int gdwMCPListGamePadding2;
     static unsigned int gdwMCPListGamePadding1;
 
-    // Frame slots -16..-4 are ONE object: &nWsaResult is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nWsaResult;
-      int nSocketStatus;
-      uint8_t __pad8[3];
-      char bySendByte;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    char bySendByte;
     char* szIpAddress = Fog::Src::Safesock::NET_MakeIPV4AddressHumanFriendly((in_addr)gdwMCPListGamePadding2);
     D2Client::MCP::D2GSJoinResult = 0;
     D2QSSocketStrc* NET_MCP_CLIENT_D2QSSocket = Fog::Src::D2QSSocket::STRUCT_D2QSSocket_Init(szIpAddress, gdwMCPListGamePadding1, "clt->mcp");
     D2Client::MCP::MCPD2QSSocket = NET_MCP_CLIENT_D2QSSocket;
     QSSOCKET_SetCallbackHandler1(NET_MCP_CLIENT_D2QSSocket, (void*)D2Client::Net::MCP::MCPCONNECT_SocketCallback_Dispatch, nullptr);
     Fog::Src::D2QSSocket::NET_MCP_CLIENT_CreateConnectionThread(NET_MCP_CLIENT_D2QSSocket);
-    __frame0.nSocketStatus = 0;
+    int nSocketStatus = 0;
     D2NetDataStrc* pNetData = Fog::Src::D2QSSocket::NET_D2QSocket_GetSafesock(NET_MCP_CLIENT_D2QSSocket);
     if (pNetData) {
-      Fog::Src::Safesock::GetSocketStatusAndWsaResultToArguments(pNetData, &__frame0.nSocketStatus, &__frame0.nWsaResult);
-      if (!__frame0.nSocketStatus) {
+      int nWsaResult;
+      Fog::Src::Safesock::GetSocketStatusAndWsaResultToArguments(pNetData, &nSocketStatus, &nWsaResult);
+      if (!nSocketStatus) {
         if (NET_MCP_CLIENT_D2QSSocket != D2Client::MCP::MCPD2QSSocket) {
           Fog::Src::D2QSSocket::D2QSSOCKET_BlockSocketIfValid(NET_MCP_CLIENT_D2QSSocket);
           return 0;
         }
 
-        __frame0.bySendByte = '\x01';
-        Fog::Src::D2QSSocket::QSSOCKET_SendWithTimeout(NET_MCP_CLIENT_D2QSSocket, &__frame0.bySendByte, 1);
+        bySendByte = '\x01';
+        Fog::Src::D2QSSocket::QSSOCKET_SendWithTimeout(NET_MCP_CLIENT_D2QSSocket, &bySendByte, 1);
         McpConnectionLoop((int*)&gMCPConnectionState);
         return (uint32_t)!D2Client::MCP::D2GSJoinResult;
       }

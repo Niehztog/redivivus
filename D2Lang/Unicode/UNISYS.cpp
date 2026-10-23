@@ -601,29 +601,23 @@ BOOL __fastcall UNICODE_CheckLineBreakPosition(int32_t pWszText, int32_t nPos) {
 }
 
 void __fastcall STRING_ConvertCharToWchar(uint16_t * pwszBuffer, char * pszBuffer, int32_t nSize) {
-    // Frame slots -2060..-8 are ONE object: &nWideLen is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nWideLen;
-      uint16_t wszBuffer[1024];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 2052, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t* pWVar2;
+    int nWideLen;
+    uint16_t wszBuffer[1024];
     char cTmp;
     char* pszCur = pszBuffer;
     pszCur = pszCur + strlen(pszCur) + 1;
-    int nCharsCopied = Storm::Source::SSTR::UTF8_ToUTF16((short*)__frame0.wszBuffer, 0x3ff, (uint8_t*)pszBuffer, (int)(pszCur + (1 - (int)(pszBuffer + 1))), &__frame0.nWideLen, nullptr);
+    int nCharsCopied = Storm::Source::SSTR::UTF8_ToUTF16((short*)wszBuffer, 0x3ff, (uint8_t*)pszBuffer, (int)(pszCur + (1 - (int)(pszBuffer + 1))), &nWideLen, nullptr);
     if (nCharsCopied) {
-      __frame0.nWideLen = 0;
+      nWideLen = 0;
     }
 
-    __frame0.wszBuffer[__frame0.nWideLen] = L'\0';
+    wszBuffer[nWideLen] = L'\0';
     nCharsCopied = 0;
     if (0 < nSize) {
       uint16_t* pWVar1;
       do {
-        pWVar2 = __frame0.wszBuffer + nCharsCopied;
+        pWVar2 = wszBuffer + nCharsCopied;
         if (*pWVar2 == L'\0') {
           break;
         }
@@ -633,7 +627,7 @@ void __fastcall STRING_ConvertCharToWchar(uint16_t * pwszBuffer, char * pszBuffe
         *pWVar1 = *pWVar2;
       } while (nCharsCopied < nSize);
     }
-    if (__frame0.wszBuffer[nCharsCopied] == L'\0') {
+    if (wszBuffer[nCharsCopied] == L'\0') {
       pwszBuffer[nCharsCopied] = L'\0';
       Fog::Debug::GuardStack();
       return;

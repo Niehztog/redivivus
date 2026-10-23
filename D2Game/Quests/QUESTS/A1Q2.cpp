@@ -274,18 +274,10 @@ void __fastcall Q02_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 // Looks up Blood Raven via nBloodRavenGUID stashed by Q02_Callback_08.
 // State ids: 0=Completed,1=RewardAwaits,2=JustCompleted.
 BOOL __fastcall Q02_SetRewardForNearbyPlayers(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
-    // Frame slots -20..-4 are ONE object: &pAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjacentRooms;
-      uint32_t nAdjacentRoomCount;
-      D2UnitStrc* pUnitLocal;
-      int bIsNearBloodRaven;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** pAdjacentRooms;
+    uint32_t nAdjacentRoomCount;
     int32_t nLine = 0x590c53;
-    __frame0.pUnitLocal = pUnit;
+    D2UnitStrc* pUnitLocal = pUnit;
     D2RoomStrc* pUnitRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     D2QuestDataStrc* pQuestData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_SistersBurialGrounds);
     if (!pQuestData) {
@@ -302,32 +294,32 @@ BOOL __fastcall Q02_SetRewardForNearbyPlayers(::SGAMEDATA * pGame, D2UnitStrc * 
       return 0;
     }
 
-    __frame0.bIsNearBloodRaven = 0;
+    int bIsNearBloodRaven = 0;
     if (pUnitRoom == pBloodRavenRoom) {
-      __frame0.bIsNearBloodRaven = 1;
+      bIsNearBloodRaven = 1;
     } else {
       uint32_t nRoomIdx;
-      pUnitRoom = D2Common::Units::UNITS_GetRoom(__frame0.pUnitLocal);
+      pUnitRoom = D2Common::Units::UNITS_GetRoom(pUnitLocal);
       if (!pUnitRoom) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x14e);
         exit(-1);
       }
 
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pUnitRoom, &__frame0.pAdjacentRooms, (int*)&__frame0.nAdjacentRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pUnitRoom, &pAdjacentRooms, (int*)&nAdjacentRoomCount);
       nRoomIdx = 0;
-      if (__frame0.nAdjacentRoomCount) {
+      if (nAdjacentRoomCount) {
         do {
-          if (__frame0.pAdjacentRooms[nRoomIdx] == pBloodRavenRoom) {
-            __frame0.bIsNearBloodRaven = 1;
+          if (pAdjacentRooms[nRoomIdx] == pBloodRavenRoom) {
+            bIsNearBloodRaven = 1;
             break;
           }
 
           nRoomIdx++;
-        } while (nRoomIdx < __frame0.nAdjacentRoomCount);
+        } while (nRoomIdx < nAdjacentRoomCount);
       }
     }
 
-    D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(__frame0.pUnitLocal);
+    D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnitLocal);
     D2BitBufferStrc* pBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];
     BOOL bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_SistersBurialGrounds, QUESTSTATE_Completed);
     /* GetQuestState(QUESTSTATE_RewardAwaits=1): skip if reward already pending */ if (bQuestState) {
@@ -335,7 +327,7 @@ BOOL __fastcall Q02_SetRewardForNearbyPlayers(::SGAMEDATA * pGame, D2UnitStrc * 
     }
 
     bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_SistersBurialGrounds, QUESTSTATE_RewardAwaits);
-    if (!(!bQuestState && __frame0.bIsNearBloodRaven)) {
+    if (!(!bQuestState && bIsNearBloodRaven)) {
       return 0;
     }
 

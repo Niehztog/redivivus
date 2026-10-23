@@ -714,16 +714,9 @@ uint32_t __fastcall SKILLASS_GetChargeUpCalcValue(D2UnitStrc * pUnit, eD2Skills 
 // Dragon Tail SrvDoFunc. Applies direct melee damage to the current target via DAMAGE_ProcessCombatQueueEntry, then fires an AoE explosion at the target/cursor position. AoE radius comes from SKILLASS_GetChargeUpCalcValue (falling back to aurarangecalc). Damage is set via SKILLS_AddRandomSkillDamage + SetDamageOnEvent with result/hit-flag bit 0 set.
 // @sourcefile .\SKILLS\SkillAss.cpp
 BOOL __fastcall Skills_SrvDoFunc_038_DragonTail_KickAoE(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetX;
-      uint32_t nTargetY;
-      ::SGAMEDATA* pGameCopy;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2DamageStrc sDamage;
+    uint32_t nTargetX;
+    uint32_t nTargetY;
     eD2Skills eSkillSaved = eSkill;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
@@ -734,13 +727,13 @@ BOOL __fastcall Skills_SrvDoFunc_038_DragonTail_KickAoE(::SGAMEDATA * pGame, D2U
       return 0;
     }
 
-    __frame0.pGameCopy = pGame;
+    ::SGAMEDATA* pGameCopy = pGame;
     D2UnitStrc* pTarget = UNIT::SUnit::GetTargetEx(pGame, pUnit);
     if (pTarget) {
-      UNIT::SUnitDmg::DAMAGE_ProcessCombatQueueEntry(__frame0.pGameCopy, pUnit, pTarget, 0);
+      UNIT::SUnitDmg::DAMAGE_ProcessCombatQueueEntry(pGameCopy, pUnit, pTarget, 0);
     }
 
-    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGameCopy, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGameCopy, pUnit, &nTargetX, &nTargetY);
     if (!bGotTargetPos) {
       return 0;
     }
@@ -756,25 +749,19 @@ BOOL __fastcall Skills_SrvDoFunc_038_DragonTail_KickAoE(::SGAMEDATA * pGame, D2U
     SkillsServer::SetDamageOnEvent(pUnit, &sDamage, eSkillSaved, nSkillLvl);
     sDamage.wResultFlags |= 1;
     sDamage.dwHitFlags |= 1;
-    SkillsServer::SKILLS_ApplyAreaEffect(__frame0.pGameCopy, pUnit, __frame0.nTargetX, __frame0.nTargetY, eSkill, pSkillTxt->aurafilter, SKILLBAR_ApplyWarCryDamage, &sDamage, 0, ".\\SKILLS\\SkillAss.cpp", 0x304);
+    SkillsServer::SKILLS_ApplyAreaEffect(pGameCopy, pUnit, nTargetX, nTargetY, eSkill, pSkillTxt->aurafilter, SKILLBAR_ApplyWarCryDamage, &sDamage, 0, ".\\SKILLS\\SkillAss.cpp", 0x304);
     return 1;
 }
 
 // Server skill handler for Assassin charge-release skills (e.g. Dragon Tail / Tiger Strike release). Advances the unit RNG seed, resolves the accumulated charge-up missile id and radius (aurarangecalc fallback), then scatters radius^2 missiles randomly within a circle of that radius around the skill target using rejection sampling. Each candidate point is validated against the nearby room before spawning. Returns TRUE on success.
 BOOL __fastcall Skills_SrvDoFunc_039_ChargeRelease_CircleSpawn(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-8 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetY;
-      uint32_t nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2RoomStrc* pNearRoom;
     int nOffsetY;
     int nOffsetX;
     D2SkillArgStrc sSkillArg;
     D2SeedStrc sSeedCopy;
+    uint32_t nTargetY;
+    uint32_t nTargetX;
     D2SeedStrc sSeedAdvanced = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = sSeedAdvanced;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
@@ -787,7 +774,7 @@ BOOL __fastcall Skills_SrvDoFunc_039_ChargeRelease_CircleSpawn(::SGAMEDATA * pGa
     }
 
     ::SGAMEDATA* pGameCopy = pGame;
-    BOOL nHasPosOrRadiusSq = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL nHasPosOrRadiusSq = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
     if (!nHasPosOrRadiusSq) {
       return 0;
     }
@@ -824,8 +811,8 @@ BOOL __fastcall Skills_SrvDoFunc_039_ChargeRelease_CircleSpawn(::SGAMEDATA * pGa
       nRandVal = D2Client::Archive::UNIT_GetModuloFromSeed(&sSeedCopy, nRadius * 2);
       nOffsetY = nRadius - nRandVal;
       if (nOffsetY * nOffsetY + nOffsetX * nOffsetX <= iVar1) {
-        sSkillArg.nY = __frame0.nTargetY + nOffsetY;
-        sSkillArg.nX = __frame0.nTargetX + nOffsetX;
+        sSkillArg.nY = nTargetY + nOffsetY;
+        sSkillArg.nX = nTargetX + nOffsetX;
         pNearRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, sSkillArg.nX, sSkillArg.nY);
         if (pNearRoom) {
           MISSILES::Missiles::CreatingMissile(pGameCopy, &sSkillArg);
@@ -1023,29 +1010,21 @@ void __fastcall SKILLASS_BuildSpiralMissilePath(D2UnitStrc * pUnit, int32_t nPar
     static uint32_t gnSpiralMissileBaseOffset = 0xf;
     static uint8_t gnSpiralMissileBaseOffset_b = 0x2;
 
-    // Frame slots -24..-4 are ONE object: &pPathPoints is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2PathPointStrc* pPathPoints;
-      int32_t nPosY;
-      int32_t nPosX;
-      uint32_t nDirection;
-      int32_t nTotalFrames;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nSpiralTurnDir;
     int32_t nFrameIdx;
     int nSpiralAngleStep;
+    D2PathPointStrc* pPathPoints;
+    int32_t nPosY;
+    int32_t nPosX;
     uint64_t qwSeedNext;
     D2SeedStrc sSeedNext;
     if (!pUnit) {
       return;
     }
 
-    __frame0.nTotalFrames = D2Common::Units::Missile::GetTotalFrames(pUnit);
-    if (0x4d < __frame0.nTotalFrames) {
-      __frame0.nTotalFrames = 0x4d;
+    int32_t nTotalFrames = D2Common::Units::Missile::GetTotalFrames(pUnit);
+    if (0x4d < nTotalFrames) {
+      nTotalFrames = 0x4d;
       D2Common::Units::Missile::SetTotalFrames(pUnit, 0x4d);
       D2Common::Units::Missile::SetCurrentFrame(pUnit, 0x4d);
     }
@@ -1055,45 +1034,45 @@ void __fastcall SKILLASS_BuildSpiralMissilePath(D2UnitStrc * pUnit, int32_t nPar
     pSeed2->nSeedLow = nParam;
     pUnit->sSeed.nSeedHigh = 0x29a;
     D2Common::PATH::DynamicPath::PATH_SetPathType(pDynamicPath, 10);
-    D2Common::PATH::DynamicPath::OverwriteDistanceAndMaxDistance(pDynamicPath, (uint8_t)__frame0.nTotalFrames);
-    D2Common::PATH::DynamicPath::GetPathPoint(pDynamicPath, &__frame0.pPathPoints);
+    D2Common::PATH::DynamicPath::OverwriteDistanceAndMaxDistance(pDynamicPath, (uint8_t)nTotalFrames);
+    D2Common::PATH::DynamicPath::GetPathPoint(pDynamicPath, &pPathPoints);
     eD2UnitType eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nPosX = pUnit->pPath.pStaticPath->nPosX;
+      nPosX = pUnit->pPath.pStaticPath->nPosX;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nPosX = 0;
+      nPosX = 0;
     } else {
-      __frame0.nPosX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      nPosX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
     }
 
     eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nPosY = pUnit->pPath.pStaticPath->nPosY;
+      nPosY = pUnit->pPath.pStaticPath->nPosY;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nPosY = 0;
+      nPosY = 0;
     } else {
-      __frame0.nPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      nPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
     }
 
     uint32_t nDirGfxOffset = D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath);
     uint32_t nDestX = D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath);
-    __frame0.nDirection = D2Common::Units::GetDirectionToCoords(pUnit, nDestX, nDirGfxOffset);
-    __frame0.nDirection &= 0xff;
+    uint32_t nDirection = D2Common::Units::GetDirectionToCoords(pUnit, nDestX, nDirGfxOffset);
+    nDirection &= 0xff;
     qwSeedNext = (uint64_t)pSeed2->nSeedLow * 0x6ac690c5 + (uint64_t)pUnit->sSeed.nSeedHigh;
     nSpiralTurnDir = qwSeedNext & 1 ? 0x1 : -0x1;
     sSeedNext = D2_SEED_NEXT_VAL(qwSeedNext);
     *pSeed2 = sSeedNext;
     nSpiralAngleStep = sSeedNext.nSeedLow + (int)(((uint64_t)d2_bits_of(sSeedNext) & 0xffffffff) / 3) * -3 + gnSpiralMissileBaseOffset_b;
     nFrameIdx = 0;
-    if (0 < __frame0.nTotalFrames) {
+    if (0 < nTotalFrames) {
       uint32_t nRandSeed;
       do {
-        __frame0.nDirection += nSpiralAngleStep * nSpiralTurnDir;
-        nRandSeed = D2Common::Monsters::MONSTERS::MONSTERS_GetGfxOffsetTable2((uint8_t)__frame0.nDirection & 0x3f);
-        __frame0.nPosX += gnSkillAssTableIndexBySkill[nRandSeed & 0xff];
-        __frame0.nPosY += gnSkillAssTableOffsetBySkill[nRandSeed & 0xff];
-        __frame0.pPathPoints[nFrameIdx].nX = (short int)__frame0.nPosX;
-        __frame0.pPathPoints[nFrameIdx].nY = (short int)__frame0.nPosY;
+        nDirection += nSpiralAngleStep * nSpiralTurnDir;
+        nRandSeed = D2Common::Monsters::MONSTERS::MONSTERS_GetGfxOffsetTable2((uint8_t)nDirection & 0x3f);
+        nPosX += gnSkillAssTableIndexBySkill[nRandSeed & 0xff];
+        nPosY += gnSkillAssTableOffsetBySkill[nRandSeed & 0xff];
+        pPathPoints[nFrameIdx].nX = (short int)nPosX;
+        pPathPoints[nFrameIdx].nY = (short int)nPosY;
         if (!(nFrameIdx % gnSpiralMissileBaseOffset)) {
           nSpiralTurnDir = -nSpiralTurnDir;
           sSeedNext = D2_SEED_NEXT(*pSeed2);
@@ -1102,10 +1081,10 @@ void __fastcall SKILLASS_BuildSpiralMissilePath(D2UnitStrc * pUnit, int32_t nPar
         }
 
         nFrameIdx++;
-      } while (nFrameIdx < __frame0.nTotalFrames);
+      } while (nFrameIdx < nTotalFrames);
     }
 
-    D2Common::PATH::DynamicPath::SetPathPointsSize(pDynamicPath, __frame0.nTotalFrames);
+    D2Common::PATH::DynamicPath::SetPathPointsSize(pDynamicPath, nTotalFrames);
 }
 
 // Spawns a spiral ring of missiles; skill-agnostic.
@@ -1294,14 +1273,7 @@ BOOL __fastcall Skills_SrvDoFunc_036_ChargeRelease_MissileRing(::SGAMEDATA * pGa
 }
 
 BOOL __fastcall Skills_SrvDoFunc_037_ChargeRelease_MultiElementScatter(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetX;
-      ::SGAMEDATA* pGameCopy;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nTargetX;
     eD2Skills eSkillSaved = eSkill;
     D2SeedStrc DVar1 = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = DVar1;
@@ -1314,13 +1286,13 @@ BOOL __fastcall Skills_SrvDoFunc_037_ChargeRelease_MultiElementScatter(::SGAMEDA
       return 0;
     }
 
-    __frame0.pGameCopy = pGame;
+    ::SGAMEDATA* pGameCopy = pGame;
     uint32_t nChargeUpMissileId = SKILLASS_GetChargeUpMissile(pUnit, eSkill);
     if (0 >= (int)nChargeUpMissileId) {
       return 0;
     }
 
-    BOOL bHasPos = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGameCopy, pUnit, &__frame0.nTargetX, (uint32_t*)&eSkill);
+    BOOL bHasPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGameCopy, pUnit, &nTargetX, (uint32_t*)&eSkill);
     if (!bHasPos) {
       return 0;
     }
@@ -1330,19 +1302,12 @@ BOOL __fastcall Skills_SrvDoFunc_037_ChargeRelease_MultiElementScatter(::SGAMEDA
       nScatterRadius = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->aurarangecalc, eSkillSaved, nSkillLvl);
     }
 
-    SKILLASS_SpawnMissileRing(nChargeUpMissileId, (D2UnitStrc*)DVar1.nSeedLow, __frame0.pGameCopy, pUnit, nChargeUpMissileId, __frame0.nTargetX, eSkill, eSkillSaved, nSkillLvl, nScatterRadius);
+    SKILLASS_SpawnMissileRing(nChargeUpMissileId, (D2UnitStrc*)DVar1.nSeedLow, pGameCopy, pUnit, nChargeUpMissileId, nTargetX, eSkill, eSkillSaved, nSkillLvl, nScatterRadius);
     return 1;
 }
 
 BOOL __fastcall Skills_SrvDoFunc_143_ChargeRelease_GroundStrike(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetX;
-      ::SGAMEDATA* pGameCopy;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nTargetX;
     eD2Skills eSkillSaved = eSkill;
     D2SeedStrc DVar1 = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = DVar1;
@@ -1355,13 +1320,13 @@ BOOL __fastcall Skills_SrvDoFunc_143_ChargeRelease_GroundStrike(::SGAMEDATA * pG
       return 0;
     }
 
-    __frame0.pGameCopy = pGame;
+    ::SGAMEDATA* pGameCopy = pGame;
     uint32_t nChargeUpMissileId = SKILLASS_GetChargeUpMissile(pUnit, eSkill);
     if (0 >= (int)nChargeUpMissileId) {
       return 0;
     }
 
-    BOOL bHasPos = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGameCopy, pUnit, &__frame0.nTargetX, (uint32_t*)&eSkill);
+    BOOL bHasPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGameCopy, pUnit, &nTargetX, (uint32_t*)&eSkill);
     if (!bHasPos) {
       return 0;
     }
@@ -1371,20 +1336,14 @@ BOOL __fastcall Skills_SrvDoFunc_143_ChargeRelease_GroundStrike(::SGAMEDATA * pG
       nStrikeRadius = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->aurarangecalc, eSkillSaved, nSkillLvl);
     }
 
-    SKILLASS_SpawnSpiralMissileRing(nChargeUpMissileId, (D2UnitStrc*)DVar1.nSeedLow, __frame0.pGameCopy, pUnit, nChargeUpMissileId, __frame0.nTargetX, eSkill, eSkillSaved, nSkillLvl, nStrikeRadius);
+    SKILLASS_SpawnSpiralMissileRing(nChargeUpMissileId, (D2UnitStrc*)DVar1.nSeedLow, pGameCopy, pUnit, nChargeUpMissileId, nTargetX, eSkill, eSkillSaved, nSkillLvl, nStrikeRadius);
     return 1;
 }
 
 BOOL __fastcall Skills_SrvDoFunc_040_ChargeRelease_SingleMissile(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetX;
-      uint32_t nTargetY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    BOOL bHasPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    uint32_t nTargetX;
+    uint32_t nTargetY;
+    BOOL bHasPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
     if (!(bHasPos && 0 < nSkillLvl)) {
       return 0;
     }
@@ -1394,23 +1353,17 @@ BOOL __fastcall Skills_SrvDoFunc_040_ChargeRelease_SingleMissile(::SGAMEDATA * p
       return 0;
     }
 
-    SkillsServer::SKILLS_CreateMissileAtTarget(pGame, pUnit, eSkill, nSkillLvl, nMissileId, __frame0.nTargetX, __frame0.nTargetY);
+    SkillsServer::SKILLS_CreateMissileAtTarget(pGame, pUnit, eSkill, nSkillLvl, nMissileId, nTargetX, nTargetY);
     return 1;
 }
 
 // Server DoFunc for Blade Fury (skill 041, Assassin). Validates skill txt, gets target/cursor position, retrieves the charge-up missile type and count, then spawns that many missiles with seed-randomised ±20 unit offsets around the target. Stores the seed low and packed XY in each missile's target fields. Returns 1 on success, 0 if prerequisites missing.
 BOOL __fastcall Skills_SrvDoFunc_041_BladeFury(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetY;
-      uint32_t nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nSeedLow;
     D2SkillArgStrc sSkillArg;
     D2SeedStrc sSeedCopy;
+    uint32_t nTargetY;
+    uint32_t nTargetX;
     uint64_t uSeedRoll;
     D2SeedStrc DVar1 = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = DVar1;
@@ -1421,7 +1374,7 @@ BOOL __fastcall Skills_SrvDoFunc_041_BladeFury(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     ::SGAMEDATA* pGameCopy = pGame;
-    BOOL bHasPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bHasPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
     if (!bHasPos) {
       return 0;
     }
@@ -1437,9 +1390,9 @@ BOOL __fastcall Skills_SrvDoFunc_041_BladeFury(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.nX = __frame0.nTargetX;
+    sSkillArg.nX = nTargetX;
     sSkillArg.nFlags = 3;
-    sSkillArg.nY = __frame0.nTargetY;
+    sSkillArg.nY = nTargetY;
     sSkillArg.eSkillNo = eSkill;
     sSkillArg.nSkillLevel = nSkillLvl;
     nSkillLvl = nMissileCount;
@@ -1474,17 +1427,6 @@ BOOL __fastcall Skills_SrvDoFunc_041_BladeFury(::SGAMEDATA * pGame, D2UnitStrc *
 
 // Server-side Assassin charge-up release: when a melee finishing-move combat entry fires (nCombatEntryParam flag bit 0 set) and a target is in melee range, scans the unit's active charge-up state stat-lists (pAllStatesDataTblFlag0x04). For each, reads the stored skill id and charge level, clamps charges to 1..3, and invokes the skill's per-charge srvprgfunc handlers (SKILLSRVDOFUNCS dispatch) up to the charge count, broadcasting a unit-message packet to the target. Consumes the charge by removing/freeing each charge-up stat-list afterward. Seed is rolled then restored to preserve determinism. No return.
 void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2DamageStrc * pDamage) {
-    // Frame slots -36..-16 are ONE object: &nSeedSaveLow is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nSeedSaveLow;
-      uint32_t nSeedSaveHigh;
-      ::SGAMEDATA* pGameCopy;
-      int nStateIdxLoop;
-      D2StatListExStrc* pStatListSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2States eState;
     D2StatListExStrc* pStatList;
     D2SkillsTxt* pDVar4;
@@ -1493,6 +1435,9 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
     uint32_t nRandRoll;
     int nChargeLvlMax;
     int i;
+    uint32_t nSeedSaveLow;
+    uint32_t nSeedSaveHigh;
+    D2StatListExStrc* pStatListSaved;
     eD2Skills eSkillId;
     short int* pSrvPrgFunc;
     int nEffectiveSkillLvl;
@@ -1501,7 +1446,7 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
       return;
     }
 
-    __frame0.pGameCopy = pGame;
+    ::SGAMEDATA* pGameCopy = pGame;
     D2UnitStrc* pUnit_00 = UNIT::SUnit::GetTargetEx(pGame, pUnit);
     if (!pUnit_00) {
       return;
@@ -1516,15 +1461,15 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
 
-    __frame0.nStateIdxLoop = 0;
+    int nStateIdxLoop = 0;
     if (0 < (short int)sgptDataTable->nAllStatesDataTblFlag0x04Size) {
       D2SeedStrc* pSeed;
       do {
-        nChargeLvl = __frame0.nStateIdxLoop;
-        eState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, (int)sgptDataTable->pAllStatesDataTblFlag0x04[__frame0.nStateIdxLoop].nStateId);
+        nChargeLvl = nStateIdxLoop;
+        eState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, (int)sgptDataTable->pAllStatesDataTblFlag0x04[nStateIdxLoop].nStateId);
         if (eState != STATE_none) {
           pStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, (int)sgptDataTable->pAllStatesDataTblFlag0x04[nChargeLvl].nStateId);
-          __frame0.pStatListSaved = pStatList;
+          pStatListSaved = pStatList;
           if (pStatList) {
             eSkillId = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_skill, 0);
             pDVar4 = D2Client::GAME::SCmd::TXT_Skills_GetLine(eSkillId);
@@ -1539,7 +1484,7 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
                 nEffectiveSkillLvl = nChargeLvl;
               }
 
-              nChargeLvl = __frame0.nStateIdxLoop;
+              nChargeLvl = nStateIdxLoop;
               if (0 < nChargeLvlMax) {
                 eAuraStat = pDVar4->aurastat[0];
                 if (-1 < eAuraStat && (int)eAuraStat < sgptDataTable->nTxtItemStatCostSize) {
@@ -1551,9 +1496,9 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
                   }
 
                   pSeed = &pUnit->sSeed;
-                  D2Common::Seed::GetSeed(pSeed, &__frame0.nSeedSaveLow, &__frame0.nSeedSaveHigh);
+                  D2Common::Seed::GetSeed(pSeed, &nSeedSaveLow, &nSeedSaveHigh);
                   nRandRoll = Archive::RollRandomSeed(pSeed);
-                  D2Common::Seed::SetSeed(pSeed, __frame0.nSeedSaveLow, __frame0.nSeedSaveHigh);
+                  D2Common::Seed::SetSeed(pSeed, nSeedSaveLow, nSeedSaveHigh);
                   nChargeLvlMax = nChargeLvl - 1;
                   if (pDVar4->prgstack) {
                     i = 0;
@@ -1561,9 +1506,9 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
                       pSrvPrgFunc = pDVar4->srvprgfunc;
                       do {
                         if (0 < *pSrvPrgFunc && *pSrvPrgFunc < 0xbf) {
-                          D2Common::Stats::StatsEx::D2AddStatToStatsListEx(__frame0.pStatListSaved, (int)pDVar4->aurastat[0], i + 1, 0);
+                          D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatListSaved, (int)pDVar4->aurastat[0], i + 1, 0);
                           if (SKILLSRVDOFUNCS[*pSrvPrgFunc]) {
-                            (*SKILLSRVDOFUNCS[*pSrvPrgFunc])(__frame0.pGameCopy, pUnit, eSkillId, nEffectiveSkillLvl);
+                            (*SKILLSRVDOFUNCS[*pSrvPrgFunc])(pGameCopy, pUnit, eSkillId, nEffectiveSkillLvl);
                           }
                         }
 
@@ -1572,17 +1517,17 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
                       } while (i < nChargeLvlMax);
                     }
 
-                    D2Common::Stats::StatsEx::D2AddStatToStatsListEx(__frame0.pStatListSaved, (int)pDVar4->aurastat[0], nChargeLvl, 0);
+                    D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatListSaved, (int)pDVar4->aurastat[0], nChargeLvl, 0);
                   }
 
                   eAuraStat = pDVar4->srvprgfunc[nChargeLvl - 1];
                   if (0 < eAuraStat && eAuraStat < 0xbf && SKILLSRVDOFUNCS[eAuraStat]) {
-                    (*SKILLSRVDOFUNCS[eAuraStat])(__frame0.pGameCopy, pUnit, eSkillId, nEffectiveSkillLvl);
+                    (*SKILLSRVDOFUNCS[eAuraStat])(pGameCopy, pUnit, eSkillId, nEffectiveSkillLvl);
                   }
 
                   UNIT::SUnitMsg::SERVER_SendUnitMessagePacket(pUnit, pUnit_00, (uint16_t)eSkillId, (uint16_t)nEffectiveSkillLvl, nRandRoll, 0, (char)nChargeLvlMax + 1);
-                  nChargeLvl = __frame0.nStateIdxLoop;
-                  pStatList = __frame0.pStatListSaved;
+                  nChargeLvl = nStateIdxLoop;
+                  pStatList = pStatListSaved;
                 }
               }
             }
@@ -1592,8 +1537,8 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
           }
         }
 
-        __frame0.nStateIdxLoop = nChargeLvl + 1;
-      } while (__frame0.nStateIdxLoop < (short int)sgptDataTable->nAllStatesDataTblFlag0x04Size);
+        nStateIdxLoop = nChargeLvl + 1;
+      } while (nStateIdxLoop < (short int)sgptDataTable->nAllStatesDataTblFlag0x04Size);
     }
 
     D2Common::DATATBLS::ItemStats::STATES_MoveTransformToGfx(pUnit);
@@ -1601,16 +1546,6 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
 
 // Server-side per-hit damage application for the Assassin's dual-wield Whirlwind-style melee attack (also used by other dual-weapon skills). Args (custom calling convention): nParam=SGAMEDATA*, pDamage (in/out D2DamageStrc), pUnit=target, eSkill, pUnit1=skill-context unit, pUnit2(EBX)=attacker. Applies progressive charge-up damage, sets hit flags 3, computes skill min/max damage scaled by the damage struct's enhanced-damage percent (with 64-bit overflow-safe paths), adds kick damage similarly, rolls a uniform value in [min,max] from the attacker seed, and accumulates into pDamage->dwPhysDamage. Then, for each equipped weapon (main + offhand in BODYLOC_R_ARM slot), validates it is an unbroken usable weapon with an owner, toggles its item stats active, calls DAMAGE_CalculateOffensiveDamage and SKILLASS_DispatchChargeUpDamage so both weapons contribute, then restores the main weapon's stat-active flag.
 void __stdcall SKILLBAR_ApplyWhirlwindDamage(::SGAMEDATA * pGame, D2DamageStrc * pDamage, D2UnitStrc * pUnit, eD2Skills eSkill, D2UnitStrc * pUnit1, D2UnitStrc * pUnit2) {
-    // Frame slots -20..-4 are ONE object: &nMaxDmgKick is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nMaxDmgKick;
-      uint32_t nEnhDmgPct;
-      uint32_t nMaxDmg;
-      int nMinDmgKick;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2BodyLoc eBodyLoc;
     uint32_t nMinDmg;
     int nEnhKickDmg;
@@ -1622,11 +1557,15 @@ void __stdcall SKILLBAR_ApplyWhirlwindDamage(::SGAMEDATA * pGame, D2DamageStrc *
     int nEnhMaxDmg;
     uint64_t nDivResult;
     int64_t lVar2;
+    int nMaxDmgKick;
+    uint32_t nEnhDmgPct;
+    uint32_t nMaxDmg;
+    int nMinDmgKick;
     D2InventoryStrc* pInventory;
     SKILLASS_ApplyProgressiveDamageToTarget(pUnit2, pDamage);
     pDamage->dwHitFlags |= 3;
     nMinDmg = D2Common::Skills::SKILL_CalcMinDamage(pUnit2, eSkill, (int32_t)pUnit1, 0);
-    __frame0.nMaxDmg = D2Common::Skills::SKILL_CalcMaxDamage(pUnit2, eSkill, (int32_t)pUnit1, 0);
+    nMaxDmg = D2Common::Skills::SKILL_CalcMaxDamage(pUnit2, eSkill, (int32_t)pUnit1, 0);
     nEnhDmgPctWork = pDamage->dwEnDmgPct;
     if ((int)nMinDmg < 0x100001) {
       if ((int)nEnhDmgPctWork < 0x10001) {
@@ -1645,51 +1584,51 @@ void __stdcall SKILLBAR_ApplyWhirlwindDamage(::SGAMEDATA * pGame, D2DamageStrc *
     } else {
       *(uint32_t*)(char*)&nDivResult = (int)nMinDmg / 100 * nEnhDmgPctWork;
     }
-    if ((int)__frame0.nMaxDmg < 0x100001) {
+    if ((int)nMaxDmg < 0x100001) {
       if ((int)nEnhDmgPctWork < 0x10001) {
-        nEnhMaxDmg = (int)(nEnhDmgPctWork * __frame0.nMaxDmg) / 100;
+        nEnhMaxDmg = (int)(nEnhDmgPctWork * nMaxDmg) / 100;
       } else {
         if ((int)(nEnhDmgPctWork & -16) < 0x640) {
-          lVar2 = __alldiv((uint32_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)(int)__frame0.nMaxDmg), (uint32_t)((uint64_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)(int)__frame0.nMaxDmg) >> 0x20), 100, 0);
+          lVar2 = __alldiv((uint32_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)(int)nMaxDmg), (uint32_t)((uint64_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)(int)nMaxDmg) >> 0x20), 100, 0);
           nEnhMaxDmg = (int)lVar2;
         } else {
-          nEnhMaxDmg = (int)nEnhDmgPctWork / 100 * __frame0.nMaxDmg;
+          nEnhMaxDmg = (int)nEnhDmgPctWork / 100 * nMaxDmg;
         }
       }
-    } else if ((int)(__frame0.nMaxDmg & -16) < 0x640) {
-      lVar2 = __alldiv((uint32_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)(int)__frame0.nMaxDmg), (uint32_t)((uint64_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)(int)__frame0.nMaxDmg) >> 0x20), 100, 0);
+    } else if ((int)(nMaxDmg & -16) < 0x640) {
+      lVar2 = __alldiv((uint32_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)(int)nMaxDmg), (uint32_t)((uint64_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)(int)nMaxDmg) >> 0x20), 100, 0);
       nEnhMaxDmg = (int)lVar2;
     } else {
-      nEnhMaxDmg = (int)__frame0.nMaxDmg / 100 * nEnhDmgPctWork;
+      nEnhMaxDmg = (int)nMaxDmg / 100 * nEnhDmgPctWork;
     }
 
-    __frame0.nMaxDmg += nEnhMaxDmg;
-    __frame0.nMinDmgKick = 0;
-    __frame0.nMaxDmgKick = 0;
-    __frame0.nEnhDmgPct = nEnhDmgPctWork;
-    D2Common::Skills::SKILL_CalcKickDamage(pUnit2, &__frame0.nMinDmgKick, &__frame0.nMaxDmgKick, (int*)&__frame0.nEnhDmgPct);
-    nEnhDmgPctWork = __frame0.nEnhDmgPct;
-    __frame0.nMinDmgKick *= 0x100;
-    nEnhMaxDmg = __frame0.nMaxDmgKick * 0x100;
-    if (__frame0.nMinDmgKick < 0x100001) {
-      if ((int)__frame0.nEnhDmgPct < 0x10001) {
-        nEnhKickDmg = (int)(__frame0.nEnhDmgPct * __frame0.nMinDmgKick) / 100;
+    nMaxDmg += nEnhMaxDmg;
+    nMinDmgKick = 0;
+    nMaxDmgKick = 0;
+    nEnhDmgPct = nEnhDmgPctWork;
+    D2Common::Skills::SKILL_CalcKickDamage(pUnit2, &nMinDmgKick, &nMaxDmgKick, (int*)&nEnhDmgPct);
+    nEnhDmgPctWork = nEnhDmgPct;
+    nMinDmgKick *= 0x100;
+    nEnhMaxDmg = nMaxDmgKick * 0x100;
+    if (nMinDmgKick < 0x100001) {
+      if ((int)nEnhDmgPct < 0x10001) {
+        nEnhKickDmg = (int)(nEnhDmgPct * nMinDmgKick) / 100;
       } else {
-        if ((int)(__frame0.nEnhDmgPct & -16) < 0x640) {
-          lVar2 = __alldiv((uint32_t)((int64_t)(int)__frame0.nEnhDmgPct * (int64_t)__frame0.nMinDmgKick), (uint32_t)((uint64_t)((int64_t)(int)__frame0.nEnhDmgPct * (int64_t)__frame0.nMinDmgKick) >> 0x20), 100, 0);
+        if ((int)(nEnhDmgPct & -16) < 0x640) {
+          lVar2 = __alldiv((uint32_t)((int64_t)(int)nEnhDmgPct * (int64_t)nMinDmgKick), (uint32_t)((uint64_t)((int64_t)(int)nEnhDmgPct * (int64_t)nMinDmgKick) >> 0x20), 100, 0);
           nEnhKickDmg = (int)lVar2;
         } else {
-          nEnhKickDmg = (int)__frame0.nEnhDmgPct / 100 * __frame0.nMinDmgKick;
+          nEnhKickDmg = (int)nEnhDmgPct / 100 * nMinDmgKick;
         }
       }
-    } else if (__frame0.nMinDmgKick < 0x640) {
-      lVar2 = __alldiv((uint32_t)((int64_t)(int)__frame0.nEnhDmgPct * (int64_t)__frame0.nMinDmgKick), (uint32_t)((uint64_t)((int64_t)(int)__frame0.nEnhDmgPct * (int64_t)__frame0.nMinDmgKick) >> 0x20), 100, 0);
+    } else if (nMinDmgKick < 0x640) {
+      lVar2 = __alldiv((uint32_t)((int64_t)(int)nEnhDmgPct * (int64_t)nMinDmgKick), (uint32_t)((uint64_t)((int64_t)(int)nEnhDmgPct * (int64_t)nMinDmgKick) >> 0x20), 100, 0);
       nEnhKickDmg = (int)lVar2;
     } else {
-      nEnhKickDmg = __frame0.nMinDmgKick / 100 * __frame0.nEnhDmgPct;
+      nEnhKickDmg = nMinDmgKick / 100 * nEnhDmgPct;
     }
 
-    __frame0.nMinDmgKick += nEnhKickDmg;
+    nMinDmgKick += nEnhKickDmg;
     if (nEnhMaxDmg < 0x100001) {
       if ((int)nEnhDmgPctWork < 0x10001) {
         nEnhKickDmg = (int)(nEnhDmgPctWork * nEnhMaxDmg) / 100;
@@ -1707,9 +1646,9 @@ void __stdcall SKILLBAR_ApplyWhirlwindDamage(::SGAMEDATA * pGame, D2DamageStrc *
     lVar2 = __alldiv((uint32_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)nEnhMaxDmg), (uint32_t)((uint64_t)((int64_t)(int)nEnhDmgPctWork * (int64_t)nEnhMaxDmg) >> 0x20), 100, 0);
     nEnhKickDmg = (int)lVar2;
     roll_and_apply_damage:
-    __frame0.nMinDmgKick = __frame0.nMinDmgKick + nMinDmg + (int)nDivResult;
-    __frame0.nMaxDmgKick = nEnhMaxDmg + nEnhKickDmg + __frame0.nMaxDmg;
-    nEnhDmgPctWork = __frame0.nMaxDmgKick - __frame0.nMinDmgKick;
+    nMinDmgKick = nMinDmgKick + nMinDmg + (int)nDivResult;
+    nMaxDmgKick = nEnhMaxDmg + nEnhKickDmg + nMaxDmg;
+    nEnhDmgPctWork = nMaxDmgKick - nMinDmgKick;
     if ((int)nEnhDmgPctWork < 1) {
       nEnhDmgPctWork = 0;
     } else {
@@ -1726,7 +1665,7 @@ void __stdcall SKILLBAR_ApplyWhirlwindDamage(::SGAMEDATA * pGame, D2DamageStrc *
       }
     }
 
-    pDamage->dwPhysDamage = pDamage->dwPhysDamage + nEnhDmgPctWork + __frame0.nMinDmgKick;
+    pDamage->dwPhysDamage = pDamage->dwPhysDamage + nEnhDmgPctWork + nMinDmgKick;
     SkillsServer::SetDamageOnEvent(pUnit2, pDamage, eSkill, (int32_t)pUnit1);
     pInventory = pUnit2->pInventory;
     if (!pInventory) {
@@ -1941,26 +1880,20 @@ BOOL __fastcall Skills_SrvDoFunc_042_DragonTalon(::SGAMEDATA * pGame, D2UnitStrc
 
 // Server-side Assassin skill handler that fires a scatter pattern of missiles toward or around the target cursor position. With nParam1/nParam2 both ≥ 2, spawns nParam1 missiles each at a random offset within ±nParam2 tiles of the target (skipping positions within 3 units of the caster). Falls back to a single on-target missile if either spread parameter is less than 2. Seeds the unit's RNG with the target X position before each scatter run.
 BOOL __fastcall SKILLASS_CastScatterMissiles(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pOwner, uint8_t * pMissileTxtId, int32_t nParam1, int32_t nParam2, eD2Skills eSkill, int32_t nParam3) {
-    // Frame slots -12..-4 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetY;
-      uint32_t nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nRandOffset;
     int nMissilePosY;
     int32_t nDistOrPosX;
     int x2;
     D2SkillArgStrc sSkillArg;
+    uint32_t nTargetY;
+    uint32_t nTargetX;
     eD2UnitType eUnitTypeCheck;
-    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
     if (!bGotTargetPos) {
       return 0;
     }
 
-    pUnit->sSeed.nSeedLow = __frame0.nTargetX;
+    pUnit->sSeed.nSeedLow = nTargetX;
     pUnit->sSeed.nSeedHigh = 0x29a;
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.pOwner = pOwner;
@@ -1970,18 +1903,18 @@ BOOL __fastcall SKILLASS_CastScatterMissiles(::SGAMEDATA * pGame, D2UnitStrc * p
     sSkillArg.nSkillLevel = nParam3;
     sSkillArg.pMissile = pUnit;
     if (nParam1 < 2 || nParam2 < 2) {
-      sSkillArg.nUnitY = __frame0.nTargetY;
-      sSkillArg.nUnitX = __frame0.nTargetX;
+      sSkillArg.nUnitY = nTargetY;
+      sSkillArg.nUnitX = nTargetX;
       MISSILES::Missiles::CreatingMissile(pGame, &sSkillArg);
     } else if (0 < nParam1) {
       pOwner = (D2UnitStrc*)nParam1;
       do {
         nRandOffset = D2Client::Archive::RANDOM_RandomNumberSelector(&pUnit->sSeed, nParam2 * 2);
-        x2 = nRandOffset + (__frame0.nTargetX - nParam2);
+        x2 = nRandOffset + (nTargetX - nParam2);
         sSkillArg.nUnitX = x2;
         nRandOffset = D2Client::Archive::RANDOM_RandomNumberSelector(&pUnit->sSeed, nParam2 * 2);
         eUnitTypeCheck = pUnit->eUnitType;
-        sSkillArg.nUnitY = nRandOffset + (__frame0.nTargetY - nParam2);
+        sSkillArg.nUnitY = nRandOffset + (nTargetY - nParam2);
         if (eUnitTypeCheck == UNIT_OBJECT || 3 < (int)eUnitTypeCheck && (int)eUnitTypeCheck < 6) {
           nMissilePosY = pUnit->pPath.pStaticPath->nPosY;
         } else if (!pUnit->pPath.pDynamicPath) {
@@ -2127,18 +2060,12 @@ D2UnitStrc * __fastcall SKILLASS_CreateSummon(::SGAMEDATA * pGame, D2UnitStrc * 
 
 // Server Do handler for Shadow Warrior (Assassin skill 44). Resolves the summon monster class via SKILLS_GetSummonMonsterClassId, finds/creates the cursor target position, spawns the shadow clone via SKILLASS_CreateSummon, sets its level to match the caster, relocates it to the caster's room, and queues an AI think event on the next frame. Returns TRUE on success.
 BOOL __fastcall Skills_SrvDoFunc_044_SummonBladeSentinel(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nAnimMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nAnimMode;
-      uint32_t nTargetY;
-      uint32_t nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bHasTarget;
     bool bHasTarget;
     D2AiCmdArgumentsStrc local_2c;
+    int32_t nAnimMode;
+    uint32_t nTargetY;
+    uint32_t nTargetX;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
@@ -2148,7 +2075,7 @@ BOOL __fastcall Skills_SrvDoFunc_044_SummonBladeSentinel(::SGAMEDATA * pGame, D2
       return 0;
     }
 
-    int32_t nMonClassIdOrLevel = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &__frame0.nAnimMode, nullptr, nullptr);
+    int32_t nMonClassIdOrLevel = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &nAnimMode, nullptr, nullptr);
     if (-1 >= nMonClassIdOrLevel) {
       return 0;
     }
@@ -2156,7 +2083,7 @@ BOOL __fastcall Skills_SrvDoFunc_044_SummonBladeSentinel(::SGAMEDATA * pGame, D2
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
 
-    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
     if (!_bHasTarget) {
       return 0;
     }
@@ -2184,8 +2111,8 @@ BOOL __fastcall Skills_SrvDoFunc_044_SummonBladeSentinel(::SGAMEDATA * pGame, D2
     local_2c.nCmdId = 0;
     local_2c.nCmdArg1 = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
     local_2c.nCmdArg2 = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    local_2c.nCmdArg3 = __frame0.nTargetX;
-    local_2c.nCmdArg4 = __frame0.nTargetY;
+    local_2c.nCmdArg3 = nTargetX;
+    local_2c.nCmdArg4 = nTargetY;
     Ai::AiGeneral::CreateAiCmdAndFill(pGame, pUnit_00, &local_2c);
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit_00, UNITEVENTCALLBACK_AITHINK, 0);
     GAME::Event::SetEvent(pGame, pUnit_00, 2, pGame->dwGameFrame + 1, 0, 0);
@@ -2511,14 +2438,8 @@ BOOL __fastcall Skills_SrvDoFunc_047_CloakOfShadows(::SGAMEDATA * pGame, D2UnitS
 
 // Server Do handler for Blade Sentinel (Assassin skill 48). Each call fires a charge-up missile toward the cursor if the per-charge cooldown (SKILL param1 frame counter) has elapsed, then advances the cooldown by the charge calc value. If the unit has STATE_inferno active, triggers an anim-timer event afterward. Returns TRUE only when a missile was actually created.
 BOOL __fastcall Skills_SrvDoFunc_048_BladeFury(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -24..-16 are ONE object: &nCursorY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nCursorY;
-      uint32_t nCursorX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nCursorY;
+    uint32_t nCursorX;
     D2SkillStrc* pSkill = D2Common::Skills::SKILLS_GetSkillByEnum(eSkill, pUnit);
     if (!pSkill) {
       return 0;
@@ -2537,7 +2458,7 @@ BOOL __fastcall Skills_SrvDoFunc_048_BladeFury(::SGAMEDATA * pGame, D2UnitStrc *
       pUnit->eUnitFlags &= ~UNITFLAG_SKSRVDOFUNC;
     }
 
-    BOOL bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nCursorX, &__frame0.nCursorY);
+    BOOL bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nCursorX, &nCursorY);
     if (!bHasTarget) {
       return 0;
     }
@@ -2550,9 +2471,9 @@ BOOL __fastcall Skills_SrvDoFunc_048_BladeFury(::SGAMEDATA * pGame, D2UnitStrc *
       sSkillArg.nMissileTxtNo = eChargeMissile;
       sSkillArg.eSkillNo = eSkill;
       sSkillArg.nSkillLevel = nSkillLvl;
-      sSkillArg.nUnitX = __frame0.nCursorX;
+      sSkillArg.nUnitX = nCursorX;
       sSkillArg.nFlags = 0x20;
-      sSkillArg.nUnitY = __frame0.nCursorY;
+      sSkillArg.nUnitY = nCursorY;
       sSkillArg.pOwner = pUnit;
       sSkillArg.pMissile = pUnit;
       MISSILES::Missiles::CreatingMissile(pGame, &sSkillArg);

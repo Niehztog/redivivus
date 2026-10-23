@@ -86,34 +86,28 @@ uint32_t __fastcall SOUND_FileExists(char * szFileName) {
 }
 
 void SOUND_LocalizeSoundPath(char * szFormat, uint32_t * pszOutPath) {
-    // Frame slots -12..-4 are ONE object: &pFile is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQFileStrc* pFile;
-      char szLangAbbrev[4];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    D2Lang::StrTable::strtable::TABLES_GetLangAbbreviation(__frame0.szLangAbbrev, 0);
-    sprintf((char*)pszOutPath, szFormat, "DATA\\LOCAL", __frame0.szLangAbbrev);
-    int bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, (char*)pszOutPath, 0, (void**)&__frame0.pFile);
+    D2MPQFileStrc* pFile;
+    char szLangAbbrev[4];
+    D2Lang::StrTable::strtable::TABLES_GetLangAbbreviation(szLangAbbrev, 0);
+    sprintf((char*)pszOutPath, szFormat, "DATA\\LOCAL", szLangAbbrev);
+    int bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, (char*)pszOutPath, 0, (void**)&pFile);
     if (bOpened) {
-      Storm::Source::SFile::SFileCloseFile(__frame0.pFile);
+      Storm::Source::SFile::SFileCloseFile(pFile);
       return;
     }
 
     uint32_t dwLanguageCode = D2Lang::StrTable::strtable::MISC_GetLanguageCode();
     if (!dwLanguageCode) {
       sprintf((char*)pszOutPath, szFormat, "DATA\\LOCAL", "CHI");
-      bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, (char*)pszOutPath, 0, (void**)&__frame0.pFile);
+      bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, (char*)pszOutPath, 0, (void**)&pFile);
       if (bOpened) {
-        Storm::Source::SFile::SFileCloseFile(__frame0.pFile);
+        Storm::Source::SFile::SFileCloseFile(pFile);
       }
     } else {
       sprintf((char*)pszOutPath, szFormat, "DATA\\LOCAL", "ENG");
-      bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, (char*)pszOutPath, 0, (void**)&__frame0.pFile);
+      bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, (char*)pszOutPath, 0, (void**)&pFile);
       if (bOpened) {
-        Storm::Source::SFile::SFileCloseFile(__frame0.pFile);
+        Storm::Source::SFile::SFileCloseFile(pFile);
         return;
       }
     }
@@ -5828,14 +5822,6 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -12..-4 are ONE object: &pFreeChannelList is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      int* pFreeChannelList;
-      D2SoundsTxt* pSoundsTxtLocal;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     D2SoundChannelNodeStrc* pDVar1;
     D2UnitStrc* pUnit_00;
     uint32_t nGlobal3OrSortA;
@@ -5860,6 +5846,7 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
     float fIndoorsSum;
     int* pUnitListLocal;
     float fUnitDistSmooth;
+    D2SoundsTxt* pSoundsTxtLocal;
     float fIndoorsSmoothed;
     bool bMenuPaused;
     D2SoundChannelStrc* nSortDataB;
@@ -5869,7 +5856,8 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
       return;
     }
 
-    __frame1.pFreeChannelList = 0;
+    int* pFreeChannelList;
+    pFreeChannelList = 0;
     uint32_t pFrameTime;
     pFrameTime = nFrameTime;
     if (gbSoundChaosEnabled) {
@@ -5929,7 +5917,7 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
       __frame0.pChanEntrySave = pChanEntry;
       pSoundsTxt = DataTbls::TXT_sounds_GetLineBySoundId(pChanEntry->nSoundId);
       bVolumeEnabled = __frame0.bMasterVolOn;
-      __frame1.pSoundsTxtLocal = pSoundsTxt;
+      pSoundsTxtLocal = pSoundsTxt;
       nFadeVolStart = SoundHdr::SOUNDHDR_GetGlobal0();
       if (nFadeVolStart <= pChanEntry->nSoundId) {
         nFadeVolStart = SoundHdr::SOUNDHDR_GetGlobal1();
@@ -5946,7 +5934,7 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
           exit(-1);
         }
         if (!pSoundsTxt->Loop || pSoundsTxt->Duration || pChanEntry->bStopFlag) {
-          D2Sound::D2SoundUntil::SOUND_sD2SoundSmp_Alloc(&__frame1.pFreeChannelList, pChanEntry);
+          D2Sound::D2SoundUntil::SOUND_sD2SoundSmp_Alloc(&pFreeChannelList, pChanEntry);
         } else {
           if (pChanEntry->bFadeActive) {
             pChanEntry->nPriority = pChanEntry->nFadeDir;
@@ -5956,7 +5944,7 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
           pChanEntry->nPlayMode = 0;
         }
       } else {
-        if (ServerLoadingComplete && __frame1.pSoundsTxtLocal->Tracking && pChanEntry->pGlobal3Ref) {
+        if (ServerLoadingComplete && pSoundsTxtLocal->Tracking && pChanEntry->pGlobal3Ref) {
           __frame0.fDir1 = 0.0;
           pClosestUnit = 0;
           __frame0.fDirX2 = 0.0;
@@ -6052,7 +6040,7 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
 
         start_or_update_playback:
         fClosestDist.fValue = SoundHdr::SOUNDHDR_GetFalloffMax(pChanEntry->nSoundId);
-        pSoundsTxt = __frame1.pSoundsTxtLocal;
+        pSoundsTxt = pSoundsTxtLocal;
         pClosestUnit = (D2UnitStrc*)d2_bits_of(fClosestDist.fValue * fClosestDist.fValue);
         if (!pChanEntry->nPlayMode && (uint32_t)pChanEntry->nScheduledTime <= uVar2 && pChanEntry->nPriority) {
           if (bVolumeEnabled && pChanEntry->fPanResult <= (float)d2_bits_to_float(pClosestUnit)) {
@@ -6072,23 +6060,23 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
             } else {
               fClosestDist.nValue = 1;
             }
-            if (__frame1.pSoundsTxtLocal->Defer_Inst || __frame1.pSoundsTxtLocal->Stop_Inst) {
-              pTrackedUnit = (D2SoundChannelStrc*)SOUND_SetChannelProperties(__frame1.pSoundsTxtLocal->nGroupStartIndex, nStreamListKey, (int32_t)pChanEntry);
+            if (pSoundsTxtLocal->Defer_Inst || pSoundsTxtLocal->Stop_Inst) {
+              pTrackedUnit = (D2SoundChannelStrc*)SOUND_SetChannelProperties(pSoundsTxtLocal->nGroupStartIndex, nStreamListKey, (int32_t)pChanEntry);
             }
             if (nStreamListKey && 0xb75 < pChanEntry->nSoundId && pChanEntry->nSoundId < 0x1231) {
               pTrackedUnit = SOUND_FindActiveStreamChannel(pChanEntry, nStreamListKey);
               pChanEntry = __frame0.pChanEntrySave;
-              pSoundsTxt = __frame1.pSoundsTxtLocal;
+              pSoundsTxt = pSoundsTxtLocal;
             }
             if ((!pSoundsTxt->Defer_Inst || pChanEntry->pGlobal3Ref || !fClosestDist.nValue) && pTrackedUnit) {
               if (!pSoundsTxt->Stop_Inst) {
                 pChanEntry->bStopFlag = 1;
-                D2Sound::D2SoundUntil::SOUND_sD2SoundSmp_Alloc(&__frame1.pFreeChannelList, pChanEntry);
+                D2Sound::D2SoundUntil::SOUND_sD2SoundSmp_Alloc(&pFreeChannelList, pChanEntry);
                 continue;
               }
 
               pTrackedUnit->bStopFlag = 1;
-              D2Sound::D2SoundUntil::SOUND_sD2SoundSmp_Alloc(&__frame1.pFreeChannelList, pTrackedUnit);
+              D2Sound::D2SoundUntil::SOUND_sD2SoundSmp_Alloc(&pFreeChannelList, pTrackedUnit);
             }
 
             nFadeVolStart = *(int*)pChanEntry->undefined_0x41;
@@ -6100,8 +6088,8 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
             nFadeSize = 0;
             nGlobal3OrSortA = 0;
             if (!nFadeVolStart) {
-              if (__frame1.pSoundsTxtLocal->Fade_In && !pChanEntry->bFadeActive && !(pChanEntry->nVolume & 2)) {
-                nGlobal3OrSortA = (uint32_t)__frame1.pSoundsTxtLocal->Fade_In;
+              if (pSoundsTxtLocal->Fade_In && !pChanEntry->bFadeActive && !(pChanEntry->nVolume & 2)) {
+                nGlobal3OrSortA = (uint32_t)pSoundsTxtLocal->Fade_In;
                 nFadeSize = pChanEntry->nPriority;
                 pChanEntry->nPriority = 0;
               }
@@ -6124,21 +6112,21 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
               }
             }
 
-            __frame1.pSoundsTxtLocal = DataTbls::TXT_sounds_GetLineBySoundId(pChanEntry->nSoundId);
+            pSoundsTxtLocal = DataTbls::TXT_sounds_GetLineBySoundId(pChanEntry->nSoundId);
           }
-          if (!pChanEntry->undefined_0x2c && !__frame1.pSoundsTxtLocal->Loop && (!__frame1.pSoundsTxtLocal->Async_Only || __frame1.pSoundsTxtLocal->nLoadState != 1)) {
-            D2Sound::D2SoundUntil::SOUND_sD2SoundSmp_Alloc(&__frame1.pFreeChannelList, pChanEntry);
+          if (!pChanEntry->undefined_0x2c && !pSoundsTxtLocal->Loop && (!pSoundsTxtLocal->Async_Only || pSoundsTxtLocal->nLoadState != 1)) {
+            D2Sound::D2SoundUntil::SOUND_sD2SoundSmp_Alloc(&pFreeChannelList, pChanEntry);
           }
         }
 
-        pSoundsTxt = __frame1.pSoundsTxtLocal;
+        pSoundsTxt = pSoundsTxtLocal;
         if (pChanEntry->nPlayMode == 1) {
           ppActiveStream = (int**)pChanEntry->undefined_0x2c;
           if (!ppActiveStream) {
             Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3f3);
             exit(-1);
           }
-          if (__frame1.pSoundsTxtLocal->Duration && (uint32_t)(uint16_t)__frame1.pSoundsTxtLocal->Duration < pFrameTime - pChanEntry->nScheduledTime || !bVolumeEnabled || (float)d2_bits_to_float(pClosestUnit) < pChanEntry->fPanResult) {
+          if (pSoundsTxtLocal->Duration && (uint32_t)(uint16_t)pSoundsTxtLocal->Duration < pFrameTime - pChanEntry->nScheduledTime || !bVolumeEnabled || (float)d2_bits_to_float(pClosestUnit) < pChanEntry->fPanResult) {
             GAME::Sound::SOUND_StopAndDetach(ppActiveStream);
             if (pChanEntry->undefined_0x2c) {
               Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x93);
@@ -6155,11 +6143,11 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
     }
 
     pSortedFlag = 0;
-    for (pFreeList = __frame1.pFreeChannelList; pFreeList; pFreeList = (int*)pFreeList[1]) {
+    for (pFreeList = pFreeChannelList; pFreeList; pFreeList = (int*)pFreeList[1]) {
       SOUND_ReleaseChannel((D2SoundChannelStrc*)*pFreeList);
     }
 
-    D2Sound::D2SoundUntil::SOUNDUTIL_FreeLinkedList(&__frame1.pFreeChannelList);
+    D2Sound::D2SoundUntil::SOUNDUTIL_FreeLinkedList(&pFreeChannelList);
     eD2GSGameType eGameType = GAME::Game::CLIENT_GetD2GSGameType();
     if ((eGameType == GAMETYPE_SINGLEPLAYER || (eGameType = GAME::Game::CLIENT_GetD2GSGameType() , eGameType == GAMETYPE_SINGLEPLAYER_UNCAPPED)) && (bUiFlag = UI::ui::UI_GetFlag(UI_ESCMENU) , bUiFlag || (bUiFlag = UI::ui::UI_GetFlag(UI_CONFIG) , bUiFlag != 0))) {
       bMenuPaused = true;

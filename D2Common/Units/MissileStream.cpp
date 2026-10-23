@@ -94,23 +94,16 @@ int32_t __fastcall Return1(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
 
 // Advances a missile along its computed path and calls a hit callback for each blocked tile that contains a hittable unit. Sets path type 0x10, recalculates the path, iterates each path point: checks tile collision width via CheckCollision_BlockAll_Width, finds a unit at that tile via CallCollisionFunction, validates the callback pointer via IsBadCodePtr (halts on bad ptr), then invokes fpHit(pUnit, pHitUnit). Used by MissileStream to deliver damage along a projectile's trajectory.
 void __stdcall ExecuteHit(D2UnitStrc * pUnit, int32_t eCollisionFlag, uint32_t nWidth, fpHit nfpHit) {
-    // Frame slots -12..-4 are ONE object: &pPathPoints is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2PathPointStrc* pPathPoints;
-      D2RoomStrc* pRoom;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2UnitStrc* pHitUnit;
     BOOL bBadPtr;
+    D2PathPointStrc* pPathPoints;
     uint16_t wY;
     uint16_t wX;
     D2DynamicPathStrc* pDynamicPath = pUnit->pPath.pDynamicPath;
     PATH::DynamicPath::PATH_SetPathType(pDynamicPath, 0x10);
     PATH::DynamicPath::PATH_CalculatePath(pDynamicPath, pUnit, 0);
-    int32_t nPathCount = PATH::DynamicPath::GetPathPoint(pDynamicPath, &__frame0.pPathPoints);
-    __frame0.pRoom = UNITS_GetRoom(pUnit);
+    int32_t nPathCount = PATH::DynamicPath::GetPathPoint(pDynamicPath, &pPathPoints);
+    D2RoomStrc* pRoom = UNITS_GetRoom(pUnit);
     int nPathIdx = 0;
     if (0 >= nPathCount) {
       return;
@@ -118,11 +111,11 @@ void __stdcall ExecuteHit(D2UnitStrc * pUnit, int32_t eCollisionFlag, uint32_t n
 
     do {
       eCollisionFlags eCollision;
-      wY = __frame0.pPathPoints[nPathIdx].nY;
-      wX = __frame0.pPathPoints[nPathIdx].nX;
-      eCollision = Collision::CheckCollision_BlockAll_Width(__frame0.pRoom, (uint32_t)wX, (uint32_t)wY, nWidth, eCollisionFlag);
+      wY = pPathPoints[nPathIdx].nY;
+      wX = pPathPoints[nPathIdx].nX;
+      eCollision = Collision::CheckCollision_BlockAll_Width(pRoom, (uint32_t)wX, (uint32_t)wY, nWidth, eCollisionFlag);
       if (eCollision != COLBIT_NONE) {
-        pHitUnit = Collision::CallCollisionFunction(__frame0.pRoom, (uint32_t)wX, (uint32_t)wY, (fpMissileSrvDoFuncData)Return1, nullptr, nWidth);
+        pHitUnit = Collision::CallCollisionFunction(pRoom, (uint32_t)wX, (uint32_t)wY, (fpMissileSrvDoFuncData)Return1, nullptr, nWidth);
         if (pHitUnit) {
           /* FARPROC lpfn for IsBadCodePtr */ bBadPtr = IsBadCodePtr((FARPROC)nfpHit);
           if (bBadPtr) {
@@ -140,19 +133,6 @@ void __stdcall ExecuteHit(D2UnitStrc * pUnit, int32_t eCollisionFlag, uint32_t n
 
 // Server-side per-frame update for a missile "stream" (e.g. lightning/firewall-like spread). Computes the dynamic path for pMissile, then walks path segments creating child missiles via the fpCreate callback into the unit's persistent D2MissileStreamStrc array (allocated/grown from the game-pool). Distributes nParam1 damage across segments in steps of nParam2 and spreads extra missiles using a spacing remainder so the stream covers the gap evenly. Recycles unused stream slots via fpUnknown. Halts with Fog error 0x8a if the stream struct is missing, 0xa9 if fpCreate is a bad code ptr.
 void __stdcall Update(D2UnitStrc * pUnit, D2UnitStrc * pMissile, int32_t nParam1, int32_t nParam2, fpCreate nfpCreate, fpUnknownMissileStream nfpUnknown) {
-    // Frame slots -44..-16 are ONE object: &pPathPoints is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2PathPointStrc* pPathPoints;
-      int nExtraMissiles;
-      uint32_t nExtraSpacing;
-      int nSegmentCount;
-      uint32_t nCurX;
-      uint32_t nCurY;
-      uint8_t byDir;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t _byDir;
     int* pStreamArray;
     BOOL bBadPtr;
@@ -161,6 +141,13 @@ void __stdcall Update(D2UnitStrc * pUnit, D2UnitStrc * pMissile, int32_t nParam1
     uint32_t nExtraSpacingRem;
     int nExtraPerSegment;
     int nPathIdx;
+    D2PathPointStrc* pPathPoints;
+    int nExtraMissiles;
+    uint32_t nExtraSpacing;
+    int nSegmentCount;
+    uint32_t nCurX;
+    uint32_t nCurY;
+    uint8_t byDir;
     uint32_t uStack_13;
     int nExtraCycleCounter;
     uint32_t bExtended;
@@ -168,7 +155,7 @@ void __stdcall Update(D2UnitStrc * pUnit, D2UnitStrc * pMissile, int32_t nParam1
     D2DynamicPathStrc* pDynamicPath = pMissile->pPath.pDynamicPath;
     PATH::DynamicPath::PATH_SetPathType(pDynamicPath, 0x10);
     PATH::DynamicPath::PATH_CalculatePath(pDynamicPath, pMissile, 0);
-    int32_t nCurDamage = PATH::DynamicPath::GetPathPoint(pDynamicPath, &__frame0.pPathPoints);
+    int32_t nCurDamage = PATH::DynamicPath::GetPathPoint(pDynamicPath, &pPathPoints);
     if (!nCurDamage || nCurDamage == 1) {
       return;
     }
@@ -187,21 +174,21 @@ void __stdcall Update(D2UnitStrc * pUnit, D2UnitStrc * pMissile, int32_t nParam1
       }
 
       bExtended = (uint32_t)(nExtraPerSegment < nDivisions);
-      __frame0.nSegmentCount = nExtraPerSegment;
+      nSegmentCount = nExtraPerSegment;
       if (!pStream->nStreamSize) {
         pStream->nStreamSize = nPathIdx;
         pStreamArray = (int*)Fog::Memory::AllocServerMemory(pMissile->pMemory, nPathIdx * 4, ".\\UNITS\\MisStream.cpp", 0x97, 0);
         pStream->pStream = pStreamArray;
         memset(pStreamArray, 0, nPathIdx * 4);
-        nExtraPerSegment = __frame0.nSegmentCount;
+        nExtraPerSegment = nSegmentCount;
       } else if (pStream->nStreamSize < nPathIdx) {
         pStreamArray = (int*)Fog::Memory::ReAllocServerMemory(pMissile->pMemory, pStream->pStream, nPathIdx * 4, ".\\UNITS\\MisStream.cpp", 0x9a, 0);
         pStream->pStream = pStreamArray;
       }
 
-      __frame0.nExtraSpacing = 0;
+      nExtraSpacing = 0;
       if (bExtended) {
-        __frame0.nExtraSpacing = (nDivisions - nExtraPerSegment) * 4 / nExtraPerSegment;
+        nExtraSpacing = (nDivisions - nExtraPerSegment) * 4 / nExtraPerSegment;
       }
 
       /* FARPROC lpfn for IsBadCodePtr */ nExtraCycleCounter = 4;
@@ -210,24 +197,24 @@ void __stdcall Update(D2UnitStrc * pUnit, D2UnitStrc * pMissile, int32_t nParam1
         nPathIdx = 0;
         nSubSegIdx = 0;
         nCurDamage = nParam1;
-        if (0 < __frame0.nSegmentCount) {
+        if (0 < nSegmentCount) {
           do {
-            __frame0.nCurY = (uint32_t)(uint16_t)__frame0.pPathPoints[nPathIdx].nY;
-            __frame0.nCurX = (uint32_t)(uint16_t)__frame0.pPathPoints[nPathIdx].nX;
-            nDirection = Drlg::Path::DRLGPATH_GetDirectionFromCoords((uint32_t)(uint16_t)__frame0.pPathPoints[nPathIdx + 1].nX, (uint32_t)(uint16_t)__frame0.pPathPoints[nPathIdx + 1].nY, __frame0.nCurX, __frame0.nCurY);
+            nCurY = (uint32_t)(uint16_t)pPathPoints[nPathIdx].nY;
+            nCurX = (uint32_t)(uint16_t)pPathPoints[nPathIdx].nX;
+            nDirection = Drlg::Path::DRLGPATH_GetDirectionFromCoords((uint32_t)(uint16_t)pPathPoints[nPathIdx + 1].nX, (uint32_t)(uint16_t)pPathPoints[nPathIdx + 1].nY, nCurX, nCurY);
             _byDir = (uint32_t)((uint32_t)((uint32_t)uStack_13 & 0xffffffu) << 8 | (uint32_t)(uint8_t)(char)nDirection);
             if (nSubSegIdx < nExtraPerSegment / nDivisions || !nParam1) {
               nSubSegIdx++;
-              nCreated = (*nfpCreate)(pUnit, pStream->pStream[nPathIdx], __frame0.nCurX, __frame0.nCurY, nCurDamage, 0);
+              nCreated = (*nfpCreate)(pUnit, pStream->pStream[nPathIdx], nCurX, nCurY, nCurDamage, 0);
               pStream->pStream[nPathIdx] = nCreated;
             } else {
               nSubSegIdx = 1;
-              nCreated = (*nfpCreate)(pMissile, pStream->pStream[nPathIdx], __frame0.nCurX, __frame0.nCurY, nCurDamage, 1);
+              nCreated = (*nfpCreate)(pMissile, pStream->pStream[nPathIdx], nCurX, nCurY, nCurDamage, 1);
               nCurDamage -= nParam2;
               pStream->pStream[nPathIdx] = nCreated;
               if (bExtended) {
-                nCreated = (int)(__frame0.nExtraSpacing + ((int)__frame0.nExtraSpacing >> 0x1f & 3U)) >> 2;
-                nExtraSpacingRem = __frame0.nExtraSpacing & 0x80000003;
+                nCreated = (int)(nExtraSpacing + ((int)nExtraSpacing >> 0x1f & 3U)) >> 2;
+                nExtraSpacingRem = nExtraSpacing & 0x80000003;
                 if ((int)nExtraSpacingRem < 0) {
                   nExtraSpacingRem = (nExtraSpacingRem - 1 | -4) + 1;
                 }
@@ -241,20 +228,20 @@ void __stdcall Update(D2UnitStrc * pUnit, D2UnitStrc * pMissile, int32_t nParam1
                 }
                 if (0 < nCreated) {
                   do {
-                    __frame0.nExtraMissiles = nCreated;
-                    nCreated = (*nfpCreate)(pUnit, pStream->pStream[nPathIdx], __frame0.nCurX, __frame0.nCurY, nCurDamage, 2);
+                    nExtraMissiles = nCreated;
+                    nCreated = (*nfpCreate)(pUnit, pStream->pStream[nPathIdx], nCurX, nCurY, nCurDamage, 2);
                     nCurDamage -= nParam2;
                     pStream->pStream[nPathIdx] = nCreated;
-                    nCreated = __frame0.nExtraMissiles - 1;
-                  } while (__frame0.nExtraMissiles - 1);
+                    nCreated = nExtraMissiles - 1;
+                  } while (nExtraMissiles - 1);
 
-                  __frame0.nExtraMissiles = 0;
+                  nExtraMissiles = 0;
                 }
               }
             }
 
             nPathIdx++;
-          } while (nPathIdx < __frame0.nSegmentCount);
+          } while (nPathIdx < nSegmentCount);
         }
         if (pStream->nStreamSize <= nPathIdx) {
           return;

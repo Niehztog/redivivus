@@ -594,23 +594,17 @@ BOOL __stdcall FindDiagonalNonCollisionCoords(D2RoomStrc * pRoom, int * pX, int 
     }
 };
 
-    // Frame slots -12..-4 are ONE object: &nFloorTileCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nFloorTileCount;
-      uint32_t nSavedSearchIdx;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eCollisionFlags eCollision;
     uint32_t nTileWalkFlags;
     D2SeedStrc* pSeed;
     POINT* pDiagOffset;
     D2DrlgRoomCoordsStrc local_34;
+    uint32_t nFloorTileCount;
+    uint32_t nSavedSearchIdx;
     int nX;
     int nY;
-    D2DrlgTileDataStrc* pFloorTiles = D2Common::DUNGEON::Dungeon::DRLGROOM_GetFloorTilesFromRoom(pRoom, (int*)&__frame0.nFloorTileCount);
-    if (!pFloorTiles || !__frame0.nFloorTileCount) {
+    D2DrlgTileDataStrc* pFloorTiles = D2Common::DUNGEON::Dungeon::DRLGROOM_GetFloorTilesFromRoom(pRoom, (int*)&nFloorTileCount);
+    if (!pFloorTiles || !nFloorTileCount) {
       return 0;
     }
     if (!pRoom) {
@@ -619,7 +613,7 @@ BOOL __stdcall FindDiagonalNonCollisionCoords(D2RoomStrc * pRoom, int * pX, int 
       pSeed = &pRoom->sSeed;
     }
 
-    uint32_t nSearchTileIdx = D2Client::Archive::RANDOM_RandomNumberSelector(pSeed, __frame0.nFloorTileCount);
+    uint32_t nSearchTileIdx = D2Client::Archive::RANDOM_RandomNumberSelector(pSeed, nFloorTileCount);
     if (!nSearchTileIdx) {
       nSearchTileIdx = 1;
     }
@@ -635,14 +629,14 @@ BOOL __stdcall FindDiagonalNonCollisionCoords(D2RoomStrc * pRoom, int * pX, int 
       D2DrlgTileDataStrc* pFloorTile;
       pFloorTile = pFloorTiles;
       if (pFloorTiles[nSearchTileIdx].pTileLibraryEntry) {
-        __frame0.nSavedSearchIdx = nSearchTileIdx;
+        nSavedSearchIdx = nSearchTileIdx;
         nTileWalkFlags = D2CMP::DUNGEON::Dungeon::TILEPROJECT_GetTileCount((int32_t)pFloorTiles[nSearchTileIdx].pTileLibraryEntry);
         if (nTileWalkFlags & 2) {
           nY = (pFloorTile[nSearchTileIdx].nPosY + local_34.sTileRect.top) * 5 + 3;
           nX = (pFloorTile[nSearchTileIdx].nPosX + local_34.sTileRect.left) * 5 + 3;
           eCollision = D2Common::Collision::CheckCollision_BlockPlayerMissile(pRoom, nX, nY, COLLIDE_MONSTER);
           nStopTileIdx = nWrapAroundIdx;
-          nSearchTileIdx = __frame0.nSavedSearchIdx;
+          nSearchTileIdx = nSavedSearchIdx;
           if (eCollision == COLLIDE_NONE) {
             pDiagOffset = gaPathDiagonalOffsets;
             do {
@@ -655,13 +649,13 @@ BOOL __stdcall FindDiagonalNonCollisionCoords(D2RoomStrc * pRoom, int * pX, int 
 
               pDiagOffset++;
               nStopTileIdx = nWrapAroundIdx;
-              nSearchTileIdx = __frame0.nSavedSearchIdx;
+              nSearchTileIdx = nSavedSearchIdx;
             } while ((int)pDiagOffset < (uintptr_t)((char*)&gaPathDiagonalOffsets + sizeof(gaPathDiagonalOffsets)));
           }
         }
       }
 
-      nSearchTileIdx = (nSearchTileIdx + 1) % __frame0.nFloorTileCount;
+      nSearchTileIdx = (nSearchTileIdx + 1) % nFloorTileCount;
     } while (nSearchTileIdx != nStopTileIdx);
 
     return 0;
@@ -746,20 +740,6 @@ void MONSTER_SpawnMinionGroup(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
 
 // Server-side monster spawner. Validates classId against MonStats/MonStats2 tables, derives the spawn collision mask from MonStats2.spawnCol, and computes the legal spawn rectangle (from the supplied coord-list rect or the room's own coords, transformed room->world). Searches outward in a spiraling ring (radius step 3, up to nSpawnRadius*3), advancing a walk cursor via the room RNG, testing each candidate with PtInRect, optional grid-zone match, MONSTERAI_CanSpawnMonsterAt and a width collision check; certain class ranges use FindDiagonalNonCollisionCoords instead. On finding a free tile it creates the UNIT_MONSTER (unless flag bit0 set), bumps the region spawn count, assigns AI param, sets alignment from MonStats.Align, applies special umods (unless bit1), attaches quest hooks (MONSTER_OnCreateAttachQuests) and spawns the minion group (unless bit6). Returns the new unit, a sentinel (flag bit0), or NULL on failure.
 D2UnitStrc * __fastcall CreateMonster(D2UnknownCreateMonsterStrc * pMonsterSpawnData) {
-    // Frame slots -36..-4 are ONE object: &nSpawnX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nSpawnX;
-      int nSpawnY;
-      uint32_t nOffsetX;
-      uint32_t nDeltaX;
-      uint32_t nOffsetY;
-      uint32_t nDeltaY;
-      uint32_t nRadiusStep;
-      D2RoomStrc* pRoom;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eCollisionFlags _eCollisionMask;
     int iVar1;
     int iVar2;
@@ -780,6 +760,11 @@ D2UnitStrc * __fastcall CreateMonster(D2UnknownCreateMonsterStrc * pMonsterSpawn
     RECT sSpawnRect;
     int nGridZoneIdx;
     eCollisionFlags eCollisionMask;
+    uint32_t nOffsetX;
+    uint32_t nDeltaX;
+    uint32_t nOffsetY;
+    uint32_t nDeltaY;
+    uint32_t nRadiusStep;
     uint8_t* pGameDataBase;
     int64_t lRngProduct;
     uint32_t nRngResult;
@@ -841,7 +826,8 @@ D2UnitStrc * __fastcall CreateMonster(D2UnknownCreateMonsterStrc * pMonsterSpawn
     pCoordList = pMonsterSpawnData->pCoordList;
     D2MonStats2Txt* pMonStats2Saved;
     pMonStats2Saved = pMonStats2;
-    __frame0.pRoom = pWorkingRoom;
+    D2RoomStrc* pRoom;
+    pRoom = pWorkingRoom;
     if (pCoordList) {
       /* RECT * lprcSrc for CopyRect */ /* LPRECT lprcDst for CopyRect */ CopyRect(&sSpawnRect, &pCoordList->pRect);
       D2Common::Drlg::Transform::CoordsRoomToWorld((int32_t*)&sSpawnRect.left, (int32_t*)&sSpawnRect.top);
@@ -860,19 +846,21 @@ D2UnitStrc * __fastcall CreateMonster(D2UnknownCreateMonsterStrc * pMonsterSpawn
     }
     if (pMonsterSpawnData->nSpawnRadius < 0) {
       nClassId = 0;
-      __frame0.nRadiusStep = 0;
+      nRadiusStep = 0;
       nMaxWalkRadius = 0;
     } else {
       nClassId = 3;
-      __frame0.nRadiusStep = 3;
+      nRadiusStep = 3;
       nMaxWalkRadius = pMonsterSpawnData->nSpawnRadius * 3;
     }
 
-    __frame0.nSpawnY = 0;
-    __frame0.nSpawnX = 0;
+    int nSpawnY;
+    nSpawnY = 0;
+    int nSpawnX;
+    nSpawnX = 0;
     if (pMonStats2->spawnCol == '\x01' && (nWalkY = pMonsterSpawnData->nClassId , nWalkY < 0x102 || 0x107 < nWalkY) && nWalkY != 0x99) {
-      FindDiagonalNonCollisionCoords(pWorkingRoom, &__frame0.nSpawnX, &__frame0.nSpawnY);
-      __frame0.pRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pWorkingRoom, __frame0.nSpawnX, __frame0.nSpawnY);
+      FindDiagonalNonCollisionCoords(pWorkingRoom, &nSpawnX, &nSpawnY);
+      pRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pWorkingRoom, nSpawnX, nSpawnY);
     } else {
       POINT pt;
       if ((int)nMaxWalkRadius < nClassId) {
@@ -880,86 +868,86 @@ D2UnitStrc * __fastcall CreateMonster(D2UnknownCreateMonsterStrc * pMonsterSpawn
       }
 
       do {
-        nRngResult = __frame0.nRadiusStep;
+        nRngResult = nRadiusStep;
         nClassId = pMonsterSpawnData->nX;
         nWalkY = pMonsterSpawnData->nY;
-        lRngProduct = (uint64_t)__frame0.pRoom->sSeed.nSeedLow * 0x6ac690c5;
+        lRngProduct = (uint64_t)pRoom->sSeed.nSeedLow * 0x6ac690c5;
         nRngCarry1 = (uint32_t)((uint64_t)lRngProduct >> 0x20);
-        nRingBottomY = __frame0.nRadiusStep * 2;
-        sSeedTmp = (D2SeedStrc)(lRngProduct + (uint64_t)__frame0.pRoom->sSeed.nSeedHigh);
-        __frame0.pRoom->sSeed = sSeedTmp;
+        nRingBottomY = nRadiusStep * 2;
+        sSeedTmp = (D2SeedStrc)(lRngProduct + (uint64_t)pRoom->sSeed.nSeedHigh);
+        pRoom->sSeed = sSeedTmp;
         bRngOdd = !((uint64_t)d2_bits_of(sSeedTmp) & 1);
         if (bRngOdd) {
-          __frame0.nOffsetX = D2Client::Archive::RANDOM_RandomNumberSelector(&__frame0.pRoom->sSeed, nRingBottomY >> 1);
-          __frame0.nOffsetY = __frame0.nRadiusStep;
+          nOffsetX = D2Client::Archive::RANDOM_RandomNumberSelector(&pRoom->sSeed, nRingBottomY >> 1);
+          nOffsetY = nRadiusStep;
         } else {
-          __frame0.nOffsetX = __frame0.nRadiusStep;
-          __frame0.nOffsetY = D2Client::Archive::RANDOM_RandomNumberSelector(&__frame0.pRoom->sSeed, nRingBottomY >> 1);
+          nOffsetX = nRadiusStep;
+          nOffsetY = D2Client::Archive::RANDOM_RandomNumberSelector(&pRoom->sSeed, nRingBottomY >> 1);
         }
 
-        __frame0.nDeltaY = (uint32_t)bRngOdd;
-        __frame0.nDeltaX = (uint32_t)!bRngOdd;
-        lRngProduct = (uint64_t)__frame0.pRoom->sSeed.nSeedLow * 0x6ac690c5;
+        nDeltaY = (uint32_t)bRngOdd;
+        nDeltaX = (uint32_t)!bRngOdd;
+        lRngProduct = (uint64_t)pRoom->sSeed.nSeedLow * 0x6ac690c5;
         nRngCarry2 = (uint32_t)((uint64_t)lRngProduct >> 0x20);
-        sSeedTmp = (D2SeedStrc)(lRngProduct + (uint64_t)__frame0.pRoom->sSeed.nSeedHigh);
-        __frame0.pRoom->sSeed = sSeedTmp;
+        sSeedTmp = (D2SeedStrc)(lRngProduct + (uint64_t)pRoom->sSeed.nSeedHigh);
+        pRoom->sSeed = sSeedTmp;
         if ((uint64_t)d2_bits_of(sSeedTmp) & 1) {
-          __frame0.nOffsetX = -__frame0.nOffsetX;
+          nOffsetX = -nOffsetX;
         }
 
         lRngProduct = ((uint64_t)d2_bits_of(sSeedTmp) & 0xffffffff) * 0x6ac690c5;
         nRngCarry3 = (uint32_t)((uint64_t)lRngProduct >> 0x20);
         sSeedTmp = (D2SeedStrc)(lRngProduct + ((uint64_t)d2_bits_of(sSeedTmp) >> 0x20));
-        __frame0.pRoom->sSeed = sSeedTmp;
+        pRoom->sSeed = sSeedTmp;
         if ((uint64_t)d2_bits_of(sSeedTmp) & 1) {
-          __frame0.nOffsetY = -__frame0.nOffsetY;
+          nOffsetY = -nOffsetY;
         }
 
-        nClassId += __frame0.nOffsetX;
-        nWalkY += __frame0.nOffsetY;
-        nRingLeftX = pMonsterSpawnData->nX - __frame0.nRadiusStep;
+        nClassId += nOffsetX;
+        nWalkY += nOffsetY;
+        nRingLeftX = pMonsterSpawnData->nX - nRadiusStep;
         nWalkXMax = nRingLeftX + nRingBottomY;
-        __frame0.nOffsetX = pMonsterSpawnData->nY - __frame0.nRadiusStep;
-        nRingBottomY = __frame0.nOffsetX + nRingBottomY;
-        __frame0.nOffsetY = nRngResult * 8;
-        if (__frame0.nOffsetY) {
+        nOffsetX = pMonsterSpawnData->nY - nRadiusStep;
+        nRingBottomY = nOffsetX + nRingBottomY;
+        nOffsetY = nRngResult * 8;
+        if (nOffsetY) {
           goto next_ring_step;
         }
 
-        __frame0.nOffsetY = 1;
+        nOffsetY = 1;
         do {
-          if (nClassId == nRingLeftX && nWalkY == __frame0.nOffsetX) {
-            __frame0.nDeltaY = 1;
-            __frame0.nDeltaX = 0;
+          if (nClassId == nRingLeftX && nWalkY == nOffsetX) {
+            nDeltaY = 1;
+            nDeltaX = 0;
           }
           if (nClassId == nWalkXMax) {
-            if (nWalkY == __frame0.nOffsetX) {
-              __frame0.nDeltaY = 0;
-              __frame0.nDeltaX = 1;
+            if (nWalkY == nOffsetX) {
+              nDeltaY = 0;
+              nDeltaX = 1;
             }
             if (nWalkY == nRingBottomY) {
-              __frame0.nDeltaY = -1;
-              __frame0.nDeltaX = 0;
+              nDeltaY = -1;
+              nDeltaX = 0;
             }
           }
           if (nClassId == nRingLeftX) {
             if (nWalkY == nRingBottomY) {
-              __frame0.nDeltaY = 0;
-              __frame0.nDeltaX = -1;
+              nDeltaY = 0;
+              nDeltaX = -1;
             }
-            if (nWalkY == __frame0.nOffsetX && nClassId == nWalkXMax && nWalkY == nRingBottomY) {
-              __frame0.nDeltaY = 0;
-              __frame0.nDeltaX = 0;
+            if (nWalkY == nOffsetX && nClassId == nWalkXMax && nWalkY == nRingBottomY) {
+              nDeltaY = 0;
+              nDeltaX = 0;
             }
           }
 
-          nWalkY += __frame0.nDeltaX;
-          nClassId += __frame0.nDeltaY;
+          nWalkY += nDeltaX;
+          nClassId += nDeltaY;
           /* POINT pt for PtInRect */ pt.y = nWalkY;
           pt.x = nClassId;
           /* RECT * lprc for PtInRect */ bPtInRect = PtInRect(&sSpawnRect, pt);
-          pWorkingRoom = __frame0.pRoom;
-          if (bPtInRect && (!pCoordList || (nCandidateZoneIdx = D2Common::DUNGEON::Dungeon::GetGridIndex(__frame0.pRoom, nClassId, nWalkY) , nCandidateZoneIdx == nGridZoneIdx))) {
+          pWorkingRoom = pRoom;
+          if (bPtInRect && (!pCoordList || (nCandidateZoneIdx = D2Common::DUNGEON::Dungeon::GetGridIndex(pRoom, nClassId, nWalkY) , nCandidateZoneIdx == nGridZoneIdx))) {
             bPtInRect = AI::MONSTERAI_CanSpawnMonsterAt(pMonsterSpawnData->nClassId, pWorkingRoom, nClassId, nWalkY, 1);
             if (bPtInRect) {
               eCollisionResult = D2Common::Collision::CheckCollision_BlockAll_Width(pWorkingRoom, nClassId, nWalkY, (int)pMonStats2Saved->SizeX, _eCollisionMask);
@@ -972,22 +960,22 @@ D2UnitStrc * __fastcall CreateMonster(D2UnknownCreateMonsterStrc * pMonsterSpawn
             }
           }
 
-          __frame0.nOffsetY--;
+          nOffsetY--;
           next_ring_step:
-          iVar1 = __frame0.nSpawnX;
-          iVar2 = __frame0.nSpawnY;
-          nRngResult = __frame0.nRadiusStep;
-        } while (0 < (int)__frame0.nOffsetY);
+          iVar1 = nSpawnX;
+          iVar2 = nSpawnY;
+          nRngResult = nRadiusStep;
+        } while (0 < (int)nOffsetY);
 
-        __frame0.nRadiusStep = nRngResult;
-        __frame0.nSpawnY = iVar2;
-        __frame0.nSpawnX = iVar1;
-        __frame0.nRadiusStep += 3;
-      } while ((int)__frame0.nRadiusStep <= (int)nMaxWalkRadius);
+        nRadiusStep = nRngResult;
+        nSpawnY = iVar2;
+        nSpawnX = iVar1;
+        nRadiusStep += 3;
+      } while ((int)nRadiusStep <= (int)nMaxWalkRadius);
     }
 
-    pWorkingRoom = __frame0.pRoom;
-    if (!(__frame0.nSpawnX && __frame0.nSpawnY)) {
+    pWorkingRoom = pRoom;
+    if (!(nSpawnX && nSpawnY)) {
       return nullptr;
     }
 
@@ -999,7 +987,7 @@ D2UnitStrc * __fastcall CreateMonster(D2UnknownCreateMonsterStrc * pMonsterSpawn
       bPlaceInRoom = 3;
     }
 
-    D2UnitStrc* pUnit = UNIT::SUnit::CreateUnit(UNIT_MONSTER, pMonsterSpawnData->nClassId, __frame0.nSpawnX, __frame0.nSpawnY, pMonsterSpawnData->pGame, __frame0.pRoom, bPlaceInRoom, pMonsterSpawnData->eMode, (void*)pMonsterSpawnData->nGUID);
+    D2UnitStrc* pUnit = UNIT::SUnit::CreateUnit(UNIT_MONSTER, pMonsterSpawnData->nClassId, nSpawnX, nSpawnY, pMonsterSpawnData->pGame, pRoom, bPlaceInRoom, pMonsterSpawnData->eMode, (void*)pMonsterSpawnData->nGUID);
     if (!pUnit) {
       return pUnit;
     }
@@ -1012,7 +1000,7 @@ D2UnitStrc * __fastcall CreateMonster(D2UnknownCreateMonsterStrc * pMonsterSpawn
     MonsterRegion::IncreaseMonsterSpawnCount(pMonsterSpawnData->pGame->pMonsterRegion, pWorkingRoom, pUnit, nFlagsFiltered);
     pCoordList = pMonsterSpawnData->pCoordList;
     if (!pCoordList) {
-      pCoordList = D2Common::DUNGEON::Dungeon::DRLGROOM_GetCoordListFromSubtilePos(pWorkingRoom, __frame0.nSpawnX, __frame0.nSpawnY);
+      pCoordList = D2Common::DUNGEON::Dungeon::DRLGROOM_GetCoordListFromSubtilePos(pWorkingRoom, nSpawnX, nSpawnY);
     }
 
     Objects::MONSTER_SetSpawnCoordList(pUnit, pCoordList);

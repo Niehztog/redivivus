@@ -551,19 +551,10 @@ uint8_t __stdcall MONSTERS_GetMaxLightRadiusFromEquipment(D2UnitStrc * pUnit) {
 
 // Resolves which monster class ID should actually spawn in a room for a given nMonsterId, accounting for level-specific monster tables and difficulty upgrades. Looks up the base class ID via D2MonStatsTxt.BaseId, scans the level's valid monster array (LevelsTxt.mon) for a match, and if not found walks the NextInClass chain up to nUpgradeCount steps as long as the upgraded monster's level does not exceed the level cap. Returns the best matching class ID, or the original nMonsterId if no suitable upgrade is found.
 int32_t __stdcall GetMonsterBaseId(D2RoomStrc * pRoom, int32_t nMonsterId) {
-    // Frame slots -20..-4 are ONE object: &nUpgradeCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nUpgradeCount;
-      D2MonStatsTxt* pMonStatsTable;
-      int nMonStatsSize;
-      int nInputBaseId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2MonStatsTxt* pMonStatsTxt;
     int nMonBaseId;
     short int* pMonArray;
+    uint32_t nUpgradeCount;
     eD2LevelId eLevel = DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
     D2LevelsTxt* pLevelsTxt = DATATBLS::LvlTbls::TXT_Levels_GetLine(eLevel);
     uint8_t byValidMonCount = pLevelsTxt->nValidMonCount;
@@ -571,21 +562,21 @@ int32_t __stdcall GetMonsterBaseId(D2RoomStrc * pRoom, int32_t nMonsterId) {
       return nMonsterId;
     }
 
-    __frame0.nInputBaseId = nMonsterId;
+    int nInputBaseId = nMonsterId;
     if (-1 < nMonsterId && nMonsterId < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonsterId) {
-      __frame0.nInputBaseId = (int)sgptDataTable->pTxtMonStats[nMonsterId].BaseId;
+      nInputBaseId = (int)sgptDataTable->pTxtMonStats[nMonsterId].BaseId;
     }
-    if (-1 >= __frame0.nInputBaseId) {
+    if (-1 >= nInputBaseId) {
       return nMonsterId;
     }
 
-    __frame0.nMonStatsSize = sgptDataTable->nTxtMonStatsSize;
-    if (__frame0.nInputBaseId >= __frame0.nMonStatsSize) {
+    int nMonStatsSize = sgptDataTable->nTxtMonStatsSize;
+    if (nInputBaseId >= nMonStatsSize) {
       return nMonsterId;
     }
 
-    __frame0.pMonStatsTable = sgptDataTable->pTxtMonStats;
-    if (!(__frame0.pMonStatsTable + __frame0.nInputBaseId)) {
+    D2MonStatsTxt* pMonStatsTable = sgptDataTable->pTxtMonStats;
+    if (!(pMonStatsTable + nInputBaseId)) {
       return nMonsterId;
     }
 
@@ -596,10 +587,10 @@ int32_t __stdcall GetMonsterBaseId(D2RoomStrc * pRoom, int32_t nMonsterId) {
       do {
         nMonArrayEntry = (int)*pMonArray;
         nMonBaseId = nMonArrayEntry;
-        if (-1 < nMonArrayEntry && nMonArrayEntry < __frame0.nMonStatsSize && __frame0.pMonStatsTable + nMonArrayEntry) {
-          nMonBaseId = (int)__frame0.pMonStatsTable[nMonArrayEntry].BaseId;
+        if (-1 < nMonArrayEntry && nMonArrayEntry < nMonStatsSize && pMonStatsTable + nMonArrayEntry) {
+          nMonBaseId = (int)pMonStatsTable[nMonArrayEntry].BaseId;
         }
-        if (nMonBaseId == __frame0.nInputBaseId) {
+        if (nMonBaseId == nInputBaseId) {
           return nMonArrayEntry;
         }
 
@@ -608,11 +599,11 @@ int32_t __stdcall GetMonsterBaseId(D2RoomStrc * pRoom, int32_t nMonsterId) {
       } while (iMonArrayIdx < (int)(uint32_t)byValidMonCount);
     }
 
-    short int nNextInClass = __frame0.pMonStatsTable[__frame0.nInputBaseId].NextInClass;
-    DATATBLS::MonsterTbls::MONSTERTBLS_GetUpgradeDataByMonStatsId(nMonsterId, &__frame0.nUpgradeCount, nullptr);
+    short int nNextInClass = pMonStatsTable[nInputBaseId].NextInClass;
+    DATATBLS::MonsterTbls::MONSTERTBLS_GetUpgradeDataByMonStatsId(nMonsterId, &nUpgradeCount, nullptr);
     iMonArrayIdx = 0;
     int32_t nUpgradedId = nMonsterId;
-    if (0 >= (int)__frame0.nUpgradeCount) {
+    if (0 >= (int)nUpgradeCount) {
       return nUpgradedId;
     }
 
@@ -636,7 +627,7 @@ int32_t __stdcall GetMonsterBaseId(D2RoomStrc * pRoom, int32_t nMonsterId) {
       nNextInClass = pMonStatsTxt->NextInClass;
       iMonArrayIdx++;
       nMonsterId = nUpgradedId;
-    } while (iMonArrayIdx < (int)__frame0.nUpgradeCount);
+    } while (iMonArrayIdx < (int)nUpgradeCount);
 
     return nUpgradedId;
 }

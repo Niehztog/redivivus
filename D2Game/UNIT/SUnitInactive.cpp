@@ -540,19 +540,13 @@ void SUNITINACTIVE_SaveMonsterStateToInactive(D2InactiveMonsterRecordStrc * pIna
 // Deactivates a monster when its area is unloaded/idled, serializing its full state into an InactiveMonsterRecord so it can be restored later. Strips all active states (removing/freeing their stat lists), fires the AITHINK timer trigger, then allocates a 0x5c record from the game memory pool and fills it: position (from static/dynamic path), classId, game frame, AI command type, name seed, saved monster state, type-flag bitmask (champion/unique/boss/minion/possessed/aligned/dead etc. via CheckMonsterType + alignment + anim mode), experience, max/current HP, level/area id, the 9-byte UMod list, owner/minion-list linkage, GUID and unit flags. Links the record into the per-act inactive list (SUNITINACTIVE_AllocOrFindInactiveList) keyed by room coords. No-op if unit or its room is null. Uses custom register args (pUnit in EAX).
 // @sourcefile .\UNIT\SUnitInactive.cpp
 void __stdcall SUNITINACTIVE_DeactivateMonster(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    // Frame slots -24..-12 are ONE object: &bIsSlave is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      BOOL bIsSlave;
-      BOOL bIsMinion;
-      D2MonsterDataMinionList* pMinionList;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2States nAiCmdType;
     int16_t nBossNo;
     D2AiGeneralStrc* pAiGeneral;
     D2DrlgRoomCoordsStrc local_3c;
+    BOOL bIsSlave;
+    BOOL bIsMinion;
+    D2MonsterDataMinionList* pMinionList;
     eD2UnitType nOwnerType;
     int nOwnerId;
     short int nStateId;
@@ -695,15 +689,15 @@ void __stdcall SUNITINACTIVE_DeactivateMonster(::SGAMEDATA * pGame, D2UnitStrc *
       pInactiveRec->nTypeFlags |= 4;
     }
 
-    Ai::AiGeneral::GetAndRemoveMinionList(pUnit, &nOwnerId, &nOwnerType, (uint32_t*)&__frame0.bIsMinion, (uint32_t*)&__frame0.bIsSlave, &__frame0.pMinionList);
+    Ai::AiGeneral::GetAndRemoveMinionList(pUnit, &nOwnerId, &nOwnerType, (uint32_t*)&bIsMinion, (uint32_t*)&bIsSlave, &pMinionList);
     D2RoomStrc* pRoom = pUnitRoom;
     if (nOwnerId != -1 && nOwnerType == UNIT_MONSTER) {
       pInactiveRec->nOwnerId = nOwnerId;
-      pInactiveRec->pMinionList = __frame0.pMinionList;
-      if (__frame0.bIsMinion) {
+      pInactiveRec->pMinionList = pMinionList;
+      if (bIsMinion) {
         pInactiveRec->nTypeFlags |= 8;
       }
-      if (__frame0.bIsSlave) {
+      if (bIsSlave) {
         pInactiveRec->nTypeFlags |= 0x10;
       }
     }
@@ -722,15 +716,6 @@ void __stdcall SUNITINACTIVE_DeactivateMonster(::SGAMEDATA * pGame, D2UnitStrc *
 // Server-side re-activation of stored ("inactive") monsters when a room is loaded/entered. Finds the inactive-unit list for the room's act and DRLG coordinates, then iterates each saved D2InactiveMonsterRecordStrc and respawns the monster: chooses spawn flags (flying/initial), picks the right spawn path (plain SpawnMonster with fallback to random/spiral free positions, SERVER_SpawnMonster for boss/superunique, or MONSTER_SpawnWithUniqueModifiers), then restores its alignment, minion list, experience/maxhp/hitpoints stats (decayed if offline > ~0x1d4c frames), AI function, saved state, unique mods, and unit flags. Handles Chaos Sanctuary seal-Diablo special case (corpse/skip), relocation of already-existing units, node-table registration, and monster-region update. Frees each record after processing. Pure side-effects on game world; no return.
 // @sourcefile .\UNIT\SUnitInactive.cpp
 void __stdcall SUNITINACTIVE_RoomInitMonsters(::SGAMEDATA * pGame, D2RoomStrc * pRoom) {
-    // Frame slots -48..-36 are ONE object: &pSpawnRoom is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc* pSpawnRoom;
-      int32_t nFreeSpawnX;
-      int32_t nFreeSpawnY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bDiabloSealsAllActive;
     bool bFreePosFound;
     BOOL nHitpoints;
@@ -743,6 +728,9 @@ void __stdcall SUNITINACTIVE_RoomInitMonsters(::SGAMEDATA * pGame, D2RoomStrc * 
     char nSpawnType;
     D2DrlgRoomCoordsStrc sRoomCoords;
     POINT local_38;
+    D2RoomStrc* pSpawnRoom;
+    int32_t nFreeSpawnX;
+    int32_t nFreeSpawnY;
     eD2LevelId eInactiveFlags;
     D2InactiveMonsterRecordStrc* pNextInactiveRec;
     bool bDiabloSealsAllActive;
@@ -821,13 +809,13 @@ void __stdcall SUNITINACTIVE_RoomInitMonsters(::SGAMEDATA * pGame, D2RoomStrc * 
                   if (!pSpawnedMonster) {
                     pSpawnedMonster = D2Game::Monster::Create::SpawnMonsterAtRoomPosGuid(pGame, pRoom, (int32_t)pbyPosX, nAlignmentVal, (int32_t)pbyClassId, eSpawnAnimMode, pInactiveMonRec->nUnitGUID, 5, (int16_t)nSpawnFlags);
                     if (!pSpawnedMonster) {
-                      nHitpoints = Monsters::Spawn::SPAWN_FindRandomPositionForMonster(pGame, pRoom, nullptr, (uint32_t)pbyClassId, &__frame0.nFreeSpawnX, &__frame0.nFreeSpawnY, 0);
-                      if (!nHitpoints || (pSpawnedMonster = D2Game::Monster::Create::SpawnMonsterAtRoomPosGuid(pGame, pRoom, __frame0.nFreeSpawnX, __frame0.nFreeSpawnY, (int32_t)pbyClassId, eSpawnAnimMode, pInactiveMonRec->nUnitGUID, -1, (int16_t)nSpawnFlags) , !pSpawnedMonster)) {
+                      nHitpoints = Monsters::Spawn::SPAWN_FindRandomPositionForMonster(pGame, pRoom, nullptr, (uint32_t)pbyClassId, &nFreeSpawnX, &nFreeSpawnY, 0);
+                      if (!nHitpoints || (pSpawnedMonster = D2Game::Monster::Create::SpawnMonsterAtRoomPosGuid(pGame, pRoom, nFreeSpawnX, nFreeSpawnY, (int32_t)pbyClassId, eSpawnAnimMode, pInactiveMonRec->nUnitGUID, -1, (int16_t)nSpawnFlags) , !pSpawnedMonster)) {
                         local_38.x = (LONG)pbyPosX;
                         local_38.y = nAlignmentVal;
-                        D2Common::Collision::COLLISION_FindFreeCoordSpiral(pRoom, &local_38, 1, 0x3c01, &__frame0.pSpawnRoom);
-                        if (__frame0.pSpawnRoom) {
-                          pSpawnedMonster = D2Game::Monster::Create::SpawnMonsterAtRoomPosGuid(pGame, __frame0.pSpawnRoom, local_38.x, local_38.y, (int32_t)pbyClassId, eSpawnAnimMode, pInactiveMonRec->nUnitGUID, -1, (int16_t)nSpawnFlags);
+                        D2Common::Collision::COLLISION_FindFreeCoordSpiral(pRoom, &local_38, 1, 0x3c01, &pSpawnRoom);
+                        if (pSpawnRoom) {
+                          pSpawnedMonster = D2Game::Monster::Create::SpawnMonsterAtRoomPosGuid(pGame, pSpawnRoom, local_38.x, local_38.y, (int32_t)pbyClassId, eSpawnAnimMode, pInactiveMonRec->nUnitGUID, -1, (int16_t)nSpawnFlags);
                         }
                       }
                     }
@@ -1025,18 +1013,6 @@ void __fastcall SUNITINACTIVE_FreeUnusedItems(::SGAMEDATA * pGame, int32_t nAct)
 // Re-activates a room's saved inactive units when the room is brought into play. First re-inits inactive monsters and restores the inactive item list, then walks the per-room inactive-unit record list. For each record either reattaches an existing unit (flag 0x100: FindUnitFromTable + relocate into room) or recreates it via CreateUnit using the saved type/class/pos/animMode. Objects (type 2) get special restore: shrines (SetEvent respawn timer + SetShrineTxtRecord) and growable objects (replant: compute grown stage from elapsed game frames, set animMode/component, queue grow SetEvents). Frees each consumed record from the game memory pool. Side effects: spawns/relocates units, schedules object events. Server-side D2Common SUnitInactive.
 // @sourcefile .\UNIT\SUnitInactive.cpp
 void __fastcall SUNITINACTIVE_RoomInit(::SGAMEDATA * pGame, D2RoomStrc * pRoom) {
-    // Frame slots -20..-4 are ONE object: &pObjTxtLine is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2ObjectsTxt* pObjTxtLine;
-      D2ObjectsTxt* pObjTxtGrowable;
-      D2InactiveUnitRecordStrc* pNextUnitRecord;
-      uint8_t __pad12[2];
-      uint8_t byMaxStage;
-      uint8_t byNewStage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bIsShrine;
     uint8_t bObjectMode;
     ::SGAMEDATA* pRespawnFrame;
@@ -1047,72 +1023,77 @@ void __fastcall SUNITINACTIVE_RoomInit(::SGAMEDATA * pGame, D2RoomStrc * pRoom) 
     eD2PlayerAnimMode eActNo;
     D2UnitStrc* pUnit;
     int nRemainingGrowSteps;
+    D2ObjectsTxt* pObjTxtGrowable;
+    uint8_t byMaxStage;
+    uint8_t byNewStage;
     int32_t nLine;
     short int wShrineTimerHi;
     BOOL bIsGrowable;
     SUNITINACTIVE_RoomInitMonsters(pGame, pRoom);
-    __frame0.pNextUnitRecord = 0;
-    __frame0.pObjTxtLine = 0;
-    SUNITINACTIVE_FindAndRemoveInactiveUnitsByRoom((int*)&__frame0.pNextUnitRecord, (int*)&__frame0.pObjTxtLine, pRoom, (int32_t)pGame);
-    SUNITINACTIVE_RestoreInactiveItemList(pGame, pRoom, (int*)__frame0.pObjTxtLine);
+    D2InactiveUnitRecordStrc* pNextUnitRecord;
+    pNextUnitRecord = 0;
+    D2ObjectsTxt* pObjTxtLine;
+    pObjTxtLine = 0;
+    SUNITINACTIVE_FindAndRemoveInactiveUnitsByRoom((int*)&pNextUnitRecord, (int*)&pObjTxtLine, pRoom, (int32_t)pGame);
+    SUNITINACTIVE_RestoreInactiveItemList(pGame, pRoom, (int*)pObjTxtLine);
     D2InactiveUnitRecordStrc* pCurUnitRecord;
-    pCurUnitRecord = __frame0.pNextUnitRecord;
-    if (!__frame0.pNextUnitRecord) {
+    pCurUnitRecord = pNextUnitRecord;
+    if (!pNextUnitRecord) {
       return;
     }
 
-    for (; __frame0.pNextUnitRecord; Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pCurUnitRecord, ".\\UNIT\\SUnitInactive.cpp", nLine, 0) , pCurUnitRecord = __frame0.pNextUnitRecord) {
-      __frame0.pNextUnitRecord = pCurUnitRecord->pNext;
-      __frame0.pObjTxtLine = (D2ObjectsTxt*)pCurUnitRecord->eUnitType;
+    for (; pNextUnitRecord; Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pCurUnitRecord, ".\\UNIT\\SUnitInactive.cpp", nLine, 0) , pCurUnitRecord = pNextUnitRecord) {
+      pNextUnitRecord = pCurUnitRecord->pNext;
+      pObjTxtLine = (D2ObjectsTxt*)pCurUnitRecord->eUnitType;
       pUnit = 0;
       if (!(pCurUnitRecord->eUnitFlagsEx & 0x100U)) {
-        if (__frame0.pObjTxtLine != (D2ObjectsTxt*)0x1) {
-          pUnit = (D2UnitStrc*)SUnit::SpawnUnitByType(pGame, pRoom, (eD2UnitType)__frame0.pObjTxtLine, pCurUnitRecord->nClassId, pCurUnitRecord->nPosX, pCurUnitRecord->nPosY, pCurUnitRecord->eAnimMode.ePlayerMode, pCurUnitRecord->eUnitFlags);
+        if (pObjTxtLine != (D2ObjectsTxt*)0x1) {
+          pUnit = (D2UnitStrc*)SUnit::SpawnUnitByType(pGame, pRoom, (eD2UnitType)pObjTxtLine, pCurUnitRecord->nClassId, pCurUnitRecord->nPosX, pCurUnitRecord->nPosY, pCurUnitRecord->eAnimMode.ePlayerMode, pCurUnitRecord->eUnitFlags);
         }
-        if (__frame0.pObjTxtLine == (D2ObjectsTxt*)0x2) {
+        if (pObjTxtLine == (D2ObjectsTxt*)0x2) {
           if (!pUnit) {
             Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x170);
             exit(-1);
           }
 
-          __frame0.pObjTxtGrowable = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pUnit->nClassId);
+          pObjTxtGrowable = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pUnit->nClassId);
           bIsGrowable = D2Common::Units::IsShrine(pUnit);
           if (!bIsGrowable || !pCurUnitRecord->nGameFrame) {
-            if (!(__frame0.pObjTxtGrowable->SubClass & 0x20U)) {
+            if (!(pObjTxtGrowable->SubClass & 0x20U)) {
               pUnit->pUnitData.pUnitDataPlayer->szCharName[4] = (char)pCurUnitRecord->field_0x28;
               pUnit->uSideData.pServerSide.bSparkChest = (uint8_t)pCurUnitRecord->nDropItemCode;
               if (pCurUnitRecord->nLevelId) {
                 pUnit->dwDropItemCode = pCurUnitRecord->nLevelId;
               }
             } else {
-              nObjSize = Objects::OBJECT_GetDoubledTxtSize((int32_t)__frame0.pObjTxtGrowable);
-              __frame0.byMaxStage = (uint8_t)nObjSize;
-              if ((uint8_t)pCurUnitRecord->field_0x28 < __frame0.byMaxStage) {
-                __frame0.pObjTxtLine = (D2ObjectsTxt*)__frame0.pObjTxtGrowable->Parm[0];
-                if (!__frame0.pObjTxtLine) {
-                  __frame0.pObjTxtLine = 0;
+              nObjSize = Objects::OBJECT_GetDoubledTxtSize((int32_t)pObjTxtGrowable);
+              byMaxStage = (uint8_t)nObjSize;
+              if ((uint8_t)pCurUnitRecord->field_0x28 < byMaxStage) {
+                pObjTxtLine = (D2ObjectsTxt*)pObjTxtGrowable->Parm[0];
+                if (!pObjTxtLine) {
+                  pObjTxtLine = 0;
                   Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x18b);
                   exit(-1);
                 }
-                if (pCurUnitRecord->nGameFrame < (int)(__frame0.pObjTxtLine->Name + pGame->dwGameFrame)) {
-                  nGrowStepsElapsed = (pGame->dwGameFrame - pCurUnitRecord->nGameFrame) / (int)__frame0.pObjTxtLine;
+                if (pCurUnitRecord->nGameFrame < (int)(pObjTxtLine->Name + pGame->dwGameFrame)) {
+                  nGrowStepsElapsed = (pGame->dwGameFrame - pCurUnitRecord->nGameFrame) / (int)pObjTxtLine;
                   if (0 < nGrowStepsElapsed) {
                     nGrowStepsElapsed = 1;
                   }
 
-                  __frame0.byNewStage = (char)pCurUnitRecord->field_0x28 + (char)nGrowStepsElapsed;
-                  if (__frame0.byMaxStage < __frame0.byNewStage) {
-                    __frame0.byNewStage = __frame0.byMaxStage;
+                  byNewStage = (char)pCurUnitRecord->field_0x28 + (char)nGrowStepsElapsed;
+                  if (byMaxStage < byNewStage) {
+                    byNewStage = byMaxStage;
                   }
 
                   *(uint8_t*)(char*)&dwDefaultSize = Objects::OBJECT_GetDefaultSize();
                   dwDefaultSize = (uint32_t)(uint8_t)dwDefaultSize;
-                  eActNo = dwDefaultSize - (int)((int64_t)(uint64_t)__frame0.byNewStage / (int64_t)__frame0.pObjTxtGrowable->Parm[2]);
+                  eActNo = dwDefaultSize - (int)((int64_t)(uint64_t)byNewStage / (int64_t)pObjTxtGrowable->Parm[2]);
                   pUnit->eAnimMode.ePlayerMode = eActNo;
-                  bObjectMode = __frame0.byNewStage;
+                  bObjectMode = byNewStage;
                   if (Walk < eActNo) {
                     pUnit->eAnimMode.ePlayerMode = Death;
-                    pUnit->pUnitData.pUnitDataMonster->Components[0] = __frame0.byMaxStage;
+                    pUnit->pUnitData.pUnitDataMonster->Components[0] = byMaxStage;
                     goto free_spawned_record;
                   }
                 } else {
@@ -1120,13 +1101,13 @@ void __fastcall SUNITINACTIVE_RoomInit(::SGAMEDATA * pGame, D2RoomStrc * pRoom) 
                 }
 
                 pUnit->pUnitData.pUnitDataMonster->Components[0] = bObjectMode;
-                if (bObjectMode < __frame0.byMaxStage) {
-                  nRemainingGrowSteps = (uint32_t)__frame0.byMaxStage - (uint32_t)bObjectMode;
+                if (bObjectMode < byMaxStage) {
+                  nRemainingGrowSteps = (uint32_t)byMaxStage - (uint32_t)bObjectMode;
                   if (0 < nRemainingGrowSteps) {
-                    __frame0.pObjTxtGrowable = __frame0.pObjTxtLine;
+                    pObjTxtGrowable = pObjTxtLine;
                     do {
-                      GAME::Event::SetEvent(pGame, pUnit, 2, (int)(__frame0.pObjTxtGrowable->Name + pGame->dwGameFrame), 0, 0);
-                      __frame0.pObjTxtGrowable = (D2ObjectsTxt*)(__frame0.pObjTxtLine->Name + (int)__frame0.pObjTxtGrowable->Name);
+                      GAME::Event::SetEvent(pGame, pUnit, 2, (int)(pObjTxtGrowable->Name + pGame->dwGameFrame), 0, 0);
+                      pObjTxtGrowable = (D2ObjectsTxt*)(pObjTxtLine->Name + (int)pObjTxtGrowable->Name);
                       nRemainingGrowSteps--;
                     } while (nRemainingGrowSteps);
                   }
@@ -1153,18 +1134,18 @@ void __fastcall SUNITINACTIVE_RoomInit(::SGAMEDATA * pGame, D2RoomStrc * pRoom) 
         free_spawned_record:
         nLine = 0x1c3;
       } else {
-        pUnit = SUnit::FindUnitFromTable(pGame, (eD2UnitType)__frame0.pObjTxtLine, pCurUnitRecord->nUnitGUID);
+        pUnit = SUnit::FindUnitFromTable(pGame, (eD2UnitType)pObjTxtLine, pCurUnitRecord->nUnitGUID);
         if (pUnit) {
           SUnit::UNITS_RelocateUnitToRoom(pGame, pUnit, pRoom, pCurUnitRecord->nPosX, pCurUnitRecord->nPosY);
           pUnit->eUnitFlags |= UNITFLAG_INITSEEDSET;
-          if (!__frame0.pObjTxtLine) {
+          if (!pObjTxtLine) {
             if (pCurUnitRecord->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Dead) {
               Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x156);
               exit(-1);
             }
 
             D2Common::Units::SetupUpdateFlag(pUnit, 0x11);
-          } else if (__frame0.pObjTxtLine == (D2ObjectsTxt*)0x2) {
+          } else if (pObjTxtLine == (D2ObjectsTxt*)0x2) {
             pUnit->pUnitData.pUnitDataPlayer->szCharName[4] = (char)pCurUnitRecord->field_0x28;
             nLine = 0x15c;
             continue;

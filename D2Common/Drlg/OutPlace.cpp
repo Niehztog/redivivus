@@ -169,23 +169,6 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
     0x177
 };
 
-    // Frame slots -52..-8 are ONE object: &nNextDy is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nNextDy;
-      int nNextDx;
-      int park_2c;
-      D2DrlgLevelDataWildernessLevel* park_28;
-      int park_24;
-      int nDx;
-      int park_1c;
-      D2DrlgLevelStrc* park_18;
-      D2DrlgVertexStrc* pCurVertex;
-      int nDy;
-      D2DrlgVertexStrc* pNextVertex;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 44, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nRoadType;
     uint32_t nRoadTypeB;
     int nPresetId;
@@ -194,6 +177,13 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
     int nCurY;
     bool bIsLastVertex;
     uint32_t park_38;
+    int nNextDy;
+    int nNextDx;
+    int park_2c;
+    int park_24;
+    int nDx;
+    int park_1c;
+    int nDy;
     uint8_t park_5;
     int nX;
     int nY;
@@ -201,41 +191,45 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
     D2DrlgVertexStrc** ppNextNext;
     eAct park_6;
     park_6 = GetActNoFromLevelNumber(pLevel->eD2LevelId);
-    __frame0.park_28 = pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData;
-    __frame0.pCurVertex = __frame0.park_28->pVertices;
-    __frame0.pNextVertex = __frame0.pCurVertex->pNext;
+    D2DrlgLevelDataWildernessLevel* park_28;
+    park_28 = pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData;
+    D2DrlgVertexStrc* pCurVertex;
+    pCurVertex = park_28->pVertices;
+    D2DrlgVertexStrc* pNextVertex;
+    pNextVertex = pCurVertex->pNext;
     do {
-      __frame0.park_18 = pLevel;
-      pVertexCopy = __frame0.pCurVertex;
-      DrlgVer::GetCoordDiff(__frame0.pCurVertex, &__frame0.nDx, &__frame0.nDy);
-      DrlgVer::GetCoordDiff(__frame0.pNextVertex, &__frame0.nNextDx, &__frame0.nNextDy);
-      if (__frame0.nDx < 0) {
-        __frame0.park_24 = -__frame0.nDx;
+      D2DrlgLevelStrc* park_18;
+      park_18 = pLevel;
+      pVertexCopy = pCurVertex;
+      DrlgVer::GetCoordDiff(pCurVertex, &nDx, &nDy);
+      DrlgVer::GetCoordDiff(pNextVertex, &nNextDx, &nNextDy);
+      if (nDx < 0) {
+        park_24 = -nDx;
       } else {
-        __frame0.park_24 = __frame0.nDx;
+        park_24 = nDx;
       }
 
-      __frame0.park_2c = __frame0.nDy;
-      if (__frame0.nDy < 0) {
-        __frame0.park_2c = -__frame0.nDy;
+      park_2c = nDy;
+      if (nDy < 0) {
+        park_2c = -nDy;
       }
 
       nCornerPresetId = pVertexCopy->nPosX;
       nCurY = pVertexCopy->nPosY;
-      nX = __frame0.pNextVertex->nPosX;
-      nY = __frame0.pNextVertex->nPosY;
-      if (!__frame0.park_24) {
-        __frame0.park_1c = nCurY - nY;
+      nX = pNextVertex->nPosX;
+      nY = pNextVertex->nPosY;
+      if (!park_24) {
+        park_1c = nCurY - nY;
       } else {
-        __frame0.park_1c = nCornerPresetId - nX;
+        park_1c = nCornerPresetId - nX;
       }
-      if (__frame0.park_1c < 0) {
-        __frame0.park_1c = -__frame0.park_1c;
+      if (park_1c < 0) {
+        park_1c = -park_1c;
       }
 
       park_5 = pVertexCopy->nDirection;
       park_38 = (uint32_t)(park_5 != 0) * 2 + 1;
-      switch (__frame0.park_18->nLevelType) {
+      switch (park_18->nLevelType) {
         case 2:
           nRoadType = (uint32_t)!park_5;
         break;
@@ -249,41 +243,41 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
           nRoadType = 3;
         break;
         case 0x1f:
-          nRoadType = OutSiege::DRLGOUTROOM_GetGridDivisionSize(__frame0.park_18);
+          nRoadType = OutSiege::DRLGOUTROOM_GetGridDivisionSize(park_18);
       }
 
       if ((int)nRoadType < 4) {
-        nPresetId = gnOutdoorsGridWidthByLevel[nRoadType + gaRoadPresetDirectionLookup[__frame0.nDy * 3 + __frame0.nDx + 4] * 4 + 5];
+        nPresetId = gnOutdoorsGridWidthByLevel[nRoadType + gaRoadPresetDirectionLookup[nDy * 3 + nDx + 4] * 4 + 5];
       } else {
-        nPresetId = gRoadPresetIdLookupTable[nRoadType - 4 + gaRoadPresetDirectionLookup[__frame0.nDy * 3 + __frame0.nDx + 4] * 2];
+        nPresetId = gRoadPresetIdLookupTable[nRoadType - 4 + gaRoadPresetDirectionLookup[nDy * 3 + nDx + 4] * 2];
       }
-      if (!(__frame0.pCurVertex->dwFlags & 2)) {
+      if (!(pCurVertex->dwFlags & 2)) {
         while (nCornerPresetId != nX || nCurY != nY) {
-          nCurY += __frame0.nDy;
-          nCornerPresetId += __frame0.nDx;
-          Outdoors::SpawnOutdoorLevelPresetEx(__frame0.park_18, nCornerPresetId, nCurY, nPresetId, -1, 0);
-          DrlgGrid::AlterGridFlag(&__frame0.park_28->sGridOutdoor, nCornerPresetId, nCurY, park_38, 0);
+          nCurY += nDy;
+          nCornerPresetId += nDx;
+          Outdoors::SpawnOutdoorLevelPresetEx(park_18, nCornerPresetId, nCurY, nPresetId, -1, 0);
+          DrlgGrid::AlterGridFlag(&park_28->sGridOutdoor, nCornerPresetId, nCurY, park_38, 0);
         }
       }
-      if (__frame0.pCurVertex->dwFlags & 1U && !(__frame0.pCurVertex->dwFlags & 2U) && true) {
+      if (pCurVertex->dwFlags & 1U && !(pCurVertex->dwFlags & 2U) && true) {
         switch (park_6) {
           case ACT_I:
 
           case ACT_V:
-            nCornerPresetId = __frame0.pNextVertex->nPosX;
-          if (__frame0.pCurVertex->nPosX < __frame0.pNextVertex->nPosX) {
-            nCornerPresetId = __frame0.pCurVertex->nPosX;
+            nCornerPresetId = pNextVertex->nPosX;
+          if (pCurVertex->nPosX < pNextVertex->nPosX) {
+            nCornerPresetId = pCurVertex->nPosX;
           }
 
-          nCornerPresetId = __frame0.park_1c * __frame0.park_24 / 2 + nCornerPresetId;
-          nCurY = __frame0.pNextVertex->nPosY;
-          if (__frame0.pCurVertex->nPosY < __frame0.pNextVertex->nPosY) {
-            nCurY = __frame0.pCurVertex->nPosY;
+          nCornerPresetId = park_1c * park_24 / 2 + nCornerPresetId;
+          nCurY = pNextVertex->nPosY;
+          if (pCurVertex->nPosY < pNextVertex->nPosY) {
+            nCurY = pCurVertex->nPosY;
           }
 
-          nCurY = __frame0.park_1c * __frame0.park_2c / 2 + nCurY;
-          pPresetGrid = &__frame0.park_28->sGridOutdoor;
-          if (__frame0.park_18->eD2LevelId == 0x11) {
+          nCurY = park_1c * park_2c / 2 + nCurY;
+          pPresetGrid = &park_28->sGridOutdoor;
+          if (park_18->eD2LevelId == 0x11) {
             DrlgGrid::AlterGridFlag(pPresetGrid, nCornerPresetId, nCurY, 0xf0000, 5);
             DrlgGrid::AlterGridFlag(pPresetGrid, nCornerPresetId, nCurY, 0x40400, 0);
           } else {
@@ -293,45 +287,45 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
 
           break;
           case ACT_II:
-            nCornerPresetId = __frame0.pNextVertex->nPosX;
-          if (__frame0.pCurVertex->nPosX < __frame0.pNextVertex->nPosX) {
-            nCornerPresetId = __frame0.pCurVertex->nPosX;
+            nCornerPresetId = pNextVertex->nPosX;
+          if (pCurVertex->nPosX < pNextVertex->nPosX) {
+            nCornerPresetId = pCurVertex->nPosX;
           }
 
-          nCornerPresetId = __frame0.park_1c * __frame0.park_24 / 2 + nCornerPresetId;
-          nCurY = __frame0.pCurVertex->nPosY;
-          if (__frame0.pNextVertex->nPosY <= __frame0.pCurVertex->nPosY) {
-            nCurY = __frame0.pNextVertex->nPosY;
+          nCornerPresetId = park_1c * park_24 / 2 + nCornerPresetId;
+          nCurY = pCurVertex->nPosY;
+          if (pNextVertex->nPosY <= pCurVertex->nPosY) {
+            nCurY = pNextVertex->nPosY;
           }
 
-          nCurY = __frame0.park_1c * __frame0.park_2c / 2 + nCurY;
-          nPresetId = __frame0.nDx + 2 + __frame0.nDy * 2;
-          Outdoors::SpawnOutdoorLevelPresetEx(__frame0.park_18, nCornerPresetId, nCurY, gnOutPlaceGridHeightByAct[nPresetId * 2], -1, 0);
-          Outdoors::SpawnOutdoorLevelPresetEx(__frame0.park_18, nCornerPresetId + __frame0.park_24, nCurY + __frame0.park_2c, gnOutPlaceGridHeightByAct[nPresetId * 2 + 1], -1, 0);
+          nCurY = park_1c * park_2c / 2 + nCurY;
+          nPresetId = nDx + 2 + nDy * 2;
+          Outdoors::SpawnOutdoorLevelPresetEx(park_18, nCornerPresetId, nCurY, gnOutPlaceGridHeightByAct[nPresetId * 2], -1, 0);
+          Outdoors::SpawnOutdoorLevelPresetEx(park_18, nCornerPresetId + park_24, nCurY + park_2c, gnOutPlaceGridHeightByAct[nPresetId * 2 + 1], -1, 0);
           break;
           case ACT_IV:
-            nCornerPresetId = __frame0.pNextVertex->nPosX;
-          if (__frame0.pCurVertex->nPosX < __frame0.pNextVertex->nPosX) {
-            nCornerPresetId = __frame0.pCurVertex->nPosX;
+            nCornerPresetId = pNextVertex->nPosX;
+          if (pCurVertex->nPosX < pNextVertex->nPosX) {
+            nCornerPresetId = pCurVertex->nPosX;
           }
 
-          nCornerPresetId = __frame0.park_1c * __frame0.park_24 / 2 + nCornerPresetId;
-          nCurY = __frame0.pNextVertex->nPosY;
-          if (__frame0.pCurVertex->nPosY < __frame0.pNextVertex->nPosY) {
-            nCurY = __frame0.pCurVertex->nPosY;
+          nCornerPresetId = park_1c * park_24 / 2 + nCornerPresetId;
+          nCurY = pNextVertex->nPosY;
+          if (pCurVertex->nPosY < pNextVertex->nPosY) {
+            nCurY = pCurVertex->nPosY;
           }
 
-          nCurY = __frame0.park_1c * __frame0.park_2c / 2 + nCurY;
-          pPresetGrid = &__frame0.park_28->sGridOutdoor;
+          nCurY = park_1c * park_2c / 2 + nCurY;
+          pPresetGrid = &park_28->sGridOutdoor;
           DrlgGrid::AlterGridFlag(pPresetGrid, nCornerPresetId, nCurY, 0xf0000, 5);
           DrlgGrid::AlterGridFlag(pPresetGrid, nCornerPresetId, nCurY, 0x30400, 0);
         }
       }
-      if (park_5 || (park_5 = __frame0.pNextVertex->nDirection , park_5 != 0)) {
+      if (park_5 || (park_5 = pNextVertex->nDirection , park_5 != 0)) {
         park_38 |= 2;
       }
 
-      switch (__frame0.park_18->nLevelType) {
+      switch (park_18->nLevelType) {
         case 2:
           nRoadTypeB = (uint32_t)!park_5;
         break;
@@ -345,13 +339,13 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
           nRoadTypeB = 3;
         break;
         case 0x1f:
-          nRoadTypeB = OutSiege::DRLGOUTROOM_GetGridDivisionSize(__frame0.park_18);
+          nRoadTypeB = OutSiege::DRLGOUTROOM_GetGridDivisionSize(park_18);
       }
 
-      if (!(__frame0.pCurVertex->dwFlags & 2)) {
-        if (!(__frame0.pNextVertex->dwFlags & 2)) {
-          nCornerPresetId = __frame0.nNextDx * 2;
-          nCurY = __frame0.nDx * 2;
+      if (!(pCurVertex->dwFlags & 2)) {
+        if (!(pNextVertex->dwFlags & 2)) {
+          nCornerPresetId = nNextDx * 2;
+          nCurY = nDx * 2;
           if (nCurY < 0) {
             nCurY += -2;
           } else if (0 < nCurY) {
@@ -363,27 +357,27 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
             nCornerPresetId += 2;
           }
 
-          nCornerPresetId += __frame0.nNextDy * 2;
+          nCornerPresetId += nNextDy * 2;
         } else {
-          nCurY = __frame0.nDx * 2;
+          nCurY = nDx * 2;
           if (nCurY < 0) {
             nCurY += -2;
           } else if (0 < nCurY) {
             nCurY += 2;
           }
-          if (__frame0.nNextDx < 0) {
-            nCornerPresetId = __frame0.nNextDx - 2 + __frame0.nNextDy;
+          if (nNextDx < 0) {
+            nCornerPresetId = nNextDx - 2 + nNextDy;
           } else {
-            nCornerPresetId = __frame0.nNextDx;
-            if (0 < __frame0.nNextDx) {
-              nCornerPresetId = __frame0.nNextDx + 2;
+            nCornerPresetId = nNextDx;
+            if (0 < nNextDx) {
+              nCornerPresetId = nNextDx + 2;
             }
 
-            nCornerPresetId += __frame0.nNextDy;
+            nCornerPresetId += nNextDy;
           }
         }
 
-        nCornerPresetId = gaOutPlaceAdjacentRoadIndex[nCurY + nCornerPresetId * 9 + __frame0.nDy * 2 + 0x28];
+        nCornerPresetId = gaOutPlaceAdjacentRoadIndex[nCurY + nCornerPresetId * 9 + nDy * 2 + 0x28];
         if (nCornerPresetId != -1) {
           if ((int)nRoadTypeB < 4) {
             nCornerPresetId = gnOutdoorsGridWidthByLevel[nRoadTypeB + nCornerPresetId * 4 + 1];
@@ -394,13 +388,13 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
           goto spawn_vertex_preset;
         }
       } else {
-        nCornerPresetId = __frame0.nDx;
-        if (!(__frame0.pNextVertex->dwFlags & 2)) {
-          nCurY = __frame0.nNextDx * 2;
-          if (__frame0.nDx < 0) {
-            nCornerPresetId = __frame0.nDx - 2;
-          } else if (0 < __frame0.nDx) {
-            nCornerPresetId = __frame0.nDx + 2;
+        nCornerPresetId = nDx;
+        if (!(pNextVertex->dwFlags & 2)) {
+          nCurY = nNextDx * 2;
+          if (nDx < 0) {
+            nCornerPresetId = nDx - 2;
+          } else if (0 < nDx) {
+            nCornerPresetId = nDx + 2;
           }
           if (nCurY < 0) {
             nCurY += -2;
@@ -408,26 +402,26 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
             nCurY += 2;
           }
 
-          nCurY += __frame0.nNextDy * 2;
+          nCurY += nNextDy * 2;
         } else {
-          if (__frame0.nDx < 0) {
-            nCornerPresetId = __frame0.nDx - 2;
-          } else if (0 < __frame0.nDx) {
-            nCornerPresetId = __frame0.nDx + 2;
+          if (nDx < 0) {
+            nCornerPresetId = nDx - 2;
+          } else if (0 < nDx) {
+            nCornerPresetId = nDx + 2;
           }
-          if (__frame0.nNextDx < 0) {
-            nCurY = __frame0.nNextDx - 2 + __frame0.nNextDy;
+          if (nNextDx < 0) {
+            nCurY = nNextDx - 2 + nNextDy;
           } else {
-            nCurY = __frame0.nNextDx;
-            if (0 < __frame0.nNextDx) {
-              nCurY = __frame0.nNextDx + 2;
+            nCurY = nNextDx;
+            if (0 < nNextDx) {
+              nCurY = nNextDx + 2;
             }
 
-            nCurY += __frame0.nNextDy;
+            nCurY += nNextDy;
           }
         }
 
-        nCornerPresetId = gaOutPlaceAdjacentRoadIndex[nCornerPresetId + nCurY * 9 + __frame0.nDy + 0x28];
+        nCornerPresetId = gaOutPlaceAdjacentRoadIndex[nCornerPresetId + nCurY * 9 + nDy + 0x28];
         if (nCornerPresetId != -1) {
           if ((int)nRoadTypeB < 4) {
             nCornerPresetId = gnOutdoorsGridWidthByLevel[nRoadTypeB + nCornerPresetId * 4 + 1];
@@ -437,26 +431,26 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
 
           spawn_vertex_preset:
           if (nCornerPresetId == 0x13) {
-            if (__frame0.pCurVertex->nDirection == 1) {
-              nCornerPresetId = (__frame0.pNextVertex->nDirection != 1) + 0x13;
+            if (pCurVertex->nDirection == 1) {
+              nCornerPresetId = (pNextVertex->nDirection != 1) + 0x13;
             } else {
               nCornerPresetId = 0x15;
             }
           } else if (!nCornerPresetId) {
             goto next_vertex;
           }
-          Outdoors::SpawnOutdoorLevelPresetEx(__frame0.park_18, nX, nY, nCornerPresetId, -1, 0);
-          DrlgGrid::AlterGridFlag(&__frame0.park_28->sGridOutdoor, nX, nY, park_38, 0);
+          Outdoors::SpawnOutdoorLevelPresetEx(park_18, nX, nY, nCornerPresetId, -1, 0);
+          DrlgGrid::AlterGridFlag(&park_28->sGridOutdoor, nX, nY, park_38, 0);
         }
       }
 
       next_vertex:
-      bIsLastVertex = __frame0.pNextVertex == __frame0.park_28->pVertices;
-      ppNextNext = &__frame0.pNextVertex->pNext;
-      __frame0.pCurVertex = __frame0.pNextVertex;
-      __frame0.pNextVertex = *ppNextNext;
+      bIsLastVertex = pNextVertex == park_28->pVertices;
+      ppNextNext = &pNextVertex->pNext;
+      pCurVertex = pNextVertex;
+      pNextVertex = *ppNextNext;
       if (bIsLastVertex) {
-        SetBlankBorderGridCells(__frame0.park_18);
+        SetBlankBorderGridCells(park_18);
         return;
       }
     } while (true);

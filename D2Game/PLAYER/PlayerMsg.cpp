@@ -1158,19 +1158,12 @@ eD2ServerIncomingStatus __stdcall OrficeStaffCheck(uint32_t pUid, int16_t nParam
 
 // Validates whether a player can interact with a waypoint object. Returns 1 if waypoint GID not found, 2 if waypoint is in a different act, nonzero range error if player is too far (range 10, or 22 for Sorceress). If in range and nAreaId is provided, looks up the waypoint ID for that level and checks whether the player already has it unlocked; returns 0 if activating new waypoint, 2 if already owned, 3 if level has no waypoint entry.
 int32_t __stdcall PlayerCanInteractWithWaypoint(::SGAMEDATA * pGame, uint16_t nAreaId, DWORD nGid, D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &eWaypointId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int16_t eWaypointId;
-      uint8_t __pad2[2];
-      int nWpX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bHasWaypoint;
     uint16_t nWpY;
     BOOL bFound;
     D2WaypointStrc* pWaypoints;
+    int16_t eWaypointId;
+    int nWpX;
     uint32_t nWaypointCheck;
     int32_t nRangeOrStatus;
     D2UnitStrc* pWaypointObj = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_OBJECT, nGid);
@@ -1190,11 +1183,11 @@ int32_t __stdcall PlayerCanInteractWithWaypoint(::SGAMEDATA * pGame, uint16_t nA
 
     eD2UnitType eWpUnitType = pWaypointObj->eUnitType;
     if (eWpUnitType == UNIT_OBJECT || 3 < (int)eWpUnitType && (int)eWpUnitType < 6) {
-      __frame0.nWpX = pWaypointObj->pPath.pStaticPath->nPosX;
+      nWpX = pWaypointObj->pPath.pStaticPath->nPosX;
     } else if (!pWaypointObj->pPath.pDynamicPath) {
-      __frame0.nWpX = 0;
+      nWpX = 0;
     } else {
-      __frame0.nWpX = D2Common::PATH::DynamicPath::GetXPos(pWaypointObj->pPath.pDynamicPath);
+      nWpX = D2Common::PATH::DynamicPath::GetXPos(pWaypointObj->pPath.pDynamicPath);
     }
 
     eWpUnitType = pWaypointObj->eUnitType;
@@ -1212,7 +1205,7 @@ int32_t __stdcall PlayerCanInteractWithWaypoint(::SGAMEDATA * pGame, uint16_t nA
       nRangeOrStatus = 0x16;
     }
 
-    eD2ServerIncomingStatus eVar1 = CheckIfCoordsAreInRange(pUnit, nRangeOrStatus, (uint16_t)__frame0.nWpX, nWpY);
+    eD2ServerIncomingStatus eVar1 = CheckIfCoordsAreInRange(pUnit, nRangeOrStatus, (uint16_t)nWpX, nWpY);
     if (eVar1 != SERVERSTATUS_OK) {
       return eVar1;
     }
@@ -1227,10 +1220,10 @@ int32_t __stdcall PlayerCanInteractWithWaypoint(::SGAMEDATA * pGame, uint16_t nA
         exit(-1);
       }
 
-      bFound = D2Common::Waypoints::FindWaypointIdByLevelId((eD2LevelId)nAreaId, &__frame0.eWaypointId);
+      bFound = D2Common::Waypoints::FindWaypointIdByLevelId((eD2LevelId)nAreaId, &eWaypointId);
       if (bFound) {
         pWaypoints = GetWaypointsForCurrentDifficulty(pGame, pUnit);
-        nWaypointCheck = D2Common::Waypoints::CheckWaypoint(pWaypoints, __frame0.eWaypointId);
+        nWaypointCheck = D2Common::Waypoints::CheckWaypoint(pWaypoints, eWaypointId);
         return (nWaypointCheck ? -2 : 0) + 2;
       }
     }
@@ -2426,31 +2419,24 @@ eD2ServerIncomingStatus __fastcall SCMD_0x19_PickUpToCursor(::SGAMEDATA * pGame,
 // [op:1][itemGUID:u32][bodyLoc:u8][pad:3]
 // Cursor item to body location (1-10). Handles weapon swap, sockets.
 eD2ServerIncomingStatus __fastcall SCMD_0x1A_EquipItem(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2GSPacketClt0x1A_EquipItem * pPacket, size_t nSize) {
-    // Frame slots -12..-4 are ONE object: &nEquipResult is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nEquipResult;
-      uint32_t nBodyLoc;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nBodyLoc;
     if (nSize != 9) {
       return SERVERSTATUS_BAD_PARAMS;
     }
 
     DWORD dwParam = pPacket->dwItemGUID;
-    __frame0.nBodyLoc = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&__frame0.nBodyLoc + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)(char)pPacket->dwBodyLoc);
+    nBodyLoc = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&nBodyLoc + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)(char)pPacket->dwBodyLoc);
     eD2ServerIncomingStatus eVar1 = SERVER_IsItemOnCursor(pGame, pUnit, dwParam);
     if (eVar1 != SERVERSTATUS_OK) {
       return (eD2ServerIncomingStatus)eVar1;
     }
-    if (9 < (__frame0.nBodyLoc & 0xff) - 1) {
+    if (9 < (nBodyLoc & 0xff) - 1) {
       return SERVERSTATUS_BAD_DATA;
     }
 
-    __frame0.nEquipResult = 0;
-    BOOL nEquipOk = ITEMS::ItemMode::SERVER_EquipItemToBodyLoc(pGame, pUnit, dwParam, (eD2BodyLoc)__frame0.nBodyLoc, 0, (uint32_t*)&__frame0.nEquipResult);
-    if (!nEquipOk && __frame0.nEquipResult) {
+    int nEquipResult = 0;
+    BOOL nEquipOk = ITEMS::ItemMode::SERVER_EquipItemToBodyLoc(pGame, pUnit, dwParam, (eD2BodyLoc)nBodyLoc, 0, (uint32_t*)&nEquipResult);
+    if (!nEquipOk && nEquipResult) {
       UNIT::SUnit::FindUnitFromTable(pGame, UNIT_ITEM, dwParam);
       return SERVERSTATUS_BAD_PARAMS;
     }
@@ -2606,26 +2592,16 @@ eD2ServerIncomingStatus __fastcall SCMD_0x1E_EquipToWeaponSwap(::SGAMEDATA * pGa
 // [op:1][cursorItemGUID:u32][targetItemGUID:u32][targetUnitGUID:u32][arg:u32]
 // Uses cursor item on target item/unit. Rejects corpse/merc pages.
 eD2ServerIncomingStatus __fastcall SCMD_0x1F_UseItem(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2GSPacketClt0x1F_UseItem * pPacket, size_t nSize) {
-    // Frame slots -24..-4 are ONE object: &nUseResult is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nUseResult;
-      int nArg;
-      uint32_t dwCursorItemGUID;
-      uint32_t dwTargetUnitGUID;
-      D2UnitStrc* pItem;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nUseResult;
     if (nSize != 0x11) {
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    __frame0.dwCursorItemGUID = pPacket->dwCursorItemGUID;
-    __frame0.dwTargetUnitGUID = pPacket->dwTargetUnitGUID;
+    uint32_t dwCursorItemGUID = pPacket->dwCursorItemGUID;
+    uint32_t dwTargetUnitGUID = pPacket->dwTargetUnitGUID;
     uint32_t nItemGid = pPacket->dwTargetItemGUID;
-    __frame0.nArg = pPacket->nArg;
-    eD2ServerIncomingStatus eVar1 = SERVER_IsItemOnCursor(pGame, pUnit, __frame0.dwCursorItemGUID);
+    int nArg = pPacket->nArg;
+    eD2ServerIncomingStatus eVar1 = SERVER_IsItemOnCursor(pGame, pUnit, dwCursorItemGUID);
     if (eVar1 != SERVERSTATUS_OK) {
       return (eD2ServerIncomingStatus)eVar1;
     }
@@ -2635,27 +2611,27 @@ eD2ServerIncomingStatus __fastcall SCMD_0x1F_UseItem(::SGAMEDATA * pGame, D2Unit
       return (eD2ServerIncomingStatus)eVar1;
     }
 
-    __frame0.pItem = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_ITEM, nItemGid);
-    if (!__frame0.pItem) {
+    D2UnitStrc* pItem = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_ITEM, nItemGid);
+    if (!pItem) {
       return SERVERSTATUS_BAD_DATA;
     }
 
-    eInventoryPage invPage = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(__frame0.pItem);
+    eInventoryPage invPage = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(pItem);
     if (invPage == INVPAGE_CORPSE) {
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    invPage = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(__frame0.pItem);
+    invPage = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(pItem);
     if (invPage == INVPAGE_MERC) {
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    uint32_t nMovePermission = Player::CheckItemMovePermission(pGame, pUnit, __frame0.pItem);
-    uint32_t dwCursorGUIDSaved = __frame0.dwCursorItemGUID;
+    uint32_t nMovePermission = Player::CheckItemMovePermission(pGame, pUnit, pItem);
+    uint32_t dwCursorGUIDSaved = dwCursorItemGUID;
     if (nMovePermission) {
       int nExchangeResult;
-      nExchangeResult = ITEMS::ItemMode::ITEMMODE_ExchangeInventoryItem(pGame, pUnit, __frame0.dwCursorItemGUID, nItemGid, __frame0.dwTargetUnitGUID, __frame0.nArg, &__frame0.nUseResult);
-      if (!nExchangeResult && __frame0.nUseResult) {
+      nExchangeResult = ITEMS::ItemMode::ITEMMODE_ExchangeInventoryItem(pGame, pUnit, dwCursorItemGUID, nItemGid, dwTargetUnitGUID, nArg, &nUseResult);
+      if (!nExchangeResult && nUseResult) {
         UNIT::SUnit::FindUnitFromTable(pGame, UNIT_ITEM, dwCursorGUIDSaved);
         return SERVERSTATUS_BAD_PARAMS;
       }
@@ -4465,14 +4441,6 @@ eD2ServerIncomingStatus __fastcall SCMD_0x61_MercEquipItem(::SGAMEDATA * pGame, 
 // Moves belt-compatible item from inventory to belt if allowed; sends 0x9C/0x9D updates.
 // @sourcefile .\PLAYER\PlrMsg.cpp
 eD2ServerIncomingStatus __fastcall SCMD_0x63_ItemToBeltAuto(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2GSPacketClt0x63_ItemToBeltAuto * pPacket, size_t nSize) {
-    // Frame slots -12..-4 are ONE object: &nGridIndex is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nGridIndex;
-      int32_t nPrevInvPage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bIsBeltable;
     BOOL bFoundSlot;
     int32_t nErrAddr;
@@ -4480,6 +4448,8 @@ eD2ServerIncomingStatus __fastcall SCMD_0x63_ItemToBeltAuto(::SGAMEDATA * pGame,
     int32_t nItemPosY;
     int32_t nItemX;
     D2ClientStrc* pClient;
+    uint32_t nGridIndex;
+    int32_t nPrevInvPage;
     int32_t nDbgParam;
     eD2ItemFlag itemFlagMask;
     D2InventoryStrc* pInventory;
@@ -4505,9 +4475,9 @@ eD2ServerIncomingStatus __fastcall SCMD_0x63_ItemToBeltAuto(::SGAMEDATA * pGame,
             return SERVERSTATUS_BAD_PARAMS;
           }
 
-          __frame0.nGridIndex = 0;
-          bFoundSlot = D2Common::INVENTORY::Inventory::INVENTORY_FindBeltSlotForPotion(pUnit->pInventory, pItem, (int*)&__frame0.nGridIndex);
-          if (bFoundSlot && -1 < (int)__frame0.nGridIndex) {
+          nGridIndex = 0;
+          bFoundSlot = D2Common::INVENTORY::Inventory::INVENTORY_FindBeltSlotForPotion(pUnit->pInventory, pItem, (int*)&nGridIndex);
+          if (bFoundSlot && -1 < (int)nGridIndex) {
             dwItemGUID = Player::CheckItemMovePermission(pGame, pUnit, pItem);
             if (dwItemGUID) {
               pInventory = pUnit->pInventory;
@@ -4535,15 +4505,15 @@ eD2ServerIncomingStatus __fastcall SCMD_0x63_ItemToBeltAuto(::SGAMEDATA * pGame,
               }
 
               invPage = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(pItem);
-              __frame0.nPrevInvPage = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&__frame0.nPrevInvPage + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)invPage);
-              nItemPosY = D2Common::Units::GetInventoryPage(pUnit, __frame0.nPrevInvPage, pGame->bExpansion);
+              nPrevInvPage = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&nPrevInvPage + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)invPage);
+              nItemPosY = D2Common::Units::GetInventoryPage(pUnit, nPrevInvPage, pGame->bExpansion);
               invPage = (eInventoryPage)nItemPosY;
               nDbgParam = 0;
-              nItemPosY = __frame0.nPrevInvPage;
+              nItemPosY = nPrevInvPage;
               nErrAddr = D2Client::Units::GetYPosFromDynamicPathUnit(pItem);
               nItemX = D2Client::Units::GetXPosFromDynamicPathUnit(pItem);
               D2Common::INVENTORY::Inventory::UnusedDebug(".\\PLAYER\\PlrMsg.cpp", 0x1830, pInventory, nItemX, nErrAddr, invPage, nDbgParam, nItemPosY);
-              D2Common::ITEMS::Items::ITEM_SetItemData_ePreviousPage(pItem, (uint8_t)__frame0.nPrevInvPage);
+              D2Common::ITEMS::Items::ITEM_SetItemData_ePreviousPage(pItem, (uint8_t)nPrevInvPage);
               D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pItem, INVPAGE_None);
               itemFlagMask = ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD);
               pItemInInv = pItem;
@@ -4552,7 +4522,7 @@ eD2ServerIncomingStatus __fastcall SCMD_0x63_ItemToBeltAuto(::SGAMEDATA * pGame,
               D2Common::Units::SetupUpdateFlag(pItem, 4);
               pItem->eUnitFlags &= ~UNITFLAG_TARGETABLE;
               D2Common::ITEMS::Items::ITEM_GetItemsTxt_nWidthAndHeight(pItem, (char*)((uintptr_t)&pPacket + 3), (char*)((uintptr_t)&nSize + 3), ".\\PLAYER\\PlrMsg.cpp", 0x183b);
-              bFoundSlot = D2Common::INVENTORY::Inventory::INVENTORY_CanPlaceItemInBelt(pInventory, pItem, __frame0.nGridIndex);
+              bFoundSlot = D2Common::INVENTORY::Inventory::INVENTORY_CanPlaceItemInBelt(pInventory, pItem, nGridIndex);
               if (bFoundSlot) {
                 D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pItem, INVPAGE_None);
                 bFoundSlot = D2Common::INVENTORY::Inventory::PutItemInInventory(pInventory, pItem, 2);

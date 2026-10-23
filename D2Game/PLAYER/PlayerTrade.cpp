@@ -1678,18 +1678,11 @@ void __fastcall SendRemoveItemDisplayPacket0x92(::SGAMEDATA * pGame, D2UnitStrc 
 }
 
 void __fastcall TRADE_RestoreInventoryFromBackup(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &pSavePtr is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      short int* pSavePtr;
-      D2UnitDataPlayerStrc* pPlayerData;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int dwParam2;
+    short int* pSavePtr;
     D2UnknownStructure0x18* pTradeCopy;
-    __frame0.pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-    if (!__frame0.pPlayerData) {
+    D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
+    if (!pPlayerData) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x880);
       exit(-1);
     } else {
@@ -1700,10 +1693,10 @@ void __fastcall TRADE_RestoreInventoryFromBackup(::SGAMEDATA * pGame, D2UnitStrc
         dwParam2++;
       } while (dwParam2 < 0xd);
 
-      pTradeCopy = __frame0.pPlayerData->pTradeCopyInventory;
+      pTradeCopy = pPlayerData->pTradeCopyInventory;
       if (pTradeCopy) {
         GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_PERIODICSTATS, 0);
-        PlayerSave::PLRSAVE_DispatchItemLoadByFormat(pGame, pUnit, pTradeCopy->pSaveBuffer, 0x60, 0x2000, 0, &__frame0.pSavePtr);
+        PlayerSave::PLRSAVE_DispatchItemLoadByFormat(pGame, pUnit, pTradeCopy->pSaveBuffer, 0x60, 0x2000, 0, &pSavePtr);
         iInvPage = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
         if (!(0 < iInvPage && pUnit->eAnimMode.ePlayerMode != Death && pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Dead)) {
           return;

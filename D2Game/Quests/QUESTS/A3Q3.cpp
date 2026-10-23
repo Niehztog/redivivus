@@ -909,14 +909,8 @@ void __fastcall Q20_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
 
 // A3Q3 \"Khalim's Will\" — quest timer tick (installed as timer slot 7 by OBJOP_A3Q5_NihlathakPortalTrigger). When the serpent spawn is armed (bSerpentLocationValid + bSerpentArrived set, bCanDropBlade clear) and Act III exists, locates the recorded spawn room and scans adjacent rooms for any player unit; once a player is nearby, calls Q20_SpawnUniqueSerpent and installs Q20_Callback_08 as the death-drop handler. Implements lazy boss spawn on player proximity.
 uint8_t __fastcall Q20_QuestUpdate(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
-    // Frame slots -12..-4 are ONE object: &pAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjacentRooms;
-      uint32_t nAdjacentCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** pAdjacentRooms;
+    uint32_t nAdjacentCount;
     D2UnitStrc* pRoom;
     D2QuestDataA3Q3Strc* pQuestSpecific = pQuestData->pQuestSpecificData.pA3Q3;
     bool bVar1 = pQuestSpecific->bSerpentLocationValid;
@@ -930,14 +924,14 @@ uint8_t __fastcall Q20_QuestUpdate(::SGAMEDATA * pGame, D2QuestDataStrc * pQuest
       return '\x01';
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pSpawnRoom, &__frame0.pAdjacentRooms, (int*)&__frame0.nAdjacentCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pSpawnRoom, &pAdjacentRooms, (int*)&nAdjacentCount);
     uint32_t nRoomIdx = 0;
-    if (!__frame0.nAdjacentCount) {
+    if (!nAdjacentCount) {
       return '\x01';
     }
 
     do {
-      for (pRoom = __frame0.pAdjacentRooms[nRoomIdx]->pUnitList; pRoom; pRoom = pRoom->pRoomNext) {
+      for (pRoom = pAdjacentRooms[nRoomIdx]->pUnitList; pRoom; pRoom = pRoom->pRoomNext) {
         if (pRoom->eUnitType == UNIT_PLAYER) {
           Q20_SpawnUniqueSerpent(pGame, pSpawnRoom, pQuestSpecific);
           pQuestData->sStateFunctions.fpQuestStateHandler[8] = Q20_Callback08_MonsterKilled;
@@ -946,7 +940,7 @@ uint8_t __fastcall Q20_QuestUpdate(::SGAMEDATA * pGame, D2QuestDataStrc * pQuest
       }
 
       nRoomIdx++;
-    } while (nRoomIdx < __frame0.nAdjacentCount);
+    } while (nRoomIdx < nAdjacentCount);
 
     return '\x01';
 }

@@ -173,15 +173,9 @@ void __fastcall SKILLSSOR_SetInfernoFrames(D2UnitStrc * pUnit, int32_t nParam) {
 
 // Client-side: spawns an Inferno (or Hydra-fire variant) missile for the Sorceress. Looks up cltmissilea/cltmissileb from SkillsTxt; randomly picks between them using the unit seed (50/50). Reads target coords via GetCooordinates, evaluates calc[0] for frame count (min 1), fires MakeMissile with nFlags=0x8020. If the missile is created and the unit has STATE_inferno active: advances the animation sequence to frame 8 (or decrements nGfxCurrentFrame by 0x200 if no anim sequence).
 D2UnitStrc * __fastcall SKILLSSOR_CltCreateInfernoMissile(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -20..-12 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTargetY;
-      int nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    int nTargetY;
+    int nTargetX;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return nullptr;
     }
@@ -201,7 +195,7 @@ D2UnitStrc * __fastcall SKILLSSOR_CltCreateInfernoMissile(D2UnitStrc * pUnit, eD
       eMissileIdB = ~MISSILE_Arrow;
     }
 
-    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &nTargetX, &nTargetY);
     if (!bGotCoords) {
       return nullptr;
     }
@@ -220,10 +214,10 @@ D2UnitStrc * __fastcall SKILLSSOR_CltCreateInfernoMissile(D2UnitStrc * pUnit, eD
 
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.nMissileTxtNo = eMissileIdA;
-    sSkillArg.nUnitX = __frame0.nTargetX;
+    sSkillArg.nUnitX = nTargetX;
     sSkillArg.nFlags = 0x8020;
     sSkillArg.nSkillLevel = nSkillLvl;
-    sSkillArg.nUnitY = __frame0.nTargetY;
+    sSkillArg.nUnitY = nTargetY;
     sSkillArg.pOwner = pUnit;
     sSkillArg.pMissile = pUnit;
     sSkillArg.eSkillNo = eSkill;
@@ -348,15 +342,9 @@ BOOL __fastcall Skills_CltDoFunc_Sor_HomingMissileVelocity(D2UnitStrc * pUnit, e
 
 // Client-side skill effect for Sorceress Frost Nova. Resolves the primary and sub-missile from SkillsTxt, fetches caster coordinates, validates collision and room, then spawns two perpendicular radial frost missiles (offset by 90 degrees from the caster-to-target vector) plus a centred sub-missile ring. Returns 0 if any prerequisite check fails.
 BOOL __fastcall Skills_CltDoFunc_Sor_FrostNova(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetPosX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nTargetPosX;
-      int32_t nCoordsX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    int32_t nTargetPosX;
+    int32_t nCoordsX;
     if ((int)eSkill < 0) {
       return 0;
     }
@@ -379,7 +367,7 @@ BOOL __fastcall Skills_CltDoFunc_Sor_FrostNova(D2UnitStrc * pUnit, eD2Skills eSk
       return 0;
     }
 
-    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nCoordsX, &__frame0.nTargetPosX);
+    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &nCoordsX, &nTargetPosX);
     if (!bGotCoords) {
       return 0;
     }
@@ -394,7 +382,7 @@ BOOL __fastcall Skills_CltDoFunc_Sor_FrostNova(D2UnitStrc * pUnit, eD2Skills eSk
       return 0;
     }
 
-    pRoom = UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, __frame0.nCoordsX, __frame0.nTargetPosX);
+    pRoom = UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nCoordsX, nTargetPosX);
     if (!pSkillTxt->InTown) {
       bGotCoords = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pRoom);
       if (bGotCoords) {
@@ -403,22 +391,22 @@ BOOL __fastcall Skills_CltDoFunc_Sor_FrostNova(D2UnitStrc * pUnit, eD2Skills eSk
     }
 
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.nX = __frame0.nCoordsX;
+    sSkillArg.nX = nCoordsX;
     sSkillArg.nSkillLevel = nSkillLvl;
     sSkillArg.nFlags = 0x21;
-    sSkillArg.nY = __frame0.nTargetPosX;
+    sSkillArg.nY = nTargetPosX;
     sSkillArg.pOwner = pUnit;
     sSkillArg.nMissileTxtNo = ePrimaryMissileId;
     sSkillArg.eSkillNo = eSkill;
     int32_t nCasterY = Units::GetXPosFromDynamicPathUnit(pUnit);
-    int nCasterToTargetDX = nCasterY - __frame0.nCoordsX;
+    int nCasterToTargetDX = nCasterY - nCoordsX;
     nCasterY = Units::GetYPosFromDynamicPathUnit(pUnit);
-    int nDeltaX = nCasterY - __frame0.nTargetPosX;
-    sSkillArg.nUnitX = __frame0.nCoordsX - nDeltaX;
-    sSkillArg.nUnitY = __frame0.nTargetPosX + nCasterToTargetDX;
+    int nDeltaX = nCasterY - nTargetPosX;
+    sSkillArg.nUnitX = nCoordsX - nDeltaX;
+    sSkillArg.nUnitY = nTargetPosX + nCasterToTargetDX;
     UNIT::Missile::MakeMissile(&sSkillArg);
-    sSkillArg.nUnitX = nDeltaX + __frame0.nCoordsX;
-    sSkillArg.nUnitY = __frame0.nTargetPosX - nCasterToTargetDX;
+    sSkillArg.nUnitX = nDeltaX + nCoordsX;
+    sSkillArg.nUnitY = nTargetPosX - nCasterToTargetDX;
     UNIT::Missile::MakeMissile(&sSkillArg);
     sSkillArg.nUnitX = 0;
     sSkillArg.nUnitY = 0;
@@ -538,25 +526,19 @@ BOOL __fastcall Skills_CltDoFunc_Sor_CollisionCheckedMissile(D2UnitStrc * pUnit,
 }
 
 BOOL __fastcall Skills_CltStFunc_CheckCasterHasRoomNotInTown(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nPosX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nPosX;
-      int32_t nPosY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int32_t nPosX;
+    int32_t nPosY;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pRoom) {
       return 0;
     }
 
-    BOOL bIsInTown = Skills::GetCooordinates(pUnit, &__frame0.nPosX, &__frame0.nPosY);
+    BOOL bIsInTown = Skills::GetCooordinates(pUnit, &nPosX, &nPosY);
     if (!bIsInTown) {
       return 0;
     }
 
-    pRoom = UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, __frame0.nPosX, __frame0.nPosY);
+    pRoom = UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nPosX, nPosY);
     if (!(pRoom && -1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }

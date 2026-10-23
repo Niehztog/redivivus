@@ -86,55 +86,41 @@ DWORD GetSndUnitClassId(D2UnitStrc * pUnit) {
 }
 
 eD2UnitType GetSndUnitType(D2UnitStrc * pUnit) {
-    // Frame slots -16..-8 are ONE object: &nClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nClassId;
-      int32_t nAnimMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nClassId;
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    int32_t nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
     if (eUnitType != UNIT_PLAYER) {
       return eUnitType;
     }
 
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.nAnimMode, ".\\UNIT\\UnitSnd.cpp", 0xb0d);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nAnimMode, ".\\UNIT\\UnitSnd.cpp", 0xb0d);
     return eUnitType;
 }
 
 int * GetSndUnitMode(D2UnitStrc * pUnit) {
-    // Frame slots -16..-8 are ONE object: &nClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nClassId;
-      int* nAnimMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nClassId;
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.nAnimMode = (int*)D2Common::Units::GetAnimOrSeqMode(pUnit);
+    int* nAnimMode = (int*)D2Common::Units::GetAnimOrSeqMode(pUnit);
     if (eUnitType != UNIT_PLAYER) {
-      return __frame0.nAnimMode;
+      return nAnimMode;
     }
 
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, (int*)&__frame0.nAnimMode, ".\\UNIT\\UnitSnd.cpp", 0xb19);
-    return __frame0.nAnimMode;
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, (int*)&nAnimMode, ".\\UNIT\\UnitSnd.cpp", 0xb19);
+    return nAnimMode;
 }
 
 int * UNITSND_GetBaseSoundId(uint32_t nUnitClassId) {
@@ -662,24 +648,17 @@ uint32_t UNITSND_GetGroundMaterialType(int32_t pUnit) {
 
 // Returns the ground material index (1–6) at the unit's current tile position, used to select footstep/ground sounds. Queries the sound environment table for a fallback material, resolves the unit's map coordinates from its path (static or dynamic), then samples tile data from the unit's room and adjacent rooms. Returns 0 if the room is unavailable, the fallback if no tile data is found in any room.
 int32_t __fastcall UNITSND_GetGroundMaterial(D2UnitStrc * pUnit) {
-    // Frame slots -16..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      int nFallbackMaterial;
-      int nAdjacentRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nPosY;
     int nPosX;
+    D2RoomStrc** ppAdjacentRooms;
+    int nAdjacentRoomCount;
     uint32_t nSoundEnvIdx = Sound::SoundHdr::GetSoundEnv();
     D2SoundEnvironTxt* pSoundEnvLine = Sound::SoundHdr::GetSoundEnvironLine(nSoundEnvIdx);
-    __frame0.nFallbackMaterial = 1;
+    int nFallbackMaterial = 1;
     if (pSoundEnvLine) {
       nPosX = pSoundEnvLine->Material_1;
       if (0 < nPosX && nPosX < 7) {
-        __frame0.nFallbackMaterial = nPosX;
+        nFallbackMaterial = nPosX;
       }
     }
 
@@ -709,21 +688,21 @@ int32_t __fastcall UNITSND_GetGroundMaterial(D2UnitStrc * pUnit) {
     int* pTileData = UNITSND_GetTileDataAtPosition(nPosX, pRoom, nPosY);
     if (!pTileData) {
       int nAdjRoomIdx;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, &__frame0.nAdjacentRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, &nAdjacentRoomCount);
       nAdjRoomIdx = 0;
-      if (__frame0.nAdjacentRoomCount < 1) {
-        return __frame0.nFallbackMaterial;
+      if (nAdjacentRoomCount < 1) {
+        return nFallbackMaterial;
       }
 
       while (true) {
-        pTileData = UNITSND_GetTileDataAtPosition(nPosX, __frame0.ppAdjacentRooms[nAdjRoomIdx], nPosY);
+        pTileData = UNITSND_GetTileDataAtPosition(nPosX, ppAdjacentRooms[nAdjRoomIdx], nPosY);
         if (pTileData) {
           break;
         }
 
         nAdjRoomIdx++;
-        if (__frame0.nAdjacentRoomCount <= nAdjRoomIdx) {
-          return __frame0.nFallbackMaterial;
+        if (nAdjacentRoomCount <= nAdjRoomIdx) {
+          return nFallbackMaterial;
         }
       }
     }
@@ -733,7 +712,7 @@ int32_t __fastcall UNITSND_GetGroundMaterial(D2UnitStrc * pUnit) {
       return nSoundEnvIdx;
     }
 
-    return __frame0.nFallbackMaterial;
+    return nFallbackMaterial;
 }
 
 // Returns the sound ID for pUnit's footstep given ground material and whether running. For players, indexes gaUnitSoundTableByClassId[classId][10]; for monsters, reads D2MonSoundsTxt.Footstep. Adds a material offset (+0/+4/+8/+0xc/+0x10/+0x14 for materials 1-6) and +0x18 if bIsRunning. Returns 0 for unsupported unit types or missing data.

@@ -1053,22 +1053,6 @@ int32_t __fastcall ITEMS_CalcChargedSkillPriceModifier(D2UnitStrc * pUnit, int32
 // Adds an item's stat-driven cost to its three prices. Copies the item's stats (up to 511), and for each nonzero stat (shifted by ItemStatCost valshift) takes cost multiply/add from its ItemStatCost row by encode: 1 = SkillsTxt costmult/costadd of the stat's skill, 2/3 = same for a charged skill (packed sub-index), 4 = ITEMMODS_CalculateRepairCost min/max average, otherwise ItemStatCost multiply/add. The per-stat cost scales the incoming sell price (>>10), buy price (>>12 for skill encodes, >>10 otherwise) and repair price (>>10); each sum is divided by nDivisor and added to *pnSellPrice, *pnBuyPrice and *pnRepairPrice.
 // Provenance: 1.14d asm 00628e70; sole caller ITEMS_CalcTransactionCost 0062f81a passes (pItem, &nSellPrice, &nBuyPrice, &nRepairPrice, nMaxStack).
 void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice, int * pnBuyPrice, int * pnRepairPrice, uint32_t nDivisor) {
-    // Frame slots -44..-4 are ONE object: &nRepairCost is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nRepairCost;
-      int nRepairMinDmg;
-      int nRepairMaxDmg;
-      int32_t nStatCount;
-      D2UnitStrc* pItemSaved;
-      int nSellPriceIn;
-      int* pnSellPriceSaved;
-      int nStatIdx;
-      uint32_t nRepairCostSum;
-      uint32_t nBuyCostSum;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 40, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nCostAdd;
     int nCostTmp;
     int nRepairCostTmp;
@@ -1078,19 +1062,29 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
     eD2UnitStat eUnitStat;
     D2ItemStatCostTxt* pStatCostTxt;
     D2StatStrc aStatBuf[511];
+    uint32_t nRepairCost;
+    int nRepairMinDmg;
+    int nRepairMaxDmg;
+    int nSellPriceIn;
     uint32_t nSellCostSum;
     nSellCostSum = 0;
-    __frame0.nBuyCostSum = 0;
-    __frame0.nRepairCostSum = 0;
-    __frame0.pItemSaved = pItem;
-    __frame0.pnSellPriceSaved = pnSellPrice;
-    __frame0.nStatCount = Stats::StatsEx::STATLIST_CopyStatsToBuffer(pItem, aStatBuf, 0x1ff);
-    __frame0.nStatIdx = 0;
-    if (0 < __frame0.nStatCount) {
+    uint32_t nBuyCostSum;
+    nBuyCostSum = 0;
+    uint32_t nRepairCostSum;
+    nRepairCostSum = 0;
+    D2UnitStrc* pItemSaved;
+    pItemSaved = pItem;
+    int* pnSellPriceSaved;
+    pnSellPriceSaved = pnSellPrice;
+    int32_t nStatCount;
+    nStatCount = Stats::StatsEx::STATLIST_CopyStatsToBuffer(pItem, aStatBuf, 0x1ff);
+    int nStatIdx;
+    nStatIdx = 0;
+    if (0 < nStatCount) {
       uint32_t nStatVal;
-      for (; __frame0.nStatIdx < __frame0.nStatCount; __frame0.nStatIdx++ , pItem = __frame0.pItemSaved , pnSellPrice = __frame0.pnSellPriceSaved) {
-        eUnitStat = (eD2UnitStat)(uint16_t)aStatBuf[__frame0.nStatIdx].wStatIndex;
-        nStatVal = Stats::StatsEx::STATLIST_GetStatBonusFromLists(pItem, eUnitStat, (uint32_t)(uint16_t)aStatBuf[__frame0.nStatIdx].wSubIndex);
+      for (; nStatIdx < nStatCount; nStatIdx++ , pItem = pItemSaved , pnSellPrice = pnSellPriceSaved) {
+        eUnitStat = (eD2UnitStat)(uint16_t)aStatBuf[nStatIdx].wStatIndex;
+        nStatVal = Stats::StatsEx::STATLIST_GetStatBonusFromLists(pItem, eUnitStat, (uint32_t)(uint16_t)aStatBuf[nStatIdx].wSubIndex);
         if (nStatVal && (int)eUnitStat < sgptDataTable->nTxtItemStatCostSize) {
           pStatCostTxt = sgptDataTable->pTxtItemStatCost + eUnitStat;
           if (pStatCostTxt) {
@@ -1100,42 +1094,42 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
 
             switch (pStatCostTxt->encode) {
               case '\x01':
-                if (false || sgptDataTable->nTxtSkillsCount <= (int)(uint32_t)(uint16_t)aStatBuf[__frame0.nStatIdx].wSubIndex || (pSkillsTxt = sgptDataTable->pTxtSkills + (uint16_t)aStatBuf[__frame0.nStatIdx].wSubIndex , !pSkillsTxt)) {
+                if (false || sgptDataTable->nTxtSkillsCount <= (int)(uint32_t)(uint16_t)aStatBuf[nStatIdx].wSubIndex || (pSkillsTxt = sgptDataTable->pTxtSkills + (uint16_t)aStatBuf[nStatIdx].wSubIndex , !pSkillsTxt)) {
                   continue;
                 }
-              nCostTmp = *__frame0.pnSellPriceSaved * nStatVal;
+              nCostTmp = *pnSellPriceSaved * nStatVal;
               if (nCostTmp < 0x10000 || !pSkillsTxt->costmult) {
                 nCostTmp = pSkillsTxt->costmult;
                 nRepairCostTmp = pSkillsTxt->costadd;
-                nCostAdd = nCostTmp * *__frame0.pnSellPriceSaved * nStatVal;
+                nCostAdd = nCostTmp * *pnSellPriceSaved * nStatVal;
                 nSellCostSum = nSellCostSum + ((int)(nCostAdd + (nCostAdd >> 0x1f & 0x3ffU)) >> 10) + nRepairCostTmp;
                 nCostAdd = *pnBuyPrice * nCostTmp * nStatVal;
-                __frame0.nBuyCostSum = __frame0.nBuyCostSum + ((int)(nCostAdd + (nCostAdd >> 0x1f & 0xfffU)) >> 0xc) + nRepairCostTmp;
+                nBuyCostSum = nBuyCostSum + ((int)(nCostAdd + (nCostAdd >> 0x1f & 0xfffU)) >> 0xc) + nRepairCostTmp;
                 nCostTmp = *pnRepairPrice * nCostTmp * nStatVal;
                 nRepairCostTmp = ((int)(nCostTmp + (nCostTmp >> 0x1f & 0x3ffU)) >> 10) + nRepairCostTmp;
               } else {
                 nCostAdd = pSkillsTxt->costmult;
                 nRepairCostTmp = pSkillsTxt->costadd;
                 nSellCostSum = nSellCostSum + ((int)(nCostTmp + (nCostTmp >> 0x1f & 0x3ffU)) >> 10) * nCostAdd + nRepairCostTmp;
-                __frame0.nBuyCostSum = __frame0.nBuyCostSum + ((int)(*pnBuyPrice * nStatVal + ((int)(*pnBuyPrice * nStatVal) >> 0x1f & 0xfffU)) >> 0xc) * nCostAdd + nRepairCostTmp;
+                nBuyCostSum = nBuyCostSum + ((int)(*pnBuyPrice * nStatVal + ((int)(*pnBuyPrice * nStatVal) >> 0x1f & 0xfffU)) >> 0xc) * nCostAdd + nRepairCostTmp;
                 nRepairCostTmp = ((int)(*pnRepairPrice * nStatVal + ((int)(*pnRepairPrice * nStatVal) >> 0x1f & 0x3ffU)) >> 10) * nCostAdd + nRepairCostTmp;
               }
 
-              __frame0.nRepairCostSum += nRepairCostTmp;
+              nRepairCostSum += nRepairCostTmp;
               continue;
               case '\x02':
 
               case '\x03':
-                nCostTmp = (int)(uint32_t)(uint16_t)aStatBuf[__frame0.nStatIdx].wSubIndex >> ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
-              nAvgDmgCost = sgptDataTable->dwChargedSkillLevelMask & (uint32_t)(uint16_t)aStatBuf[__frame0.nStatIdx].wSubIndex;
+                nCostTmp = (int)(uint32_t)(uint16_t)aStatBuf[nStatIdx].wSubIndex >> ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
+              nAvgDmgCost = sgptDataTable->dwChargedSkillLevelMask & (uint32_t)(uint16_t)aStatBuf[nStatIdx].wSubIndex;
               if (nCostTmp < 0 || sgptDataTable->nTxtSkillsCount <= nCostTmp) {
                 pSkillsTxt = 0;
               } else {
                 pSkillsTxt = sgptDataTable->pTxtSkills + nCostTmp;
               }
 
-              __frame0.nSellPriceIn = *__frame0.pnSellPriceSaved;
-              nCostTmp = __frame0.nSellPriceIn * nAvgDmgCost;
+              nSellPriceIn = *pnSellPriceSaved;
+              nCostTmp = nSellPriceIn * nAvgDmgCost;
               if (0xffff < nCostTmp && pSkillsTxt->costmult) {
                 nRepairCostTmp = pSkillsTxt->costmult;
                 nCostAdd = pSkillsTxt->costadd;
@@ -1146,24 +1140,24 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
 
               nCostTmp = pSkillsTxt->costmult;
               nCostAdd = pSkillsTxt->costadd;
-              nRepairCostTmp = nCostTmp * __frame0.nSellPriceIn * nAvgDmgCost;
+              nRepairCostTmp = nCostTmp * nSellPriceIn * nAvgDmgCost;
               nCostResult = ((int)(nRepairCostTmp + (nRepairCostTmp >> 0x1f & 0x3ffU)) >> 10) + nCostAdd;
               nRepairCostTmp = *pnBuyPrice * nCostTmp * nAvgDmgCost;
               nRepairCostTmp = (int)(nRepairCostTmp + (nRepairCostTmp >> 0x1f & 0xfffU)) >> 0xc;
               add_costs_multiply_first:
-              __frame0.nBuyCostSum = __frame0.nBuyCostSum + nRepairCostTmp + nCostAdd;
+              nBuyCostSum = nBuyCostSum + nRepairCostTmp + nCostAdd;
               nCostTmp = *pnRepairPrice * nCostTmp * nAvgDmgCost;
               nSellCostSum += nCostResult;
               nRepairCostTmp = (int)(nCostTmp + (nCostTmp >> 0x1f & 0x3ffU)) >> 10;
               break;
               case '\x04':
-                ItemMods::ITEMMODS_CalculateRepairCost(nStatVal, 0, 0, &__frame0.nRepairCost, &__frame0.nRepairMinDmg, &__frame0.nRepairMaxDmg);
-              nAvgDmgCost = (__frame0.nRepairMinDmg + __frame0.nRepairMaxDmg) / 2;
-              nCostTmp = *__frame0.pnSellPriceSaved * nAvgDmgCost;
+                ItemMods::ITEMMODS_CalculateRepairCost(nStatVal, 0, 0, &nRepairCost, &nRepairMinDmg, &nRepairMaxDmg);
+              nAvgDmgCost = (nRepairMinDmg + nRepairMaxDmg) / 2;
+              nCostTmp = *pnSellPriceSaved * nAvgDmgCost;
               if (nCostTmp < 0x10000 || !pStatCostTxt->multiply) {
                 nCostTmp = pStatCostTxt->multiply;
                 nCostAdd = pStatCostTxt->add;
-                nRepairCostTmp = nCostTmp * *__frame0.pnSellPriceSaved * nAvgDmgCost;
+                nRepairCostTmp = nCostTmp * *pnSellPriceSaved * nAvgDmgCost;
                 nCostResult = ((int)(nRepairCostTmp + (nRepairCostTmp >> 0x1f & 0x3ffU)) >> 10) + nCostAdd;
                 nRepairCostTmp = *pnBuyPrice * nCostTmp * nAvgDmgCost;
                 nRepairCostTmp = (int)(nRepairCostTmp + (nRepairCostTmp >> 0x1f & 0x3ffU)) >> 10;
@@ -1176,18 +1170,18 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
               nCostResult = (int)(*pnBuyPrice * nAvgDmgCost + ((int)(*pnBuyPrice * nAvgDmgCost) >> 0x1f & 0x3ffU)) >> 10;
               add_costs_divide_first:
               nSellCostSum += nCostTmp;
-              __frame0.nBuyCostSum = __frame0.nBuyCostSum + nCostResult * nRepairCostTmp + nCostAdd;
+              nBuyCostSum = nBuyCostSum + nCostResult * nRepairCostTmp + nCostAdd;
               nRepairCostTmp = ((int)(*pnRepairPrice * nAvgDmgCost + ((int)(*pnRepairPrice * nAvgDmgCost) >> 0x1f & 0x3ffU)) >> 10) * nRepairCostTmp;
               break;
               default:
-                nCostTmp = *__frame0.pnSellPriceSaved * nStatVal;
+                nCostTmp = *pnSellPriceSaved * nStatVal;
               if (nCostTmp < 0x10000 || !pStatCostTxt->multiply) {
                 nCostTmp = pStatCostTxt->multiply;
                 nCostAdd = pStatCostTxt->add;
-                nRepairCostTmp = nCostTmp * *__frame0.pnSellPriceSaved * nStatVal;
+                nRepairCostTmp = nCostTmp * *pnSellPriceSaved * nStatVal;
                 nCostResult = ((int)(nRepairCostTmp + (nRepairCostTmp >> 0x1f & 0x3ffU)) >> 10) + nCostAdd;
                 nRepairCostTmp = *pnBuyPrice * nCostTmp * nStatVal;
-                __frame0.nBuyCostSum = __frame0.nBuyCostSum + ((int)(nRepairCostTmp + (nRepairCostTmp >> 0x1f & 0x3ffU)) >> 10) + nCostAdd;
+                nBuyCostSum = nBuyCostSum + ((int)(nRepairCostTmp + (nRepairCostTmp >> 0x1f & 0x3ffU)) >> 10) + nCostAdd;
                 nCostTmp = *pnRepairPrice * nCostTmp * nStatVal;
                 nSellCostSum += nCostResult;
                 nRepairCostTmp = (int)(nCostTmp + (nCostTmp >> 0x1f & 0x3ffU)) >> 10;
@@ -1197,20 +1191,20 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
               nRepairCostTmp = pStatCostTxt->multiply;
               nCostAdd = pStatCostTxt->add;
               nSellCostSum = nSellCostSum + ((int)(nCostTmp + (nCostTmp >> 0x1f & 0x3ffU)) >> 10) * nRepairCostTmp + nCostAdd;
-              __frame0.nBuyCostSum = __frame0.nBuyCostSum + ((int)(*pnBuyPrice * nStatVal + ((int)(*pnBuyPrice * nStatVal) >> 0x1f & 0x3ffU)) >> 10) * nRepairCostTmp + nCostAdd;
+              nBuyCostSum = nBuyCostSum + ((int)(*pnBuyPrice * nStatVal + ((int)(*pnBuyPrice * nStatVal) >> 0x1f & 0x3ffU)) >> 10) * nRepairCostTmp + nCostAdd;
               nRepairCostTmp = ((int)(*pnRepairPrice * nStatVal + ((int)(*pnRepairPrice * nStatVal) >> 0x1f & 0x3ffU)) >> 10) * nRepairCostTmp;
             }
 
             nRepairCostTmp += nCostAdd;
-            __frame0.nRepairCostSum += nRepairCostTmp;
+            nRepairCostSum += nRepairCostTmp;
           }
         }
       }
     }
 
     *pnSellPrice += nSellCostSum / nDivisor;
-    *pnBuyPrice += __frame0.nBuyCostSum / nDivisor;
-    *pnRepairPrice += __frame0.nRepairCostSum / nDivisor;
+    *pnBuyPrice += nBuyCostSum / nDivisor;
+    *pnRepairPrice += nRepairCostSum / nDivisor;
 }
 
 void __stdcall ITEMS_AddInventoryValueToTotal(int * pTotal1, int * pTotal2, int * pTotal3, D2UnitStrc * pOwnerUnit) {
@@ -1244,17 +1238,6 @@ void __stdcall ITEMS_AddInventoryValueToTotal(int * pTotal1, int * pTotal2, int 
 
 // Computes the gold cost to gamble an item at a vendor. Resolves the item's normal-quality base via normcode, then looks up uber and ultra upgrade tiers. Weights each tier by how many levels above its minimum level requirement the player is (clamped to 0). Combines a level-scaled base formula with a weighted average of base/uber/ultra costs and stack size. Ring and amulet items ("rin " / "amu " codes) bypass the calculation and return the fixed GambleCost field directly.
 int32_t __stdcall ITEMS_CalculateGamblePrice(int32_t nLevel, D2UnitStrc * pItem) {
-    // Frame slots -24..-4 are ONE object: &nUberClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nUberClassId;
-      uint32_t szUltraCode;
-      int nUltraClassId;
-      int nUberCost;
-      int nUltraCost;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2ItemsTxt* pUberItemsTxt;
     uint32_t nItemClassId = IITEM_GetItemsTxt_dwNormCode(pItem);
     nItemClassId = DATATBLS::ItemTbls::TXT_Items_ConvertItemCodeToItemClassId(nItemClassId);
@@ -1265,12 +1248,12 @@ int32_t __stdcall ITEMS_CalculateGamblePrice(int32_t nLevel, D2UnitStrc * pItem)
       exit(-1);
     }
 
-    __frame0.szUltraCode = pNormItemsTxt->dwUltraCode;
-    __frame0.nUltraClassId = 0;
-    __frame0.nUberClassId = 0;
+    uint32_t szUltraCode = pNormItemsTxt->dwUltraCode;
+    int nUltraClassId = 0;
+    int nUberClassId = 0;
     int nUberWeight = 0;
-    __frame0.nUberCost = 0;
-    __frame0.nUltraCost = 0;
+    int nUberCost = 0;
+    int nUltraCost = 0;
     if (!(pNormItemsTxt->dwCode != 0x206e6972 && pNormItemsTxt->dwCode != 0x20756d61)) {
       return pNormItemsTxt->dwGambleCost;
     }
@@ -1283,18 +1266,18 @@ int32_t __stdcall ITEMS_CalculateGamblePrice(int32_t nLevel, D2UnitStrc * pItem)
     int nBaseCost = pNormItemsTxt->dwCost;
     uint8_t nBaseLevel = pNormItemsTxt->nLevel;
     if (pNormItemsTxt->dwUberCode && pNormItemsTxt->dwUberCode != 0x20202030) {
-      pUberItemsTxt = DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(pNormItemsTxt->dwUberCode, &__frame0.nUltraClassId);
+      pUberItemsTxt = DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(pNormItemsTxt->dwUberCode, &nUltraClassId);
       if (pUberItemsTxt) {
         nUberWeight = (int)((nLevel - (uint32_t)(uint8_t)pUberItemsTxt->nLevel) * 100) / 2 + 1;
         if (nUberWeight < 0) {
           nUberWeight = 0;
         }
 
-        __frame0.nUberCost = pUberItemsTxt->dwCost;
+        nUberCost = pUberItemsTxt->dwCost;
       }
     }
-    if (__frame0.szUltraCode && pNormItemsTxt->dwUltraCode != 0x20202030) {
-      pNormItemsTxt = DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(__frame0.szUltraCode, &__frame0.nUberClassId);
+    if (szUltraCode && pNormItemsTxt->dwUltraCode != 0x20202030) {
+      pNormItemsTxt = DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(szUltraCode, &nUberClassId);
       if (pNormItemsTxt) {
         nUltraWeight = (nLevel - (uint32_t)(uint8_t)pNormItemsTxt->nLevel) * 100;
         nUltraWeight = ((int)(nUltraWeight + (nUltraWeight >> 0x1f & 3U)) >> 2) + 1;
@@ -1302,7 +1285,7 @@ int32_t __stdcall ITEMS_CalculateGamblePrice(int32_t nLevel, D2UnitStrc * pItem)
           nUltraWeight = 0;
         }
 
-        __frame0.nUltraCost = pNormItemsTxt->dwCost;
+        nUltraCost = pNormItemsTxt->dwCost;
       }
     }
     if (nLevel < 6) {
@@ -1310,7 +1293,7 @@ int32_t __stdcall ITEMS_CalculateGamblePrice(int32_t nLevel, D2UnitStrc * pItem)
     }
 
     uint32_t nWeightedBaseCost = nBaseLevel - 0x2d;
-    return ((int)((((int)nWeightedBaseCost < 0 ? 0 : nWeightedBaseCost) - nBaseLevel / 2 + nLevel) * 0xfa) / 3 + ((10000 - nUltraWeight - nUberWeight) * nBaseCost * nAvgStack + __frame0.nUltraCost * nUltraWeight + __frame0.nUberCost * nUberWeight) / 10000) * ((nLevel * 2 + 1) / 3 + 0x14) / 0xf;
+    return ((int)((((int)nWeightedBaseCost < 0 ? 0 : nWeightedBaseCost) - nBaseLevel / 2 + nLevel) * 0xfa) / 3 + ((10000 - nUltraWeight - nUberWeight) * nBaseCost * nAvgStack + nUltraCost * nUltraWeight + nUberCost * nUberWeight) / 10000) * ((nLevel * 2 + 1) / 3 + 0x14) / 0xf;
 }
 
 int32_t __stdcall TXT_Items_GetMaxStack(uint32_t nItemClassId) {
@@ -2261,17 +2244,16 @@ void __stdcall ITEM_SetItemData_wItemVersion(D2UnitStrc * pUnit, int16_t wItemVe
 
 // Calculates frames-per-attack for a weapon held by pUnit. Builds the COF path from unit/inventory state, looks up frame count and animation speed via ANIMDATA, then computes (frames&lt;&lt;8) / (((IAS+baseAttackRate+100)*animSpeed)/100). Halts with internal error if item is not a weapon or COF data is missing.
 int __stdcall ITEM_CalcWeaponAttackSpeed(D2UnitStrc * pUnit, D2UnitStrc * pItem) {
-    // Frame slots -32..-4 are ONE object: &nTrigger is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -28..-4 are ONE object: &nWClass is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      uint32_t nTrigger;
       int32_t nWClass;
       int nAnimSpeed;
       uint32_t nFrames;
       int szCofPath[2];
       uint32_t nSecurityCookie;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     bool _bIsWeapon;
     bool bIsWeapon;
@@ -2279,6 +2261,7 @@ int __stdcall ITEM_CalcWeaponAttackSpeed(D2UnitStrc * pUnit, D2UnitStrc * pItem)
     BOOL nAttackSpeedResult;
     int iVar1;
     int iVar2;
+    uint32_t nTrigger;
     __frame0.nSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (!pItem || pItem->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x151d);
@@ -2294,10 +2277,10 @@ int __stdcall ITEM_CalcWeaponAttackSpeed(D2UnitStrc * pUnit, D2UnitStrc * pItem)
       } else {
         __frame0.nFrames = 0;
         __frame0.nAnimSpeed = 0;
-        __frame0.nTrigger = 0;
+        nTrigger = 0;
         __frame0.nWClass = ITEM_GetItemsTxt_dwWClass(pItem);
         COMPOSIT::Composit::COMPOSIT_BuildCofPath(pUnit, pUnit->nClassId, 7, pUnit->eUnitType, pUnit->pInventory, (LPSTR)__frame0.szCofPath, &__frame0.nWClass, 0, 0);
-        nAttackSpeedResult = DATATBLS::AnimTbls::ANIMDATA_GetFramesSpeedAndTrigger(__frame0.szCofPath, &__frame0.nFrames, &__frame0.nAnimSpeed, &__frame0.nTrigger);
+        nAttackSpeedResult = DATATBLS::AnimTbls::ANIMDATA_GetFramesSpeedAndTrigger(__frame0.szCofPath, &__frame0.nFrames, &__frame0.nAnimSpeed, &nTrigger);
         if (!nAttackSpeedResult) {
           Fog::Debug::GuardStack();
           return 0x2d;
@@ -4369,54 +4352,6 @@ void __stdcall ITEM_ResolvePercentStatToBaseValue(eD2UnitStat nRecipeType, D2Uni
 
 // Canonical D2 item bit-stream reader: deserializes one item from a D2BitBufferStrc into pUnit's item data + stat list (inverse of SerializeComplexItem). Reads version(10b), location code (ground=X/Y 16b each; else bodyloc+cell+inv page), item code (resolved to ClassId), flags, quality (switch over eD2ItemQuality decoding magic/set/rare/unique/crafted affix IDs, automod, charm), GUID/level/personalized char name, runeword and ear/bodypart data, then base stats (gold, defense, weapon min/max dmg with ethereal*3/2 and low-quality*3/4 scaling, durability) and a property/stat-list loop (9-bit stat IDs, grouped set/charge/on-hit-skill/skill-tab stats) via STATLIST_SetUnitStat. Field bit widths gated by item save/wire version (nParam2: <0x5d/<0x60 compact). __stdcall; returns 1 on success, -1 on parse error.
 int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, uint32_t nParam1, D2ItemStatCostTxt * pItemStatCostTxt, uint32_t * pnParam, uint32_t nParam2) {
-    // Frame slots -92..-84 are ONE object: &nChargeSkillId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nChargeSkillId;
-      uint32_t nChargeSkillLevel;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -80..-68 are ONE object: &nChargeMax is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      uint32_t nChargeMax;
-      uint32_t nOnGetHitSkillLevel;
-      uint32_t nOnGetHitChance;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 12, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
-    // Frame slots -64..-56 are ONE object: &nOnHitSkillLevel is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame2_t {
-      uint32_t nOnHitSkillLevel;
-      uint32_t nOnHitChance;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame2_t) == 8, "frame group __frame2_t must reproduce the Ghidra frame layout");
-    __frame2_t __frame2;
-    // Frame slots -52..-44 are ONE object: &nOnAttackSkillLevel is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame3_t {
-      uint32_t nOnAttackSkillLevel;
-      uint32_t nOnAttackChance;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame3_t) == 8, "frame group __frame3_t must reproduce the Ghidra frame layout");
-    __frame3_t __frame3;
-    // Frame slots -40..-4 are ONE object: &nSkillId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame4_t {
-      uint32_t nSkillId;
-      uint32_t nSkillTabGroup;
-      uint32_t nSkillTabIdx;
-      uint32_t nStatListIdx;
-      uint32_t nSkillLevel;
-      uint32_t nSkillTabCount;
-      uint32_t nSetBitMask;
-      int nStatListCount;
-      int bError;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame4_t) == 36, "frame group __frame4_t must reproduce the Ghidra frame layout");
-    __frame4_t __frame4;
     int16_t wAffixAdj;
     uint32_t nCoord;
     eD2ItemFlag eItemFlags;
@@ -4436,14 +4371,29 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
     D2SetItemsTxt** ppSetItems;
     char* szCharName;
     eD2UnitStat eStatId2;
+    uint32_t nChargeSkillId;
+    uint32_t nChargeSkillLevel;
     uint16_t nChargeBuf[2];
+    uint32_t nChargeMax;
+    uint32_t nOnGetHitSkillLevel;
+    uint32_t nOnGetHitChance;
     uint8_t nOnGetHitSkillBuf[4];
+    uint32_t nOnHitSkillLevel;
+    uint32_t nOnHitChance;
     uint8_t nOnHitSkillBuf[4];
+    uint32_t nOnAttackSkillLevel;
+    uint32_t nOnAttackChance;
     uint8_t nOnAttackSkillBuf[4];
+    uint32_t nSkillId;
+    uint32_t nSkillTabGroup;
+    uint32_t nSkillTabIdx;
+    uint32_t nSkillLevel;
+    uint32_t nSkillTabCount;
     eD2ItemQuality eQualityType;
     bool bExtended;
     eD2UnitStat eStatId;
-    __frame4.bError = 0;
+    int bError;
+    bError = 0;
     uint32_t nBitsRead;
     nBitsRead = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 10);
     ITEM_SetItemData_wItemVersion(pUnit, (int16_t)nBitsRead);
@@ -4471,9 +4421,10 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
     }
 
     Units::SetupUpdateFlag(pUnit, nBitVal);
-    __frame4.nStatListIdx = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 0x20);
+    uint32_t nStatListIdx;
+    nStatListIdx = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 0x20);
     int32_t nClassId;
-    nClassId = DATATBLS::ItemTbls::TXT_Items_ConvertItemCodeToItemClassId(__frame4.nStatListIdx);
+    nClassId = DATATBLS::ItemTbls::TXT_Items_ConvertItemCodeToItemClassId(nStatListIdx);
     if (-1 < nClassId && pUnit) {
       pUnit->nClassId = nClassId;
     }
@@ -4670,15 +4621,15 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
             pSetsTxt = D2Client::DataTbls::GetSetsLine(nBitVal);
             if (!pSetsTxt) {
               set_error:
-              __frame4.bError = 1;
+              bError = 1;
             } else if (pSetsTxt->nTxtSetItemsCount < 1) {
               set_item_not_found:
-              __frame4.bError = 1;
+              bError = 1;
             } else {
               ppSetItems = pSetsTxt->pTxtSetItems;
               nStatVal = 0;
               do {
-                if ((*ppSetItems)->dwItemCode == __frame4.nStatListIdx) {
+                if ((*ppSetItems)->dwItemCode == nStatListIdx) {
                   if (nStatVal < 0) {
                     goto set_item_not_found;
                   }
@@ -4691,7 +4642,7 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
                 ppSetItems++;
               } while (nStatVal < pSetsTxt->nTxtSetItemsCount);
 
-              __frame4.bError = 1;
+              bError = 1;
             }
           } else {
             pSetItemsTxt = D2Client::DataTbls::GetSetItemsLine(nBitVal);
@@ -5088,26 +5039,28 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
         eItemFlags = pUnit->pUnitData.pUnitDataItem->dwItemFlags;
       }
       if ((eItemFlags & ITEMFLAG_IDENTIFIED) == ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD)) {
-        return (uint32_t)!__frame4.bError * 2 - 1;
+        return (uint32_t)!bError * 2 - 1;
       }
     }
 
     nStatVal = 0;
-    __frame4.nStatListCount = 0;
-    __frame4.nSetBitMask = 0;
+    int nStatListCount;
+    nStatListCount = 0;
+    uint32_t nSetBitMask;
+    nSetBitMask = 0;
     if (0x54 < nParam2 && pUnit && pUnit->eUnitType == UNIT_ITEM && pUnit->pUnitData.pUnitDataItem && pUnit->pUnitData.pUnitDataItem->eQuality == QUALITY_SET) {
       nStatVal = 5;
-      __frame4.nStatListCount = 5;
-      __frame4.nSetBitMask = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 5);
+      nStatListCount = 5;
+      nSetBitMask = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 5);
     }
     if (bExtended) {
       nStatVal++;
-      __frame4.nStatListCount = nStatVal;
+      nStatListCount = nStatVal;
     }
 
-    __frame4.nStatListIdx = -1;
+    nStatListIdx = -1;
     do {
-      if ((int)__frame4.nStatListIdx < 0) {
+      if ((int)nStatListIdx < 0) {
         pItemStatCostTxt = 0;
         nParam1 = 0x40;
         read_stat_list:
@@ -5360,17 +5313,17 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
                   goto deserialize_single_stat;
                 }
               nBitVal = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 0xe);
-              ItemMods::ITEMMODS_GetQualityMinMax(nBitVal, &__frame4.nSkillId, &__frame4.nSkillLevel);
+              ItemMods::ITEMMODS_GetQualityMinMax(nBitVal, &nSkillId, &nSkillLevel);
               nStatVal = 7;
               pStatCostTxt = D2Client::GAME::SCmd::TXT_ItemStatCost_GetLine(UNITSTAT_item_singleskill);
-              nBitVal = __frame4.nSkillId;
+              nBitVal = nSkillId;
               if (pStatCostTxt) {
                 nStatVal = (1 << (pStatCostTxt->saveBits[0] & 0x1f)) - 1;
               }
-              if (0 < (int)__frame4.nSkillLevel && (int)__frame4.nSkillLevel <= nStatVal) {
-                bIsStackable = Stats::StatsEx::SKILLS_ValidateSkillDescIndex(__frame4.nSkillId);
+              if (0 < (int)nSkillLevel && (int)nSkillLevel <= nStatVal) {
+                bIsStackable = Stats::StatsEx::SKILLS_ValidateSkillDescIndex(nSkillId);
                 if (bIsStackable) {
-                  Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_singleskill, __frame4.nSkillLevel, nBitVal);
+                  Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_singleskill, nSkillLevel, nBitVal);
                 }
               }
 
@@ -5422,12 +5375,12 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
                   goto read_generic_stat;
                 }
               nBitVal = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 10);
-              ItemMods::ITEMMODS_GetQualityFields1_2_3(nBitVal, &__frame4.nSkillTabGroup, &__frame4.nSkillTabIdx, &__frame4.nSkillTabCount);
-              if (7 < (int)__frame4.nSkillTabCount) {
-                __frame4.nSkillTabCount = 7;
+              ItemMods::ITEMMODS_GetQualityFields1_2_3(nBitVal, &nSkillTabGroup, &nSkillTabIdx, &nSkillTabCount);
+              if (7 < (int)nSkillTabCount) {
+                nSkillTabCount = 7;
               }
 
-              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_addskill_tab, __frame4.nSkillTabCount, __frame4.nSkillTabIdx + __frame4.nSkillTabGroup * 8);
+              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_addskill_tab, nSkillTabCount, nSkillTabIdx + nSkillTabGroup * 8);
               break;
               case UNITSTAT_item_skillonattack:
 
@@ -5438,8 +5391,8 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
                   goto read_generic_stat;
                 }
               nBitVal = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 0x15);
-              ItemMods::ITEMMODS_GetQualityFields2_3_4(nBitVal, &__frame3.nOnAttackChance, (uint32_t*)nOnAttackSkillBuf, &__frame3.nOnAttackSkillLevel);
-              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_skillonattack, __frame3.nOnAttackSkillLevel, (nOnAttackSkillBuf[0] & 0x3f) + __frame3.nOnAttackChance * 0x40);
+              ItemMods::ITEMMODS_GetQualityFields2_3_4(nBitVal, &nOnAttackChance, (uint32_t*)nOnAttackSkillBuf, &nOnAttackSkillLevel);
+              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_skillonattack, nOnAttackSkillLevel, (nOnAttackSkillBuf[0] & 0x3f) + nOnAttackChance * 0x40);
               break;
               case UNITSTAT_item_skillonhit:
 
@@ -5450,8 +5403,8 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
                   goto read_generic_stat;
                 }
               nBitVal = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 0x15);
-              ItemMods::ITEMMODS_GetQualityFields2_3_4(nBitVal, &__frame2.nOnHitChance, (uint32_t*)nOnHitSkillBuf, &__frame2.nOnHitSkillLevel);
-              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_skillonhit, __frame2.nOnHitSkillLevel, (nOnHitSkillBuf[0] & 0x3f) + __frame2.nOnHitChance * 0x40);
+              ItemMods::ITEMMODS_GetQualityFields2_3_4(nBitVal, &nOnHitChance, (uint32_t*)nOnHitSkillBuf, &nOnHitSkillLevel);
+              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_skillonhit, nOnHitSkillLevel, (nOnHitSkillBuf[0] & 0x3f) + nOnHitChance * 0x40);
               break;
               case UNITSTAT_item_skillongethit:
 
@@ -5462,8 +5415,8 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
                   goto read_generic_stat;
                 }
               nBitVal = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 0x15);
-              ItemMods::ITEMMODS_GetQualityFields2_3_4(nBitVal, &__frame1.nOnGetHitChance, (uint32_t*)nOnGetHitSkillBuf, &__frame1.nOnGetHitSkillLevel);
-              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_skillongethit, __frame1.nOnGetHitSkillLevel, (nOnGetHitSkillBuf[0] & 0x3f) + __frame1.nOnGetHitChance * 0x40);
+              ItemMods::ITEMMODS_GetQualityFields2_3_4(nBitVal, &nOnGetHitChance, (uint32_t*)nOnGetHitSkillBuf, &nOnGetHitSkillLevel);
+              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_skillongethit, nOnGetHitSkillLevel, (nOnGetHitSkillBuf[0] & 0x3f) + nOnGetHitChance * 0x40);
               break;
               case UNITSTAT_item_charged_skill:
 
@@ -5494,9 +5447,9 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
               }
 
               nBitVal = Fog::BitBuffer::ReadUnsigned(pBitBuffer, nClassId);
-              ItemMods::ITEMMODS_GetQualityAllFields(nBitVal, &__frame1.nChargeMax, (uint32_t*)nChargeBuf, &__frame0.nChargeSkillLevel, &__frame0.nChargeSkillId);
-              nStatVal = __frame1.nChargeMax << ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
-              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_charged_skill, (__frame0.nChargeSkillLevel & 0xff) + __frame0.nChargeSkillId * 0x100, (uint32_t)((uint32_t)(uint16_t)(short int)((uint32_t)nStatVal >> 0x10) << 16 | (uint32_t)(uint16_t)((short int)nStatVal + ((uint16_t)sgptDataTable->dwChargedSkillLevelMask & nChargeBuf[0]))));
+              ItemMods::ITEMMODS_GetQualityAllFields(nBitVal, &nChargeMax, (uint32_t*)nChargeBuf, &nChargeSkillLevel, &nChargeSkillId);
+              nStatVal = nChargeMax << ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
+              Stats::StatsEx::STATLIST_SetStatValue(pStatsEx, UNITSTAT_item_charged_skill, (nChargeSkillLevel & 0xff) + nChargeSkillId * 0x100, (uint32_t)((uint32_t)(uint16_t)(short int)((uint32_t)nStatVal >> 0x10) << 16 | (uint32_t)(uint16_t)((short int)nStatVal + ((uint16_t)sgptDataTable->dwChargedSkillLevelMask & nChargeBuf[0]))));
             }
 
             eStatId = Fog::BitBuffer::ReadUnsigned(pBitBuffer, 9);
@@ -5506,7 +5459,7 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
             }
           }
 
-          __frame4.bError = 1;
+          bError = 1;
         }
 
         fold_addclassskills:
@@ -5520,23 +5473,23 @@ int32_t __stdcall ITEM_DeserializeFromBitBuffer(D2UnitStrc * pUnit, D2BitBufferS
           Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_item_allskills, nStatVal, 0);
         }
       } else {
-        if (bExtended && __frame4.nStatListIdx == nStatVal - 1U) {
+        if (bExtended && nStatListIdx == nStatVal - 1U) {
           pItemStatCostTxt = (D2ItemStatCostTxt*)0xab;
           nParam1 = 0x40;
           goto read_stat_list;
         }
-        if (__frame4.nSetBitMask & 1 << ((uint8_t)__frame4.nStatListIdx & 0x1f)) {
-          pItemStatCostTxt = (D2ItemStatCostTxt*)aSetItemsStateList[__frame4.nStatListIdx];
+        if (nSetBitMask & 1 << ((uint8_t)nStatListIdx & 0x1f)) {
+          pItemStatCostTxt = (D2ItemStatCostTxt*)aSetItemsStateList[nStatListIdx];
           nParam1 = 0x2040;
           goto read_stat_list;
         }
       }
 
-      __frame4.nStatListIdx++;
-      nStatVal = __frame4.nStatListCount;
-    } while ((int)__frame4.nStatListIdx < __frame4.nStatListCount);
+      nStatListIdx++;
+      nStatVal = nStatListCount;
+    } while ((int)nStatListIdx < nStatListCount);
 
-    return (uint32_t)!__frame4.bError * 2 - 1;
+    return (uint32_t)!bError * 2 - 1;
 }
 
 void __stdcall ExtractItemDetails(uint8_t * pBytesAfterId, size_t size, BOOL isSave, D2UnitDataItemDetailsStrc * itemData) {
@@ -6664,26 +6617,19 @@ uint32_t __fastcall ITEMS_GetRequiredBodyType(D2UnitStrc * pItem) {
 
 // Computes the total gold cost to repair (and restock replenishable/charged items in) all 13 equipped slots of a player. For each slot item that needs repair, restocking, or recharging, calls CalculateTransactionCost with mode 3 and accumulates the sum. Invokes an optional pfnCallback after pricing each item. Returns total cost, or 0 if the player or inventory is null.
 int32_t __stdcall ITEMS_CalculateRepairAllCost(::SGAMEDATA * unk, D2UnitStrc * pPlayer, int32_t nNpcId, int32_t nDifficulty, D2BitBufferStrc * pBitBuffer, pfnItemTransactionCb pfnCallback) {
-    // Frame slots -12..-4 are ONE object: &nChargedCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nChargedCount;
-      int nTotalCost;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bVar1;
     uint32_t bCanRepair;
     int32_t nRepairCost;
     int nMaxStack;
     BOOL BVar2;
     int nCurStack;
+    int nChargedCount;
     if (!pPlayer) {
       return 0;
     }
 
     D2InventoryStrc* pInventory = pPlayer->pInventory;
-    __frame0.nTotalCost = 0;
+    int nTotalCost = 0;
     if (!pInventory) {
       return 0;
     }
@@ -6715,11 +6661,11 @@ int32_t __stdcall ITEMS_CalculateRepairAllCost(::SGAMEDATA * unk, D2UnitStrc * p
           }
         }
 
-        __frame0.nChargedCount = 0;
-        BVar2 = ITEMS_CheckChargedSkillFullyCharged(pItem, (bool*)&__frame0.nChargedCount);
-        if (BVar2 && !__frame0.nChargedCount || bVar1) {
+        nChargedCount = 0;
+        BVar2 = ITEMS_CheckChargedSkillFullyCharged(pItem, (bool*)&nChargedCount);
+        if (BVar2 && !nChargedCount || bVar1) {
           nRepairCost = ITEMS_CalcTransactionCost(pPlayer, pItem, nDifficulty, pBitBuffer, nNpcId, 3);
-          __frame0.nTotalCost += nRepairCost;
+          nTotalCost += nRepairCost;
           if (pfnCallback) {
             (*pfnCallback)(unk, pItem, pPlayer);
           }
@@ -6729,7 +6675,7 @@ int32_t __stdcall ITEMS_CalculateRepairAllCost(::SGAMEDATA * unk, D2UnitStrc * p
       nGridOffset++;
     } while (nGridOffset < 0xd);
 
-    return __frame0.nTotalCost;
+    return nTotalCost;
 }
 
 uint32_t __stdcall ITEM_IsActiveCharm(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {

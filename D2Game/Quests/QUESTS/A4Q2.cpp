@@ -851,15 +851,8 @@ void __fastcall Q27_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D
 
 // [A4Q3 Terror's End] Per-player: if QUEST_TerrorsEnd not Completed and the player's room is the room (or adjacent to the room) where Diablo died, and quest is not Completed/RewardAwaits, complete it via Q27_SetTerrorsEndCompleted. Credits the kill only to players near the corpse.
 BOOL __fastcall Q27_PlayerCheckNearDiablo(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
-    // Frame slots -16..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nAdjacentRoomCount;
-      int bIsNearDiablo;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nAdjacentRoomCount;
     D2UnitDataPlayerStrc* pDVar2 = D2Common::Units::GetPlayerData(pUnit);
     D2BitBufferStrc* pBitBuffer = pDVar2->pQuestRecord[pGame->nDifficulty];
     BOOL bCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TerrorsEnd, QUESTSTATE_Completed);
@@ -878,22 +871,22 @@ BOOL __fastcall Q27_PlayerCheckNearDiablo(::SGAMEDATA * pGame, D2UnitStrc * pUni
     }
 
     D2QuestDataA4Q2Strc* pDVar1 = pDVar3->pQuestSpecificData.pA4Q2;
-    __frame0.bIsNearDiablo = 0;
+    int bIsNearDiablo = 0;
     if (pRoom == (D2RoomStrc*)pDVar1->pDiabloRoom) {
-      __frame0.bIsNearDiablo = 1;
+      bIsNearDiablo = 1;
     } else {
       uint32_t i;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nAdjacentRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
       i = 0;
-      if (__frame0.nAdjacentRoomCount) {
+      if (nAdjacentRoomCount) {
         do {
-          if (__frame0.ppAdjacentRooms[i] == (D2RoomStrc*)pDVar1->pDiabloRoom) {
-            __frame0.bIsNearDiablo = 1;
+          if (ppAdjacentRooms[i] == (D2RoomStrc*)pDVar1->pDiabloRoom) {
+            bIsNearDiablo = 1;
             break;
           }
 
           i++;
-        } while (i < __frame0.nAdjacentRoomCount);
+        } while (i < nAdjacentRoomCount);
       }
     }
 
@@ -903,7 +896,7 @@ BOOL __fastcall Q27_PlayerCheckNearDiablo(::SGAMEDATA * pGame, D2UnitStrc * pUni
     }
 
     bCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TerrorsEnd, QUESTSTATE_RewardAwaits);
-    if (!(!bCompleted && __frame0.bIsNearDiablo)) {
+    if (!(!bCompleted && bIsNearDiablo)) {
       return 0;
     }
 

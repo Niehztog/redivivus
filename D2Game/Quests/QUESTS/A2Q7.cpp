@@ -622,20 +622,14 @@ bool __fastcall Q14_IsSevenTombsLessThanState4(::SGAMEDATA * pGame) {
 
 // Q14: compute Tyrael's post-Duriel spawn coordinates. Only if the portal-spawn-in-progress flag is set: picks a spot in Lut Gholein (LEVEL_LutGholein) near object class 0xc, finds free WARP-collision coords, writes x/y into pPoint and the room into *pdwParam. Returns 1 on success, 0 otherwise.
 BOOL __fastcall Q14_GetTyraelSpawnCoords(::SGAMEDATA * pGame, POINT * pPoint, D2RoomStrc * * pdwParam) {
-    // Frame slots -12..-4 are ONE object: &nSpawnY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      LONG nSpawnY;
-      LONG nSpawnX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    LONG nSpawnY;
+    LONG nSpawnX;
     D2QuestDataStrc* pSevenTombsData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_TheSevenTombs);
     if (!(pSevenTombsData && pSevenTombsData->pQuestSpecificData.pA2Q6->bPortalSpawnInProgress == 1)) {
       return 0;
     }
 
-    D2RoomStrc* pSpawnRoom = D2Common::DUNGEON::Dungeon::SpawnUnit(pGame->pAct[1], LEVEL_LutGholein, 0xc, (int*)&__frame0.nSpawnX, (int*)&__frame0.nSpawnY, 3);
+    D2RoomStrc* pSpawnRoom = D2Common::DUNGEON::Dungeon::SpawnUnit(pGame->pAct[1], LEVEL_LutGholein, 0xc, (int*)&nSpawnX, (int*)&nSpawnY, 3);
     if (!pSpawnRoom) {
       return 0;
     }
@@ -646,8 +640,8 @@ BOOL __fastcall Q14_GetTyraelSpawnCoords(::SGAMEDATA * pGame, POINT * pPoint, D2
       return 0;
     }
 
-    pPoint->x = __frame0.nSpawnX;
-    pPoint->y = __frame0.nSpawnY;
+    pPoint->x = nSpawnX;
+    pPoint->y = nSpawnY;
     *pdwParam = pSpawnRoom;
     return 1;
 }

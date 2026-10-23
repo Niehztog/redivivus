@@ -419,17 +419,10 @@ BOOL __stdcall CHATDLG_FindSubstringMatch(int32_t nTargetHash, int32_t nWordLen,
 }
 
 BOOL __stdcall CHATDLG_DetectCDKeyInString(char * szText) {
-    // Frame slots -16..-4 are ONE object: &dwKeyOut2 is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t dwKeyOut2;
-      uint32_t dwKeyType;
-      uint32_t nRemaining;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL BVar1;
     uint8_t cNullTerm;
+    uint32_t dwKeyOut2;
+    uint32_t dwKeyType;
     char cCur;
     int nCharsCollected;
     nCharsCollected = 0;
@@ -437,14 +430,15 @@ BOOL __stdcall CHATDLG_DetectCDKeyInString(char * szText) {
     pnStrLen = Storm::Source::SSTR::SStrLen(szText);
     int nPos;
     nPos = 0;
-    __frame0.nRemaining = pnStrLen;
+    uint32_t nRemaining;
+    nRemaining = pnStrLen;
     if (0 >= (int)pnStrLen) {
       return 0;
     }
 
     do {
       char szKeyBuf[16];
-      if ((int)__frame0.nRemaining < 0x10 - nCharsCollected) {
+      if ((int)nRemaining < 0x10 - nCharsCollected) {
         return 0;
       }
 
@@ -461,8 +455,8 @@ BOOL __stdcall CHATDLG_DetectCDKeyInString(char * szText) {
         check_key_complete:
         if (nCharsCollected == 0x10) {
           cNullTerm = 0;
-          BVar1 = ComCallback::COMCALLBACK_DetectCDKeyInMessage(szKeyBuf, &__frame0.dwKeyType, &__frame0.dwKeyOut2);
-          if (BVar1 && (__frame0.dwKeyType == 6 || __frame0.dwKeyType == 7 || __frame0.dwKeyType == 10 || __frame0.dwKeyType == 0xc)) {
+          BVar1 = ComCallback::COMCALLBACK_DetectCDKeyInMessage(szKeyBuf, &dwKeyType, &dwKeyOut2);
+          if (BVar1 && (dwKeyType == 6 || dwKeyType == 7 || dwKeyType == 10 || dwKeyType == 0xc)) {
             return 1;
           }
 
@@ -471,7 +465,7 @@ BOOL __stdcall CHATDLG_DetectCDKeyInString(char * szText) {
       }
 
       nPos++;
-      __frame0.nRemaining--;
+      nRemaining--;
     } while (nPos < (int)pnStrLen);
 
     return 0;

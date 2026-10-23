@@ -17,6 +17,7 @@
 #include "D2Lang/Unicode/UNISYS.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Src/ErrorManager.h"
+#include "Fog/Src/Excel.h"
 #include "globals/globals.h"
 #include "Bnclient/BNGatewayAccess.h"
 

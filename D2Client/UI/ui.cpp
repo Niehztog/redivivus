@@ -718,32 +718,25 @@ void __stdcall UI_FormatPlayerNameAndStatus(D2UnitStrc * pUnit, uint16_t * wszTe
 }
 
 void __stdcall UI_ShowMonsterNameBar(int32_t bStoreMode, D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &nInteractUnitGuid is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nInteractUnitGuid;
-      int32_t nHpBarValue;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    BOOL bHasInteract = npcmenu::GetInteractedUnitGuid(&__frame0.nInteractUnitGuid);
+    int nInteractUnitGuid;
+    BOOL bHasInteract = npcmenu::GetInteractedUnitGuid(&nInteractUnitGuid);
     if (bHasInteract) {
       return;
     }
 
-    __frame0.nHpBarValue = UI_GetMonsterHpBarValue(pUnit);
+    int32_t nHpBarValue = UI_GetMonsterHpBarValue(pUnit);
     int nScreenX = nHealthBarScreenX;
     int nScreenY = gnMercenaryHealthBarScreenY - 0x48;
     uint16_t* pwszMonsterName = UNIT::CUnit::GetName(pUnit);
     if (!bStoreMode) {
-      D2Win::Src::D2WinFont::D2WINFONT_SetTooltipAttributesWithCustomField(pwszMonsterName, nScreenX, nScreenY, 0, 1, __frame0.nHpBarValue);
+      D2Win::Src::D2WinFont::D2WINFONT_SetTooltipAttributesWithCustomField(pwszMonsterName, nScreenX, nScreenY, 0, 1, nHpBarValue);
     } else {
       UNICODE_007a2c80[0] = L'\0';
       if (pwszMonsterName) {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(UNICODE_007a2c80, pwszMonsterName);
         gnTooltipScreenY = nScreenY;
         gnTooltipScreenX = nScreenX;
-        gnTooltipHpBarValue = __frame0.nHpBarValue;
+        gnTooltipHpBarValue = nHpBarValue;
         return;
       }
     }
@@ -1045,22 +1038,16 @@ void __stdcall DRAW_UI_DeathMessage() {
 }
 
 void __fastcall UI_DrawPlayerNameOverhead(D2UnitStrc * pUnit) {
-    // Frame slots -40..-12 are ONE object: &nHpBarValue is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nHpBarValue;
-      int nViewLeft;
-      int nViewTop;
-      int nViewRight;
-      int nViewBottom;
-      int nCenterY;
-      int nCenterX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t wszName[128];
     tagRECT rcView;
     bool bIsPartied[4];
+    int nHpBarValue;
+    int nViewLeft;
+    int nViewTop;
+    int nViewRight;
+    int nViewBottom;
+    int nCenterY;
+    int nCenterX;
     POINT ptScreen;
     uint32_t eBorderType = Path::DRAW_GetTypeOfBorder();
     if (eBorderType == 3) {
@@ -1072,9 +1059,9 @@ void __fastcall UI_DrawPlayerNameOverhead(D2UnitStrc * pUnit) {
       return;
     }
 
-    GAME::View::VIEW_GetViewRect(D2GameView, &__frame0.nViewLeft, &__frame0.nViewTop, &__frame0.nViewRight, &__frame0.nViewBottom);
-    GAME::View::GetCenterXY(D2GameView, &__frame0.nCenterX, &__frame0.nCenterY);
-    /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&rcView, __frame0.nCenterX, __frame0.nCenterY, __frame0.nViewRight - __frame0.nViewLeft + __frame0.nCenterX, __frame0.nViewBottom - __frame0.nViewTop + __frame0.nCenterY);
+    GAME::View::VIEW_GetViewRect(D2GameView, &nViewLeft, &nViewTop, &nViewRight, &nViewBottom);
+    GAME::View::GetCenterXY(D2GameView, &nCenterX, &nCenterY);
+    /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&rcView, nCenterX, nCenterY, nViewRight - nViewLeft + nCenterX, nViewBottom - nViewTop + nCenterY);
     D2Common::Units::GetTargetCoords(pUnit, &ptScreen);
     ptScreen.x -= rcView.left;
     ptScreen.y += -0x46 - rcView.top;
@@ -1091,7 +1078,7 @@ void __fastcall UI_DrawPlayerNameOverhead(D2UnitStrc * pUnit) {
     }
 
     Fog::File::CONTAINER_InitializeBuffer(wszName, 2, 0x80, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
-    UI_FormatPlayerNameAndStatus(pUnit, wszName, 0x80, bIsPartied, &__frame0.nHpBarValue);
+    UI_FormatPlayerNameAndStatus(pUnit, wszName, 0x80, bIsPartied, &nHpBarValue);
 }
 
 void __stdcall UI_DrawPlayerStateOverlays() {
@@ -1762,21 +1749,13 @@ int UI_ButtonCallback_CloseDialog() {
 
 // @sourcefile .\UI\ui.cpp
 void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
-    // Frame slots -28..-12 are ONE object: &nWordWrapLineCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nWordWrapLineCount;
-      int pnCurrentGold;
-      ::EditBoxWrapper* pAllocCtx;
-      void* pPrevExceptionList;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nGoldInventory;
     uint16_t* pwszPrompt;
     D2TextLineStrc* pWordWrapLine;
     uint16_t wPromptLocaleId;
     uint16_t wszPromptText[256];
+    int nWordWrapLineCount;
+    int pnCurrentGold;
     eD2UnitStat eGoldStat;
     eD2UnitStat eGoldStatType;
     uint16_t nStatLayer;
@@ -1784,9 +1763,9 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
     uint16_t* pnTotalGoldArg;
     uint32_t nCleanupStage = -1;
     pfnEHHandlerRoutine pfnEHHandler = __GSHandlerCheck_EH_6ca05c;
-    __frame0.pPrevExceptionList = ExceptionList;
-    ExceptionList = &__frame0.pPrevExceptionList;
-    __frame0.pAllocCtx = (::EditBoxWrapper*)nTransactionType;
+    void* pPrevExceptionList = ExceptionList;
+    ExceptionList = &pPrevExceptionList;
+    ::EditBoxWrapper* pAllocCtx = (::EditBoxWrapper*)nTransactionType;
     D2UnitStrc* pPlayer = UNIT::Player::GetPlayerUnit_UI();
     if (pPlayer) {
       int nGoldBank;
@@ -1828,13 +1807,13 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
             break;
             default:
               UI_CloseCurrentDialog();
-            ExceptionList = __frame0.pPrevExceptionList;
+            ExceptionList = pPrevExceptionList;
             return;
           }
 
           nStatLayer = 0;
           pPlayer = UNIT::Player::GetPlayerUnit_UI();
-          __frame0.pnCurrentGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pPlayer, eGoldStat, nStatLayer);
+          pnCurrentGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pPlayer, eGoldStat, nStatLayer);
           gnGoldDialogTransactionType = nTransactionType;
           Dialog::gpDialog = Dialog::AllocDialogStrcWithBackground(215, 140, UI_DialogCloseCallback, 0, 0, 1);
           Dialog::DIALOG_SetHighlightStyle(Dialog::gpDialog, 1);
@@ -1853,38 +1832,38 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
             pnTotalGoldArg = (uint16_t*)(nGoldBank + nGoldInventory);
             pwszPrompt = D2Lang::StrTable::strtable::GetLocaleString(wPromptLocaleId);
             D2Lang::Unicode::UNISYS::UNICODE_FormatWideString(0x100, wszPromptText, pwszPrompt, pnTotalGoldArg);
-            nTransactionType = (int32_t)__frame0.pAllocCtx;
+            nTransactionType = (int32_t)pAllocCtx;
           } else {
             pwszPrompt = D2Lang::StrTable::strtable::GetLocaleString(wPromptLocaleId);
             D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszPromptText, pwszPrompt);
           }
 
-          pWordWrapLine = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(wszPromptText, &__frame0.nWordWrapLineCount, 200);
+          pWordWrapLine = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(wszPromptText, &nWordWrapLineCount, 200);
           while (pWordWrapLine) {
             Dialog::AddStringData(Dialog::gpDialog, pWordWrapLine->wszLine, 0x18, 0, 4, 1, nullptr, 0);
             pNextWordWrapLine = pWordWrapLine->pNext;
             Fog::Memory::FreeClientMemory(pWordWrapLine->wszLine, ".\\UI\\ui.cpp", 0x1827, 0);
             Fog::Memory::FreeClientMemory(pWordWrapLine, ".\\UI\\ui.cpp", 0x1828, 0);
             pWordWrapLine = pNextWordWrapLine;
-            nTransactionType = (int32_t)__frame0.pAllocCtx;
+            nTransactionType = (int32_t)pAllocCtx;
           }
 
-          __frame0.pAllocCtx = (::EditBoxWrapper*)Storm::SMem::SMemAlloc(0xc, "new", -1, 0);
+          pAllocCtx = (::EditBoxWrapper*)Storm::SMem::SMemAlloc(0xc, "new", -1, 0);
           nCleanupStage = 0;
-          if (!__frame0.pAllocCtx) {
+          if (!pAllocCtx) {
             gpCurrentDialog = 0;
           } else {
-            gpCurrentDialog = Spinner::SpinnerWrapper::Constructor((::SpinnerWrapper*)__frame0.pAllocCtx, 0xdf, 0xdb, 0, (fpSpinnerRepeatAction)UI_GoldDialogScrollCallback);
+            gpCurrentDialog = Spinner::SpinnerWrapper::Constructor((::SpinnerWrapper*)pAllocCtx, 0xdf, 0xdb, 0, (fpSpinnerRepeatAction)UI_GoldDialogScrollCallback);
           }
 
           nCleanupStage = -1;
           Dialog::AllocDialogSub(Dialog::gpDialog, gpCurrentDialog, 0, 0);
-          __frame0.pAllocCtx = (::EditBoxWrapper*)Storm::SMem::SMemAlloc(0xc, "new", -1, 0);
+          pAllocCtx = (::EditBoxWrapper*)Storm::SMem::SMemAlloc(0xc, "new", -1, 0);
           nCleanupStage = 1;
-          if (!__frame0.pAllocCtx) {
+          if (!pAllocCtx) {
             gpDialogDefaultActionCallback = 0;
           } else {
-            gpDialogDefaultActionCallback = Editbox::EditBoxWrapper::Constructor(__frame0.pAllocCtx, 0x102, 0xe4, 100, 1, __frame0.pnCurrentGold, 10, UI_GoldInputCallback_ReturnZero, 1);
+            gpDialogDefaultActionCallback = Editbox::EditBoxWrapper::Constructor(pAllocCtx, 0x102, 0xe4, 100, 1, pnCurrentGold, 10, UI_GoldInputCallback_ReturnZero, 1);
           }
 
           nCleanupStage = -1;
@@ -1893,46 +1872,46 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
             gpDialogDefaultActionCallback->pVtable->SetKeyRepeat(gpDialogDefaultActionCallback, 1);
           }
 
-          __frame0.pAllocCtx = (::EditBoxWrapper*)Storm::SMem::SMemAlloc(0xc, "new", -1, 0);
+          pAllocCtx = (::EditBoxWrapper*)Storm::SMem::SMemAlloc(0xc, "new", -1, 0);
           nCleanupStage = 2;
-          if (!__frame0.pAllocCtx) {
+          if (!pAllocCtx) {
             gpUiGoldTransactionDialog = 0;
           } else {
-            gpUiGoldTransactionDialog = Button::ButtonWrapper::Constructor((::ButtonWrapper*)__frame0.pAllocCtx, 0xfa, 0x11f, 0, UI_GoldDialogConfirmCallback);
+            gpUiGoldTransactionDialog = Button::ButtonWrapper::Constructor((::ButtonWrapper*)pAllocCtx, 0xfa, 0x11f, 0, UI_GoldDialogConfirmCallback);
           }
 
           nCleanupStage = -1;
           Dialog::AllocDialogSub(Dialog::gpDialog, gpUiGoldTransactionDialog, 0, 0);
           gpUiGoldTransactionDialog->pVtable->SetAccelerator(gpUiGoldTransactionDialog, 1);
-          __frame0.pAllocCtx = (::EditBoxWrapper*)Storm::SMem::SMemAlloc(0xc, "new", -1, 0);
+          pAllocCtx = (::EditBoxWrapper*)Storm::SMem::SMemAlloc(0xc, "new", -1, 0);
           nCleanupStage = 3;
-          if (!__frame0.pAllocCtx) {
+          if (!pAllocCtx) {
             gpUiGoldDialogCancelButton = 0;
           } else {
-            gpUiGoldDialogCancelButton = Button::ButtonWrapper::Constructor((::ButtonWrapper*)__frame0.pAllocCtx, 0x163, 0x11f, 1, UI_ButtonCallback_CloseDialog);
+            gpUiGoldDialogCancelButton = Button::ButtonWrapper::Constructor((::ButtonWrapper*)pAllocCtx, 0x163, 0x11f, 1, UI_ButtonCallback_CloseDialog);
           }
 
           nCleanupStage = -1;
           Dialog::AllocDialogSub(Dialog::gpDialog, gpUiGoldDialogCancelButton, 0, 0);
           if (nTransactionType == 2) {
             Trade::CancelTrade();
-            ExceptionList = __frame0.pPrevExceptionList;
+            ExceptionList = pPrevExceptionList;
             return;
           }
           if ((nTransactionType == 3 || nTransactionType == 7 || nTransactionType == 6) && gpDialogDefaultActionCallback) {
-            gpDialogDefaultActionCallback->pVtable->SetNumber(gpDialogDefaultActionCallback, __frame0.pnCurrentGold);
-            ExceptionList = __frame0.pPrevExceptionList;
+            gpDialogDefaultActionCallback->pVtable->SetNumber(gpDialogDefaultActionCallback, pnCurrentGold);
+            ExceptionList = pPrevExceptionList;
             return;
           }
         }
 
-        ExceptionList = __frame0.pPrevExceptionList;
+        ExceptionList = pPrevExceptionList;
         return;
       }
     }
 
     UI_CloseCurrentDialog();
-    ExceptionList = __frame0.pPrevExceptionList;
+    ExceptionList = pPrevExceptionList;
 }
 
 void __stdcall UI_DrawDialogBackground() {
@@ -5034,20 +5013,6 @@ void __stdcall DRAW_UI_StatWindow_I() {
     }
 };
 
-    // Frame slots -56..-4 are ONE object: &nTextWidth4 is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTextWidth4;
-      uint16_t wszStatPts[10];
-      uint8_t __pad24[8];
-      uint32_t nStatEntryIdx;
-      uint8_t __pad36[4];
-      D2CharStatsTxt* pCharStatsTxtOrFont;
-      uint8_t __pad44[4];
-      uint32_t nColorIdx;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 52, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     char cVar1;
     uint8_t bVar2;
     uint8_t byDifficulty;
@@ -5072,6 +5037,10 @@ void __stdcall DRAW_UI_StatWindow_I() {
     char szStatPtsAscii[12];
     int nTextHeight4;
     D2GfxDataStrc sGfxData;
+    int nTextWidth4;
+    uint16_t wszStatPts[10];
+    uint32_t nStatEntryIdx;
+    uint32_t nColorIdx;
     bool bResistAtCap;
     eD2UnitStat eMaxResStat;
     int32_t nDrawX;
@@ -5109,7 +5078,7 @@ void __stdcall DRAW_UI_StatWindow_I() {
       sGfxData.pDC6 = Panel::skillpoints;
       sGfxData.nFrameNumber = 0;
       D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, gnPanelOffsetX + 3, gnPanelOffsetY - 0x74 + ScreenSizeY, -1, DRAW_SOLID, nullptr);
-      memset(__frame0.wszStatPts, 0, 10 * sizeof(__frame0.wszStatPts[0]));
+      memset(wszStatPts, 0, 10 * sizeof(wszStatPts[0]));
       D2Win::Src::D2WinFont::SetAndReturnLastFont(6);
       nStatPts2 = D2Lang::StrTable::strtable::GetLocaleString(0xfeb);
       iVar5 = gnPanelOffsetY - 0x7d + ScreenSizeY;
@@ -5134,16 +5103,16 @@ void __stdcall DRAW_UI_StatWindow_I() {
       iVar8 = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit_00, UNITSTAT_statpts, 0);
       /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szStatPtsAscii, "%i", iVar8);
       D2Win::Src::D2WinFont::SetAndReturnLastFont(1);
-      D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize((uint16_t*)__frame0.wszStatPts, szStatPtsAscii, 9);
+      D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize((uint16_t*)wszStatPts, szStatPtsAscii, 9);
       iVar5 = gnPanelOffsetY - 0x78 + ScreenSizeY;
       nDrawY = gnPanelOffsetX + 0x5c;
       nWidth = gnPanelOffsetX - nDrawY + 0x80;
-      iVar8 = D2Win::Src::D2WinFont::DRAW_text0((uint16_t*)__frame0.wszStatPts);
+      iVar8 = D2Win::Src::D2WinFont::DRAW_text0((uint16_t*)wszStatPts);
       if (iVar8 < nWidth) {
         nDrawY += nWidth - iVar8 >> 1;
       }
 
-      D2Win::Src::D2WinFont::DRAW_text((uint16_t*)__frame0.wszStatPts, nDrawY, iVar5, 0, 0);
+      D2Win::Src::D2WinFont::DRAW_text((uint16_t*)wszStatPts, nDrawY, iVar5, 0, 0);
     }
 
     iVar8 = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit_00, UNITSTAT_statpts, 0);
@@ -5163,7 +5132,8 @@ void __stdcall DRAW_UI_StatWindow_I() {
     }
 
     D2Win::Src::D2WinFont::SetAndReturnLastFont(6);
-    __frame0.pCharStatsTxtOrFont = 0;
+    D2CharStatsTxt* pCharStatsTxtOrFont;
+    pCharStatsTxtOrFont = 0;
     do {
       nStatPts2 = wszStatDescBuf;
       for (nDrawY = 0x32; nDrawY; nDrawY--) {
@@ -5173,11 +5143,11 @@ void __stdcall DRAW_UI_StatWindow_I() {
       }
 
       nWStrBufLen = 99;
-      nStatPts2 = D2Lang::StrTable::strtable::GetLocaleString(*(uint16_t*)((int)gaStatDescRows + (int)__frame0.pCharStatsTxtOrFont + 0xcU));
+      nStatPts2 = D2Lang::StrTable::strtable::GetLocaleString(*(uint16_t*)((int)gaStatDescRows + (int)pCharStatsTxtOrFont + 0xcU));
       D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(wszStatDescBuf, nStatPts2, nWStrBufLen);
-      nDrawX = *(int*)((int)gaStatDescRows + (int)__frame0.pCharStatsTxtOrFont) + gnPanelOffsetX;
-      nWidth = *(int*)((int)gaStatDescRows + (int)__frame0.pCharStatsTxtOrFont + 8U) + gnPanelOffsetX;
-      nDrawY = *(int*)((int)gaStatDescRows + (int)__frame0.pCharStatsTxtOrFont + 4U) + gnPanelOffsetY - 0x1e0 + ScreenSizeY;
+      nDrawX = *(int*)((int)gaStatDescRows + (int)pCharStatsTxtOrFont) + gnPanelOffsetX;
+      nWidth = *(int*)((int)gaStatDescRows + (int)pCharStatsTxtOrFont + 8U) + gnPanelOffsetX;
+      nDrawY = *(int*)((int)gaStatDescRows + (int)pCharStatsTxtOrFont + 4U) + gnPanelOffsetY - 0x1e0 + ScreenSizeY;
       nStatPts2 = wszStatDescBuf;
       wszStatDescBuf[99] = L'\0';
       iVar8 = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(nStatPts2);
@@ -5223,8 +5193,8 @@ void __stdcall DRAW_UI_StatWindow_I() {
       pWszLine = wszStatDescBuf;
       draw_final_line:
       D2Win::Src::D2WinFont::DRAW_text(pWszLine, nDrawX, nDrawY, 0, 0);
-      __frame0.pCharStatsTxtOrFont = (D2CharStatsTxt*)((int)__frame0.pCharStatsTxtOrFont + 0x12);
-    } while ((uintptr_t)__frame0.pCharStatsTxtOrFont < 0x10e);
+      pCharStatsTxtOrFont = (D2CharStatsTxt*)((int)pCharStatsTxtOrFont + 0x12);
+    } while ((uintptr_t)pCharStatsTxtOrFont < 0x10e);
 
     SkillDesc::DRAW_UI_STAT_Damage(pUnit_00);
     D2Win::Src::D2WinFont::SetAndReturnLastFont(0);
@@ -5252,20 +5222,20 @@ void __stdcall DRAW_UI_StatWindow_I() {
       char* pRosterName;
       nMouseXCast = pUnit_00->nClassId;
       if (nMouseXCast < 0 || sgptDataTable->nTxtCharStatsSize <= nMouseXCast) {
-        __frame0.pCharStatsTxtOrFont = 0;
+        pCharStatsTxtOrFont = 0;
       } else {
-        __frame0.pCharStatsTxtOrFont = sgptDataTable->pTxtCharStats + nMouseXCast;
+        pCharStatsTxtOrFont = sgptDataTable->pTxtCharStats + nMouseXCast;
       }
 
       iVar3 = gnPanelOffsetY - 0x1c7 + ScreenSizeY;
       nMouseXCast = gnPanelOffsetX + 0xc1;
       nDrawY = gnPanelOffsetX - nMouseXCast + 0x137;
-      iVar8 = D2Win::Src::D2WinFont::DRAW_text0(__frame0.pCharStatsTxtOrFont->wszClass);
+      iVar8 = D2Win::Src::D2WinFont::DRAW_text0(pCharStatsTxtOrFont->wszClass);
       if (iVar8 < nDrawY) {
         nMouseXCast += nDrawY - iVar8 >> 1;
       }
 
-      D2Win::Src::D2WinFont::DRAW_text(__frame0.pCharStatsTxtOrFont->wszClass, nMouseXCast, iVar3, 0, 0);
+      D2Win::Src::D2WinFont::DRAW_text(pCharStatsTxtOrFont->wszClass, nMouseXCast, iVar3, 0, 0);
       pRosterName = GAME::Roster::GetPlayerRosterName(pUnit_00);
       pNameEnd = pRosterName;
       pNameEnd = pNameEnd + strlen(pNameEnd) + 1;
@@ -5293,23 +5263,23 @@ void __stdcall DRAW_UI_StatWindow_I() {
       D2Win::Src::D2WinFont::SetAndReturnLastFont(1);
     }
 
-    for (__frame0.nStatEntryIdx = 0; __frame0.nStatEntryIdx <= 0x11; __frame0.nStatEntryIdx++) {
-      __frame0.nColorIdx = 0;
+    for (nStatEntryIdx = 0; nStatEntryIdx <= 0x11; nStatEntryIdx++) {
+      nColorIdx = 0;
       bResistAtCap = false;
-      nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit_00, gaStatPanelRows[__frame0.nStatEntryIdx].nStatId, 0);
-      iVar8 = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit_00, gaStatPanelRows[__frame0.nStatEntryIdx].nStatId, 0);
-      if (0x27 < gaStatPanelRows[__frame0.nStatEntryIdx].nStatId - 6U) {
+      nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit_00, gaStatPanelRows[nStatEntryIdx].nStatId, 0);
+      iVar8 = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit_00, gaStatPanelRows[nStatEntryIdx].nStatId, 0);
+      if (0x27 < gaStatPanelRows[nStatEntryIdx].nStatId - 6U) {
         format_raw_stat:
         if (iVar8 < (int)nStatVal) {
-          __frame0.nColorIdx = 3;
+          nColorIdx = 3;
         } else if ((int)nStatVal < iVar8) {
-          __frame0.nColorIdx = 1;
+          nColorIdx = 1;
         }
         /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szValueAscii, "%ld", nStatVal);
         nDisplayVal = nStatVal;
       } else {
         nDisplayVal = (int)nStatVal >> 8;
-        switch (gaStatPanelRows[__frame0.nStatEntryIdx].nStatId) {
+        switch (gaStatPanelRows[nStatEntryIdx].nStatId) {
           case 6:
             pUnit = UNIT::Player::GetPlayerUnit_UI();
           if (pUnit && pUnit->eUnitType == UNIT_PLAYER && pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Dead && nDisplayVal < 2) {
@@ -5321,9 +5291,9 @@ void __stdcall DRAW_UI_StatWindow_I() {
           break;
           case 7:
             if (iVar8 < (int)nStatVal) {
-              __frame0.nColorIdx = 3;
+              nColorIdx = 3;
             } else if ((int)nStatVal < iVar8) {
-              __frame0.nColorIdx = 1;
+              nColorIdx = 1;
             }
           case 8:
             /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szValueAscii, "%ld", nDisplayVal);
@@ -5331,9 +5301,9 @@ void __stdcall DRAW_UI_StatWindow_I() {
           break;
           case 9:
             if (iVar8 < (int)nStatVal) {
-              __frame0.nColorIdx = 3;
+              nColorIdx = 3;
             } else if ((int)nStatVal < iVar8) {
-              __frame0.nColorIdx = 1;
+              nColorIdx = 1;
             }
           /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szValueAscii, "%ld", nDisplayVal);
           bResistAtCap = true;
@@ -5344,9 +5314,9 @@ void __stdcall DRAW_UI_StatWindow_I() {
           break;
           case 0xb:
             if (iVar8 < (int)nStatVal) {
-              __frame0.nColorIdx = 3;
+              nColorIdx = 3;
             } else {
-              __frame0.nColorIdx = (uint32_t)((int)nStatVal < iVar8);
+              nColorIdx = (uint32_t)((int)nStatVal < iVar8);
             }
           /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szValueAscii, "%ld", nDisplayVal);
           bResistAtCap = true;
@@ -5355,9 +5325,9 @@ void __stdcall DRAW_UI_StatWindow_I() {
             goto format_raw_stat;
           case 0xd:
             D2Lang::StrTable::strtable::STRTABLE_FormatNumber(wszTextBuf, nStatVal, 0x80);
-          iVar3 = gaStatPanelRows[__frame0.nStatEntryIdx].nY + gnPanelOffsetY - 0x1e0 + ScreenSizeY;
-          iVar8 = gaStatPanelRows[__frame0.nStatEntryIdx].nX1 + gnPanelOffsetX;
-          nMouseXCast = gaStatPanelRows[__frame0.nStatEntryIdx].nX2 - iVar8 + 1 + gnPanelOffsetX;
+          iVar3 = gaStatPanelRows[nStatEntryIdx].nY + gnPanelOffsetY - 0x1e0 + ScreenSizeY;
+          iVar8 = gaStatPanelRows[nStatEntryIdx].nX1 + gnPanelOffsetX;
+          nMouseXCast = gaStatPanelRows[nStatEntryIdx].nX2 - iVar8 + 1 + gnPanelOffsetX;
           goto draw_exp_number;
           case 0x1e:
             iVar8 = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit_00, UNITSTAT_level, 0);
@@ -5368,9 +5338,9 @@ void __stdcall DRAW_UI_StatWindow_I() {
           }
 
           D2Lang::StrTable::strtable::STRTABLE_FormatNumber(wszTextBuf, nStatVal, 0x80);
-          iVar3 = gaStatPanelRows[__frame0.nStatEntryIdx].nY + gnPanelOffsetY - 0x1e0 + ScreenSizeY;
-          iVar8 = gaStatPanelRows[__frame0.nStatEntryIdx].nX1 + gnPanelOffsetX;
-          nMouseXCast = gaStatPanelRows[__frame0.nStatEntryIdx].nX2 - iVar8 + 1 + gnPanelOffsetX;
+          iVar3 = gaStatPanelRows[nStatEntryIdx].nY + gnPanelOffsetY - 0x1e0 + ScreenSizeY;
+          iVar8 = gaStatPanelRows[nStatEntryIdx].nX1 + gnPanelOffsetX;
+          nMouseXCast = gaStatPanelRows[nStatEntryIdx].nX2 - iVar8 + 1 + gnPanelOffsetX;
           draw_exp_number:
           nDrawX = D2Win::Src::D2WinFont::DRAW_text0(wszTextBuf);
           if (nDrawX < nMouseXCast) {
@@ -5383,21 +5353,21 @@ void __stdcall DRAW_UI_StatWindow_I() {
             nDisplayVal = D2Common::Units::GetDefense(pUnit_00);
           bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasFireState(pUnit_00);
           if (bExpansion) {
-            __frame0.nColorIdx = 3;
+            nColorIdx = 3;
           }
           if (pUnit_00->pInventory) {
             bExpansion = D2Common::INVENTORY::Inventory::INVENTORY_GetEquippedShield(pUnit_00->pInventory, nullptr);
             if (bExpansion) {
               eShieldState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit_00, STATE_holyshield);
               if (eShieldState != STATE_none) {
-                __frame0.nColorIdx = 3;
+                nColorIdx = 3;
               }
             }
           }
 
           bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasExpState(pUnit_00);
           if (bExpansion) {
-            __frame0.nColorIdx = 1;
+            nColorIdx = 1;
           }
 
           /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szValueAscii, "%ld", nDisplayVal);
@@ -5418,7 +5388,7 @@ void __stdcall DRAW_UI_StatWindow_I() {
             bVar2 = GAME::Game::GetDificulity();
           pDVar4 = D2Common::DATATBLS::DataTbls::GetDifficultyLevels((uint32_t)bVar2);
           nMouseXCast = 0;
-          switch (gaStatPanelRows[__frame0.nStatEntryIdx].nStatId) {
+          switch (gaStatPanelRows[nStatEntryIdx].nStatId) {
             case 0x25:
               eMaxResStat = UNITSTAT_maxmagicresist;
             break;
@@ -5427,12 +5397,12 @@ void __stdcall DRAW_UI_StatWindow_I() {
             case 0x27:
               bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasLifeState(pUnit_00);
             if (bExpansion) {
-              __frame0.nColorIdx = 3;
+              nColorIdx = 3;
             }
 
             bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasGoldState(pUnit_00);
             if (bExpansion) {
-              __frame0.nColorIdx = 1;
+              nColorIdx = 1;
             }
 
             eMaxResStat = UNITSTAT_maxfireresist;
@@ -5440,12 +5410,12 @@ void __stdcall DRAW_UI_StatWindow_I() {
             case 0x29:
               bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasStaminaState(pUnit_00);
             if (bExpansion) {
-              __frame0.nColorIdx = 3;
+              nColorIdx = 3;
             }
 
             bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasSkillState(pUnit_00);
             if (bExpansion) {
-              __frame0.nColorIdx = 1;
+              nColorIdx = 1;
             }
 
             eMaxResStat = UNITSTAT_maxlightresist;
@@ -5453,12 +5423,12 @@ void __stdcall DRAW_UI_StatWindow_I() {
             case 0x2b:
               bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasManaState(pUnit_00);
             if (bExpansion) {
-              __frame0.nColorIdx = 3;
+              nColorIdx = 3;
             }
 
             bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasMagicFindState(pUnit_00);
             if (bExpansion) {
-              __frame0.nColorIdx = 1;
+              nColorIdx = 1;
             }
 
             eMaxResStat = UNITSTAT_maxcoldresist;
@@ -5466,12 +5436,12 @@ void __stdcall DRAW_UI_StatWindow_I() {
             case 0x2d:
               bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasDefenseState(pUnit_00);
             if (bExpansion) {
-              __frame0.nColorIdx = 3;
+              nColorIdx = 3;
             }
 
             bExpansion = D2Common::DATATBLS::ItemStats::STATES_HasAbsorbState(pUnit_00);
             if (bExpansion) {
-              __frame0.nColorIdx = 1;
+              nColorIdx = 1;
             }
 
             eMaxResStat = UNITSTAT_maxpoisonresist;
@@ -5513,14 +5483,14 @@ void __stdcall DRAW_UI_StatWindow_I() {
 
             color_negative_resist:
             if ((int)nDisplayVal < 0) {
-              __frame0.nColorIdx = 1;
+              nColorIdx = 1;
             }
           } else {
             color_capped_resist:
-            if (__frame0.nColorIdx == 3) {
+            if (nColorIdx == 3) {
               goto color_negative_resist;
             }
-            __frame0.nColorIdx = 4;
+            nColorIdx = 4;
           }
 
           /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szValueAscii, "%ld", nDisplayVal);
@@ -5530,22 +5500,22 @@ void __stdcall DRAW_UI_StatWindow_I() {
 
       D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszTextBuf, szValueAscii, 0x80);
       wszTextBuf[0x7f] = L'\0';
-      __frame0.pCharStatsTxtOrFont = (D2CharStatsTxt*)0xe;
-      if (bResistAtCap && (999 < (int)nDisplayVal || (D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszTextBuf, &__frame0.nTextWidth4, &nTextHeight4) , gaStatPanelRows[__frame0.nStatEntryIdx].nX2 - gaStatPanelRows[__frame0.nStatEntryIdx].nX1 <= __frame0.nTextWidth4))) {
-        __frame0.pCharStatsTxtOrFont = (D2CharStatsTxt*)D2Win::Src::D2WinFont::SetAndReturnLastFont(0);
+      pCharStatsTxtOrFont = (D2CharStatsTxt*)0xe;
+      if (bResistAtCap && (999 < (int)nDisplayVal || (D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszTextBuf, &nTextWidth4, &nTextHeight4) , gaStatPanelRows[nStatEntryIdx].nX2 - gaStatPanelRows[nStatEntryIdx].nX1 <= nTextWidth4))) {
+        pCharStatsTxtOrFont = (D2CharStatsTxt*)D2Win::Src::D2WinFont::SetAndReturnLastFont(0);
       }
 
-      iVar3 = gaStatPanelRows[__frame0.nStatEntryIdx].nY + gnPanelOffsetY - 0x1e0 + ScreenSizeY;
-      nDrawX = gaStatPanelRows[__frame0.nStatEntryIdx].nX1 + gnPanelOffsetX;
-      nMouseXCast = gaStatPanelRows[__frame0.nStatEntryIdx].nX2 - nDrawX + 1 + gnPanelOffsetX;
+      iVar3 = gaStatPanelRows[nStatEntryIdx].nY + gnPanelOffsetY - 0x1e0 + ScreenSizeY;
+      nDrawX = gaStatPanelRows[nStatEntryIdx].nX1 + gnPanelOffsetX;
+      nMouseXCast = gaStatPanelRows[nStatEntryIdx].nX2 - nDrawX + 1 + gnPanelOffsetX;
       iVar8 = D2Win::Src::D2WinFont::DRAW_text0(wszTextBuf);
       if (iVar8 < nMouseXCast) {
         nDrawX += nMouseXCast - iVar8 >> 1;
       }
 
-      D2Win::Src::D2WinFont::DRAW_text(wszTextBuf, nDrawX, iVar3, __frame0.nColorIdx, 0);
-      if (__frame0.pCharStatsTxtOrFont != (D2CharStatsTxt*)0xe) {
-        D2Win::Src::D2WinFont::SetAndReturnLastFont((int32_t)__frame0.pCharStatsTxtOrFont);
+      D2Win::Src::D2WinFont::DRAW_text(wszTextBuf, nDrawX, iVar3, nColorIdx, 0);
+      if (pCharStatsTxtOrFont != (D2CharStatsTxt*)0xe) {
+        D2Win::Src::D2WinFont::SetAndReturnLastFont((int32_t)pCharStatsTxtOrFont);
       }
     }
 }
@@ -5978,19 +5948,13 @@ void __stdcall PACKET_SendUnitInteraction0x44(D2UIMouseMsgStrc * pMsg) {
 }
 
 void __stdcall DRAW_UI_CASH() {
-    // Frame slots -16..-4 are ONE object: &nDC6Handle is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nDC6Handle;
-      uint32_t nItemWidth;
-      uint32_t nItemHeightPx;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t bDC6Loaded;
     int nSpriteHandleResult;
     uint32_t nYOffset;
     D2GfxDataStrc sGfxData;
+    int nDC6Handle;
+    uint32_t nItemWidth;
+    uint32_t nItemHeightPx;
     if (!gnPlayerCashDisplay) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x31d);
       exit(-1);
@@ -6010,7 +5974,7 @@ void __stdcall DRAW_UI_CASH() {
       }
 
       memset(&sGfxData, 0, 0x48);
-      bDC6Loaded = DC6_AssignParams(&sGfxData, pUnit, nullptr, 0, 0, &__frame0.nDC6Handle, '\x01', (D2UnitStrc*)-1);
+      bDC6Loaded = DC6_AssignParams(&sGfxData, pUnit, nullptr, 0, 0, &nDC6Handle, '\x01', (D2UnitStrc*)-1);
       if (!bDC6Loaded) {
         return;
       }
@@ -6020,14 +5984,14 @@ void __stdcall DRAW_UI_CASH() {
         return;
       }
 
-      GFXUTIL_GetOverlayDimensions(pUnit, 0, 0, (D2InventoryStrc*)&__frame0.nItemWidth, &__frame0.nItemHeightPx);
+      GFXUTIL_GetOverlayDimensions(pUnit, 0, 0, (D2InventoryStrc*)&nItemWidth, &nItemHeightPx);
       D2Common::Units::SetupUpdateFlag(pUnit, 0);
       nYOffset = 0;
-      if (__frame0.nItemHeightPx < 0x70) {
-        nYOffset = 0x72 - __frame0.nItemHeightPx >> 1;
+      if (nItemHeightPx < 0x70) {
+        nYOffset = 0x72 - nItemHeightPx >> 1;
       }
 
-      Engine::GfxInfo::DrawItemGfx(pUnit, 0xa7 - (__frame0.nItemWidth >> 1), nYOffset + 0x6a);
+      Engine::GfxInfo::DrawItemGfx(pUnit, 0xa7 - (nItemWidth >> 1), nYOffset + 0x6a);
       D2Common::Units::SetupUpdateFlag(pUnit, 4);
       return;
     }

@@ -290,47 +290,40 @@ void __fastcall ROOM_GetAmbientLightColor(D2RoomStrc * pRoom, uint32_t * pIntens
 }
 
 void __stdcall LIGHTMAP_InitFromPlayerAndRooms(uint32_t bForceBlack) {
-    // Frame slots -24..-4 are ONE object: &nNumRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nNumRooms;
-      D2RoomStrc* pPlayerRoom;
-      D2RoomStrc** ppRoomList;
-      uint32_t nIntensity;
-      uint8_t __pad16[2];
-      char nRed;
-      char nGreen;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2RoomStrc* pRoom;
     int nYStart;
     int nXStart;
     uint32_t nColorARGB;
     int nXEnd;
     D2DrlgRoomCoordsStrc roomCoords;
+    int nNumRooms;
+    D2RoomStrc* pPlayerRoom;
+    D2RoomStrc** ppRoomList;
+    uint32_t nIntensity;
+    char nRed;
+    char nGreen;
     D2UnitStrc* pUnit = UNIT::Player::GetPlayerUnit_UI();
     int nRoomIndex = 0;
-    if (!pUnit || (pRoom = D2Common::Units::UNITS_GetRoom(pUnit) , __frame0.pPlayerRoom = pRoom , !pRoom) || bForceBlack) {
+    if (!pUnit || (pRoom = D2Common::Units::UNITS_GetRoom(pUnit) , pPlayerRoom = pRoom , !pRoom) || bForceBlack) {
       LIGHTMAP_FillGridRect(0, 0, 0, 0x2f, 0x2f);
     } else {
       int nYEnd;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppRoomList, &__frame0.nNumRooms);
-      __frame0.nRed = '\0';
-      __frame0.nGreen = '\0';
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppRoomList, &nNumRooms);
+      nRed = '\0';
+      nGreen = '\0';
       bForceBlack &= 0xffffff;
-      __frame0.nIntensity = 0;
-      ROOM_GetAmbientLightColor(pRoom, &__frame0.nIntensity, &__frame0.nRed, &__frame0.nGreen, (char*)((uintptr_t)&bForceBlack + 3), 1);
-      LIGHTMAP_FillGridRect(0, (uint32_t)(uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)*(uint8_t*)((char*)&bForceBlack + 3) << 8 | (uint16_t)(uint8_t)__frame0.nGreen) << 8 | (uint32_t)(uint8_t)__frame0.nRed) & 0xffffffu) << 8 | __frame0.nIntensity, 0, 0x2f, 0x2f);
-      if (0 < __frame0.nNumRooms) {
+      nIntensity = 0;
+      ROOM_GetAmbientLightColor(pRoom, &nIntensity, &nRed, &nGreen, (char*)((uintptr_t)&bForceBlack + 3), 1);
+      LIGHTMAP_FillGridRect(0, (uint32_t)(uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)*(uint8_t*)((char*)&bForceBlack + 3) << 8 | (uint16_t)(uint8_t)nGreen) << 8 | (uint32_t)(uint8_t)nRed) & 0xffffffu) << 8 | nIntensity, 0, 0x2f, 0x2f);
+      if (0 < nNumRooms) {
         do {
-          if (__frame0.ppRoomList[nRoomIndex] != pRoom) {
-            ROOM_GetAmbientLightColor(__frame0.ppRoomList[nRoomIndex], &__frame0.nIntensity, &__frame0.nRed, &__frame0.nGreen, (char*)((uintptr_t)&bForceBlack + 3), 1);
-            nColorARGB = (uint32_t)(uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)*(uint8_t*)((char*)&bForceBlack + 3) << 8 | (uint16_t)(uint8_t)__frame0.nGreen) << 8 | (uint32_t)(uint8_t)__frame0.nRed) & 0xffffffu) << 8 | __frame0.nIntensity;
-            D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(__frame0.ppRoomList[nRoomIndex], &roomCoords);
+          if (ppRoomList[nRoomIndex] != pRoom) {
+            ROOM_GetAmbientLightColor(ppRoomList[nRoomIndex], &nIntensity, &nRed, &nGreen, (char*)((uintptr_t)&bForceBlack + 3), 1);
+            nColorARGB = (uint32_t)(uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)*(uint8_t*)((char*)&bForceBlack + 3) << 8 | (uint16_t)(uint8_t)nGreen) << 8 | (uint32_t)(uint8_t)nRed) & 0xffffffu) << 8 | nIntensity;
+            D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(ppRoomList[nRoomIndex], &roomCoords);
             nXStart = roomCoords.dwXStart - gnLightmapWorldRefreshFlag;
             nXEnd = roomCoords.dwXSize + nXStart;
-            pRoom = __frame0.pPlayerRoom;
+            pRoom = pPlayerRoom;
             if (nXStart < 0x31 && -1 < nXEnd) {
               nYStart = roomCoords.dwYStart - gnLightmapBufferState;
               nYEnd = roomCoords.dwYSize + nYStart;
@@ -349,13 +342,13 @@ void __stdcall LIGHTMAP_InitFromPlayerAndRooms(uint32_t bForceBlack) {
                 }
 
                 LIGHTMAP_FillGridRect(nYStart, nColorARGB, nXStart, nYEnd, nXEnd);
-                pRoom = __frame0.pPlayerRoom;
+                pRoom = pPlayerRoom;
               }
             }
           }
 
           nRoomIndex++;
-        } while (nRoomIndex < __frame0.nNumRooms);
+        } while (nRoomIndex < nNumRooms);
 
         return;
       }

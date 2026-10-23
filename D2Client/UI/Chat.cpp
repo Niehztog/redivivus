@@ -557,23 +557,17 @@ void __stdcall CHAT_DrawIMECandidates() {
 }
 
 void __stdcall DRAW_UI_ChatInput() {
-    // Frame slots -68..-56 are ONE object: &nLineCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nLineCount;
-      int32_t nPrevFont;
-      D2TextLineStrc* pWrapList;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int i;
     uint16_t* pwszClear;
     uint16_t wszInputCopy[258];
+    int nLineCount;
+    D2TextLineStrc* pWrapList;
     uint16_t wszModeLabel[20];
     int nLineIdx;
     int nPosY;
     D2TextLineStrc* pWrapNext;
-    __frame0.nPrevFont = D2Win::Src::D2WinFont::SetAndReturnLastFont(0xd);
+    int32_t nPrevFont;
+    nPrevFont = D2Win::Src::D2WinFont::SetAndReturnLastFont(0xd);
     if (gbChatInputEnabled) {
       memset(wszModeLabel, 0, 20 * sizeof(wszModeLabel[0]));
       switch (gnIMEInputMode) {
@@ -642,11 +636,11 @@ void __stdcall DRAW_UI_ChatInput() {
 
       *pwszClear = L'\0';
       D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(wszInputCopy, gwszChatInputText, 0x100);
-      __frame0.pWrapList = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(wszInputCopy, &__frame0.nLineCount, ScreenSizeX - 0x109);
+      pWrapList = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(wszInputCopy, &nLineCount, ScreenSizeX - 0x109);
       nLineIdx = 0;
-      if (__frame0.pWrapList) {
+      if (pWrapList) {
         i = 0;
-        pWrapLine = __frame0.pWrapList;
+        pWrapLine = pWrapList;
         do {
           nCursorLineIdx = nLineIdx;
           if (nLineIdx < 3) {
@@ -668,7 +662,7 @@ void __stdcall DRAW_UI_ChatInput() {
       }
 
       i = nLineIdx;
-      D2Win::Src::D2WinFont::D2WINFONT_FreeWordWrapList((void**)&__frame0.pWrapList->wszLine);
+      D2Win::Src::D2WinFont::D2WINFONT_FreeWordWrapList((void**)&pWrapList->wszLine);
       if (0 < i) {
         nCursorLineIdx = i - 1;
         if (2 < nCursorLineIdx) {
@@ -685,7 +679,7 @@ void __stdcall DRAW_UI_ChatInput() {
 
     CHAT_DrawCursor(i * 0xf - 0x58 + ScreenSizeY, nCursorX, 0);
     restore_font:
-    D2Win::Src::D2WinFont::SetAndReturnLastFont(__frame0.nPrevFont);
+    D2Win::Src::D2WinFont::SetAndReturnLastFont(nPrevFont);
 }
 
 void __stdcall CHAT_RestoreFromHistory() {

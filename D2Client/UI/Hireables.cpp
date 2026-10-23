@@ -976,33 +976,25 @@ BOOL __stdcall HIRELING_DrawPetIcon(D2UnitStrc * pUnit, int * nX, int * pnYToggl
 }
 
 BOOL __stdcall HIRELING_DrawSummonIcon(D2UnitStrc * pUnit, int32_t * nY, int * pnYToggle, uint32_t nSkillId, int32_t * nX) {
-    // Frame slots -16..-4 are ONE object: &nRosterGUIDOut is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nRosterGUIDOut;
-      int32_t nRosterCountSaved;
-      uint32_t nSingleFlag;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2GfxDataStrc sGfxData;
+    int32_t nRosterGUIDOut;
     int32_t nRosterCount = GAME::RosterPets::CountRostersForUnitFilterBySkill(pUnit, nSkillId);
     if (!nRosterCount) {
       return 0;
     }
 
-    __frame0.nRosterCountSaved = nRosterCount;
+    int32_t nRosterCountSaved = nRosterCount;
     memset(&sGfxData, 0, 0x48);
-    __frame0.nSingleFlag = 0;
-    sGfxData.pDC6 = GetRosterIcon(pUnit, nSkillId, &__frame0.nRosterGUIDOut, &__frame0.nSingleFlag);
+    uint32_t nSingleFlag = 0;
+    sGfxData.pDC6 = GetRosterIcon(pUnit, nSkillId, &nRosterGUIDOut, &nSingleFlag);
     if (!sGfxData.pDC6) {
       return 0;
     }
-    if (nRosterCount == 1 && __frame0.nSingleFlag) {
+    if (nRosterCount == 1 && nSingleFlag) {
       uint32_t nRosterGUID;
       nRosterGUID = GAME::RosterPets::GetRosterPetGUID(pUnit, nSkillId, 0);
       DrawHealthBar(nRosterGUID, nSkillId, *nX);
-      nRosterCount = __frame0.nRosterCountSaved;
+      nRosterCount = nRosterCountSaved;
     }
 
     UI_DrawHirelingGoldCost(nRosterCount, *nX);

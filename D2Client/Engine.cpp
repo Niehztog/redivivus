@@ -520,15 +520,9 @@ void __stdcall CLIENT_SetAnimModeAndMoveToCurrentPos(eD2PlayerAnimMode nAnimMode
 }
 
 void __stdcall CLIENT_PreloadMonsterCofsInAdjacentRooms() {
-    // Frame slots -12..-4 are ONE object: &pAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjacentRooms;
-      uint32_t nRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2States eState;
+    D2RoomStrc** pAdjacentRooms;
+    uint32_t nRoomCount;
     D2UnitStrc* pUnit = UNIT::Player::GetPlayerUnit_Net();
     if (!pUnit) {
       return;
@@ -539,14 +533,14 @@ void __stdcall CLIENT_PreloadMonsterCofsInAdjacentRooms() {
       return;
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.pAdjacentRooms, (int*)&__frame0.nRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pAdjacentRooms, (int*)&nRoomCount);
     uint32_t nCount = 0;
-    if (!__frame0.nRoomCount) {
+    if (!nRoomCount) {
       return;
     }
 
     do {
-      for (pUnit = __frame0.pAdjacentRooms[nCount]->pUnitList; pUnit; pUnit = pUnit->pRoomNext) {
+      for (pUnit = pAdjacentRooms[nCount]->pUnitList; pUnit; pUnit = pUnit->pRoomNext) {
         if (pUnit->eUnitType == UNIT_MONSTER) {
           eState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_dopplezon);
           if (eState != STATE_none) {
@@ -556,7 +550,7 @@ void __stdcall CLIENT_PreloadMonsterCofsInAdjacentRooms() {
       }
 
       nCount++;
-    } while (nCount < __frame0.nRoomCount);
+    } while (nCount < nRoomCount);
 }
 
 void __fastcall CLIENT_UpdateUnitLightRadius(D2UnitStrc * pUnit, int32_t nRadiusBonus) {

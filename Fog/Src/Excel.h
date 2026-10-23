@@ -11,10 +11,26 @@
 // Forward declarations
 struct D2ArchiveStrc;
 struct D2BinFieldExcelStrc;
-struct D2BinFieldInputStrc;
 struct D2TxtLinkNodeStrc;
 struct D2TxtLinkStrc;
 struct D2UnitDataClientSide;
+
+struct D2BinFieldInputStrc;
+
+// Data types
+struct D2BinFieldHashNodeStrc {
+    /* 0x00 */ struct D2BinFieldHashNodeStrc * pNext; // next node in the same hash bucket
+    /* 0x04 */ uint32_t nHash; // SStrHash of the field name; zeroed once a column has matched it
+    /* 0x08 */ struct D2BinFieldInputStrc * pField; // the field table entry
+};
+
+struct __attribute__((packed)) D2BinFieldInputStrc {
+    /* 0x00 */ char * szName;
+    /* 0x04 */ eD2BinFieldInputType eType;
+    /* 0x08 */ size_t nSize;
+    /* 0x0C */ int nOffset;
+    /* 0x10 */ void * fpLinker; // by eType: struct D2TxtLinkStrc** (CODE*/NAME*), PFN_TxtKeyToWord* (KEY_WORD), PFN_TxtFieldLinker* (LINKER_*)
+};
 
 namespace Fog::Src::Excel {
 

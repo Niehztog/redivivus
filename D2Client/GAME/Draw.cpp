@@ -238,21 +238,14 @@ void __stdcall DRAW_CalcRoofLightGridPerspective(D2GfxLightExStrc * pLightEntry,
 
 // Fills a 6×6 grid of D2GfxLightExStrc light entries for a roof tile in perspective (3D) mode. Reads ambient intensity and RGB colour from the act DRLG environment, then for each grid point calls D2GFX_AdjustPerspectivePosition (depth != 0) or DRAW_CoordIsInCoord (depth == 0, orthographic fallback) to compute screen-space XY. Applies a horizontal split-screen offset when nSplitSide is 1 (left half) or 2 (right half). bBorderOnly restricts writes to the 4 border rows/columns.
 void __stdcall DRAW_CalcRoofLightPerspective(uint8_t * nRow, int32_t nTileX, int32_t nTileY, int32_t nDepth, int32_t nSplitSide, int32_t bBorderOnly) {
-    // Frame slots -8..-4 are ONE object: &byRed is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint8_t byRed;
-      uint8_t byBlue;
-      uint8_t byGreen;
-      uint8_t byIntensity;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 4, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nCol;
+    uint8_t byRed;
+    uint8_t byBlue;
+    uint8_t byGreen;
     uint8_t* piVar1;
     D2GfxLightExStrc* pLightEntry = (D2GfxLightExStrc*)nRow;
     int32_t nIntensity = D2Common::Environment::DRLGENV_GetIntensityFromAct(sgpDrlgAct);
-    __frame0.byIntensity = (uint8_t)nIntensity;
+    uint8_t byIntensity = (uint8_t)nIntensity;
     int nScreenHalfAdj = 0;
     if (nSplitSide == 1) {
       nScreenHalfAdj = -((int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2);
@@ -260,7 +253,7 @@ void __stdcall DRAW_CalcRoofLightPerspective(uint8_t * nRow, int32_t nTileX, int
       nScreenHalfAdj = (int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2;
     }
 
-    D2Common::Environment::DRLGENV_GetLightColorFromAct(sgpDrlgAct, &__frame0.byGreen, &__frame0.byRed, &__frame0.byBlue);
+    D2Common::Environment::DRLGENV_GetLightColorFromAct(sgpDrlgAct, &byGreen, &byRed, &byBlue);
     nRow = 0;
     if (nDepth) {
       int* pXAdjust;
@@ -271,10 +264,10 @@ void __stdcall DRAW_CalcRoofLightPerspective(uint8_t * nRow, int32_t nTileX, int
             pXAdjust = &pLightEntry->nX;
             D2gfx::D2GFX::D2GFX_AdjustPerspectivePosition((nCol + nTileX) * 0x10000, (int)(nRow + nTileY) * 0x10000, nDepth, pXAdjust, &pLightEntry->nY);
             *pXAdjust += nScreenHalfAdj;
-            pLightEntry->sLight.nIntensity = __frame0.byIntensity;
-            pLightEntry->sLight.nRed = __frame0.byGreen;
-            pLightEntry->sLight.nBlue = __frame0.byBlue;
-            pLightEntry->sLight.nGreen = __frame0.byRed;
+            pLightEntry->sLight.nIntensity = byIntensity;
+            pLightEntry->sLight.nRed = byGreen;
+            pLightEntry->sLight.nBlue = byBlue;
+            pLightEntry->sLight.nGreen = byRed;
           }
 
           nCol++;
@@ -424,16 +417,6 @@ void __fastcall DrawSubTile(int32_t nTileX, int32_t nParam1, int32_t nParam2, in
 
 // Client-side floor renderer: populates the per-frame D2DrawFloorStrc from the current view/state then draws all floor tiles of the current room and its adjacent rooms. Caches low-quality/perspective flags, weather splash rate, window-border type, and the player's roll seed; resets the tile bounding box; conditionally enables weather splash/recording every few frames. For each adjacent room it gets room coords and floor tiles and calls DrawFloorTile for tiles whose flag-derived layer (nFlags>>14 &7) matches the current pass (1..2), honoring the level's FloorFilter. When the level draws edges in perspective, calls DrawSubTile to fill the four boundary edges around the player position. Halts via ERROR_UnrecoverableInternalError_Halt if no player or level row.
 void __fastcall DrawFloorByViewAndFloor(D2GameViewStrc * pGameView, D2DrawFloorStrc * pDrawFloor) {
-    // Frame slots -20..-4 are ONE object: &nRoomCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nRoomCount;
-      D2RoomStrc** ppRooms;
-      int nTileCount;
-      int nRoomIdx;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2LevelId eLevelId;
     D2LevelsTxt* pLevelTxt;
     D2DrlgTileDataStrc* pTile;
@@ -441,6 +424,9 @@ void __fastcall DrawFloorByViewAndFloor(D2GameViewStrc * pGameView, D2DrawFloorS
     void* pDrawEdge;
     int bDrawEdges;
     D2DrlgRoomCoordsStrc sRoomCoords;
+    int nRoomCount;
+    D2RoomStrc** ppRooms;
+    int nTileCount;
     BOOL bLowQuality = D2gfx::D2GFX::D2GFX_GetLowQuality();
     *(BOOL*)pDrawFloor = bLowQuality;
     uint32_t bIsPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
@@ -499,7 +485,7 @@ void __fastcall DrawFloorByViewAndFloor(D2GameViewStrc * pGameView, D2DrawFloorS
       return;
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppRooms, &__frame0.nRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppRooms, &nRoomCount);
     eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
     pLevelTxt = D2Common::DATATBLS::LvlTbls::TXT_Levels_GetLine(eLevelId);
     if (!pLevelTxt) {
@@ -507,20 +493,20 @@ void __fastcall DrawFloorByViewAndFloor(D2GameViewStrc * pGameView, D2DrawFloorS
       exit(-1);
     }
 
-    __frame0.nRoomIdx = 0;
+    int nRoomIdx = 0;
     uint32_t bNoFilter = (uint32_t)!pLevelTxt->FloorFilter;
-    bDrawEdges = __frame0.nTileCount;
-    if (0 < __frame0.nRoomCount) {
+    bDrawEdges = nTileCount;
+    if (0 < nRoomCount) {
       do {
-        D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(__frame0.ppRooms[__frame0.nRoomIdx], &sRoomCoords);
+        D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(ppRooms[nRoomIdx], &sRoomCoords);
         pGameView = (D2GameViewStrc*)0x1;
         do {
           if (bNoFilter || (pDrawEdge = (void*)0x1 , pGameView != (D2GameViewStrc*)0x1)) {
             pDrawEdge = 0;
           }
 
-          pTile = D2Common::DUNGEON::Dungeon::DRLGROOM_GetFloorTilesFromRoom(__frame0.ppRooms[__frame0.nRoomIdx], &__frame0.nTileCount);
-          for (; __frame0.nTileCount; __frame0.nTileCount--) {
+          pTile = D2Common::DUNGEON::Dungeon::DRLGROOM_GetFloorTilesFromRoom(ppRooms[nRoomIdx], &nTileCount);
+          for (; nTileCount; nTileCount--) {
             if ((D2GameViewStrc*)((uint32_t)pTile->nFlags >> 0xe & 7) == pGameView) {
               DrawFloorTile(pTile, pDrawEdge, pDrawFloor->nX + pTile->nScreenX, pTile->nScreenY + pDrawFloor->nY, sRoomCoords.dwXStart + pTile->nPosX * 5, sRoomCoords.dwYStart + pTile->nPosY * 5, pDrawFloor);
             }
@@ -531,18 +517,18 @@ void __fastcall DrawFloorByViewAndFloor(D2GameViewStrc * pGameView, D2DrawFloorS
           pGameView = (D2GameViewStrc*)((uintptr_t)&pGameView->nFlags + 1);
         } while (pGameView < (D2GameViewStrc*)0x3);
 
-        __frame0.nRoomIdx++;
+        nRoomIdx++;
         bDrawEdges = 0;
-      } while (__frame0.nRoomIdx < __frame0.nRoomCount);
+      } while (nRoomIdx < nRoomCount);
     }
 
-    __frame0.nTileCount = bDrawEdges;
+    nTileCount = bDrawEdges;
     if (!pDrawFloor->bPerspectiveHasEffectOnSprite) {
       return;
     }
 
     bDrawEdges = pDrawFloor->bIsPerspective ? 0x21 : 0x1e;
-    __frame0.nRoomIdx = (uint32_t)!pDrawFloor->bIsPerspective * 2 + 0x17;
+    nRoomIdx = (uint32_t)!pDrawFloor->bIsPerspective * 2 + 0x17;
     pPlayer = UNIT::Player::GetPlayerUnit_Net();
     if (!pPlayer) {
       return;
@@ -568,13 +554,13 @@ void __fastcall DrawFloorByViewAndFloor(D2GameViewStrc * pGameView, D2DrawFloorS
     if ((int)pGameView - pDrawFloor->nMinTileX < bDrawEdges) {
       DrawSubTile(pDrawFloor->nMinTileX - 5, nPlayerY, 0, -5, pDrawFloor);
     }
-    if (pDrawFloor->nMaxTileX - (int)pGameView < __frame0.nRoomIdx) {
+    if (pDrawFloor->nMaxTileX - (int)pGameView < nRoomIdx) {
       DrawSubTile(pDrawFloor->nMaxTileX + 5, nPlayerY, 0, 5, pDrawFloor);
     }
     if (nPlayerY - pDrawFloor->nMinTileY < bDrawEdges) {
       DrawSubTile((int32_t)pGameView, pDrawFloor->nMinTileY - 5, -5, 0, pDrawFloor);
     }
-    if (pDrawFloor->nMaxTileY - nPlayerY >= __frame0.nRoomIdx) {
+    if (pDrawFloor->nMaxTileY - nPlayerY >= nRoomIdx) {
       return;
     }
 
@@ -776,17 +762,6 @@ int32_t * __stdcall DRAW_GetIntensityTableForMode(int * pnTableMode, int32_t bPe
 
 // Client-side render pass: iterates the under-floor wall-tile node list in a Wall2 cell, expires fade transitions whose timer has elapsed, then draws each visible tile (flag mask 0x1c000 set, 0x408 clear) via D2GFX_DrawWallTile or D2GFX_DrawTransWallTile depending on alpha. Samples DRAW_CoordIsInCoord for per-light RGBA values and fills a local D2GfxLightStrc array. Accounts for perspective vs. isometric screen-coordinate calculation.
 void __stdcall WALL2_DrawUnderFloorTiles(D2GameViewStrc * pViewData, D2Wall2CellStrc * pWall2Cell) {
-    // Frame slots -16..-4 are ONE object: &dwAlpha is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t dwAlpha;
-      D2Wall2DrawEntryStrc* pWallTileNode;
-      uint8_t __pad8[1];
-      uint8_t byColorRG[2];
-      uint8_t byBlue;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t nAlpha;
     uint8_t byMaskedIntensity;
     int nScreenX;
@@ -797,6 +772,10 @@ void __stdcall WALL2_DrawUnderFloorTiles(D2GameViewStrc * pViewData, D2Wall2Cell
     D2GfxLightStrc aWallLightSamples[8];
     uint32_t dwAlphaByte;
     uint32_t nLightCount;
+    uint32_t dwAlpha;
+    D2Wall2DrawEntryStrc* pWallTileNode;
+    uint8_t byColorRG[2];
+    uint8_t byBlue;
     D2DrlgTileDataStrc* pTileEntry;
     if (!pWall2Cell->pUnderFloorList) {
       return;
@@ -805,9 +784,9 @@ void __stdcall WALL2_DrawUnderFloorTiles(D2GameViewStrc * pViewData, D2Wall2Cell
     uint32_t nBorderType = UI::Path::DRAW_GetTypeOfBorder();
     uint32_t bIsPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
     uint32_t dwTickCount = GetTickCount();
-    for (__frame0.pWallTileNode = pWall2Cell->pUnderFloorList; __frame0.pWallTileNode; __frame0.pWallTileNode = __frame0.pWallTileNode->pNext) {
+    for (pWallTileNode = pWall2Cell->pUnderFloorList; pWallTileNode; pWallTileNode = pWallTileNode->pNext) {
       D2GfxLightStrc sLight;
-      pTileEntry = (D2DrlgTileDataStrc*)__frame0.pWallTileNode->pData;
+      pTileEntry = (D2DrlgTileDataStrc*)pWallTileNode->pData;
       if (pTileEntry->nTransitionFlags & 4U && (uint32_t)pTileEntry->nFadeEndTime <= dwTickCount) {
         pTileEntry->nFlags |= 8;
         pTileEntry->nTransitionFlags &= -5;
@@ -824,12 +803,12 @@ void __stdcall WALL2_DrawUnderFloorTiles(D2GameViewStrc * pViewData, D2Wall2Cell
         nLightIdx = 0;
         if (nLightCount) {
           do {
-            View::DRAW_CoordIsInCoord(__frame0.pWallTileNode->nX + piVar1[nLightIdx * 2] * 8, __frame0.pWallTileNode->nY + piVar1[nLightIdx * 2 + 1] * 8, (uint8_t*)&__frame0.dwAlpha, __frame0.byColorRG, __frame0.byColorRG + 1, &__frame0.byBlue);
-            byMaskedIntensity = (uint8_t)__frame0.dwAlpha ? (uint8_t)__frame0.dwAlpha : 0;
-            __frame0.dwAlpha = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&__frame0.dwAlpha + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)byMaskedIntensity);
-            sLight.nRed = __frame0.byColorRG[0];
-            sLight.nGreen = __frame0.byColorRG[1];
-            sLight.nBlue = __frame0.byBlue;
+            View::DRAW_CoordIsInCoord(pWallTileNode->nX + piVar1[nLightIdx * 2] * 8, pWallTileNode->nY + piVar1[nLightIdx * 2 + 1] * 8, (uint8_t*)&dwAlpha, byColorRG, byColorRG + 1, &byBlue);
+            byMaskedIntensity = (uint8_t)dwAlpha ? (uint8_t)dwAlpha : 0;
+            dwAlpha = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&dwAlpha + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)byMaskedIntensity);
+            sLight.nRed = byColorRG[0];
+            sLight.nGreen = byColorRG[1];
+            sLight.nBlue = byBlue;
             sLight.nIntensity = byMaskedIntensity;
             bMoreLights = nLightIdx + 1 < nLightCount;
             aWallLightSamples[nLightIdx] = sLight;
@@ -843,8 +822,8 @@ void __stdcall WALL2_DrawUnderFloorTiles(D2GameViewStrc * pViewData, D2Wall2Cell
           nScreenX = pViewData->pView.left - pViewData->nCenterX + pTileEntry->nScreenX;
           nScreenY = pTileEntry->nScreenY - pViewData->nCenterY + pViewData->pView.top;
         } else {
-          nScreenX = __frame0.pWallTileNode->nX;
-          nScreenY = __frame0.pWallTileNode->nY;
+          nScreenX = pWallTileNode->nX;
+          nScreenY = pWallTileNode->nY;
         }
         if (nAlpha == 0xff) {
           nScreenX = D2gfx::D2GFX::D2GFX_DrawWallTile(pTileEntry->pTileLibraryEntry, nScreenX, nScreenY, aWallLightSamples, nBorderType);
@@ -860,18 +839,6 @@ void __stdcall WALL2_DrawUnderFloorTiles(D2GameViewStrc * pViewData, D2Wall2Cell
 
 // Draws all wall tiles in DRLG with alpha blending. Iterates wall tile linked list, applies alpha fading effects, checks viewport clipping, calls D2GFX_DrawTransWallTile for blended tiles.
 void __stdcall WALL2_DrawWallTilesWithAlpha(D2Wall2CellStrc * pWall2Cell, uint32_t eRenderPass, D2GameViewStrc * pCameraView) {
-    // Frame slots -20..-4 are ONE object: &dwAlphaPacked is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t dwAlphaPacked;
-      uint32_t dwTickCount;
-      D2Wall2DrawEntryStrc* pWallTileNode;
-      uint8_t __pad12[2];
-      uint8_t byRed;
-      uint8_t byBlue;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t byMaskedIntensity;
     int32_t nScreenX;
     D2GfxLightStrc sLight;
@@ -882,31 +849,35 @@ void __stdcall WALL2_DrawWallTilesWithAlpha(D2Wall2CellStrc * pWall2Cell, uint32
     D2GfxLightStrc aWallLightSamples[8];
     uint32_t dwAlphaByte;
     uint32_t nLightCount;
+    uint32_t dwAlphaPacked;
+    D2Wall2DrawEntryStrc* pWallTileNode;
+    uint8_t byRed;
+    uint8_t byBlue;
     D2DrlgTileDataStrc* pTileEntry;
     int32_t nErrLineOrAddr;
     uint32_t nBorderType = UI::Path::DRAW_GetTypeOfBorder();
     uint32_t bIsPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
     int nFadeCalc = Rendering::GetCurrentEngine();
-    __frame0.dwTickCount = GetTickCount();
+    uint32_t dwTickCount = GetTickCount();
     uint32_t bIs3DEngine = (uint32_t)(3 < nFadeCalc);
     if (!eRenderPass || eRenderPass == 1) {
       uint8_t nAlpha;
-      __frame0.pWallTileNode = pWall2Cell->pWallList;
+      pWallTileNode = pWall2Cell->pWallList;
       while (true) {
-        if (!__frame0.pWallTileNode) {
+        if (!pWallTileNode) {
           return;
         }
 
-        pTileEntry = (D2DrlgTileDataStrc*)__frame0.pWallTileNode->pData;
+        pTileEntry = (D2DrlgTileDataStrc*)pWallTileNode->pData;
         if (pTileEntry->nTileType == 0xf) {
           break;
         }
         if (pTileEntry->nTransitionFlags & 2U) {
-          if (!bIs3DEngine || (uint32_t)pTileEntry->nFadeEndTime <= __frame0.dwTickCount) {
+          if (!bIs3DEngine || (uint32_t)pTileEntry->nFadeEndTime <= dwTickCount) {
             pTileEntry->nCurrentAlpha = pTileEntry->nAlphaEnd;
             pTileEntry->nTransitionFlags &= -3;
           } else {
-            nFadeCalc = ((uint32_t)pTileEntry->nAlphaEnd - (uint32_t)pTileEntry->nAlphaStart) * (__frame0.dwTickCount - pTileEntry->nFadeEndTime + 500);
+            nFadeCalc = ((uint32_t)pTileEntry->nAlphaEnd - (uint32_t)pTileEntry->nAlphaStart) * (dwTickCount - pTileEntry->nFadeEndTime + 500);
             pTileEntry->nCurrentAlpha = (char)(nFadeCalc / 500) + (char)(nFadeCalc >> 0x1f) - (char)((int64_t)nFadeCalc * 0x10624dd3 >> 0x3f) + pTileEntry->nAlphaStart;
           }
           if (pTileEntry->nCurrentAlpha == '\0') {
@@ -915,7 +886,7 @@ void __stdcall WALL2_DrawWallTilesWithAlpha(D2Wall2CellStrc * pWall2Cell, uint32
             pTileEntry->nFlags &= -1025;
           }
         }
-        if (pTileEntry->nTransitionFlags & 4U && (uint32_t)pTileEntry->nFadeEndTime <= __frame0.dwTickCount) {
+        if (pTileEntry->nTransitionFlags & 4U && (uint32_t)pTileEntry->nFadeEndTime <= dwTickCount) {
           pTileEntry->nFlags |= 8;
           pTileEntry->nTransitionFlags &= -5;
         }
@@ -931,12 +902,12 @@ void __stdcall WALL2_DrawWallTilesWithAlpha(D2Wall2CellStrc * pWall2Cell, uint32
           nLightIdx = 0;
           if (nLightCount) {
             do {
-              View::DRAW_CoordIsInCoord(__frame0.pWallTileNode->nX + piVar1[nLightIdx * 2] * 8, __frame0.pWallTileNode->nY + piVar1[nLightIdx * 2 + 1] * 8, (uint8_t*)&__frame0.dwAlphaPacked, &__frame0.byRed, &__frame0.byBlue, (uint8_t*)((uintptr_t)&pWall2Cell + 3));
-              byMaskedIntensity = (uint8_t)__frame0.dwAlphaPacked ? (uint8_t)__frame0.dwAlphaPacked : 0;
+              View::DRAW_CoordIsInCoord(pWallTileNode->nX + piVar1[nLightIdx * 2] * 8, pWallTileNode->nY + piVar1[nLightIdx * 2 + 1] * 8, (uint8_t*)&dwAlphaPacked, &byRed, &byBlue, (uint8_t*)((uintptr_t)&pWall2Cell + 3));
+              byMaskedIntensity = (uint8_t)dwAlphaPacked ? (uint8_t)dwAlphaPacked : 0;
               sLight.nBlue = *(uint8_t*)((char*)&pWall2Cell + 3);
-              sLight.nGreen = __frame0.byBlue;
-              __frame0.dwAlphaPacked = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&__frame0.dwAlphaPacked + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)byMaskedIntensity);
-              sLight.nRed = __frame0.byRed;
+              sLight.nGreen = byBlue;
+              dwAlphaPacked = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&dwAlphaPacked + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)byMaskedIntensity);
+              sLight.nRed = byRed;
               sLight.nIntensity = byMaskedIntensity;
               bMoreLights = nLightIdx + 1 < nLightCount;
               aWallLightSamples[nLightIdx] = sLight;
@@ -950,8 +921,8 @@ void __stdcall WALL2_DrawWallTilesWithAlpha(D2Wall2CellStrc * pWall2Cell, uint32
             nScreenX = pCameraView->pView.left - pCameraView->nCenterX + pTileEntry->nScreenX;
             nScreenY = pTileEntry->nScreenY - pCameraView->nCenterY + pCameraView->pView.top;
           } else {
-            nScreenX = __frame0.pWallTileNode->nX;
-            nScreenY = __frame0.pWallTileNode->nY;
+            nScreenX = pWallTileNode->nX;
+            nScreenY = pWallTileNode->nY;
           }
           if (nAlpha == 0xff) {
             nFadeCalc = D2gfx::D2GFX::D2GFX_DrawWallTile(pTileEntry->pTileLibraryEntry, nScreenX, nScreenY, aWallLightSamples, nBorderType);
@@ -963,7 +934,7 @@ void __stdcall WALL2_DrawWallTilesWithAlpha(D2Wall2CellStrc * pWall2Cell, uint32
           }
         }
 
-        __frame0.pWallTileNode = __frame0.pWallTileNode->pNext;
+        pWallTileNode = pWallTileNode->pNext;
       }
 
       nErrLineOrAddr = 0xf9;
@@ -975,22 +946,6 @@ void __stdcall WALL2_DrawWallTilesWithAlpha(D2Wall2CellStrc * pWall2Cell, uint32
 
 // Per-frame world renderer for one game view: walks the Wall2 cell grid (nWall2GridDim^2 cells). For each cell it draws the wall-tile list, advancing each tile's fade animation (nCurrentAlpha interpolated between nAlphaStart/nAlphaEnd until nFadeEndTime, with the 3D-engine path), gathering per-tile light samples (DRAW_CoordIsInCoord into a D2GfxLightStrc[8]), computing screen coords (perspective vs ortho via the view center), and blitting via D2GFX_DrawWallTile or D2GFX_DrawTransWallTile depending on alpha. It then walks the cell's unit list and renders each unit through DRAW_WORLD_Unit with its sampled light color. Pure client draw; mutates only per-tile draw/state flags and alpha.
 void __fastcall dWallPass(D2GameViewStrc * pGameView) {
-    // Frame slots -24..-4 are ONE object: &dwCoordPacked is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t dwCoordPacked;
-      DWORD timer;
-      D2Wall2DrawEntryStrc* pWallNode;
-      uint8_t __pad12[1];
-      uint8_t byIntensity;
-      uint8_t byRed;
-      uint8_t byGreen;
-      uint8_t byBlue;
-      uint8_t byColorRG[2];
-      uint8_t byBlueTmp;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t nAlpha;
     uint8_t byAlpha;
     int nEngine;
@@ -1006,6 +961,15 @@ void __fastcall dWallPass(D2GameViewStrc * pGameView) {
     uint32_t bIs3DEngine;
     D2Wall2DrawEntryStrc** pSavedCellEntry;
     uint32_t nBorderType;
+    uint32_t dwCoordPacked;
+    DWORD timer;
+    D2Wall2DrawEntryStrc* pWallNode;
+    uint8_t byIntensity;
+    uint8_t byRed;
+    uint8_t byGreen;
+    uint8_t byBlue;
+    uint8_t byColorRG[2];
+    uint8_t byBlueTmp;
     D2DrlgTileDataStrc* pWallTile;
     int32_t* pIntensityTable;
     D2Wall2DrawEntryStrc* sLightEntry;
@@ -1026,22 +990,22 @@ void __fastcall dWallPass(D2GameViewStrc * pGameView) {
         nBorderType = UI::Path::DRAW_GetTypeOfBorder();
         isPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
         nEngine = Rendering::GetCurrentEngine();
-        __frame0.timer = GetTickCount();
-        __frame0.pWallNode = *pCellEntry;
+        timer = GetTickCount();
+        pWallNode = *pCellEntry;
         bIs3DEngine = (uint32_t)(3 < nEngine);
-        if (__frame0.pWallNode) {
+        if (pWallNode) {
           do {
-            pWallTile = (D2DrlgTileDataStrc*)__frame0.pWallNode->pData;
+            pWallTile = (D2DrlgTileDataStrc*)pWallNode->pData;
             if (pWallTile->nTileType == 0xf) {
               Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf9);
               exit(-1);
             }
             if (pWallTile->nTransitionFlags & 2U) {
-              if (!bIs3DEngine || (uint32_t)pWallTile->nFadeEndTime <= __frame0.timer) {
+              if (!bIs3DEngine || (uint32_t)pWallTile->nFadeEndTime <= timer) {
                 pWallTile->nCurrentAlpha = pWallTile->nAlphaEnd;
                 pWallTile->nTransitionFlags &= -3;
               } else {
-                nFadeCalc = ((uint32_t)pWallTile->nAlphaEnd - (uint32_t)pWallTile->nAlphaStart) * (__frame0.timer - pWallTile->nFadeEndTime + 500);
+                nFadeCalc = ((uint32_t)pWallTile->nAlphaEnd - (uint32_t)pWallTile->nAlphaStart) * (timer - pWallTile->nFadeEndTime + 500);
                 pWallTile->nCurrentAlpha = (char)(nFadeCalc / 500) + (char)(nFadeCalc >> 0x1f) - (char)((int64_t)nFadeCalc * 0x10624dd3 >> 0x3f) + pWallTile->nAlphaStart;
               }
               if (pWallTile->nCurrentAlpha == '\0') {
@@ -1050,7 +1014,7 @@ void __fastcall dWallPass(D2GameViewStrc * pGameView) {
                 pWallTile->nFlags &= -1025;
               }
             }
-            if (pWallTile->nTransitionFlags & 4U && (uint32_t)pWallTile->nFadeEndTime <= __frame0.timer) {
+            if (pWallTile->nTransitionFlags & 4U && (uint32_t)pWallTile->nFadeEndTime <= timer) {
               pWallTile->nFlags |= 8;
               pWallTile->nTransitionFlags &= -5;
             }
@@ -1066,12 +1030,12 @@ void __fastcall dWallPass(D2GameViewStrc * pGameView) {
               nLightIdx = 0;
               if (nLightCount) {
                 do {
-                  View::DRAW_CoordIsInCoord(__frame0.pWallNode->nX + pIntensityTable[nLightIdx * 2] * 8, __frame0.pWallNode->nY + pIntensityTable[nLightIdx * 2 + 1] * 8, (uint8_t*)&__frame0.dwCoordPacked, __frame0.byColorRG, __frame0.byColorRG + 1, &__frame0.byBlueTmp);
-                  byAlpha = (uint8_t)__frame0.dwCoordPacked ? (uint8_t)__frame0.dwCoordPacked : 0;
-                  /* Here we can fake our trans for walls if it is transparentable */ __frame0.dwCoordPacked = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&__frame0.dwCoordPacked + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)byAlpha);
-                  sLight.nRed = __frame0.byColorRG[0];
-                  sLight.nGreen = __frame0.byColorRG[1];
-                  sLight.nBlue = __frame0.byBlueTmp;
+                  View::DRAW_CoordIsInCoord(pWallNode->nX + pIntensityTable[nLightIdx * 2] * 8, pWallNode->nY + pIntensityTable[nLightIdx * 2 + 1] * 8, (uint8_t*)&dwCoordPacked, byColorRG, byColorRG + 1, &byBlueTmp);
+                  byAlpha = (uint8_t)dwCoordPacked ? (uint8_t)dwCoordPacked : 0;
+                  /* Here we can fake our trans for walls if it is transparentable */ dwCoordPacked = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&dwCoordPacked + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)byAlpha);
+                  sLight.nRed = byColorRG[0];
+                  sLight.nGreen = byColorRG[1];
+                  sLight.nBlue = byBlueTmp;
                   sLight.nIntensity = byAlpha;
                   bMoreLights = nLightIdx + 1 < nLightCount;
                   aLightSamples[nLightIdx] = sLight;
@@ -1085,8 +1049,8 @@ void __fastcall dWallPass(D2GameViewStrc * pGameView) {
                 nScreenX = pGameViewSaved->pView.left - pGameViewSaved->nCenterX + pWallTile->nScreenX;
                 nScreenY = pWallTile->nScreenY - pGameViewSaved->nCenterY + pGameViewSaved->pView.top;
               } else {
-                nScreenX = __frame0.pWallNode->nX;
-                nScreenY = __frame0.pWallNode->nY;
+                nScreenX = pWallNode->nX;
+                nScreenY = pWallNode->nY;
               }
               if (nAlpha == 0xff) {
                 nFadeCalc = D2gfx::D2GFX::D2GFX_DrawWallTile(pWallTile->pTileLibraryEntry, nScreenX, nScreenY, aLightSamples, nBorderType);
@@ -1098,18 +1062,18 @@ void __fastcall dWallPass(D2GameViewStrc * pGameView) {
               }
             }
 
-            __frame0.pWallNode = __frame0.pWallNode->pNext;
-          } while (__frame0.pWallNode);
+            pWallNode = pWallNode->pNext;
+          } while (pWallNode);
 
-          __frame0.pWallNode = 0;
+          pWallNode = 0;
           nFadeCalc = nSavedCellIdx;
           pCellEntry = pSavedCellEntry;
         }
       }
 
       for (sLightEntry = pCellEntry[1]; sLightEntry; sLightEntry = sLightEntry->pNext) {
-        View::DRAW_CoordIsInCoord(sLightEntry->nX, sLightEntry->nY, &__frame0.byIntensity, &__frame0.byRed, &__frame0.byGreen, &__frame0.byBlue);
-        Wall2::DRAW_WORLD_Unit((D2UnitStrc*)sLightEntry->pData, (uint32_t)((uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)__frame0.byBlue << 8 | (uint16_t)(uint8_t)__frame0.byGreen) << 8 | (uint32_t)(uint8_t)__frame0.byRed) & 0xffffffu) << 8 | (uint32_t)(uint8_t)__frame0.byIntensity), 0);
+        View::DRAW_CoordIsInCoord(sLightEntry->nX, sLightEntry->nY, &byIntensity, &byRed, &byGreen, &byBlue);
+        Wall2::DRAW_WORLD_Unit((D2UnitStrc*)sLightEntry->pData, (uint32_t)((uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)byBlue << 8 | (uint16_t)(uint8_t)byGreen) << 8 | (uint32_t)(uint8_t)byRed) & 0xffffffu) << 8 | (uint32_t)(uint8_t)byIntensity), 0);
       }
 
       pCellEntry += 9;
@@ -1133,17 +1097,11 @@ void __fastcall DRAW_WORLD_UnderFloor(D2GameViewStrc * pGameView) {
 // @wasnamed DRAW_WORLD_Shadows
 // Iterates every Wall2 grid cell and renders all shadow-list nodes for that cell. For each node: if flags==0, samples lighting via DRAW_CoordIsInCoord and calls DRAW_WORLD_Unit; if flag bit 1 set, calls DrawUnitShadows; if flag bit 0 set and not perspective, calls D2GFX_DrawShadowTile with view-relative coords; if perspective, calls D2GFX_DrawShadowTile with raw node coords. After shadows, draws any alpha wall tiles for the cell.
 void __fastcall dShadowPass(D2GameViewStrc * pGameView) {
-    // Frame slots -8..-4 are ONE object: &byIntensity is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint8_t byIntensity;
-      uint8_t byRed;
-      uint8_t byGreen;
-      uint8_t byBlue;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 4, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t bIsPerspective;
+    uint8_t byIntensity;
+    uint8_t byRed;
+    uint8_t byGreen;
+    uint8_t byBlue;
     D2Wall2DrawEntryStrc* pShadowNode;
     int* pWallTileEntry;
     uint32_t nScreenPanels = pGameView->sWall2.nWall2GridDim;
@@ -1154,8 +1112,8 @@ void __fastcall dShadowPass(D2GameViewStrc * pGameView) {
       nGridCount--;
       for (pShadowNode = pWall2Entry->pShadowPassList; pShadowNode; pShadowNode = pShadowNode->pNext) {
         if (!(pShadowNode->dwType & 3)) {
-          View::DRAW_CoordIsInCoord(pShadowNode->nX, pShadowNode->nY, &__frame0.byIntensity, &__frame0.byRed, &__frame0.byGreen, &__frame0.byBlue);
-          Wall2::DRAW_WORLD_Unit((D2UnitStrc*)pShadowNode->pData, (uint32_t)((uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)__frame0.byBlue << 8 | (uint16_t)(uint8_t)__frame0.byGreen) << 8 | (uint32_t)(uint8_t)__frame0.byRed) & 0xffffffu) << 8 | (uint32_t)(uint8_t)__frame0.byIntensity), 0);
+          View::DRAW_CoordIsInCoord(pShadowNode->nX, pShadowNode->nY, &byIntensity, &byRed, &byGreen, &byBlue);
+          Wall2::DRAW_WORLD_Unit((D2UnitStrc*)pShadowNode->pData, (uint32_t)((uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)byBlue << 8 | (uint16_t)(uint8_t)byGreen) << 8 | (uint32_t)(uint8_t)byRed) & 0xffffffu) << 8 | (uint32_t)(uint8_t)byIntensity), 0);
         } else {
           bIsPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
           if (!(pShadowNode->dwType & 1)) {

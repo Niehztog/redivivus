@@ -2742,16 +2742,6 @@ BOOL __fastcall DAMAGE_RollAttackHit(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, in
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -20..-4 are ONE object: &nBaseAR is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      int32_t nBaseAR;
-      D2UnitStrc* pDefender;
-      int32_t nTotalAC;
-      int32_t nToHitBonus;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 16, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     D2UnitStrc* pActiveWeapon;
     uint32_t nToHitStat;
     int nToHitBonusStat;
@@ -2765,6 +2755,7 @@ BOOL __fastcall DAMAGE_RollAttackHit(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, in
     int32_t nStateStatValue;
     uint16_t aMonTypeStatEntries[2];
     int aMonTypeBonuses[255];
+    int32_t nBaseAR;
     eD2UnitStat eAcStatType;
     short int nMonType;
     D2SeedStrc sSeedResult;
@@ -2772,7 +2763,7 @@ BOOL __fastcall DAMAGE_RollAttackHit(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, in
       return 0;
     }
 
-    __frame1.pDefender = pUnit2;
+    D2UnitStrc* pDefender = pUnit2;
     int32_t nAttackerLevel = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit2, UNITSTAT_level, 0);
     int32_t nAR = D2Common::Units::GetDefense(pUnit2);
     if (!bIsRangedAttack) {
@@ -2782,47 +2773,47 @@ BOOL __fastcall DAMAGE_RollAttackHit(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, in
     }
 
     int nAcTotal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit2, eAcStatType, 0);
-    __frame1.nTotalAC = nAR + nAcTotal;
+    int32_t nTotalAC = nAR + nAcTotal;
     int32_t nDefenderLevel = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0);
-    __frame1.nToHitBonus = 0;
+    int32_t nToHitBonus = 0;
     if (pUnit->eUnitType == UNIT_PLAYER) {
       D2MonStatsTxt* pMonStatsTxt;
-      __frame1.nBaseAR = D2Common::Units::GetAttackRate(pUnit);
-      DAMAGE_ApplyIgnoreAndFractionalAC(&__frame1.nBaseAR, &__frame1.nTotalAC, pUnit, pUnit2);
+      nBaseAR = D2Common::Units::GetAttackRate(pUnit);
+      DAMAGE_ApplyIgnoreAndFractionalAC(&nBaseAR, &nTotalAC, pUnit, pUnit2);
       if (!bIsRangedAttack) {
         pActiveWeapon = PLAYER::Player::PLAYER_GetActiveWeaponForSkill(pUnit);
         if (pActiveWeapon) {
           nStateStatValue = 0x57da51;
-          __frame1.nToHitBonus = D2Common::Skills::SKILLS_GetItemBonusDamage(pUnit, pActiveWeapon, nullptr, 0);
+          nToHitBonus = D2Common::Skills::SKILLS_GetItemBonusDamage(pUnit, pActiveWeapon, nullptr, 0);
         }
       }
 
       nAR = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_tohit_percent, 0);
-      __frame1.nToHitBonus = __frame1.nToHitBonus + nAR + nToHitBonusExtra;
-      nAcTotal = __frame1.nTotalAC;
-      nDexBonus = __frame1.nBaseAR;
+      nToHitBonus = nToHitBonus + nAR + nToHitBonusExtra;
+      nAcTotal = nTotalAC;
+      nDexBonus = nBaseAR;
       if (pUnit2->eUnitType == UNIT_MONSTER) {
         pMonStatsTxt = D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetLine(pUnit2->nClassId);
-        nAcTotal = __frame1.nTotalAC;
-        nDexBonus = __frame1.nBaseAR;
+        nAcTotal = nTotalAC;
+        nDexBonus = nBaseAR;
         if (pMonStatsTxt) {
           nMonType = pMonStatsTxt->MonType;
           if (0 < nMonType) {
             nStateStatValue = 0x57da9d;
             nAR = D2Common::Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, 0xb3, (int*)aMonTypeStatEntries, 0x80);
             nHitChance = 0;
-            nAcTotal = __frame1.nTotalAC;
-            nDexBonus = __frame1.nBaseAR;
+            nAcTotal = nTotalAC;
+            nDexBonus = nBaseAR;
             if (0 < nAR) {
               do {
                 nToHitStat = DAMAGE_CheckMonsterTypeVsMonsterType((uint32_t)aMonTypeStatEntries[nHitChance * 4], (int)nMonType);
                 if (nToHitStat) {
-                  __frame1.nToHitBonus += aMonTypeBonuses[nHitChance * 2];
+                  nToHitBonus += aMonTypeBonuses[nHitChance * 2];
                 }
 
                 nHitChance++;
-                nAcTotal = __frame1.nTotalAC;
-                nDexBonus = __frame1.nBaseAR;
+                nAcTotal = nTotalAC;
+                nDexBonus = nBaseAR;
               } while (nHitChance < nAR);
             }
           }
@@ -2831,12 +2822,12 @@ BOOL __fastcall DAMAGE_RollAttackHit(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, in
     } else {
       nDexBonus = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_tohit, 0);
       nToHitBonusStat = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_dexterity, 0);
-      __frame1.nToHitBonus = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_tohit_percent, 0);
+      nToHitBonus = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_tohit_percent, 0);
       nAcTotal = nAR + nAcTotal;
       nDexBonus = nDexBonus + nToHitBonusExtra + nToHitBonusStat * 5;
     }
 
-    nAR = D2Client::Stats::D2ApplyPercent(nDexBonus, __frame1.nToHitBonus, 100);
+    nAR = D2Client::Stats::D2ApplyPercent(nDexBonus, nToHitBonus, 100);
     nDexBonus += nAR;
     if (nAcTotal < 0) {
       nDexBonus -= nAcTotal;
@@ -2865,16 +2856,16 @@ BOOL __fastcall DAMAGE_RollAttackHit(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, in
     sSeedResult = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = sSeedResult;
     nRandRoll = sSeedResult.nSeedLow + (int)(((uint64_t)d2_bits_of(sSeedResult) & 0xffffffff) / 100) * -100;
-    pActiveWeapon = __frame1.pDefender;
+    pActiveWeapon = pDefender;
     nDexBonus = nAcTotal;
     nToHitBonusStat = nRandRoll;
     SUnit::GetGamePointer(pUnit);
     D2Game::nullsub(pActiveWeapon, nDexBonus, nToHitBonusStat);
-    __frame0.pDefenderCopy = __frame1.pDefender;
+    __frame0.pDefenderCopy = pDefender;
     if (nAcTotal <= nRandRoll) {
       return 0;
     }
-    if (!(pUnit && pUnit->eUnitType == UNIT_PLAYER && __frame1.pDefender && __frame1.pDefender->eUnitType == UNIT_MONSTER)) {
+    if (!(pUnit && pUnit->eUnitType == UNIT_PLAYER && pDefender && pDefender->eUnitType == UNIT_MONSTER)) {
       return 1;
     }
 

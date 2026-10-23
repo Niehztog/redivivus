@@ -496,21 +496,13 @@ int32_t __fastcall Q32_FindBarricadeGroup(D2QuestDataStrc * pQuestData, D2UnitSt
 // field_0xA8 exceeds 4, broadcasts stateFlag 0xc ("failed/wussie" branch) and runs Q32_SetCannotComplete on
 // all players (quest can no longer be completed -> state 0xe).
 void __fastcall Q32_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
-    // Frame slots -20..-4 are ONE object: &pAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjacentRooms;
-      D2QuestDataStrc* pQuestData2;
-      uint32_t nAdjacentCount;
-      D2QuestArgStrc* pQuestArgs2;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nBarricadeGroup;
     int nPrisonerIdx;
     int nUnitGUID;
     uint32_t nRoomIdx;
     int32_t* pGroupKillCount;
+    D2RoomStrc** pAdjacentRooms;
+    uint32_t nAdjacentCount;
     BOOL bReset;
     D2QuestDataA5Q2Strc* pQuestSpecificData = pQuestData->pQuestSpecificData.pA5Q2;
     if (!pQuestData->bIsNotIntroduction) {
@@ -518,8 +510,8 @@ void __fastcall Q32_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
     }
 
     D2UnitStrc* pPrisoner = pQuestArgs->pTarget;
-    __frame0.pQuestData2 = pQuestData;
-    __frame0.pQuestArgs2 = pQuestArgs;
+    D2QuestDataStrc* pQuestData2 = pQuestData;
+    D2QuestArgStrc* pQuestArgs2 = pQuestArgs;
     if (!pPrisoner || pPrisoner->nClassId != 0x1b2) {
       nPrisonerIdx = 0;
       if (0 < pQuestSpecificData->nWussieMonsterCount) {
@@ -558,14 +550,14 @@ void __fastcall Q32_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
       D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pBarricadeRoom, bReset);
       pBarricadeRoom = D2Common::Units::UNITS_GetRoom(pQuestArgs->pTarget);
       if (pBarricadeRoom) {
-        D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pBarricadeRoom, &__frame0.pAdjacentRooms, (int*)&__frame0.nAdjacentCount);
+        D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pBarricadeRoom, &pAdjacentRooms, (int*)&nAdjacentCount);
         nRoomIdx = 0;
-        pQuestData = __frame0.pQuestData2;
-        if (__frame0.nAdjacentCount) {
+        pQuestData = pQuestData2;
+        if (nAdjacentCount) {
           do {
-            pQuestData = __frame0.pQuestData2;
-            pQuestArgs = __frame0.pQuestArgs2;
-            for (pPrisoner = __frame0.pAdjacentRooms[nRoomIdx]->pUnitList; __frame0.pQuestData2 = pQuestData , __frame0.pQuestArgs2 = pQuestArgs , pPrisoner != 0; pPrisoner = pPrisoner->pRoomNext) {
+            pQuestData = pQuestData2;
+            pQuestArgs = pQuestArgs2;
+            for (pPrisoner = pAdjacentRooms[nRoomIdx]->pUnitList; pQuestData2 = pQuestData , pQuestArgs2 = pQuestArgs , pPrisoner != 0; pPrisoner = pPrisoner->pRoomNext) {
               if (pPrisoner->eUnitType == UNIT_MONSTER && pPrisoner->nClassId == 0x216 && pPrisoner->eAnimMode.ePlayerMode != Kick && pPrisoner->eAnimMode.ePlayerMode != Death) {
                 nBarricadeGroup = D2Common::Collision::GetCollisionDistance(pPrisoner, pQuestArgs->pTarget);
                 if (nBarricadeGroup < 0xf) {
@@ -575,12 +567,12 @@ void __fastcall Q32_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
                 }
               }
 
-              pQuestData = __frame0.pQuestData2;
-              pQuestArgs = __frame0.pQuestArgs2;
+              pQuestData = pQuestData2;
+              pQuestArgs = pQuestArgs2;
             }
 
             nRoomIdx++;
-          } while (nRoomIdx < __frame0.nAdjacentCount);
+          } while (nRoomIdx < nAdjacentCount);
         }
       }
     }
@@ -980,28 +972,18 @@ void __fastcall Q32_IncrementWussieKillCount(::SGAMEDATA * pGameStrc, int32_t nB
 // to the party (Q32_PropagateCompleteToParty), marks others CannotComplete and plays the completion sound. The three
 // near-identical blocks are CreateUnit-failure fallback retries with relocated portal coords.
 void __fastcall Q32_OnBarricadeDestroyed(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pBarricadeUnit) {
-    // Frame slots -32..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      ::SGAMEDATA* pGameSaved;
-      D2RoomStrc* pPrisonerRoom;
-      uint32_t nRoomCount;
-      D2UnitStrc* pUnitSaved;
-      D2QuestDataA5Q2Strc* pQuestSpecificDataSaved;
-      uint8_t __pad24[3];
-      char bPrisonerFound;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nCollisionDist;
     D2UnitDataPlayerStrc* pPlayerData;
     D2QuestDataA5Q2Strc* pQuestSpecificData;
     POINT sPortalCoords;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
     ::SGAMEDATA* pGameLoop;
     D2UnitStrc* pIterUnit;
-    __frame0.pGameSaved = pGame;
-    __frame0.pUnitSaved = pUnit;
+    ::SGAMEDATA* pGameSaved;
+    pGameSaved = pGame;
+    D2UnitStrc* pUnitSaved;
+    pUnitSaved = pUnit;
     D2QuestDataStrc* pQuestData;
     pQuestData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_RescueOnMountArreat);
     if (!pQuestData) {
@@ -1010,7 +992,8 @@ void __fastcall Q32_OnBarricadeDestroyed(::SGAMEDATA * pGame, D2UnitStrc * pUnit
 
     D2QuestDataA5Q2Strc* pQuestDataA5Q2;
     pQuestDataA5Q2 = pQuestData->pQuestSpecificData.pA5Q2;
-    __frame0.pQuestSpecificDataSaved = pQuestDataA5Q2;
+    D2QuestDataA5Q2Strc* pQuestSpecificDataSaved;
+    pQuestSpecificDataSaved = pQuestDataA5Q2;
     int32_t nGroupIndex;
     nGroupIndex = Q32_FindBarricadeGroup(pQuestData, pBarricadeUnit);
     if (nGroupIndex < 0) {
@@ -1025,50 +1008,52 @@ void __fastcall Q32_OnBarricadeDestroyed(::SGAMEDATA * pGame, D2UnitStrc * pUnit
 
     sPortalCoords.y = pQuestDataA5Q2->aBarricadePos[nGroupIndex].y;
     sPortalCoords.x = pQuestDataA5Q2->aBarricadePos[nGroupIndex].x + 0xc;
-    __frame0.pPrisonerRoom = D2Common::Units::UNITS_GetRoom(pBarricadeUnit);
+    D2RoomStrc* pPrisonerRoom;
+    pPrisonerRoom = D2Common::Units::UNITS_GetRoom(pBarricadeUnit);
     D2RoomStrc* pAttackerRoom;
     pAttackerRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    __frame0.bPrisonerFound = '\0';
+    char bPrisonerFound;
+    bPrisonerFound = '\0';
     if (!pAttackerRoom) {
       return;
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pAttackerRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pAttackerRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     uint32_t nRoomIndex;
     nRoomIndex = 0;
-    if (!__frame0.nRoomCount) {
+    if (!nRoomCount) {
       return;
     }
 
     do {
-      for (pIterUnit = __frame0.ppAdjacentRooms[nRoomIndex]->pUnitList; pIterUnit; pIterUnit = pIterUnit->pRoomNext) {
+      for (pIterUnit = ppAdjacentRooms[nRoomIndex]->pUnitList; pIterUnit; pIterUnit = pIterUnit->pRoomNext) {
         if (pIterUnit->eUnitType == UNIT_MONSTER && pIterUnit->nClassId == 0x1b2 && pIterUnit->eAnimMode.ePlayerMode == Kick) {
           nCollisionDist = D2Common::Collision::GetCollisionDistance(pIterUnit, pBarricadeUnit);
           if (nCollisionDist < 0xf) {
-            __frame0.pPrisonerRoom = D2Common::Units::UNITS_GetRoom(pIterUnit);
+            pPrisonerRoom = D2Common::Units::UNITS_GetRoom(pIterUnit);
             D2Common::Units::GetCoords(pIterUnit, &sPortalCoords);
             sPortalCoords.x += 2;
-            __frame0.bPrisonerFound = '\x01';
+            bPrisonerFound = '\x01';
             break;
           }
         }
       }
 
       nRoomIndex++;
-    } while (nRoomIndex < __frame0.nRoomCount);
+    } while (nRoomIndex < nRoomCount);
 
-    if (__frame0.bPrisonerFound == '\0') {
+    if (bPrisonerFound == '\0') {
       return;
     }
 
     *pGroupBarricadeFlag = 1;
-    pIterUnit = (D2UnitStrc*)D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(__frame0.pPrisonerRoom, sPortalCoords.x, sPortalCoords.y);
+    pIterUnit = (D2UnitStrc*)D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pPrisonerRoom, sPortalCoords.x, sPortalCoords.y);
     D2UnitStrc* pPortalUnit;
     pPortalUnit = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 0xbd, sPortalCoords.x, sPortalCoords.y, pQuestData->pGame, (D2RoomStrc*)pIterUnit, 1, 1, nullptr);
     if (!pPortalUnit) {
       pPortalUnit = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 0xbd, sPortalCoords.x - 2, sPortalCoords.y, pQuestData->pGame, (D2RoomStrc*)pIterUnit, 1, 1, nullptr);
       if (!pPortalUnit) {
-        pQuestSpecificData = __frame0.pQuestSpecificDataSaved;
+        pQuestSpecificData = pQuestSpecificDataSaved;
         if (!pIterUnit) {
           goto update_rescue_progress;
         }
@@ -1080,34 +1065,34 @@ void __fastcall Q32_OnBarricadeDestroyed(::SGAMEDATA * pGame, D2UnitStrc * pUnit
         }
 
         pPortalUnit = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 0xbd, sPortalCoords.x, sPortalCoords.y, pQuestData->pGame, (D2RoomStrc*)pIterUnit, 1, 1, nullptr);
-        pQuestSpecificData = __frame0.pQuestSpecificDataSaved;
+        pQuestSpecificData = pQuestSpecificDataSaved;
         if (!pPortalUnit) {
           goto update_rescue_progress;
         }
       }
     }
 
-    pQuestSpecificData = __frame0.pQuestSpecificDataSaved;
-    __frame0.pQuestSpecificDataSaved->abBarricadePortalSpawned[nGroupIndex] = 1;
+    pQuestSpecificData = pQuestSpecificDataSaved;
+    pQuestSpecificDataSaved->abBarricadePortalSpawned[nGroupIndex] = 1;
     if (!pPortalUnit) {
       nCollisionDist = -1;
     } else {
       nCollisionDist = pPortalUnit->nUnitGUID;
     }
 
-    __frame0.pQuestSpecificDataSaved->anBarricadePortalGUID[nGroupIndex] = nCollisionDist;
+    pQuestSpecificDataSaved->anBarricadePortalGUID[nGroupIndex] = nCollisionDist;
     GAME::Event::SetEvent(pQuestData->pGame, pPortalUnit, 7, pQuestData->pGame->dwGameFrame + 0x19, 0, 0);
     BOOL bQuestStateResult;
     bQuestStateResult = 0;
     pAttackerRoom = D2Common::Units::UNITS_GetRoom(pPortalUnit);
     D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pAttackerRoom, bQuestStateResult);
     update_rescue_progress:
-    pPlayerData = D2Common::Units::GetPlayerData(__frame0.pUnitSaved);
-    D2BitBufferStrc* pBitBuffer = pPlayerData->pQuestRecord[__frame0.pGameSaved->nDifficulty];
+    pPlayerData = D2Common::Units::GetPlayerData(pUnitSaved);
+    D2BitBufferStrc* pBitBuffer = pPlayerData->pQuestRecord[pGameSaved->nDifficulty];
     if (pQuestSpecificData->nTotalPrisonersToFree == pQuestSpecificData->nPrisonersKilledByMonsters + pQuestSpecificData->nPrisonersFreed && pQuestSpecificData->abGroupAllFreed[0] && pQuestSpecificData->abGroupAllFreed[1] && pQuestSpecificData->abGroupAllFreed[2]) {
       eD2QuestState eSurvivalTierState;
       if (pQuestSpecificData->nPrisonersFreed < 0xc) {
-        UNIT::SUnit::IteratePlayerOrMonsterUnits(__frame0.pGameSaved, 0, __frame0.pUnitSaved, (::fpExecuteOnUnitFunction)Q32_SetCannotComplete);
+        UNIT::SUnit::IteratePlayerOrMonsterUnits(pGameSaved, 0, pUnitSaved, (::fpExecuteOnUnitFunction)Q32_SetCannotComplete);
         return;
       }
 
@@ -1133,9 +1118,9 @@ void __fastcall Q32_OnBarricadeDestroyed(::SGAMEDATA * pGame, D2UnitStrc * pUnit
         }
       }
 
-      pIterUnit = __frame0.pUnitSaved;
-      pGameLoop = __frame0.pGameSaved;
-      UNIT::SUnit::IteratePlayerOrMonsterUnits(__frame0.pGameSaved, 0, __frame0.pUnitSaved, (::fpExecuteOnUnitFunction)Q32_PropagateCompleteToParty);
+      pIterUnit = pUnitSaved;
+      pGameLoop = pGameSaved;
+      UNIT::SUnit::IteratePlayerOrMonsterUnits(pGameSaved, 0, pUnitSaved, (::fpExecuteOnUnitFunction)Q32_PropagateCompleteToParty);
       UNIT::SUnit::IteratePlayerOrMonsterUnits(pGameLoop, 0, pIterUnit, (::fpExecuteOnUnitFunction)Q32_SetCannotComplete);
       UNIT::SUnit::IteratePlayerOrMonsterUnits(pGameLoop, 0, pIterUnit, (::fpExecuteOnUnitFunction)Q32_PlayCompletionSound);
       return;

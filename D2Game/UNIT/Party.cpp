@@ -641,14 +641,6 @@ uint32_t __fastcall CountDeadPartyMembers(::SGAMEDATA * pGame, D2UnitStrc * pUni
 
 // Distributes a gold amount among party members in the same level, respecting each member's carry limit. If fewer than 2 alive party members are present, all gold goes to the source player. Otherwise, divides nAmount evenly among alive same-level members (via GoldCalculations/ChangeGoldForPlayer), then grants the remainder to the source player. Returns the amount that could not be deposited due to carry limits.
 DWORD __fastcall PARTY_SplitGoldToPartyMembers(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nAmount) {
-    // Frame slots -12..-4 are ONE object: &nGoldDelta is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nGoldDelta;
-      DWORD nAlivePartyMembers;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nGoldLimit;
     int nGold;
     D2UnitPartyControlSub* pPartyControl;
@@ -659,27 +651,28 @@ DWORD __fastcall PARTY_SplitGoldToPartyMembers(::SGAMEDATA * pGame, D2UnitStrc *
     eD2PlayerAnimMode eAnimMode;
     int nCurrentGold;
     int32_t nShare;
+    int nGoldDelta;
     D2UnitPartyControlSubSub* pSubSub;
-    __frame0.nAlivePartyMembers = 0;
-    FindUnitWithFilter(pGame, pUnit, (pfnPartyMemberFilter)CountModeZero, &__frame0.nAlivePartyMembers);
-    if ((int)__frame0.nAlivePartyMembers < 2) {
+    DWORD nAlivePartyMembers = 0;
+    FindUnitWithFilter(pGame, pUnit, (pfnPartyMemberFilter)CountModeZero, &nAlivePartyMembers);
+    if ((int)nAlivePartyMembers < 2) {
       nGoldLimit = D2Common::Units::GetInventoryGoldLimit(pUnit);
       nGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
-      __frame0.nAlivePartyMembers = 0;
+      nAlivePartyMembers = 0;
       nShare = nAmount;
       if ((int)nGoldLimit < nGold + nAmount) {
         nShare = nGoldLimit - nGold;
-        __frame0.nAlivePartyMembers = nAmount - nShare;
+        nAlivePartyMembers = nAmount - nShare;
       }
       if (pUnit) {
         nGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
         if (-1 < nGold + nShare && (pUnit->eUnitType != UNIT_PLAYER || (nGoldLimit = D2Common::Units::GetInventoryGoldLimit(pUnit) , nGold + nShare <= (int)nGoldLimit))) {
           D2Common::Stats::StatsEx::STATLIST_AddUnitStat(pUnit, UNITSTAT_gold, nShare, 0);
-          return __frame0.nAlivePartyMembers;
+          return nAlivePartyMembers;
         }
 
         D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_gold, 0, 0);
-        return __frame0.nAlivePartyMembers;
+        return nAlivePartyMembers;
       }
     } else {
       int16_t nPartyId;
@@ -688,7 +681,7 @@ DWORD __fastcall PARTY_SplitGoldToPartyMembers(::SGAMEDATA * pGame, D2UnitStrc *
       if (!pPartyControl) {
         nGoldLimit = D2Common::Units::GetInventoryGoldLimit(pUnit);
         nGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
-        __frame0.nAlivePartyMembers = 0;
+        nAlivePartyMembers = 0;
         if ((int)nGoldLimit < nGold + nAmount) {
           ChangeGoldForPlayer(pUnit, UNITSTAT_gold, nGoldLimit - nGold);
           return nAmount - (nGoldLimit - nGold);
@@ -698,7 +691,7 @@ DWORD __fastcall PARTY_SplitGoldToPartyMembers(::SGAMEDATA * pGame, D2UnitStrc *
         return 0;
       }
 
-      nGold = nAmount / (int)__frame0.nAlivePartyMembers;
+      nGold = nAmount / (int)nAlivePartyMembers;
       pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
       eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
       for (pSubSub = pPartyControl->pSub; pSubSub; pSubSub = pSubSub->pNext) {
@@ -712,11 +705,11 @@ DWORD __fastcall PARTY_SplitGoldToPartyMembers(::SGAMEDATA * pGame, D2UnitStrc *
               if (eAnimMode != Death) {
                 eAnimMode = D2Client::UNIT::GetAnimMode(pUnit);
                 if (eAnimMode != eD2PlayerAnimMode_ns::Dead) {
-                  __frame0.nGoldDelta = 0;
-                  __frame0.nAlivePartyMembers = 0;
-                  GoldCalculations(pPartyMember, &__frame0.nGoldDelta, (int*)&__frame0.nAlivePartyMembers, nGold);
-                  ChangeGoldForPlayer(pPartyMember, UNITSTAT_gold, __frame0.nGoldDelta);
-                  nAmount += __frame0.nAlivePartyMembers - nGold;
+                  nGoldDelta = 0;
+                  nAlivePartyMembers = 0;
+                  GoldCalculations(pPartyMember, &nGoldDelta, (int*)&nAlivePartyMembers, nGold);
+                  ChangeGoldForPlayer(pPartyMember, UNITSTAT_gold, nGoldDelta);
+                  nAmount += nAlivePartyMembers - nGold;
                 }
               }
             }
@@ -726,17 +719,17 @@ DWORD __fastcall PARTY_SplitGoldToPartyMembers(::SGAMEDATA * pGame, D2UnitStrc *
 
       nGoldLimit = D2Common::Units::GetInventoryGoldLimit(pUnit);
       nCurrentGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
-      __frame0.nAlivePartyMembers = 0;
+      nAlivePartyMembers = 0;
       nGold = nAmount;
       if ((int)nGoldLimit < nCurrentGold + nAmount) {
         nGold = nGoldLimit - nCurrentGold;
-        __frame0.nAlivePartyMembers = nAmount - nGold;
+        nAlivePartyMembers = nAmount - nGold;
       }
 
       ChangeGoldForPlayer(pUnit, UNITSTAT_gold, nGold);
     }
 
-    return __frame0.nAlivePartyMembers;
+    return nAlivePartyMembers;
 }
 
 } // namespace D2Game::UNIT::Party

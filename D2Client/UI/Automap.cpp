@@ -541,20 +541,14 @@ D2AutomapCellStrc * __stdcall AUTOMAP_AllocCell() {
 // get a Y offset of +24 pixels.
 // Source: .\\UI\\automap.cpp
 void __stdcall AUTOMAP_RevealTile(D2RoomExStrc * pRoomEx, D2AutomapCellStrc * pAutomapCell, D2DrlgTileDataStrc * pTileData) {
-    // Frame slots -12..-4 are ONE object: &nY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nY;
-      int nX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nLevelType;
     int32_t nOrientation;
     int32_t nIndex;
     int32_t nSubIndex;
     int nCellNo;
     D2AutomapCellStrc* pAutomapCell1;
+    int nY;
+    int nX;
     if (pTileData->nFlags & 0x40000U) {
       return;
     }
@@ -570,21 +564,21 @@ void __stdcall AUTOMAP_RevealTile(D2RoomExStrc * pRoomEx, D2AutomapCellStrc * pA
     }
 
     pAutomapCell1 = AUTOMAP_AllocCell();
-    __frame0.nX = pRoomEx->sCoords.WorldPosition.y + pTileData->nPosY;
-    __frame0.nY = pRoomEx->sCoords.WorldPosition.x + pTileData->nPosX;
-    D2Common::Drlg::Transform::CoordsMiniMapToScreen(&__frame0.nY, &__frame0.nX);
-    __frame0.nY /= 10;
-    __frame0.nX /= 10;
-    if (__frame0.nY + 0x8000U < 0x10000) {
-      if (__frame0.nX + 0x8000U < 0x10000) {
+    nX = pRoomEx->sCoords.WorldPosition.y + pTileData->nPosY;
+    nY = pRoomEx->sCoords.WorldPosition.x + pTileData->nPosX;
+    D2Common::Drlg::Transform::CoordsMiniMapToScreen(&nY, &nX);
+    nY /= 10;
+    nX /= 10;
+    if (nY + 0x8000U < 0x10000) {
+      if (nX + 0x8000U < 0x10000) {
         if (nCellNo + 0x8000U < 0x10000) {
           if (0xf < pTileData->nTileType) {
-            __frame0.nX += 0x18;
+            nX += 0x18;
           }
 
           pAutomapCell1->nCellNo = (short int)nCellNo;
-          pAutomapCell1->xPixel = (short int)__frame0.nY;
-          pAutomapCell1->yPixel = (short int)__frame0.nX;
+          pAutomapCell1->xPixel = (short int)nY;
+          pAutomapCell1->yPixel = (short int)nX;
           AUTOMAP_InsertCellIntoTree(pAutomapCell1, pAutomapCell);
           return;
         }
@@ -1403,14 +1397,6 @@ void __stdcall AUTOMAP_Update() {
     static int nAutoMapLastPlayerX;
     static int nAutoMapPlayerTargetX;
 
-    // Frame slots -12..-4 are ONE object: &nRoomCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nRoomCount;
-      D2RoomStrc** papRooms;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nLayer;
     D2RoomStrc* pRoom;
     eD2LevelId eLevelId;
@@ -1418,6 +1404,8 @@ void __stdcall AUTOMAP_Update() {
     D2AutomapLayerStrc* pAutomapLayer;
     int nDeltaY;
     uint32_t i;
+    uint32_t nRoomCount;
+    D2RoomStrc** papRooms;
     if (nAutoMapRevealDelay) {
       nAutoMapRevealDelay--;
       return;
@@ -1453,27 +1441,27 @@ void __stdcall AUTOMAP_Update() {
         return;
       }
 
-      __frame0.papRooms = 0;
-      __frame0.nRoomCount = 0;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.papRooms, (int*)&__frame0.nRoomCount);
+      papRooms = 0;
+      nRoomCount = 0;
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &papRooms, (int*)&nRoomCount);
       eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
       pLevelDefs = D2Common::DATATBLS::LvlTbls::TXT_LevelDefs_GetLine(eLevelId);
       nLayer = pLevelDefs->Layer;
       pAutomapLayer = AUTOMAP_AddLayer(nLayer);
       i = 0;
-      if (!__frame0.nRoomCount) {
+      if (!nRoomCount) {
         return;
       }
 
       do {
-        eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(__frame0.papRooms[i]);
+        eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(papRooms[i]);
         pLevelDefs = D2Common::DATATBLS::LvlTbls::TXT_LevelDefs_GetLine(eLevelId);
         if (nLayer == pLevelDefs->Layer) {
-          AUTOMAP_RevealRoom(__frame0.papRooms[i], 0, pAutomapLayer);
+          AUTOMAP_RevealRoom(papRooms[i], 0, pAutomapLayer);
         }
 
         i++;
-      } while (i < __frame0.nRoomCount);
+      } while (i < nRoomCount);
 
       return;
     }
@@ -2628,14 +2616,6 @@ void __stdcall AUTOMAP_DrawXMarker(int32_t nX, DWORD nColor, int32_t nY) {
 // Source: .\\UI\\automap.cpp
 // @sourcefile .\UI\automap.cpp
 void AUTOMAP_DrawUnitMarker(D2UnitStrc * pUnit) {
-    // Frame slots -16..-8 are ONE object: &nTransformClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTransformClassId;
-      uint16_t* pUnitTypeOrName;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int16_t nUnitPartyId;
     int nTemp;
     eD2States eUnitState;
@@ -2650,16 +2630,18 @@ void AUTOMAP_DrawUnitMarker(D2UnitStrc * pUnit) {
     int nClassId;
     int xLocation;
     int yLocation;
+    int nTransformClassId;
+    uint16_t* pUnitTypeOrName;
     uD2UnitMode uUnitColor;
     BOOL bHasInteract;
     if (!pUnit) {
-      __frame0.pUnitTypeOrName = (uint16_t*)0x6;
+      pUnitTypeOrName = (uint16_t*)0x6;
     } else {
-      __frame0.pUnitTypeOrName = (uint16_t*)pUnit->eUnitType;
+      pUnitTypeOrName = (uint16_t*)pUnit->eUnitType;
     }
 
     uUnitColor.ePlayerMode &= -256;
-    if (!(__frame0.pUnitTypeOrName || (nTemp = UNIT::CUnit::IsActive(pUnit) , !nTemp) || (eUnitState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_playerbody) , eUnitState != STATE_none))) {
+    if (!(pUnitTypeOrName || (nTemp = UNIT::CUnit::IsActive(pUnit) , !nTemp) || (eUnitState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_playerbody) , eUnitState != STATE_none))) {
       return;
     }
 
@@ -2676,7 +2658,7 @@ void AUTOMAP_DrawUnitMarker(D2UnitStrc * pUnit) {
     if (!(gnAutomapClipLeft <= xLocation && xLocation <= gnAutomapClipRight && gnAutomapClipTop <= yLocation && yLocation <= gnAutomapClipBottom)) {
       return;
     }
-    if (!__frame0.pUnitTypeOrName) {
+    if (!pUnitTypeOrName) {
       if (nAutoMapParty || *(uint8_t*)(char*)&uUnitColor.ePlayerMode != nAutoMapColorParty) {
         AUTOMAP_DrawXMarker(xLocation, uUnitColor.ePlayerMode, yLocation);
       }
@@ -2704,19 +2686,19 @@ void AUTOMAP_DrawUnitMarker(D2UnitStrc * pUnit) {
       }
     } else {
       int16_t nMyPartyId;
-      if (__frame0.pUnitTypeOrName != (uint16_t*)0x1) {
-        if (__frame0.pUnitTypeOrName != (uint16_t*)0x2) {
+      if (pUnitTypeOrName != (uint16_t*)0x1) {
+        if (pUnitTypeOrName != (uint16_t*)0x2) {
           return;
         }
         if (AutoMapPartyNames && pUnit && pUnit->nClassId == 0x10b) {
-          __frame0.pUnitTypeOrName = (uint16_t*)D2Win::Src::D2WinFont::SetAndReturnLastFont(6);
+          pUnitTypeOrName = (uint16_t*)D2Win::Src::D2WinFont::SetAndReturnLastFont(6);
           wPortalLabel = D2Lang::StrTable::strtable::GetLocaleString(0xcf3);
           dwTextColor = uUnitColor.ePlayerMode & 0xff;
           bHasInteract = 0;
           nTemp += -0x12;
           nTargetX = D2Win::Src::D2WinFont::DRAW_text0(wPortalLabel);
           D2Win::Src::D2WinFont::DRAW_text(wPortalLabel, xLocation - nTargetX / 2, nTemp, dwTextColor, bHasInteract);
-          D2Win::Src::D2WinFont::SetAndReturnLastFont((int32_t)__frame0.pUnitTypeOrName);
+          D2Win::Src::D2WinFont::SetAndReturnLastFont((int32_t)pUnitTypeOrName);
           return;
         }
 
@@ -2737,12 +2719,12 @@ void AUTOMAP_DrawUnitMarker(D2UnitStrc * pUnit) {
       bHasInteract = DataTbls::MonsterTbls::TXT_MonStats_GetFlagsByBitOffset(nClassId, interact);
       if (bHasInteract) {
         uUnitColor.ePlayerMode = D2Win::Src::D2WinFont::SetAndReturnLastFont(6);
-        __frame0.pUnitTypeOrName = UNIT::CUnit::GetName(pUnit);
+        pUnitTypeOrName = UNIT::CUnit::GetName(pUnit);
         bHasInteract = 0;
         nTargetY = 4;
         nTemp += -0x12;
-        nTargetX = D2Win::Src::D2WinFont::DRAW_text0(__frame0.pUnitTypeOrName);
-        D2Win::Src::D2WinFont::DRAW_text(__frame0.pUnitTypeOrName, xLocation - nTargetX / 2, nTemp, nTargetY, bHasInteract);
+        nTargetX = D2Win::Src::D2WinFont::DRAW_text0(pUnitTypeOrName);
+        D2Win::Src::D2WinFont::DRAW_text(pUnitTypeOrName, xLocation - nTargetX / 2, nTemp, nTargetY, bHasInteract);
         D2Win::Src::D2WinFont::SetAndReturnLastFont(uUnitColor.ePlayerMode);
       }
       if (!AutoMapPartyNames) {
@@ -2752,18 +2734,18 @@ void AUTOMAP_DrawUnitMarker(D2UnitStrc * pUnit) {
         return;
       }
 
-      __frame0.pUnitTypeOrName = (uint16_t*)0x6;
+      pUnitTypeOrName = (uint16_t*)0x6;
       if (!pUnit) {
-        __frame0.nTransformClassId = -1;
+        nTransformClassId = -1;
         uUnitColor.ePlayerMode = Death;
       } else {
-        __frame0.pUnitTypeOrName = (uint16_t*)pUnit->eUnitType;
-        __frame0.nTransformClassId = pUnit->nClassId;
+        pUnitTypeOrName = (uint16_t*)pUnit->eUnitType;
+        nTransformClassId = pUnit->nClassId;
         uUnitColor = pUnit->eAnimMode;
       }
 
-      D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, (eD2UnitType*)&__frame0.pUnitTypeOrName, &__frame0.nTransformClassId, (int*)&uUnitColor.ePlayerMode, ".\\UI\\automap.cpp", 0xa15);
-      if (__frame0.pUnitTypeOrName) {
+      D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, (eD2UnitType*)&pUnitTypeOrName, &nTransformClassId, (int*)&uUnitColor.ePlayerMode, ".\\UI\\automap.cpp", 0xa15);
+      if (pUnitTypeOrName) {
         return;
       }
 
@@ -2795,16 +2777,8 @@ void AUTOMAP_DrawUnitMarker(D2UnitStrc * pUnit) {
 }
 
 void AUTOMAP_DrawPartyMember(D2RosterStrc * pRoster) {
-    // Frame slots -12..-4 are ONE object: &nScreenX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nScreenX;
-      int nScreenY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    __frame0.nScreenX = 0;
-    __frame0.nScreenY = 0;
+    int nScreenX = 0;
+    int nScreenY = 0;
     D2UnitStrc* pMyPlayer = UNIT::Player::GetPlayerUnit_UI();
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pMyPlayer);
     eD2LevelId eLevel = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
@@ -2815,17 +2789,17 @@ void AUTOMAP_DrawPartyMember(D2RosterStrc * pRoster) {
       return;
     }
 
-    GAME::Roster::GetRosterPosition(pRoster, &__frame0.nScreenX, &__frame0.nScreenY);
-    D2Common::Drlg::Transform::CoordsMapToScreen(&__frame0.nScreenX, &__frame0.nScreenY);
-    __frame0.nScreenX = __frame0.nScreenX / nAutoMapZoomDivisor - nAutoMapScrollX + 8;
-    __frame0.nScreenY = __frame0.nScreenY / nAutoMapZoomDivisor - nAutoMapScrollY - 8;
-    if (!(gnAutomapClipLeft <= __frame0.nScreenX && __frame0.nScreenX <= gnAutomapClipRight && gnAutomapClipTop <= __frame0.nScreenY && __frame0.nScreenY <= gnAutomapClipBottom)) {
+    GAME::Roster::GetRosterPosition(pRoster, &nScreenX, &nScreenY);
+    D2Common::Drlg::Transform::CoordsMapToScreen(&nScreenX, &nScreenY);
+    nScreenX = nScreenX / nAutoMapZoomDivisor - nAutoMapScrollX + 8;
+    nScreenY = nScreenY / nAutoMapZoomDivisor - nAutoMapScrollY - 8;
+    if (!(gnAutomapClipLeft <= nScreenX && nScreenX <= gnAutomapClipRight && gnAutomapClipTop <= nScreenY && nScreenY <= gnAutomapClipBottom)) {
       return;
     }
 
     uint32_t nOffset = 0;
     do {
-      D2gfx::D2GFX::D2GFX_DrawLine(__frame0.nScreenX + *(int*)((int)gaAutomapXMarkerPolyline + nOffset) * 2, __frame0.nScreenY + *(int*)((int)gaAutomapXMarkerPolyline + nOffset + 4) * 2, __frame0.nScreenX + *(int*)((int)gaAutomapXMarkerPolyline + nOffset + 8) * 2, __frame0.nScreenY + *(int*)((int)gaAutomapXMarkerPolyline + nOffset + 0xc) * 2, (uint32_t)nAutoMapColorParty, 0xff);
+      D2gfx::D2GFX::D2GFX_DrawLine(nScreenX + *(int*)((int)gaAutomapXMarkerPolyline + nOffset) * 2, nScreenY + *(int*)((int)gaAutomapXMarkerPolyline + nOffset + 4) * 2, nScreenX + *(int*)((int)gaAutomapXMarkerPolyline + nOffset + 8) * 2, nScreenY + *(int*)((int)gaAutomapXMarkerPolyline + nOffset + 0xc) * 2, (uint32_t)nAutoMapColorParty, 0xff);
       nOffset += 8;
     } while (nOffset < 0x60);
 
@@ -2833,8 +2807,8 @@ void AUTOMAP_DrawPartyMember(D2RosterStrc * pRoster) {
       return;
     }
 
-    int nCenterX = __frame0.nScreenX;
-    int nBaseY = __frame0.nScreenY;
+    int nCenterX = nScreenX;
+    int nBaseY = nScreenY;
     char* szRosterName = GAME::Roster::GetRosterName(pRoster);
     AUTOMAP_DrawTextCentered(nCenterX, nBaseY, 2, szRosterName);
 }

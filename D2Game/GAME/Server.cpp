@@ -729,20 +729,14 @@ uint32_t __fastcall NET_IsClientAllowedToLeave(uint32_t nParam) {
 
 // Game-cleanup save: force-saves the disconnecting client's character (SaveGameAllGameTypes with bForceFullSave=1), then iterates all remaining clients in the game and soft-saves each (bForceFullSave=0). For non-singleplayer games, also invokes BattleNetServerService->fpUpdateCharacterLadder with the player's level, experience, char status, guild info, and file-time pointer so the ladder record stays current. No-ops if pClient or its player unit is null.
 void __fastcall SavePlayerOnCleanUp(D2ClientStrc * pClient, ::SGAMEDATA * pGame) {
-    // Frame slots -7..-4 are ONE object: &nGuildRank is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint8_t nGuildRank;
-      uint8_t nGuildEmblem;
-      uint8_t nGuildUnknown;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 3, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int iVar1;
     fnUpdateCharacterLadder* ppfpUpdateLadder;
     uint32_t nCharStatus;
     uint32_t nLevel;
     uint16_t wCharStatus;
+    uint8_t nGuildRank;
+    uint8_t nGuildEmblem;
+    uint8_t nGuildUnknown;
     uint32_t dwLadderPad;
     FILETIME** ppFileTime;
     if (!pClient) {
@@ -778,7 +772,7 @@ void __fastcall SavePlayerOnCleanUp(D2ClientStrc * pClient, ::SGAMEDATA * pGame)
           PLAYER::PlayerSave::SaveGameAllGameTypes(pGame, pPlayer, szCharName, bSaveSuccess);
         }
         if (BattleNetServerService && BattleNetServerService->fpUpdateCharacterLadder && pGame->eGameType != GAMETYPE_SINGLEPLAYER) {
-          Clients::GetGuildInfo(pClientLoop, &__frame0.nGuildRank, &__frame0.nGuildEmblem, &__frame0.nGuildUnknown);
+          Clients::GetGuildInfo(pClientLoop, &nGuildRank, &nGuildEmblem, &nGuildUnknown);
           iVar1 = pPlayer->nClassId;
           ppFileTime = &pClientLoop->pFileTime;
           ppfpUpdateLadder = &BattleNetServerService->fpUpdateCharacterLadder;
@@ -796,21 +790,15 @@ void __fastcall SavePlayerOnCleanUp(D2ClientStrc * pClient, ::SGAMEDATA * pGame)
 
 // Saves all connected players to persistent storage. Iterates client list, gets player unit for each, calls SaveGameAllGameTypes to write character data (inventory/stats/quests/waypoints). For BNet non-singleplayer games, also updates ladder ranking via fpUpdateCharacterLadder callback with level, experience, character status, guild info (rank/emblem), and file timestamp. Called every 8192 frames (5.5 minutes) or on disconnects/timeouts. Critical for preventing rollback on crashes.
 void __fastcall SaveAllPlayers(::SGAMEDATA * pGame) {
-    // Frame slots -7..-4 are ONE object: &nGuildRank is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint8_t nGuildRank;
-      uint8_t nGuildEmblem;
-      uint8_t nGuildUnknown;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 3, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int iVar1;
     char* pCharName;
     fnUpdateCharacterLadder* pfpUpdateLadder;
     uint32_t nExperience;
     uint32_t nLevel;
     uint16_t wCharStatus;
+    uint8_t nGuildRank;
+    uint8_t nGuildEmblem;
+    uint8_t nGuildUnknown;
     BOOL bSaveUnknownFlag;
     uint32_t dwUnusedParam;
     D2ClientStrc* pClient;
@@ -830,7 +818,7 @@ void __fastcall SaveAllPlayers(::SGAMEDATA * pGame) {
         pCharName = Clients::GetCharName(pClient);
         PLAYER::PlayerSave::SaveGameAllGameTypes(pGame, pPlayerUnit_lcl, pCharName, bSaveUnknownFlag);
         if (BattleNetServerService && BattleNetServerService->fpUpdateCharacterLadder && pGame->eGameType != GAMETYPE_SINGLEPLAYER) {
-          Clients::GetGuildInfo(pClient, &__frame0.nGuildRank, &__frame0.nGuildEmblem, &__frame0.nGuildUnknown);
+          Clients::GetGuildInfo(pClient, &nGuildRank, &nGuildEmblem, &nGuildUnknown);
           iVar1 = pPlayerUnit_lcl->nClassId;
           ppFileTime = &pClient->pFileTime;
           pfpUpdateLadder = &BattleNetServerService->fpUpdateCharacterLadder;
@@ -1231,11 +1219,10 @@ void __stdcall CheckClientTimeouts(::SGAMEDATA * pGame, int * pnParam) {
 
 // Processes all clients and sends state updates. Checks timeouts, saves all players every 8192 frames. For clients in state 3 (WAITING_ROOMS), waits for all nearby rooms to activate, then transitions to state 4 (FULLY_PLAYING), recalcs inventory, broadcasts 0x5a player join event with char/account names. For state 4, runs GAME_UpdateSingleClient which builds visibility lists and generates compressed update packets (0x6D positions, 0x51 vitals, 0x95 skills, 0xAC spawns). For state 5 (CHANGING_ACT), waits for rooms then transitions back to state 4. Calls BNet EnterGame callback on join completion.
 void UpdateClients(::SGAMEDATA * pGame) {
-    // Frame slots -308..-296 are ONE object: &szCharNameLoop is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -304..-296 are ONE object: &packet0x5a_type is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     #pragma pack(push, 1)
     struct __frame0_t {
-      char* szCharNameLoop;
       uint8_t packet0x5a_type;
       uint8_t packet0x5a_action;
       uint8_t packet0x5a_param;
@@ -1243,7 +1230,7 @@ void UpdateClients(::SGAMEDATA * pGame) {
       uint8_t byPad5a;
     };
     #pragma pack(pop)
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     // Frame -296..-280 is ONE object: a call writes 16 literal bytes starting at &packet0x5a_charName.
     // Separate locals let the compiler reorder them, and the write would run off the frame.
@@ -1278,15 +1265,15 @@ void UpdateClients(::SGAMEDATA * pGame) {
     uint32_t dwStackGuard = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     uint32_t dwFrameMod8192 = pGame->dwGameFrame & 0x80001fff;
     bool bIs8192thFrame = !dwFrameMod8192;
-    __frame0.szCharNameLoop = 0;
+    char* szCharNameLoop = 0;
     if ((int)dwFrameMod8192 < 0) {
       bIs8192thFrame = (dwFrameMod8192 - 1 | -8192) == -1;
     }
 
     uint32_t dwArenaUpdateFlag = Arena::ARENA_GetClientUpdateFlag(pGame);
     if (dwArenaUpdateFlag) {
-      CheckClientTimeouts(pGame, (int*)&__frame0.szCharNameLoop);
-      if (bIs8192thFrame && !__frame0.szCharNameLoop) {
+      CheckClientTimeouts(pGame, (int*)&szCharNameLoop);
+      if (bIs8192thFrame && !szCharNameLoop) {
         SaveAllPlayers(pGame);
       }
 
@@ -1308,7 +1295,7 @@ void UpdateClients(::SGAMEDATA * pGame) {
                 pPlayerUnit_lcl = Clients::CLIENTS_GetControlUnit(pClient, 0);
                 if (pPlayerUnit_lcl) {
                   szCharName = pClient->szCharName;
-                  __frame0.szCharNameLoop = szCharName;
+                  szCharNameLoop = szCharName;
                   SRVLog(6, "[JOIN 6] %d clientid, sUpdateClients: SCMD_STARTACT - Player(%s)", pClient->nClientNo, szCharName);
                   SCmd::NET_D2GS_SERVER_SendStateCommand(pClient, 4);
                   Clients::CLIENT_SetConnectionState(pClient, 4);
@@ -1328,8 +1315,8 @@ void UpdateClients(::SGAMEDATA * pGame) {
                         dwFrameMod8192 = (uint32_t)(uint16_t)pClient->nCharacterStatus;
                         iVar1 = pPlayerUnit_lcl->nClassId;
                         dwArenaUpdateFlag = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pPlayerUnit_lcl, UNITSTAT_level, 0);
-                        (**ppfpEnterGame)(pGame->nServerToken, __frame0.szCharNameLoop, (uint16_t)iVar1, dwArenaUpdateFlag, dwFrameMod8192);
-                        szCharName = __frame0.szCharNameLoop;
+                        (**ppfpEnterGame)(pGame->nServerToken, szCharNameLoop, (uint16_t)iVar1, dwArenaUpdateFlag, dwFrameMod8192);
+                        szCharName = szCharNameLoop;
                       }
                     }
                   }
@@ -1431,28 +1418,22 @@ void UpdatePerformanceMetrics(::SGAMEDATA * pGame) {
 
 // Updates day/night environment cycle for all 5 acts. For each act, checks if cycle index changed via DRLGENV_UpdateCycleIndex. When cycle changes, extracts new cycle index/tick count/eclipse flag, refreshes all player item states (charges/durability based on light level), and broadcasts 0x53 Darkness packet to all clients in that act. Environment cycles affect visibility, light radius, and missile behavior.
 void __fastcall UpdateActEnvironments(::SGAMEDATA * pGame) {
-    // Frame slots -20..-4 are ONE object: &bIsEclipse is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      BOOL bIsEclipse;
-      int dwTickCount;
-      int nCycleIndex;
-      D2DrlgActStrc** ppActCurrent;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL bCycleChanged;
     D2UnitStrc* pPlayerUnit_lcl;
     D2GSPacketSrv0x53 packet0x53;
+    BOOL bIsEclipse;
+    int dwTickCount;
+    int nCycleIndex;
     D2ClientStrc* pClient;
     D2DrlgActStrc** ppActLoop = pGame->pAct;
     uint32_t nActIndex = 0;
     do {
-      __frame0.ppActCurrent = ppActLoop;
+      D2DrlgActStrc** ppActCurrent;
+      ppActCurrent = ppActLoop;
       if (*ppActLoop) {
         bCycleChanged = D2Common::Environment::DRLGENV_UpdateCycleIndex(*ppActLoop, nActIndex);
         if (bCycleChanged) {
-          D2Common::Environment::DRLGENV_GetCycleIndex_Ticks_EclipseFromAct(*ppActLoop, &__frame0.nCycleIndex, &__frame0.dwTickCount, &__frame0.bIsEclipse);
+          D2Common::Environment::DRLGENV_GetCycleIndex_Ticks_EclipseFromAct(*ppActLoop, &nCycleIndex, &dwTickCount, &bIsEclipse);
           pClient = pGame->pClient;
           packet0x53.nHeader = 'S';
           for (; pClient; pClient = pClient->pNext) {
@@ -1468,7 +1449,7 @@ void __fastcall UpdateActEnvironments(::SGAMEDATA * pGame) {
       }
 
       nActIndex++;
-      ppActLoop = __frame0.ppActCurrent + 1;
+      ppActLoop = ppActCurrent + 1;
     } while ((int)nActIndex < 5);
 }
 
@@ -1820,14 +1801,8 @@ void __stdcall SetupStartingAct(int nAct) {
 }
 
 void __fastcall RemoveObject(D2ClientStrc * pClient, D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &pAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjacentRooms;
-      uint32_t nAdjacentCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** pAdjacentRooms;
+    uint32_t nAdjacentCount;
     if (!pUnit) {
       return;
     }
@@ -1839,23 +1814,23 @@ void __fastcall RemoveObject(D2ClientStrc * pClient, D2UnitStrc * pUnit) {
       exit(-1);
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &__frame0.pAdjacentRooms, (int*)&__frame0.nAdjacentCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &pAdjacentRooms, (int*)&nAdjacentCount);
     uint32_t nAdjacentIdx = 0;
-    if (!__frame0.nAdjacentCount) {
+    if (!nAdjacentCount) {
       return;
     }
 
     while (true) {
-      if (!__frame0.pAdjacentRooms[nAdjacentIdx]) {
+      if (!pAdjacentRooms[nAdjacentIdx]) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x15c3);
         exit(-1);
       }
-      if (pUnitRoom == __frame0.pAdjacentRooms[nAdjacentIdx]) {
+      if (pUnitRoom == pAdjacentRooms[nAdjacentIdx]) {
         break;
       }
 
       nAdjacentIdx++;
-      if (__frame0.nAdjacentCount <= nAdjacentIdx) {
+      if (nAdjacentCount <= nAdjacentIdx) {
         return;
       }
     }

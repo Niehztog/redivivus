@@ -3013,15 +3013,9 @@ void __fastcall QUEST_HandleKhalimsWillCompletion(::SGAMEDATA * pGame, D2UnitStr
 }
 
 BOOL __fastcall Q32_CheckNearbyPrisoners(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pUnitFallback) {
-    // Frame slots -12..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2ClientStrc* pClient;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
     D2UnitStrc* pIterUnit;
     if (!pUnit && (pGame->nGameType != SGAMETYPE_SINGLEPLAYER || (pClient = GAME::Clients::GetFirstClientOfGame(pGame) , !pClient) || (pUnit = GAME::Clients::CLIENTS_GetControlUnit(pClient, 0) , !pUnit))) {
       pUnit = pUnitFallback;
@@ -3032,21 +3026,21 @@ BOOL __fastcall Q32_CheckNearbyPrisoners(::SGAMEDATA * pGame, D2UnitStrc * pUnit
       return 0;
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     uint32_t nRoomIndex = 0;
-    if (!__frame0.nRoomCount) {
+    if (!nRoomCount) {
       return 0;
     }
 
     do {
-      for (pIterUnit = __frame0.ppAdjacentRooms[nRoomIndex]->pUnitList; pIterUnit; pIterUnit = pIterUnit->pRoomNext) {
+      for (pIterUnit = ppAdjacentRooms[nRoomIndex]->pUnitList; pIterUnit; pIterUnit = pIterUnit->pRoomNext) {
         if (pIterUnit->eUnitType == UNIT_MONSTER && pIterUnit->nClassId == 0x1b2 && pIterUnit->eAnimMode.ePlayerMode == Kick) {
           return 1;
         }
       }
 
       nRoomIndex++;
-    } while (nRoomIndex < __frame0.nRoomCount);
+    } while (nRoomIndex < nRoomCount);
 
     return 0;
 }
@@ -3067,21 +3061,14 @@ void __stdcall QUEST_AddPlayerGUIDToTrackingList(uint32_t nPlayerGUID, int32_t n
 
 // A2Q4 (The Seven Tombs) quest timer callback that manages Jerhyn's replacement cycle: if Jerhyn's monster AI is still active it clears it (or removes the object unit if AI is absent), then once bShouldSpawnJerhyn is false spawns the Jerhyn NPC (classId 0xc9) at a position offset relative to whether the Seven Tombs quest has progressed, recording the spawn GUID and coordinates in the quest-specific data.
 void __stdcall ReplaceJerhyn(D2RoomStrc * pRoom, D2QuestDataStrc * pQuestData, POINT * pPoint) {
-    // Frame slots -12..-4 are ONE object: &pNearbyRoom is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc* pNearbyRoom;
-      D2QuestDataA2Q4Strc* pQuestSpecificData;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2UnitStrc* pSevenTombsData;
     BOOL nHasAi;
+    D2RoomStrc* pNearbyRoom;
     D2QuestDataA2Q4Strc* pA2Q4Data;
-    __frame0.pQuestSpecificData = pQuestData->pQuestSpecificData.pA2Q4;
-    if (__frame0.pQuestSpecificData->bJerhynAiActive) {
+    D2QuestDataA2Q4Strc* pQuestSpecificData = pQuestData->pQuestSpecificData.pA2Q4;
+    if (pQuestSpecificData->bJerhynAiActive) {
       D2MonsterAiStrc* pMonsterAi;
-      pSevenTombsData = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_MONSTER, __frame0.pQuestSpecificData->nJerhynMonsterGUID);
+      pSevenTombsData = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_MONSTER, pQuestSpecificData->nJerhynMonsterGUID);
       if (pSevenTombsData) {
         if (pSevenTombsData->eUnitType == UNIT_MONSTER && pSevenTombsData->pUnitData.pUnitDataMonster) {
           pMonsterAi = pSevenTombsData->pUnitData.pUnitDataMonster->pMonsterAi;
@@ -3096,10 +3083,10 @@ void __stdcall ReplaceJerhyn(D2RoomStrc * pRoom, D2QuestDataStrc * pQuestData, P
         }
 
         GAME::Server::RemoveObjects(pSevenTombsData, pQuestData->pGame);
-        __frame0.pQuestSpecificData->bJerhynAiActive = false;
+        pQuestSpecificData->bJerhynAiActive = false;
       }
     }
-    if (__frame0.pQuestSpecificData->bShouldSpawnJerhyn) {
+    if (pQuestSpecificData->bShouldSpawnJerhyn) {
       return;
     }
 
@@ -3111,10 +3098,10 @@ void __stdcall ReplaceJerhyn(D2RoomStrc * pRoom, D2QuestDataStrc * pQuestData, P
     }
 
     pPoint->y += -3;
-    __frame0.pNearbyRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, pPoint->x, pPoint->y);
-    FindSpawnableLocation(pRoom, pPoint, 3, 0x100, &__frame0.pNearbyRoom, 9, 100);
-    pSevenTombsData = Monster::Create::SpawnMonsterAtRoomPos(pQuestData->pGame, __frame0.pNearbyRoom, pPoint->x, pPoint->y, 0xc9, eD2MonsterAnimMode_ns::Neutral, -1, 0);
-    if (!(pSevenTombsData || (pSevenTombsData = Monster::Create::SpawnMonsterAtRoomPos(pQuestData->pGame, __frame0.pNearbyRoom, pPoint->x, pPoint->y, 0xc9, eD2MonsterAnimMode_ns::Neutral, 2, 0) , pSevenTombsData != 0))) {
+    pNearbyRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, pPoint->x, pPoint->y);
+    FindSpawnableLocation(pRoom, pPoint, 3, 0x100, &pNearbyRoom, 9, 100);
+    pSevenTombsData = Monster::Create::SpawnMonsterAtRoomPos(pQuestData->pGame, pNearbyRoom, pPoint->x, pPoint->y, 0xc9, eD2MonsterAnimMode_ns::Neutral, -1, 0);
+    if (!(pSevenTombsData || (pSevenTombsData = Monster::Create::SpawnMonsterAtRoomPos(pQuestData->pGame, pNearbyRoom, pPoint->x, pPoint->y, 0xc9, eD2MonsterAnimMode_ns::Neutral, 2, 0) , pSevenTombsData != 0))) {
       return;
     }
 

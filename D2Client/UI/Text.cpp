@@ -573,50 +573,39 @@ void __fastcall TEXT_InsertScreenMessage(uint16_t * * ppwszText) {
 }
 
 void __stdcall TEXT_DrawChatMessages() {
-    // Frame slots -36..-4 are ONE object: &nWrapLineCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nWrapLineCount;
-      int32_t nPrevFont;
-      int bWordWrap;
-      int nBaseY;
-      uint32_t pWrapNext;
-      ScreenMessage_t* pMessageHead;
-      int nLineIdx;
-      ScreenMessage_t* pPrevMessage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2TextLineStrc* pWrapNode;
     int32_t nPixelWidth;
     int nScreenY;
     uint16_t* pwszClear;
+    int nWrapLineCount;
+    uint32_t pWrapNext;
+    ScreenMessage_t* pPrevMessage;
     uint16_t* pwszLine;
     if (!gnTextChatMessageCount) {
       return;
     }
 
-    __frame0.nPrevFont = D2Win::Src::D2WinFont::SetAndReturnLastFont(0xd);
+    int32_t nPrevFont = D2Win::Src::D2WinFont::SetAndReturnLastFont(0xd);
     ScreenMessage_t* pMessage = ScreenMessagesMaybe;
-    __frame0.pMessageHead = ScreenMessagesMaybe;
-    __frame0.nBaseY = 0x14;
+    ScreenMessage_t* pMessageHead = ScreenMessagesMaybe;
+    int nBaseY = 0x14;
     BOOL bHasHireables = ui::GetUIFlag(UI_HIREABLES);
     if (bHasHireables) {
-      __frame0.nBaseY = 0x5f;
+      nBaseY = 0x5f;
     }
 
     int nScreenX = 0xf;
-    __frame0.nLineIdx = 0;
-    __frame0.bWordWrap = 0;
+    int nLineIdx = 0;
+    int bWordWrap = 0;
     uint32_t nBorderType = Path::DRAW_GetTypeOfBorder();
     ScreenMessage_t* pListHead = ScreenMessagesMaybe;
     if (nBorderType != 1) {
       if (nBorderType == 2) {
         nScreenX = ScreenSizeX / 2 + 0xf;
-        __frame0.bWordWrap = 1;
+        bWordWrap = 1;
       }
     } else {
-      __frame0.bWordWrap = 1;
+      bWordWrap = 1;
     }
 
     while (true) {
@@ -626,19 +615,19 @@ void __stdcall TEXT_DrawChatMessages() {
         break;
       }
 
-      __frame0.pPrevMessage = 0;
+      pPrevMessage = 0;
       do {
-        pListHead = __frame0.pPrevMessage;
-        pwszLine = pMessage->apwszLines[(int)__frame0.pPrevMessage];
+        pListHead = pPrevMessage;
+        pwszLine = pMessage->apwszLines[(int)pPrevMessage];
         if (pwszLine) {
-          if (!__frame0.bWordWrap) {
+          if (!bWordWrap) {
             nPixelWidth = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(pwszLine);
             nPixelWidth = D2Win::Src::D2WinFont::D2WINFONT_GetStringPixelWidthN((uint16_t*)pMessage->apwszLines[(int)pListHead], nPixelWidth);
             if (nPixelWidth) {
-              nScreenY = __frame0.nLineIdx * 0xf + __frame0.nBaseY;
+              nScreenY = nLineIdx * 0xf + nBaseY;
               Engine::GfxInfo::D2GFX_DrawSolidRectExBySize(nScreenX - 4, nScreenY - 0xe, nPixelWidth + 8, 0x10, 0, DRAW_TRANSPARENT);
-              D2Win::Src::D2WinFont::DRAW_text(pMessage->apwszLines[(int)__frame0.pPrevMessage], nScreenX, nScreenY, pMessage->color, 0);
-              __frame0.nLineIdx++;
+              D2Win::Src::D2WinFont::DRAW_text(pMessage->apwszLines[(int)pPrevMessage], nScreenX, nScreenY, pMessage->color, 0);
+              nLineIdx++;
             }
           } else {
             pwszClear = awszBuffer;
@@ -649,46 +638,46 @@ void __stdcall TEXT_DrawChatMessages() {
             }
 
             D2Lang::Unicode::UNISYS::STRING_CopyWideString(awszBuffer, pwszLine);
-            pWrapNode = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(awszBuffer, &__frame0.nWrapLineCount, 300);
-            pMessage = __frame0.pMessageHead;
+            pWrapNode = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(awszBuffer, &nWrapLineCount, 300);
+            pMessage = pMessageHead;
             if (pWrapNode) {
-              nScreenY = __frame0.nLineIdx * 0xf + __frame0.nBaseY;
+              nScreenY = nLineIdx * 0xf + nBaseY;
               do {
-                __frame0.pWrapNext = (uint32_t)pWrapNode->pNext;
+                pWrapNext = (uint32_t)pWrapNode->pNext;
                 nPixelWidth = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(pWrapNode->wszLine);
                 nPixelWidth = D2Win::Src::D2WinFont::D2WINFONT_GetStringPixelWidthN((uint16_t*)pWrapNode->wszLine, nPixelWidth);
                 if (nPixelWidth) {
                   Engine::GfxInfo::D2GFX_DrawSolidRectExBySize(nScreenX - 5, nScreenY - 0xe, nPixelWidth + 10, 0x10, 0, DRAW_TRANSPARENT);
-                  D2Win::Src::D2WinFont::DRAW_text(pWrapNode->wszLine, nScreenX, nScreenY, __frame0.pMessageHead->color, 0);
-                  __frame0.nLineIdx++;
+                  D2Win::Src::D2WinFont::DRAW_text(pWrapNode->wszLine, nScreenX, nScreenY, pMessageHead->color, 0);
+                  nLineIdx++;
                   nScreenY += 0xf;
                 }
 
                 Fog::Memory::FreeClientMemory(pWrapNode->wszLine, ".\\UI\\text.cpp", 0xa47, 0);
                 Fog::Memory::FreeClientMemory(pWrapNode, ".\\UI\\text.cpp", 0xa48, 0);
-                pWrapNode = (D2TextLineStrc*)__frame0.pWrapNext;
-                pMessage = __frame0.pMessageHead;
-              } while (__frame0.pWrapNext);
+                pWrapNode = (D2TextLineStrc*)pWrapNext;
+                pMessage = pMessageHead;
+              } while (pWrapNext);
             }
           }
         }
 
-        __frame0.pPrevMessage = (ScreenMessage_t*)((int)__frame0.pPrevMessage + 1);
-      } while ((int)__frame0.pPrevMessage < 6);
+        pPrevMessage = (ScreenMessage_t*)((int)pPrevMessage + 1);
+      } while ((int)pPrevMessage < 6);
 
       pMessage = pMessage->pNext;
       pListHead = ScreenMessagesMaybe;
-      __frame0.pMessageHead = pMessage;
+      pMessageHead = pMessage;
     }
 
-    __frame0.pPrevMessage = 0;
-    __frame0.pWrapNext = GetTickCount();
+    pPrevMessage = 0;
+    pWrapNext = GetTickCount();
     while (true) {
       pMessage = pListHead;
       if (!pMessage) {
         break;
       }
-      if (pMessage->dwMessageExpiration < __frame0.pWrapNext) {
+      if (pMessage->dwMessageExpiration < pWrapNext) {
         gnTextChatMessageCount--;
         pListHead = pMessage->pNext;
         if (ScreenMessagesMaybe == pMessage) {
@@ -705,16 +694,16 @@ void __stdcall TEXT_DrawChatMessages() {
         } while (nScreenX < 6);
 
         Fog::Memory::FreeClientMemory(pMessage, ".\\UI\\text.cpp", 0x6b6, 0);
-        if (__frame0.pPrevMessage) {
-          __frame0.pPrevMessage->pNext = pListHead;
+        if (pPrevMessage) {
+          pPrevMessage->pNext = pListHead;
         }
       } else {
         pListHead = pMessage->pNext;
-        __frame0.pPrevMessage = pMessage;
+        pPrevMessage = pMessage;
       }
     }
 
-    D2Win::Src::D2WinFont::SetAndReturnLastFont(__frame0.nPrevFont);
+    D2Win::Src::D2WinFont::SetAndReturnLastFont(nPrevFont);
 }
 
 void __stdcall TEXT_DrawPartyMessages() {
@@ -5526,29 +5515,22 @@ void __fastcall TEXT_DrawObjectHoverText(D2UnitStrc * pUnit) {
 }
 
 void __fastcall TEXT_DrawMessageLogAndOverhead(D2GameViewStrc * pGameView, void * pScrollCtx) {
-    // Frame slots -32..-4 are ONE object: &nViewLeft is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nViewLeft;
-      int nViewTop;
-      int nViewRight;
-      int nViewBottom;
-      int nCenterX;
-      int nCenterY;
-      int nVisibleCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     HWND pHwnd;
     DWORD dwTickCount;
     D2UnitStrc* pNpcUnit;
     bool bPopupAlive;
+    int nViewLeft;
+    int nViewTop;
+    int nViewRight;
+    int nViewBottom;
+    int nCenterX;
+    int nCenterY;
     int32_t nHandlers;
     gnTextOverheadCounter++;
-    __frame0.nVisibleCount = 0;
-    GAME::View::VIEW_GetViewRect(pGameView, &__frame0.nViewLeft, &__frame0.nViewTop, &__frame0.nViewRight, &__frame0.nViewBottom);
-    GAME::View::GetCenterXY(pGameView, &__frame0.nCenterX, &__frame0.nCenterY);
-    /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&lprcTextOverheadRect, __frame0.nCenterX, __frame0.nCenterY, __frame0.nViewRight - __frame0.nViewLeft + __frame0.nCenterX, __frame0.nViewBottom - __frame0.nViewTop + __frame0.nCenterY);
+    int nVisibleCount = 0;
+    GAME::View::VIEW_GetViewRect(pGameView, &nViewLeft, &nViewTop, &nViewRight, &nViewBottom);
+    GAME::View::GetCenterXY(pGameView, &nCenterX, &nCenterY);
+    /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&lprcTextOverheadRect, nCenterX, nCenterY, nViewRight - nViewLeft + nCenterX, nViewBottom - nViewTop + nCenterY);
     if (gbTextScrollBoxActive == 1) {
       gnTextBoxExclusionLeft[0].left = gnTextBoxExclusionX;
       gnTextBoxExclusionLeft[0].right = gnTextBoxExclusionX + 0x145;
@@ -5562,7 +5544,7 @@ void __fastcall TEXT_DrawMessageLogAndOverhead(D2GameViewStrc * pGameView, void 
     UNIT::CUnit::CUNIT_IterateItemsWithCallback((fnUnitIterCallback)TEXT_DrawObjectHoverText);
     if (gbTextScrollBoxActive == 1 && gpTextScrollingBox && (gpTextScrollingBox->nState == 1 || !gpTextScrollingBox->nState)) {
       uint32_t bPlayerDead;
-      __frame0.nVisibleCount = TEXT_UpdateScrollingText(gbTextScrollBoxAnimating, gpTextScrollingBox);
+      nVisibleCount = TEXT_UpdateScrollingText(gbTextScrollBoxAnimating, gpTextScrollingBox);
       pNpcUnit = 0;
       if (gnTextNpcInteractGuid) {
         pNpcUnit = UNIT::Player::UNITS_FindClientSideUnit(gnTextNpcGuid, UNIT_MONSTER);
@@ -5600,9 +5582,9 @@ void __fastcall TEXT_DrawMessageLogAndOverhead(D2GameViewStrc * pGameView, void 
         gnTextNpcInteractGuid = 0;
       }
 
-      __frame0.nVisibleCount += (uint32_t)bPopupAlive;
+      nVisibleCount += (uint32_t)bPopupAlive;
     }
-    if (!__frame0.nVisibleCount && gbTextScrollBoxActive == 1) {
+    if (!nVisibleCount && gbTextScrollBoxActive == 1) {
       gbTextScrollBoxVisible = 0;
       gnTextNpcInteractGuid = 0;
       gbTextScrollBoxAnimating = 1;

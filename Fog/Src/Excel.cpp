@@ -5,7 +5,6 @@
 #include "D2Client/UI/SkillDesc.h"
 #include "D2Client/UNIT/CUnitEvent.h"
 #include "D2Common/D2BinFieldExcelStrc.h"
-#include "D2Common/DATATBLS/DataTbls.h"
 #include "D2Common/Txt/D2TxtLinkNodeStrc.h"
 #include "D2Common/Unit/Unit.h"
 #include "Fog/BitBuffer.h"
@@ -51,12 +50,12 @@ int __stdcall FOG_ParseBinField(int pOutMapping, D2BinFieldExcelStrc * pBinField
     int32_t nFieldByteOffset;
     uint32_t nBoolRunLen;
     int nOutputCount;
-    int* pHashNodeSlot;
-    int aFieldHashNodes[838];
-    int aHashBuckets[256];
+    D2BinFieldHashNodeStrc* pDVar2;
+    D2BinFieldHashNodeStrc aFieldHashNodes[280];
+    D2BinFieldHashNodeStrc* aHashBuckets[256];
+    D2BinFieldHashNodeStrc* pHashNode;
     char cCurChar;
     D2BinFieldInputStrc* pFieldCur;
-    uint32_t* pHashNode;
     eD2BinFieldInputType eFieldType;
     eFieldType = pBinFieldInput->eType;
     uint32_t nFieldCount;
@@ -90,11 +89,9 @@ int __stdcall FOG_ParseBinField(int pOutMapping, D2BinFieldExcelStrc * pBinField
     }
 
     Storm::Source::SSystem::SMemZero(aHashBuckets, 0x400);
-    int nErrorAddress;
-    nErrorAddress = 0;
     if (pBinFieldInput->eType != FIELDTYPE_END) {
-      int aFieldHashNodesHead[2];
-      pHashNodeSlot = aFieldHashNodesHead;
+      D2BinFieldHashNodeStrc* pDVar1;
+      pDVar2 = aFieldHashNodes;
       pFieldIter = pBinFieldInput;
       do {
         if (0x117 < nFieldCount) {
@@ -104,18 +101,19 @@ int __stdcall FOG_ParseBinField(int pOutMapping, D2BinFieldExcelStrc * pBinField
 
         nFieldCount++;
         nHashKey = Storm::Source::SSTR::SStrHash(pFieldIter->szName, 0, 0);
-        pHashNodeSlot[1] = nHashKey;
-        nErrorAddress = aHashBuckets[((nHashKey >> 8 ^ nHashKey) >> 0x10 ^ nHashKey >> 8 ^ nHashKey) & 0xff];
-        pHashNodeSlot[2] = (int)pFieldIter;
+        pDVar2->nHash = nHashKey;
+        pDVar1 = aHashBuckets[((nHashKey >> 8 ^ nHashKey) >> 0x10 ^ nHashKey >> 8 ^ nHashKey) & 0xff];
+        pDVar2->pField = pFieldIter;
         eFieldType = pFieldIter[1].eType;
-        *pHashNodeSlot = nErrorAddress;
-        aHashBuckets[((nHashKey >> 8 ^ nHashKey) >> 0x10 ^ nHashKey >> 8 ^ nHashKey) & 0xff] = (int)pHashNodeSlot;
-        pHashNodeSlot += 3;
-        nErrorAddress = nOutputIndex;
+        pDVar2->pNext = pDVar1;
+        aHashBuckets[((nHashKey >> 8 ^ nHashKey) >> 0x10 ^ nHashKey >> 8 ^ nHashKey) & 0xff] = pDVar2;
+        pDVar2++;
         pFieldIter++;
       } while (eFieldType != FIELDTYPE_END);
     }
 
+    int nErrorAddress;
+    nErrorAddress = 0;
     D2ArchiveStrc* pColNameIter;
     pColNameIter = pBinFieldExcel->pD2Archive;
     uint32_t nColumnIndex;
@@ -123,12 +121,12 @@ int __stdcall FOG_ParseBinField(int pOutMapping, D2BinFieldExcelStrc * pBinField
     if (pBinFieldExcel->nColumnCount) {
       do {
         nHashKey = Storm::Source::SSTR::SStrHash((char*)pColNameIter, 0, 0);
-        for (pHashNode = (uint32_t*)aHashBuckets[(((nHashKey >> 8 ^ nHashKey) >> 8 ^ nHashKey) >> 8 ^ nHashKey) & 0xff]; pHashNode; pHashNode = (uint32_t*)*pHashNode) {
-          if (pHashNode[1] == nHashKey) {
-            nFieldByteOffset = Storm::Source::SSTR::SStrCmpI((char*)pColNameIter, *(char**)pHashNode[2], 0x7fffffff);
+        for (pHashNode = aHashBuckets[(((nHashKey >> 8 ^ nHashKey) >> 8 ^ nHashKey) >> 8 ^ nHashKey) & 0xff]; pHashNode; pHashNode = pHashNode->pNext) {
+          if (pHashNode->nHash == nHashKey) {
+            nFieldByteOffset = Storm::Source::SSTR::SStrCmpI((char*)pColNameIter, pHashNode->pField->szName, 0x7fffffff);
             if (!nFieldByteOffset) {
-              pHashNode[1] = 0;
-              nErrorAddress = pHashNode[2] - (int)pBinFieldInput;
+              pHashNode->nHash = 0;
+              nErrorAddress = (int)pHashNode->pField - (int)pBinFieldInput;
               *(short int*)(pOutMapping + nOutputIndex * 2) = (short int)(nErrorAddress / 0x14) + (short int)(nErrorAddress >> 0x1f) - (short int)((int64_t)nErrorAddress * 0x66666667 >> 0x3f);
               goto next_column;
             }
@@ -139,7 +137,6 @@ int __stdcall FOG_ParseBinField(int pOutMapping, D2BinFieldExcelStrc * pBinField
         next_column:
         nErrorAddress = nOutputIndex + 1;
         cCurChar = *(char*)&pColNameIter->pPrevLink;
-        nOutputIndex = nErrorAddress;
         while (cCurChar != '\0') {
           pColNameIter = (D2ArchiveStrc*)((uintptr_t)&pColNameIter->pPrevLink + 1);
           cCurChar = *(char*)&pColNameIter->pPrevLink;
@@ -147,16 +144,17 @@ int __stdcall FOG_ParseBinField(int pOutMapping, D2BinFieldExcelStrc * pBinField
 
         nColumnIndex++;
         pColNameIter = (D2ArchiveStrc*)((uintptr_t)&pColNameIter->pPrevLink + 1);
+        nOutputIndex = nErrorAddress;
       } while (nColumnIndex < (uint32_t)pBinFieldExcel->nColumnCount);
     }
     if (!nFieldCount) {
       return nErrorAddress;
     }
 
-    pHashNodeSlot = aFieldHashNodes;
+    D2BinFieldInputStrc** pHashNodeSlot = &aFieldHashNodes[0].pField;
     do {
       if (pHashNodeSlot[-1]) {
-        nOutputCount = *pHashNodeSlot - (int)pBinFieldInput;
+        nOutputCount = (int)*pHashNodeSlot - (int)pBinFieldInput;
         *(short int*)(pOutMapping + nErrorAddress * 2) = (short int)(nOutputCount / 0x14) + (short int)(nOutputCount >> 0x1f) - (short int)((int64_t)nOutputCount * 0x66666667 >> 0x3f);
         nErrorAddress++;
       }

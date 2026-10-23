@@ -552,39 +552,29 @@ void __fastcall SFILE_GregorianCalendarFromJulian(int32_t nJulianDay, int * pYea
 }
 
 void __fastcall SFILE_DeleteOldLogFiles(char * szLogPrefix) {
-    // Frame slots -8212..-4 are ONE object: &nMonth is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nMonth;
-      uint32_t nDay;
-      uint32_t nYear;
-      char szFilePath[4096];
-      char szLogDir[4096];
-      uint32_t dwSecurityCookie;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8208, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     _SYSTEMTIME systemTime;
-    __frame0.dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    char szFilePath[4096];
+    char szLogDir[4096];
+    uint32_t dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     char* szFileNamePrefix = szLogPrefix;
     /* LPSYSTEMTIME lpSystemTime for GetLocalTime */ GetLocalTime(&systemTime);
-    __frame0.szLogDir[0] = '\0';
-    BOOL BVar1 = Debug::FILETOOLS_GetExecutableFolderPath(__frame0.szLogDir, 0x1000);
+    szLogDir[0] = '\0';
+    BOOL BVar1 = Debug::FILETOOLS_GetExecutableFolderPath(szLogDir, 0x1000);
     if (BVar1) {
-      Storm::Source::SSTR::SStrPack(__frame0.szLogDir, "\\", 0x1000);
-      SafeCreateDirectoryTree(__frame0.szLogDir);
+      Storm::Source::SSTR::SStrPack(szLogDir, "\\", 0x1000);
+      SafeCreateDirectoryTree(szLogDir);
     }
 
-    __frame0.nDay = (uint32_t)systemTime.wDay;
-    __frame0.nYear = (uint32_t)systemTime.wYear;
-    __frame0.nMonth = (uint32_t)systemTime.wMonth;
-    int32_t nTodayJulian = SFILE_JulianDayNumber(__frame0.nYear, __frame0.nMonth, __frame0.nDay);
+    uint32_t nDay = (uint32_t)systemTime.wDay;
+    uint32_t nYear = (uint32_t)systemTime.wYear;
+    uint32_t nMonth = (uint32_t)systemTime.wMonth;
+    int32_t nTodayJulian = SFILE_JulianDayNumber(nYear, nMonth, nDay);
     int nJulianDay = nTodayJulian - 5;
     int iCount = 10;
     do {
-      SFILE_GregorianCalendarFromJulian(nJulianDay, (int*)&__frame0.nYear, (int*)&__frame0.nMonth, (int*)&__frame0.nDay);
-      Storm::Source::SSTR::SStrPrintf(__frame0.szFilePath, 0x1000, "%s%s%02d%02d%02d.txt", __frame0.szLogDir, szFileNamePrefix, (int)__frame0.nYear % 100, __frame0.nMonth, __frame0.nDay);
-      /* LPCSTR lpFileName for DeleteFileA */ DeleteFileA(__frame0.szFilePath);
+      SFILE_GregorianCalendarFromJulian(nJulianDay, (int*)&nYear, (int*)&nMonth, (int*)&nDay);
+      Storm::Source::SSTR::SStrPrintf(szFilePath, 0x1000, "%s%s%02d%02d%02d.txt", szLogDir, szFileNamePrefix, (int)nYear % 100, nMonth, nDay);
+      /* LPCSTR lpFileName for DeleteFileA */ DeleteFileA(szFilePath);
       nJulianDay--;
       iCount--;
     } while (iCount);

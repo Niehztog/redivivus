@@ -127,15 +127,9 @@ BOOL __fastcall Skills_CltDoFunc_Pal_Zeal_DirOffsetMissile(D2UnitStrc * pUnit, e
 
 // Client DoFunc for Paladin Charge skill. Sets UNITFLAG_SKSRVDOFUNC on the caster, resolves target coordinates, spawns a missile, then sets the missile path type to 0xE (charge path) and recalculates its path. Returns TRUE if the missile was created and has a valid dynamic path.
 BOOL __fastcall Skills_CltDoFunc_Pal_ChargePathMissile(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nDestY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nDestY;
-      int nDestX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    int nDestY;
+    int nDestX;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
@@ -148,15 +142,15 @@ BOOL __fastcall Skills_CltDoFunc_Pal_ChargePathMissile(D2UnitStrc * pUnit, eD2Sk
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
 
-    BOOL iVar1 = Skills::GetCooordinates(pUnit, &__frame0.nDestX, &__frame0.nDestY);
+    BOOL iVar1 = Skills::GetCooordinates(pUnit, &nDestX, &nDestY);
     if (!iVar1) {
       return 0;
     }
 
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.nUnitY = __frame0.nDestY;
+    sSkillArg.nUnitY = nDestY;
     sSkillArg.nFlags = 0x20;
-    sSkillArg.nUnitX = __frame0.nDestX;
+    sSkillArg.nUnitX = nDestX;
     sSkillArg.nSkillLevel = nSkillLvl;
     sSkillArg.pOwner = pUnit;
     sSkillArg.pMissile = pUnit;
@@ -293,17 +287,6 @@ BOOL __fastcall Skills_CltDoFunc_Pal_RandomRadiusMissileField(D2UnitStrc * pUnit
 
 // Client-side particle FX: draws a fading trail of charge particles behind a moving unit (e.g. Charge/Leap). Gets the unit's current skill and screen velocity via PATH_GetScreenVelocity; bails if velocity Y sign doesn't match nDirectionFlag (selects above- vs below-ground trail half). Normalizes velocity to a length-15 step, walks SKILL_GetParam3 frames backward through the unit's animation frames, and at each step calls DRAW_WORLD_Unit_1 to render nParticleType at an interpolated offset (perspective-corrected when D2GFX perspective is active). Restores the unit's original gfx frame before returning.
 void __fastcall SKILL_DrawChargeTrail(D2UnitStrc * pUnit, uint32_t nParticleType, int32_t nDirectionFlag) {
-    // Frame slots -36..-16 are ONE object: &nScreenVelX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nScreenVelX;
-      int nNormStepX;
-      int nNormStepY;
-      int nNormVelX;
-      int nScreenVelY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t bPerspective;
     int32_t nPrecisionX;
     uint32_t nRandDir;
@@ -312,6 +295,9 @@ void __fastcall SKILL_DrawChargeTrail(D2UnitStrc * pUnit, uint32_t nParticleType
     int nAccumX;
     int nAccumY;
     int nVelX;
+    int nNormStepX;
+    int nNormStepY;
+    int nNormVelX;
     DRAWMODE nDrawY;
     int nSavedFrame;
     uint32_t nTrailCount;
@@ -328,25 +314,25 @@ void __fastcall SKILL_DrawChargeTrail(D2UnitStrc * pUnit, uint32_t nParticleType
 
     uint32_t nTargetX = D2Common::Units::GetTargetX(pUnit);
     int32_t nTargetY = D2Common::Units::GetTargetY(pUnit);
-    __frame0.nScreenVelX = 0;
-    __frame0.nScreenVelY = 0;
-    D2Common::PATH::Path::PATH_GetScreenVelocity(pUnit, &__frame0.nScreenVelX, &__frame0.nScreenVelY);
+    int nScreenVelX = 0;
+    int nScreenVelY = 0;
+    D2Common::PATH::Path::PATH_GetScreenVelocity(pUnit, &nScreenVelX, &nScreenVelY);
     if (!nDirectionFlag) {
-      if (-1 < __frame0.nScreenVelY) {
+      if (-1 < nScreenVelY) {
         return;
       }
-    } else if (__frame0.nScreenVelY < 0) {
+    } else if (nScreenVelY < 0) {
       return;
     }
 
-    int nAbsVelX = __frame0.nScreenVelX;
-    if (__frame0.nScreenVelX < 0) {
-      nAbsVelX = -__frame0.nScreenVelX;
+    int nAbsVelX = nScreenVelX;
+    if (nScreenVelX < 0) {
+      nAbsVelX = -nScreenVelX;
     }
 
-    int nAbsVelY = __frame0.nScreenVelY;
-    if (__frame0.nScreenVelY < 0) {
-      nAbsVelY = -__frame0.nScreenVelY;
+    int nAbsVelY = nScreenVelY;
+    if (nScreenVelY < 0) {
+      nAbsVelY = -nScreenVelY;
     }
     if (nAbsVelY < nAbsVelX) {
       nAbsVelY += nAbsVelX * 2;
@@ -359,19 +345,19 @@ void __fastcall SKILL_DrawChargeTrail(D2UnitStrc * pUnit, uint32_t nParticleType
       nAbsVelY = 1;
     }
 
-    __frame0.nNormVelX = __frame0.nScreenVelX * 0xf / nAbsVelY;
-    nAbsVelY = __frame0.nScreenVelY * 0xf / nAbsVelY;
+    nNormVelX = nScreenVelX * 0xf / nAbsVelY;
+    nAbsVelY = nScreenVelY * 0xf / nAbsVelY;
     bPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
     nCurFrame = pUnit->nGfxCurrentFrame >> 8;
     nSavedFrame = nCurFrame;
     nVelX = D2Common::Skills::SKILL_GetParam3(pSkill);
-    nAbsVelX = __frame0.nNormVelX;
+    nAbsVelX = nNormVelX;
     if (0 < nVelX) {
       int32_t nPrecisionY;
       nAccumX = nVelX * nAbsVelY;
-      __frame0.nNormStepY = __frame0.nNormVelX;
-      nAccumY = nVelX * __frame0.nNormVelX;
-      __frame0.nNormStepX = nAbsVelY;
+      nNormStepY = nNormVelX;
+      nAccumY = nVelX * nNormVelX;
+      nNormStepX = nAbsVelY;
       do {
         nTrailCount = 0;
         nDrawY = DRAW_VERYTRANSPARENT;
@@ -399,8 +385,8 @@ void __fastcall SKILL_DrawChargeTrail(D2UnitStrc * pUnit, uint32_t nParticleType
           nWorldOffsetXOrY = nDrawY + nPrecisionY;
         }
 
-        nDrawX = __frame0.nNormStepY;
-        nWorldOffsetY = __frame0.nNormStepX;
+        nDrawX = nNormStepY;
+        nWorldOffsetY = nNormStepX;
         if (nDirectionFlag) {
           nDrawX = nAccumY;
           nWorldOffsetY = nAccumX;
@@ -409,8 +395,8 @@ void __fastcall SKILL_DrawChargeTrail(D2UnitStrc * pUnit, uint32_t nParticleType
         nDrawY = nWorldOffsetXOrY - nWorldOffsetY;
         nTrailCount = nRandDir - nDrawX;
         Engine::Gfx::DRAW_WORLD_Unit_1(pUnit, nParticleType, nTrailCount, nDrawY, (D2GamePalShiftGreenBloodStrc*)0x1, 0);
-        __frame0.nNormStepY += __frame0.nNormVelX;
-        __frame0.nNormStepX += nAbsVelY;
+        nNormStepY += nNormVelX;
+        nNormStepX += nAbsVelY;
         nAccumY -= nAbsVelX;
         nAccumX -= nAbsVelY;
         nVelX--;

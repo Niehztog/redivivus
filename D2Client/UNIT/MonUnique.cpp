@@ -600,19 +600,12 @@ void __fastcall MONUNIQUE_ApplyModifierEffects(D2UnitStrc * pUnit) {
 }
 
 void __fastcall MakeFireExposionAttack(D2UnitStrc * pUnit, int32_t nUMod, int32_t bApply) {
-    // Frame slots -12..-4 are ONE object: &nFrameCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nFrameCount;
-      int nYp1;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nFrameCount;
     if (!bApply) {
       return;
     }
 
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, &bApply, &__frame0.nFrameCount);
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, &bApply, &nFrameCount);
     if (!((!pUnit || pUnit->eAnimMode.ePlayerMode == Death) && bApply == 4)) {
       return;
     }
@@ -620,53 +613,44 @@ void __fastcall MakeFireExposionAttack(D2UnitStrc * pUnit, int32_t nUMod, int32_
     int32_t nX = Units::GetXPosFromDynamicPathUnit(pUnit);
     int32_t nY = Units::GetYPosFromDynamicPathUnit(pUnit);
     Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX, nY, SKILL_Attack, 1);
-    __frame0.nYp1 = nY + 1;
-    Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX + 1, __frame0.nYp1, SKILL_Attack, 1);
+    int nYp1 = nY + 1;
+    Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX + 1, nYp1, SKILL_Attack, 1);
     Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX + 1, nY - 1, SKILL_Attack, 1);
-    Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX - 1, __frame0.nYp1, SKILL_Attack, 1);
+    Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX - 1, nYp1, SKILL_Attack, 1);
     Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX - 1, nY - 1, SKILL_Attack, 1);
     Sound::SOUND_PlaySound(SOUND_NECROMANCER_NEEDMANA_1, pUnit, 0, 0, 0);
 }
 
 void __fastcall MakeMonsterCorpseExplodeAttack(D2UnitStrc * pUnit, int32_t nUMod, int32_t bApply) {
-    // Frame slots -24..-4 are ONE object: &nFrameCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nFrameCount;
-      int nCurFrame;
-      int32_t nXm1;
-      int32_t nXp1;
-      int nYp1;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nFrameCount;
+    int nCurFrame;
     if (!bApply) {
       return;
     }
 
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nCurFrame, &__frame0.nFrameCount);
-    if (!((!pUnit || pUnit->eAnimMode.ePlayerMode == Death) && __frame0.nCurFrame == 4)) {
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, &nCurFrame, &nFrameCount);
+    if (!((!pUnit || pUnit->eAnimMode.ePlayerMode == Death) && nCurFrame == 4)) {
       return;
     }
 
     int32_t nX = Units::GetXPosFromDynamicPathUnit(pUnit);
     int32_t nY2 = Units::GetYPosFromDynamicPathUnit(pUnit);
     Missile::CastAttack(pUnit, MISSILE_Monstercorpseexplode, nX, nY2, SKILL_Attack, 1);
-    __frame0.nYp1 = nY2 + 1;
-    __frame0.nXp1 = nX + 1;
-    Missile::CastAttack(pUnit, MISSILE_Monstercorpseexplode, __frame0.nXp1, __frame0.nYp1, SKILL_Attack, 1);
+    int nYp1 = nY2 + 1;
+    int32_t nXp1 = nX + 1;
+    Missile::CastAttack(pUnit, MISSILE_Monstercorpseexplode, nXp1, nYp1, SKILL_Attack, 1);
     int nY = nY2 - 1;
-    Missile::CastAttack(pUnit, MISSILE_Monstercorpseexplode, __frame0.nXp1, nY, SKILL_Attack, 1);
-    __frame0.nXm1 = nX - 1;
-    Missile::CastAttack(pUnit, MISSILE_Monstercorpseexplode, __frame0.nXm1, __frame0.nYp1, SKILL_Attack, 1);
-    Missile::CastAttack(pUnit, MISSILE_Monstercorpseexplode, __frame0.nXm1, nY, SKILL_Attack, 1);
+    Missile::CastAttack(pUnit, MISSILE_Monstercorpseexplode, nXp1, nY, SKILL_Attack, 1);
+    int32_t nXm1 = nX - 1;
+    Missile::CastAttack(pUnit, MISSILE_Monstercorpseexplode, nXm1, nYp1, SKILL_Attack, 1);
+    Missile::CastAttack(pUnit, MISSILE_Monstercorpseexplode, nXm1, nY, SKILL_Attack, 1);
     Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX, nY2, SKILL_Attack, 1);
-    int nYp1_copy = __frame0.nYp1;
-    nX = __frame0.nXp1;
-    Missile::CastAttack(pUnit, MISSILE_Fireexplosion, __frame0.nXp1, __frame0.nYp1, SKILL_Attack, 1);
+    int nYp1_copy = nYp1;
+    nX = nXp1;
+    Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nXp1, nYp1, SKILL_Attack, 1);
     Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX, nY, SKILL_Attack, 1);
-    nX = __frame0.nXm1;
-    Missile::CastAttack(pUnit, MISSILE_Fireexplosion, __frame0.nXm1, nYp1_copy, SKILL_Attack, 1);
+    nX = nXm1;
+    Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nXm1, nYp1_copy, SKILL_Attack, 1);
     Missile::CastAttack(pUnit, MISSILE_Fireexplosion, nX, nY, SKILL_Attack, 1);
     Sound::SOUND_PlaySound(SOUND_NECROMANCER_NEEDMANA_1, pUnit, 0, 0, 0);
 }
@@ -709,14 +693,7 @@ void __fastcall MONUNIQUE_SpawnDeathMissile(D2UnitStrc * pUnit, int32_t eModifie
 }
 
 void __fastcall MONUNIQUE_DurielDeathAndSpawn(D2UnitStrc * pUnit, int32_t nUMod, int32_t nParam2) {
-    // Frame slots -12..-4 are ONE object: &nTotalFrames is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTotalFrames;
-      int nCurrentFrame;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nCurrentFrame;
     D2SeedStrc sNewSeed;
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER)) {
       return;
@@ -727,8 +704,9 @@ void __fastcall MONUNIQUE_DurielDeathAndSpawn(D2UnitStrc * pUnit, int32_t nUMod,
       return;
     }
     if (pUnit->eAnimMode.ePlayerMode == Death) {
-      D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nCurrentFrame, &__frame0.nTotalFrames);
-      if (__frame0.nCurrentFrame == 0xd) {
+      int nTotalFrames;
+      D2Common::Units::GetShiftedFrameMetrics(pUnit, &nCurrentFrame, &nTotalFrames);
+      if (nCurrentFrame == 0xd) {
         Engine::GfxInfo::GFX_RemoveAllOverlays(pUnit);
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, OVERLAY_durieldead_fwd, 5, 0, 0, 0, 0, 0);
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, OVERLAY_durieldead_rear, 5, 0, 0, 0, 0, 0);
@@ -858,16 +836,10 @@ void __fastcall MONUNIQUE_ApplyModifierTheSmith(D2UnitStrc * pUnit, int32_t nUMo
 }
 
 void __fastcall MONUNIQUE_SpawnBugLightning(D2UnitStrc * pUnit, int32_t nUMod, int32_t nParam2) {
-    // Frame slots -12..-4 are ONE object: &nFrameCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nFrameCount;
-      int nCurFrame;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nCurFrame, &__frame0.nFrameCount);
-    if (!((!pUnit || pUnit->eAnimMode.ePlayerMode == eD2PlayerAnimMode_ns::Run || pUnit->eAnimMode.ePlayerMode == Death) && __frame0.nCurFrame == 2)) {
+    int nFrameCount;
+    int nCurFrame;
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, &nCurFrame, &nFrameCount);
+    if (!((!pUnit || pUnit->eAnimMode.ePlayerMode == eD2PlayerAnimMode_ns::Run || pUnit->eAnimMode.ePlayerMode == Death) && nCurFrame == 2)) {
       return;
     }
 
@@ -949,18 +921,12 @@ void __fastcall MONUNIQUE_ApplyModifierNihlathak(D2UnitStrc * pUnit, int32_t nUM
 }
 
 void __fastcall MONUNIQUE_SpawnExplodingArrowDeath(D2UnitStrc * pUnit, int32_t nUMod, uint32_t nParam2) {
-    // Frame slots -12..-4 are ONE object: &nTotalFrames is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTotalFrames;
-      int nCurrentFrame;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nPosY;
     int32_t nPosX;
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nCurrentFrame, &__frame0.nTotalFrames);
-    if (!((!pUnit || pUnit->eAnimMode.ePlayerMode == Death) && __frame0.nCurrentFrame == 4)) {
+    int nTotalFrames;
+    int nCurrentFrame;
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, &nCurrentFrame, &nTotalFrames);
+    if (!((!pUnit || pUnit->eAnimMode.ePlayerMode == Death) && nCurrentFrame == 4)) {
       return;
     }
 
@@ -987,19 +953,13 @@ void __fastcall MONUNIQUE_SpawnExplodingArrowDeath(D2UnitStrc * pUnit, int32_t n
 
 // Per-frame callback for suicide-exploder monsters (e.g. Flesh Beast). Fires only at Death animation frame 4. Reads the monster's treasure class index (difficulty-adjusted) to decide the explosion type: index 1 spawns MISSILE_Suicidefireexplode, index>=2 spawns MISSILE_Suicideiceexplode. Always spawns MISSILE_Suicidecorpseexplode at the unit's position as the secondary corpse-burst effect.
 void __fastcall MONUNIQUE_SpawnSuicideExplosion(D2UnitStrc * pUnit, int32_t nUMod, uint32_t nParam2) {
-    // Frame slots -12..-4 are ONE object: &nTotalFrames is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTotalFrames;
-      int nCurrentFrame;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nPosY;
     int32_t nPosX;
     eMissilesId eMissileId;
     D2MonStatsTxt* pMonStatsTxt;
     int nClassId;
+    int nTotalFrames;
+    int nCurrentFrame;
     eD2Skills eSkill;
     eD2UnitType eUnitType;
     if (!pUnit || (nClassId = pUnit->nClassId , nClassId < 0) || sgptDataTable->nTxtMonStatsSize <= nClassId) {
@@ -1011,11 +971,11 @@ void __fastcall MONUNIQUE_SpawnSuicideExplosion(D2UnitStrc * pUnit, int32_t nUMo
     uint8_t bVar1;
     bVar1 = GAME::Game::GetDificulity();
     nClassId = (int)pMonStatsTxt->aip[0][bVar1];
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nCurrentFrame, &__frame0.nTotalFrames);
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, &nCurrentFrame, &nTotalFrames);
     if (pUnit && pUnit->eAnimMode.ePlayerMode != Death) {
       return;
     }
-    if (__frame0.nCurrentFrame != 4) {
+    if (nCurrentFrame != 4) {
       return;
     }
     if (nClassId == 1) {

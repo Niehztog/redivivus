@@ -115,14 +115,6 @@ void __fastcall WALL2_InitUnitGfx(D2UnitStrc * pUnit) {
 
 // Debug visualisation: draws a screen-space diamond (4 lines, colour 0xFF blue) centred on pUnit's last-click screen coordinates, then renders a small solid rectangle at the unit's current world target position. Converts map coordinates to screen via CoordsMapToScreen and adjusts by world offsets. Halts with an internal error if pUnit is null.
 void __fastcall WALL2_DrawDebugUnitDiamond(D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &nScreenX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nScreenX;
-      uint32_t nScreenY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nOffsetTmp;
     int32_t nErrLine;
     if (!pUnit) {
@@ -130,49 +122,49 @@ void __fastcall WALL2_DrawDebugUnitDiamond(D2UnitStrc * pUnit) {
       exit(-1);
     }
 
-    __frame0.nScreenX = (uint32_t)pUnit->uSideData.pClientSide.nLastClickX;
-    __frame0.nScreenY = (uint32_t)pUnit->uSideData.pClientSide.nLastClickY;
-    D2Common::Drlg::Transform::CoordsMapToScreen((int32_t*)&__frame0.nScreenX, (int32_t*)&__frame0.nScreenY);
+    uint32_t nScreenX = (uint32_t)pUnit->uSideData.pClientSide.nLastClickX;
+    uint32_t nScreenY = (uint32_t)pUnit->uSideData.pClientSide.nLastClickY;
+    D2Common::Drlg::Transform::CoordsMapToScreen((int32_t*)&nScreenX, (int32_t*)&nScreenY);
     DWORD dwColor1 = 0xff;
     DWORD dwColor2 = 0xff;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    int nScreenY2 = __frame0.nScreenY - nOffsetTmp + 8;
+    int nScreenY2 = nScreenY - nOffsetTmp + 8;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    int nScreenX2 = __frame0.nScreenX - nOffsetTmp + 0x10;
+    int nScreenX2 = nScreenX - nOffsetTmp + 0x10;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    int nScreenXAdj = __frame0.nScreenY - nOffsetTmp;
+    int nScreenXAdj = nScreenY - nOffsetTmp;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    D2gfx::D2GFX::D2GFX_DrawLine(__frame0.nScreenX - nOffsetTmp, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
+    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - nOffsetTmp, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
     dwColor1 = 0xff;
     dwColor2 = 0xff;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nScreenY2 = __frame0.nScreenY - nOffsetTmp + 8;
+    nScreenY2 = nScreenY - nOffsetTmp + 8;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    nScreenX2 = __frame0.nScreenX - nOffsetTmp - 0x10;
+    nScreenX2 = nScreenX - nOffsetTmp - 0x10;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nScreenXAdj = __frame0.nScreenY - nOffsetTmp;
+    nScreenXAdj = nScreenY - nOffsetTmp;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    D2gfx::D2GFX::D2GFX_DrawLine(__frame0.nScreenX - nOffsetTmp, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
+    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - nOffsetTmp, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
     dwColor1 = 0xff;
     dwColor2 = 0xff;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nScreenY2 = __frame0.nScreenY - nOffsetTmp + 0x10;
+    nScreenY2 = nScreenY - nOffsetTmp + 0x10;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    nScreenX2 = __frame0.nScreenX - nOffsetTmp;
+    nScreenX2 = nScreenX - nOffsetTmp;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nScreenXAdj = __frame0.nScreenY - nOffsetTmp + 8;
+    nScreenXAdj = nScreenY - nOffsetTmp + 8;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    D2gfx::D2GFX::D2GFX_DrawLine(__frame0.nScreenX - nOffsetTmp - 0x10, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
+    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - nOffsetTmp - 0x10, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
     dwColor1 = 0xff;
     dwColor2 = 0xff;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nScreenY2 = __frame0.nScreenY - nOffsetTmp + 0x10;
+    nScreenY2 = nScreenY - nOffsetTmp + 0x10;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    nScreenX2 = __frame0.nScreenX - nOffsetTmp;
+    nScreenX2 = nScreenX - nOffsetTmp;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nScreenXAdj = __frame0.nScreenY - nOffsetTmp + 8;
+    nScreenXAdj = nScreenY - nOffsetTmp + 8;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    D2gfx::D2GFX::D2GFX_DrawLine(__frame0.nScreenX - nOffsetTmp + 0x10, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
+    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - nOffsetTmp + 0x10, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
     nOffsetTmp = D2Common::Units::GetTargetX(pUnit);
     nErrLine = UI::Path::DRAW_GetWorldOffsetX();
     int32_t nWorldOffsetTmp = D2Common::Units::GetTargetY(pUnit);
@@ -1262,14 +1254,6 @@ void __fastcall WALL2_BuildSceneDrawList(D2GameViewStrc * pGameView, uint32_t nT
     static int RECT_right;
     static int RECT_Bottom;
 
-    // Frame slots -12..-4 are ONE object: &nIsoY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nIsoY;
-      int nIsoX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int yTop;
     D2UnitStrc* pUnit;
     D2RoomStrc* pRoom;
@@ -1277,6 +1261,8 @@ void __fastcall WALL2_BuildSceneDrawList(D2GameViewStrc * pGameView, uint32_t nT
     int nViewWidth;
     uint32_t nGridRowIdx;
     D2Wall2DrawContextStrc pGameViewLocal;
+    int nIsoY;
+    int nIsoX;
     eD2UnitType eUnitType;
     WALL2_AllocDrawList(pGameView);
     pGameViewLocal.pGameView = pGameView;
@@ -1308,20 +1294,20 @@ void __fastcall WALL2_BuildSceneDrawList(D2GameViewStrc * pGameView, uint32_t nT
     } else {
       uint32_t nGridColIdx;
       memset(pGridCellIter, 0, pGameView->sWall2.nWall2CellCount * 0x24);
-      D2Common::Drlg::Transform::DRLG_OrthToIsoCoordsDiv160(pGameView->nCenterX, pGameView->nCenterY, &__frame0.nIsoY, &__frame0.nIsoX);
-      __frame0.nIsoX -= pGameView->sWall2.nWall2GridWidth;
-      __frame0.nIsoY += -3;
+      D2Common::Drlg::Transform::DRLG_OrthToIsoCoordsDiv160(pGameView->nCenterX, pGameView->nCenterY, &nIsoY, &nIsoX);
+      nIsoX -= pGameView->sWall2.nWall2GridWidth;
+      nIsoY += -3;
       nGridRowIdx = 0;
-      pGameView->sWall2.nWall2GridOriginX = __frame0.nIsoY;
+      pGameView->sWall2.nWall2GridOriginX = nIsoY;
       pGridCellIter = pGameView->sWall2.pWall2;
-      pGameView->sWall2.nWall2GridOriginY = __frame0.nIsoX;
+      pGameView->sWall2.nWall2GridOriginY = nIsoX;
       if (pGameView->sWall2.nWall2GridDim) {
         do {
           nGridColIdx = 0;
           if (pGameView->sWall2.nWall2GridDim) {
             do {
-              *(uint32_t*)&pGridCellIter->field_0x8 = __frame0.nIsoY + nGridColIdx;
-              *(uint32_t*)&pGridCellIter->field_0xc = __frame0.nIsoX + nGridRowIdx;
+              *(uint32_t*)&pGridCellIter->field_0x8 = nIsoY + nGridColIdx;
+              *(uint32_t*)&pGridCellIter->field_0xc = nIsoX + nGridRowIdx;
               nGridColIdx++;
               pGridCellIter++;
             } while (nGridColIdx < pGameView->sWall2.nWall2GridDim);

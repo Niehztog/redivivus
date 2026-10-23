@@ -244,17 +244,11 @@ int __stdcall DRLGMAZE_FindAndReplacePreset(int pCtx, int nPresetId, int nNewPre
 
 // Iterates every room in pRoomEx's level and, for eligible non-preset neighbor pairs that are adjacent but not already linked, rolls the neighbor's seed against LvlMazeTxt.Merge to decide whether to merge them. On a hit, allocates orthogonal link nodes between the two rooms and calls DRLGMAZE_PickRoomPreset on the neighbor.
 void __stdcall DRLGMAZE_PickRoomPresets(D2RoomExStrc * pRoomEx) {
-    // Frame slots -12..-4 are ONE object: &nDeltaY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nDeltaY;
-      int nDeltaX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bWithinDistance;
     bool bWithinDistance;
     eDrlgDirection nDirection;
+    int nDeltaY;
+    int nDeltaX;
     D2RoomExStrc* pNeighbor;
     D2DrlgOrthStrc* pOrth;
     D2SeedStrc sNewSeed;
@@ -266,10 +260,10 @@ void __stdcall DRLGMAZE_PickRoomPresets(D2RoomExStrc * pRoomEx) {
     pMazeTxt = pRoomEx->pLevel->pDrlgLevelData.pTxtLvlMaze;
     for (pNeighbor = pRoomEx->pLevel->pRoomExFirst; pNeighbor; pNeighbor = pNeighbor->pRoomExNext) {
       if (pNeighbor != pRoomEx && ~(pNeighbor->pRoomExData.pRoomExDataPreset->nFlags >> 1) & 1) {
-        __frame0.nDeltaX = 0;
-        __frame0.nDeltaY = 0;
-        _bWithinDistance = DrlgRoom::DRLGCOORDS_IsWithinDistance(&pRoomEx->sCoords, &pNeighbor->sCoords, 1, &__frame0.nDeltaX, &__frame0.nDeltaY);
-        if (!_bWithinDistance && __frame0.nDeltaX != __frame0.nDeltaY) {
+        nDeltaX = 0;
+        nDeltaY = 0;
+        _bWithinDistance = DrlgRoom::DRLGCOORDS_IsWithinDistance(&pRoomEx->sCoords, &pNeighbor->sCoords, 1, &nDeltaX, &nDeltaY);
+        if (!_bWithinDistance && nDeltaX != nDeltaY) {
           for (pOrth = pRoomEx->pOrth; pOrth; pOrth = pOrth->pNext) {
             if (pOrth->pLink.pRoomEx == pNeighbor) {
               goto next_neighbor;

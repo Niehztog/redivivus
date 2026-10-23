@@ -233,21 +233,14 @@ BOOL __fastcall Q22_PlayerUpdateBlackenedTempleState(::SGAMEDATA * pGame, D2Unit
 // Q22_PlayerCheckNearTravincal (BLACKENED TEMPLE) — proximity-completion check run per player after the Travincal council is slain. Only acts if the player's record is not Completed and not yet at Step0x04, and the player is in Act III in the same or an adjacent room as the recorded council-quest unit (sQuestGUID.aPlayerGUID[0]). When near: if Khalim's Will is already done it sets the record straight to Completed, otherwise to Step0x04 (go assemble/use Khalim's Will), then marks JustCompleted to fire the log/notification.
 // State flow: requires !Completed && !Step0x04 -> set Completed|Step0x04, set JustCompleted.
 BOOL __fastcall Q22_PlayerCheckNearTravincal(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
-    // Frame slots -20..-4 are ONE object: &pAdjRoomList is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjRoomList;
-      uint32_t nAdjRoomCount;
-      D2UnitStrc* pPlayerUnit_lcl;
-      bool bSameOrAdjacentRoom;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bSameOrAdjacentRoom;
     uint32_t nUnitGUID;
     uint32_t iAdjRoomIdx;
+    D2RoomStrc** pAdjRoomList;
+    uint32_t nAdjRoomCount;
+    bool bSameOrAdjacentRoom;
     eD2QuestState eQuestState;
-    __frame0.pPlayerUnit_lcl = pUnit;
+    D2UnitStrc* pPlayerUnit_lcl = pUnit;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
     D2BitBufferStrc* pQuestBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
@@ -293,27 +286,27 @@ BOOL __fastcall Q22_PlayerCheckNearTravincal(::SGAMEDATA * pGame, D2UnitStrc * p
     if (pRoom == pTargetRoom) {
       _bSameOrAdjacentRoom = 1;
     } else {
-      pRoom = D2Common::Units::UNITS_GetRoom(__frame0.pPlayerUnit_lcl);
+      pRoom = D2Common::Units::UNITS_GetRoom(pPlayerUnit_lcl);
       if (!pRoom) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdf);
         exit(-1);
       }
 
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.pAdjRoomList, (int*)&__frame0.nAdjRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pAdjRoomList, (int*)&nAdjRoomCount);
       iAdjRoomIdx = 0;
-      if (__frame0.nAdjRoomCount) {
+      if (nAdjRoomCount) {
         do {
-          if (__frame0.pAdjRoomList[iAdjRoomIdx] == pTargetRoom) {
+          if (pAdjRoomList[iAdjRoomIdx] == pTargetRoom) {
             _bSameOrAdjacentRoom = 1;
             break;
           }
 
           iAdjRoomIdx++;
-        } while (iAdjRoomIdx < __frame0.nAdjRoomCount);
+        } while (iAdjRoomIdx < nAdjRoomCount);
       }
     }
 
-    pPlayerData = D2Common::Units::GetPlayerData(__frame0.pPlayerUnit_lcl);
+    pPlayerData = D2Common::Units::GetPlayerData(pPlayerUnit_lcl);
     pQuestBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];
     if (!_bSameOrAdjacentRoom) {
       return 0;
@@ -976,18 +969,12 @@ void __fastcall Objects_InitFn60(D2ObjectInitFnArg * pInitArg) {
 // State flow: drop Khalim items per player; nStateFlag -> 6/7, broadcast state 4/0xd; SetQuestRecordState JustCompleted.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q5.cpp
 void __fastcall Q22_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
-    // Frame slots -16..-4 are ONE object: &nRewardItemGUID is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nRewardItemGUID;
-      int32_t nKhalimsWillDropCount;
-      int32_t nDropLoop;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nCouncilKillsRemaining;
     uint8_t byBroadcastState;
     int iVar2;
+    int32_t nRewardItemGUID;
+    int32_t nKhalimsWillDropCount;
+    int32_t nDropLoop;
     D2QuestDataA3Q2Strc* pQuestSpecificDataA3Q2;
     int32_t* pnKhalimsWillCount;
     QUEST_DebugPrint(pQuestData->pGame, "killed boss for quest", "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q5.cpp", 0x391);
@@ -1002,25 +989,25 @@ void __fastcall Q22_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
       }
       if (!pDVar1->bFirstFlailDropped) {
         pQuestArgs->pTarget->dwDropItemCode = 0x20316671;
-        __frame0.nKhalimsWillDropCount = 0;
-        __frame0.nDropLoop = 0;
+        nKhalimsWillDropCount = 0;
+        nDropLoop = 0;
         if (0 < pDVar1->nFlailDropPlayerCount) {
           do {
-            pTargetUnit = ITEMS::Items::Drop::ITEM_RewardItemToDrop(pQuestData->pGame, pQuestArgs->pTarget, ITEMTYPE_PlayerBodyPart, &__frame0.nRewardItemGUID, nullptr, -1, 0);
+            pTargetUnit = ITEMS::Items::Drop::ITEM_RewardItemToDrop(pQuestData->pGame, pQuestArgs->pTarget, ITEMTYPE_PlayerBodyPart, &nRewardItemGUID, nullptr, -1, 0);
             if (pTargetUnit) {
-              __frame0.nKhalimsWillDropCount++;
+              nKhalimsWillDropCount++;
             }
 
-            __frame0.nDropLoop++;
-          } while (__frame0.nDropLoop < pDVar1->nFlailDropPlayerCount);
+            nDropLoop++;
+          } while (nDropLoop < pDVar1->nFlailDropPlayerCount);
 
-          if (__frame0.nKhalimsWillDropCount) {
+          if (nKhalimsWillDropCount) {
             pDVar1->bFirstFlailDropped = true;
             pQuestDataKhalimsWill = GetQuestDataByQuestNoInternal(pQuestData->pGame, QUESTINT_KhalimsWill);
             if (pQuestDataKhalimsWill) {
               pQuestSpecificDataA3Q2 = pQuestDataKhalimsWill->pQuestSpecificData.pA3Q2;
               pnKhalimsWillCount = &pQuestSpecificDataA3Q2->nKhalimsWillCount;
-              *pnKhalimsWillCount += __frame0.nKhalimsWillDropCount;
+              *pnKhalimsWillCount += nKhalimsWillDropCount;
               pQuestSpecificDataA3Q2->bOrbCountUpdated = true;
             }
           }
@@ -1028,12 +1015,12 @@ void __fastcall Q22_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
       } else if (!pDVar1->bBoxDropped) {
         pDVar1->bBoxDropped = true;
         pQuestArgs->pTarget->dwDropItemCode = 0x20786f62;
-        __frame0.nDropLoop = 0;
+        nDropLoop = 0;
         if (0 < pDVar1->nBoxDropPlayerCount) {
           do {
-            ITEMS::Items::Drop::ITEM_RewardItemToDrop(pQuestData->pGame, pQuestArgs->pTarget, ITEMTYPE_Shield, &__frame0.nRewardItemGUID, nullptr, -1, 0);
-            __frame0.nDropLoop++;
-          } while (__frame0.nDropLoop < pDVar1->nBoxDropPlayerCount);
+            ITEMS::Items::Drop::ITEM_RewardItemToDrop(pQuestData->pGame, pQuestArgs->pTarget, ITEMTYPE_Shield, &nRewardItemGUID, nullptr, -1, 0);
+            nDropLoop++;
+          } while (nDropLoop < pDVar1->nBoxDropPlayerCount);
         }
       }
       if (pQuestData->bIsNotIntroduction && 0 < pDVar1->nCouncilKillsRemaining) {

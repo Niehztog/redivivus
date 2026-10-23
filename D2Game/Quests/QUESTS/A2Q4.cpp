@@ -254,41 +254,33 @@ void __stdcall Q12_OnJournalActivate(D2QuestDataA2Q4Strc * pQuestData, D2QuestDa
 
 // A2Q4 - Callback_11 (NPC-talk handler). Drives the quest from NPC dialogue. Drognan(0x14b): msg 0xba -> set Step0x07; msg 0xbb..0xbd -> set Step0x08. Other NPCs: for the Summoner-aftermath gossip set, send gossip packet and consume RewardAwaits(1) (Unset + add player to participation list). On msg 0x18c (staff/Sanctuary trigger) broadcasts state 5 and, if player is in the right room, spawns the Canyon-of-the-Magi portal and marks record JustCompleted(0xd). Atma(0xb1 msg0x175)->stateFlag 2 + OnJournalActivate; Cain/Jerhyn(0xc9 msg0x179)->stateFlag 3, broadcast state 3, persist.
 void __fastcall Q12_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArg) {
-    // Frame slots -12..-4 are ONE object: &pA2Q4Specific is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2QuestDataA2Q4Strc* pA2Q4Specific;
-      uint32_t nMessageIndex;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nPlayerGUID;
     D2RoomStrc* pDVar3;
     BOOL nPortalId;
     D2QuestDataA2Q4Strc* dwQuestSpecificData;
     POINT ptPlayerPos;
     uint32_t nNPCNo = (uint32_t)(uint16_t)pQuestArg->sQuestArgs.sNpcMessage.nNPCNo;
-    __frame0.nMessageIndex = (uint32_t)(uint16_t)pQuestArg->sQuestArgs.sNpcMessage.nMessageIndex;
+    uint32_t nMessageIndex = (uint32_t)(uint16_t)pQuestArg->sQuestArgs.sNpcMessage.nMessageIndex;
     if (!pQuestData) {
       return;
     }
 
-    __frame0.pA2Q4Specific = pQuestData->pQuestSpecificData.pA2Q4;
+    D2QuestDataA2Q4Strc* pA2Q4Specific = pQuestData->pQuestSpecificData.pA2Q4;
     ::SGAMEDATA* pSVar1 = pQuestArg->pGame;
     D2UnitDataPlayerStrc* pDVar2 = D2Common::Units::GetPlayerData(pQuestArg->pPlayer);
     D2BitBufferStrc* pBitBuffer = pDVar2->pQuestRecord[pSVar1->nDifficulty];
     if ((short int)nNPCNo == 0x14b) {
-      if ((__frame0.nMessageIndex & 0xffff) == 0xba) {
+      if ((nMessageIndex & 0xffff) == 0xba) {
         /* SetQuestState Step0x07 - Drognan first hint about Summoner (msg 0xba) */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheArcaneSanctuary, QUESTSTATE_Step0x07);
         return;
       }
-      if ((__frame0.nMessageIndex & 0xffff) - 0xbb < 3) {
+      if ((nMessageIndex & 0xffff) - 0xbb < 3) {
         /* SetQuestState Step0x08 - Drognan tells Summoner location (msg 0xbb-0xbd) */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheArcaneSanctuary, QUESTSTATE_Step0x08);
         return;
       }
     } else {
       short int sNPCOrMsgId;
-      sNPCOrMsgId = (short int)__frame0.nMessageIndex;
+      sNPCOrMsgId = (short int)nMessageIndex;
       if (sNPCOrMsgId == 0x196 || sNPCOrMsgId == 0x193 || sNPCOrMsgId == 0x18d || sNPCOrMsgId == 400 || sNPCOrMsgId == 0x18e || sNPCOrMsgId == 399 || sNPCOrMsgId == 0x195 || sNPCOrMsgId == 0x197 || sNPCOrMsgId == 0x192 || sNPCOrMsgId == 0x191 || sNPCOrMsgId == 0x194) {
         QUEST_SendNpcGossipPacket(pQuestArg->pGame, pQuestArg->pPlayer, pQuestArg->pTarget);
         /* GetQuestState RewardAwaits(1) - was reward pending for self NPC turn-in? */ nPortalId = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheArcaneSanctuary, QUESTSTATE_RewardAwaits);
@@ -304,25 +296,25 @@ void __fastcall Q12_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
           QUESTGUID_AddPlayerToList(&pQuestData->sQuestGUID, nPlayerGUID);
         }
 
-        sNPCOrMsgId = (short int)__frame0.nMessageIndex;
+        sNPCOrMsgId = (short int)nMessageIndex;
       }
 
-      dwQuestSpecificData = __frame0.pA2Q4Specific;
+      dwQuestSpecificData = pA2Q4Specific;
       if (sNPCOrMsgId == 0x18c) {
         if (pQuestData->bIsNotIntroduction && pQuestData->nStateFlagPrev < 5) {
           pQuestData->nQuestPacketFlags = '\0';
           QUEST_SetStateAndBroadcast(pQuestData, 5, nullptr, (::fpExecuteOnUnitFunction)Q12_NotifyArcaneComplete, false);
         }
 
-        dwQuestSpecificData = __frame0.pA2Q4Specific;
-        if (!__frame0.pA2Q4Specific->bPortalSpawned) {
+        dwQuestSpecificData = pA2Q4Specific;
+        if (!pA2Q4Specific->bPortalSpawned) {
           pDVar3 = D2Common::Units::UNITS_GetRoom(pQuestArg->pPlayer);
           if (pDVar3 == dwQuestSpecificData->pPortalSpawnRoom) {
-            __frame0.pA2Q4Specific = 0;
+            pA2Q4Specific = 0;
             D2Common::Units::GetCoords(pQuestArg->pPlayer, &ptPlayerPos);
-            FindSpawnableLocation(dwQuestSpecificData->pPortalSpawnRoom, &ptPlayerPos, 2, 0xbe11, (D2RoomStrc**)&__frame0.pA2Q4Specific, 8, 100);
-            if (__frame0.pA2Q4Specific) {
-              nPortalId = SKILLS::SkillsServer::SERVER_SpawnPortal(pQuestData->pGame, pQuestArg->pPlayer, (D2RoomStrc*)__frame0.pA2Q4Specific, ptPlayerPos.x, ptPlayerPos.y, LEVEL_CanyonOfTheMagi, nullptr, 0x3c, 0);
+            FindSpawnableLocation(dwQuestSpecificData->pPortalSpawnRoom, &ptPlayerPos, 2, 0xbe11, (D2RoomStrc**)&pA2Q4Specific, 8, 100);
+            if (pA2Q4Specific) {
+              nPortalId = SKILLS::SkillsServer::SERVER_SpawnPortal(pQuestData->pGame, pQuestArg->pPlayer, (D2RoomStrc*)pA2Q4Specific, ptPlayerPos.x, ptPlayerPos.y, LEVEL_CanyonOfTheMagi, nullptr, 0x3c, 0);
               if (nPortalId) {
                 dwQuestSpecificData->bPortalSpawned = true;
                 /* SetQuestRecordState JustCompleted(0xd) - Canyon-of-Magi portal spawned at
@@ -333,14 +325,14 @@ void __fastcall Q12_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
         }
       }
       if ((short int)nNPCNo == 0xb1) {
-        if ((short int)__frame0.nMessageIndex == 0x175) {
+        if ((short int)nMessageIndex == 0x175) {
           QUEST_SetStateFlag(pQuestData, 2, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q4.cpp", 0x1d2);
           dwQuestSpecificData->bAtmaSpokeToJerhyn = true;
           Q12_OnJournalActivate(dwQuestSpecificData, pQuestData);
           QUEST_SendNpcGossipPacket(pQuestArg->pGame, pQuestArg->pPlayer, pQuestArg->pTarget);
           return;
         }
-      } else if ((short int)nNPCNo == 0xc9 && (short int)__frame0.nMessageIndex == 0x179) {
+      } else if ((short int)nNPCNo == 0xc9 && (short int)nMessageIndex == 0x179) {
         QUEST_SetStateFlag(pQuestData, 3, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q4.cpp", 0x1da);
         QUEST_SendNpcGossipPacket(pQuestArg->pGame, pQuestArg->pPlayer, pQuestArg->pTarget);
         pQuestData->nQuestPacketFlags = '\0';

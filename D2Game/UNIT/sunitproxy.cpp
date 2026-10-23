@@ -767,29 +767,22 @@ void __stdcall SUNITPROXY_AddTradeQueueEntry(D2UnitStrc * pUnit, uint32_t dwTrad
 }
 
 void __fastcall SUNITPROXY_QueueTradeAction(D2UnitStrc * pNpcUnit, ::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwTradeParam, uint32_t nTradeAction) {
-    // Frame slots -12..-4 are ONE object: &nNpcIndex is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nNpcIndex;
-      DWORD dwTickCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nNpcClassId;
-    __frame0.dwTickCount = GetTickCount();
+    int nNpcIndex;
+    DWORD dwTickCount = GetTickCount();
     if (!pNpcUnit) {
       nNpcClassId = -1;
     } else {
       nNpcClassId = pNpcUnit->nClassId;
     }
 
-    D2GameNpcStrc* pNpc = GetGameNpcbyClassId(pGame, nNpcClassId, &__frame0.nNpcIndex);
+    D2GameNpcStrc* pNpc = GetGameNpcbyClassId(pGame, nNpcClassId, &nNpcIndex);
     if (!(pNpc && &pNpc->sTrade && pNpc->sTrade.unk0x03 == 1 && pNpc->sTrade.bStoreFilled == 1 && pNpc->bTrading == 1)) {
       return;
     }
 
     SUNITPROXY_AddTradeQueueEntry(pUnit, dwTradeParam, nTradeAction, pGame, pNpc);
-    pNpc->sTrade.dwLastTradeTick = __frame0.dwTickCount;
+    pNpc->sTrade.dwLastTradeTick = dwTickCount;
 }
 
 // IterateAllUnits callback: when pUnit has a room (UNITS_GetRoom) whose level
@@ -841,68 +834,62 @@ void __fastcall SUNITPROXY_RefreshGambleForAllNpcs(::SGAMEDATA * pThis, D2UnitSt
 // Server-side: processes the pending item queue for the NPC associated with pUnit (vendor/merc interactions). Finds the D2GameNpcStrc for the unit's class id (GetGameNpcbyClassId). First pass: refills the NPC's gamble inventory — counts queue entries marked needing refill and, for each gambleable (quality==4) item carried by the player's inventory, fills the NPC inventory via SUNITNPC_FillNpcInventory. Second pass: walks the NPC item-transfer queue; for state==1 entries it moves the item into the NPC/merc inventory (SERVER_ItemToInventory), flipping the item's inventory page between CORPSE and MERC on retry, then either confirms placement (SUNITNPC_SetItemForNpc) and unlinks+frees the queue node, or leaves it pending. Non-state-1 entries call SUNITNPC_DiscardTradeListRolls(entry+0, entry+4), which always returns 0, so the free-node branch at 00536aac never runs and the entry stays queued. Operates entirely by side effect on the NPC's queue and inventories; frees nodes from pGame->pMemoryPool.
 // @sourcefile .\UNIT\sunitproxy.cpp
 void __fastcall SUNITPROXY_ProcessNpcItemQueue(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    // Frame slots -20..-4 are ONE object: &pFoundNpc is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2GameNpcStrc* pFoundNpc;
-      D2UnitStrc* pNpcUnit;
-      int nNpcIndex;
-      D2SUnitProxyStrc_Line0x85* pPrevQueueEntry;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SUnitProxyStrc_Line0x85* pMemoryToFree;
     eInventoryPage eInvPage;
     D2UnitStrc* pCarriedItem;
     BOOL BVar1;
     int nGambleRefillCount;
     int32_t nSourceLine;
-    __frame0.nNpcIndex = 0;
+    D2GameNpcStrc* pFoundNpc;
+    int nNpcIndex;
+    nNpcIndex = 0;
     if (!pUnit) {
       nGambleRefillCount = -1;
     } else {
       nGambleRefillCount = pUnit->nClassId;
     }
 
-    __frame0.pNpcUnit = pUnit;
-    __frame0.pFoundNpc = GetGameNpcbyClassId(pGame, nGambleRefillCount, (int*)&__frame0.pFoundNpc);
-    if (!__frame0.pFoundNpc) {
+    D2UnitStrc* pNpcUnit;
+    pNpcUnit = pUnit;
+    pFoundNpc = GetGameNpcbyClassId(pGame, nGambleRefillCount, (int*)&pFoundNpc);
+    if (!pFoundNpc) {
       return;
     }
 
     D2SUnitProxyStrc_Line0x85* pQueueIter;
-    pQueueIter = __frame0.pFoundNpc->pProxyQueue;
-    __frame0.pPrevQueueEntry = 0;
+    pQueueIter = pFoundNpc->pProxyQueue;
+    D2SUnitProxyStrc_Line0x85* pPrevQueueEntry;
+    pPrevQueueEntry = 0;
     if (pQueueIter) {
       D2UnitStrc* pInventoryItem;
       do {
         if (pQueueIter->dwTradeParam) {
           pQueueIter->dwTradeParam = 0;
           if (!pQueueIter->nEntryType && pQueueIter->nAction == 4) {
-            __frame0.nNpcIndex++;
+            nNpcIndex++;
           }
         }
 
         pQueueIter = pQueueIter->pNext;
       } while (pQueueIter);
 
-      if (__frame0.nNpcIndex && pUnit->pInventory) {
+      if (nNpcIndex && pUnit->pInventory) {
         pInventoryItem = D2Common::INVENTORY::Inventory::INVENTORY_GetFirstItem(pUnit->pInventory);
-        while (pInventoryItem && __frame0.nNpcIndex) {
+        while (pInventoryItem && nNpcIndex) {
           pCarriedItem = D2Common::INVENTORY::Inventory::GetCarriedItem(pInventoryItem);
           pInventoryItem = D2Common::INVENTORY::Inventory::INVENTORY_GetNextItem(pInventoryItem);
           nGambleRefillCount = D2Common::ITEMS::Items::GetItemQuality(pCarriedItem);
           if (nGambleRefillCount == 4) {
-            SUNITNPC::SUNITNPC_FillNpcInventory(__frame0.pNpcUnit, pCarriedItem, pGame, 0);
-            __frame0.nNpcIndex--;
+            SUNITNPC::SUNITNPC_FillNpcInventory(pNpcUnit, pCarriedItem, pGame, 0);
+            nNpcIndex--;
           }
         }
       }
     }
 
     D2GameNpcStrc* pNpc;
-    pNpc = __frame0.pFoundNpc;
-    pQueueIter = __frame0.pFoundNpc->pProxyQueue;
+    pNpc = pFoundNpc;
+    pQueueIter = pFoundNpc->pProxyQueue;
     while (true) {
       pMemoryToFree = pQueueIter;
       if (!pMemoryToFree) {
@@ -915,7 +902,7 @@ void __fastcall SUNITPROXY_ProcessNpcItemQueue(::SGAMEDATA * pGame, D2UnitStrc *
           nGambleRefillCount = pMemoryToFree->pUnit->nUnitGUID;
         }
 
-        nGambleRefillCount = ITEMS::ItemMode::SERVER_ItemToInventory(".\\UNIT\\sunitproxy.cpp", 0x3cb, pGame, __frame0.pNpcUnit, nGambleRefillCount, 0, 0, 1, 1, nullptr);
+        nGambleRefillCount = ITEMS::ItemMode::SERVER_ItemToInventory(".\\UNIT\\sunitproxy.cpp", 0x3cb, pGame, pNpcUnit, nGambleRefillCount, 0, 0, 1, 1, nullptr);
         if (!nGambleRefillCount) {
           eInvPage = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(pMemoryToFree->pUnit);
           if (eInvPage == INVPAGE_CORPSE) {
@@ -929,7 +916,7 @@ void __fastcall SUNITPROXY_ProcessNpcItemQueue(::SGAMEDATA * pGame, D2UnitStrc *
             }
 
             retry_with_swapped_page:
-            nGambleRefillCount = ITEMS::ItemMode::SERVER_ItemToInventory(".\\UNIT\\sunitproxy.cpp", nSourceLine, pGame, __frame0.pNpcUnit, nGambleRefillCount, 0, 0, 1, 1, nullptr);
+            nGambleRefillCount = ITEMS::ItemMode::SERVER_ItemToInventory(".\\UNIT\\sunitproxy.cpp", nSourceLine, pGame, pNpcUnit, nGambleRefillCount, 0, 0, 1, 1, nullptr);
             if (nGambleRefillCount) {
               goto set_npc_item_and_dequeue;
             }
@@ -949,32 +936,32 @@ void __fastcall SUNITPROXY_ProcessNpcItemQueue(::SGAMEDATA * pGame, D2UnitStrc *
           }
 
           pQueueIter = pMemoryToFree->pNext;
-          __frame0.pPrevQueueEntry = pMemoryToFree;
+          pPrevQueueEntry = pMemoryToFree;
         } else {
           set_npc_item_and_dequeue:
-          SUNITNPC::SUNITNPC_SetItemForNpc(__frame0.pNpcUnit, pMemoryToFree->pUnit, pGame, 0, 0);
+          SUNITNPC::SUNITNPC_SetItemForNpc(pNpcUnit, pMemoryToFree->pUnit, pGame, 0, 0);
           if (pMemoryToFree == pNpc->pProxyQueue) {
             nSourceLine = 0x3ea;
             free_queue_head:
             pNpc->pProxyQueue = pMemoryToFree->pNext;
             Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\UNIT\\sunitproxy.cpp", nSourceLine, 0);
-            __frame0.pPrevQueueEntry = 0;
+            pPrevQueueEntry = 0;
             pQueueIter = pNpc->pProxyQueue;
           } else {
             nSourceLine = 0x3f1;
-            __frame0.pPrevQueueEntry->pNext = pMemoryToFree->pNext;
+            pPrevQueueEntry->pNext = pMemoryToFree->pNext;
             Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\UNIT\\sunitproxy.cpp", nSourceLine, 0);
-            pQueueIter = __frame0.pPrevQueueEntry->pNext;
+            pQueueIter = pPrevQueueEntry->pNext;
           }
         }
       } else {
-        BVar1 = SUNITNPC::SUNITNPC_DiscardTradeListRolls(pGame, __frame0.pNpcUnit, (int32_t)pMemoryToFree->pUnit, pMemoryToFree->nAction);
+        BVar1 = SUNITNPC::SUNITNPC_DiscardTradeListRolls(pGame, pNpcUnit, (int32_t)pMemoryToFree->pUnit, pMemoryToFree->nAction);
         if (BVar1) {
           if (pMemoryToFree != pNpc->pProxyQueue) {
             nSourceLine = 0x40a;
-            __frame0.pPrevQueueEntry->pNext = pMemoryToFree->pNext;
+            pPrevQueueEntry->pNext = pMemoryToFree->pNext;
             Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\UNIT\\sunitproxy.cpp", nSourceLine, 0);
-            pQueueIter = __frame0.pPrevQueueEntry->pNext;
+            pQueueIter = pPrevQueueEntry->pNext;
             continue;
           }
 
@@ -983,7 +970,7 @@ void __fastcall SUNITPROXY_ProcessNpcItemQueue(::SGAMEDATA * pGame, D2UnitStrc *
         }
 
         pQueueIter = pMemoryToFree->pNext;
-        __frame0.pPrevQueueEntry = pMemoryToFree;
+        pPrevQueueEntry = pMemoryToFree;
       }
     }
 }

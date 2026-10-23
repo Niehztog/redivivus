@@ -621,19 +621,12 @@ BOOL __fastcall Q23_PartyMember_PlayCompleteSound(::SGAMEDATA * pGame, D2UnitStr
 // Killing Mephisto here is what opens Act 4.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q6.cpp
 void __fastcall Q23_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
-    // Frame slots -16..-4 are ONE object: &nDroppedItemGUID is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nDroppedItemGUID;
-      D2QuestDataA3Q6Strc* pQuestSpecificDataSaved;
-      int32_t nSoulstoneDropLoop;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bQuestState;
     bool bQuestState;
     D2ObjectsTxt* pBridgeObjectTxt;
     D2UnitStrc* pDroppedUnit;
+    int32_t nDroppedItemGUID;
+    int32_t nSoulstoneDropLoop;
     ::SGAMEDATA* pGameInner;
     int32_t* piParticipantCount;
     QUEST_DebugPrint(pQuestData->pGame, "killed boss for quest", "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q6.cpp", 0x26b);
@@ -641,13 +634,13 @@ void __fastcall Q23_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
     bool bIsNotIntroduction = pQuestData->bIsNotIntroduction;
     D2QuestDataA3Q6Strc* pQuestSpecificData = pQuestData->pQuestSpecificData.pA3Q6;
     pQuestData->sStateFunctions.fpQuestStateHandler[10] = Q23_Callback10_PlayerLeavesGame;
-    __frame0.pQuestSpecificDataSaved = pQuestSpecificData;
+    D2QuestDataA3Q6Strc* pQuestSpecificDataSaved = pQuestSpecificData;
     if (bIsNotIntroduction) {
       D2UnitDataPlayerStrc* pAttackerPlayerData;
       if (pQuestArgs->pPlayer) {
-        /* local8 is D2GameStrc* here */ __frame0.nSoulstoneDropLoop = (int32_t)pQuestData->pGame;
+        /* local8 is D2GameStrc* here */ nSoulstoneDropLoop = (int32_t)pQuestData->pGame;
         pAttackerPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
-        _bQuestState = D2Common::QuestRecord::GetQuestState(pAttackerPlayerData->pQuestRecord[*(uint8_t*)(__frame0.nSoulstoneDropLoop + 0x6d)], QUEST_TheGuardian, QUESTSTATE_Completed);
+        _bQuestState = D2Common::QuestRecord::GetQuestState(pAttackerPlayerData->pQuestRecord[*(uint8_t*)(nSoulstoneDropLoop + 0x6d)], QUEST_TheGuardian, QUESTSTATE_Completed);
         if (!_bQuestState) {
           QUEST_StubEmpty(0x3e);
           pGameInner = pQuestData->pGame;
@@ -661,7 +654,7 @@ void __fastcall Q23_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
           pGameInner = pQuestData->pGame;
           pAttackerPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
           Q23_SetGuardianQuestComplete(pQuestArgs->pGame, pQuestArgs->pPlayer, pAttackerPlayerData->pQuestRecord[pGameInner->nDifficulty]);
-          pQuestSpecificData = __frame0.pQuestSpecificDataSaved;
+          pQuestSpecificData = pQuestSpecificDataSaved;
         }
       }
 
@@ -677,27 +670,27 @@ void __fastcall Q23_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
 
     QUEST_SetQuestRecordState(pQuestArgs->pGame, QUEST_TheGuardian, QUESTSTATE_JustCompleted);
     /* local8 become D2UnitStrc* here */ if (pQuestSpecificData->bBridgeObjectValid) {
-      __frame0.nSoulstoneDropLoop = (int32_t)UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, pQuestSpecificData->nBridgeObjectGUID);
-      if ((D2UnitStrc*)__frame0.nSoulstoneDropLoop) {
-        D2Common::Units::SetupUpdateFlag((D2UnitStrc*)__frame0.nSoulstoneDropLoop, 1);
-        pBridgeObjectTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(*(int32_t*)(__frame0.nSoulstoneDropLoop + 4));
-        GAME::Event::SetEvent(pQuestData->pGame, (D2UnitStrc*)__frame0.nSoulstoneDropLoop, 1, (pBridgeObjectTxt->FrameCnt[1] >> 8) + pQuestData->pGame->dwGameFrame, 0, 0);
+      nSoulstoneDropLoop = (int32_t)UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, pQuestSpecificData->nBridgeObjectGUID);
+      if ((D2UnitStrc*)nSoulstoneDropLoop) {
+        D2Common::Units::SetupUpdateFlag((D2UnitStrc*)nSoulstoneDropLoop, 1);
+        pBridgeObjectTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(*(int32_t*)(nSoulstoneDropLoop + 4));
+        GAME::Event::SetEvent(pQuestData->pGame, (D2UnitStrc*)nSoulstoneDropLoop, 1, (pBridgeObjectTxt->FrameCnt[1] >> 8) + pQuestData->pGame->dwGameFrame, 0, 0);
       }
     }
 
     pQuestSpecificData->nMephistoApproachMode = 2;
     pQuestArgs->pTarget->dwDropItemCode = 0x2073736d;
-    /* local8 become int here */ __frame0.nSoulstoneDropLoop = 0;
+    /* local8 become int here */ nSoulstoneDropLoop = 0;
     if (0 < pQuestSpecificData->nPlayerCount) {
       do {
-        pDroppedUnit = ITEMS::Items::Drop::ITEM_RewardItemToDrop(pQuestArgs->pGame, pQuestArgs->pTarget, ITEMTYPE_Shield, &__frame0.nDroppedItemGUID, nullptr, -1, 0);
+        pDroppedUnit = ITEMS::Items::Drop::ITEM_RewardItemToDrop(pQuestArgs->pGame, pQuestArgs->pTarget, ITEMTYPE_Shield, &nDroppedItemGUID, nullptr, -1, 0);
         if (pDroppedUnit) {
           pQuestSpecificData->nMephistoSoulstoneCount++;
           pQuestSpecificData->bMephistoSoulstoneDropped = true;
         }
 
-        __frame0.nSoulstoneDropLoop++;
-      } while (__frame0.nSoulstoneDropLoop < pQuestSpecificData->nPlayerCount);
+        nSoulstoneDropLoop++;
+      } while (nSoulstoneDropLoop < pQuestSpecificData->nPlayerCount);
     }
 
     A4Q3::Q28_EmptyCallback();

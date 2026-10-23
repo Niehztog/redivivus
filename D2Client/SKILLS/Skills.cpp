@@ -222,42 +222,30 @@ void __fastcall SKILL_ComputePerpendicularUnitVector(int * pVX, int * pVY) {
 // @evidence Calls GetCooordinates then the 6-argument Unit::Missile::MakeMissile.
 // 004c57b0 builds the full D2SkillArgStrc with nOffsetX/Y.
 D2UnitStrc * __fastcall MakeMissileAtSkillTarget(D2UnitStrc * pUnit, eMissilesId neMissilesId, eD2Skills eSkill, int32_t nSkillLevel) {
-    // Frame slots -12..-4 are ONE object: &nY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nY;
-      int nX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    BOOL bResult = GetCooordinates(pUnit, &__frame0.nX, &__frame0.nY);
-    if (!(bResult && __frame0.nX && __frame0.nY)) {
+    int nY;
+    int nX;
+    BOOL bResult = GetCooordinates(pUnit, &nX, &nY);
+    if (!(bResult && nX && nY)) {
       return nullptr;
     }
 
-    D2UnitStrc* pMissile = UNIT::Missile::MakeMissileAtXY(pUnit, neMissilesId, __frame0.nX, __frame0.nY, eSkill, nSkillLevel);
+    D2UnitStrc* pMissile = UNIT::Missile::MakeMissileAtXY(pUnit, neMissilesId, nX, nY, eSkill, nSkillLevel);
     return pMissile;
 }
 
 D2UnitStrc * __fastcall CastAttackWithDistanceCheck(D2UnitStrc * pUnit, eMissilesId neMissilesId, eD2Skills eSkill, int32_t nSkillLevel) {
-    // Frame slots -12..-4 are ONE object: &nY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nY;
-      int nX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    BOOL bResult = GetCooordinates(pUnit, &__frame0.nX, &__frame0.nY);
+    int nY;
+    int nX;
+    BOOL bResult = GetCooordinates(pUnit, &nX, &nY);
     if (!bResult) {
       return nullptr;
     }
-    if (!(__frame0.nX && __frame0.nY)) {
+    if (!(nX && nY)) {
       return nullptr;
     }
 
-    int nTargetX = __frame0.nX;
-    int nTargetY = __frame0.nY;
+    int nTargetX = nX;
+    int nTargetY = nY;
     int32_t nDistOrCasterY = Units::GetYPosFromDynamicPathUnit(pUnit);
     int32_t nCasterX = Units::GetXPosFromDynamicPathUnit(pUnit);
     nDistOrCasterY = D2Common::PATH::DynamicPath::GetDistanceSquaredXY(nCasterX, nDistOrCasterY, nTargetX, nTargetY);
@@ -265,7 +253,7 @@ D2UnitStrc * __fastcall CastAttackWithDistanceCheck(D2UnitStrc * pUnit, eMissile
       return nullptr;
     }
 
-    D2UnitStrc* pMissile = UNIT::Missile::CastAttack(pUnit, neMissilesId, __frame0.nX, __frame0.nY, eSkill, nSkillLevel);
+    D2UnitStrc* pMissile = UNIT::Missile::CastAttack(pUnit, neMissilesId, nX, nY, eSkill, nSkillLevel);
     return pMissile;
 }
 
@@ -375,15 +363,9 @@ void __fastcall AssignProperLight(D2UnitStrc * pUnit, int32_t nMissileId) {
 
 // Selects the player attack animation mode for the current attack. Returns Attack1 (1), Attack2 (8 for large monsters), or Throw (7 if no weapon equipped). Consults target monster height from MonStats2Txt and uses COMPOSIT_HasWeaponDrawn to detect bow/crossbow. For large targets, uses the unit's RNG seed to randomly pick Attack1 vs Attack2 with 50% probability.
 int PLAYER_ChooseAttackAnimation(D2UnitStrc * pUnit) {
-    // Frame slots -16..-4 are ONE object: &pWeaponItem is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2UnitStrc* pWeaponItem;
-      int32_t nWeaponClass2;
-      BOOL bDualWield;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2UnitStrc* pWeaponItem;
+    int32_t nWeaponClass2;
+    BOOL bDualWield;
     eD2PlayerAnimMode eAnimMode = eD2PlayerAnimMode_ns::Attack1;
     D2UnitStrc* pTarget = UNIT::CUnit::GetConfirmedTargetUnit(pUnit);
     bool bTargetIsSmall = true;
@@ -408,7 +390,7 @@ int PLAYER_ChooseAttackAnimation(D2UnitStrc * pUnit) {
       bTargetIsSmall = false;
     }
 
-    bHasWeapon = D2Common::INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pUnit->pInventory, &__frame0.pWeaponItem, &__frame0.nWeaponClass2, &__frame0.bDualWield);
+    bHasWeapon = D2Common::INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pUnit->pInventory, &pWeaponItem, &nWeaponClass2, &bDualWield);
     if (!bHasWeapon) {
       return 7;
     }
@@ -920,14 +902,7 @@ BOOL __fastcall Skills_CltDoFunc_Bow_ShootArrow(D2UnitStrc * pUnit, eD2Skills eS
 }
 
 BOOL __fastcall Skills_CltDoFunc_Bow_ThrowItem(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-8 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetX;
-      uint32_t nTargetY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nTargetY;
     if (pUnit) {
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
@@ -941,8 +916,9 @@ BOOL __fastcall Skills_CltDoFunc_Bow_ThrowItem(D2UnitStrc * pUnit, eD2Skills eSk
     eMissilesId eMissileType = D2Common::ITEMS::Items::ITEM_GetItemsTxt_wMissileType(pWeapon);
     eD2ItemTypes eItemType = D2Common::ITEMS::Items::ITEM_GetItemData_wType(pWeapon);
     if (eItemType == ITEMTYPE_MissilePotion) {
-      GetCooordinates(pUnit, (int32_t*)&__frame0.nTargetX, (int32_t*)&__frame0.nTargetY);
-      UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnit, eMissileType, 0, 0, __frame0.nTargetX, __frame0.nTargetY, eSkillSaved, 1, 0);
+      uint32_t nTargetX;
+      GetCooordinates(pUnit, (int32_t*)&nTargetX, (int32_t*)&nTargetY);
+      UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnit, eMissileType, 0, 0, nTargetX, nTargetY, eSkillSaved, 1, 0);
       return 1;
     }
 
@@ -1028,14 +1004,6 @@ int32_t __stdcall SKILLS_CastSkillClient(eD2Skills eSkill, D2UnitStrc * pUnit, i
     nullptr
 };
 
-    // Frame slots -20..-12 are ONE object: &local_14 is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t local_14;
-      LONG nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eCollisionFlags eLoSCollisionType;
     int32_t iVar1;
     eD2Skills eActiveSkillId;
@@ -1047,6 +1015,8 @@ int32_t __stdcall SKILLS_CastSkillClient(eD2Skills eSkill, D2UnitStrc * pUnit, i
     eD2Sounds eCastSound;
     int bHasOverlay;
     D2ServerMessageHandleStrc sCancelHandleMsg;
+    int32_t local_14;
+    LONG nTargetX;
     eD2Skills eSkillResult;
     if ((int)eSkill < 0) {
       return 0;
@@ -1064,7 +1034,7 @@ int32_t __stdcall SKILLS_CastSkillClient(eD2Skills eSkill, D2UnitStrc * pUnit, i
     D2SkillsTxt* pSkillTxtOrig;
     pSkillTxtOrig = pSkillTxt;
     if (pSkillTxt->lineofsight != '\0') {
-      bInTown = GetCooordinates(pUnit, (int32_t*)&__frame0.nTargetX, (int32_t*)&eSkillResult);
+      bInTown = GetCooordinates(pUnit, (int32_t*)&nTargetX, (int32_t*)&eSkillResult);
       if (bInTown) {
         switch (pSkillTxt->lineofsight) {
           case '\x01':
@@ -1086,7 +1056,7 @@ int32_t __stdcall SKILLS_CastSkillClient(eD2Skills eSkill, D2UnitStrc * pUnit, i
             return 0;
         }
 
-        nSoundOrAllied = D2Common::Skills::SKILLS_HasLineOfSightToUnit(__frame0.nTargetX, eSkillResult, pUnit, iVar1);
+        nSoundOrAllied = D2Common::Skills::SKILLS_HasLineOfSightToUnit(nTargetX, eSkillResult, pUnit, iVar1);
         if (!nSoundOrAllied) {
           return 0;
         }
@@ -1127,11 +1097,11 @@ int32_t __stdcall SKILLS_CastSkillClient(eD2Skills eSkill, D2UnitStrc * pUnit, i
       D2Common::Units::SetCurrentSkill(pUnit, pCurrentSkill);
     }
     if (nOwnerGUID != -1) {
-      bInTown = D2Common::Skills::SKILLS_GetSkillData(pCurrentSkill, &__frame0.local_14, &eSkillResult, (int32_t*)&nSkillLevel, (int32_t*)&__frame0.nTargetX);
+      bInTown = D2Common::Skills::SKILLS_GetSkillData(pCurrentSkill, &local_14, &eSkillResult, (int32_t*)&nSkillLevel, (int32_t*)&nTargetX);
       if (!bInTown) {
         return 0;
       }
-      if (!__frame0.nTargetX) {
+      if (!nTargetX) {
         return 0;
       }
     }
@@ -1277,23 +1247,16 @@ int32_t __fastcall SKILLS_CastSkillClientArgsReversed(short * pArg1, int32_t nAr
 
 // Runs the client-side visual/audio presentation for a cast skill. Validates eSkill against Skills.txt and its cltdofunc index. If the skill has a cltmissile, spawns that client missile from the unit toward the target coords (resolved via GetCooordinates when bHasTarget, offset from the unit's path position) using either MakeMissile or MISSILE_CreateFromUnitWithOffset depending on skill flag bit1. Then invokes the skill's client DoFunc from the SKILLCLTDOFUNCS dispatch table (or ItemCltEffect override when targeted); both paths set the unit's SKSRVDOFUNC flag. Frees/swaps the skill light map. On success plays dosound on the caster and tgtsound/tgtoverlay on the confirmed target unit, and for the local player applies the skill's cast delay to the game data timer (clamped to 0xC, anim-mode guarded). Returns 1 if anything fired (missile/dofunc), else 0. Pure client effect, no gameplay state.
 uint32_t __fastcall SKILL_ExecuteClientDoFunc(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLevel, int32_t bHasTarget) {
-    // Frame slots -32..-12 are ONE object: &nTargetCoordX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nTargetCoordX;
-      int32_t nTargetCoordY;
-      int bFired;
-      uint32_t nOffsetX;
-      uint32_t nOffsetY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2UnitStrc* pMissileUnit;
     BOOL bDoFuncResult;
     D2LightMapStrc* pOldLightMap;
     D2UnitStrc* pTargetUnit;
     int32_t nTargetY;
     int32_t nTargetX;
+    int32_t nTargetCoordX;
+    int32_t nTargetCoordY;
+    uint32_t nOffsetX;
+    uint32_t nOffsetY;
     if ((int)eSkill < 0) {
       return 0;
     }
@@ -1313,41 +1276,42 @@ uint32_t __fastcall SKILL_ExecuteClientDoFunc(D2UnitStrc * pUnit, eD2Skills eSki
       return 0;
     }
 
-    __frame0.bFired = 0;
+    int bFired;
+    bFired = 0;
     eD2Skills eSkillId;
     eSkillId = eSkill;
     D2UnitStrc* pUnitSaved;
     pUnitSaved = pUnit;
     if (0 < pSkillTxt->cltmissile) {
       int32_t nUnitOffsetX;
-      __frame0.nTargetCoordX = 0;
-      __frame0.nTargetCoordY = 0;
-      __frame0.nOffsetX = 0;
-      __frame0.nOffsetY = 0;
+      nTargetCoordX = 0;
+      nTargetCoordY = 0;
+      nOffsetX = 0;
+      nOffsetY = 0;
       nTargetX = 0;
       nTargetY = 0;
       if (bHasTarget) {
-        GetCooordinates(pUnit, &__frame0.nTargetCoordX, &__frame0.nTargetCoordY);
-        nTargetY = __frame0.nTargetCoordY;
-        nTargetX = __frame0.nTargetCoordX;
-        if (__frame0.nTargetCoordX && __frame0.nTargetCoordY) {
-          __frame0.nOffsetX = __frame0.nTargetCoordX;
-          __frame0.nOffsetY = __frame0.nTargetCoordY;
+        GetCooordinates(pUnit, &nTargetCoordX, &nTargetCoordY);
+        nTargetY = nTargetCoordY;
+        nTargetX = nTargetCoordX;
+        if (nTargetCoordX && nTargetCoordY) {
+          nOffsetX = nTargetCoordX;
+          nOffsetY = nTargetCoordY;
           nUnitOffsetX = Units::GetXPosFromDynamicPathUnit(pUnitSaved);
           nTargetX -= nUnitOffsetX;
           nUnitOffsetX = Units::GetYPosFromDynamicPathUnit(pUnitSaved);
-          __frame0.nOffsetX += nTargetX;
+          nOffsetX += nTargetX;
           nTargetY -= nUnitOffsetX;
-          __frame0.nOffsetY += nTargetY;
+          nOffsetY += nTargetY;
         }
       }
       if (!pSkillTxt->lob) {
-        pMissileUnit = Skills::MakeMissile((int)pSkillTxt->cltmissile, pUnitSaved, eSkillId, nSkillLevel, nTargetX, nTargetY, __frame0.nOffsetX, __frame0.nOffsetY);
+        pMissileUnit = Skills::MakeMissile((int)pSkillTxt->cltmissile, pUnitSaved, eSkillId, nSkillLevel, nTargetX, nTargetY, nOffsetX, nOffsetY);
       } else {
-        pMissileUnit = UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnitSaved, (int)pSkillTxt->cltmissile, nTargetX, nTargetY, __frame0.nOffsetX, __frame0.nOffsetY, eSkillId, nSkillLevel, 0);
+        pMissileUnit = UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnitSaved, (int)pSkillTxt->cltmissile, nTargetX, nTargetY, nOffsetX, nOffsetY, eSkillId, nSkillLevel, 0);
       }
       if (pMissileUnit) {
-        __frame0.bFired = 1;
+        bFired = 1;
       }
       if (pUnitSaved) {
         pUnitSaved->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
@@ -1370,7 +1334,7 @@ uint32_t __fastcall SKILL_ExecuteClientDoFunc(D2UnitStrc * pUnit, eD2Skills eSki
       }
     }
 
-    __frame0.bFired = 1;
+    bFired = 1;
     finish_dofunc:
     pOldLightMap = D2Common::Skills::SwapLightMap(pUnitSaved, nullptr);
     if (pOldLightMap) {
@@ -1378,7 +1342,7 @@ uint32_t __fastcall SKILL_ExecuteClientDoFunc(D2UnitStrc * pUnit, eD2Skills eSki
     }
 
     pMissileUnit = pUnitSaved;
-    if (!__frame0.bFired) {
+    if (!bFired) {
       return 0;
     }
     if (0 < pSkillTxt->dosound) {
@@ -1508,14 +1472,6 @@ void __fastcall SKILL_ExecuteClientProgressFunc(D2UnitStrc * pUnit, D2UnitStrc *
 
 // Drives a unit through a skill's client progressive sequence while maintaining its aura state. Validates eSkill against D2SkillsTxt; lazily allocates/attaches the aura statlist for the skill's aurastate and seeds aurastat[0]. Saves the unit's SP1 path target/confirmed target and (when a Y-less X is supplied) nInitSeed, retargets to pUnit2 or the supplied X/Y, then for FLAG 0x80 skills steps the cltprgfunc table up to nProgressIndex, dispatching SKILLCLTDOFUNCS by unit type. Spawns the skill's client missile (cltmissile, plain or offset variant), runs the final progress-overlay func, and on success plays dosound/tgtsound and adds tgtoverlay to the confirmed target. Restores saved target/SP1/initseed before returning. Client-side cosmetic progression; no damage.
 void __fastcall SKILL_ExecuteClientProgressWithAura(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, eD2Skills eSkill, int32_t nSkillLevel, int32_t nTargetX, int32_t nTargetY, int32_t nProgressIndex) {
-    // Frame slots -12..-4 are ONE object: &pAuraStatList is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2StatListExStrc* pAuraStatList;
-      D2UnitStrc* pUnitArg2Saved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL bPrgFuncResult;
     D2UnitStrc* pOverlayTarget;
     int nPrgStep;
@@ -1535,20 +1491,20 @@ void __fastcall SKILL_ExecuteClientProgressWithAura(D2UnitStrc * pUnit, D2UnitSt
       return;
     }
 
-    __frame0.pUnitArg2Saved = pUnit2;
-    __frame0.pAuraStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, (int)nAuraState);
-    if (!__frame0.pAuraStatList) {
+    D2UnitStrc* pUnitArg2Saved = pUnit2;
+    D2StatListExStrc* pAuraStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, (int)nAuraState);
+    if (!pAuraStatList) {
       D2StatListExStrc* pNewStatList;
       pNewStatList = (D2StatListExStrc*)D2Common::Stats::StatsEx::AllocStatList(nullptr, 0, 0, pUnit->eUnitType, pUnit->nUnitGUID);
       if (!pNewStatList) {
         return;
       }
 
-      __frame0.pAuraStatList = pNewStatList;
+      pAuraStatList = pNewStatList;
       D2Common::Stats::StatsEx::SetState(pNewStatList, (int)pSkillTxt->aurastate);
       D2Common::Stats::StatsEx::STATLIST_AttachStatListToUnit(pUnit, pNewStatList, 1);
       D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pNewStatList, (int)pSkillTxt->aurastat[0], nProgressIndex, 0);
-      pUnit2 = __frame0.pUnitArg2Saved;
+      pUnit2 = pUnitArg2Saved;
     }
 
     BOOL bHadTarget = GetCooordinates(pUnit, (int32_t*)aSavedSP1X, (int32_t*)aSavedSP1Y);
@@ -1568,27 +1524,27 @@ void __fastcall SKILL_ExecuteClientProgressWithAura(D2UnitStrc * pUnit, D2UnitSt
     if (pSkillTxt->prgstack) {
       nPrgStep = 0;
       if (0 < nProgressIndex - 1) {
-        __frame0.pUnitArg2Saved = (D2UnitStrc*)pSkillTxt->cltprgfunc;
+        pUnitArg2Saved = (D2UnitStrc*)pSkillTxt->cltprgfunc;
         do {
-          if (SKILLCLTDOFUNCS[(short int)__frame0.pUnitArg2Saved->eUnitType]) {
-            D2Common::Stats::StatsEx::D2AddStatToStatsListEx(__frame0.pAuraStatList, (int)pSkillTxt->aurastat[0], nPrgStep + 1, 0);
-            (*SKILLCLTDOFUNCS[(short int)__frame0.pUnitArg2Saved->eUnitType])(pUnit, eSkill, nSkillLevel);
+          if (SKILLCLTDOFUNCS[(short int)pUnitArg2Saved->eUnitType]) {
+            D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pAuraStatList, (int)pSkillTxt->aurastat[0], nPrgStep + 1, 0);
+            (*SKILLCLTDOFUNCS[(short int)pUnitArg2Saved->eUnitType])(pUnit, eSkill, nSkillLevel);
           }
 
-          __frame0.pUnitArg2Saved = (D2UnitStrc*)((uintptr_t)&__frame0.pUnitArg2Saved->eUnitType + 2);
+          pUnitArg2Saved = (D2UnitStrc*)((uintptr_t)&pUnitArg2Saved->eUnitType + 2);
           nPrgStep++;
         } while (nPrgStep < nProgressIndex - 1);
       }
 
-      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(__frame0.pAuraStatList, (int)pSkillTxt->aurastat[0], nProgressIndex, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pAuraStatList, (int)pSkillTxt->aurastat[0], nProgressIndex, 0);
     }
     if (-1 < pSkillTxt->cltprgfunc[nProgressIndex - 1] && pSkillTxt->cltprgfunc[nProgressIndex - 1] < SKILLCLTDOFUNCS_SIZE) {
       if (0 < pSkillTxt->cltmissile) {
         if (!pSkillTxt->lob) {
           MakeMissileAtSkillTarget(pUnit, (int)pSkillTxt->cltmissile, eSkill, nSkillLevel);
         } else {
-          GetCooordinates(pUnit, (int32_t*)&__frame0.pUnitArg2Saved, (int32_t*)&__frame0.pAuraStatList);
-          UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnit, (int)pSkillTxt->cltmissile, 0, 0, (uint32_t)__frame0.pUnitArg2Saved, (uint32_t)__frame0.pAuraStatList, eSkill, nSkillLevel, 0);
+          GetCooordinates(pUnit, (int32_t*)&pUnitArg2Saved, (int32_t*)&pAuraStatList);
+          UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnit, (int)pSkillTxt->cltmissile, 0, 0, (uint32_t)pUnitArg2Saved, (uint32_t)pAuraStatList, eSkill, nSkillLevel, 0);
         }
 
         pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
@@ -2085,37 +2041,29 @@ void __fastcall SKILLS_ApplyDamageReduction(int32_t pUnit, int32_t nReductionPer
 
 // Spawns nCount missiles at random positions within nRadius of the casting unit. Seeds the unit's RNG from its current map coordinates, then for each spawn picks a random (X,Y) offset within the diameter, rejects positions within 3 distance units of the caster, and calls MISSILE_CreateFromUnitWithOffset with the given missile ID array, skill, and skill level. Returns 1 on success, 0 if coordinates could not be retrieved.
 uint32_t __fastcall SKILL_SpawnRandomMissilesInArea(D2UnitStrc * pUnit, uint8_t * pMissileId, int32_t nCount, int32_t nRadius, eD2Skills eSkill, int32_t nSkillLevel) {
-    // Frame slots -28..-4 are ONE object: &nBaseY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nBaseY;
-      int nCountdown;
-      uint32_t nSpawnY;
-      uint32_t nSpawnX;
-      uint32_t nBaseX;
-      D2UnitStrc* pUnitOrig;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nDiameter;
+    int nBaseY;
+    uint32_t nSpawnY;
+    uint32_t nSpawnX;
+    uint32_t nBaseX;
     eD2UnitType eUnitType;
     int64_t llRandProduct;
     D2SeedStrc newSeed;
-    __frame0.pUnitOrig = pUnit;
-    BOOL bGotCoords = GetCooordinates(pUnit, (int32_t*)&__frame0.nBaseX, &__frame0.nBaseY);
+    D2UnitStrc* pUnitOrig = pUnit;
+    BOOL bGotCoords = GetCooordinates(pUnit, (int32_t*)&nBaseX, &nBaseY);
     if (!bGotCoords) {
       return 0;
     }
 
     D2SeedStrc* pSeedStrc = &pUnit->sSeed;
-    pSeedStrc->nSeedLow = __frame0.nBaseX;
+    pSeedStrc->nSeedLow = nBaseX;
     pUnit->sSeed.nSeedHigh = 0x29a;
     if (0 >= nCount) {
       return 1;
     }
 
     uint32_t nDiameterRange = nRadius * 2;
-    __frame0.nCountdown = nCount;
+    int nCountdown = nCount;
     D2UnitStrc* pUnitCur = pUnit;
     do {
       int32_t nDist;
@@ -2128,32 +2076,32 @@ uint32_t __fastcall SKILL_SpawnRandomMissilesInArea(D2UnitStrc * pUnit, uint8_t 
           newSeed = (D2SeedStrc)(llRandProduct + (uint64_t)nDiameter);
           *pSeedStrc = newSeed;
           nDiameter = nDiameterRange - 1 & newSeed.nSeedLow;
-          pUnitCur = __frame0.pUnitOrig;
+          pUnitCur = pUnitOrig;
         } else {
           newSeed = (D2SeedStrc)(llRandProduct + (uint64_t)nDiameter);
           *pSeedStrc = newSeed;
           nDiameter = (uint32_t)(((uint64_t)d2_bits_of(newSeed) & 0xffffffff) % (uint64_t)nDiameterRange);
-          pUnitCur = __frame0.pUnitOrig;
+          pUnitCur = pUnitOrig;
         }
       }
 
-      __frame0.nSpawnY = nDiameter - nRadius + __frame0.nBaseX;
+      nSpawnY = nDiameter - nRadius + nBaseX;
       if ((int)nDiameterRange < 1) {
         nDiameter = 0;
       } else if (!(nDiameterRange & nDiameterRange - 1)) {
         newSeed = D2_SEED_NEXT(*pSeedStrc);
         *pSeedStrc = newSeed;
         nDiameter = nDiameterRange - 1 & newSeed.nSeedLow;
-        pUnitCur = __frame0.pUnitOrig;
+        pUnitCur = pUnitOrig;
       } else {
         newSeed = D2_SEED_NEXT(*pSeedStrc);
         *pSeedStrc = newSeed;
         nDiameter = (uint32_t)(((uint64_t)d2_bits_of(newSeed) & 0xffffffff) % (uint64_t)nDiameterRange);
-        pUnitCur = __frame0.pUnitOrig;
+        pUnitCur = pUnitOrig;
       }
 
       eUnitType = pUnitCur->eUnitType;
-      __frame0.nSpawnX = nDiameter - nRadius + __frame0.nBaseY;
+      nSpawnX = nDiameter - nRadius + nBaseY;
       if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
         nCount = pUnitCur->pPath.pStaticPath->nPosY;
       } else if (!pUnitCur->pPath.pDynamicPath) {
@@ -2171,13 +2119,13 @@ uint32_t __fastcall SKILL_SpawnRandomMissilesInArea(D2UnitStrc * pUnit, uint8_t 
         nDist = D2Common::PATH::DynamicPath::GetXPos(pUnitCur->pPath.pDynamicPath);
       }
 
-      nDist = D2Common::PATH::DynamicPath::GetDistanceSquaredXY(nDist, nCount, __frame0.nSpawnY, __frame0.nSpawnX);
+      nDist = D2Common::PATH::DynamicPath::GetDistanceSquaredXY(nDist, nCount, nSpawnY, nSpawnX);
       if (3 < nDist) {
-        UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnitCur, (eMissilesId)pMissileId, 0, 0, __frame0.nSpawnY, __frame0.nSpawnX, eSkill, nSkillLevel, 0);
+        UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnitCur, (eMissilesId)pMissileId, 0, 0, nSpawnY, nSpawnX, eSkill, nSkillLevel, 0);
       }
 
-      __frame0.nCountdown--;
-    } while (__frame0.nCountdown);
+      nCountdown--;
+    } while (nCountdown);
 
     return 1;
 }
@@ -2317,14 +2265,6 @@ void __fastcall SKILLS_CltAdjustSkillTabBonuses(D2UnitStrc * pUnit, int32_t nBon
 }
 
 uint32_t __fastcall SKILL_CheckMissileCollisionAtTarget(D2UnitStrc * pUnit, int32_t nMissileId) {
-    // Frame slots -12..-4 are ONE object: &nPosY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nPosY;
-      int32_t nPosX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2MissilesTxt* pMissileTxt;
     if (nMissileId < 0 || sgptDataTable->nTxtMissilesSize <= nMissileId) {
       pMissileTxt = 0;
@@ -2333,8 +2273,8 @@ uint32_t __fastcall SKILL_CheckMissileCollisionAtTarget(D2UnitStrc * pUnit, int3
     }
 
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    __frame0.nPosX = 0;
-    __frame0.nPosY = 0;
+    int32_t nPosX = 0;
+    int32_t nPosY = 0;
     if (!pMissileTxt) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9bf);
       exit(-1);
@@ -2343,12 +2283,12 @@ uint32_t __fastcall SKILL_CheckMissileCollisionAtTarget(D2UnitStrc * pUnit, int3
       return 0;
     }
 
-    GetCooordinates(pUnit, &__frame0.nPosX, &__frame0.nPosY);
-    if (!(__frame0.nPosX && __frame0.nPosY)) {
+    GetCooordinates(pUnit, &nPosX, &nPosY);
+    if (!(nPosX && nPosY)) {
       return 0;
     }
 
-    eCollisionFlags nCollisionResult = D2Common::Collision::CheckCollision_Vector(pRoom, __frame0.nPosX, __frame0.nPosY, (uint32_t)(uint8_t)pMissileTxt->Size, (uint32_t)(uint8_t)pMissileTxt->Size, 5);
+    eCollisionFlags nCollisionResult = D2Common::Collision::CheckCollision_Vector(pRoom, nPosX, nPosY, (uint32_t)(uint8_t)pMissileTxt->Size, (uint32_t)(uint8_t)pMissileTxt->Size, 5);
     return (uint32_t)(nCollisionResult == COLBIT_NONE);
 }
 

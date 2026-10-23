@@ -451,16 +451,10 @@ void __fastcall GetMinAndMaxCoordinatesFromLevel(D2DrlgLevelStrc * pLevel, int *
 
 // Adjusts all RoomEx world positions in a level to match the level's own world position. Called by GenerateLevel after rooms are placed. Asserts level and rooms exist, and that room extents fit within level size.
 void __fastcall DRLGLEVEL_AdjustRoomCoordinates(D2DrlgLevelStrc * pLevel) {
-    // Frame slots -20..-4 are ONE object: &nMinY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nMinY;
-      int nMaxY;
-      int nMinX;
-      int nMaxX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nMinY;
+    int nMaxY;
+    int nMinX;
+    int nMaxX;
     LONG* pWorldY;
     if (!pLevel) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2e3);
@@ -472,16 +466,16 @@ void __fastcall DRLGLEVEL_AdjustRoomCoordinates(D2DrlgLevelStrc * pLevel) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2e4);
         exit(-1);
       } else {
-        GetMinAndMaxCoordinatesFromLevel(pLevel, &__frame0.nMinX, &__frame0.nMinY, &__frame0.nMaxX, &__frame0.nMaxY);
-        if (pLevel->sCoordinatesAndSize.WorldSize.x < __frame0.nMaxX - __frame0.nMinX) {
+        GetMinAndMaxCoordinatesFromLevel(pLevel, &nMinX, &nMinY, &nMaxX, &nMaxY);
+        if (pLevel->sCoordinatesAndSize.WorldSize.x < nMaxX - nMinX) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2eb);
           exit(-1);
         } else {
-          if (__frame0.nMaxY - __frame0.nMinY <= pLevel->sCoordinatesAndSize.WorldSize.y) {
+          if (nMaxY - nMinY <= pLevel->sCoordinatesAndSize.WorldSize.y) {
             do {
-              pRoomEx->sCoords.WorldPosition.x += pLevel->sCoordinatesAndSize.WorldPosition.x - __frame0.nMinX;
+              pRoomEx->sCoords.WorldPosition.x += pLevel->sCoordinatesAndSize.WorldPosition.x - nMinX;
               pWorldY = &pRoomEx->sCoords.WorldPosition.y;
-              *pWorldY += pLevel->sCoordinatesAndSize.WorldPosition.y - __frame0.nMinY;
+              *pWorldY += pLevel->sCoordinatesAndSize.WorldPosition.y - nMinY;
               pRoomEx = pRoomEx->pRoomExNext;
             } while (pRoomEx);
 
@@ -1429,14 +1423,6 @@ void __stdcall DRLGROOMTILE_WorldToTileScreenPos(int * pOutCoords, D2RoomExStrc 
 
 // Allocates the next wall tile slot in pRoomEx's tile grid, links it into the *ppTileHead list, converts minimap coords to screen coords, sets colour/type/flags, then recursively creates a shadow tile (type 4) when nTileType==3 and propagates nGridFlags bits into that shadow tile's flags.
 D2DrlgTileDataStrc * __fastcall DRLGROOMTILE_CreateWallTileData(D2RoomExStrc * pRoomEx, D2DrlgTileDataStrc * * ppTileHead, int nPosX, int nPosY, uint32_t nGridFlags, int pTileLibEntry, int nTileType) {
-    // Frame slots -12..-4 are ONE object: &nScreenX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nScreenX;
-      int nScreenY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nLibFlags;
     D2DrlgTileGridStrc* pTileGrid = pRoomEx->pRoomTiles;
     D2DrlgTileDataStrc* pTileData = pTileGrid->pWallTiles + pTileGrid->nWalls;
@@ -1448,16 +1434,16 @@ D2DrlgTileDataStrc * __fastcall DRLGROOMTILE_CreateWallTileData(D2RoomExStrc * p
     }
 
     pTileGrid->nWalls++;
-    __frame0.nScreenX = nPosX;
+    int nScreenX = nPosX;
     pTileData->nPosX = nPosX - pRoomEx->sCoords.WorldPosition.x;
-    __frame0.nScreenY = nPosY + 1;
+    int nScreenY = nPosY + 1;
     pTileData->nPosY = nPosY - pRoomEx->sCoords.WorldPosition.y;
-    Transform::CoordsMiniMapToScreen(&__frame0.nScreenX, &__frame0.nScreenY);
-    pTileData->nScreenY = __frame0.nScreenY + 0x28;
+    Transform::CoordsMiniMapToScreen(&nScreenX, &nScreenY);
+    pTileData->nScreenY = nScreenY + 0x28;
     pTileData->pTileLibraryEntry = (D2TileLibraryEntryStrc*)pTileLibEntry;
     pTileData->nFlags = 0;
     pTileData->nTransitionFlags = 0;
-    pTileData->nScreenX = __frame0.nScreenX;
+    pTileData->nScreenX = nScreenX;
     pTileData->nAlphaStart = 0xff;
     pTileData->nAlphaEnd = 0xff;
     pTileData->nCurrentAlpha = 0xff;
@@ -3994,20 +3980,10 @@ void __fastcall DRLGACTMISC_AllocDrlgLevelForAct(D2DrlgStrc * pDrlg, eAct nActNo
 
 // Builds a coarse dynamic path from the unit's current position toward the target stored in pPathTypeArg, writing waypoints into pDynamicPath->PathPoints and returning the count. If a direction offset is already set, delegates to DRLGPATH_SmoothPathPoints. Otherwise: if the target is directly reachable (CheckTargetReachable) or within the IDA* distance threshold, emits a single waypoint; else walks step-by-step toward the target via DRLGPATH_GetPathDirectionTripletPacked + FindNonBlockedDirectionFromTriplet (using gPathDirectionOffsetsX/Y), recording a waypoint each time the chosen direction changes, bounded by nDistMax iterations and anti-backtracking.
 int32_t __fastcall PATH_FindPathToward(D2PathTypeArg * pPathTypeArg) {
-    // Frame slots -36..-12 are ONE object: &nChosenDir is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nChosenDir;
-      D2PathPointStrc* pWaypointOut;
-      int nIterCount;
-      int bWaypointAdded;
-      D2PathTypeArg* pPathTypeArgLocal;
-      int nWaypointCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nSmoothResult;
     int aDirTriplet[3];
+    uint32_t nChosenDir;
+    D2PathPointStrc* pWaypointOut;
     D2PathPointStrc ptDst;
     D2PathPointStrc ptSrc;
     uint32_t nPackedSrc;
@@ -4017,7 +3993,8 @@ int32_t __fastcall PATH_FindPathToward(D2PathTypeArg * pPathTypeArg) {
     pDynamicPath = pPathTypeArg->pDynamicPath;
     pDynamicPath->nPathPointIndex = 0;
     pDynamicPath->dwPathPoints = 0;
-    __frame0.pPathTypeArgLocal = pPathTypeArg;
+    D2PathTypeArg* pPathTypeArgLocal;
+    pPathTypeArgLocal = pPathTypeArg;
     if (pDynamicPath->nDirOffset) {
       nSmoothResult = Path::DRLGPATH_SmoothPathPoints(pPathTypeArg);
       return nSmoothResult;
@@ -4039,14 +4016,14 @@ int32_t __fastcall PATH_FindPathToward(D2PathTypeArg * pPathTypeArg) {
     *(uint16_t*)(char*)&nPackedSrc = pPathTypeArg->pCoords.nOffsetY;
     *(uint16_t*)((char*)&nPackedSrc + 2) = pPathTypeArg->pCoords.nPosY;
     nSmoothResult = Path::DRLGPATH_GetWeightedDistancePacked((uint32_t)d2_bits_of(ptDst), nPackedSrc);
-    if (nSmoothResult <= (int)(uint32_t)__frame0.pPathTypeArgLocal->nIdaStarVariable) {
+    if (nSmoothResult <= (int)(uint32_t)pPathTypeArgLocal->nIdaStarVariable) {
       pDynamicPath->PathPoints[pDynamicPath->dwPathPoints] = ptCur;
       pDynamicPath->dwPathPoints++;
       return pDynamicPath->dwPathPoints;
     }
 
-    ptSrc.nX = __frame0.pPathTypeArgLocal->pCoords.nOffsetX;
-    ptSrc.nY = __frame0.pPathTypeArgLocal->pCoords.nPosX;
+    ptSrc.nX = pPathTypeArgLocal->pCoords.nOffsetX;
+    ptSrc.nY = pPathTypeArgLocal->pCoords.nPosX;
     if (ptSrc.nX != ptCur.nX || ptSrc.nY != ptDst.nY) {
       pDynamicPath->PathPoints[pDynamicPath->dwPathPoints] = ptCur;
       pDynamicPath->dwPathPoints++;
@@ -4054,15 +4031,18 @@ int32_t __fastcall PATH_FindPathToward(D2PathTypeArg * pPathTypeArg) {
     }
 
     int nDistMax;
-    nDistMax = __frame0.pPathTypeArgLocal->nDistMax;
-    __frame0.nWaypointCount = pDynamicPath->dwPathPoints;
-    ptDst.nX = __frame0.pPathTypeArgLocal->pCoords.nOffsetY;
-    ptDst.nY = __frame0.pPathTypeArgLocal->pCoords.nPosY;
-    __frame0.bWaypointAdded = 0;
-    __frame0.nIterCount = 0;
+    nDistMax = pPathTypeArgLocal->nDistMax;
+    int nWaypointCount;
+    nWaypointCount = pDynamicPath->dwPathPoints;
+    ptDst.nX = pPathTypeArgLocal->pCoords.nOffsetY;
+    ptDst.nY = pPathTypeArgLocal->pCoords.nPosY;
+    int bWaypointAdded;
+    bWaypointAdded = 0;
+    int nIterCount;
+    nIterCount = 0;
     if (0 < nDistMax) {
       uint32_t nPrevDir;
-      __frame0.pWaypointOut = pDynamicPath->PathPoints + __frame0.nWaypointCount;
+      pWaypointOut = pDynamicPath->PathPoints + nWaypointCount;
       nPrevDir = 0xff;
       while (true) {
         ptCur = ptSrc;
@@ -4072,44 +4052,44 @@ int32_t __fastcall PATH_FindPathToward(D2PathTypeArg * pPathTypeArg) {
           break;
         }
 
-        __frame0.bWaypointAdded = 0;
+        bWaypointAdded = 0;
         Path::DRLGPATH_GetPathDirectionTripletPacked((uint32_t)d2_bits_of(ptSrc), (uint32_t)d2_bits_of(ptDst), aDirTriplet);
-        bReachable = Path::DRLGPATH_FindNonBlockedDirectionFromTriplet((uint32_t)d2_bits_of(ptCur), aDirTriplet, (int*)&__frame0.nChosenDir, __frame0.pPathTypeArgLocal);
-        if (!bReachable || (__frame0.nChosenDir - 4 & 7) == nPrevDir) {
+        bReachable = Path::DRLGPATH_FindNonBlockedDirectionFromTriplet((uint32_t)d2_bits_of(ptCur), aDirTriplet, (int*)&nChosenDir, pPathTypeArgLocal);
+        if (!bReachable || (nChosenDir - 4 & 7) == nPrevDir) {
           goto append_end_point;
         }
 
-        ptSrc.nY += (short int)gPathDirectionOffsetsX[__frame0.nChosenDir * 2 + 1];
-        ptSrc.nX += (short int)gPathDirectionOffsetsX[__frame0.nChosenDir * 2];
-        if (__frame0.nChosenDir != nPrevDir) {
-          if (nStepPosX != __frame0.pPathTypeArgLocal->pCoords.nOffsetX || nStepPosY != __frame0.pPathTypeArgLocal->pCoords.nPosX) {
-            __frame0.nWaypointCount++;
-            *__frame0.pWaypointOut = ptCur;
-            __frame0.pWaypointOut++;
+        ptSrc.nY += (short int)gPathDirectionOffsetsX[nChosenDir * 2 + 1];
+        ptSrc.nX += (short int)gPathDirectionOffsetsX[nChosenDir * 2];
+        if (nChosenDir != nPrevDir) {
+          if (nStepPosX != pPathTypeArgLocal->pCoords.nOffsetX || nStepPosY != pPathTypeArgLocal->pCoords.nPosX) {
+            nWaypointCount++;
+            *pWaypointOut = ptCur;
+            pWaypointOut++;
           }
 
-          __frame0.bWaypointAdded = 1;
+          bWaypointAdded = 1;
         }
 
-        __frame0.nIterCount++;
-        nPrevDir = __frame0.nChosenDir;
-        if (nDistMax <= __frame0.nIterCount) {
+        nIterCount++;
+        nPrevDir = nChosenDir;
+        if (nDistMax <= nIterCount) {
           break;
         }
       }
 
       ptCur = ptSrc;
-      if (!__frame0.bWaypointAdded) {
+      if (!bWaypointAdded) {
         append_end_point:
-        if (__frame0.nIterCount) {
-          pDynamicPath->PathPoints[__frame0.nWaypointCount] = ptCur;
-          __frame0.nWaypointCount++;
+        if (nIterCount) {
+          pDynamicPath->PathPoints[nWaypointCount] = ptCur;
+          nWaypointCount++;
         }
       }
     }
 
-    pDynamicPath->dwPathPoints = __frame0.nWaypointCount;
-    return __frame0.nWaypointCount;
+    pDynamicPath->dwPathPoints = nWaypointCount;
+    return nWaypointCount;
 }
 
 int32_t __fastcall PATH_FindPathTowardFromStart(D2PathTypeArg * pPathTypeArg) {
@@ -4607,73 +4587,60 @@ int32_t __fastcall PATH_FindPathAStarLocalPool(D2PathTypeArg * pPathTypeArg) {
 
 // Pathfinding entry point for units that cannot reach their target directly (path type fallback). Builds a Bresenham waypoint list from the unit's current packed position toward the destination. For each waypoint, checks collision via CheckCollision_BlockPlayer_Type; on blockage, delegates to DRLGPATH_FindPathDualScan to find the best reachable point. After traversal, simplifies collinear waypoints via DRLGPATH_SimplifyCollinearWaypoints and returns the resulting waypoint count. Only valid for PLAYER or MONSTER unit owners; halts otherwise.
 int32_t __fastcall PATH_FindPathTowardFallback(D2PathTypeArg * pPathTypeArg) {
-    // Frame slots -40..-4 are ONE object: &nInitialDir is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nInitialDir;
-      D2RoomStrc* pRoom;
-      int32_t nCollisionPattern;
-      int32_t nPointCount;
-      uint32_t nCurPacked;
-      D2DynamicPathStrc* pDynamicPath;
-      uint32_t nStartPacked;
-      uint32_t nMaxSteps;
-      int nBestPointIdx;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 36, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nBresenhamPoints;
     int32_t nDualScanLen;
     int nPointCount_00;
     D2PathPointStrc aBresenhamPoints[78];
+    uint32_t nInitialDir;
+    uint32_t nCurPacked;
     uint32_t nDstPacked;
-    __frame0.pDynamicPath = pPathTypeArg->pDynamicPath;
-    D2UnitStrc* pOwner = __frame0.pDynamicPath->pOwner;
+    D2DynamicPathStrc* pDynamicPath = pPathTypeArg->pDynamicPath;
+    D2UnitStrc* pOwner = pDynamicPath->pOwner;
     if (!pOwner || pOwner->eUnitType != UNIT_PLAYER && (!pOwner || pOwner->eUnitType != UNIT_MONSTER)) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2ad);
       exit(-1);
     }
 
-    __frame0.pRoom = pPathTypeArg->pRoom;
+    D2RoomStrc* pRoom = pPathTypeArg->pRoom;
     int32_t nUnitWidth = pPathTypeArg->nUnitWidth;
-    __frame0.nCollisionPattern = pPathTypeArg->nCollisionPattern;
+    int32_t nCollisionPattern = pPathTypeArg->nCollisionPattern;
     int32_t nPointIdx = 0;
-    __frame0.nMaxSteps = (uint32_t)__frame0.pDynamicPath->nDistMax;
-    *(uint16_t*)(char*)&__frame0.nCurPacked = pPathTypeArg->pCoords.nOffsetX;
-    *(uint16_t*)((char*)&__frame0.nCurPacked + 2) = pPathTypeArg->pCoords.nPosX;
-    __frame0.nBestPointIdx = 0;
-    if (__frame0.pDynamicPath->pTargetUnit && __frame0.pDynamicPath->nDistMax < 0x28) {
-      __frame0.nMaxSteps = 0x28;
+    uint32_t nMaxSteps = (uint32_t)pDynamicPath->nDistMax;
+    *(uint16_t*)(char*)&nCurPacked = pPathTypeArg->pCoords.nOffsetX;
+    *(uint16_t*)((char*)&nCurPacked + 2) = pPathTypeArg->pCoords.nPosX;
+    int nBestPointIdx = 0;
+    if (pDynamicPath->pTargetUnit && pDynamicPath->nDistMax < 0x28) {
+      nMaxSteps = 0x28;
     }
 
     *(uint16_t*)(char*)&nDstPacked = pPathTypeArg->pCoords.nOffsetY;
     *(uint16_t*)((char*)&nDstPacked + 2) = pPathTypeArg->pCoords.nPosY;
-    __frame0.nStartPacked = __frame0.nCurPacked;
-    nBresenhamPoints = Path::DRLGPATH_BuildBresenhamPointList(__frame0.nCurPacked, nDstPacked, __frame0.nMaxSteps, &__frame0.nInitialDir, aBresenhamPoints);
-    __frame0.nPointCount = nBresenhamPoints;
+    uint32_t nStartPacked = nCurPacked;
+    nBresenhamPoints = Path::DRLGPATH_BuildBresenhamPointList(nCurPacked, nDstPacked, nMaxSteps, &nInitialDir, aBresenhamPoints);
+    int32_t nPointCount = nBresenhamPoints;
     if (2 >= nBresenhamPoints) {
       return 0;
     }
     if (0 < nBresenhamPoints) {
       int32_t nPrevPointIdx;
       do {
-        nDualScanLen = Collision::CheckCollision_BlockPlayer_Type(__frame0.pRoom, (uint32_t)(uint16_t)aBresenhamPoints[nPointIdx].nX, (uint32_t)(uint16_t)aBresenhamPoints[nPointIdx].nY, nUnitWidth, __frame0.nCollisionPattern);
+        nDualScanLen = Collision::CheckCollision_BlockPlayer_Type(pRoom, (uint32_t)(uint16_t)aBresenhamPoints[nPointIdx].nX, (uint32_t)(uint16_t)aBresenhamPoints[nPointIdx].nY, nUnitWidth, nCollisionPattern);
         nPrevPointIdx = nPointIdx;
         if (nDualScanLen) {
-          nDualScanLen = Path::DRLGPATH_FindPathDualScan((uint32_t*)pPathTypeArg, (int32_t)aBresenhamPoints, __frame0.nCurPacked, &__frame0.nBestPointIdx, &__frame0.nPointCount, __frame0.nMaxSteps - nPointIdx, __frame0.nInitialDir);
-          nPrevPointIdx = __frame0.nBestPointIdx;
-          nBresenhamPoints = __frame0.nPointCount;
-          nPointCount_00 = __frame0.nBestPointIdx;
+          nDualScanLen = Path::DRLGPATH_FindPathDualScan((uint32_t*)pPathTypeArg, (int32_t)aBresenhamPoints, nCurPacked, &nBestPointIdx, &nPointCount, nMaxSteps - nPointIdx, nInitialDir);
+          nPrevPointIdx = nBestPointIdx;
+          nBresenhamPoints = nPointCount;
+          nPointCount_00 = nBestPointIdx;
           if (!nDualScanLen) {
-            nBresenhamPoints = Path::DRLGPATH_SimplifyCollinearWaypoints(__frame0.pDynamicPath->PathPoints, aBresenhamPoints, __frame0.nStartPacked, nPointCount_00);
+            nBresenhamPoints = Path::DRLGPATH_SimplifyCollinearWaypoints(pDynamicPath->PathPoints, aBresenhamPoints, nStartPacked, nPointCount_00);
             return nBresenhamPoints;
           }
         }
 
         nPointIdx = nPrevPointIdx + 1;
-        *(uint16_t*)(char*)&__frame0.nCurPacked = aBresenhamPoints[nPrevPointIdx].nX;
-        *(uint16_t*)((char*)&__frame0.nCurPacked + 2) = aBresenhamPoints[nPrevPointIdx].nY;
-        __frame0.nBestPointIdx = nPointIdx;
+        *(uint16_t*)(char*)&nCurPacked = aBresenhamPoints[nPrevPointIdx].nX;
+        *(uint16_t*)((char*)&nCurPacked + 2) = aBresenhamPoints[nPrevPointIdx].nY;
+        nBestPointIdx = nPointIdx;
       } while (nPointIdx < nBresenhamPoints);
     }
 
@@ -4682,7 +4649,7 @@ int32_t __fastcall PATH_FindPathTowardFallback(D2PathTypeArg * pPathTypeArg) {
       return 0;
     }
 
-    nBresenhamPoints = Path::DRLGPATH_SimplifyCollinearWaypoints(__frame0.pDynamicPath->PathPoints, aBresenhamPoints, __frame0.nStartPacked, nPointCount_00);
+    nBresenhamPoints = Path::DRLGPATH_SimplifyCollinearWaypoints(pDynamicPath->PathPoints, aBresenhamPoints, nStartPacked, nPointCount_00);
     return nBresenhamPoints;
 }
 
@@ -5976,14 +5943,13 @@ void __stdcall DRLGOUTROOM_ComputeExitTargetPositions(D2DrlgLevelStrc * pLevel) 
     static uint32_t gaExitSpiralOffsetY[4] = { 0x0, 0x1, 0xffffffff, 0x0 };
     static uint32_t gaExitSpiralOffsetX[4] = { 0xffffffff, 0x0, 0x0, 0x1 };
 
-    // Frame slots -16..-4 are ONE object: &nLeftExitY is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -12..-4 are ONE object: &nLeftExitX is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      int nLeftExitY;
       int nLeftExitX;
       int nSumY;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     D2DrlgExitPointStrc* pExitEntry;
     int nSumX;
@@ -5997,8 +5963,8 @@ void __stdcall DRLGOUTROOM_ComputeExitTargetPositions(D2DrlgLevelStrc * pLevel) 
     int nExitSrcX;
     D2DrlgLevelDataWildernessLevel* pDVar1 = pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData;
     __frame0.nLeftExitX = -1;
-    __frame0.nLeftExitY = -1;
-    if (!(pDVar1->dwFlags & 0x10) || (DRLGOUTROOM_FindLeftExitPosition(pLevel, &__frame0.nLeftExitX, &__frame0.nLeftExitY) , __frame0.nLeftExitX == -1)) {
+    int nLeftExitY = -1;
+    if (!(pDVar1->dwFlags & 0x10) || (DRLGOUTROOM_FindLeftExitPosition(pLevel, &__frame0.nLeftExitX, &nLeftExitY) , __frame0.nLeftExitX == -1)) {
       BOOL bCellEmpty;
       nExitCount = pDVar1->nExitCount;
       nExitIndex = 0;
@@ -6036,9 +6002,9 @@ void __stdcall DRLGOUTROOM_ComputeExitTargetPositions(D2DrlgLevelStrc * pLevel) 
               nSpiralRadius = 0;
               do {
                 __frame0.nLeftExitX = *(int*)((int)gaExitSpiralOffsetX + nSpiralRadius) * nSumX + nExitCount;
-                __frame0.nLeftExitY = *(int*)((int)gaExitSpiralOffsetY + nSpiralRadius) * nSumX + __frame0.nSumY;
-                if (-1 < __frame0.nLeftExitX && __frame0.nLeftExitX < pDVar1->nGridCoordsWidth && -1 < __frame0.nLeftExitY && __frame0.nLeftExitY < pDVar1->nGridCoordsHeight) {
-                  bCellEmpty = Outdoors::DRLGOUTDOOR_IsGridCellEmpty(pLevel, __frame0.nLeftExitX, __frame0.nLeftExitY);
+                nLeftExitY = *(int*)((int)gaExitSpiralOffsetY + nSpiralRadius) * nSumX + __frame0.nSumY;
+                if (-1 < __frame0.nLeftExitX && __frame0.nLeftExitX < pDVar1->nGridCoordsWidth && -1 < nLeftExitY && nLeftExitY < pDVar1->nGridCoordsHeight) {
+                  bCellEmpty = Outdoors::DRLGOUTDOOR_IsGridCellEmpty(pLevel, __frame0.nLeftExitX, nLeftExitY);
                   if (bCellEmpty) {
                     bFoundSpawnCell = true;
                     break;
@@ -6052,7 +6018,7 @@ void __stdcall DRLGOUTROOM_ComputeExitTargetPositions(D2DrlgLevelStrc * pLevel) 
             } while (nSumX < 8);
 
             pDVar1->aExitPoints4[0].nWorldX = pLevel->sCoordinatesAndSize.WorldPosition.x + 3 + __frame0.nLeftExitX * 8;
-            pDVar1->aExitPoints4[0].nWorldY = pLevel->sCoordinatesAndSize.WorldPosition.y + 3 + __frame0.nLeftExitY * 8;
+            pDVar1->aExitPoints4[0].nWorldY = pLevel->sCoordinatesAndSize.WorldPosition.y + 3 + nLeftExitY * 8;
             pDVar1->aExitPoints4[0].eType = 4;
           } else {
             pDVar1->aExitPoints4[nExitIndex].nWorldX = pDVar1->aExitPoints4[0].nWorldX;
@@ -6072,7 +6038,7 @@ void __stdcall DRLGOUTROOM_ComputeExitTargetPositions(D2DrlgLevelStrc * pLevel) 
         pExitEntry = pDVar1->aExitPoints4;
         do {
           nExitSrcX = pExitEntry[-0x12].nWorldX;
-          pExitEntry->nWorldY = nSpiralRadius + 3 + __frame0.nLeftExitY * 8;
+          pExitEntry->nWorldY = nSpiralRadius + 3 + nLeftExitY * 8;
           if (nSumX < nExitSrcX) {
             pExitEntry->nWorldX = nSumX + 8;
             pExitEntry->eType = 0;

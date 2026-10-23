@@ -781,16 +781,6 @@ void __stdcall MISSILE_CalculatePierceCount(D2UnitStrc * pUnit, D2UnitStrc * pUn
 
 // Constructs and spawns a missile unit from a D2SkillArgStrc request. Resolves spawn position (explicit X/Y or owner/source unit position), finds the containing room, computes velocity from missiles.txt Vel/VelLev scaled by skill level (with slowmissiles state applied), determines the target (unit, fixed point, or direction next to caster), then creates a UNIT_MISSILE via CreateMissileOrMonster. Sets anim frames/speed, path velocities/acceleration/max-velocity, owner, skill, level, pierce count, lightmap, optional particle/projectile init, plays the travel sound, and dispatches unique-monster mod attacks. Returns the new missile unit, or NULL on any failure (bad txt index, no room, no path). Used by the skill/missile firing pipeline.
 D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
-    // Frame slots -20..-4 are ONE object: &nDestY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nDestY;
-      int32_t nDestXLocal;
-      uint32_t nVelForPath;
-      D2MissilesTxt* pMissileTxt;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nY;
     D2RoomStrc* pRoom;
     D2StatListExStrc* pStatList;
@@ -806,6 +796,8 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
     int64_t ullVelDiv;
     uint32_t nVelocity;
     int32_t nDestX;
+    int32_t nDestY;
+    int32_t nDestXLocal;
     short int sTravelSoundId;
     eMissilesId eMissileId;
     eMissileId = pSkillArg->nMissileTxtNo;
@@ -816,8 +808,9 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
       return nullptr;
     }
 
-    __frame0.pMissileTxt = sgptDataTable->pTxtMissiles + eMissileId;
-    if (!__frame0.pMissileTxt) {
+    D2MissilesTxt* pMissileTxt;
+    pMissileTxt = sgptDataTable->pTxtMissiles + eMissileId;
+    if (!pMissileTxt) {
       return nullptr;
     }
     if (!(pSkillArg->nFlags & 1)) {
@@ -859,19 +852,19 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
     uint32_t nFlags;
     nFlags = pSkillArg->nFlags;
     if (!(nFlags & 2)) {
-      __frame0.nDestY = nY;
-      __frame0.nDestXLocal = nMissileX;
+      nDestY = nY;
+      nDestXLocal = nMissileX;
       if (nFlags & 0x20) {
-        __frame0.nDestY = pSkillArg->nUnitY;
-        __frame0.nDestXLocal = pSkillArg->nUnitX;
+        nDestY = pSkillArg->nUnitY;
+        nDestXLocal = pSkillArg->nUnitX;
       }
     } else {
-      __frame0.nDestY = pSkillArg->nUnitY + nY;
-      __frame0.nDestXLocal = pSkillArg->nUnitX + nMissileX;
+      nDestY = pSkillArg->nUnitY + nY;
+      nDestXLocal = pSkillArg->nUnitX + nMissileX;
     }
     if (!(nFlags & 4)) {
-      nPosY = (uint32_t)(uint8_t)__frame0.pMissileTxt->VelLev * pSkillArg->nSkillLevel;
-      nVelocityRaw = ((int)(nPosY + (nPosY >> 0x1f & 7U)) >> 3) + (uint32_t)(uint8_t)__frame0.pMissileTxt->Vel;
+      nPosY = (uint32_t)(uint8_t)pMissileTxt->VelLev * pSkillArg->nSkillLevel;
+      nVelocityRaw = ((int)(nPosY + (nPosY >> 0x1f & 7U)) >> 3) + (uint32_t)(uint8_t)pMissileTxt->Vel;
       nVelocityRaw <<= 8;
     } else {
       nVelocityRaw = pSkillArg->nVelocityOverride;
@@ -882,8 +875,9 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
 
     uint32_t nSlowPct;
     nSlowPct = 100;
-    __frame0.nVelForPath = nVelocityRaw;
-    if (pSkillArg->pOwner && __frame0.pMissileTxt->CanSlow) {
+    uint32_t nVelForPath;
+    nVelForPath = nVelocityRaw;
+    if (pSkillArg->pOwner && pMissileTxt->CanSlow) {
       eD2States eSlowState;
       eSlowState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pSkillArg->pOwner, STATE_slowmissiles);
       if (eSlowState != STATE_none) {
@@ -891,7 +885,7 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
         if (pStatList) {
           nSlowPct = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_skill_handofathena, 0);
           nVelocityRaw = Stats::D2ApplyPercent(nVelocityRaw, nSlowPct, 100);
-          __frame0.nVelForPath = nVelocityRaw;
+          nVelForPath = nVelocityRaw;
         }
       }
     }
@@ -901,15 +895,15 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
     if (nVelocityRaw) {
       if ((int)nVelocityRaw < 0x100001) {
         nVelFinal = (int)(nVelocityRaw * 0x4b) / 100;
-        __frame0.nVelForPath = nVelFinal;
+        nVelForPath = nVelFinal;
       } else if ((int)(nVelocityRaw & -16) < 0x640) {
         ullVelDiv = __allmul(nVelocityRaw, (int)nVelocityRaw >> 0x1f, 0x4b, 0);
         ullVelDiv = __alldiv((uint32_t)ullVelDiv, (uint32_t)((uint64_t)ullVelDiv >> 0x20), 100, 0);
         nVelFinal = (uint32_t)ullVelDiv;
-        __frame0.nVelForPath = nVelFinal;
+        nVelForPath = nVelFinal;
       } else {
         nVelFinal = (int)nVelocityRaw / 100 * 0x4b;
-        __frame0.nVelForPath = nVelFinal;
+        nVelForPath = nVelFinal;
       }
     }
 
@@ -922,8 +916,8 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
           goto retarget_if_overlapping;
         }
       } else if (!pTargetUnit) {
-        if (__frame0.nDestXLocal == nMissileX && __frame0.nDestY == nY) {
-          SKILLS::Skills::GetPositionNextToPlayerDirection(pDVar6, &__frame0.nDestXLocal, &__frame0.nDestY);
+        if (nDestXLocal == nMissileX && nDestY == nY) {
+          SKILLS::Skills::GetPositionNextToPlayerDirection(pDVar6, &nDestXLocal, &nDestY);
         }
       } else {
         retarget_if_overlapping:
@@ -934,15 +928,15 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
             nDistX = Units::GetYPosFromDynamicPathUnit(pTargetUnit);
             nTargetX = Units::GetYPosFromDynamicPathUnit(pSkillArg->pOwner);
             if (nDistX == nTargetX) {
-              SKILLS::Skills::GetPositionNextToPlayerDirection(pSkillArg->pOwner, &__frame0.nDestXLocal, &__frame0.nDestY);
+              SKILLS::Skills::GetPositionNextToPlayerDirection(pSkillArg->pOwner, &nDestXLocal, &nDestY);
               pTargetUnit = 0;
             }
           }
         }
       }
 
-      nDistX = __frame0.nDestY;
-      nTargetX = __frame0.nDestXLocal;
+      nDistX = nDestY;
+      nTargetX = nDestXLocal;
       if (pTargetUnit) {
         nTargetX = Units::GetXPosFromDynamicPathUnit(pTargetUnit);
         nDistX = Units::GetYPosFromDynamicPathUnit(pTargetUnit);
@@ -972,12 +966,12 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
 
     D2Common::Units::InitAnimMode(pDVar6);
     D2Common::Stats::StatsEx::AllocStatListEx(pDVar6, 0, nullptr, nullptr);
-    pDVar6->nFrameCount = (uint32_t)(uint8_t)__frame0.pMissileTxt->AnimLen << 8;
-    D2Common::Units::Missile::SetAnimSpeed(pDVar6, (uint32_t)(uint8_t)__frame0.pMissileTxt->AnimSpeed << 4);
+    pDVar6->nFrameCount = (uint32_t)(uint8_t)pMissileTxt->AnimLen << 8;
+    D2Common::Units::Missile::SetAnimSpeed(pDVar6, (uint32_t)(uint8_t)pMissileTxt->AnimSpeed << 4);
     if (!(pSkillArg->nFlags & 0x8000U)) {
-      nMissileX = (int)__frame0.pMissileTxt->LevRange * pSkillArg->nSkillLevel + (int)__frame0.pMissileTxt->Range;
-      if (pSkillArg->nFlags & 8U && __frame0.pMissileTxt->SubLoop != '\0') {
-        nMissileX += ((uint32_t)(uint8_t)__frame0.pMissileTxt->SubStop - (uint32_t)(uint8_t)__frame0.pMissileTxt->SubStart) * pSkillArg->nSubLoopMult;
+      nMissileX = (int)pMissileTxt->LevRange * pSkillArg->nSkillLevel + (int)pMissileTxt->Range;
+      if (pSkillArg->nFlags & 8U && pMissileTxt->SubLoop != '\0') {
+        nMissileX += ((uint32_t)(uint8_t)pMissileTxt->SubStop - (uint32_t)(uint8_t)pMissileTxt->SubStart) * pSkillArg->nSubLoopMult;
       }
       if (nSlowPct && nSlowPct != 100) {
         nDistX = Stats::D2ApplyPercent(nMissileX, 100, nSlowPct);
@@ -994,7 +988,7 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
     D2Common::Units::Missile::SetTotalFrames(pDVar6, nMissileX);
     D2Common::Units::Missile::SetCurrentFrame(pDVar6, nMissileX);
     if (!(pSkillArg->nFlags & 0x800U)) {
-      nFlags = (uint32_t)(uint8_t)__frame0.pMissileTxt->Activate;
+      nFlags = (uint32_t)(uint8_t)pMissileTxt->Activate;
     } else {
       nFlags = pSkillArg->nActivateFrame;
     }
@@ -1004,21 +998,21 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
     if (pDynamicPath) {
       D2Common::PATH::DynamicPath::SetVelocities(pDynamicPath, 0, ".\\UNIT\\Missile.cpp", 0x1ef4);
       if (!pTargetUnit) {
-        D2Common::PATH::DynamicPath::SetSP1(pDynamicPath, (int16_t)__frame0.nDestXLocal, (int16_t)__frame0.nDestY);
+        D2Common::PATH::DynamicPath::SetSP1(pDynamicPath, (int16_t)nDestXLocal, (int16_t)nDestY);
       } else {
         D2Common::PATH::DynamicPath::SetTarget(pDynamicPath, pTargetUnit);
       }
-      if (__frame0.nVelForPath) {
-        D2Common::PATH::DynamicPath::SetVelocities(pDynamicPath, __frame0.nVelForPath, ".\\UNIT\\Missile.cpp", 0x1eff);
+      if (nVelForPath) {
+        D2Common::PATH::DynamicPath::SetVelocities(pDynamicPath, nVelForPath, ".\\UNIT\\Missile.cpp", 0x1eff);
         D2Common::PATH::DynamicPath::PATH_CalculatePath(pDynamicPath, pDVar6, 0);
       }
-      if (__frame0.pMissileTxt->InitSteps != '\0') {
+      if (pMissileTxt->InitSteps != '\0') {
         pDVar6->eUnitFlagsEx |= UNITFLAGEX_NODRAW;
       }
 
       D2Common::Units::Missile::SetOwner(pDVar6, pSkillArg->pOwner);
-      D2Common::PATH::DynamicPath::SetAcceleration(pDynamicPath, (int)__frame0.pMissileTxt->Accel);
-      D2Common::PATH::DynamicPath::SetMaxVelocity(pDynamicPath, (uint32_t)(uint8_t)__frame0.pMissileTxt->MaxVel << 8);
+      D2Common::PATH::DynamicPath::SetAcceleration(pDynamicPath, (int)pMissileTxt->Accel);
+      D2Common::PATH::DynamicPath::SetMaxVelocity(pDynamicPath, (uint32_t)(uint8_t)pMissileTxt->MaxVel << 8);
       if (pSkillArg->nFlags & 0x2000U) {
         nVelFinal = Archive::UNIT_GetModuloFromSeed(&pDVar6->sSeed, 0x40);
         D2Common::PATH::DynamicPath::SetDirectionAndNewDirection(pDVar6->pPath.pDynamicPath, (uint8_t)nVelFinal);
@@ -1027,12 +1021,12 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
       Engine::Particle::AllocParticle(pDVar6);
       Engine::Particle::PARTICLE_SetStoppedWithFade(pDVar6);
       if (pSkillArg->nFlags & 0x400U) {
-        nMissileX = D2Common::Collision::GetDistanceToXY(pDVar6, __frame0.nDestXLocal, __frame0.nDestY);
+        nMissileX = D2Common::Collision::GetDistanceToXY(pDVar6, nDestXLocal, nDestY);
         if (!nMissileX) {
           nMissileX = 1;
         }
-        if (__frame0.nVelForPath << 4) {
-          nFramesByDist = (uint32_t)(nMissileX << 0x10) / (__frame0.nVelForPath << 4);
+        if (nVelForPath << 4) {
+          nFramesByDist = (uint32_t)(nMissileX << 0x10) / (nVelForPath << 4);
           D2Common::Units::Missile::SetCurrentFrame(pDVar6, nFramesByDist);
           D2Common::Units::Missile::SetTotalFrames(pDVar6, nFramesByDist);
         }
@@ -1041,7 +1035,7 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
         nDistX = D2Common::Units::Missile::GetTotalFrames(pDVar6);
         Engine::Particle::PARTICLE_InitProjectile(pDVar6, pSkillArg->nParticleParam, nDistX);
         Engine::Particle::PARTICLE_UpdatePosition(pDVar6);
-        D2Common::PATH::DynamicPath::SetDirectionAndNewDirection(pDynamicPath, (char)__frame0.nDestXLocal + (char)__frame0.nDestY & 0x3f);
+        D2Common::PATH::DynamicPath::SetDirectionAndNewDirection(pDynamicPath, (char)nDestXLocal + (char)nDestY & 0x3f);
         D2Common::PATH::DynamicPath::SetUnsetFlags0x40(pDynamicPath, 0);
       }
 
@@ -1052,12 +1046,12 @@ D2UnitStrc * __fastcall MakeMissile(D2SkillArgStrc * pSkillArg) {
         MISSILE_CalculatePierceCount(pDVar6, pSkillArg->pOwner);
       }
 
-      pTxtFinal = __frame0.pMissileTxt;
+      pTxtFinal = pMissileTxt;
       pDVar6->eUnitFlags &= ~UNITFLAG_ISVALIDTARGET;
       if (!gnLightmapQualityLastCheck || pSkillArg->nFlags & 0x4000U) {
         CUnit::FreeLightMap(pDVar6);
-        pTxtFinal = __frame0.pMissileTxt;
-      } else if (__frame0.pMissileTxt->Light != '\0' || *(char*)&pSkillArg->nLightRadius != '\0') {
+        pTxtFinal = pMissileTxt;
+      } else if (pMissileTxt->Light != '\0' || *(char*)&pSkillArg->nLightRadius != '\0') {
         CUnit::FreeLightMap(pDVar6);
         pLightMap = Draw::LightMap::AllocLightMap(pDVar6, 1, (uint32_t)(uint8_t)pTxtFinal->Light, 0xff, pTxtFinal->Red, pTxtFinal->Green, pTxtFinal->Blue);
         pDVar6->uSideData.pClientSide.pLight = pLightMap;
@@ -1183,15 +1177,9 @@ D2UnitStrc * __fastcall MISSILE_CreateFromUnitWithOffset(D2UnitStrc * pUnit, eMi
 }
 
 D2UnitStrc * __fastcall MISSILE_CreateAtOwnerCoords(D2UnitStrc * pUnit, eMissilesId nMissileId, eD2Skills eSkill, int32_t nSkillLevel) {
-    // Frame slots -12..-4 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTargetY;
-      int nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    int nTargetY;
+    int nTargetX;
     if (!pUnit) {
       return nullptr;
     }
@@ -1204,16 +1192,16 @@ D2UnitStrc * __fastcall MISSILE_CreateAtOwnerCoords(D2UnitStrc * pUnit, eMissile
       }
     }
 
-    BOOL bGotCoords = SKILLS::Skills::GetCooordinates(pOwner, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bGotCoords = SKILLS::Skills::GetCooordinates(pOwner, &nTargetX, &nTargetY);
     if (!bGotCoords) {
       return nullptr;
     }
 
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.nUnitX = __frame0.nTargetX;
+    sSkillArg.nUnitX = nTargetX;
     sSkillArg.eSkillNo = eSkill;
     sSkillArg.nFlags = 0x420;
-    sSkillArg.nUnitY = __frame0.nTargetY;
+    sSkillArg.nUnitY = nTargetY;
     sSkillArg.nSkillLevel = nSkillLevel;
     sSkillArg.pOwner = pOwner;
     sSkillArg.pMissile = pUnit;
@@ -5593,25 +5581,13 @@ int32_t __fastcall MISSILE_CltHitFn41_DurielDeathRock(D2UnitStrc * pUnit, D2Unit
 
 // Creates a missile aimed in the direction a monster is facing, used for upgrade/transform attacks. Retrieves upgrade skill direction vector via MONSTERS_GetUpgradeSkillsAndCount, randomises spawn position near pUnit2's location using its seed (±10 tiles), creates the missile via MakeMissile, then sets its particle position and offset vectors using the facing direction converted to screen space. Asserts missile Range == 25.
 void __stdcall MISSILE_CreateAtMonsterFacing(D2UnitStrc * pUnit, eMissilesId nMissileId, D2UnitStrc * pUnit2) {
-    // Frame slots -28..-4 are ONE object: &nOffsetScreenX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nOffsetScreenX;
-      uint32_t nScreenY;
-      int nFacingScreenX;
-      int nFacingScreenY;
-      uint32_t nUpgradeDY;
-      uint32_t nUpgradeDX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2MissilesTxt* pMissileTxt;
     D2SkillArgStrc sSkillArg;
     int nPosXorY = 0;
-    __frame0.nUpgradeDX = 0;
-    __frame0.nUpgradeDY = 0;
-    D2Common::Monsters::MONSTERS::MONSTERS_GetUpgradeSkillsAndCount(pUnit, &__frame0.nUpgradeDX, &__frame0.nUpgradeDY);
-    if (!__frame0.nUpgradeDX && !__frame0.nUpgradeDY) {
+    uint32_t nUpgradeDX = 0;
+    uint32_t nUpgradeDY = 0;
+    D2Common::Monsters::MONSTERS::MONSTERS_GetUpgradeSkillsAndCount(pUnit, &nUpgradeDX, &nUpgradeDY);
+    if (!nUpgradeDX && !nUpgradeDY) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1850);
       exit(-1);
     }
@@ -5658,14 +5634,14 @@ void __stdcall MISSILE_CreateAtMonsterFacing(D2UnitStrc * pUnit, eMissilesId nMi
       exit(-1);
     }
 
-    __frame0.nFacingScreenX = __frame0.nUpgradeDX * -0x19;
-    __frame0.nFacingScreenY = __frame0.nUpgradeDY * -0x19;
-    __frame0.nOffsetScreenX = __frame0.nUpgradeDX;
-    __frame0.nScreenY = __frame0.nUpgradeDY;
-    D2Common::Drlg::Transform::CoordsMapToScreen(&__frame0.nFacingScreenX, &__frame0.nFacingScreenY);
-    D2Common::Drlg::Transform::CoordsMapToScreen((int32_t*)&__frame0.nOffsetScreenX, (int32_t*)&__frame0.nScreenY);
-    Engine::Particle::SetPosVectorShifted(pNewMissile, __frame0.nFacingScreenX, __frame0.nFacingScreenY, 400);
-    Engine::Particle::SetOffsetVector(pNewMissile, __frame0.nOffsetScreenX, __frame0.nScreenY, -0x10, 1);
+    int nFacingScreenX = nUpgradeDX * -0x19;
+    int nFacingScreenY = nUpgradeDY * -0x19;
+    uint32_t nOffsetScreenX = nUpgradeDX;
+    uint32_t nScreenY = nUpgradeDY;
+    D2Common::Drlg::Transform::CoordsMapToScreen(&nFacingScreenX, &nFacingScreenY);
+    D2Common::Drlg::Transform::CoordsMapToScreen((int32_t*)&nOffsetScreenX, (int32_t*)&nScreenY);
+    Engine::Particle::SetPosVectorShifted(pNewMissile, nFacingScreenX, nFacingScreenY, 400);
+    Engine::Particle::SetOffsetVector(pNewMissile, nOffsetScreenX, nScreenY, -0x10, 1);
     Engine::Particle::PARTICLE_UpdatePosition(pNewMissile);
 }
 
@@ -6557,17 +6533,6 @@ void __fastcall MISSILE_CltDoFn43_FollowOwner(D2UnitStrc * pUnit) {
 
 // Client-side per-frame missile DoFunc (handler variant 001). Validates the missile's class id against missiles.txt, flags whether the local player owns it, then runs the per-tick missile loop: clears NODRAW after InitSteps frames, explodes immediately if the particle is stopped/fading, advances the animation (honoring LoopAnim/SubLoop/SubStart/SubStop), moves the missile along its path by the client step count, decrements remaining frames (explodes at 0), applies CltSrcTown town-cutoff behavior, and on collision (wall/block) explodes. For ClientCol missiles it walks the per-step collision coords calling the anim-mode collision function to find a hit unit, exploding on the first active target. Loops once more for the local player on the final frame.
 void __fastcall MISSILE_CltDoFn01_BasicMissile(D2UnitStrc * pUnit) {
-    // Frame slots -20..-4 are ONE object: &sPathPoint is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2PathPointStrc* sPathPoint;
-      uint32_t nCollidePathSteps;
-      bool bIsLocalPlayer;
-      uint8_t __pad9[3];
-      D2DynamicPathStrc* pCurDynPath;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bIsLocalPlayer;
     bool _bIsActive;
     D2PathPointStrc* pDVar1;
@@ -6583,6 +6548,10 @@ void __fastcall MISSILE_CltDoFn01_BasicMissile(D2UnitStrc * pUnit) {
     eD2PlayerAnimMode eAnimMode;
     D2DynamicPathStrc* pDynPath;
     D2MissileCltCollideCtxStrc sCollideCtx;
+    D2PathPointStrc* sPathPoint;
+    uint32_t nCollidePathSteps;
+    bool bIsLocalPlayer;
+    D2DynamicPathStrc* pCurDynPath;
     uint8_t bySubStop;
     if (!pUnit) {
       return;
@@ -6622,7 +6591,7 @@ void __fastcall MISSILE_CltDoFn01_BasicMissile(D2UnitStrc * pUnit) {
       nCurFrame = D2Common::Units::Missile::GetCurrentFrame(pUnit);
       nActivateFrame = D2Common::Units::Missile::GetActivateFrame(pUnit);
       pDynPath = (D2DynamicPathStrc*)(uint32_t)(nCurFrame <= nActivateFrame);
-      __frame0.pCurDynPath = pDynPath;
+      pCurDynPath = pDynPath;
       if (pDynPath) {
         nCurFrame = D2Common::Units::Missile::GetRemainingFrames(pUnit);
         if ((int)(uint32_t)(uint8_t)pDVar2->InitSteps < nCurFrame) {
@@ -6648,17 +6617,17 @@ void __fastcall MISSILE_CltDoFn01_BasicMissile(D2UnitStrc * pUnit) {
             nCurFrame = D2Common::Units::Missile::GetCurrentFrame(pUnit);
             if ((int)((uint32_t)(uint8_t)pDVar2->AnimLen - (uint32_t)bySubStop + 1) < nCurFrame) {
               D2Common::Units::SetFrameNonRate(pUnit, (uint32_t)(uint8_t)pDVar2->SubStart, (uint32_t)bySubStop);
-              pDynPath = __frame0.pCurDynPath;
+              pDynPath = pCurDynPath;
             } else {
               D2Common::Units::UpdateFrame(pUnit);
-              pDynPath = __frame0.pCurDynPath;
+              pDynPath = pCurDynPath;
             }
           }
         }
       }
 
-      __frame0.pCurDynPath = pUnit->pPath.pDynamicPath;
-      nCurFrame = D2Common::PATH::DynamicPath::GetVelocity(__frame0.pCurDynPath);
+      pCurDynPath = pUnit->pPath.pDynamicPath;
+      nCurFrame = D2Common::PATH::DynamicPath::GetVelocity(pCurDynPath);
       if (nCurFrame) {
         pExternalPath = (D2DynamicPathStrc*)GAME::Game::GetStepsOfMissileMovement();
         D2Common::PATH::Path::PATH_AdvanceUnitAlongPath(pUnit, pExternalPath);
@@ -6696,8 +6665,8 @@ void __fastcall MISSILE_CltDoFn01_BasicMissile(D2UnitStrc * pUnit) {
         return;
       }
 
-      eCollision = D2Common::PATH::DynamicPath::CheckAndGetCollisionFlag(__frame0.pCurDynPath);
-      __frame0.nCollidePathSteps = (uint32_t)eCollision;
+      eCollision = D2Common::PATH::DynamicPath::CheckAndGetCollisionFlag(pCurDynPath);
+      nCollidePathSteps = (uint32_t)eCollision;
       if ((eCollision & (COLLIDE_WALL | COLLIDE_BLOCK_PLAYER)) != COLLIDE_NONE) {
         break;
       }
@@ -6708,13 +6677,13 @@ void __fastcall MISSILE_CltDoFn01_BasicMissile(D2UnitStrc * pUnit) {
       sCollideCtx.pMissile = pUnit;
       sCollideCtx.pOwner = Player::MISSILE_GetOwnerUnit(pUnit);
       sCollideCtx.pMissileTxt = pDVar2;
-      if (pDVar2->ClientCol != '\0' && (short int)__frame0.nCollidePathSteps) {
-        __frame0.nCollidePathSteps = D2Common::PATH::DynamicPath::GetInitCoords(__frame0.pCurDynPath, &__frame0.sPathPoint);
+      if (pDVar2->ClientCol != '\0' && (short int)nCollidePathSteps) {
+        nCollidePathSteps = D2Common::PATH::DynamicPath::GetInitCoords(pCurDynPath, &sPathPoint);
         pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
         nClassId = 0;
-        if (0 < (int)__frame0.nCollidePathSteps) {
+        if (0 < (int)nCollidePathSteps) {
           do {
-            pDVar1 = __frame0.sPathPoint + nClassId;
+            pDVar1 = sPathPoint + nClassId;
             nCurFrame = D2Common::Units::GetUnitSizeX(pUnit);
             pOwner = D2Common::Collision::CallCollisionFunction(pRoom, (uint32_t)(uint16_t)pDVar1->nX, (uint32_t)(uint16_t)pDVar1->nY, MISSILECLTCOLLIDEFUNCS[eAnimMode].pFunction, &sCollideCtx, nCurFrame);
             if (pOwner) {
@@ -6726,7 +6695,7 @@ void __fastcall MISSILE_CltDoFn01_BasicMissile(D2UnitStrc * pUnit) {
             }
 
             nClassId++;
-          } while (nClassId < (int)__frame0.nCollidePathSteps);
+          } while (nClassId < (int)nCollidePathSteps);
         }
       }
       if (!_bIsLocalPlayer) {
@@ -6738,7 +6707,7 @@ void __fastcall MISSILE_CltDoFn01_BasicMissile(D2UnitStrc * pUnit) {
         return;
       }
 
-      nCurFrame = D2Common::PATH::DynamicPath::GetVelocity(__frame0.pCurDynPath);
+      nCurFrame = D2Common::PATH::DynamicPath::GetVelocity(pCurDynPath);
       if (!nCurFrame) {
         return;
       }
@@ -9473,21 +9442,15 @@ void __fastcall MISSILE_CltDoFn56_BaalTauntControl(D2UnitStrc * pUnit) {
 
 // Client-side per-frame do-function for missile type 057 (owner-tracking repeating spawner). Each frame: runs Missiles_CltDoFunc_043 for base movement, fetches the owner's current coordinates via GetCooordinates, increments a spawn counter (TargetY) up to the cap in TargetX, then spawns a CltSubMissile1 child missile at the owner's position with path type 0xE and recalculates its path. Resets TargetY to 0 after spawn and delegates to Missiles_CltDoFunc_001. Removes client-side if owner is gone or TXT invalid.
 void __fastcall MISSILE_CltDoFn57_BladeShield(D2UnitStrc * pUnit) {
-    // Frame slots -16..-4 are ONE object: &nOwnerY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nOwnerY;
-      int nOwnerX;
-      int nTargetY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bHasCoords;
     bool bHasCoords;
     D2UnitStrc* pUnit_00;
     int32_t nMaxSpawnCount;
     D2UnitStrc* pOwner;
     D2SkillArgStrc sSkillArg;
+    int nOwnerY;
+    int nOwnerX;
+    int nTargetY;
     int nClassId;
     if (pUnit) {
       D2MissilesTxt* pMissileTxt;
@@ -9500,18 +9463,18 @@ void __fastcall MISSILE_CltDoFn57_BladeShield(D2UnitStrc * pUnit) {
             MISSILE_RemoveClientSide(pUnit);
           } else {
             MISSILE_CltDoFn43_FollowOwner(pUnit);
-            _bHasCoords = SKILLS::Skills::GetCooordinates(pUnit_00, &__frame0.nOwnerX, &__frame0.nOwnerY);
+            _bHasCoords = SKILLS::Skills::GetCooordinates(pUnit_00, &nOwnerX, &nOwnerY);
             if (_bHasCoords) {
-              __frame0.nTargetY = D2Common::Units::Missile::GetTargetY(pUnit);
+              nTargetY = D2Common::Units::Missile::GetTargetY(pUnit);
               nMaxSpawnCount = D2Common::Units::Missile::GetTargetX(pUnit);
-              if (__frame0.nTargetY < nMaxSpawnCount) {
-                D2Common::Units::Missile::SetTargetY(pUnit, __frame0.nTargetY + 1);
+              if (nTargetY < nMaxSpawnCount) {
+                D2Common::Units::Missile::SetTargetY(pUnit, nTargetY + 1);
               }
 
               memset(&sSkillArg, 0, 0x5c);
               sSkillArg.nFlags = 0x20;
-              sSkillArg.nUnitX = __frame0.nOwnerX;
-              sSkillArg.nUnitY = __frame0.nOwnerY;
+              sSkillArg.nUnitX = nOwnerX;
+              sSkillArg.nUnitY = nOwnerY;
               sSkillArg.pOwner = pUnit_00;
               sSkillArg.pMissile = pUnit_00;
               sSkillArg.eSkillNo = D2Common::Units::Missile::GetSkillId(pUnit);

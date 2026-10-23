@@ -803,34 +803,28 @@ uint32_t __fastcall MAINMENU_CheckFileExists(char * szFileName) {
 }
 
 void MAINMENU_GetLocalizedFilePath(char * szPathFormat, char * szOutPath) {
-    // Frame slots -12..-4 are ONE object: &pFileHandle is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQFileStrc* pFileHandle;
-      char szLangAbbrev[4];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    D2Lang::StrTable::strtable::TABLES_GetLangAbbreviation(__frame0.szLangAbbrev, 0);
-    sprintf(szOutPath, szPathFormat, "DATA\\LOCAL", __frame0.szLangAbbrev);
-    int bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, szOutPath, 0, (void**)&__frame0.pFileHandle);
+    D2MPQFileStrc* pFileHandle;
+    char szLangAbbrev[4];
+    D2Lang::StrTable::strtable::TABLES_GetLangAbbreviation(szLangAbbrev, 0);
+    sprintf(szOutPath, szPathFormat, "DATA\\LOCAL", szLangAbbrev);
+    int bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, szOutPath, 0, (void**)&pFileHandle);
     if (bOpened) {
-      Storm::Source::SFile::SFileCloseFile(__frame0.pFileHandle);
+      Storm::Source::SFile::SFileCloseFile(pFileHandle);
       return;
     }
 
     uint32_t nLanguageCode = D2Lang::StrTable::strtable::MISC_GetLanguageCode();
     if (!nLanguageCode) {
       sprintf(szOutPath, szPathFormat, "DATA\\LOCAL", "CHI");
-      bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, szOutPath, 0, (void**)&__frame0.pFileHandle);
+      bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, szOutPath, 0, (void**)&pFileHandle);
       if (bOpened) {
-        Storm::Source::SFile::SFileCloseFile(__frame0.pFileHandle);
+        Storm::Source::SFile::SFileCloseFile(pFileHandle);
       }
     } else {
       sprintf(szOutPath, szPathFormat, "DATA\\LOCAL", "ENG");
-      bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, szOutPath, 0, (void**)&__frame0.pFileHandle);
+      bOpened = Storm::Source::SFile::SFileOpenFileEx(nullptr, szOutPath, 0, (void**)&pFileHandle);
       if (bOpened) {
-        Storm::Source::SFile::SFileCloseFile(__frame0.pFileHandle);
+        Storm::Source::SFile::SFileCloseFile(pFileHandle);
         return;
       }
     }

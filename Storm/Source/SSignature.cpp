@@ -681,36 +681,29 @@ void __fastcall CryptRSA_Prepare(void * pModulusBytes, uint32_t nModulusLen, voi
 // Crypt::RSA::Process: one RSA operation in place on nDataLen bytes at pData. Loads the bytes into a BigData, computes SBigPowMod(out, in, ppKey[1] exponent, ppKey[0] modulus), writes the result back with SBigToBinaryBuffer and zero-fills any shorter tail; used for both signing (SSignatureGenerate) and verifying (SSignatureVerifyStream_Finish).
 // Provenance: 1.14d asm 004260a0; PPC Storm 1.10b symbol Process__Q25Crypt3RSAFPUcUl with the same callee set.
 void __fastcall CryptRSA_Process(void * pData, uint32_t nDataLen, BigData * * ppKey) {
-    // Frame slots -24..-12 are ONE object: &pPlainBn is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      BigData* pPlainBn;
-      BigData* pCipherBn;
-      void* sehRecord;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    BigData* pPlainBn;
+    BigData* pCipherBn;
     uint32_t local_8 = -1;
     pfnEHHandlerRoutine sehHandler = SBig::__GSHandlerCheck_EH_6c9ff0;
-    __frame0.sehRecord = ExceptionList;
-    ExceptionList = &__frame0.sehRecord;
-    SBig::SBigNew(&__frame0.pPlainBn);
+    void* sehRecord = ExceptionList;
+    ExceptionList = &sehRecord;
+    SBig::SBigNew(&pPlainBn);
     uint32_t nBufCapacity = nDataLen;
     local_8 = 0;
-    SBig::SBigFromBinary(__frame0.pPlainBn, pData, nDataLen);
-    SBig::SBigNew(&__frame0.pCipherBn);
+    SBig::SBigFromBinary(pPlainBn, pData, nDataLen);
+    SBig::SBigNew(&pCipherBn);
     local_8 = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&local_8 + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)1);
-    SBig::SBigPowMod(__frame0.pCipherBn, __frame0.pPlainBn, ppKey[1], *ppKey);
-    SBig::SBigToBinaryBuffer(__frame0.pCipherBn, pData, nBufCapacity, &nDataLen);
+    SBig::SBigPowMod(pCipherBn, pPlainBn, ppKey[1], *ppKey);
+    SBig::SBigToBinaryBuffer(pCipherBn, pData, nBufCapacity, &nDataLen);
     if (nDataLen < nBufCapacity) {
       SSystem::SMemZero((void*)(nDataLen + (int)pData), nBufCapacity - nDataLen);
     }
 
     local_8 &= -256;
-    SBig::SBigDel(__frame0.pCipherBn);
+    SBig::SBigDel(pCipherBn);
     local_8 = -1;
-    SBig::SBigDel(__frame0.pPlainBn);
-    ExceptionList = __frame0.sehRecord;
+    SBig::SBigDel(pPlainBn);
+    ExceptionList = sehRecord;
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS

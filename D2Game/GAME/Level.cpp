@@ -63,15 +63,6 @@ void InitDrlgAct(::SGAMEDATA * pGame, char nActNo) {
 
 // Server-side act transition: warps a client's player unit to a destination act/level (e.g. waypoint/portal to another act). No-op in arena levels. Derives the target act from eLevel, lazily initializes the act's DRLG if absent, sets connection state, frees non-expansion pets, clears progressive states, spawns/finds a free room+coords (collision-checked with GetFreeCoordinates), then relinks the unit: clears old room, sends state command, sets client+unit act and pDrlgAct, tells the client to load the act, attaches the spawn room, sets the TELEPORTED flag, updates visibility, and re-manages pets at the new position. Halts via Fog::ErrorManager on failure paths.
 void __fastcall CLIENT_WarpToAct(::SGAMEDATA * pGame, D2ClientStrc * pClient, eD2LevelId eLevel, int32_t param_1) {
-    // Frame slots -20..-8 are ONE object: &nSpawnX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nSpawnX;
-      int nSpawnY;
-      ::SGAMEDATA* pGameSave;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2DrlgActStrc** ppDVar1;
     uint16_t wPosY;
     int32_t nErrorAddr;
@@ -81,9 +72,11 @@ void __fastcall CLIENT_WarpToAct(::SGAMEDATA * pGame, D2ClientStrc * pClient, eD
     BOOL bCollisionOk;
     POINT ptSpawnPos;
     D2DrlgActStrc** ppSpawnActOut;
+    int nSpawnX;
+    int nSpawnY;
     int32_t nSearchRadius;
     ::SGAMEDATA* pGamePost;
-    __frame0.pGameSave = pGame;
+    ::SGAMEDATA* pGameSave = pGame;
     uint32_t bIsArena = Arena::ARENA_IsArenaLevel(pGame);
     if (bIsArena) {
       return;
@@ -102,49 +95,49 @@ void __fastcall CLIENT_WarpToAct(::SGAMEDATA * pGame, D2ClientStrc * pClient, eD
       Clients::CLIENT_SetConnectionState(pClient, 5);
       pUnit = Clients::CLIENTS_GetControlUnit(pClient, 0);
       if (pUnit) {
-        if (!__frame0.pGameSave->bExpansion && pUnit->eUnitType == UNIT_PLAYER) {
-          PLAYER::PlayerPets::PETS_FreeAllPetsByType(__frame0.pGameSave, pUnit);
+        if (!pGameSave->bExpansion && pUnit->eUnitType == UNIT_PLAYER) {
+          PLAYER::PlayerPets::PETS_FreeAllPetsByType(pGameSave, pUnit);
         }
 
         D2Common::Skills::STATES_RemoveAllProgressiveStates(pUnit);
         bIsArena = D2Common::Units::GetUnitSizeX(pUnit);
-        pSpawnRoom = D2Common::DUNGEON::Dungeon::SpawnUnit(*ppDVar1, eLevel, param_1, &__frame0.nSpawnX, &__frame0.nSpawnY, bIsArena);
+        pSpawnRoom = D2Common::DUNGEON::Dungeon::SpawnUnit(*ppDVar1, eLevel, param_1, &nSpawnX, &nSpawnY, bIsArena);
         if (!pSpawnRoom) {
           return;
         }
 
         nSearchRadius = 5;
         nErrorAddr = 0x1c89;
-        ptSpawnPos.x = __frame0.nSpawnX;
-        ptSpawnPos.y = __frame0.nSpawnY;
+        ptSpawnPos.x = nSpawnX;
+        ptSpawnPos.y = nSpawnY;
         nErrorLine = D2Common::Units::GetUnitSizeX(pUnit);
         pSpawnRoom = D2Common::Collision::GetFreeCoordinates_WithIncrementValue(pSpawnRoom, &ptSpawnPos, nErrorLine, nErrorAddr, nSearchRadius);
         if (!pSpawnRoom) {
           return;
         }
 
-        __frame0.nSpawnX = ptSpawnPos.x;
-        __frame0.nSpawnY = ptSpawnPos.y;
+        nSpawnX = ptSpawnPos.x;
+        nSpawnY = ptSpawnPos.y;
         pDynamicPath = pUnit->pPath.pDynamicPath;
         pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
         bCollisionOk = D2Common::PATH::Path::PATH_GetCollisionMaskAt(pDynamicPath, pUnit, nullptr, 0, 0);
         if (!bCollisionOk) {
           nErrorLine = 0x1d1;
         } else {
-          UNIT::SUnit::UNITS_UpdateRoomClientVisibility(__frame0.pGameSave, pUnit, pRoom);
-          bCollisionOk = D2Common::PATH::Path::PATH_GetCollisionMaskAt(pDynamicPath, pUnit, pSpawnRoom, (uint16_t)__frame0.nSpawnX, (uint16_t)__frame0.nSpawnY);
+          UNIT::SUnit::UNITS_UpdateRoomClientVisibility(pGameSave, pUnit, pRoom);
+          bCollisionOk = D2Common::PATH::Path::PATH_GetCollisionMaskAt(pDynamicPath, pUnit, pSpawnRoom, (uint16_t)nSpawnX, (uint16_t)nSpawnY);
           if (bCollisionOk) {
             Clients::CLIENT_SetRoom(pClient, nullptr);
             SCmd::NET_D2GS_SERVER_SendStateCommand(pClient, 5);
             Clients::CLIENT_SetAct(pClient, eDestAct);
             pUnit->nAct = eDestAct;
             pUnit->pDrlgAct = *ppSpawnActOut;
-            Clients::TellClientToLoadAct(__frame0.pGameSave, pClient);
+            Clients::TellClientToLoadAct(pGameSave, pClient);
             Clients::CLIENT_SetRoom(pClient, pSpawnRoom);
             D2Common::Unit::ROOM_LinkUnitToUpdateList(pUnit);
-            pGamePost = __frame0.pGameSave;
+            pGamePost = pGameSave;
             pUnit->eUnitFlagsEx |= UNITFLAGEX_TELEPORTED;
-            UNIT::SUnit::UNITS_UpdateRoomClientVisibility(__frame0.pGameSave, pUnit, nullptr);
+            UNIT::SUnit::UNITS_UpdateRoomClientVisibility(pGameSave, pUnit, nullptr);
             D2Common::Unit::ROOM_LinkUnitToUpdateList(pUnit);
             if (pUnit->eUnitType != UNIT_PLAYER) {
               return;
@@ -174,18 +167,11 @@ void __fastcall CLIENT_WarpToAct(::SGAMEDATA * pGame, D2ClientStrc * pClient, eD
 
 // @sourcefile .\GAME\Level.cpp
 void __fastcall InitLevel(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2LevelId eLevel, int32_t nMasks) {
-    // Frame slots -20..-8 are ONE object: &nSpawnX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nSpawnX;
-      uint32_t nSpawnY;
-      D2ClientStrc* pClient;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nSpawnX;
+    uint32_t nSpawnY;
     eAct eDestAct = D2Common::Drlg::GetActNoFromLevelNumber(eLevel);
-    __frame0.pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\GAME\\Level.cpp", 0x1fa);
-    if (!__frame0.pClient) {
+    D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\GAME\\Level.cpp", 0x1fa);
+    if (!pClient) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1fb);
       exit(-1);
     }
@@ -196,20 +182,20 @@ void __fastcall InitLevel(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2LevelId eL
       eCurLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
     }
 
-    eAct eClientAct = Clients::GetAct(__frame0.pClient);
+    eAct eClientAct = Clients::GetAct(pClient);
     if (eDestAct != eClientAct) {
       UNIT::sunitproxy::IterateNpcIntroUnits(pGame, pUnit, eCurLevelId, eLevel);
-      CLIENT_WarpToAct(pGame, __frame0.pClient, eLevel, nMasks);
+      CLIENT_WarpToAct(pGame, pClient, eLevel, nMasks);
       return;
     }
 
     uint32_t uUnitSizeX = D2Common::Units::GetUnitSizeX(pUnit);
-    D2RoomStrc* pSpawnRoom = D2Common::DUNGEON::Dungeon::SpawnUnit(pGame->pAct[eDestAct], eLevel, nMasks, (int*)&__frame0.nSpawnX, (int*)&__frame0.nSpawnY, uUnitSizeX);
+    D2RoomStrc* pSpawnRoom = D2Common::DUNGEON::Dungeon::SpawnUnit(pGame->pAct[eDestAct], eLevel, nMasks, (int*)&nSpawnX, (int*)&nSpawnY, uUnitSizeX);
     if (!pSpawnRoom) {
       return;
     }
 
-    UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, pSpawnRoom, __frame0.nSpawnX, __frame0.nSpawnY, 0, 0);
+    UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, pSpawnRoom, nSpawnX, nSpawnY, 0, 0);
 }
 
 void __fastcall EnsureDrlgActLoaded(::SGAMEDATA * pGame, char nActNo) {

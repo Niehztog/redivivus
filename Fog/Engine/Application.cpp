@@ -200,14 +200,6 @@ uint32_t __stdcall DEBUG_ParseDebugDataDirectory(uint32_t nCount, int32_t nBaseA
 }
 
 uint32_t __stdcall DEBUG_ParseModuleHeaders(short * * ppModuleBase, short * pModuleBase) {
-    // Frame slots -12..-4 are ONE object: &nDirSize is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nDirSize;
-      uint32_t nDirRVA;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     /* UINT_PTR ucb for IsBadReadPtr */ /* void * lp for IsBadReadPtr */ *ppModuleBase = pModuleBase;
     uint32_t bIsBadPtr = IsBadReadPtr(pModuleBase, 0x40);
     if (!(!bIsBadPtr && *pModuleBase == 0x5a4d)) {
@@ -247,21 +239,21 @@ uint32_t __stdcall DEBUG_ParseModuleHeaders(short * * ppModuleBase, short * pMod
       }
     }
 
-    __frame0.nDirRVA = 0;
-    __frame0.nDirSize = 0;
-    bIsValidImage = DEBUG_ParsePEDebugDirectory(ppModuleBase, &__frame0.nDirSize, (int*)&__frame0.nDirRVA, (short int*)(pNtHeader + 6));
-    bIsBadPtr = __frame0.nDirSize;
+    uint32_t nDirRVA = 0;
+    uint32_t nDirSize = 0;
+    bIsValidImage = DEBUG_ParsePEDebugDirectory(ppModuleBase, &nDirSize, (int*)&nDirRVA, (short int*)(pNtHeader + 6));
+    bIsBadPtr = nDirSize;
     if ((char)bIsValidImage == '\0') {
       return (uint32_t)((uint32_t)((uint32_t)((int32_t)((uint32_t)(bIsValidImage >> 8) << 8) >> 8) & 0xffffffu) << 8 | (uint32_t)(uint8_t)1);
     }
 
-    bIsValidImage = __frame0.nDirRVA;
-    if (!(__frame0.nDirRVA && __frame0.nDirSize)) {
+    bIsValidImage = nDirRVA;
+    if (!(nDirRVA && nDirSize)) {
       return (uint32_t)((uint32_t)((uint32_t)((int32_t)((uint32_t)(bIsValidImage >> 8) << 8) >> 8) & 0xffffffu) << 8 | (uint32_t)(uint8_t)1);
     }
 
-    void* pDebugDir = (void*)(__frame0.nDirRVA + (int)pModuleBase);
-    /* UINT_PTR ucb for IsBadReadPtr */ /* void * lp for IsBadReadPtr */ bIsValidImage = IsBadReadPtr(pDebugDir, __frame0.nDirSize);
+    void* pDebugDir = (void*)(nDirRVA + (int)pModuleBase);
+    /* UINT_PTR ucb for IsBadReadPtr */ /* void * lp for IsBadReadPtr */ bIsValidImage = IsBadReadPtr(pDebugDir, nDirSize);
     if (!(!bIsValidImage && 0x1b < bIsBadPtr)) {
       return (uint32_t)((uint32_t)((uint32_t)((int32_t)((uint32_t)(bIsValidImage >> 8) << 8) >> 8) & 0xffffffu) << 8 | (uint32_t)(uint8_t)1);
     }
@@ -699,49 +691,39 @@ int __stdcall DEBUG_UnwindStackFrames(DWORD dwThreadId, int pFrameArray, uint32_
 }
 
 void __stdcall DEBUG_FormatAddressInfo(uint32_t nAddress, char * pOutput) {
-    // Frame slots -284..-8 are ONE object: &nModuleDisp is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nModuleDisp;
-      char* pSrcFileField;
-      uint32_t* pLineField;
-      char szModulePath[260];
-      uint32_t local_c;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 276, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     char* pSep;
     char* pBasename;
-    __frame0.local_c = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    char szModulePath[260];
+    uint32_t local_c = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     *(uint32_t*)(pOutput + 0x200) = 0;
-    __frame0.pSrcFileField = pOutput + 0x244;
-    *__frame0.pSrcFileField = '\0';
-    __frame0.pLineField = (uint32_t*)(pOutput + 0x344);
-    *__frame0.pLineField = 0;
+    char* pSrcFileField = pOutput + 0x244;
+    *pSrcFileField = '\0';
+    uint32_t* pLineField = (uint32_t*)(pOutput + 0x344);
+    *pLineField = 0;
     *pOutput = '\0';
     pOutput[0x204] = '\0';
-    __frame0.nModuleDisp = 0;
-    bool bGotModule = Debug::GetModuleInfoForAddress(nAddress, &__frame0.nModuleDisp, __frame0.szModulePath);
+    uint32_t nModuleDisp = 0;
+    bool bGotModule = Debug::GetModuleInfoForAddress(nAddress, &nModuleDisp, szModulePath);
     if (bGotModule) {
-      pSep = strrchr(__frame0.szModulePath, 0x2f);
+      pSep = strrchr(szModulePath, 0x2f);
       pBasename = 0;
       if (pSep) {
         pBasename = pSep;
       }
 
-      pSep = strrchr(__frame0.szModulePath, 0x5c);
+      pSep = strrchr(szModulePath, 0x5c);
       if (pSep && pBasename < pSep) {
         pBasename = pSep;
       }
 
-      pSep = strrchr(__frame0.szModulePath, 0x3a);
+      pSep = strrchr(szModulePath, 0x3a);
       if (pSep && pBasename < pSep) {
         pBasename = pSep;
       }
 
       pSep = pBasename + 1;
       if (!pBasename) {
-        pSep = __frame0.szModulePath;
+        pSep = szModulePath;
       }
 
       _strncpy_s(pOutput + 0x204, 0x40, pSep, -1);
@@ -750,29 +732,29 @@ void __stdcall DEBUG_FormatAddressInfo(uint32_t nAddress, char * pOutput) {
     }
 
     Debug::GetSymbolNameForAddress(nAddress, pOutput, (uint32_t*)(pOutput + 0x200));
-    Debug::GetSourceLineForAddress(nAddress, __frame0.szModulePath, __frame0.pLineField);
-    pSep = strrchr(__frame0.szModulePath, 0x2f);
+    Debug::GetSourceLineForAddress(nAddress, szModulePath, pLineField);
+    pSep = strrchr(szModulePath, 0x2f);
     pBasename = 0;
     if (pSep) {
       pBasename = pSep;
     }
 
-    pSep = strrchr(__frame0.szModulePath, 0x5c);
+    pSep = strrchr(szModulePath, 0x5c);
     if (pSep && pBasename < pSep) {
       pBasename = pSep;
     }
 
-    pSep = strrchr(__frame0.szModulePath, 0x3a);
+    pSep = strrchr(szModulePath, 0x3a);
     if (pSep && pBasename < pSep) {
       pBasename = pSep;
     }
 
     pSep = pBasename + 1;
     if (!pBasename) {
-      pSep = __frame0.szModulePath;
+      pSep = szModulePath;
     }
 
-    _strncpy_s(__frame0.pSrcFileField, 0x100, pSep, -1);
+    _strncpy_s(pSrcFileField, 0x100, pSep, -1);
     Debug::GuardStack();
 }
 

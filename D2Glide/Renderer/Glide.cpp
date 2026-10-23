@@ -1314,15 +1314,9 @@ void RENDERER_GLIDE_SetDrawMode(int32_t nParam) {
 
 // Glide: draw isometric perspective image with texture filtering and lighting
 void __fastcall DrawPerspectiveImage(D2GfxDataStrc * pData, int32_t nPosX, int32_t nPosY, DWORD dwGamma, int32_t nDrawMode, int32_t nScreenMode, BYTE * pPalette) {
-    // Frame slots -12..-4 are ONE object: &nScreenY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nScreenY;
-      int nScreenX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     GlideTexInfoStrc textureSize;
+    int nScreenY;
+    int nScreenX;
     float fHalfWindowWidth;
     int bSpriteResult = RENDERER_GLIDE_GetSpriteMetadata(pData, (uint32_t**)&textureSize);
     if (!bSpriteResult) {
@@ -1344,27 +1338,27 @@ void __fastcall DrawPerspectiveImage(D2GfxDataStrc * pData, int32_t nPosX, int32
     int nPosX_00 = nPosX + textureSize.nTop * 0x1000 + textureSize.nLeft * 0x800;
     int nPosY_00 = nPosY + textureSize.nTop * 0x1000 + textureSize.nLeft * -0x800;
     bSpriteResult = nPosY_00 + textureSize.nTexHeight * -0x1000;
-    Glide::AdjustPerspectivePosition(nPosX_00 + textureSize.nTexHeight * -0x1000, bSpriteResult, 0, &__frame0.nScreenX, &__frame0.nScreenY);
-    gGlideVertex0 = (int)(float)__frame0.nScreenX;
-    gfGlideQuadZ0 = (float)__frame0.nScreenY;
+    Glide::AdjustPerspectivePosition(nPosX_00 + textureSize.nTexHeight * -0x1000, bSpriteResult, 0, &nScreenX, &nScreenY);
+    gGlideVertex0 = (int)(float)nScreenX;
+    gfGlideQuadZ0 = (float)nScreenY;
     gfGlideVertex0OOW = 1.0;
     gfGlideVertex0S = fTexS0Scaled;
     *(uint32_t*)(char*)&gfGlideVertex0T = fTexT0Scaled;
-    Glide::AdjustPerspectivePosition(nPosX_00, nPosY_00, 0, &__frame0.nScreenX, &__frame0.nScreenY);
-    gfGlideVertex0X = (float)__frame0.nScreenX;
-    gfGlideQuadZ1 = (float)__frame0.nScreenY;
+    Glide::AdjustPerspectivePosition(nPosX_00, nPosY_00, 0, &nScreenX, &nScreenY);
+    gfGlideVertex0X = (float)nScreenX;
+    gfGlideQuadZ1 = (float)nScreenY;
     gfGlideVertex1OOW = 1.0;
     gfGlideVertex1S = fTexS0Scaled;
     *(uint32_t*)(char*)&gfGlideVertex1T = fTexS1Scaled;
-    Glide::AdjustPerspectivePosition(textureSize.nTexWidth * 0x800 + nPosX_00, nPosY_00 + textureSize.nTexWidth * -0x800, 0, &__frame0.nScreenX, &__frame0.nScreenY);
-    gfGlidePaletteTableOffset = (float)__frame0.nScreenX;
-    gfGlideVertex1Y = (float)__frame0.nScreenY;
+    Glide::AdjustPerspectivePosition(textureSize.nTexWidth * 0x800 + nPosX_00, nPosY_00 + textureSize.nTexWidth * -0x800, 0, &nScreenX, &nScreenY);
+    gfGlidePaletteTableOffset = (float)nScreenX;
+    gfGlideVertex1Y = (float)nScreenY;
     gfGlideVertex3OOW = 1.0;
     gfGlideVertex3S = fTexT1Scaled;
     gfGlideVertex3T = fTexS1Scaled;
-    Glide::AdjustPerspectivePosition(textureSize.nTexWidth * 0x800 - nHalfTexHeightScaled + nPosX_00, bSpriteResult + textureSize.nTexWidth * -0x800, 0, &__frame0.nScreenX, &__frame0.nScreenY);
-    gfGlideVertex2X = (float)__frame0.nScreenX;
-    gfGlideVertex2Y = (float)__frame0.nScreenY;
+    Glide::AdjustPerspectivePosition(textureSize.nTexWidth * 0x800 - nHalfTexHeightScaled + nPosX_00, bSpriteResult + textureSize.nTexWidth * -0x800, 0, &nScreenX, &nScreenY);
+    gfGlideVertex2X = (float)nScreenX;
+    gfGlideVertex2Y = (float)nScreenY;
     gfGlideVertex3Color = 1.0;
     bSpriteResult = (int)(RENDERER_nWindowWidth + (RENDERER_nWindowWidth >> 0x1f & 3U)) >> 2;
     gnGlideAlphaBlendDst = (int)fTexT1Scaled;
@@ -2874,14 +2868,6 @@ int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, 
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 68, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -12..-4 are ONE object: &nAdjY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      int nAdjY;
-      int nAdjX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     D2FloatIntUnion DVar1;
     short int* psVar2;
     int nCornerFixedY;
@@ -2892,6 +2878,8 @@ int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, 
     int nLeftFixedX;
     int nLeftFixedY;
     int nRightFixedZ;
+    int nAdjY;
+    int nAdjX;
     uint32_t dwColorMid;
     __frame0.nZMid = 0;
     __frame0.nScreenXOffset = 0;
@@ -2927,18 +2915,18 @@ int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, 
       __frame0.nScreenXMax = nCornerFixedY;
       __frame0.nScreenYMin = nWorldYFixed;
       __frame0.nScreenYMax = nCornerFixedX;
-      Glide::AdjustPerspectivePosition(nCornerFixedY, nWorldYFixed, nCornerFixedX, &__frame1.nAdjX, &__frame1.nAdjY);
-      gaGlidePerspectiveVertices[0].fX = (float)__frame1.nAdjX;
-      gaGlidePerspectiveVertices[0].fY = (float)__frame1.nAdjY;
-      Glide::AdjustPerspectivePosition(nCornerFixedY, nWorldYFixed, nCornerFixedX - 0x20, &__frame1.nAdjX, &__frame1.nAdjY);
-      gaGlidePerspectiveVertices[0xc].fX = (float)__frame1.nAdjX;
-      gaGlidePerspectiveVertices[0xc].fY = (float)__frame1.nAdjY;
-      Glide::AdjustPerspectivePosition(nLeftFixedX, nLeftFixedY, nRightFixedZ - 0x20, &__frame1.nAdjX, &__frame1.nAdjY);
-      gaGlidePerspectiveVertices[0xe].fX = (float)__frame1.nAdjX;
-      gaGlidePerspectiveVertices[0xe].fY = (float)__frame1.nAdjY;
-      Glide::AdjustPerspectivePosition(nLeftFixedX, nLeftFixedY, nRightFixedZ, &__frame1.nAdjX, &__frame1.nAdjY);
-      gaGlidePerspectiveVertices[2].fX = (float)__frame1.nAdjX;
-      gaGlidePerspectiveVertices[2].fY = (float)__frame1.nAdjY;
+      Glide::AdjustPerspectivePosition(nCornerFixedY, nWorldYFixed, nCornerFixedX, &nAdjX, &nAdjY);
+      gaGlidePerspectiveVertices[0].fX = (float)nAdjX;
+      gaGlidePerspectiveVertices[0].fY = (float)nAdjY;
+      Glide::AdjustPerspectivePosition(nCornerFixedY, nWorldYFixed, nCornerFixedX - 0x20, &nAdjX, &nAdjY);
+      gaGlidePerspectiveVertices[0xc].fX = (float)nAdjX;
+      gaGlidePerspectiveVertices[0xc].fY = (float)nAdjY;
+      Glide::AdjustPerspectivePosition(nLeftFixedX, nLeftFixedY, nRightFixedZ - 0x20, &nAdjX, &nAdjY);
+      gaGlidePerspectiveVertices[0xe].fX = (float)nAdjX;
+      gaGlidePerspectiveVertices[0xe].fY = (float)nAdjY;
+      Glide::AdjustPerspectivePosition(nLeftFixedX, nLeftFixedY, nRightFixedZ, &nAdjX, &nAdjY);
+      gaGlidePerspectiveVertices[2].fX = (float)nAdjX;
+      gaGlidePerspectiveVertices[2].fY = (float)nAdjY;
       fScreenMinX.fValue = (float)__frame0.nBoundsXMin;
       if (fScreenMinX.fValue < gaGlidePerspectiveVertices[0].fX != (fScreenMinX.fValue == gaGlidePerspectiveVertices[0].fX) && gaGlidePerspectiveVertices[0].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[0].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[0].fY) && gaGlidePerspectiveVertices[0].fY < (float)__frame0.nXMid || fScreenMinX.fValue <= gaGlidePerspectiveVertices[0xc].fX && gaGlidePerspectiveVertices[0xc].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[0xc].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[0xc].fY) && gaGlidePerspectiveVertices[0xc].fY < (float)__frame0.nXMid || fScreenMinX.fValue <= gaGlidePerspectiveVertices[0xe].fX && gaGlidePerspectiveVertices[0xe].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[0xe].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[0xe].fY) && gaGlidePerspectiveVertices[0xe].fY < (float)__frame0.nXMid || fScreenMinX.fValue <= gaGlidePerspectiveVertices[2].fX && gaGlidePerspectiveVertices[2].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[2].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[2].fY) && gaGlidePerspectiveVertices[2].fY < (float)__frame0.nXMid) {
         __frame0.adwColors[0] = *(uint32_t*)(pColorTable + (int)__frame0.fSubtileIndex * 4);
@@ -2956,19 +2944,19 @@ int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, 
           DVar1 = fScreenMinX;
           if (fScreenMinX.nValue && fScreenMinX.nValue != 4) {
             nCornerFixedY = fScreenMinX.nValue * -8;
-            Glide::AdjustPerspectivePosition(__frame0.nScreenXMax, __frame0.nScreenYMin, nCornerFixedY + __frame0.nScreenYMax, &__frame1.nAdjX, &__frame1.nAdjY);
-            pfVertexSlot[-2].fX = (float)__frame1.nAdjX;
-            pfVertexSlot[-2].fY = (float)__frame1.nAdjY;
-            Glide::AdjustPerspectivePosition(nLeftFixedX, nLeftFixedY, nCornerFixedY + nRightFixedZ, &__frame1.nAdjX, &__frame1.nAdjY);
-            pfVertexSlot->fX = (float)__frame1.nAdjX;
-            pfVertexSlot->fY = (float)__frame1.nAdjY;
+            Glide::AdjustPerspectivePosition(__frame0.nScreenXMax, __frame0.nScreenYMin, nCornerFixedY + __frame0.nScreenYMax, &nAdjX, &nAdjY);
+            pfVertexSlot[-2].fX = (float)nAdjX;
+            pfVertexSlot[-2].fY = (float)nAdjY;
+            Glide::AdjustPerspectivePosition(nLeftFixedX, nLeftFixedY, nCornerFixedY + nRightFixedZ, &nAdjX, &nAdjY);
+            pfVertexSlot->fX = (float)nAdjX;
+            pfVertexSlot->fY = (float)nAdjY;
           }
 
-          Glide::AdjustPerspectivePosition(__frame0.adwColors[3], __frame0.nYMid, __frame0.nZMid + DVar1.nValue * -8, &__frame1.nAdjX, &__frame1.nAdjY);
+          Glide::AdjustPerspectivePosition(__frame0.adwColors[3], __frame0.nYMid, __frame0.nZMid + DVar1.nValue * -8, &nAdjX, &nAdjY);
           nCornerFixedY = 0;
           pfColorVertex = pfVertexSlot - 2;
-          pfVertexSlot[-1].fX = (float)__frame1.nAdjX;
-          pfVertexSlot[-1].fY = (float)__frame1.nAdjY;
+          pfVertexSlot[-1].fX = (float)nAdjX;
+          pfVertexSlot[-1].fY = (float)nAdjY;
           do {
             dwColorMid = __frame0.adwColors[nCornerFixedY];
             pfColorVertex->fX = __frame0.fSubtileIndex + pfColorVertex->fX;

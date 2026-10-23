@@ -542,14 +542,6 @@ void __stdcall RENDERER_DrawOutOfGameScene() {
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, uint32_t uMsg, uint32_t nParam, LPARAM lParam) {
-    // Frame slots -12..-4 are ONE object: &lReturnValue is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t lReturnValue;
-      BOOL bHandled;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t lResult;
     if (!gbGfxWindowCreated) {
       return 0;
@@ -559,17 +551,17 @@ LRESULT __stdcall WndProc(HWND hWnd, uint32_t uMsg, uint32_t nParam, LPARAM lPar
       return lResult;
     }
 
-    __frame0.bHandled = 0;
-    __frame0.lReturnValue = 0;
+    BOOL bHandled = 0;
+    int32_t lReturnValue = 0;
     if (uMsg == 0x10) {
       /* int nExitCode for PostQuitMessage */ ghwndMsgHook = 1;
       PostQuitMessage(0);
       return 0;
     }
 
-    BOOL bDispatched = Storm::WindowHandle::SMsgDispatchMessage(hWnd, uMsg, nParam, lParam, &__frame0.bHandled, (LRESULT*)&__frame0.lReturnValue);
-    if (bDispatched && __frame0.bHandled) {
-      return __frame0.lReturnValue;
+    BOOL bDispatched = Storm::WindowHandle::SMsgDispatchMessage(hWnd, uMsg, nParam, lParam, &bHandled, (LRESULT*)&lReturnValue);
+    if (bDispatched && bHandled) {
+      return lReturnValue;
     }
 
     /* LPARAM lParam for DefWindowProcA */ /* WPARAM wParam for DefWindowProcA */ /* UINT Msg for DefWindowProcA */ /* HWND hWnd for DefWindowProcA */ lResult = DefWindowProcA(hWnd, uMsg, nParam, lParam);
@@ -689,18 +681,6 @@ void __stdcall INPUT_FormDeactivate(D2UIMouseMsgStrc * pMsg) {
 }
 
 void __stdcall D2WIN_HandleSystemCommand(int32_t nParam) {
-    // Frame slots -28..-4 are ONE object: &nMonWorkRight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nMonWorkRight;
-      int nMonWorkBottom;
-      int nWndPosX;
-      int nWndPosY;
-      int nTargetWidth;
-      int nTargetHeight;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     HWND hGameWnd;
     HMONITOR hMonitor;
     DWORD dwResolutionMode;
@@ -716,6 +696,12 @@ void __stdcall D2WIN_HandleSystemCommand(int32_t nParam) {
     int nMonWorkHeight;
     int nMonWorkLeft;
     int nMonWorkTop;
+    int nMonWorkRight;
+    int nMonWorkBottom;
+    int nWndPosX;
+    int nWndPosY;
+    int nTargetWidth;
+    int nTargetHeight;
     tagRECT* pRcDesktop;
     uint16_t uSysCmd = *(uint16_t*)(nParam + 8) & 0xfff0;
     if (uSysCmd != 0xf130 && uSysCmd != 0xf100) {
@@ -741,22 +727,22 @@ void __stdcall D2WIN_HandleSystemCommand(int32_t nParam) {
         nClientHeight = rcClient.bottom - rcClient.top;
         nMonWorkLeft = sMonitorInfo.rcWork.left;
         nMonWorkTop = sMonitorInfo.rcWork.top;
-        __frame0.nMonWorkRight = sMonitorInfo.rcWork.right;
+        nMonWorkRight = sMonitorInfo.rcWork.right;
         nMonWorkWidth = sMonitorInfo.rcWork.right - sMonitorInfo.rcWork.left;
-        __frame0.nMonWorkBottom = sMonitorInfo.rcWork.bottom;
+        nMonWorkBottom = sMonitorInfo.rcWork.bottom;
         nMonWorkHeight = sMonitorInfo.rcWork.bottom - sMonitorInfo.rcWork.top;
-        __frame0.nWndPosX = 0;
-        __frame0.nWndPosY = 0;
-        __frame0.nTargetWidth = 0;
-        __frame0.nTargetHeight = 0;
+        nWndPosX = 0;
+        nWndPosY = 0;
+        nTargetWidth = 0;
+        nTargetHeight = 0;
         dwResolutionMode = D2gfx::D2GFX::D2GFX_GetResolutionMode();
-        D2gfx::D2GFX::D2GFX_GetWindowSizeByResolutionMode(dwResolutionMode, &__frame0.nTargetWidth, &__frame0.nTargetHeight);
+        D2gfx::D2GFX::D2GFX_GetWindowSizeByResolutionMode(dwResolutionMode, &nTargetWidth, &nTargetHeight);
         pRcDesktop = &rcDesktop;
         /* LPRECT lpRect for GetClientRect */ hDesktopWnd = GetDesktopWindow();
         /* HWND hWnd for GetClientRect */ GetClientRect(hDesktopWnd, pRcDesktop);
-        if (nClientWidth == __frame0.nTargetWidth && nClientHeight == __frame0.nTargetHeight && __frame0.nTargetWidth < rcDesktop.right - rcDesktop.left && __frame0.nTargetHeight < rcDesktop.bottom - rcDesktop.top) {
-          __frame0.nWndPosX = nMonWorkLeft;
-          __frame0.nWndPosY = nMonWorkTop;
+        if (nClientWidth == nTargetWidth && nClientHeight == nTargetHeight && nTargetWidth < rcDesktop.right - rcDesktop.left && nTargetHeight < rcDesktop.bottom - rcDesktop.top) {
+          nWndPosX = nMonWorkLeft;
+          nWndPosY = nMonWorkTop;
           bFixAspect = D2gfx::D2GFX::D2GFX_GetFixAspect();
           if (!bFixAspect) {
             return;
@@ -764,35 +750,35 @@ void __stdcall D2WIN_HandleSystemCommand(int32_t nParam) {
 
           /* WINDOWPLACEMENT * lpwndpl for GetWindowPlacement */ /* HWND hWnd for GetWindowPlacement */ GetWindowPlacement(hGameWnd, &sWndPlacement);
           if (sWndPlacement.showCmd != 3) {
-            for (; __frame0.nTargetWidth < nMonWorkWidth && __frame0.nTargetHeight < nMonWorkHeight; __frame0.nTargetHeight += 3) {
-              __frame0.nTargetWidth += 4;
+            for (; nTargetWidth < nMonWorkWidth && nTargetHeight < nMonWorkHeight; nTargetHeight += 3) {
+              nTargetWidth += 4;
             }
 
-            __frame0.nTargetWidth += -0xc;
-            __frame0.nTargetHeight += -9;
-            __frame0.nWndPosX = (nMonWorkWidth - __frame0.nTargetWidth) / 2 + nMonWorkLeft;
-            __frame0.nWndPosY = (nMonWorkHeight - __frame0.nTargetHeight) / 2 + nMonWorkTop;
-            if (__frame0.nWndPosY < 0) {
-              __frame0.nWndPosY = 0;
+            nTargetWidth += -0xc;
+            nTargetHeight += -9;
+            nWndPosX = (nMonWorkWidth - nTargetWidth) / 2 + nMonWorkLeft;
+            nWndPosY = (nMonWorkHeight - nTargetHeight) / 2 + nMonWorkTop;
+            if (nWndPosY < 0) {
+              nWndPosY = 0;
             }
-            if (__frame0.nWndPosX < 0) {
-              __frame0.nWndPosX = 0;
+            if (nWndPosX < 0) {
+              nWndPosX = 0;
             }
 
             /* UINT uFlags for SetWindowPos */ /* int cy for SetWindowPos */ /* int cx for SetWindowPos */ rInitialWindowRect.left = sWndPlacement.rcNormalPosition.left;
             /* int Y for SetWindowPos */ rInitialWindowRect.top = sWndPlacement.rcNormalPosition.top;
             /* int X for SetWindowPos */ rInitialWindowRect.right = sWndPlacement.rcNormalPosition.right;
             /* HWND hWndInsertAfter for SetWindowPos */ /* HWND hWnd for SetWindowPos */ rInitialWindowRect.bottom = sWndPlacement.rcNormalPosition.bottom;
-            SetWindowPos(hGameWnd, HWND_NOTOPMOST, __frame0.nWndPosX, __frame0.nWndPosY, __frame0.nTargetWidth, __frame0.nTargetHeight, 0x14);
+            SetWindowPos(hGameWnd, HWND_NOTOPMOST, nWndPosX, nWndPosY, nTargetWidth, nTargetHeight, 0x14);
           }
-        } else if (__frame0.nTargetHeight < __frame0.nMonWorkBottom && __frame0.nTargetWidth < __frame0.nMonWorkRight) {
+        } else if (nTargetHeight < nMonWorkBottom && nTargetWidth < nMonWorkRight) {
           nMonWorkLeft = 0;
           nMonWorkTop = 0;
-          __frame0.nMonWorkRight = 0;
-          __frame0.nMonWorkBottom = 0;
+          nMonWorkRight = 0;
+          nMonWorkBottom = 0;
           dwResolutionMode = D2gfx::D2GFX::D2GFX_GetResolutionMode();
-          D2gfx::D2GFX::D2GFX_GetWindowSizeByResolutionMode(dwResolutionMode, &__frame0.nMonWorkRight, &__frame0.nMonWorkBottom);
-          /* UINT uFlags for SetWindowPos */ /* int cy for SetWindowPos */ /* int cx for SetWindowPos */ /* int Y for SetWindowPos */ /* int X for SetWindowPos */ /* HWND hWndInsertAfter for SetWindowPos */ /* HWND hWnd for SetWindowPos */ SetWindowPos(hGameWnd, HWND_NOTOPMOST, 0, 0, __frame0.nMonWorkRight, __frame0.nMonWorkBottom, 0x14);
+          D2gfx::D2GFX::D2GFX_GetWindowSizeByResolutionMode(dwResolutionMode, &nMonWorkRight, &nMonWorkBottom);
+          /* UINT uFlags for SetWindowPos */ /* int cy for SetWindowPos */ /* int cx for SetWindowPos */ /* int Y for SetWindowPos */ /* int X for SetWindowPos */ /* HWND hWndInsertAfter for SetWindowPos */ /* HWND hWnd for SetWindowPos */ SetWindowPos(hGameWnd, HWND_NOTOPMOST, 0, 0, nMonWorkRight, nMonWorkBottom, 0x14);
           D2gfx::D2GFX::D2GFX_UpdateWindowSize(dwResolutionMode);
         }
 

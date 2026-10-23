@@ -196,19 +196,12 @@ BOOL __stdcall FIELDTBLS_TracePathCheckCollision(POINT * pPoint, D2RoomStrc * pR
 // Source: .\\DATATBLS\\FieldTbls.cpp
 // @sourcefile .\DATATBLS\FieldTbls.cpp
 void __fastcall FIELDTBLS_LoadExpFieldFile(D2PoolManagerStrc * pMemory) {
-    // Frame slots -272..-4 are ONE object: &nFileSize is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nFileSize;
-      char szFilePath[260];
-      uint32_t dwStackCookie;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 268, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(__frame0.szFilePath, "%s\\expfield.d2", "DATA\\GLOBAL");
-    D2ArchiveStrc* pArchive = (D2ArchiveStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMemory, __frame0.szFilePath, &__frame0.nFileSize, ".\\DATATBLS\\FieldTbls.cpp", 0x28);
-    FIELDTBLS_InitFieldData(pArchive, __frame0.nFileSize);
+    uint32_t nFileSize;
+    char szFilePath[260];
+    uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szFilePath, "%s\\expfield.d2", "DATA\\GLOBAL");
+    D2ArchiveStrc* pArchive = (D2ArchiveStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMemory, szFilePath, &nFileSize, ".\\DATATBLS\\FieldTbls.cpp", 0x28);
+    FIELDTBLS_InitFieldData(pArchive, nFileSize);
     Fog::Debug::GuardStack();
 }
 

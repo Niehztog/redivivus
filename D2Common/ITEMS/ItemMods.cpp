@@ -1239,15 +1239,6 @@ int32_t __fastcall PropertyFunc_PackedStat(int32_t nType, D2UnitStrc * pUnit, D2
 // This function is why elemental damage properties always have both min and max
 // values - they're applied as a pair to consecutive stats.
 int32_t __fastcall PropertyFunc_MinMaxDamagePair(int32_t nType, D2UnitStrc * pUnit, D2UnitStrc * pItemUnit, D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext) {
-    // Frame slots -16..-4 are ONE object: &nMinVal is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nMinVal;
-      D2UnitStrc* pItemInventory;
-      int32_t nRemoveMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2ItemsTxt* pItemsTxt;
     uint32_t bIsWeapon;
     uint32_t bIsWeaponForSecondary;
@@ -1256,12 +1247,12 @@ int32_t __fastcall PropertyFunc_MinMaxDamagePair(int32_t nType, D2UnitStrc * pUn
     int nMinStatValue;
     int nBaseValue;
     eD2UnitStat eMinStat = eStatCode;
-    __frame0.nMinVal = pProperty->fmin;
+    int32_t nMinVal = pProperty->fmin;
     eD2UnitStat eStatType = eStatCode + UNITSTAT_energy;
     pProperty = (D2SetsTxtFStrc*)pProperty->fmax;
-    __frame0.pItemInventory = pUnit;
-    __frame0.nRemoveMode = nType;
-    ITEMMOD_ScaleValueForStatType(&__frame0.nMinVal, eStatCode);
+    D2UnitStrc* pItemInventory = pUnit;
+    int32_t nRemoveMode = nType;
+    ITEMMOD_ScaleValueForStatType(&nMinVal, eStatCode);
     ITEMMOD_ScaleValueForStatType((int*)&pProperty, eStatType);
     if (eMinStat == UNITSTAT_mindamage) {
       uint32_t nMaxVal;
@@ -1279,22 +1270,22 @@ int32_t __fastcall PropertyFunc_MinMaxDamagePair(int32_t nType, D2UnitStrc * pUn
       bIsWeapon = Items::ITEMS_IsA(pItemUnit, ITEMTYPE_Weapon);
       nMaxVal = nParam;
       if (!bIsWeapon || pItemsTxt->nMaxDam != '\0' || pItemsTxt->n2HandMaxDam == '\0') {
-        PropertyFunc_SimpleStat(__frame0.nRemoveMode, pUnit, __frame0.nMinVal, nParam2, 0, nParam3, pItemUnit, UNITSTAT_mindamage, nParam);
-        PropertyFunc_SimpleStat(__frame0.nRemoveMode, __frame0.pItemInventory, (int32_t)pProperty, nParam2, 0, nParam3, pItemUnit, UNITSTAT_maxdamage, nMaxVal);
-        pUnit = __frame0.pItemInventory;
+        PropertyFunc_SimpleStat(nRemoveMode, pUnit, nMinVal, nParam2, 0, nParam3, pItemUnit, UNITSTAT_mindamage, nParam);
+        PropertyFunc_SimpleStat(nRemoveMode, pItemInventory, (int32_t)pProperty, nParam2, 0, nParam3, pItemUnit, UNITSTAT_maxdamage, nMaxVal);
+        pUnit = pItemInventory;
       }
 
       bIsWeaponForSecondary = Items::ITEMS_IsA(pItemUnit, ITEMTYPE_Weapon);
       if (!bIsWeaponForSecondary || pItemsTxt->n2HandMaxDam != '\0' || pItemsTxt->nMinDam == '\0') {
-        PropertyFunc_SimpleStat(__frame0.nRemoveMode, pUnit, __frame0.nMinVal, nParam2, 0, nParam3, pItemUnit, UNITSTAT_secondary_mindamage, nMaxVal);
-        PropertyFunc_SimpleStat(__frame0.nRemoveMode, __frame0.pItemInventory, (int32_t)pProperty, nParam2, 0, nParam3, pItemUnit, UNITSTAT_secondary_maxdamage, nMaxVal);
-        pUnit = __frame0.pItemInventory;
+        PropertyFunc_SimpleStat(nRemoveMode, pUnit, nMinVal, nParam2, 0, nParam3, pItemUnit, UNITSTAT_secondary_mindamage, nMaxVal);
+        PropertyFunc_SimpleStat(nRemoveMode, pItemInventory, (int32_t)pProperty, nParam2, 0, nParam3, pItemUnit, UNITSTAT_secondary_maxdamage, nMaxVal);
+        pUnit = pItemInventory;
       }
 
       nCallerAddress = Items::ITEM_GetTxtItemTypes_throwable(pItemUnit);
       if (nCallerAddress) {
-        PropertyFunc_SimpleStat(__frame0.nRemoveMode, pUnit, __frame0.nMinVal, nParam2, 0, nParam3, pItemUnit, UNITSTAT_item_throw_mindamage, nMaxVal);
-        PropertyFunc_SimpleStat(__frame0.nRemoveMode, __frame0.pItemInventory, (int32_t)pProperty, nParam2, 0, nParam3, pItemUnit, UNITSTAT_item_throw_maxdamage, nMaxVal);
+        PropertyFunc_SimpleStat(nRemoveMode, pUnit, nMinVal, nParam2, 0, nParam3, pItemUnit, UNITSTAT_item_throw_mindamage, nMaxVal);
+        PropertyFunc_SimpleStat(nRemoveMode, pItemInventory, (int32_t)pProperty, nParam2, 0, nParam3, pItemUnit, UNITSTAT_item_throw_maxdamage, nMaxVal);
         return 1;
       }
     } else {
@@ -1304,7 +1295,7 @@ int32_t __fastcall PropertyFunc_MinMaxDamagePair(int32_t nType, D2UnitStrc * pUn
         exit(-1);
       }
 
-      nMinStatValue = __frame0.nMinVal;
+      nMinStatValue = nMinVal;
       if (nParam2) {
         nMinStatValue = Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eMinStat, 0);
         nBaseValue = Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eMinStat + UNITSTAT_energy, 0);

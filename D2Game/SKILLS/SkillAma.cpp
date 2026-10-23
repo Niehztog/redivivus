@@ -531,22 +531,16 @@ BOOL __fastcall Skills_SrvDoFunc_007_Jab(::SGAMEDATA * pGame, D2UnitStrc * pUnit
 
 // Server skill srvdofunc #8: fan/spread missile launcher (Amazon Strafe-style multishot). Resolves target/cursor position, computes the firing direction toward it, and uses calc[0] as the total arrow count and calc[2] as the center (straight-ahead) count. Picks srvmissilea, or srvmissileb when not bare-handed and valid. Spawns the spread by stepping a perpendicular offset: (count-center)/2 missiles on each side plus the center group, calling Missiles::CreatingMissile per arrow with the skill's per-arrow activation frame (calc[1]). Sets UNITFLAG_SKSRVDOFUNC on the caster. Returns TRUE if the skill/missile resolved, FALSE on invalid skill/missile or no target.
 BOOL __fastcall Skills_SrvDoFunc_008_MultipleShot(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -20..-4 are ONE object: &nDirY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nDirY;
-      int nDirX;
-      uint32_t nTargetY;
-      uint32_t nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nWeaponClass;
     int iVar1;
     eD2Skills nSideCount;
     D2SkillArgStrc sSkillArg;
     eD2Skills nCenterCount;
     eMissilesId eMissileId;
+    int nDirY;
+    int nDirX;
+    uint32_t nTargetY;
+    uint32_t nTargetX;
     if (pUnit) {
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
@@ -559,7 +553,7 @@ BOOL __fastcall Skills_SrvDoFunc_008_MultipleShot(::SGAMEDATA * pGame, D2UnitStr
       return 0;
     }
 
-    BOOL bHasTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bHasTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
     if (!bHasTargetPos) {
       return 1;
     }
@@ -567,28 +561,28 @@ BOOL __fastcall Skills_SrvDoFunc_008_MultipleShot(::SGAMEDATA * pGame, D2UnitStr
     eD2Skills nArrowSpread = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->calc[0], eSkill, nSkillLvl);
     eD2UnitType eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nDirX = pUnit->pPath.pStaticPath->nPosX;
+      nDirX = pUnit->pPath.pStaticPath->nPosX;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nDirX = 0;
+      nDirX = 0;
     } else {
-      __frame0.nDirX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      nDirX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
     }
 
-    __frame0.nDirX = __frame0.nTargetX - __frame0.nDirX;
+    nDirX = nTargetX - nDirX;
     eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nDirY = pUnit->pPath.pStaticPath->nPosY;
+      nDirY = pUnit->pPath.pStaticPath->nPosY;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nDirY = 0;
+      nDirY = 0;
     } else {
-      __frame0.nDirY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      nDirY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
     }
 
-    __frame0.nDirY = __frame0.nTargetY - __frame0.nDirY;
-    SkillsServer::SKILLS_NormalizeDirectionMin(&__frame0.nDirX, &__frame0.nDirY);
-    SkillsServer::SKILLS_NormalizeDirectionPerp(&__frame0.nDirX, &__frame0.nDirY);
-    __frame0.nTargetX -= (int)(__frame0.nDirX * nArrowSpread) / 2;
-    __frame0.nTargetY -= (int)(__frame0.nDirY * nArrowSpread) / 2;
+    nDirY = nTargetY - nDirY;
+    SkillsServer::SKILLS_NormalizeDirectionMin(&nDirX, &nDirY);
+    SkillsServer::SKILLS_NormalizeDirectionPerp(&nDirX, &nDirY);
+    nTargetX -= (int)(nDirX * nArrowSpread) / 2;
+    nTargetY -= (int)(nDirY * nArrowSpread) / 2;
     eMissileId = (eMissilesId)pSkillTxt->srvmissilea;
     nWeaponClass = D2Common::Units::GetWeaponClass(pUnit);
     if (nWeaponClass != 1 && -1 < pSkillTxt->srvmissileb) {
@@ -619,11 +613,11 @@ BOOL __fastcall Skills_SrvDoFunc_008_MultipleShot(::SGAMEDATA * pGame, D2UnitStr
     eSkill = nSideCount;
     if (0 < (int)nSideCount) {
       do {
-        sSkillArg.nUnitX = __frame0.nTargetX;
-        sSkillArg.nUnitY = __frame0.nTargetY;
+        sSkillArg.nUnitX = nTargetX;
+        sSkillArg.nUnitY = nTargetY;
         MISSILES::Missiles::CreatingMissile(pGame, &sSkillArg);
-        __frame0.nTargetX += __frame0.nDirX;
-        __frame0.nTargetY += __frame0.nDirY;
+        nTargetX += nDirX;
+        nTargetY += nDirY;
         eSkill -= SKILL_Kick;
       } while (eSkill != SKILL_Attack);
     }
@@ -632,11 +626,11 @@ BOOL __fastcall Skills_SrvDoFunc_008_MultipleShot(::SGAMEDATA * pGame, D2UnitStr
     if (0 < (int)nCenterCount) {
       eSkill = nCenterCount;
       do {
-        sSkillArg.nUnitX = __frame0.nTargetX;
-        sSkillArg.nUnitY = __frame0.nTargetY;
+        sSkillArg.nUnitX = nTargetX;
+        sSkillArg.nUnitY = nTargetY;
         MISSILES::Missiles::CreatingMissile(pGame, &sSkillArg);
-        __frame0.nTargetX += __frame0.nDirX;
-        __frame0.nTargetY += __frame0.nDirY;
+        nTargetX += nDirX;
+        nTargetY += nDirY;
         eSkill -= SKILL_Kick;
       } while (eSkill != SKILL_Attack);
     }
@@ -648,11 +642,11 @@ BOOL __fastcall Skills_SrvDoFunc_008_MultipleShot(::SGAMEDATA * pGame, D2UnitStr
     }
 
     do {
-      sSkillArg.nUnitX = __frame0.nTargetX;
-      sSkillArg.nUnitY = __frame0.nTargetY;
+      sSkillArg.nUnitX = nTargetX;
+      sSkillArg.nUnitY = nTargetY;
       MISSILES::Missiles::CreatingMissile(pGame, &sSkillArg);
-      __frame0.nTargetX += __frame0.nDirX;
-      __frame0.nTargetY += __frame0.nDirY;
+      nTargetX += nDirX;
+      nTargetY += nDirY;
       iVar1--;
     } while (iVar1);
 
@@ -670,16 +664,9 @@ void __fastcall SKILLS_AmazonDamagePercentCallback(D2UnitStrc * pUnit, int nDama
 
 // Server SrvDoFunc for Guided Arrow (skill 010). Sets UNITFLAG_SKSRVDOFUNC on the caster, selects srvmissilea or srvmissileb depending on weapon class, then spawns the Guided Arrow missile. If a damage-percent calc value is present, attaches the AmazonDamagePercentCallback. Encodes the direction delta (cursor minus caster position) into the missile's TargetY field for homing.
 BOOL __fastcall Skills_SrvDoFunc_010_GuidedArrowLaunch(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nCursorY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nCursorY;
-      uint32_t nCursorX;
-      ::SGAMEDATA* pGameSave;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    uint32_t nCursorY;
+    uint32_t nCursorX;
     if (pUnit) {
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
@@ -692,9 +679,9 @@ BOOL __fastcall Skills_SrvDoFunc_010_GuidedArrowLaunch(::SGAMEDATA * pGame, D2Un
       return 0;
     }
 
-    __frame0.pGameSave = pGame;
+    ::SGAMEDATA* pGameSave = pGame;
     D2UnitStrc* pInitTarget = UNIT::SUnit::GetTargetEx(pGame, pUnit);
-    BOOL bHasTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGameSave, pUnit, &__frame0.nCursorX, &__frame0.nCursorY);
+    BOOL bHasTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGameSave, pUnit, &nCursorX, &nCursorY);
     if (!bHasTargetPos) {
       return 0;
     }
@@ -711,10 +698,10 @@ BOOL __fastcall Skills_SrvDoFunc_010_GuidedArrowLaunch(::SGAMEDATA * pGame, D2Un
 
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.eSkillNo = eSkill;
-    sSkillArg.nUnitY = __frame0.nCursorY;
+    sSkillArg.nUnitY = nCursorY;
     sSkillArg.nFlags = 0x20;
     sSkillArg.nSkillLevel = nSkillLvl;
-    sSkillArg.nUnitX = __frame0.nCursorX;
+    sSkillArg.nUnitX = nCursorX;
     if (nUnitX) {
       sSkillArg.fpFunction = SKILLS_AmazonDamagePercentCallback;
     }
@@ -727,7 +714,7 @@ BOOL __fastcall Skills_SrvDoFunc_010_GuidedArrowLaunch(::SGAMEDATA * pGame, D2Un
     sSkillArg.pTarget = pInitTarget;
     sSkillArg.nMissileTxtNo = eMissileId;
     sSkillArg.nFunctionParam = nUnitX;
-    D2UnitStrc* pDamagePctMissile = MISSILES::Missiles::CreatingMissile(__frame0.pGameSave, &sSkillArg);
+    D2UnitStrc* pDamagePctMissile = MISSILES::Missiles::CreatingMissile(pGameSave, &sSkillArg);
     if (!pDamagePctMissile) {
       return 1;
     }
@@ -740,7 +727,7 @@ BOOL __fastcall Skills_SrvDoFunc_010_GuidedArrowLaunch(::SGAMEDATA * pGame, D2Un
     D2Common::Units::Missile::SetTargetX(pDamagePctMissile, nUnitX);
     nUnitX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
     int32_t nUnitY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    D2Common::Units::Missile::SetTargetY(pDamagePctMissile, (short int)((short int)__frame0.nCursorY - (short int)nUnitY) * 0x10000 + (int)(short int)((short int)__frame0.nCursorX - (short int)nUnitX));
+    D2Common::Units::Missile::SetTargetY(pDamagePctMissile, (short int)((short int)nCursorY - (short int)nUnitY) * 0x10000 + (int)(short int)((short int)nCursorX - (short int)nUnitX));
     return 1;
 }
 
@@ -840,15 +827,6 @@ BOOL __fastcall Skills_SrvDoFunc_011_ChargedStrike(::SGAMEDATA * pGame, D2UnitSt
 
 // Server do-function continuation for the Amazon Strafe skill (func 012). Each invocation fires one strafe arrow missile toward the current or nearest valid target in the strafe radius, decrements the remaining arrow count (param1), and picks the next target via SKILLS_FindNextUnitInAreaByGUID. Applies AmazonDamagePercentCallback for per-arrow damage scaling. Returns 0 when arrows are exhausted or no target is found.
 BOOL __fastcall Skills_SrvDoFunc_012_StrafeContinue(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -28..-16 are ONE object: &nCursorY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nCursorY;
-      uint32_t nCursorX;
-      D2UnitStrc* pTarget;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
@@ -874,18 +852,18 @@ BOOL __fastcall Skills_SrvDoFunc_012_StrafeContinue(::SGAMEDATA * pGame, D2UnitS
     uint32_t nTargetGUID = D2Common::Skills::SKILL_GetParam3(pActiveSkill);
     eMissilesId eMissileId = nTargetGUID;
     eD2UnitType ePrevTargetUnitType = D2Common::Skills::SKILL_GetParam2(pActiveSkill);
-    __frame0.pTarget = UNIT::SUnit::FindUnitFromTable(pGameSave, ePrevTargetUnitType, nTargetGUID);
-    if (!__frame0.pTarget) {
-      __frame0.pTarget = SkillsServer::SKILLS_FindNextUnitInAreaByGUID(pGameSave, pUnit, 0, 0, nStrafeRadius, 3, eMissileId, nullptr);
-      if (!__frame0.pTarget) {
+    D2UnitStrc* pTarget = UNIT::SUnit::FindUnitFromTable(pGameSave, ePrevTargetUnitType, nTargetGUID);
+    if (!pTarget) {
+      pTarget = SkillsServer::SKILLS_FindNextUnitInAreaByGUID(pGameSave, pUnit, 0, 0, nStrafeRadius, 3, eMissileId, nullptr);
+      if (!pTarget) {
         return 1;
       }
     }
 
-    D2Common::Units::SetTargetUnitForDynamicUnit(pUnit, __frame0.pTarget);
-    __frame0.nCursorX = 0;
-    __frame0.nCursorY = 0;
-    SkillsServer::SKILLS_GetTargetOrCursorPos(pGameSave, pUnit, &__frame0.nCursorX, &__frame0.nCursorY);
+    D2Common::Units::SetTargetUnitForDynamicUnit(pUnit, pTarget);
+    uint32_t nCursorX = 0;
+    uint32_t nCursorY = 0;
+    SkillsServer::SKILLS_GetTargetOrCursorPos(pGameSave, pUnit, &nCursorX, &nCursorY);
     eMissileId = (eMissilesId)pSkillTxt->srvmissilea;
     nTargetGUID = D2Common::Units::GetWeaponClass(pUnit);
     if (nTargetGUID != 1 && -1 < pSkillTxt->srvmissileb) {
@@ -903,8 +881,8 @@ BOOL __fastcall Skills_SrvDoFunc_012_StrafeContinue(::SGAMEDATA * pGame, D2UnitS
     sSkillArg.nY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
     sSkillArg.eSkillNo = eSkill;
     sSkillArg.nSkillLevel = nSkillLvl;
-    sSkillArg.nUnitX = __frame0.nCursorX;
-    sSkillArg.nUnitY = __frame0.nCursorY;
+    sSkillArg.nUnitX = nCursorX;
+    sSkillArg.nUnitY = nCursorY;
     sSkillArg.nMissileTxtNo = eMissileId;
     sSkillArg.fpFunction = SKILLS_AmazonDamagePercentCallback;
     sSkillArg.nFunctionParam = pDmgPctMissile;
@@ -914,10 +892,10 @@ BOOL __fastcall Skills_SrvDoFunc_012_StrafeContinue(::SGAMEDATA * pGame, D2UnitS
     if (0 >= nArrowsLeft - 1) {
       return 0;
     }
-    if (!__frame0.pTarget) {
+    if (!pTarget) {
       nTargetGUID = -1;
     } else {
-      nTargetGUID = __frame0.pTarget->nUnitGUID;
+      nTargetGUID = pTarget->nUnitGUID;
     }
 
     D2UnitStrc* pNextTargetUnit = SkillsServer::SKILLS_FindNextUnitInAreaByGUID(pGameSave, pUnit, 0, 0, nStrafeRadius, 3, nTargetGUID, nullptr);

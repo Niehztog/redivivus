@@ -470,19 +470,13 @@ int __stdcall NPCMENU_ShowIntroduceDialog() {
 }
 
 int NPCMENU_CalculateDialogPosition(POINT * pPoint) {
-    // Frame slots -28..-4 are ONE object: &nViewOriginX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nViewOriginX;
-      int nViewOriginY;
-      int nViewWidth;
-      int nViewHeight;
-      int nViewCenterY;
-      int nViewCenterX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     tagRECT rcViewport;
+    int nViewOriginX;
+    int nViewOriginY;
+    int nViewWidth;
+    int nViewHeight;
+    int nViewCenterY;
+    int nViewCenterX;
     if (!_Interaction::bInteractingWithNpc) {
       return 0;
     }
@@ -498,9 +492,9 @@ int NPCMENU_CalculateDialogPosition(POINT * pPoint) {
     }
 
     D2Common::Units::GetTargetCoords(pNpcUnit, pPoint);
-    GAME::View::VIEW_GetViewRect(D2GameView, &__frame0.nViewOriginX, &__frame0.nViewOriginY, &__frame0.nViewWidth, &__frame0.nViewHeight);
-    GAME::View::GetCenterXY(D2GameView, &__frame0.nViewCenterY, &__frame0.nViewCenterX);
-    /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&rcViewport, __frame0.nViewCenterY, __frame0.nViewCenterX, __frame0.nViewWidth - __frame0.nViewOriginX + __frame0.nViewCenterY, __frame0.nViewHeight - __frame0.nViewOriginY + __frame0.nViewCenterX);
+    GAME::View::VIEW_GetViewRect(D2GameView, &nViewOriginX, &nViewOriginY, &nViewWidth, &nViewHeight);
+    GAME::View::GetCenterXY(D2GameView, &nViewCenterY, &nViewCenterX);
+    /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&rcViewport, nViewCenterY, nViewCenterX, nViewWidth - nViewOriginX + nViewCenterY, nViewHeight - nViewOriginY + nViewCenterX);
     pPoint->x -= rcViewport.left;
     pPoint->y += -0x96 - rcViewport.top;
     if (pPoint->y >= 0x14) {

@@ -1363,16 +1363,8 @@ void __fastcall SKILLNEC_ReviveCorpseAsMinion(::SGAMEDATA * pGame, D2UnitStrc * 
 
 // Server-side cast handler for the Necromancer Revive skill (SrvDoFunc 031). Finds the targeted corpse, verifies it is consumable, applies blood cost, determines the revived monster class via SKILLS_GetSummonMonsterClassId, frees the corpse unit, spawns a new summon at the corpse position, then applies mastery/buffs/passive resistances and registers it in the node table. Returns TRUE on success.
 BOOL __fastcall Skills_SrvDoFunc_031_RaiseSkeletonFromCorpse(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nSummonMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nSummonMode;
-      int32_t nMonsterClassId;
-      D2SkillsTxt* pSkillsTxt;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2MonsterCastPetStrc sPet;
+    int nSummonMode;
     D2UnitStrc* pCorpse = UNIT::SUnit::GetTargetEx(pGame, pUnit);
     if (!pCorpse) {
       return 0;
@@ -1388,17 +1380,17 @@ BOOL __fastcall Skills_SrvDoFunc_031_RaiseSkeletonFromCorpse(::SGAMEDATA * pGame
       return 0;
     }
 
-    __frame0.pSkillsTxt = sgptDataTable->pTxtSkills + eSkill;
-    if (!__frame0.pSkillsTxt) {
+    D2SkillsTxt* pSkillsTxt = sgptDataTable->pTxtSkills + eSkill;
+    if (!pSkillsTxt) {
       return 0;
     }
 
-    __frame0.nMonsterClassId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &__frame0.nSummonMode, nullptr, nullptr);
-    if (-1 >= __frame0.nMonsterClassId) {
+    int32_t nMonsterClassId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &nSummonMode, nullptr, nullptr);
+    if (-1 >= nMonsterClassId) {
       return 0;
     }
 
-    sPet.nPetType = (int32_t)__frame0.pSkillsTxt->pettype;
+    sPet.nPetType = (int32_t)pSkillsTxt->pettype;
     if (!(-1 < sPet.nPetType && sPet.nPetType < sgptDataTable->nTxtPetTypeSize)) {
       return 0;
     }
@@ -1412,14 +1404,14 @@ BOOL __fastcall Skills_SrvDoFunc_031_RaiseSkeletonFromCorpse(::SGAMEDATA * pGame
     UNIT::SUnit::FreeServerUnit(pGame, pCorpse);
     sPet.nSkillCalc = 0;
     sPet.nFunctionId = 0;
-    sPet.classId = __frame0.nMonsterClassId;
-    sPet.nMode = __frame0.nSummonMode;
+    sPet.classId = nMonsterClassId;
+    sPet.nMode = nSummonMode;
     sPet.nY2 = (uint32_t)(uintptr_t)sPet.pSkillTxt;
     sPet.nType = sPet.nPetType;
     sPet.nFlags = 1;
     sPet.pPlayer = pUnit;
     sPet.nX = nSpawnX;
-    sPet.nSkillCalc = D2Common::Skills::D2GetSkillCalc(pUnit, __frame0.pSkillsTxt->petmax, eSkill, nSkillLvl);
+    sPet.nSkillCalc = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxt->petmax, eSkill, nSkillLvl);
     pCorpse = SkillsServer::SKILL_CreateSummon(pGame, &sPet);
     if (!pCorpse) {
       return 0;
@@ -1927,42 +1919,27 @@ BOOL __fastcall Skills_SrvDoFunc_058_ReviveCorpseCheck(::SGAMEDATA * pGame, D2Un
 
 // Server-side skill DoFunc 60 (Necromancer golem summon at cursor, e.g. Blood/Clay/Iron/Fire golem). Resolves the cursor/target position, finds a valid non-town room nearby (DRLGROOM_FindBetterNearbyRoom). Resolves the summon's monster class id and pettype via SKILLS_GetSummonMonsterClassId, then creates the golem with SKILL_CreateSummon at the target position. On success: assigns the caster as minion owner (AssignMinionOwner), applies umods (InitUmods) and summon buffs (SKILLNEC_ApplySummonBuffs), registers it in the targets node table. If the golem's room is not in town and a server missile (srvmissilea) is configured with calc[1]/2 > 1, fires two CreatingMissile missiles perpendicular to the caster-to-golem vector (an emerge/spawn effect), each retargeted to the golem GUID. Returns 1 on full success (missiles spawned), 0 on failure or invalid target. Side effect: sets UNITFLAG_SKSRVDOFUNC on caster.
 BOOL __fastcall Skills_SrvDoFunc_060_SummonBoneWall(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -68..-60 are ONE object: &nSummonMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nSummonMode;
-      D2RoomStrc* pTargetRoom;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -16..-4 are ONE object: &nCursorYRaw is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      uint32_t nCursorYRaw;
-      uint8_t __pad4[3];
-      uint8_t byPetType;
-      uint32_t nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 12, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     int32_t nRadius;
     eD2UnitType eCasterUnitType;
     D2SkillArgStrc sSkillArg;
+    int nSummonMode;
     D2MonsterCastPetStrc sCastPetArgs;
+    uint32_t nCursorYRaw;
+    uint32_t nTargetX;
     sCastPetArgs.nPetType = (int32_t)pGame;
-    BOOL bInTown = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame1.nTargetX, &__frame1.nCursorYRaw);
+    BOOL bInTown = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nCursorYRaw);
     if (!bInTown) {
       return 0;
     }
 
-    uint32_t nTargetY = __frame1.nCursorYRaw;
+    uint32_t nTargetY = nCursorYRaw;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    __frame0.pTargetRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, __frame1.nTargetX, nTargetY);
-    if (!__frame0.pTargetRoom) {
+    D2RoomStrc* pTargetRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nTargetX, nTargetY);
+    if (!pTargetRoom) {
       return 0;
     }
 
-    bInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(__frame0.pTargetRoom);
+    bInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pTargetRoom);
     if (bInTown) {
       return 0;
     }
@@ -1980,23 +1957,23 @@ BOOL __fastcall Skills_SrvDoFunc_060_SummonBoneWall(::SGAMEDATA * pGame, D2UnitS
       return 0;
     }
 
-    sCastPetArgs.classId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &__frame0.nSummonMode, nullptr, nullptr);
+    sCastPetArgs.classId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &nSummonMode, nullptr, nullptr);
     if (-1 >= sCastPetArgs.classId) {
       return 0;
     }
 
-    __frame1.byPetType = pSkillsTxt->pettype;
-    uint8_t byPetTypeIdx = __frame1.byPetType;
-    if (sgptDataTable->nTxtPetTypeSize <= (int)(uint32_t)__frame1.byPetType) {
+    uint8_t byPetType = pSkillsTxt->pettype;
+    uint8_t byPetTypeIdx = byPetType;
+    if (sgptDataTable->nTxtPetTypeSize <= (int)(uint32_t)byPetType) {
       byPetTypeIdx = 0;
     }
 
     sCastPetArgs.nSkillCalc = 0;
     sCastPetArgs.nFunctionId = 0;
-    sCastPetArgs.nMode = __frame0.nSummonMode;
-    sCastPetArgs.nX = __frame1.nTargetX;
+    sCastPetArgs.nMode = nSummonMode;
+    sCastPetArgs.nX = nTargetX;
     sCastPetArgs.nType = (uint32_t)byPetTypeIdx;
-    sCastPetArgs.nY2 = __frame1.nCursorYRaw;
+    sCastPetArgs.nY2 = nCursorYRaw;
     sCastPetArgs.nFlags = 9;
     sCastPetArgs.pPlayer = pUnit;
     sCastPetArgs.nSkillCalc = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxt->petmax, eSkill, nSkillLvl);
@@ -2016,9 +1993,9 @@ BOOL __fastcall Skills_SrvDoFunc_060_SummonBoneWall(::SGAMEDATA * pGame, D2UnitS
     Monsters::InitUmods(pGame, pGolem, 0xf, 0);
     SKILLNEC_ApplySummonBuffs(pGame, pUnit, pGolem, eSkill, nSkillLvl, 0);
     GAME::Targets::AddNodeToTable(pGame, pGolem, nullptr, 9);
-    __frame1.nTargetX = D2Client::Units::GetXPosFromDynamicPathUnit(pGolem);
-    __frame1.nCursorYRaw = D2Client::Units::GetYPosFromDynamicPathUnit(pGolem);
-    bInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(__frame0.pTargetRoom);
+    nTargetX = D2Client::Units::GetXPosFromDynamicPathUnit(pGolem);
+    nCursorYRaw = D2Client::Units::GetYPosFromDynamicPathUnit(pGolem);
+    bInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pTargetRoom);
     pSkillsTxt = sCastPetArgs.pSkillTxt;
     if (bInTown) {
       return 0;
@@ -2036,31 +2013,31 @@ BOOL __fastcall Skills_SrvDoFunc_060_SummonBoneWall(::SGAMEDATA * pGame, D2UnitS
     }
 
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.nX = __frame1.nTargetX;
+    sSkillArg.nX = nTargetX;
     sSkillArg.eSkillNo = eSkill;
     sSkillArg.nFlags = 0x21;
-    sSkillArg.nY = __frame1.nCursorYRaw;
+    sSkillArg.nY = nCursorYRaw;
     sSkillArg.nSkillLevel = nSkillLvl;
     sSkillArg.nMissileTxtNo = (eMissilesId)pSkillsTxt->srvmissilea;
     sSkillArg.pOwner = pUnit;
     nRadius = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-    int iVar1 = nRadius - __frame1.nTargetX;
+    int iVar1 = nRadius - nTargetX;
     nRadius = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    int nDirOffsetY = nRadius - __frame1.nCursorYRaw;
+    int nDirOffsetY = nRadius - nCursorYRaw;
     if (!iVar1 && !nDirOffsetY) {
       iVar1 = 1;
     }
 
-    sSkillArg.nUnitX = __frame1.nTargetX - nDirOffsetY;
-    sSkillArg.nUnitY = iVar1 + __frame1.nCursorYRaw;
+    sSkillArg.nUnitX = nTargetX - nDirOffsetY;
+    sSkillArg.nUnitY = iVar1 + nCursorYRaw;
     D2UnitStrc* pMissile = MISSILES::Missiles::CreatingMissile((::SGAMEDATA*)sCastPetArgs.nPetType, &sSkillArg);
     if (pMissile) {
       D2Common::Units::Missile::SetTargetX(pMissile, pGolem->nUnitGUID);
       D2Common::Units::Missile::SetTargetY(pMissile, (int32_t)sCastPetArgs.pSkillTxt);
     }
 
-    sSkillArg.nUnitX = nDirOffsetY + __frame1.nTargetX;
-    sSkillArg.nUnitY = __frame1.nCursorYRaw - iVar1;
+    sSkillArg.nUnitX = nDirOffsetY + nTargetX;
+    sSkillArg.nUnitY = nCursorYRaw - iVar1;
     pMissile = MISSILES::Missiles::CreatingMissile((::SGAMEDATA*)sCastPetArgs.nPetType, &sSkillArg);
     if (!pMissile) {
       return 1;
@@ -2128,25 +2105,16 @@ BOOL __fastcall Skills_SrvDoFunc_062_BonePrison(::SGAMEDATA * pGame, D2UnitStrc 
     static uint32_t gaMissileOffsets_BoneStructure = -0x1;
     static uint32_t gnSkillMissileSubCount_BoneStructure = -0x4;
 
-    // Frame slots -24..-4 are ONE object: &nCursorX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nCursorX;
-      uint32_t nCursorY;
-      D2UnitStrc* pFirstMinion;
-      int nOffsetIdx;
-      D2UnitStrc* pOwnerUnit;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2UnitType eOwnerType;
     int32_t nOwnerGUID;
     int nY;
     uint32_t nDir;
     D2UnitStrc* pUnit_01;
+    uint32_t nCursorX;
+    uint32_t nCursorY;
     D2UnitStrc* pPrevFirstMinion;
-    __frame0.pOwnerUnit = pUnit;
-    BOOL nPosY = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nCursorX, &__frame0.nCursorY);
+    D2UnitStrc* pOwnerUnit = pUnit;
+    BOOL nPosY = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nCursorX, &nCursorY);
     if (!nPosY) {
       return 0;
     }
@@ -2154,24 +2122,24 @@ BOOL __fastcall Skills_SrvDoFunc_062_BonePrison(::SGAMEDATA * pGame, D2UnitStrc 
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
 
-    __frame0.pFirstMinion = 0;
-    __frame0.nOffsetIdx = 0;
+    D2UnitStrc* pFirstMinion = 0;
+    int nOffsetIdx = 0;
     do {
       D2UnitStrc* pUnit_00;
-      pUnit_00 = SKILLNEC_CreateSummonAtPosition(pGame, *(int*)((uintptr_t)&gaMissileOffsets_BoneStructure + __frame0.nOffsetIdx) + __frame0.nCursorX, *(int*)((uintptr_t)&gnSkillMissileSubCount_BoneStructure + __frame0.nOffsetIdx) + __frame0.nCursorY, nSkillLvl, eSkill, pUnit);
-      pUnit_01 = __frame0.pOwnerUnit;
-      pPrevFirstMinion = __frame0.pFirstMinion;
+      pUnit_00 = SKILLNEC_CreateSummonAtPosition(pGame, *(int*)((uintptr_t)&gaMissileOffsets_BoneStructure + nOffsetIdx) + nCursorX, *(int*)((uintptr_t)&gnSkillMissileSubCount_BoneStructure + nOffsetIdx) + nCursorY, nSkillLvl, eSkill, pUnit);
+      pUnit_01 = pOwnerUnit;
+      pPrevFirstMinion = pFirstMinion;
       if (pUnit_00) {
-        if (!__frame0.pFirstMinion) {
+        if (!pFirstMinion) {
           nPosY = 1;
-          __frame0.pFirstMinion = pUnit_00;
-          eOwnerType = D2Client::Units::GetType(__frame0.pOwnerUnit);
+          pFirstMinion = pUnit_00;
+          eOwnerType = D2Client::Units::GetType(pOwnerUnit);
           nOwnerGUID = D2Client::UNIT::GetGUID(pUnit_01);
           Ai::AiGeneral::AssignMinionOwner(pGame, pUnit_00, nOwnerGUID, eOwnerType, (int32_t)pPrevFirstMinion, nPosY);
         } else {
-          Ai::AiGeneral::AssignMinionOwner(pGame, pUnit_00, __frame0.pFirstMinion->nUnitGUID, __frame0.pFirstMinion->eUnitType, 0, 0);
+          Ai::AiGeneral::AssignMinionOwner(pGame, pUnit_00, pFirstMinion->nUnitGUID, pFirstMinion->eUnitType, 0, 0);
           Ai::AiGeneral::AddMinionToList(pGame, pPrevFirstMinion, pUnit_00);
-          pUnit_01 = __frame0.pOwnerUnit;
+          pUnit_01 = pOwnerUnit;
         }
 
         D2Common::Units::StoreOwner(pUnit_00, pUnit_01);
@@ -2193,13 +2161,13 @@ BOOL __fastcall Skills_SrvDoFunc_062_BonePrison(::SGAMEDATA * pGame, D2UnitStrc 
           nDir = D2Common::PATH::DynamicPath::GetXPos(pUnit_00->pPath.pDynamicPath);
         }
 
-        nDir = D2Common::Drlg::Path::DRLGPATH_GetDirectionFromCoords(nDir, nY, __frame0.nCursorX, __frame0.nCursorY);
+        nDir = D2Common::Drlg::Path::DRLGPATH_GetDirectionFromCoords(nDir, nY, nCursorX, nCursorY);
         D2Common::PATH::DynamicPath::SetDirectionAndNewDirection(pUnit_00->pPath.pDynamicPath, (uint8_t)nDir);
       }
 
-      __frame0.nOffsetIdx += 4;
-      pUnit = __frame0.pOwnerUnit;
-    } while (__frame0.nOffsetIdx < 0x30);
+      nOffsetIdx += 4;
+      pUnit = pOwnerUnit;
+    } while (nOffsetIdx < 0x30);
 
     return 1;
 }

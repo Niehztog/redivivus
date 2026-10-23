@@ -1214,19 +1214,9 @@ void __fastcall DRLGPATH_NormalizeFixedPointPair(int * pnParam1, int * pnParam2)
 // path can proceed or has reached the target. Halts with an error if target
 // position is at the sentinel value -0x7FFF8000.
 uint32_t __fastcall DRLGPATH_StepPathWithCollisionCheck(D2PathTypeArg * pPathTypeArg, uint32_t * pPathData) {
-    // Frame slots -24..-4 are ONE object: &nVelY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nVelY;
-      int nIterX;
-      uint32_t nVelX;
-      int nFpCurY;
-      uint32_t nStepSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eCollisionFlags eCollisionResult;
     int nTmp;
+    uint32_t nStepSize;
     D2RoomStrc* pRoom;
     if (!pPathData[6]) {
       return 0;
@@ -1237,9 +1227,11 @@ uint32_t __fastcall DRLGPATH_StepPathWithCollisionCheck(D2PathTypeArg * pPathTyp
       return 0;
     }
 
-    __frame0.nVelX = pPathData[4];
-    __frame0.nVelY = pPathData[5];
-    if (!__frame0.nVelX && !__frame0.nVelY) {
+    uint32_t nVelX;
+    nVelX = pPathData[4];
+    uint32_t nVelY;
+    nVelY = pPathData[5];
+    if (!nVelX && !nVelY) {
       return 0;
     }
 
@@ -1251,62 +1243,63 @@ uint32_t __fastcall DRLGPATH_StepPathWithCollisionCheck(D2PathTypeArg * pPathTyp
     nFpDstX = (uint32_t)*(uint16_t*)((int)pPathData + 2) * 0x10000 + 0x8000;
     int nFpDstY;
     nFpDstY = (uint32_t)(uint16_t)*pPathData * 0x10000 + 0x8000;
-    __frame0.nFpCurY = nFpDstX;
-    DRLGPATH_NormalizeFixedPointPair((int*)&__frame0.nVelX, (int*)&__frame0.nVelY);
+    int nFpCurY;
+    nFpCurY = nFpDstX;
+    DRLGPATH_NormalizeFixedPointPair((int*)&nVelX, (int*)&nVelY);
     uint32_t nVelXNorm;
-    nVelXNorm = __frame0.nVelX;
+    nVelXNorm = nVelX;
     uint32_t nVelYNorm;
-    nVelYNorm = __frame0.nVelY;
+    nVelYNorm = nVelY;
     uint32_t nAbsVelX;
-    nAbsVelX = __frame0.nVelX;
-    if ((int)__frame0.nVelX < 0) {
-      nAbsVelX = -__frame0.nVelX;
+    nAbsVelX = nVelX;
+    if ((int)nVelX < 0) {
+      nAbsVelX = -nVelX;
     }
 
     uint32_t nAbsVelY;
-    nAbsVelY = __frame0.nVelY;
-    if ((int)__frame0.nVelY < 0) {
-      nAbsVelY = -__frame0.nVelY;
+    nAbsVelY = nVelY;
+    if ((int)nVelY < 0) {
+      nAbsVelY = -nVelY;
     }
     if ((int)nAbsVelY < (int)nAbsVelX) {
-      __frame0.nStepSize = __frame0.nVelX;
-      if (-1 < (int)__frame0.nVelX) {
+      nStepSize = nVelX;
+      if (-1 < (int)nVelX) {
         goto walk_path;
       }
     } else {
-      __frame0.nStepSize = __frame0.nVelY;
-      if (-1 < (int)__frame0.nVelY) {
+      nStepSize = nVelY;
+      if (-1 < (int)nVelY) {
         goto walk_path;
       }
     }
 
-    __frame0.nStepSize = -__frame0.nStepSize;
+    nStepSize = -nStepSize;
     walk_path:
     pRoom = pPathTypeArg->pRoom;
     eD2CollisionUnitSize nWidth = pPathTypeArg->nUnitSize;
     int32_t nLine = pPathTypeArg->nCollisionPattern;
     nFpDstX = -nFpDstX;
     int nRemainX = -nFpDstY;
-    int nIterY = __frame0.nFpCurY;
-    __frame0.nIterX = nFpDstY;
+    int nIterY = nFpCurY;
+    int nIterX = nFpDstY;
     do {
       int nRemainY;
       nRemainY = nFpSrcX + nRemainX;
       if (nRemainY < 0) {
-        nRemainY = __frame0.nIterX - nFpSrcX;
+        nRemainY = nIterX - nFpSrcX;
       }
-      if (nRemainY < (int)__frame0.nStepSize) {
+      if (nRemainY < (int)nStepSize) {
         nRemainY = nFpDstX + nFpSrcY;
         nTmp = nIterY - nFpSrcY;
         if (-1 < nRemainY) {
           nTmp = nRemainY;
         }
-        if (nTmp < (int)__frame0.nStepSize) {
+        if (nTmp < (int)nStepSize) {
           if (nFpDstY == -0x7fff8000) {
             Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1df);
             exit(-1);
           } else {
-            if (__frame0.nFpCurY != -0x7fff8000) {
+            if (nFpCurY != -0x7fff8000) {
               return 1;
             }
 
@@ -1316,9 +1309,9 @@ uint32_t __fastcall DRLGPATH_StepPathWithCollisionCheck(D2PathTypeArg * pPathTyp
         }
       }
 
-      nTmp = __frame0.nVelX + nFpDstY;
-      nRemainY = __frame0.nVelY + __frame0.nFpCurY;
-      if ((short int)((uint32_t)nFpDstY >> 0x10) != (short int)((uint32_t)nTmp >> 0x10) || (short int)((uint32_t)__frame0.nFpCurY >> 0x10) != (short int)((uint32_t)nRemainY >> 0x10)) {
+      nTmp = nVelX + nFpDstY;
+      nRemainY = nVelY + nFpCurY;
+      if ((short int)((uint32_t)nFpDstY >> 0x10) != (short int)((uint32_t)nTmp >> 0x10) || (short int)((uint32_t)nFpCurY >> 0x10) != (short int)((uint32_t)nRemainY >> 0x10)) {
         eCollisionResult = Collision::CheckCollision_BlockAll_Width(pRoom, nTmp >> 0x10 & 0xffff, nRemainY >> 0x10 & 0xffff, nWidth, nLine);
         if (eCollisionResult != COLLIDE_NONE) {
           return 0;
@@ -1326,11 +1319,11 @@ uint32_t __fastcall DRLGPATH_StepPathWithCollisionCheck(D2PathTypeArg * pPathTyp
       }
 
       nRemainX -= nVelXNorm;
-      __frame0.nIterX += __frame0.nVelX;
+      nIterX += nVelX;
       nFpDstX -= nVelYNorm;
-      nIterY += __frame0.nVelY;
+      nIterY += nVelY;
       nFpDstY = nTmp;
-      __frame0.nFpCurY = nRemainY;
+      nFpCurY = nRemainY;
     } while (true);
 }
 
@@ -1565,16 +1558,6 @@ BOOL __stdcall DRLGPATH_FindNonBlockedDirectionFromTriplet(uint32_t nPackedPos, 
 // Raycasts a straight line from a packed source coord (nParam, hi/lo = x/y) toward a packed destination coord (*pnParam) in fixed-point 16.16, stepping by the normalized velocity vector (pVelocity[0]/[1]) along the major axis. At each cell transition it calls Collision::CheckCollision_BlockPlayer_Type with the path's unit width and collision pattern. Returns 1 if the line is clear; on a blocked cell returns 0 and writes the last free position back into *pnParam. Degenerate inputs trigger ERROR_UnrecoverableInternalError_Halt.
 // Stack-slot reuse: the nParam slot holds the packed current cell (Y << 16 | X) passed to CheckCollision_BlockPlayer_Type.
 BOOL __stdcall DRLGPATH_RaycastCollisionLine(int * pVelocity, uint32_t nParam, uint32_t * pnParam, D2DynamicPathStrc * pPathArg) {
-    // Frame slots -20..-4 are ONE object: &nVelY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nVelY;
-      int nVelX;
-      uint32_t nPackedSrc;
-      uint32_t nPackedDst;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     short int nCurX;
     int32_t nUnitWidth;
     int32_t iVar1;
@@ -1584,22 +1567,22 @@ BOOL __stdcall DRLGPATH_RaycastCollisionLine(int * pVelocity, uint32_t nParam, u
     D2RoomStrc* pRoom = pPathArg->pRoom;
     eD2CollisionShapeType nUnitType = pPathArg->nUnitWidth;
     int32_t nLine = pPathArg->nCollisionPattern;
-    __frame0.nPackedSrc = nParam;
+    uint32_t nPackedSrc = nParam;
     int nFpIterX = nParam * 0x10000 + 0x8000;
-    __frame0.nPackedDst = *pnParam;
-    int nAbsDX = (__frame0.nPackedDst & 0xffff) - (nFpIterX >> 0x10 & 0xffffU);
+    uint32_t nPackedDst = *pnParam;
+    int nAbsDX = (nPackedDst & 0xffff) - (nFpIterX >> 0x10 & 0xffffU);
     int nFpIterY = (nParam & -65536) + 0x8000;
-    __frame0.nVelX = *pVelocity;
-    __frame0.nVelY = pVelocity[1];
-    int nAbsDY = (__frame0.nPackedDst >> 0x10) - (nFpIterY >> 0x10 & 0xffffU);
-    int nFpSrcX = __frame0.nVelX;
-    if (__frame0.nVelX < 0) {
-      nFpSrcX = -__frame0.nVelX;
+    int nVelX = *pVelocity;
+    int nVelY = pVelocity[1];
+    int nAbsDY = (nPackedDst >> 0x10) - (nFpIterY >> 0x10 & 0xffffU);
+    int nFpSrcX = nVelX;
+    if (nVelX < 0) {
+      nFpSrcX = -nVelX;
     }
     if (nFpSrcX <= 0) {
-      nFpSrcX = __frame0.nVelY;
-      if (__frame0.nVelY < 0) {
-        nFpSrcX = -__frame0.nVelY;
+      nFpSrcX = nVelY;
+      if (nVelY < 0) {
+        nFpSrcX = -nVelY;
       }
       if (nFpSrcX <= 0) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6e);
@@ -1607,7 +1590,7 @@ BOOL __stdcall DRLGPATH_RaycastCollisionLine(int * pVelocity, uint32_t nParam, u
       }
     }
 
-    DRLGPATH_NormalizeFixedPointPair(&__frame0.nVelX, &__frame0.nVelY);
+    DRLGPATH_NormalizeFixedPointPair(&nVelX, &nVelY);
     if (nAbsDX < 0) {
       nAbsDX = -nAbsDX;
     }
@@ -1615,36 +1598,36 @@ BOOL __stdcall DRLGPATH_RaycastCollisionLine(int * pVelocity, uint32_t nParam, u
       nAbsDY = -nAbsDY;
     }
     if (nAbsDY < nAbsDX) {
-      if ((short int)nParam != (short int)__frame0.nPackedDst) {
+      if ((short int)nParam != (short int)nPackedDst) {
         do {
-          nFpIterX += __frame0.nVelX;
-          nFpIterY += __frame0.nVelY;
+          nFpIterX += nVelX;
+          nFpIterY += nVelY;
           nIterCoord = (short int)((uint32_t)nFpIterX >> 0x10);
           nCurX = (short int)((uint32_t)nFpIterY >> 0x10);
           nParam = (uint32_t)((uint32_t)(uint16_t)nCurX << 16 | (uint32_t)(uint16_t)nIterCoord);
-          if ((short int)__frame0.nPackedSrc != nIterCoord || (short int)(__frame0.nPackedSrc >> 0x10) != nCurX) {
+          if ((short int)nPackedSrc != nIterCoord || (short int)(nPackedSrc >> 0x10) != nCurX) {
             iVar1 = Collision::CheckCollision_BlockPlayer_Type(pRoom, nFpIterX >> 0x10 & 0xffff, nFpIterY >> 0x10 & 0xffff, nUnitType, nLine);
             if (iVar1) {
-              *pnParam = __frame0.nPackedSrc;
+              *pnParam = nPackedSrc;
               return 0;
             }
           }
 
-          __frame0.nPackedSrc = nParam;
-        } while (nIterCoord != (short int)__frame0.nPackedDst);
+          nPackedSrc = nParam;
+        } while (nIterCoord != (short int)nPackedDst);
       }
     } else {
       short int nCurY;
       nCurY = (short int)(nParam >> 0x10);
-      if (nCurY != *(uint16_t*)((char*)&__frame0.nPackedDst + 2)) {
+      if (nCurY != *(uint16_t*)((char*)&nPackedDst + 2)) {
         do {
-          nPackedPrevPos = __frame0.nPackedSrc;
-          nFpIterX += __frame0.nVelX;
-          nFpIterY += __frame0.nVelY;
+          nPackedPrevPos = nPackedSrc;
+          nFpIterX += nVelX;
+          nFpIterY += nVelY;
           nCurX = (short int)((uint32_t)nFpIterX >> 0x10);
           nIterCoord = (short int)((uint32_t)nFpIterY >> 0x10);
           nParam = (uint32_t)((uint32_t)(uint16_t)nIterCoord << 16 | (uint32_t)(uint16_t)nCurX);
-          if ((short int)__frame0.nPackedSrc != nCurX || (short int)(__frame0.nPackedSrc >> 0x10) != nIterCoord) {
+          if ((short int)nPackedSrc != nCurX || (short int)(nPackedSrc >> 0x10) != nIterCoord) {
             iVar1 = Collision::CheckCollision_BlockPlayer_Type(pRoom, nFpIterX >> 0x10 & 0xffff, nFpIterY >> 0x10 & 0xffff, nUnitType, nLine);
             if (iVar1) {
               *pnParam = nPackedPrevPos;
@@ -1652,15 +1635,15 @@ BOOL __stdcall DRLGPATH_RaycastCollisionLine(int * pVelocity, uint32_t nParam, u
             }
           }
 
-          __frame0.nPackedSrc = nParam;
-        } while (nIterCoord != *(uint16_t*)((char*)&__frame0.nPackedDst + 2));
+          nPackedSrc = nParam;
+        } while (nIterCoord != *(uint16_t*)((char*)&nPackedDst + 2));
       }
     }
-    if (!(short int)__frame0.nPackedDst) {
+    if (!(short int)nPackedDst) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xab);
       exit(-1);
     } else {
-      if (*(uint16_t*)((char*)&__frame0.nPackedDst + 2)) {
+      if (*(uint16_t*)((char*)&nPackedDst + 2)) {
         return 1;
       }
 

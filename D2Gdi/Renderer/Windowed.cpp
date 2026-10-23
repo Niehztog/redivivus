@@ -539,35 +539,27 @@ BOOL __fastcall DrawImage(D2GfxDataStrc * pData, int nPosX, int nPosY, DWORD dwG
 }
 
 void __fastcall DrawShiftedImage(D2GfxDataStrc * pData, int nPosX, int nPosY, DWORD dwGamma, int nDrawMode, int nGlobalPaletteShift) {
-    // Frame slots -12..-4 are ONE object: &nSpriteHeight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nSpriteHeight;
-      int32_t nSpriteWidth;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nSpriteHandle = D2CMP::SRC::SpriteCache::SPRITECACHE_GetOrLoadSprite(pData, 0, 1);
     if (!nSpriteHandle) {
       return;
     }
 
     DC6Block* pDC6Block = pData->pDC6Block;
-    __frame0.nSpriteWidth = D2CMP::SRC::CelCmp::GetDC6Width(pDC6Block);
-    __frame0.nSpriteHeight = D2CMP::SRC::CelCmp::GetDC6Height(pDC6Block);
+    int32_t nSpriteWidth = D2CMP::SRC::CelCmp::GetDC6Width(pDC6Block);
+    int32_t nSpriteHeight = D2CMP::SRC::CelCmp::GetDC6Height(pDC6Block);
     int32_t nOffsetXY = D2CMP::SRC::CelCmp::GetDC6OffsetX(pDC6Block);
-    if (!(nOffsetXY + nPosX < RENDERER_nWindowWidth && -1 < __frame0.nSpriteWidth + nOffsetXY + nPosX)) {
+    if (!(nOffsetXY + nPosX < RENDERER_nWindowWidth && -1 < nSpriteWidth + nOffsetXY + nPosX)) {
       return;
     }
 
     nOffsetXY = D2CMP::SRC::CelCmp::GetDC6OffsetY(pDC6Block);
-    if (!(-1 < nOffsetXY + nPosY && nOffsetXY + nPosY - __frame0.nSpriteHeight < RENDERER_nWindowHeight)) {
+    if (!(-1 < nOffsetXY + nPosY && nOffsetXY + nPosY - nSpriteHeight < RENDERER_nWindowHeight)) {
       return;
     }
 
     uint8_t* pRenderArg1 = 0;
     uint8_t* pPalette = 0;
-    uint8_t* pRenderArg2 = RENDERER_WINDOWED_GetPalettePointer(nDrawMode, (uint32_t*)&__frame0.nSpriteHeight);
+    uint8_t* pRenderArg2 = RENDERER_WINDOWED_GetPalettePointer(nDrawMode, (uint32_t*)&nSpriteHeight);
     if ((dwGamma & 0xff) != 0xff) {
       pRenderArg1 = gpPaletteTable[((int)(dwGamma & 0xff) >> 3) + 3];
     }
@@ -732,17 +724,10 @@ BOOL __stdcall RENDERER_WINDOWED_CheckBlendedShadowsEnabled() {
 }
 
 void __fastcall DrawSolidRectEx(int nXStart, int nYStart, int nXEnd, int nYEnd, DWORD dwColor, int nDrawMode) {
-    // Frame slots -12..-4 are ONE object: &nBlendMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nBlendMode;
-      uint8_t* pPaletteTable;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t* pbPixel;
     int nRowsLeft;
-    __frame0.pPaletteTable = RENDERER_WINDOWED_GetPalettePointer(nDrawMode, (uint32_t*)&__frame0.nBlendMode);
+    int nBlendMode;
+    uint8_t* pPaletteTable = RENDERER_WINDOWED_GetPalettePointer(nDrawMode, (uint32_t*)&nBlendMode);
     uint32_t uMaxX = RENDERER_nWindowWidth - 1;
     uint32_t uClampedYStart = nXStart < 1 ? 0 : nXStart;
     if ((int)uMaxX <= (int)uClampedYStart) {
@@ -777,18 +762,18 @@ void __fastcall DrawSolidRectEx(int nXStart, int nYStart, int nXEnd, int nYEnd, 
 
     int nWidth = uMaxY - uClampedXStart;
     uint8_t* pbScanline = gpRenderBackBufferBits + uClampedYStart + RENDERER_nWindowWidth * uClampedXStart;
-    if (__frame0.nBlendMode == 1) {
+    if (nBlendMode == 1) {
       while (nWidth) {
         nWidth--;
         pbPixel = pbScanline;
         for (nRowsLeft = uMaxX - uClampedYStart; nRowsLeft; nRowsLeft--) {
-          *pbPixel = __frame0.pPaletteTable[*pbPixel];
+          *pbPixel = pPaletteTable[*pbPixel];
           pbPixel++;
         }
 
         pbScanline += RENDERER_nWindowWidth;
       }
-    } else if (__frame0.nBlendMode == 2) {
+    } else if (nBlendMode == 2) {
       if (nWidth) {
         do {
           nWidth--;
@@ -797,7 +782,7 @@ void __fastcall DrawSolidRectEx(int nXStart, int nYStart, int nXEnd, int nYEnd, 
             nRowsLeft = uMaxX - uClampedYStart;
             do {
               nRowsLeft--;
-              *pbPixel = __frame0.pPaletteTable[(uint32_t)*pbPixel * 0x100 + (dwColor & 0xff)];
+              *pbPixel = pPaletteTable[(uint32_t)*pbPixel * 0x100 + (dwColor & 0xff)];
               pbPixel++;
             } while (nRowsLeft);
           }
@@ -1416,31 +1401,25 @@ void RENDERER_WINDOWED_BlitSmackerFrame(D2SmackerContextStrc * pSmacker, int nHe
 }
 
 void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, int nVersion) {
-    // Frame slots -20..-4 are ONE object: &nImgWidth is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nImgWidth;
-      uint32_t nImgBitDepth;
-      uint32_t nImgHeight;
-      DWORD nFileSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     void* _Dst;
     int iVar1;
     uint32_t nPaletteColor;
     uint8_t aPaletteBuf[1024];
+    uint32_t nImgWidth;
+    uint32_t nImgBitDepth;
+    uint32_t nImgHeight;
+    DWORD nFileSize;
     pBuffer->eMode = (char)nVersion;
     if ((char)nVersion == 'p') {
       gnSmackerGlideYOffset.pFrameBuffer = Fog::Memory::AllocClientMemory(0x6db0, ".\\Src\\gdiSmack.cpp", 0x51, 0);
       memset(gnSmackerGlideYOffset.pFrameBuffer, 0, 0x6db0);
       nVersion = 0;
-      __frame0.nFileSize = 0;
-      nPaletteColor = Storm::Source::SFile::SFileLoadFileEx(nullptr, (uint32_t*)szSmacker, (void**)&nVersion, &__frame0.nFileSize, 0, 3, 0);
+      nFileSize = 0;
+      nPaletteColor = Storm::Source::SFile::SFileLoadFileEx(nullptr, (uint32_t*)szSmacker, (void**)&nVersion, &nFileSize, 0, 3, 0);
       if (nPaletteColor && nVersion) {
-        iVar1 = Storm::Source::SBMP::SBmpDecodeImage(2, (void*)nVersion, __frame0.nFileSize, aPaletteBuf, (uint8_t*)gnSmackerGlideYOffset.pFrameBuffer, 0x6db0, &__frame0.nImgWidth, &__frame0.nImgHeight, &__frame0.nImgBitDepth);
+        iVar1 = Storm::Source::SBMP::SBmpDecodeImage(2, (void*)nVersion, nFileSize, aPaletteBuf, (uint8_t*)gnSmackerGlideYOffset.pFrameBuffer, 0x6db0, &nImgWidth, &nImgHeight, &nImgBitDepth);
         Storm::SMem::SMemFree((void*)nVersion, ".\\Src\\gdiSmack.cpp", 0x78, 0);
-        if (iVar1 && __frame0.nImgWidth == 0x1d4 && __frame0.nImgHeight == 0x3c && __frame0.nImgBitDepth == 8) {
+        if (iVar1 && nImgWidth == 0x1d4 && nImgHeight == 0x3c && nImgBitDepth == 8) {
           iVar1 = 0;
           do {
             nPaletteColor = D2CMP::Draw::D2GFX_GetColorWithAlphaFromPallete((LPPALETTEENTRY)gaDirectDrawDitherPaletteRemap, 0x100, (uint32_t)aPaletteBuf[iVar1 * 4], (uint32_t)aPaletteBuf[iVar1 * 4 + 1], (uint32_t)aPaletteBuf[iVar1 * 4 + 2]);

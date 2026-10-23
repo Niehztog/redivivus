@@ -71,24 +71,17 @@ BOOL __fastcall Skills_CltStFunc_AddAuraToggleOverlay(D2UnitStrc * pUnit, eD2Ski
 
 // Client-side helper for Druid shapeshifted melee skills: spawns nParam1 linear-path missiles of eMissileId at the owner's position toward cursor coordinates. If nParam4 is set, first spawns an extra lead missile and decrements the remaining count. Applies nParam3 animation speed override and optional flags0x40 clear (nParam5). Returns 1 on success, 0 if coords unavailable.
 BOOL __fastcall SKILLSDRU_CltCreateShapeShiftMissile(D2UnitStrc * pUnit, int32_t nParam1, eMissilesId eMissileId, eD2Skills eSkill, int32_t nParam2, int32_t nParam3, int32_t nParam4, int32_t nParam5) {
-    // Frame slots -16..-4 are ONE object: &nCoordY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nCoordY;
-      int nCoordX;
-      int nCountdown;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2UnitStrc* pLeadMissile;
     D2SkillArgStrc sSkillArg;
-    __frame0.nCountdown = nParam1;
-    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nCoordX, &__frame0.nCoordY);
+    int nCoordY;
+    int nCoordX;
+    int nCountdown = nParam1;
+    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &nCoordX, &nCoordY);
     if (!bGotCoords) {
       return 0;
     }
     if (nParam4) {
-      __frame0.nCountdown--;
+      nCountdown--;
       pLeadMissile = Skills::MakeMissileAtSkillTarget(pUnit, eMissileId, eSkill, nParam2);
       if (pLeadMissile) {
         if (nParam5) {
@@ -120,9 +113,9 @@ BOOL __fastcall SKILLSDRU_CltCreateShapeShiftMissile(D2UnitStrc * pUnit, int32_t
       sSkillArg.nY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
     }
 
-    int nMissileCount = __frame0.nCountdown;
-    sSkillArg.nUnitX = __frame0.nCoordX;
-    sSkillArg.nUnitY = __frame0.nCoordY;
+    int nMissileCount = nCountdown;
+    sSkillArg.nUnitX = nCoordX;
+    sSkillArg.nUnitY = nCoordY;
     sSkillArg.eSkillNo = eSkill;
     sSkillArg.nSkillLevel = nParam2;
     sSkillArg.nMissileTxtNo = eMissileId;
@@ -130,7 +123,7 @@ BOOL __fastcall SKILLSDRU_CltCreateShapeShiftMissile(D2UnitStrc * pUnit, int32_t
     if (nParam5) {
       sSkillArg.nFlags |= 0x2000;
     }
-    if (0 >= __frame0.nCountdown) {
+    if (0 >= nCountdown) {
       return 1;
     }
 

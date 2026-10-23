@@ -77,27 +77,20 @@ void SetNumericOnly(::EditBoxImplementation * pThis, BOOL bNumericOnly) {
 }
 
 void Draw(::EditBoxImplementation * pThis) {
-    // Frame slots -36..-4 are ONE object: &nLineCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nLineCount;
-      D2TextLineStrc* pNextWrapNode;
-      int nCursorCol;
-      int bCursorDrawn;
-      int nLineIdx;
-      int nCharsAccum;
-      char szCursorChar[2];
-      uint8_t __pad26[2];
-      uint16_t szCursorWchar[2];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nScrollCharOff;
     int32_t nLinePixelWidth;
     D2TextLineStrc* pWrapNode;
     int nCursorPos;
     int nX;
     uint16_t szLineBuf[200];
+    int nLineCount;
+    D2TextLineStrc* pNextWrapNode;
+    int nCursorCol;
+    int bCursorDrawn;
+    int nLineIdx;
+    int nCharsAccum;
+    char szCursorChar[2];
+    uint16_t szCursorWchar[2];
     BOOL bShadow;
     pThis->nBlinkTick++;
     int nYOffset;
@@ -115,11 +108,11 @@ void Draw(::EditBoxImplementation * pThis) {
       pWcharBuf += 2;
     }
 
-    __frame0.szCursorWchar[0] = L'\0';
-    __frame0.szCursorWchar[1] = L'\0';
-    __frame0.szCursorChar[1] = '\0';
-    __frame0.szCursorChar[0] = '_';
-    D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(__frame0.szCursorWchar, __frame0.szCursorChar, 2);
+    szCursorWchar[0] = L'\0';
+    szCursorWchar[1] = L'\0';
+    szCursorChar[1] = '\0';
+    szCursorChar[0] = '_';
+    D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(szCursorWchar, szCursorChar, 2);
     uint32_t uVar1;
     uVar1 = pThis->bCursorVisible;
     if (!uVar1) {
@@ -164,32 +157,32 @@ void Draw(::EditBoxImplementation * pThis) {
           nYOffset = pThis->nTextY;
           nLinePixelWidth = 0;
           nScrollCharOff = D2Win::Src::D2WinFont::DRAW_text0(pThis->wszScratch);
-          D2Win::Src::D2WinFont::DRAW_text(__frame0.szCursorWchar, nScrollCharOff + pThis->nTextX, nYOffset, nLinePixelWidth, bShadow);
+          D2Win::Src::D2WinFont::DRAW_text(szCursorWchar, nScrollCharOff + pThis->nTextX, nYOffset, nLinePixelWidth, bShadow);
           return;
         }
 
-        D2Win::Src::D2WinFont::DRAW_text(__frame0.szCursorWchar, pThis->nTextX, pThis->nTextY, 0, 0);
+        D2Win::Src::D2WinFont::DRAW_text(szCursorWchar, pThis->nTextX, pThis->nTextY, 0, 0);
         return;
       }
     } else {
-      pWrapNode = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(pThis->wszString, &__frame0.nLineCount, pThis->nWidth);
-      __frame0.nLineIdx = 0;
-      __frame0.nCharsAccum = 0;
-      __frame0.bCursorDrawn = 0;
+      pWrapNode = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(pThis->wszString, &nLineCount, pThis->nWidth);
+      nLineIdx = 0;
+      nCharsAccum = 0;
+      bCursorDrawn = 0;
       if (pWrapNode) {
         do {
           D2Win::Src::D2WinFont::DRAW_text(pWrapNode->wszLine, pThis->nTextX, pThis->nTextY + nYOffset, 0, 0);
           nScrollCharOff = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(pWrapNode->wszLine);
-          __frame0.pNextWrapNode = pWrapNode->pNext;
-          __frame0.nCharsAccum += nScrollCharOff;
-          __frame0.nLineIdx++;
+          pNextWrapNode = pWrapNode->pNext;
+          nCharsAccum += nScrollCharOff;
+          nLineIdx++;
           nCursorPos = pThis->nCursorPos;
           nYOffset += 0x14;
-          if (nCursorPos < (int)(uint32_t)pThis->nMaxLength && pThis->bCursorVisible && nCursorPos <= __frame0.nCharsAccum && !__frame0.bCursorDrawn) {
-            __frame0.bCursorDrawn = 1;
-            __frame0.nCursorCol = nCursorPos - __frame0.nCharsAccum + nScrollCharOff;
-            if (__frame0.nCursorCol < 0) {
-              __frame0.nCursorCol = 0;
+          if (nCursorPos < (int)(uint32_t)pThis->nMaxLength && pThis->bCursorVisible && nCursorPos <= nCharsAccum && !bCursorDrawn) {
+            bCursorDrawn = 1;
+            nCursorCol = nCursorPos - nCharsAccum + nScrollCharOff;
+            if (nCursorCol < 0) {
+              nCursorCol = 0;
             }
 
             nScrollCharOff = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(pWrapNode->wszLine);
@@ -208,25 +201,25 @@ void Draw(::EditBoxImplementation * pThis) {
               bShadow = 0;
               nCursorPos = pThis->nTextY - 0x14 + nYOffset;
               nScrollCharOff = 0;
-              szLineBuf[__frame0.nCursorCol] = L'\0';
+              szLineBuf[nCursorCol] = L'\0';
               nLinePixelWidth = D2Win::Src::D2WinFont::DRAW_text0(szLineBuf);
               nX = nLinePixelWidth + pThis->nTextX;
             }
 
-            D2Win::Src::D2WinFont::DRAW_text(__frame0.szCursorWchar, nX, nCursorPos, nScrollCharOff, bShadow);
+            D2Win::Src::D2WinFont::DRAW_text(szCursorWchar, nX, nCursorPos, nScrollCharOff, bShadow);
           }
 
           Fog::Memory::FreeClientMemory(pWrapNode->wszLine, ".\\UI\\editbox.cpp", 0x103, 0);
           Fog::Memory::FreeClientMemory(pWrapNode, ".\\UI\\editbox.cpp", 0x104, 0);
-          pWrapNode = __frame0.pNextWrapNode;
-        } while (__frame0.pNextWrapNode);
+          pWrapNode = pNextWrapNode;
+        } while (pNextWrapNode);
 
-        if (__frame0.nLineIdx) {
+        if (nLineIdx) {
           return;
         }
       }
       if (pThis->bCursorVisible) {
-        D2Win::Src::D2WinFont::DRAW_text(__frame0.szCursorWchar, pThis->nTextX, pThis->nTextY, 0, 0);
+        D2Win::Src::D2WinFont::DRAW_text(szCursorWchar, pThis->nTextX, pThis->nTextY, 0, 0);
       }
     }
 }

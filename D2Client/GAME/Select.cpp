@@ -759,37 +759,18 @@ void __stdcall SELECT_UpdateSelectedUnit() {
     static int gnSelectedUnitId;
     static void * gpSelectLastPlayerRoom;
 
-    // Frame slots -60..-28 are ONE object: &ppRoomList is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppRoomList;
-      uint32_t nRoomCount;
-      uint32_t nRoomIndex;
-      int32_t nPlayerScreenX;
-      uint32_t nPlayerScreenY;
-      int nIterCount;
-      D2UnitStrc* pPrevUnit;
-      D2UnitStrc* pPlayerUnit_lcl;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -24..-4 are ONE object: &nMouseX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      int nMouseX;
-      int nMouseY;
-      int nBestPriority;
-      D2UnitStrc* pCurrentUnit;
-      D2UnitStrc* pBestUnit;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 20, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     uint32_t bHitTest;
     int nIsActive;
     eD2States eUnitState;
     int32_t nBestDistSq;
     D2UnitStrc* pIterUnit;
+    D2RoomStrc** ppRoomList;
+    uint32_t nRoomCount;
+    int nIterCount;
+    D2UnitStrc* pPrevUnit;
     eD2UnitType eCurUnitType;
+    int nBestPriority;
+    D2UnitStrc* pCurrentUnit;
     eD2UnitType eBestType;
     eD2UnitType eBestUnitType;
     D2UnitStrc* pCandidate;
@@ -797,10 +778,12 @@ void __stdcall SELECT_UpdateSelectedUnit() {
       return;
     }
 
-    __frame1.nMouseX = 0;
-    __frame1.nMouseY = 0;
+    int nMouseX;
+    nMouseX = 0;
+    int nMouseY;
+    nMouseY = 0;
     BOOL bIsDeadOrDoor;
-    bIsDeadOrDoor = SELECT_HandleMouseInput(&__frame1.nMouseX, &__frame1.nMouseY);
+    bIsDeadOrDoor = SELECT_HandleMouseInput(&nMouseX, &nMouseY);
     if (bIsDeadOrDoor) {
       return;
     }
@@ -808,7 +791,7 @@ void __stdcall SELECT_UpdateSelectedUnit() {
     D2UnitStrc* pSelectedUnit;
     pSelectedUnit = GetSelectedUnit();
     if (pSelectedUnit) {
-      bHitTest = UNIT::CUnit::HitTestScreen(pSelectedUnit, __frame1.nMouseX, __frame1.nMouseY, (D2ObjectsTxt*)0x1);
+      bHitTest = UNIT::CUnit::HitTestScreen(pSelectedUnit, nMouseX, nMouseY, (D2ObjectsTxt*)0x1);
       if (bHitTest && (pSelectedUnit->eUnitType != UNIT_ITEM || !gbSuppressItemSelection)) {
         SetSelectedUnit_I(pSelectedUnit);
         return;
@@ -821,7 +804,8 @@ void __stdcall SELECT_UpdateSelectedUnit() {
       return;
     }
 
-    __frame0.pPlayerUnit_lcl = pPlayerUnitLocal;
+    D2UnitStrc* pPlayerUnit_lcl;
+    pPlayerUnit_lcl = pPlayerUnitLocal;
     D2RoomStrc* pRoom;
     pRoom = D2Common::Units::UNITS_GetRoom(pPlayerUnitLocal);
     if (!pRoom) {
@@ -832,38 +816,42 @@ void __stdcall SELECT_UpdateSelectedUnit() {
     }
 
     gpSelectLastPlayerRoom = pRoom;
-    __frame0.nPlayerScreenX = Units::GetXPosFromDynamicPathUnit(pPlayerUnitLocal);
-    __frame0.nPlayerScreenY = Units::GetYPosFromDynamicPathUnit(pPlayerUnitLocal);
-    D2Common::Drlg::Transform::CoordsMapToScreen(&__frame0.nPlayerScreenX, (int32_t*)&__frame0.nPlayerScreenY);
-    __frame1.pBestUnit = 0;
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppRoomList, (int*)&__frame0.nRoomCount);
-    __frame0.nRoomIndex = 0;
-    if (__frame0.nRoomCount) {
+    int32_t nPlayerScreenX;
+    nPlayerScreenX = Units::GetXPosFromDynamicPathUnit(pPlayerUnitLocal);
+    uint32_t nPlayerScreenY;
+    nPlayerScreenY = Units::GetYPosFromDynamicPathUnit(pPlayerUnitLocal);
+    D2Common::Drlg::Transform::CoordsMapToScreen(&nPlayerScreenX, (int32_t*)&nPlayerScreenY);
+    D2UnitStrc* pBestUnit;
+    pBestUnit = 0;
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppRoomList, (int*)&nRoomCount);
+    uint32_t nRoomIndex;
+    nRoomIndex = 0;
+    if (nRoomCount) {
       int iVar1;
       do {
-        pIterUnit = __frame0.ppRoomList[__frame0.nRoomIndex]->pUnitList;
-        __frame0.pPrevUnit = 0;
-        __frame0.nIterCount = 0;
-        iVar1 = __frame0.nIterCount;
-        for (; __frame0.nIterCount = iVar1 , __frame1.pCurrentUnit = pIterUnit , pCandidate = __frame1.pBestUnit , pIterUnit != 0; pIterUnit = pIterUnit->pRoomNext) {
+        pIterUnit = ppRoomList[nRoomIndex]->pUnitList;
+        pPrevUnit = 0;
+        nIterCount = 0;
+        iVar1 = nIterCount;
+        for (; nIterCount = iVar1 , pCurrentUnit = pIterUnit , pCandidate = pBestUnit , pIterUnit != 0; pIterUnit = pIterUnit->pRoomNext) {
           if (!pIterUnit) {
             eCurUnitType = UNIT_COUNT;
             consider_candidate:
-            if (__frame0.pPrevUnit == pIterUnit) {
+            if (pPrevUnit == pIterUnit) {
               break;
             }
-            __frame0.nIterCount = iVar1 + 1;
-            __frame0.pPrevUnit = pIterUnit;
+            nIterCount = iVar1 + 1;
+            pPrevUnit = pIterUnit;
             if (30000 < iVar1) {
               Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x218);
               exit(-1);
             }
             if (pIterUnit != pPlayerUnitLocal) {
-              bIsDeadOrDoor = SELECT_IsWarpDoubleClicked(__frame0.nPlayerScreenY, __frame0.nPlayerScreenX, pPlayerUnitLocal, __frame0.nPlayerScreenY, __frame1.nMouseX, __frame1.nMouseY, &gnSelectedUnitId, pIterUnit);
-              pCandidate = __frame1.pBestUnit;
+              bIsDeadOrDoor = SELECT_IsWarpDoubleClicked(nPlayerScreenY, nPlayerScreenX, pPlayerUnitLocal, nPlayerScreenY, nMouseX, nMouseY, &gnSelectedUnitId, pIterUnit);
+              pCandidate = pBestUnit;
               if (!bIsDeadOrDoor && (!pIterUnit || pIterUnit->eUnitType != UNIT_ITEM || !gbSuppressItemSelection)) {
-                bHitTest = UNIT::CUnit::HitTestScreen(pIterUnit, __frame1.nMouseX, __frame1.nMouseY, (D2ObjectsTxt*)0x1);
-                pCandidate = __frame1.pBestUnit;
+                bHitTest = UNIT::CUnit::HitTestScreen(pIterUnit, nMouseX, nMouseY, (D2ObjectsTxt*)0x1);
+                pCandidate = pBestUnit;
                 if (bHitTest) {
                   if (pSelectedUnit == pIterUnit) {
                     iVar1 = UNIT::CUnit::IsActive(pIterUnit);
@@ -874,9 +862,9 @@ void __stdcall SELECT_UpdateSelectedUnit() {
                   }
 
                   pCandidate = pIterUnit;
-                  if (__frame1.pBestUnit) {
-                    eBestUnitType = __frame1.pBestUnit->eUnitType;
-                    __frame1.nBestPriority = gnSelectTimeout[eBestUnitType];
+                  if (pBestUnit) {
+                    eBestUnitType = pBestUnit->eUnitType;
+                    nBestPriority = gnSelectTimeout[eBestUnitType];
                     iVar1 = gnSelectTimeout[eCurUnitType];
                     if (eCurUnitType == UNIT_PLAYER) {
                       nIsActive = UNIT::CUnit::IsActive(pIterUnit);
@@ -890,20 +878,20 @@ void __stdcall SELECT_UpdateSelectedUnit() {
                       }
 
                       eUnitState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pIterUnit, STATE_attached);
-                      pCandidate = __frame1.pBestUnit;
+                      pCandidate = pBestUnit;
                       if (eUnitState != STATE_none) {
                         goto next_unit;
                       }
                     }
                     if (eBestUnitType == UNIT_MONSTER) {
-                      bIsDeadOrDoor = D2Common::Monsters::MONSTERS::CheckIfMonsterIsDead(__frame1.pBestUnit);
+                      bIsDeadOrDoor = D2Common::Monsters::MONSTERS::CheckIfMonsterIsDead(pBestUnit);
                       if (bIsDeadOrDoor) {
-                        __frame1.nBestPriority = -8;
+                        nBestPriority = -8;
                       }
                     }
 
-                    pCandidate = __frame1.pBestUnit;
-                    pPlayerUnitLocal = __frame0.pPlayerUnit_lcl;
+                    pCandidate = pBestUnit;
+                    pPlayerUnitLocal = pPlayerUnit_lcl;
                     if (eCurUnitType == UNIT_OBJECT) {
                       if (eBestUnitType == UNIT_OBJECT) {
                         goto compare_priority_or_distance;
@@ -914,40 +902,40 @@ void __stdcall SELECT_UpdateSelectedUnit() {
                         goto pick_higher_priority;
                       }
 
-                      bHitTest = SELECT_IsUnitBehindDoor(__frame1.pBestUnit, pIterUnit);
-                      pIterUnit = __frame1.pCurrentUnit;
-                      pCandidate = __frame1.pBestUnit;
-                      if (bHitTest && __frame1.nBestPriority < iVar1) {
-                        __frame1.pBestUnit = __frame1.pCurrentUnit;
-                        pCandidate = __frame1.pBestUnit;
+                      bHitTest = SELECT_IsUnitBehindDoor(pBestUnit, pIterUnit);
+                      pIterUnit = pCurrentUnit;
+                      pCandidate = pBestUnit;
+                      if (bHitTest && nBestPriority < iVar1) {
+                        pBestUnit = pCurrentUnit;
+                        pCandidate = pBestUnit;
                       }
                     } else if (eBestUnitType == UNIT_OBJECT) {
-                      bIsDeadOrDoor = D2Common::Units::IsDoor(__frame1.pBestUnit);
+                      bIsDeadOrDoor = D2Common::Units::IsDoor(pBestUnit);
                       if (!bIsDeadOrDoor) {
                         pick_higher_priority:
-                        pCandidate = __frame1.pBestUnit;
-                        if (__frame1.nBestPriority < iVar1) {
+                        pCandidate = pBestUnit;
+                        if (nBestPriority < iVar1) {
                           pCandidate = pIterUnit;
                         }
                       } else {
                         bHitTest = SELECT_IsDoorBlockingUnit(pIterUnit, pCandidate);
-                        pIterUnit = __frame1.pCurrentUnit;
-                        pCandidate = __frame1.pBestUnit;
+                        pIterUnit = pCurrentUnit;
+                        pCandidate = pBestUnit;
                         if (bHitTest) {
-                          __frame1.pBestUnit = __frame1.pCurrentUnit;
-                          pCandidate = __frame1.pBestUnit;
+                          pBestUnit = pCurrentUnit;
+                          pCandidate = pBestUnit;
                         }
                       }
                     } else {
                       compare_priority_or_distance:
-                      if (__frame1.nBestPriority == iVar1) {
-                        eCurUnitType = SELECT_GetDistanceSquared(pIterUnit, __frame0.pPlayerUnit_lcl);
-                        nBestDistSq = SELECT_GetDistanceSquared(__frame1.pBestUnit, pPlayerUnitLocal);
-                        pCandidate = __frame1.pBestUnit;
+                      if (nBestPriority == iVar1) {
+                        eCurUnitType = SELECT_GetDistanceSquared(pIterUnit, pPlayerUnit_lcl);
+                        nBestDistSq = SELECT_GetDistanceSquared(pBestUnit, pPlayerUnitLocal);
+                        pCandidate = pBestUnit;
                         if ((int)eCurUnitType < nBestDistSq) {
                           pCandidate = pIterUnit;
                         }
-                      } else if (__frame1.nBestPriority < iVar1) {
+                      } else if (nBestPriority < iVar1) {
                         pCandidate = pIterUnit;
                       }
                     }
@@ -963,17 +951,17 @@ void __stdcall SELECT_UpdateSelectedUnit() {
           }
 
           next_unit:
-          __frame1.pBestUnit = pCandidate;
-          pPlayerUnitLocal = __frame0.pPlayerUnit_lcl;
-          iVar1 = __frame0.nIterCount;
+          pBestUnit = pCandidate;
+          pPlayerUnitLocal = pPlayerUnit_lcl;
+          iVar1 = nIterCount;
         }
 
-        __frame1.pBestUnit = pCandidate;
-        __frame0.nRoomIndex++;
-      } while (__frame0.nRoomIndex < __frame0.nRoomCount);
+        pBestUnit = pCandidate;
+        nRoomIndex++;
+      } while (nRoomIndex < nRoomCount);
     }
 
-    SetSelectedUnit_I(__frame1.pBestUnit);
+    SetSelectedUnit_I(pBestUnit);
 }
 
 } // namespace D2Client::GAME::Select

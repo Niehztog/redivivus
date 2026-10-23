@@ -2432,21 +2432,15 @@ void BigBuffer_FromStr(BigBuffer * pResult, char * szText) {
 // @oracle Mac PPC 1.10b Storm mangled symbol .FromStream__FR9BigBufferPCvUiPUi @1009b620 -- 4 args with a bytes-consumed out-param; decodes the length prefix then calls FromBinary, exactly as .FromStream does. Was SBIG_ImportVarint.
 // @oracle-note Internal, NOT an export: absent from the 337-name export table by design. The real symbol is the free function without a class qualifier; the BigBuffer_ prefix is a local disambiguator, and _Ui / _Ux are the MWCC mangling tokens for the scalar overloads.
 void __stdcall BigBuffer_FromStream(BigBuffer * pResult, int * pnBytesRead, uint8_t * pSrc, uint32_t nMaxLen) {
-    // Frame slots -12..-4 are ONE object: &nPayloadLen is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nPayloadLen;
-      uint32_t nHeaderLen;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    BigBuffer_DecodeDataBytes(&__frame0.nHeaderLen, pSrc, &__frame0.nPayloadLen, nMaxLen);
-    BigBuffer_FromBinary(pSrc + __frame0.nHeaderLen, __frame0.nPayloadLen, pResult);
+    uint32_t nPayloadLen;
+    uint32_t nHeaderLen;
+    BigBuffer_DecodeDataBytes(&nHeaderLen, pSrc, &nPayloadLen, nMaxLen);
+    BigBuffer_FromBinary(pSrc + nHeaderLen, nPayloadLen, pResult);
     if (!pnBytesRead) {
       return;
     }
 
-    *pnBytesRead = __frame0.nHeaderLen + __frame0.nPayloadLen;
+    *pnBytesRead = nHeaderLen + nPayloadLen;
 }
 
 // @renamed-from SBIG_SetValue (2026-08-28, Storm PowerPC oracle pass 4)
@@ -2508,20 +2502,13 @@ void BigBuffer_ToBinary(BigBuffer * pBigNum, TSGrowableArray_Uc * pOutBuffer) {
 // @oracle Mac PPC 1.10b Storm mangled symbol .ToStr__FR29TSGrowableArray<Uc,8TSCD<Uc>>RC9BigBufferR8BigStack @1009a330 -- the target of all three SBigToStr* forms; callee set {Div_Ux, Compare_Ui} matches .ToStr exactly. Was SBIG_ExportDecimalString.
 // @oracle-note Internal, NOT an export: absent from the 337-name export table by design. The real symbol is the free function without a class qualifier; the BigBuffer_ prefix is a local disambiguator, and _Ui / _Ux are the MWCC mangling tokens for the scalar overloads.
 void __stdcall BigBuffer_ToStr(BigStack * pStack, BigBuffer * pValue, TSGrowableArray_Uc * pOutBuffer) {
-    // Frame slots -12..-4 are ONE object: &nDigit is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nDigit;
-      uint8_t __pad4[3];
-      uint8_t cDigitChar;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int iVar2;
     int32_t bNonZero;
     uint32_t uBitIter;
     uint32_t nNeededLen;
     uint32_t nChunkSize;
+    uint32_t nDigit;
+    uint8_t cDigitChar;
     uint8_t byTmp;
     BigBuffer* pDividend = pStack->aBuffers + pStack->nUsed;
     pStack->nUsed++;
@@ -2533,8 +2520,8 @@ void __stdcall BigBuffer_ToStr(BigStack * pStack, BigBuffer * pValue, TSGrowable
     pDividend->nStartWord = pValue->nStartWord;
     pOutBuffer->nLen = 0;
     do {
-      BigBuffer_Div_Ux(&__frame0.nDigit, pDividend, 10, 0, pDividend);
-      __frame0.cDigitChar = (char)__frame0.nDigit + '0';
+      BigBuffer_Div_Ux(&nDigit, pDividend, 10, 0, pDividend);
+      cDigitChar = (char)nDigit + '0';
       nNeededLen = pOutBuffer->nLen + 1;
       if (pOutBuffer->nCapacity < nNeededLen) {
         nChunkSize = pOutBuffer->nGrowStep;
@@ -2560,7 +2547,7 @@ void __stdcall BigBuffer_ToStr(BigStack * pStack, BigBuffer * pValue, TSGrowable
         TSFixedArray_Uc_ReallocData(pOutBuffer, nNeededLen);
       }
       if (pOutBuffer->pData + pOutBuffer->nLen) {
-        pOutBuffer->pData[pOutBuffer->nLen] = __frame0.cDigitChar;
+        pOutBuffer->pData[pOutBuffer->nLen] = cDigitChar;
       }
 
       pOutBuffer->nLen++;
@@ -2568,8 +2555,8 @@ void __stdcall BigBuffer_ToStr(BigStack * pStack, BigBuffer * pValue, TSGrowable
     } while (bNonZero);
 
     nChunkSize = pOutBuffer->nLen;
-    __frame0.nDigit = nChunkSize >> 1;
-    if (__frame0.nDigit) {
+    nDigit = nChunkSize >> 1;
+    if (nDigit) {
       uint8_t* puVar1;
       uBitIter = 0;
       do {
@@ -2579,7 +2566,7 @@ void __stdcall BigBuffer_ToStr(BigStack * pStack, BigBuffer * pValue, TSGrowable
         puVar1[uBitIter] = puVar1[nChunkSize + (-1 - uBitIter)];
         uBitIter++;
         puVar1[nChunkSize + iVar2] = byTmp;
-      } while (uBitIter < __frame0.nDigit);
+      } while (uBitIter < nDigit);
     }
 
     nNeededLen = pOutBuffer->nLen + 1;
@@ -4222,33 +4209,27 @@ int32_t __stdcall BigBuffer_IsPrime(BigStack * pStack, BigBuffer * pnCandidate) 
     0x3fd
 };
 
-    // Frame slots -28..-4 are ONE object: &nIterOrRem is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nIterOrRem;
-      BigBuffer* pnOddPart;
-      uint32_t nPrimeIdx;
-      BigBuffer* pnNegOne;
-      BigBuffer* pnWitness;
-      int bIsProbablePrime;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BigBuffer* pBignum;
     BigBuffer* pBVar1;
     BOOL nCmp;
     int32_t nCmpResult;
+    uint32_t nIterOrRem;
+    uint32_t nPrimeIdx;
     BigBuffer* pnTmp;
     uint32_t nSquareCount;
     uint32_t dwLowWord;
     dwLowWord = pStack->nUsed;
-    __frame0.pnNegOne = pStack->aBuffers + dwLowWord;
-    __frame0.pnOddPart = pStack->aBuffers + dwLowWord + 1;
+    BigBuffer* pnNegOne;
+    pnNegOne = pStack->aBuffers + dwLowWord;
+    BigBuffer* pnOddPart;
+    pnOddPart = pStack->aBuffers + dwLowWord + 1;
     BigBuffer* pQuotient;
     pQuotient = pStack->aBuffers + dwLowWord + 2;
-    __frame0.pnWitness = pStack->aBuffers + dwLowWord + 3;
+    BigBuffer* pnWitness;
+    pnWitness = pStack->aBuffers + dwLowWord + 3;
     pStack->nUsed = dwLowWord + 4;
-    __frame0.bIsProbablePrime = 1;
+    int bIsProbablePrime;
+    bIsProbablePrime = 1;
     SBIG_TrimLeadingZeros(pnCandidate);
     uint32_t nShift;
     nShift = BigBuffer_IsZero(pnCandidate);
@@ -4263,117 +4244,117 @@ int32_t __stdcall BigBuffer_IsPrime(BigStack * pStack, BigBuffer * pnCandidate) 
       }
     }
 
-    __frame0.bIsProbablePrime = 0;
+    bIsProbablePrime = 0;
     trial_division:
-    if (__frame0.bIsProbablePrime) {
-      __frame0.nPrimeIdx = 0;
+    if (bIsProbablePrime) {
+      nPrimeIdx = 0;
       do {
-        pBVar1 = __frame0.pnWitness;
-        if (0x2ab < __frame0.nPrimeIdx) {
+        pBVar1 = pnWitness;
+        if (0x2ab < nPrimeIdx) {
           break;
         }
         if (false || false) {
-          BigBuffer_FromUnsigned(*(uint32_t*)((int)gaSBigSmallPrimesTable + __frame0.nPrimeIdx), __frame0.pnWitness);
-          pBignum = __frame0.pnOddPart;
-          BigBuffer_Div(pQuotient, __frame0.pnOddPart, pBVar1, pStack, pnCandidate);
+          BigBuffer_FromUnsigned(*(uint32_t*)((int)gaSBigSmallPrimesTable + nPrimeIdx), pnWitness);
+          pBignum = pnOddPart;
+          BigBuffer_Div(pQuotient, pnOddPart, pBVar1, pStack, pnCandidate);
           nShift = BigBuffer_IsZero(pBignum);
           if (nShift) {
             nCmp = BigBuffer_IsOne(pQuotient);
             if (!nCmp) {
-              __frame0.bIsProbablePrime = 0;
+              bIsProbablePrime = 0;
             }
           }
         } else {
-          BigBuffer_Div_Ux(&__frame0.nIterOrRem, pnCandidate, *(uint32_t*)((int)gaSBigSmallPrimesTable + __frame0.nPrimeIdx), 0, pQuotient);
-          if (!__frame0.nIterOrRem) {
+          BigBuffer_Div_Ux(&nIterOrRem, pnCandidate, *(uint32_t*)((int)gaSBigSmallPrimesTable + nPrimeIdx), 0, pQuotient);
+          if (!nIterOrRem) {
             nCmp = BigBuffer_IsOne(pQuotient);
             if (!nCmp) {
-              __frame0.bIsProbablePrime = 0;
+              bIsProbablePrime = 0;
             }
           }
         }
 
-        __frame0.nPrimeIdx += 4;
-      } while (__frame0.bIsProbablePrime);
+        nPrimeIdx += 4;
+      } while (bIsProbablePrime);
     }
-    BigBuffer_Sub_Ui(pnCandidate, __frame0.pnNegOne, 1);
-    pBVar1 = __frame0.pnOddPart;
-    if (__frame0.pnOddPart != __frame0.pnNegOne) {
-      TSBaseArray_Ui_Copy(&__frame0.pnOddPart->nCapacity, __frame0.pnNegOne->nCount, __frame0.pnNegOne->pData);
+    BigBuffer_Sub_Ui(pnCandidate, pnNegOne, 1);
+    pBVar1 = pnOddPart;
+    if (pnOddPart != pnNegOne) {
+      TSBaseArray_Ui_Copy(&pnOddPart->nCapacity, pnNegOne->nCount, pnNegOne->pData);
     }
 
-    pBVar1->nGrowStep = __frame0.pnNegOne->nGrowStep;
-    pBVar1->nStartWord = __frame0.pnNegOne->nStartWord;
+    pBVar1->nGrowStep = pnNegOne->nGrowStep;
+    pBVar1->nStartWord = pnNegOne->nStartWord;
     nShift = SBIG_BigBuffer_FindLowestBit(pBVar1);
     if (nShift) {
       BigBuffer_Shr(pBVar1, pBVar1, nShift);
     }
-    if (__frame0.bIsProbablePrime) {
+    if (bIsProbablePrime) {
       int iVar2;
-      __frame0.nPrimeIdx = 0;
+      nPrimeIdx = 0;
       do {
-        pBVar1 = __frame0.pnWitness;
-        if (0x17 < __frame0.nPrimeIdx) {
+        pBVar1 = pnWitness;
+        if (0x17 < nPrimeIdx) {
           break;
         }
 
-        BigBuffer_FromUnsigned(*(uint32_t*)((int)gaSBigSmallPrimesTable + __frame0.nPrimeIdx), __frame0.pnWitness);
+        BigBuffer_FromUnsigned(*(uint32_t*)((int)gaSBigSmallPrimesTable + nPrimeIdx), pnWitness);
         nCmpResult = BigBuffer_Compare(pBVar1, pnCandidate);
         if (-1 < nCmpResult) {
           break;
         }
 
-        BigBuffer_PowMod(pQuotient, pBVar1, __frame0.pnOddPart, pnCandidate, pStack);
+        BigBuffer_PowMod(pQuotient, pBVar1, pnOddPart, pnCandidate, pStack);
         nCmp = BigBuffer_IsOne(pQuotient);
         if (!nCmp) {
-          iVar2 = BigBuffer_Compare(pQuotient, __frame0.pnNegOne);
+          iVar2 = BigBuffer_Compare(pQuotient, pnNegOne);
           nSquareCount = 0;
           while (iVar2) {
-            __frame0.nIterOrRem = nSquareCount + 1;
-            if (__frame0.nIterOrRem == nShift) {
-              __frame0.bIsProbablePrime = 0;
+            nIterOrRem = nSquareCount + 1;
+            if (nIterOrRem == nShift) {
+              bIsProbablePrime = 0;
               break;
             }
 
             BigBuffer_MulMod(pQuotient, pQuotient, pQuotient, pnCandidate, pStack);
             nCmp = BigBuffer_IsOne(pQuotient);
             if (nCmp) {
-              __frame0.bIsProbablePrime = 0;
+              bIsProbablePrime = 0;
               break;
             }
 
-            iVar2 = BigBuffer_Compare(pQuotient, __frame0.pnNegOne);
-            nSquareCount = __frame0.nIterOrRem;
+            iVar2 = BigBuffer_Compare(pQuotient, pnNegOne);
+            nSquareCount = nIterOrRem;
           }
         }
 
-        __frame0.nPrimeIdx += 4;
-      } while (__frame0.bIsProbablePrime);
+        nPrimeIdx += 4;
+      } while (bIsProbablePrime);
     }
-    if (!__frame0.bIsProbablePrime) {
+    if (!bIsProbablePrime) {
       pStack->nUsed -= 4;
       return 0;
     }
 
-    __frame0.pnOddPart = 0;
+    pnOddPart = 0;
     do {
-      pBVar1 = __frame0.pnWitness;
-      if (3 < (uintptr_t)__frame0.pnOddPart) {
+      pBVar1 = pnWitness;
+      if (3 < (uintptr_t)pnOddPart) {
         break;
       }
 
-      BigBuffer_FromUnsigned(*(uint32_t*)((uintptr_t)&gnSBigMillerRabinWitness + (int)__frame0.pnOddPart), __frame0.pnWitness);
+      BigBuffer_FromUnsigned(*(uint32_t*)((uintptr_t)&gnSBigMillerRabinWitness + (int)pnOddPart), pnWitness);
       BigBuffer_PowMod(pQuotient, pBVar1, pnCandidate, pnCandidate, pStack);
       nCmpResult = BigBuffer_Compare(pQuotient, pBVar1);
       if (nCmpResult) {
-        __frame0.bIsProbablePrime = 0;
+        bIsProbablePrime = 0;
       }
 
-      __frame0.pnOddPart = (BigBuffer*)((int)__frame0.pnOddPart + 4);
-    } while (__frame0.bIsProbablePrime);
+      pnOddPart = (BigBuffer*)((int)pnOddPart + 4);
+    } while (bIsProbablePrime);
 
     pStack->nUsed -= 4;
-    return __frame0.bIsProbablePrime;
+    return bIsProbablePrime;
 }
 
 // @renamed-from SBIG_MillerRabinTestWrapper (2026-08-28, Storm PowerPC oracle pass 4)

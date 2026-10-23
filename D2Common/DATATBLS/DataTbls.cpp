@@ -1659,15 +1659,14 @@ void __fastcall TXT_SaveTableToBinFile(D2PoolManagerStrc * pMemory, char * szTab
 // Loads and compiles Skills.txt and SkillDesc.txt into the engine's runtime tables. Builds two large D2BinFieldInputStrc schemas (skills: flags, mana/level reqs, damage, elemental, calc/srvprgfunc string-linker columns, state and reqskill cross-links; skilldesc) and compiles both into sgtDataTable (pTxtSkills/nTxtSkillsCount, pTxtSkillDesc/nTxtSkillDescSize, their txt-links, nPassiveSkillsCount). Also derives per-class skill index tables (pSkillsPerClassStrc, pPassiveSkillsPerClassStrc, pSkillsPerClassCounter, nSkillCountMaxPerClass) and cross-references pets (pTxtPetType.nSkillId). Caches skillscode/skilldesccode bins. Must run after pTxtPetType is loaded; halts via ErrorManager on count overflow. Skill record stride 0x23c. __stdcall(pMemory).
 // @sourcefile .\DATATBLS\DataTbls.cpp
 void __stdcall TXT_AllocTxt_skill_skilldesc(D2PoolManagerStrc * pMemory) {
-    // Frame slots -20..-4 are ONE object: &nMonStatsSize is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -16..-4 are ONE object: &pSkillDescLink is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      int nMonStatsSize;
       D2TxtLinkStrc* pSkillDescLink;
       D2TxtLinkStrc* pMonStatsLink;
       D2TxtLinkStrc* pSkillsLink;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     void* pTxtTable;
     D2SkillsTxt* local_EAX_15292;
@@ -1677,6 +1676,7 @@ void __stdcall TXT_AllocTxt_skill_skilldesc(D2PoolManagerStrc * pMemory) {
     D2BinFieldInputStrc pskilldesc[114];
     D2BinFieldInputStrc monstats[2];
     D2BinFieldInputStrc skilldesc[2];
+    int nMonStatsSize;
     D2SkillsTxt* nSkillId;
     char nPetType;
     D2PetTypeTxt* pSkillTxt;
@@ -3471,7 +3471,7 @@ void __stdcall TXT_AllocTxt_skill_skilldesc(D2PoolManagerStrc * pMemory) {
       monstats[1].nOffset = 0;
       monstats[1].fpLinker = 0;
       __frame0.pMonStatsLink = Fog::Src::Excel::STRUCT_CreateTxtLinkStrc(".\\DATATBLS\\DataTbls.cpp", 0x52c);
-      pMonStatsTable = CompileTxt(pMemory, "monstats", monstats, &__frame0.nMonStatsSize, 2);
+      pMonStatsTable = CompileTxt(pMemory, "monstats", monstats, &nMonStatsSize, 2);
       skilldesc[0].fpLinker = &__frame0.pSkillDescLink;
       skilldesc[0].szName = "skilldesc";
       skilldesc[0].eType = FIELDTYPE_NAME_I_WORD;
@@ -3483,7 +3483,7 @@ void __stdcall TXT_AllocTxt_skill_skilldesc(D2PoolManagerStrc * pMemory) {
       skilldesc[1].nOffset = 0;
       skilldesc[1].fpLinker = 0;
       __frame0.pSkillDescLink = Fog::Src::Excel::STRUCT_CreateTxtLinkStrc(".\\DATATBLS\\DataTbls.cpp", 0x535);
-      pTxtTable = CompileTxt(pMemory, "skilldesc", skilldesc, &__frame0.nMonStatsSize, 2);
+      pTxtTable = CompileTxt(pMemory, "skilldesc", skilldesc, &nMonStatsSize, 2);
     }
 
     sgtDataTable.pTxtSkillsLink = Fog::Src::Excel::STRUCT_CreateTxtLinkStrc(".\\DATATBLS\\DataTbls.cpp", 0x53c);

@@ -1021,15 +1021,9 @@ eD2LevelId __fastcall GetLevelId(D2RoomExStrc * pRoomEx) {
 }
 
 eD2LevelId __fastcall DRLGWARP_GetWarpDestinationLevel(D2RoomExStrc * pRoomEx, eD2LevelId eLevel) {
-    // Frame slots -12..-4 are ONE object: &pOrth is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2DrlgOrthStrc* pOrth;
-      D2RoomExStrc* pRoomExDest;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    D2RoomStrc* pRoom = DRLGWARP_GetWarpDestinationRoom(pRoomEx, eLevel, &__frame0.pOrth, &__frame0.pRoomExDest);
+    D2DrlgOrthStrc* pOrth;
+    D2RoomExStrc* pRoomExDest;
+    D2RoomStrc* pRoom = DRLGWARP_GetWarpDestinationRoom(pRoomEx, eLevel, &pOrth, &pRoomExDest);
     if (!pRoom) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x25c);
       exit(-1);

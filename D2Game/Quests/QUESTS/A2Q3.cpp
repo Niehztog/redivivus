@@ -575,15 +575,6 @@ BOOL __fastcall Q11_OnStaffViperPickup(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
 // records RewardAwaits+JustCompleted (clearing CannotComplete), runs the room-complete/party/sound iterators,
 // SetQuestRecordState JustCompleted, drops body-part reward items + gold, and arms Q11_OnEndCallback timer.
 BOOL __fastcall OBJOP_A2Q3_ActivateHoradricStaffAltar(D2ObjectOperateFnArg * pOperation) {
-    // Frame slots -16..-4 are ONE object: &pGame3 is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      ::SGAMEDATA* pGame3;
-      int nDroppedItemCount;
-      D2QuestDataStrc* pTaintedSunQuestData;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2UnitStrc* pPlayerData;
     D2RoomStrc* pRoom;
     D2SeedStrc* pQuestSeed;
@@ -591,6 +582,8 @@ BOOL __fastcall OBJOP_A2Q3_ActivateHoradricStaffAltar(D2ObjectOperateFnArg * pOp
     int32_t nAltarGUID;
     int iDropLoop;
     eD2LevelId eLevelId;
+    ::SGAMEDATA* pGame3;
+    int nDroppedItemCount;
     int32_t* ppDroppedBodyPartCount;
     D2SeedStrc seedNext;
     D2QuestDataStrc* pHoradricStaffQuestData = GetQuestDataByQuestNoInternal(pOperation->sArg.pGame, QUESTINT_TheTaintedSun);
@@ -599,7 +592,7 @@ BOOL __fastcall OBJOP_A2Q3_ActivateHoradricStaffAltar(D2ObjectOperateFnArg * pOp
     }
 
     ::SGAMEDATA* pGame2 = pOperation->sArg.pGame;
-    __frame0.pTaintedSunQuestData = pHoradricStaffQuestData;
+    D2QuestDataStrc* pTaintedSunQuestData = pHoradricStaffQuestData;
     D2UnitDataPlayerStrc* pAttackerPlayerData = D2Common::Units::GetPlayerData(pOperation->pAttacker);
     D2BitBufferStrc* pBitBuffer = pAttackerPlayerData->pQuestRecord[pGame2->nDifficulty];
     BOOL bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheTaintedSun, QUESTSTATE_RewardAwaits);
@@ -612,7 +605,7 @@ BOOL __fastcall OBJOP_A2Q3_ActivateHoradricStaffAltar(D2ObjectOperateFnArg * pOp
       pPlayerData = pOperation->sArg.pVictim;
       if (!pPlayerData || pPlayerData->eAnimMode.ePlayerMode == Death) {
         pDVar1 = pHoradricStaffQuestData->pQuestSpecificData.pA2Q3;
-        if (__frame0.pTaintedSunQuestData->bIsNotIntroduction) {
+        if (pTaintedSunQuestData->bIsNotIntroduction) {
           pRoom = D2Common::Units::UNITS_GetRoom(pPlayerData);
           pDVar1->pAltarRoom = pRoom;
           eAltarLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
@@ -629,22 +622,22 @@ BOOL __fastcall OBJOP_A2Q3_ActivateHoradricStaffAltar(D2ObjectOperateFnArg * pOp
 
           pDVar1->nViperAmuletUnitGUID = nAltarGUID;
           pDVar1->bTaintedSunStartedFailed = true;
-          if (__frame0.pTaintedSunQuestData->bIsNotIntroduction) {
-            __frame0.pGame3 = __frame0.pTaintedSunQuestData->pGame;
-            if (__frame0.pGame3->pAct[1]) {
-              __frame0.pTaintedSunQuestData->pQuestSpecificData.pA1Q2->bRewardGiven = false;
-              D2Common::Environment::DRLGENV_TaintedSunEnd(__frame0.pGame3->pAct[1]);
-              UNIT::SUnit::IteratePlayerOrMonsterUnits(__frame0.pGame3, 0, nullptr, (::fpExecuteOnUnitFunction)Q11_SendSunRestoredPacket);
+          if (pTaintedSunQuestData->bIsNotIntroduction) {
+            pGame3 = pTaintedSunQuestData->pGame;
+            if (pGame3->pAct[1]) {
+              pTaintedSunQuestData->pQuestSpecificData.pA1Q2->bRewardGiven = false;
+              D2Common::Environment::DRLGENV_TaintedSunEnd(pGame3->pAct[1]);
+              UNIT::SUnit::IteratePlayerOrMonsterUnits(pGame3, 0, nullptr, (::fpExecuteOnUnitFunction)Q11_SendSunRestoredPacket);
             }
 
-            QUEST_DebugPrint(__frame0.pTaintedSunQuestData->pGame, "Finished quest", "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q3.cpp", 0x3df);
-            QUEST_SetStateFlag(__frame0.pTaintedSunQuestData, 4, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q3.cpp", 0x3e0);
-            NotifyPlayersAboutEvent(__frame0.pTaintedSunQuestData->pGame, 6);
+            QUEST_DebugPrint(pTaintedSunQuestData->pGame, "Finished quest", "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q3.cpp", 0x3df);
+            QUEST_SetStateFlag(pTaintedSunQuestData, 4, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q3.cpp", 0x3e0);
+            NotifyPlayersAboutEvent(pTaintedSunQuestData->pGame, 6);
           }
 
           pDVar1->nViperAmuletDropCount = 0;
           UNIT::SUnit::IteratePlayerOrMonsterUnits(pOperation->sArg.pGame, 0, pOperation->pAttacker, (::fpExecuteOnUnitFunction)Q11_OnStaffViperPickup);
-          if (__frame0.pTaintedSunQuestData->bIsNotIntroduction) {
+          if (pTaintedSunQuestData->bIsNotIntroduction) {
             /* GetQuestState(buf, A2Q3, 0=Completed) - only write completion if not already
                          Completed */ bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheTaintedSun, QUESTSTATE_Completed);
             if (!bQuestState) {
@@ -660,29 +653,29 @@ BOOL __fastcall OBJOP_A2Q3_ActivateHoradricStaffAltar(D2ObjectOperateFnArg * pOp
             UNIT::SUnit::IteratePlayerOrMonsterUnits(pOperation->sArg.pGame, 0, pOperation->sArg.pVictim, (::fpExecuteOnUnitFunction)Q11_PropagateRewardToParty);
             UNIT::SUnit::IteratePlayerOrMonsterUnits(pOperation->sArg.pGame, 0, pOperation->sArg.pVictim, (::fpExecuteOnUnitFunction)Q11_PlayCompletionSound);
             /* SetQuestRecordState(game, A2Q3, 0xd=JustCompleted) - broadcast completion to
-                         all participants */ QUEST_SetQuestRecordState(pOperation->sArg.pGame, __frame0.pTaintedSunQuestData->nQuestIdReal, QUESTSTATE_JustCompleted);
+                         all participants */ QUEST_SetQuestRecordState(pOperation->sArg.pGame, pTaintedSunQuestData->nQuestIdReal, QUESTSTATE_JustCompleted);
           }
 
           eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pDVar1->pAltarRoom);
           pOperation->sArg.pVictim->dwDropItemCode = 0x20706976;
-          __frame0.nDroppedItemCount = 0;
+          nDroppedItemCount = 0;
           if (0 < pDVar1->nViperAmuletDropCount) {
             iDropLoop = 0;
             do {
               pPlayerData = ITEMS::Items::Drop::ITEM_RewardItemToDrop(pOperation->sArg.pGame, pOperation->sArg.pVictim, ITEMTYPE_PlayerBodyPart, (int32_t*)&eLevelId, nullptr, -1, 0);
               if (pPlayerData) {
                 D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pPlayerData, ITEMFLAG_IDENTIFIED, 1);
-                __frame0.nDroppedItemCount++;
+                nDroppedItemCount++;
               }
 
               iDropLoop++;
             } while (iDropLoop < pDVar1->nViperAmuletDropCount);
           }
 
-          pHoradricStaffQuestData = GetQuestDataByQuestNoInternal(__frame0.pTaintedSunQuestData->pGame, QUESTINT_TheHoradricStaff);
+          pHoradricStaffQuestData = GetQuestDataByQuestNoInternal(pTaintedSunQuestData->pGame, QUESTINT_TheHoradricStaff);
           if (pHoradricStaffQuestData) {
             ppDroppedBodyPartCount = &pHoradricStaffQuestData->pQuestSpecificData.pA2Q2->nVipCount;
-            *ppDroppedBodyPartCount += __frame0.nDroppedItemCount;
+            *ppDroppedBodyPartCount += nDroppedItemCount;
           }
 
           Objects::ObjectsMode::RollChestDrops(pOperation, ITEMTYPE_Gold);
@@ -697,8 +690,8 @@ BOOL __fastcall OBJOP_A2Q3_ActivateHoradricStaffAltar(D2ObjectOperateFnArg * pOp
             } while (iDropLoop);
           }
 
-          pHoradricStaffQuestData = __frame0.pTaintedSunQuestData;
-          UNIT::SUnit::IteratePlayerOrMonsterUnits(__frame0.pTaintedSunQuestData->pGame, 0, nullptr, (::fpExecuteOnUnitFunction)Q11_SetCannotComplete);
+          pHoradricStaffQuestData = pTaintedSunQuestData;
+          UNIT::SUnit::IteratePlayerOrMonsterUnits(pTaintedSunQuestData->pGame, 0, nullptr, (::fpExecuteOnUnitFunction)Q11_SetCannotComplete);
           AddQuestTimer(pHoradricStaffQuestData, Q11_OnEndCallback, 10);
           return 0;
         }
@@ -710,15 +703,15 @@ BOOL __fastcall OBJOP_A2Q3_ActivateHoradricStaffAltar(D2ObjectOperateFnArg * pOp
         pDVar1->bTaintedSunStartedFailed = true;
         UNIT::SUnit::IteratePlayerOrMonsterUnits(pOperation->sArg.pGame, 0, pOperation->pAttacker, (::fpExecuteOnUnitFunction)Q11_OnStaffViperPickup);
         pRoom = D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim);
-        __frame0.pGame3 = (::SGAMEDATA*)D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
+        pGame3 = (::SGAMEDATA*)D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
         pOperation->sArg.pVictim->dwDropItemCode = 0x20706976;
-        __frame0.nDroppedItemCount = 0;
+        nDroppedItemCount = 0;
         if (0 < pDVar1->nViperAmuletDropCount) {
           do {
-            pPlayerData = ITEMS::Items::Drop::ITEM_RewardItemToDrop(pOperation->sArg.pGame, pOperation->sArg.pVictim, ITEMTYPE_PlayerBodyPart, (int32_t*)&__frame0.pGame3, nullptr, -1, 0);
+            pPlayerData = ITEMS::Items::Drop::ITEM_RewardItemToDrop(pOperation->sArg.pGame, pOperation->sArg.pVictim, ITEMTYPE_PlayerBodyPart, (int32_t*)&pGame3, nullptr, -1, 0);
             if (pPlayerData) {
               D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pPlayerData, ITEMFLAG_IDENTIFIED, 1);
-              __frame0.nDroppedItemCount++;
+              nDroppedItemCount++;
             }
 
             iDropLoop++;
@@ -737,10 +730,10 @@ BOOL __fastcall OBJOP_A2Q3_ActivateHoradricStaffAltar(D2ObjectOperateFnArg * pOp
           } while (iDropLoop);
         }
 
-        pHoradricStaffQuestData = GetQuestDataByQuestNoInternal(__frame0.pTaintedSunQuestData->pGame, QUESTINT_TheHoradricStaff);
+        pHoradricStaffQuestData = GetQuestDataByQuestNoInternal(pTaintedSunQuestData->pGame, QUESTINT_TheHoradricStaff);
         if (pHoradricStaffQuestData) {
           ppDroppedBodyPartCount = &pHoradricStaffQuestData->pQuestSpecificData.pA2Q2->nVipCount;
-          *ppDroppedBodyPartCount += __frame0.nDroppedItemCount;
+          *ppDroppedBodyPartCount += nDroppedItemCount;
           return 0;
         }
       }

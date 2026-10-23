@@ -226,17 +226,11 @@ BOOL __fastcall HandleMessage(int32_t pTargetUid, D2UnitStrc * pUnit, D2ServerMe
 
 // Returns true if pUnit (the target) is within action range for pUnit2 performing nActionType. For action types 6/0xd (left/right skill use), checks SKILL_CheckAuraRange if the equipped skill is an aura (srvdofunc==0x13). For objects, uses IsObjectInInteractRange + collision test. For all others, checks melee range accounting for pUnit's current movement mode.
 bool UNITMODE_IsTargetInActionRange(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, int32_t nActionType) {
-    // Frame slots -12..-4 are ONE object: &nRangeMin is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nRangeMin;
-      int nRangeMax;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillStrc* pSkill;
     uint32_t bInAuraRange;
     BOOL bResult;
+    int nRangeMin;
+    int nRangeMax;
     if (nActionType == 6) {
       pSkill = D2Common::Units::GetLeftSkill(pUnit2);
     } else {
@@ -250,7 +244,7 @@ bool UNITMODE_IsTargetInActionRange(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, int
       D2SkillsTxt* pSkillsTxt;
       pSkillsTxt = D2Common::Skills::GetSkillsTxt(pSkill);
       if (pSkillsTxt && pSkillsTxt->srvdofunc == 0x13) {
-        bInAuraRange = Player::SKILL_CheckAuraRange(pSkill, pUnit, &__frame0.nRangeMin, &__frame0.nRangeMax);
+        bInAuraRange = Player::SKILL_CheckAuraRange(pSkill, pUnit, &nRangeMin, &nRangeMax);
         return bInAuraRange != 0;
       }
     }

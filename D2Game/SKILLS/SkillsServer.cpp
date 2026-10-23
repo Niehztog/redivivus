@@ -383,15 +383,6 @@ BOOL SKILLS_IsRoomInRange(D2RoomStrc * pRoom, int32_t nX, int32_t nRadius, int32
 // Iterates all units in adjacent rooms within nRadius of (nX,nY), applying a caller-supplied callback (pfnCallback) to each eligible target. Filters by target flags (dwTargetFlags, SKILLS_CheckTargetFlags mask, default 0x583), skips town rooms if bit 0x2000 set, and respects noaura flag on monsters when bSkipNoAuraMonsters != 0. Core server-side AoE dispatch used by auras and area skills.
 // The callback gets sContext (D2SkillCallbackContextStrc at EBP-0x24); nHitCount counts callbacks that returned nonzero. The pCallbackArg stack slot is reused as the room loop index after it is copied (MSVC slot reuse).
 void __fastcall SKILLS_ApplyAreaEffect(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nX, int32_t nY, int32_t nRadius, uint32_t dwTargetFlags, PFN_AreaEffectCallback pfnCallback, void * pCallbackArg, int32_t bSkipNoAuraMonsters, char * szFile, int32_t nLine) {
-    // Frame slots -16..-4 are ONE object: &nRoomCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nRoomCount;
-      D2UnitStrc* pOwnerUnit;
-      D2RoomStrc** ppRoomList;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nTargetY;
     int nTargetX;
     int32_t nDistanceSq;
@@ -399,6 +390,8 @@ void __fastcall SKILLS_ApplyAreaEffect(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
     D2SkillCallbackContextStrc sContext;
     int nRadiusSq;
     uint32_t dwSkipTownRooms;
+    int32_t nRoomCount;
+    D2RoomStrc** ppRoomList;
     D2UnitStrc* pNextUnit;
     D2UnitStrc* pTarget;
     eD2UnitType eUnitType;
@@ -406,7 +399,7 @@ void __fastcall SKILLS_ApplyAreaEffect(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
       return;
     }
 
-    __frame0.pOwnerUnit = pUnit;
+    D2UnitStrc* pOwnerUnit = pUnit;
     D2RoomStrc* pCurRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pCurRoom) {
       return;
@@ -423,18 +416,18 @@ void __fastcall SKILLS_ApplyAreaEffect(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
     sContext.nHitCount = 0;
     sContext.pGame = pGame;
     sContext.pUnit = pUnit;
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pCurRoom, &__frame0.ppRoomList, &__frame0.nRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pCurRoom, &ppRoomList, &nRoomCount);
     pCallbackArg = 0;
-    if (!__frame0.nRoomCount) {
+    if (!nRoomCount) {
       return;
     }
 
     do {
       BOOL bInTown;
-      if (!(dwTargetFlags & 0x2000) || (bInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(__frame0.ppRoomList[(int)pCallbackArg]) , !bInTown)) {
-        bInTown = SKILLS_IsRoomInRange(__frame0.ppRoomList[(int)pCallbackArg], nX, nRadius, nY);
+      if (!(dwTargetFlags & 0x2000) || (bInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(ppRoomList[(int)pCallbackArg]) , !bInTown)) {
+        bInTown = SKILLS_IsRoomInRange(ppRoomList[(int)pCallbackArg], nX, nRadius, nY);
         if (bInTown) {
-          pNextUnit = __frame0.ppRoomList[(int)pCallbackArg]->pUnitList;
+          pNextUnit = ppRoomList[(int)pCallbackArg]->pUnitList;
           while (true) {
             pTarget = pNextUnit;
             if (!pTarget) {
@@ -442,7 +435,7 @@ void __fastcall SKILLS_ApplyAreaEffect(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
             }
 
             pNextUnit = pTarget->pRoomNext;
-            if (pTarget != __frame0.pOwnerUnit) {
+            if (pTarget != pOwnerUnit) {
               eUnitType = pTarget->eUnitType;
               if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
                 nTargetY = pTarget->pPath.pStaticPath->nPosY;
@@ -463,7 +456,7 @@ void __fastcall SKILLS_ApplyAreaEffect(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
 
               nDistanceSq = D2Common::PATH::DynamicPath::GetDistanceSquaredXY(nX, nY, nTargetX, nTargetY);
               if (nDistanceSq <= nRadius * nRadius) {
-                nTargetFlags = SKILLS_CheckTargetFlags(__frame0.pOwnerUnit, pTarget, dwTargetFlags);
+                nTargetFlags = SKILLS_CheckTargetFlags(pOwnerUnit, pTarget, dwTargetFlags);
                 if (nTargetFlags && (!bSkipNoAuraMonsters || pTarget->eUnitType != UNIT_MONSTER || (bInTown = D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetFlagsByBitOffset(pTarget->nClassId, noaura) , !bInTown))) {
                   nTargetFlags = (*pfnCallback)(&sContext, pTarget);
                   if (nTargetFlags) {
@@ -477,7 +470,7 @@ void __fastcall SKILLS_ApplyAreaEffect(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
       }
 
       pCallbackArg = (void*)((int)pCallbackArg + 1);
-    } while ((uintptr_t)pCallbackArg < (uint32_t)__frame0.nRoomCount);
+    } while ((uintptr_t)pCallbackArg < (uint32_t)nRoomCount);
 }
 
 // Resolves and applies a skill hit to a target unit. Resolves missile owner if the attacker is a missile. Checks block/evasion (setting hit/block/evade/dodge flags in pDamage->wResultFlags). Sets interrupt flag if target lacks STATE_uninterruptable. Applies critical damage modifier, then calls DAMAGE_ApplyDamageToUnit if the hit flag is set, followed by SERVER_GetHitCalculation for post-hit effects.
@@ -1430,24 +1423,18 @@ void __fastcall SKILLS_SetPeriodicStatOrSkillTimer(::SGAMEDATA * pGame, D2UnitSt
 
 // Server-side: spawns and links a Town Portal object for pUnit. Finds a free spawn coordinate in eSrcLevel, checks for the special Duriel portal, creates an OBJECT unit of pUnit's class, stores the source level ID in the portal's char name buffer, sets portal flags, and bidirectionally links owner/portal via StoreOwner and LinkPortalCoords. Frees the placeholder pUnit on spawn failure. Returns the new portal unit or NULL on error.
 D2UnitStrc * LinkPortal(void * pThis, D2UnitStrc * pUnit, D2RoomStrc * eLevel, eD2LevelId nLevelId2) {
-    // Frame slots -12..-4 are ONE object: &nSpawnY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nSpawnY;
-      int32_t nSpawnX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nUnitGUID;
     D2UnitStrc* pNewPortal;
     eD2LevelId eSrcLevelId;
     POINT ptPortalPos;
+    int32_t nSpawnY;
+    int32_t nSpawnX;
     eD2UnitType eUnitType;
     int32_t nLine;
     D2RoomStrc* pRoom = eLevel;
     eAct neAct = D2Common::Drlg::GetActNoFromLevelNumber((eD2LevelId)eLevel);
     uint32_t* puVar1 = (uint32_t*)((int)pThis + (uint32_t)neAct * 4 + 0xbc);
-    eLevel = D2Common::DUNGEON::Dungeon::SpawnUnit((D2DrlgActStrc*)*puVar1, (eD2LevelId)pRoom, 0xb, &__frame0.nSpawnX, &__frame0.nSpawnY, 3);
+    eLevel = D2Common::DUNGEON::Dungeon::SpawnUnit((D2DrlgActStrc*)*puVar1, (eD2LevelId)pRoom, 0xb, &nSpawnX, &nSpawnY, 3);
     D2RoomStrc* pSpawnRoom = eLevel;
     GAME::Server::SetSomeRoomFlags((::SGAMEDATA*)pThis, eLevel);
     if (!eLevel) {
@@ -1464,26 +1451,26 @@ D2UnitStrc * LinkPortal(void * pThis, D2UnitStrc * pUnit, D2RoomStrc * eLevel, e
       return nullptr;
     }
 
-    ptPortalPos.x = __frame0.nSpawnX;
-    ptPortalPos.y = __frame0.nSpawnY;
+    ptPortalPos.x = nSpawnX;
+    ptPortalPos.y = nSpawnY;
     BOOL BVar2 = Quests::QUESTS::IsPortalFromDuriel((::SGAMEDATA*)pThis, &ptPortalPos, nLevelId2, &eLevel);
     if (BVar2) {
       eLevel = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(eLevel, ptPortalPos.x, ptPortalPos.y);
     }
     if (!eLevel) {
       eLevel = pSpawnRoom;
-      ptPortalPos.x = __frame0.nSpawnX;
-      ptPortalPos.y = __frame0.nSpawnY;
+      ptPortalPos.x = nSpawnX;
+      ptPortalPos.y = nSpawnY;
     }
 
     eLevel = D2Common::Collision::GetFreeCoordinates_WithIncrementValue(eLevel, &ptPortalPos, 3, 0xbe11, 5);
-    if (!eLevel && (eLevel = D2Common::DUNGEON::Dungeon::SpawnUnit((D2DrlgActStrc*)*puVar1, (eD2LevelId)pRoom, 0xb, &__frame0.nSpawnX, &__frame0.nSpawnY, 3) , !eLevel) && (eLevel = pSpawnRoom , !pSpawnRoom)) {
+    if (!eLevel && (eLevel = D2Common::DUNGEON::Dungeon::SpawnUnit((D2DrlgActStrc*)*puVar1, (eD2LevelId)pRoom, 0xb, &nSpawnX, &nSpawnY, 3) , !eLevel) && (eLevel = pSpawnRoom , !pSpawnRoom)) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe08);
       exit(-1);
     } else {
       uint8_t byPortalFlags;
-      __frame0.nSpawnX = ptPortalPos.x;
-      __frame0.nSpawnY = ptPortalPos.y;
+      nSpawnX = ptPortalPos.x;
+      nSpawnY = ptPortalPos.y;
       if (!pUnit) {
         nLine = -1;
       } else {
@@ -2430,36 +2417,30 @@ void __stdcall SKILLS_InitSummonedPet(D2UnitStrc * pUnit, ::SGAMEDATA * pGame, D
 
 // Spawns a summoned pet monster for the casting player. Resolves spawn position from pPetCreation (explicit coords or cursor target), finds the nearest valid room, calls SpawnMonster, initialises the pet via SKILLS_InitSummonedPet, assigns minion ownership, attaches the correct AI function, and fires the initial AI-think and stat-regen events. Returns the new monster unit or NULL on failure.
 D2UnitStrc * __fastcall SKILL_CreateSummon(::SGAMEDATA * pGame, D2MonsterCastPetStrc * pPetCreation) {
-    // Frame slots -12..-4 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetX;
-      uint32_t nTargetY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nOwnerUnitGUID;
     D2AiGeneralStrc* pMonsterAiGeneral;
     eD2UnitType eUnitType;
+    uint32_t nTargetX;
+    uint32_t nTargetY;
     D2UnitStrc* pOwner;
     if (!(*(uint8_t*)&pPetCreation->nFlags & 1)) {
-      SKILLS_GetTargetOrCursorPos(pGame, pPetCreation->pPlayer, &__frame0.nTargetX, &__frame0.nTargetY);
+      SKILLS_GetTargetOrCursorPos(pGame, pPetCreation->pPlayer, &nTargetX, &nTargetY);
     } else {
-      __frame0.nTargetX = pPetCreation->nX;
-      __frame0.nTargetY = pPetCreation->nY2;
+      nTargetX = pPetCreation->nX;
+      nTargetY = pPetCreation->nY2;
     }
 
     uint32_t nSpawnPosX;
-    nSpawnPosX = __frame0.nTargetX;
+    nSpawnPosX = nTargetX;
     D2RoomStrc* pRoom;
     pRoom = D2Common::Units::UNITS_GetRoom(pPetCreation->pPlayer);
-    pRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nSpawnPosX, __frame0.nTargetY);
+    pRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nSpawnPosX, nTargetY);
     if (!pRoom) {
       return nullptr;
     }
 
     D2UnitStrc* pMonster;
-    pMonster = Monster::Create::SpawnMonsterAtRoomPos(pGame, pRoom, nSpawnPosX, __frame0.nTargetY, pPetCreation->classId, pPetCreation->nMode, -1, 0x42);
+    pMonster = Monster::Create::SpawnMonsterAtRoomPos(pGame, pRoom, nSpawnPosX, nTargetY, pPetCreation->classId, pPetCreation->nMode, -1, 0x42);
     if (pMonster) {
       eD2States eUnitState;
       init_summon:
@@ -2499,7 +2480,7 @@ D2UnitStrc * __fastcall SKILL_CreateSummon(::SGAMEDATA * pGame, D2MonsterCastPet
       return nullptr;
     }
 
-    pMonster = Monster::Create::SpawnMonsterAtRoomPos(pGame, pRoom, __frame0.nTargetX, __frame0.nTargetY, pPetCreation->classId, pPetCreation->nMode, 4, 0x42);
+    pMonster = Monster::Create::SpawnMonsterAtRoomPos(pGame, pRoom, nTargetX, nTargetY, pPetCreation->classId, pPetCreation->nMode, 4, 0x42);
     if (pMonster) {
       goto init_summon;
     }
@@ -3139,49 +3120,43 @@ D2SUnitEventStrc * __fastcall D2SetAuraEvent(::SGAMEDATA * pGame, D2UnitStrc * p
 
 // Iterates all units in adjacent rooms within nRadius of the skill target/cursor position and invokes fpCallback for each unit that passes SKILLS_CheckTargetFlags. Skips town rooms when flag 0x2000 is set. Returns 1 if target position resolved and room was found, 0 otherwise. fpCallback is invoked __fastcall as (pCurUnit, pCallbackCtx) - pCallbackCtx being arg6.
 uint32_t __fastcall SKILLS_ApplyEffectToUnitsInRange(::SGAMEDATA * pGame, uint32_t nTargetFlags, D2UnitStrc * pUnit, int32_t nRadius, pfnSkillRangeCb fpCallback, void * pCallbackCtx) {
-    // Frame slots -20..-4 are ONE object: &nAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nAdjacentRooms;
-      uint32_t nTargetX;
-      uint32_t nTargetY;
-      D2RoomStrc** ppRoomList;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int y2;
     int nCurUnitX;
     int32_t nDistanceSq;
     uint32_t bPassedTargetFlags;
+    int nAdjacentRooms;
+    uint32_t nTargetX;
+    uint32_t nTargetY;
+    D2RoomStrc** ppRoomList;
     eD2UnitType eType;
     D2UnitStrc* pCurUnit;
     if (!fpCallback) {
       return 0;
     }
 
-    BOOL bIsInTown = SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bIsInTown = SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
     if (!bIsInTown) {
       return 0;
     }
 
-    uint32_t nTargetYCopy = __frame0.nTargetY;
+    uint32_t nTargetYCopy = nTargetY;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    pRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, __frame0.nTargetX, nTargetYCopy);
+    pRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nTargetX, nTargetYCopy);
     if (!pRoom) {
       return 0;
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppRoomList, &__frame0.nAdjacentRooms);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppRoomList, &nAdjacentRooms);
     int iVar1 = 0;
-    if (0 >= __frame0.nAdjacentRooms) {
+    if (0 >= nAdjacentRooms) {
       return 1;
     }
 
     do {
-      if (!(nTargetFlags & 0x2000) || (bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(__frame0.ppRoomList[iVar1]) , !bIsInTown)) {
-        bIsInTown = SKILLS_IsRoomInRange(__frame0.ppRoomList[iVar1], __frame0.nTargetX, nRadius, __frame0.nTargetY);
+      if (!(nTargetFlags & 0x2000) || (bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(ppRoomList[iVar1]) , !bIsInTown)) {
+        bIsInTown = SKILLS_IsRoomInRange(ppRoomList[iVar1], nTargetX, nRadius, nTargetY);
         if (bIsInTown) {
-          for (pCurUnit = __frame0.ppRoomList[iVar1]->pUnitList; pCurUnit; pCurUnit = pCurUnit->pRoomNext) {
+          for (pCurUnit = ppRoomList[iVar1]->pUnitList; pCurUnit; pCurUnit = pCurUnit->pRoomNext) {
             eType = pCurUnit->eUnitType;
             if (eType == UNIT_OBJECT || 3 < (int)eType && (int)eType < 6) {
               y2 = pCurUnit->pPath.pStaticPath->nPosY;
@@ -3200,7 +3175,7 @@ uint32_t __fastcall SKILLS_ApplyEffectToUnitsInRange(::SGAMEDATA * pGame, uint32
               nCurUnitX = D2Common::PATH::DynamicPath::GetXPos(pCurUnit->pPath.pDynamicPath);
             }
 
-            nDistanceSq = D2Common::PATH::DynamicPath::GetDistanceSquaredXY(__frame0.nTargetX, __frame0.nTargetY, nCurUnitX, y2);
+            nDistanceSq = D2Common::PATH::DynamicPath::GetDistanceSquaredXY(nTargetX, nTargetY, nCurUnitX, y2);
             if (nDistanceSq <= nRadius * nRadius) {
               bPassedTargetFlags = SKILLS_CheckTargetFlags(pUnit, pCurUnit, nTargetFlags);
               if (bPassedTargetFlags) {
@@ -3212,7 +3187,7 @@ uint32_t __fastcall SKILLS_ApplyEffectToUnitsInRange(::SGAMEDATA * pGame, uint32
       }
 
       iVar1++;
-    } while (iVar1 < __frame0.nAdjacentRooms);
+    } while (iVar1 < nAdjacentRooms);
 
     return 1;
 }
@@ -3786,135 +3761,114 @@ BOOL __fastcall Skills_SrvDoFunc_002_GenericMeleeHit(::SGAMEDATA * pGame, D2Unit
 
 // Server skill-do-func for throwing a weapon from the left hand (skill 3). Queries the equipped weapon info to determine which arm slot is active, verifies the item is throwable (via ITEM_GetTxtItemTypes_throwable or UNITSTAT_item_throwable stat). Sets UNITFLAG_SKSRVDOFUNC, reads the item's missile type, and spawns the throw missile via CreatingAMissile (normal throwable) or SKILLS_CreateMissileFromUnit (missile potion). Applies skill to-hit/damage modifiers via SKILLS_ApplySkillToHitAndDamage.
 BOOL __fastcall Skills_SrvDoFunc_003_ThrowWeaponLeftHand(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nActiveWeaponSlot is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nActiveWeaponSlot;
-      int nActiveWeaponHand;
-      D2UnitStrc* pWeaponItem;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bIsMissilePotion;
     eMissilesId nMissileId;
     bool bIsMissilePotion;
     D2UnitStrc* pMissile;
+    int nActiveWeaponSlot;
+    int nActiveWeaponHand;
     D2InventoryStrc* pInventory = pUnit->pInventory;
     if (!pInventory) {
       return 0;
     }
 
-    __frame0.pWeaponItem = 0;
-    BOOL bHasWeaponInfo = D2Common::INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &__frame0.pWeaponItem, &__frame0.nActiveWeaponSlot, &__frame0.nActiveWeaponHand);
+    D2UnitStrc* pWeaponItem = 0;
+    BOOL bHasWeaponInfo = D2Common::INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &pWeaponItem, &nActiveWeaponSlot, &nActiveWeaponHand);
     if (bHasWeaponInfo) {
       int32_t nThrowableStatVal;
-      if (!__frame0.nActiveWeaponHand) {
-        if (__frame0.nActiveWeaponSlot == 5) {
+      if (!nActiveWeaponHand) {
+        if (nActiveWeaponSlot == 5) {
           nThrowableStatVal = 4;
         } else {
           nThrowableStatVal = 5;
         }
 
-        __frame0.pWeaponItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pInventory, nThrowableStatVal);
+        pWeaponItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pInventory, nThrowableStatVal);
       }
 
-      nThrowableStatVal = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_throwable(__frame0.pWeaponItem);
+      nThrowableStatVal = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_throwable(pWeaponItem);
       if (!nThrowableStatVal) {
-        nThrowableStatVal = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(__frame0.pWeaponItem, UNITSTAT_item_throwable, 0);
+        nThrowableStatVal = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pWeaponItem, UNITSTAT_item_throwable, 0);
         if (!nThrowableStatVal) {
           return 0;
         }
       }
     }
-    if (!__frame0.pWeaponItem) {
+    if (!pWeaponItem) {
       return 0;
     }
 
     pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
-    nMissileId = D2Common::ITEMS::Items::ITEM_GetItemsTxt_wMissileType(__frame0.pWeaponItem);
-    _bIsMissilePotion = D2Common::ITEMS::Items::ITEMS_IsA(__frame0.pWeaponItem, ITEMTYPE_MissilePotion);
+    nMissileId = D2Common::ITEMS::Items::ITEM_GetItemsTxt_wMissileType(pWeaponItem);
+    _bIsMissilePotion = D2Common::ITEMS::Items::ITEMS_IsA(pWeaponItem, ITEMTYPE_MissilePotion);
     if (!_bIsMissilePotion) {
       pMissile = CreatingAMissile(pGame, nMissileId, pUnit, eSkill, nSkillLvl, 0, 0, 0, 0, 1);
     } else {
       pMissile = SKILLS_CreateMissileFromUnit(pGame, nMissileId, pUnit, eSkill, nSkillLvl, 0, 0, 0, 0, 1);
     }
 
-    SKILLS_ApplySkillToHitAndDamage(pUnit, pMissile, __frame0.pWeaponItem);
+    SKILLS_ApplySkillToHitAndDamage(pUnit, pMissile, pWeaponItem);
     return 1;
 }
 
 // Server do-func for throw skill (eSkill 5). Reads the equipped right-hand weapon from pUnit's inventory; verifies it is throwable (type flag or UNITSTAT_item_throwable). Sets UNITFLAG_SKSRVDOFUNC, spawns either a normal missile (CreatingAMissile) or a potion-type missile (SKILLS_CreateMissileFromUnit) using the weapon's wMissileType, then applies hit/damage stats. Returns FALSE if no valid throwable weapon found.
 BOOL __fastcall Skills_SrvDoFunc_005_ThrowWeaponRightHand(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nWeaponSlot is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nWeaponSlot;
-      int nWeaponHand;
-      D2UnitStrc* pWeaponItem;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bIsMissilePotion;
     bool bIsMissilePotion;
     eMissilesId nMissileId;
     D2UnitStrc* pMissile;
+    int nWeaponSlot;
+    int nWeaponHand;
     D2InventoryStrc* pInventory = pUnit->pInventory;
     if (!pInventory) {
       return 0;
     }
 
-    __frame0.pWeaponItem = 0;
-    BOOL bHasWeaponInfo = D2Common::INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &__frame0.pWeaponItem, &__frame0.nWeaponSlot, &__frame0.nWeaponHand);
+    D2UnitStrc* pWeaponItem = 0;
+    BOOL bHasWeaponInfo = D2Common::INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &pWeaponItem, &nWeaponSlot, &nWeaponHand);
     if (bHasWeaponInfo) {
       int32_t nThrowableStat;
-      if (__frame0.nWeaponHand) {
-        if (__frame0.nWeaponSlot == 5) {
+      if (nWeaponHand) {
+        if (nWeaponSlot == 5) {
           nThrowableStat = 4;
         } else {
           nThrowableStat = 5;
         }
 
-        __frame0.pWeaponItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pInventory, nThrowableStat);
+        pWeaponItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pInventory, nThrowableStat);
       }
 
-      nThrowableStat = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_throwable(__frame0.pWeaponItem);
+      nThrowableStat = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_throwable(pWeaponItem);
       if (!nThrowableStat) {
-        nThrowableStat = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(__frame0.pWeaponItem, UNITSTAT_item_throwable, 0);
+        nThrowableStat = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pWeaponItem, UNITSTAT_item_throwable, 0);
         if (!nThrowableStat) {
           return 0;
         }
       }
     }
-    if (!__frame0.pWeaponItem) {
+    if (!pWeaponItem) {
       return 0;
     }
 
     pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
-    nMissileId = D2Common::ITEMS::Items::ITEM_GetItemsTxt_wMissileType(__frame0.pWeaponItem);
-    _bIsMissilePotion = D2Common::ITEMS::Items::ITEMS_IsA(__frame0.pWeaponItem, ITEMTYPE_MissilePotion);
+    nMissileId = D2Common::ITEMS::Items::ITEM_GetItemsTxt_wMissileType(pWeaponItem);
+    _bIsMissilePotion = D2Common::ITEMS::Items::ITEMS_IsA(pWeaponItem, ITEMTYPE_MissilePotion);
     if (!_bIsMissilePotion) {
       pMissile = CreatingAMissile(pGame, nMissileId, pUnit, eSkill, nSkillLvl, 0, 0, 0, 0, 1);
     } else {
       pMissile = SKILLS_CreateMissileFromUnit(pGame, nMissileId, pUnit, eSkill, nSkillLvl, 0, 0, 0, 0, 1);
     }
 
-    SKILLS_ApplySkillToHitAndDamage(pUnit, pMissile, __frame0.pWeaponItem);
+    SKILLS_ApplySkillToHitAndDamage(pUnit, pMissile, pWeaponItem);
     return 1;
 }
 
 // Server-side entry point to begin casting a skill. Validates pGame/pUnit and that the unit is in a room, bounds-checks eSkill against the Skills.txt table, and (when nParam==0) checks mana via SKILL_CheckManaForCast. Non-town skills cast in town are rejected: clears the current skill and, for players, issues PLRMODES_MoveToLocation. Enforces line-of-sight per SkillsTxt.lineofsight (1..5 selecting a collision mask) using the target/cursor position. Dispatches to the per-skill server start function SKILLSRVSTFUNCS[srvstfunc] (index 0..0x5a); on success applies mana cost (unless flag 0x20 or nParam set) and fires the periodic-skills timer trigger when flag 0x40 is set. Returns the start-func result (TRUE) or 0 on any failure.
 BOOL __fastcall SKILLS_SrvStartSkill(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl, int32_t nParam) {
-    // Frame slots -16..-4 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetX;
-      uint32_t nTargetY;
-      ::SGAMEDATA* pGameCtx;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t bHasMana;
     BOOL bHasLOS;
+    uint32_t nTargetX;
+    uint32_t nTargetY;
     if (!pGame) {
       return 0;
     }
@@ -3922,7 +3876,7 @@ BOOL __fastcall SKILLS_SrvStartSkill(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD
       return 0;
     }
 
-    __frame0.pGameCtx = pGame;
+    ::SGAMEDATA* pGameCtx = pGame;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pRoom) {
       return 0;
@@ -3946,13 +3900,13 @@ BOOL __fastcall SKILLS_SrvStartSkill(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD
           return 0;
         }
 
-        PLAYER::PlayerModes::PLRMODES_MoveToLocation(__frame0.pGameCtx, pUnit, nullptr, 5, 0, 0, 1);
+        PLAYER::PlayerModes::PLRMODES_MoveToLocation(pGameCtx, pUnit, nullptr, 5, 0, 0, 1);
         return 0;
       }
     }
     if (pSkillsTxt->lineofsight != '\0') {
       int32_t eCollisionFlag;
-      bHasLOS = SKILLS_GetTargetOrCursorPos(__frame0.pGameCtx, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+      bHasLOS = SKILLS_GetTargetOrCursorPos(pGameCtx, pUnit, &nTargetX, &nTargetY);
       if (bHasLOS) {
         switch (pSkillsTxt->lineofsight) {
           case '\x01':
@@ -3974,7 +3928,7 @@ BOOL __fastcall SKILLS_SrvStartSkill(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD
             return 0;
         }
 
-        bHasMana = D2Common::Skills::SKILLS_HasLineOfSightToUnit(__frame0.nTargetX, __frame0.nTargetY, pUnit, eCollisionFlag);
+        bHasMana = D2Common::Skills::SKILLS_HasLineOfSightToUnit(nTargetX, nTargetY, pUnit, eCollisionFlag);
         if (!bHasMana) {
           return 0;
         }
@@ -3991,37 +3945,25 @@ BOOL __fastcall SKILLS_SrvStartSkill(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD
     if (!SKILLSRVSTFUNCS[sVar1]) {
       bHasLOS = 1;
     } else {
-      bHasLOS = (*SKILLSRVSTFUNCS[sVar1])(__frame0.pGameCtx, pUnit, eSkill, nSkillLvl);
+      bHasLOS = (*SKILLSRVSTFUNCS[sVar1])(pGameCtx, pUnit, eSkill, nSkillLvl);
       if (!bHasLOS) {
         return 0;
       }
       if (!pSkillsTxt->usemanaondo && !nParam) {
-        CalculateManaUse(__frame0.pGameCtx, pUnit, eSkill, nSkillLvl);
+        CalculateManaUse(pGameCtx, pUnit, eSkill, nSkillLvl);
       }
     }
     if (!pSkillsTxt->periodic) {
       return bHasLOS;
     }
 
-    GAME::Event::EVENT_RemoveUnitTimersByType(__frame0.pGameCtx, pUnit, UNITEVENTCALLBACK_PERIODICSKILLS, 0);
+    GAME::Event::EVENT_RemoveUnitTimersByType(pGameCtx, pUnit, UNITEVENTCALLBACK_PERIODICSKILLS, 0);
     return bHasLOS;
 }
 
 // Server-side skill cast/execute dispatcher. Validates eSkill against skills.txt and that pUnit is a player or monster. Handles town/no-cast cleanup (cancels the current skill, moves players to location). Re-resolves the active skill and checks the unit has it at level >= 1, and (for players/monsters) verifies mana via SKILL_CheckManaForCast when the skill flags require it. Dispatches the skill's srvdofunc (or ItemEffect override) from the SKILLSRVDOFUNCS table. If the skill has a srvmissile, sets UNITFLAG_SKSRVDOFUNC and creates the missile toward the resolved target/cursor offset via CreatingAMissile or SKILLS_CreateMissileFromUnit (per flags bit 2). When nParam1 set: deducts mana/charges, and for players applies the skill's cast delay (D2GetSkillCalc on .delay) via SetTimeoutEffect. Returns the srvdofunc result / 1 if a missile was created, 0 on any failure. nParam2/nParam3 gate target-position use and ItemEffect selection.
 // @sourcefile .\SKILLS\Skills.cpp
 int32_t __fastcall SKILL_SpawnMissileFunction(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl, int32_t nParam1, int32_t nParam2, int32_t nParam3) {
-    // Frame slots -28..-4 are ONE object: &nCursorX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nCursorX;
-      int bIsPlayerOrMon;
-      uint32_t nCursorY;
-      uint32_t nResult;
-      uint32_t nMissileDestY;
-      ::SGAMEDATA* _pGame;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2RoomStrc* pUnitRoom;
     BOOL bIsInTown;
     eD2Skills eCurSkillId;
@@ -4031,11 +3973,15 @@ int32_t __fastcall SKILL_SpawnMissileFunction(::SGAMEDATA * pGame, D2UnitStrc * 
     int nSkillLevel;
     uint32_t nOffsetY;
     uint32_t nOffsetX;
+    uint32_t nCursorX;
+    int bIsPlayerOrMon;
+    uint32_t nCursorY;
+    uint32_t nMissileDestY;
     if (!pGame || !pUnit) {
       return 0;
     }
 
-    __frame0.nResult = 0;
+    uint32_t nResult = 0;
     if ((int)eSkill < 0) {
       return 0;
     }
@@ -4048,10 +3994,10 @@ int32_t __fastcall SKILL_SpawnMissileFunction(::SGAMEDATA * pGame, D2UnitStrc * 
       return 0;
     }
 
-    __frame0._pGame = pGame;
+    ::SGAMEDATA* _pGame = pGame;
     if (pUnit->eUnitType == UNIT_PLAYER || pUnit->eUnitType == UNIT_MONSTER) {
       D2SkillStrc* pCurrentSkill;
-      __frame0.bIsPlayerOrMon = 1;
+      bIsPlayerOrMon = 1;
       pCurrentSkill = D2Common::Units::GetCurrentSkill(pUnit);
       if (pCurrentSkill) {
         nOffsetX = D2Common::Skills::SKILL_GetFlags(pCurrentSkill);
@@ -4063,7 +4009,7 @@ int32_t __fastcall SKILL_SpawnMissileFunction(::SGAMEDATA * pGame, D2UnitStrc * 
               return 0;
             }
 
-            PLAYER::PlayerModes::PLRMODES_MoveToLocation(__frame0._pGame, pUnit, nullptr, 5, 0, 0, 1);
+            PLAYER::PlayerModes::PLRMODES_MoveToLocation(_pGame, pUnit, nullptr, 5, 0, 0, 1);
             return 0;
           }
         }
@@ -4080,9 +4026,9 @@ int32_t __fastcall SKILL_SpawnMissileFunction(::SGAMEDATA * pGame, D2UnitStrc * 
         }
       }
     } else {
-      __frame0.bIsPlayerOrMon = 0;
+      bIsPlayerOrMon = 0;
     }
-    if (!(-1 < pSkillsTxt->srvdofunc && pSkillsTxt->srvdofunc < 0xbf && (!__frame0.bIsPlayerOrMon || !pSkillsTxt->usemanaondo || (bHasMana = SKILL_CheckManaForCast(pUnit) , bHasMana != 0)))) {
+    if (!(-1 < pSkillsTxt->srvdofunc && pSkillsTxt->srvdofunc < 0xbf && (!bIsPlayerOrMon || !pSkillsTxt->usemanaondo || (bHasMana = SKILL_CheckManaForCast(pUnit) , bHasMana != 0)))) {
       return 0;
     }
 
@@ -4091,97 +4037,89 @@ int32_t __fastcall SKILL_SpawnMissileFunction(::SGAMEDATA * pGame, D2UnitStrc * 
       nSkillLevel = (int)pSkillsTxt->ItemEffect;
     }
     if (SKILLSRVDOFUNCS[nSkillLevel]) {
-      __frame0.nResult = (*SKILLSRVDOFUNCS[nSkillLevel])(__frame0._pGame, pUnit, eSkill, nSkillLvl);
+      nResult = (*SKILLSRVDOFUNCS[nSkillLevel])(_pGame, pUnit, eSkill, nSkillLvl);
     }
     if (pSkillsTxt->srvmissile < 0 || (pMissileTxt = D2Client::GetMissleById((int)pSkillsTxt->srvmissile) , !pMissileTxt)) {
-      if (!__frame0.nResult) {
+      if (!nResult) {
         return 0;
       }
     } else {
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
-      __frame0.nCursorX = 0;
-      __frame0.nCursorY = 0;
-      __frame0.nResult = 0;
-      __frame0.nMissileDestY = 0;
+      nCursorX = 0;
+      nCursorY = 0;
+      nResult = 0;
+      nMissileDestY = 0;
       nOffsetY = 0;
       nOffsetX = 0;
       if (nParam2 && nParam3) {
-        SKILLS_GetTargetOrCursorPos(__frame0._pGame, pUnit, &__frame0.nCursorX, &__frame0.nCursorY);
-        nOffsetY = __frame0.nCursorY;
-        nOffsetX = __frame0.nCursorX;
-        if (__frame0.nCursorX && __frame0.nCursorY) {
-          __frame0.nResult = __frame0.nCursorX;
-          __frame0.nMissileDestY = __frame0.nCursorY;
+        SKILLS_GetTargetOrCursorPos(_pGame, pUnit, &nCursorX, &nCursorY);
+        nOffsetY = nCursorY;
+        nOffsetX = nCursorX;
+        if (nCursorX && nCursorY) {
+          nResult = nCursorX;
+          nMissileDestY = nCursorY;
           nSkillDelay = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
           nOffsetX -= nSkillDelay;
           nSkillDelay = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-          __frame0.nResult += nOffsetX;
+          nResult += nOffsetX;
           nOffsetY -= nSkillDelay;
-          __frame0.nMissileDestY += nOffsetY;
+          nMissileDestY += nOffsetY;
         }
       }
       if (!pSkillsTxt->lob) {
-        CreatingAMissile(__frame0._pGame, (int)pSkillsTxt->srvmissile, pUnit, eSkill, nSkillLvl, nOffsetX, nOffsetY, __frame0.nResult, __frame0.nMissileDestY, 0);
-        __frame0.nResult = 1;
+        CreatingAMissile(_pGame, (int)pSkillsTxt->srvmissile, pUnit, eSkill, nSkillLvl, nOffsetX, nOffsetY, nResult, nMissileDestY, 0);
+        nResult = 1;
       } else {
-        SKILLS_CreateMissileFromUnit(__frame0._pGame, (int)pSkillsTxt->srvmissile, pUnit, eSkill, nSkillLvl, nOffsetX, nOffsetY, __frame0.nResult, __frame0.nMissileDestY, 0);
-        __frame0.nResult = 1;
+        SKILLS_CreateMissileFromUnit(_pGame, (int)pSkillsTxt->srvmissile, pUnit, eSkill, nSkillLvl, nOffsetX, nOffsetY, nResult, nMissileDestY, 0);
+        nResult = 1;
       }
     }
     if (!nParam1) {
-      return __frame0.nResult;
+      return nResult;
     }
-    if (__frame0.bIsPlayerOrMon) {
+    if (bIsPlayerOrMon) {
       if (!SKILLSRVSTFUNCS[pSkillsTxt->srvstfunc] || pSkillsTxt->usemanaondo) {
-        CalculateManaUse(__frame0._pGame, pUnit, eSkill, nSkillLvl);
+        CalculateManaUse(_pGame, pUnit, eSkill, nSkillLvl);
       }
       if (pSkillsTxt->decquant) {
-        RemoveQuanityOnUse(__frame0._pGame, pUnit);
+        RemoveQuanityOnUse(_pGame, pUnit);
       }
     }
 
     nSkillDelay = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxt->delay, eSkill, nSkillLvl);
     if (!(0 < nSkillDelay && pUnit->eUnitType == UNIT_PLAYER)) {
-      return __frame0.nResult;
+      return nResult;
     }
     if (pSkillsTxt->anim == '\x12') {
       if (!(pUnit->nSeqFrame & -256)) {
-        SetTimeoutEffect(__frame0._pGame, nSkillDelay, pUnit);
-        return __frame0.nResult;
+        SetTimeoutEffect(_pGame, nSkillDelay, pUnit);
+        return nResult;
       }
     } else {
-      SetTimeoutEffect(__frame0._pGame, nSkillDelay, pUnit);
+      SetTimeoutEffect(_pGame, nSkillDelay, pUnit);
     }
 
-    return __frame0.nResult;
+    return nResult;
 }
 
 // Server-side callback invoked when a unit's animation mode completes. Validates the current skill and its target (cancels into walk if invalid or in town without a usable-in-town skill), then calls SKILLS_SrvStartSkill to begin the server do-function. If SKILLS_SrvStartSkill fails for a player, falls back to PLRMODES_MoveToLocation mode 5 (stand/walk).
 // @sourcefile .\SKILLS\Skills.cpp
 int32_t __fastcall SKILLS_OnModeComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    // Frame slots -16..-4 are ONE object: &nSkillDataFlags is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nSkillDataFlags;
-      int nSkillLevel;
-      ::SGAMEDATA* pGameLocal;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bTargetValid;
     bool bTargetValid;
     D2RoomStrc* pUnitRoom;
     eD2UnitType eUnitTypeForCheck;
     int32_t dwSkillOwnerGUID;
     eD2Skills eSkillDataId;
-    __frame0.pGameLocal = pGame;
+    int nSkillDataFlags;
+    ::SGAMEDATA* pGameLocal = pGame;
     D2SkillStrc* pSkill = D2Common::Units::GetCurrentSkill(pUnit);
     if (!pSkill) {
       return 0;
     }
 
     eD2Skills eSkill = D2Common::Skills::GetSkillId(pSkill, ".\\SKILLS\\Skills.cpp", 0xbff);
-    _bTargetValid = SKILLS_ValidateSkillTarget(__frame0.pGameLocal, pUnit, eSkill);
+    _bTargetValid = SKILLS_ValidateSkillTarget(pGameLocal, pUnit, eSkill);
     if (!_bTargetValid) {
       if (!pUnit) {
         return 0;
@@ -4190,13 +4128,13 @@ int32_t __fastcall SKILLS_OnModeComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit
         return 0;
       }
 
-      PLAYER::PlayerModes::PLRMODES_MoveToLocation(__frame0.pGameLocal, pUnit, nullptr, 5, 0, 0, 1);
+      PLAYER::PlayerModes::PLRMODES_MoveToLocation(pGameLocal, pUnit, nullptr, 5, 0, 0, 1);
       return 0;
     }
 
-    __frame0.nSkillLevel = D2Common::Skills::GetSkillLevel(pUnit, pSkill, 1);
-    _bTargetValid = D2Common::Skills::SKILLS_GetSkillData(pSkill, &dwSkillOwnerGUID, &eSkillDataId, &__frame0.nSkillLevel, &__frame0.nSkillDataFlags);
-    if (_bTargetValid && !__frame0.nSkillDataFlags) {
+    int nSkillLevel = D2Common::Skills::GetSkillLevel(pUnit, pSkill, 1);
+    _bTargetValid = D2Common::Skills::SKILLS_GetSkillData(pSkill, &dwSkillOwnerGUID, &eSkillDataId, &nSkillLevel, &nSkillDataFlags);
+    if (_bTargetValid && !nSkillDataFlags) {
       return 0;
     }
     if ((int)eSkill < 0) {
@@ -4211,10 +4149,10 @@ int32_t __fastcall SKILLS_OnModeComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit
       return 0;
     }
 
-    D2UnitStrc* pTarget = UNIT::SUnit::GetTargetEx(__frame0.pGameLocal, pUnit);
+    D2UnitStrc* pTarget = UNIT::SUnit::GetTargetEx(pGameLocal, pUnit);
     if (pTarget && !pSkillsTxt->TargetAlly) {
       uint32_t bCanUseSkill;
-      bCanUseSkill = UNIT::SUnit::UNITS_CanUseSkillOnTarget(__frame0.pGameLocal, pUnit, pTarget, eSkill);
+      bCanUseSkill = UNIT::SUnit::UNITS_CanUseSkillOnTarget(pGameLocal, pUnit, pTarget, eSkill);
       if (bCanUseSkill) {
         return 0;
       }
@@ -4236,13 +4174,13 @@ int32_t __fastcall SKILLS_OnModeComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit
           return 0;
         }
 
-        PLAYER::PlayerModes::PLRMODES_MoveToLocation(__frame0.pGameLocal, pUnit, nullptr, 5, 0, 0, 1);
+        PLAYER::PlayerModes::PLRMODES_MoveToLocation(pGameLocal, pUnit, nullptr, 5, 0, 0, 1);
         return 0;
       }
     }
 
-    ::SGAMEDATA* pGameForMove = __frame0.pGameLocal;
-    _bTargetValid = SKILLS_SrvStartSkill(__frame0.pGameLocal, pUnit, eSkill, __frame0.nSkillLevel, 0);
+    ::SGAMEDATA* pGameForMove = pGameLocal;
+    _bTargetValid = SKILLS_SrvStartSkill(pGameLocal, pUnit, eSkill, nSkillLevel, 0);
     if (!(pUnit && pUnit->eUnitType == UNIT_PLAYER && !_bTargetValid)) {
       return _bTargetValid;
     }

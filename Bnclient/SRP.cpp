@@ -131,17 +131,9 @@ void __stdcall SRP_HashBigNumToU32(BigData * * ppBigNum, uint32_t * pdwOut) {
 }
 
 int __fastcall SRP_ClientComputeSharedSecret(int32_t pSrp, BigData * * pPrivateKey, BigData * * pnParam1, BigData * * pnParam2, BigData * * pnParam3) {
-    // Frame slots -16..-4 are ONE object: &pScramblingLocal is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      BigData* pScramblingLocal;
-      int32_t pThis;
-      uint32_t nMultiplierU;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BigData* pBase;
-    __frame0.pThis = pSrp;
+    uint32_t nMultiplierU;
+    int32_t pThis = pSrp;
     int32_t nCmpResult = SHA::SHA1_CompareBigInt(*pnParam1, *(BigData**)(pSrp + 8));
     if (nCmpResult >= 0) {
       return 0;
@@ -152,28 +144,28 @@ int __fastcall SRP_ClientComputeSharedSecret(int32_t pSrp, BigData * * pPrivateK
       return 0;
     }
 
-    SRP_HashBigNumToU32(pnParam1, &__frame0.nMultiplierU);
-    if (!__frame0.nMultiplierU) {
+    SRP_HashBigNumToU32(pnParam1, &nMultiplierU);
+    if (!nMultiplierU) {
       return 0;
     }
 
     BigData* pScramblingParam = SHA::SHA1_BigIntFromUnsigned(0);
-    __frame0.pScramblingLocal = pScramblingParam;
-    SRP_ComputeScramblingParam(pSrp, pnParam2, &__frame0.pScramblingLocal);
+    BigData* pScramblingLocal = pScramblingParam;
+    SRP_ComputeScramblingParam(pSrp, pnParam2, &pScramblingLocal);
     BigData* pExponentBase = SHA::SHA1_BigIntFromUnsigned(0);
     BigData* pExponent = SHA::SHA1_BigIntFromUnsigned(0);
     nCmpResult = SHA::SHA1_CompareBigInt(*pnParam1, pScramblingParam);
     if (nCmpResult < 0) {
-      SHA::SHA1_BigIntAdd(pExponent, *pnParam1, *(BigData**)(__frame0.pThis + 8));
+      SHA::SHA1_BigIntAdd(pExponent, *pnParam1, *(BigData**)(pThis + 8));
       pBase = pExponent;
     } else {
       pBase = *pnParam1;
     }
 
     SHA::SHA1_BigIntSub(pExponentBase, pBase, pScramblingParam);
-    SHA::SHA1_BigIntMulValue(pExponent, *pnParam2, __frame0.nMultiplierU);
+    SHA::SHA1_BigIntMulValue(pExponent, *pnParam2, nMultiplierU);
     SHA::SHA1_BigIntAdd(pExponent, pExponent, *pPrivateKey);
-    SHA::SHA1_BigIntPowMod(*pnParam3, pExponentBase, pExponent, *(BigData**)(__frame0.pThis + 8));
+    SHA::SHA1_BigIntPowMod(*pnParam3, pExponentBase, pExponent, *(BigData**)(pThis + 8));
     SHA::SHA1_BigIntFree(pExponent);
     SHA::SHA1_BigIntFree(pExponentBase);
     SHA::SHA1_BigIntFree(pScramblingParam);
@@ -367,40 +359,31 @@ void SRP_GenerateAccountCredentials(void * pThis, char * pCredsBuf, char * szUse
 }
 
 BOOL SRP_ClientKeyExchange(void * pThis, D2SrpCredentialsStrc * pContext, void * pParam1, void * pParam2) {
-    // Frame slots -60..-4 are ONE object: &pServerPublicB is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      BigData* pServerPublicB;
-      BigData* pClientPublicA;
-      BigData* pPasswordHash;
-      void* pSalt;
-      BigData* pSharedSecretOut;
-      char sessionKeyBytes[32];
-      uint32_t dwSecurityCookie;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 56, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int bSharedSecretOk;
     uint32_t uVar3;
-    __frame0.dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    __frame0.pSalt = pParam1;
+    BigData* pServerPublicB;
+    BigData* pPasswordHash;
+    BigData* pSharedSecretOut;
+    char sessionKeyBytes[32];
+    uint32_t dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    void* pSalt = pParam1;
     BigData* pSharedSecret = SHA::SHA1_FromBigIntBytes(pParam2, 0x20);
-    __frame0.pClientPublicA = pSharedSecret;
+    BigData* pClientPublicA = pSharedSecret;
     int32_t nCompareResult = SHA::SHA1_BigIntCompareValue(pSharedSecret, 0);
     if (nCompareResult == 1) {
-      SRP_ComputePasswordHash(__frame0.pSalt, pContext->szUsername, pContext->szPassword, (int*)&__frame0.pPasswordHash);
+      SRP_ComputePasswordHash(pSalt, pContext->szUsername, pContext->szPassword, (int*)&pPasswordHash);
       pSharedSecret = SHA::SHA1_BigIntFromUnsigned(0);
-      __frame0.pSharedSecretOut = pSharedSecret;
-      __frame0.pServerPublicB = SHA::SHA1_FromBigIntBytes(pContext->aClientPrivateKey_a, 0x20);
-      bSharedSecretOk = SRP_ClientComputeSharedSecret(*(int32_t*)pThis, &__frame0.pServerPublicB, &__frame0.pClientPublicA, &__frame0.pPasswordHash, &__frame0.pSharedSecretOut);
-      SHA::SHA1_BigIntFree(__frame0.pServerPublicB);
-      SHA::SHA1_BigIntFree(__frame0.pClientPublicA);
-      SHA::SHA1_BigIntFree(__frame0.pPasswordHash);
+      pSharedSecretOut = pSharedSecret;
+      pServerPublicB = SHA::SHA1_FromBigIntBytes(pContext->aClientPrivateKey_a, 0x20);
+      bSharedSecretOk = SRP_ClientComputeSharedSecret(*(int32_t*)pThis, &pServerPublicB, &pClientPublicA, &pPasswordHash, &pSharedSecretOut);
+      SHA::SHA1_BigIntFree(pServerPublicB);
+      SHA::SHA1_BigIntFree(pClientPublicA);
+      SHA::SHA1_BigIntFree(pPasswordHash);
       if (bSharedSecretOk) {
-        uVar3 = SHA::SHA1_ToBigIntBytes(pSharedSecret, __frame0.sessionKeyBytes, 0x20);
-        SHA::SHA1_HashWideString(pContext->aSessionKey_K, __frame0.sessionKeyBytes, uVar3);
-        SHA::SHA1_BigIntFree(__frame0.pSharedSecretOut);
-        SRP_ComputeClientProof(*(int32_t*)pThis, pContext->szUsername, __frame0.pSalt, pContext->aClientPublicKey_A, pParam2, pContext->aSessionKey_K, (int32_t)pContext->aClientProof_M1);
+        uVar3 = SHA::SHA1_ToBigIntBytes(pSharedSecret, sessionKeyBytes, 0x20);
+        SHA::SHA1_HashWideString(pContext->aSessionKey_K, sessionKeyBytes, uVar3);
+        SHA::SHA1_BigIntFree(pSharedSecretOut);
+        SRP_ComputeClientProof(*(int32_t*)pThis, pContext->szUsername, pSalt, pContext->aClientPublicKey_A, pParam2, pContext->aSessionKey_K, (int32_t)pContext->aClientProof_M1);
         Fog::Debug::GuardStack();
         return 1;
       }
@@ -517,31 +500,29 @@ void SRP_ServerComputePublicB(void * pThis, int32_t nContextBase) {
 }
 
 void SRP_ClientVerifyAndComputeKey(void * pThis, void * pContext, uint32_t * pServerProof) {
-    // Frame slots -60..-4 are ONE object: &pClientProofOut is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -52..-4 are ONE object: &pServerPublicB is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      BigData* pClientProofOut;
-      BigData* pSmallKey;
       BigData* pServerPublicB;
       BigData* pRandomKey;
       BigData* pClientProofBuf;
       char sessionKeyBytes[32];
       uint32_t dwSecurityCookie;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 56, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 48, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     __frame0.dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     BigData* pSharedSecret = SHA::SHA1_BigIntFromUnsigned(0);
     __frame0.pClientProofBuf = pSharedSecret;
-    __frame0.pSmallKey = SHA::SHA1_FromBigIntBytes((void*)((int)pContext + 0x20), 0x20);
+    BigData* pSmallKey = SHA::SHA1_FromBigIntBytes((void*)((int)pContext + 0x20), 0x20);
     __frame0.pRandomKey = SHA::SHA1_FromBigIntBytes((void*)((int)pContext + 0x80), 0x20);
     __frame0.pServerPublicB = SHA::SHA1_FromBigIntBytes((void*)((int)pContext + 0xa0), 0x20);
-    __frame0.pClientProofOut = SHA::SHA1_FromBigIntBytes((void*)((int)pContext + 0x60), 0x20);
-    SRP_ServerComputeSharedSecret(*(D2Srp**)pThis, &__frame0.pClientProofOut, (int*)&__frame0.pServerPublicB, &__frame0.pRandomKey, &__frame0.pSmallKey, &__frame0.pClientProofBuf);
-    SHA::SHA1_BigIntFree(__frame0.pClientProofOut);
+    BigData* pClientProofOut = SHA::SHA1_FromBigIntBytes((void*)((int)pContext + 0x60), 0x20);
+    SRP_ServerComputeSharedSecret(*(D2Srp**)pThis, &pClientProofOut, (int*)&__frame0.pServerPublicB, &__frame0.pRandomKey, &pSmallKey, &__frame0.pClientProofBuf);
+    SHA::SHA1_BigIntFree(pClientProofOut);
     SHA::SHA1_BigIntFree(__frame0.pServerPublicB);
     SHA::SHA1_BigIntFree(__frame0.pRandomKey);
-    SHA::SHA1_BigIntFree(__frame0.pSmallKey);
+    SHA::SHA1_BigIntFree(pSmallKey);
     __frame0.pClientProofBuf = (BigData*)SHA::SHA1_ToBigIntBytes(pSharedSecret, __frame0.sessionKeyBytes, 0x20);
     SHA::SHA1_BigIntFree(pSharedSecret);
     SHA::SHA1_HashWideString((uint8_t*)((int)pContext + 0xc0), __frame0.sessionKeyBytes, (int32_t)__frame0.pClientProofBuf);

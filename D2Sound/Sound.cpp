@@ -265,20 +265,20 @@ void __stdcall SOUND_InitDirectSound() {
 }
 
 void __fastcall SOUND_Initialize(uint32_t dwLanguageCode, HWND hWnd) {
-    // Frame slots -16..-4 are ONE object: &dwVerBuild is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -12..-4 are ONE object: &dwVerMinor is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      uint32_t dwVerBuild;
       uint32_t dwVerMinor;
       uint32_t dwVerMajor;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     BOOL nFileVersionResult;
     char* pszPathEnd;
     bool bVersionInRange;
     bool bVersionMatch;
     char szWindowsDir[260];
+    uint32_t dwVerBuild;
     char* pszPath;
     g_bSoundDriverScanComplete = 0;
     g_hwndSoundWindow = hWnd;
@@ -293,13 +293,13 @@ void __fastcall SOUND_Initialize(uint32_t dwLanguageCode, HWND hWnd) {
       } while (pszPathEnd[1] != '\0');
 
       memcpy(pszPathEnd + 1, "\\SYSTEM\\EMU10K1.VXD", 0x14);
-      nFileVersionResult = D2SoundUntil::SOUNDUTIL_GetFileVersionInfo(szWindowsDir, &__frame0.dwVerMinor, &__frame0.dwVerBuild, &__frame0.dwVerMajor);
+      nFileVersionResult = D2SoundUntil::SOUNDUTIL_GetFileVersionInfo(szWindowsDir, &__frame0.dwVerMinor, &dwVerBuild, &__frame0.dwVerMajor);
       if (nFileVersionResult && __frame0.dwVerMinor == 4) {
-        if (__frame0.dwVerBuild == 6) {
+        if (dwVerBuild == 6) {
           bVersionInRange = __frame0.dwVerMajor - 0x26e < 0x58;
           bVersionMatch = __frame0.dwVerMajor - 0x26e == 0x58;
         } else {
-          if (__frame0.dwVerBuild != 0xb) {
+          if (dwVerBuild != 0xb) {
             goto check_crlds3d_version;
           }
 
@@ -322,8 +322,8 @@ void __fastcall SOUND_Initialize(uint32_t dwLanguageCode, HWND hWnd) {
       } while (pszPathEnd[1] != '\0');
 
       memcpy(pszPathEnd + 1, "\\SYSTEM\\CRLDS3D.VXD", 0x14);
-      nFileVersionResult = D2SoundUntil::SOUNDUTIL_GetFileVersionInfo(szWindowsDir, &__frame0.dwVerMinor, &__frame0.dwVerBuild, &__frame0.dwVerMajor);
-      if (nFileVersionResult && (__frame0.dwVerMinor < 4 || __frame0.dwVerMinor == 4 && (__frame0.dwVerBuild < 0xc || __frame0.dwVerBuild == 0xc && __frame0.dwVerMajor < 0x40b))) {
+      nFileVersionResult = D2SoundUntil::SOUNDUTIL_GetFileVersionInfo(szWindowsDir, &__frame0.dwVerMinor, &dwVerBuild, &__frame0.dwVerMajor);
+      if (nFileVersionResult && (__frame0.dwVerMinor < 4 || __frame0.dwVerMinor == 4 && (dwVerBuild < 0xc || dwVerBuild == 0xc && __frame0.dwVerMajor < 0x40b))) {
         gbDirectSoundDelayWorkaround = 1;
       }
     }

@@ -4824,24 +4824,17 @@ void __stdcall ITEMTBLS_FreeItemTypes() {
 }
 
 BOOL __stdcall ITEMTBLS_CheckIfDataFileExists(char * szFileExt, D2PoolManagerStrc * pPoolManagerStrc, char * szFileName) {
-    // Frame slots -272..-4 are ONE object: &pFile is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQFileStrc* pFile;
-      char szFilePath[260];
-      uint32_t nStackCookie;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 268, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    __frame0.nStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(__frame0.szFilePath, "%s\\%s%s", "DATA\\GLOBAL\\EXCEL", szFileName, szFileExt);
-    BOOL fFileExistsCheck = DataTbls::CheckIfFileExists(pPoolManagerStrc, __frame0.szFilePath, &__frame0.pFile, 1);
+    D2MPQFileStrc* pFile;
+    char szFilePath[260];
+    uint32_t nStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szFilePath, "%s\\%s%s", "DATA\\GLOBAL\\EXCEL", szFileName, szFileExt);
+    BOOL fFileExistsCheck = DataTbls::CheckIfFileExists(pPoolManagerStrc, szFilePath, &pFile, 1);
     if (!fFileExistsCheck) {
       Fog::Debug::GuardStack();
       return 0;
     }
 
-    D2FILE_CloseFile(pPoolManagerStrc, __frame0.pFile);
+    D2FILE_CloseFile(pPoolManagerStrc, pFile);
     Fog::Debug::GuardStack();
     return 1;
 }

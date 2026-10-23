@@ -80,16 +80,9 @@ D2TileLibraryHeaderStrc * __stdcall TILEPROJECT_FindLibraryOfTile(D2TileLibraryE
 }
 
 void __fastcall PALETTE_LoadFromFile(char * pdwParam, int32_t nPaletteSet) {
-    // Frame slots -12..-4 are ONE object: &pArchive is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQFileStrc* pArchive;
-      uint32_t local_8;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nPrefixWords;
     char nStrEndOffset1[260];
+    D2MPQFileStrc* pArchive;
     uint32_t nReadSize = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     char* pSrcWord = "Data\\Global\\Items\\Palette\\";
     char* szPathDst = nStrEndOffset1;
@@ -103,16 +96,16 @@ void __fastcall PALETTE_LoadFromFile(char * pdwParam, int32_t nPaletteSet) {
     szPathDst[2] = pSrcWord[2];
     strcat(nStrEndOffset1, pdwParam);
     strcat(nStrEndOffset1, ".dat");
-    __frame0.local_8 = 0x1500;
+    uint32_t local_8 = 0x1500;
     char* szInlineNameBuf = pdwParam;
-    BOOL bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, nStrEndOffset1, &__frame0.pArchive, 1);
+    BOOL bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, nStrEndOffset1, &pArchive, 1);
     if (!bFileExists) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x39);
       exit(-1);
-      memset(gaItemPaletteData + nPaletteSet * 0x6900, 0, __frame0.local_8);
+      memset(gaItemPaletteData + nPaletteSet * 0x6900, 0, local_8);
     } else {
-      D2FILE_ReadFile(nullptr, __frame0.pArchive, gaItemPaletteData + nPaletteSet * 0x6900, __frame0.local_8);
-      D2FILE_CloseFile(nullptr, __frame0.pArchive);
+      D2FILE_ReadFile(nullptr, pArchive, gaItemPaletteData + nPaletteSet * 0x6900, local_8);
+      D2FILE_CloseFile(nullptr, pArchive);
     }
 
     Fog::Debug::GuardStack();

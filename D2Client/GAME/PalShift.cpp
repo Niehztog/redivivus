@@ -55,14 +55,8 @@ void __stdcall AllocPalShift_GreenBlood() {
 
 // @sourcefile .\GAME\PalShift.cpp
 void __stdcall InitPal() {
-    // Frame slots -12..-4 are ONE object: &pGreenBloodFile is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQFileStrc* pGreenBloodFile;
-      D2MPQFileStrc* pRandTransformFile;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2MPQFileStrc* pGreenBloodFile;
+    D2MPQFileStrc* pRandTransformFile;
     size_t nAllocSize = sgptDataTable->nTxtMonStatsSize * 8;
     void* pPalShiftList = Fog::Memory::AllocClientMemory(nAllocSize, ".\\GAME\\PalShift.cpp", 99, 0);
     gpMonsterPalShiftList = pPalShiftList;
@@ -77,14 +71,14 @@ void __stdcall InitPal() {
     }
 
     gpPalShiftEntryListHead = 0;
-    BOOL bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, "Data\\Global\\Monsters\\RandTransforms.dat", &__frame0.pRandTransformFile, 1);
+    BOOL bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, "Data\\Global\\Monsters\\RandTransforms.dat", &pRandTransformFile, 1);
     if (bFileExists) {
-      D2FILE_ReadFile(nullptr, __frame0.pRandTransformFile, PalShift_RandTransform, 0x1e00);
-      D2FILE_CloseFile(nullptr, __frame0.pRandTransformFile);
+      D2FILE_ReadFile(nullptr, pRandTransformFile, PalShift_RandTransform, 0x1e00);
+      D2FILE_CloseFile(nullptr, pRandTransformFile);
       gbPalShiftRandTransformLoaded = 1;
     }
 
-    bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, "Data\\Global\\Monsters\\GreenBlood.dat", &__frame0.pGreenBloodFile, 1);
+    bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, "Data\\Global\\Monsters\\GreenBlood.dat", &pGreenBloodFile, 1);
     if (!bFileExists) {
       return;
     }
@@ -92,8 +86,8 @@ void __stdcall InitPal() {
     D2GamePalShiftGreenBloodStrc* pGreenBlood = (D2GamePalShiftGreenBloodStrc*)Fog::Memory::AllocClientMemory(0x100, ".\\GAME\\PalShift.cpp", 0x52, 0);
     PalShift_GreenBlood = pGreenBlood;
     memset(pGreenBlood, 0, 0x100);
-    D2FILE_ReadFile(nullptr, __frame0.pGreenBloodFile, pGreenBlood, 0x100);
-    D2FILE_CloseFile(nullptr, __frame0.pGreenBloodFile);
+    D2FILE_ReadFile(nullptr, pGreenBloodFile, pGreenBlood, 0x100);
+    D2FILE_CloseFile(nullptr, pGreenBloodFile);
 }
 
 // @sourcefile .\GAME\PalShift.cpp
@@ -183,18 +177,11 @@ void PALSHIFT_ApplyGreenBloodPalette(int32_t pPaletteData, int32_t nMonsterId) {
 // Loads a monster's palshift.dat color-remapping table on demand. Looks up MonStats for nMonsterId, returns early if missing or if a palshift entry already exists. Builds the path Data\\Global\\Monsters\\<2-char monster code>\\Cof\\palshift.dat, opens it if present, allocates a 0x1008-byte client-memory entry, reads the file into it, applies the green-blood palette transform, links it into the global palshift list, and registers it in gpMonsterPalShiftList by monster index. Side effects: client-memory alloc, MPQ file read, mutates global palshift list/array.
 // @sourcefile .\GAME\PalShift.cpp
 void __fastcall PALSHIFT_LoadMonsterPalShift(int32_t nMonsterId) {
-    // Frame slots -12..-4 are ONE object: &pFileHandle is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQFileStrc* pFileHandle;
-      int* pPalShiftEntry;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     char* pPathEnd2;
     uint32_t iMonIdx;
     char szFilePath[256];
     char szMonsterCode[4];
+    D2MPQFileStrc* pFileHandle;
     char cCode0;
     char cCode1;
     D2MonStatsTxt* pMonStats = DataTbls::MonsterTbls::TXT_MonStats_GetLine(nMonsterId);
@@ -230,19 +217,19 @@ void __fastcall PALSHIFT_LoadMonsterPalShift(int32_t nMonsterId) {
     szMonsterCode[1] = cCode1;
     szMonsterCode[0] = cCode0;
     memcpy(pPathEnd2 + 1, "\\Cof\\palshift.dat", 0x12);
-    BOOL bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, szFilePath, &__frame0.pFileHandle, 1);
+    BOOL bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, szFilePath, &pFileHandle, 1);
     if (!bFileExists) {
       return;
     }
 
-    __frame0.pPalShiftEntry = (int*)Fog::Memory::AllocClientMemory(0x1008, ".\\GAME\\PalShift.cpp", 0xf4, 0);
-    memset(__frame0.pPalShiftEntry, 0, 0x1008);
-    D2FILE_ReadFile(nullptr, __frame0.pFileHandle, __frame0.pPalShiftEntry + 1, 0x800);
-    D2FILE_CloseFile(nullptr, __frame0.pFileHandle);
-    PALSHIFT_ApplyGreenBloodPalette((int32_t)__frame0.pPalShiftEntry, nMonsterId);
-    *__frame0.pPalShiftEntry = nMonsterId;
-    __frame0.pPalShiftEntry[0x401] = (int)gpPalShiftEntryListHead;
-    gpPalShiftEntryListHead = __frame0.pPalShiftEntry;
+    int* pPalShiftEntry = (int*)Fog::Memory::AllocClientMemory(0x1008, ".\\GAME\\PalShift.cpp", 0xf4, 0);
+    memset(pPalShiftEntry, 0, 0x1008);
+    D2FILE_ReadFile(nullptr, pFileHandle, pPalShiftEntry + 1, 0x800);
+    D2FILE_CloseFile(nullptr, pFileHandle);
+    PALSHIFT_ApplyGreenBloodPalette((int32_t)pPalShiftEntry, nMonsterId);
+    *pPalShiftEntry = nMonsterId;
+    pPalShiftEntry[0x401] = (int)gpPalShiftEntryListHead;
+    gpPalShiftEntryListHead = pPalShiftEntry;
     iMonIdx = 0;
     while (true) {
       int32_t nMonStatsCount;
@@ -250,8 +237,8 @@ void __fastcall PALSHIFT_LoadMonsterPalShift(int32_t nMonsterId) {
       if (iMonIdx >= nMonStatsCount) {
         break;
       }
-      if (*__frame0.pPalShiftEntry == iMonIdx) {
-        *(int**)((int)gpMonsterPalShiftList + iMonIdx * 8 + 4) = (int*)__frame0.pPalShiftEntry;
+      if (*pPalShiftEntry == iMonIdx) {
+        *(int**)((int)gpMonsterPalShiftList + iMonIdx * 8 + 4) = (int*)pPalShiftEntry;
       }
 
       iMonIdx++;

@@ -25,26 +25,20 @@ namespace D2Common::Unit::SUnitDmg {
 
 // Rolls a unit's passive defensive avoidance against an incoming attack. For players in Run/Walk mode (or matching monster mode) rolls passive_evade; otherwise checks dodge (passive_dodge) when nParam==0 or avoid (passive_avoid) when nParam!=0, plus a weapon-class-0xD parry/block path keyed on DAMAGE_GetSkillDamageBonus. Uses the unit RNG seed (advances pUnit->sSeed). Returns a result bitcode: 0x10 (block/parry), 8 (evade), 4 (dodge), 2 (avoid), or 0 (none). __fastcall with pUnit in ESI, attacker pUnit2 in EDI.
 uint32_t __stdcall DAMAGE_CheckDefenseEvasion(int32_t nParam, D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
-    // Frame slots -12..-4 are ONE object: &nWeaponClass3 is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nWeaponClass3;
-      uint32_t nWeaponClass2;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nParryBonus;
     uint32_t nRandRoll;
     int nDodgeChance;
     uint32_t nEvadeRoll;
     int nAvoidChance;
+    uint32_t nWeaponClass3;
     int32_t nDebugAddr;
     uint32_t dwSeedLow;
     eD2PlayerAnimMode eAnimMode;
     char* nSeedMod;
     int32_t nSkillBonus;
     D2UnitStrc* pDefender;
-    __frame0.nWeaponClass2 = 0;
+    uint32_t nWeaponClass2;
+    nWeaponClass2 = 0;
     if (pUnit) {
       D2SeedStrc DVar1;
       eAnimMode = pUnit->eAnimMode.ePlayerMode;
@@ -70,22 +64,22 @@ uint32_t __stdcall DAMAGE_CheckDefenseEvasion(int32_t nParam, D2UnitStrc * pUnit
             return nRandRoll;
           }
 
-          nRandRoll = __frame0.nWeaponClass2;
+          nRandRoll = nWeaponClass2;
           return nRandRoll;
         }
 
         nParryBonus = D2Game::UNIT::SUnitDmg::DAMAGE_GetSkillDamageBonus(pUnit);
         if (0 < nParryBonus) {
-          COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pUnit->pInventory, &__frame0.nWeaponClass2, -1, 1);
-          if (__frame0.nWeaponClass2 == 0xd) {
+          COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pUnit->pInventory, &nWeaponClass2, -1, 1);
+          if (nWeaponClass2 == 0xd) {
             nRandRoll = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 100);
             nDebugAddr = (int32_t)s_block_006e1730;
             pDefender = pUnit;
             nSkillBonus = nParryBonus;
-            __frame0.nWeaponClass3 = nRandRoll;
+            nWeaponClass3 = nRandRoll;
             D2Game::UNIT::SUnit::GetGamePointer(pUnit2);
             D2Game::nullsub_4Arg(pDefender, nSkillBonus, nRandRoll, nDebugAddr);
-            if ((int)__frame0.nWeaponClass3 < nParryBonus) {
+            if ((int)nWeaponClass3 < nParryBonus) {
               return 0x10;
             }
           }
@@ -106,16 +100,16 @@ uint32_t __stdcall DAMAGE_CheckDefenseEvasion(int32_t nParam, D2UnitStrc * pUnit
 
     nParryBonus = D2Game::UNIT::SUnitDmg::DAMAGE_GetSkillDamageBonus(pUnit);
     if (0 < nParryBonus) {
-      COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pUnit->pInventory, &__frame0.nWeaponClass3, -1, 1);
-      if (__frame0.nWeaponClass3 == 0xd) {
+      COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pUnit->pInventory, &nWeaponClass3, -1, 1);
+      if (nWeaponClass3 == 0xd) {
         nRandRoll = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 100);
         nSeedMod = "block";
         pDefender = pUnit;
         nSkillBonus = nParryBonus;
-        __frame0.nWeaponClass2 = nRandRoll;
+        nWeaponClass2 = nRandRoll;
         D2Game::UNIT::SUnit::GetGamePointer(pUnit2);
         D2Game::nullsub_4Arg(pDefender, nSkillBonus, nRandRoll, (uint32_t)nSeedMod);
-        if ((int)__frame0.nWeaponClass2 < nParryBonus) {
+        if ((int)nWeaponClass2 < nParryBonus) {
           return 0x10;
         }
       }

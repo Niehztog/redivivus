@@ -3392,26 +3392,20 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
 }
 
 void __stdcall BNNEWS_DecodeCDKeys() {
-    // Frame slots -32..-4 are ONE object: &nPrivate is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nPrivate;
-      uint32_t nPublic;
-      uint32_t nProduct;
-      uint16_t aExtra26[6];
-      uint32_t local_8;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int bDecodeOk;
-    __frame0.local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    uint32_t nPrivate;
+    uint32_t nPublic;
+    uint32_t nProduct;
+    uint16_t aExtra26[6];
+    uint32_t local_8;
+    local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     _net_sid::DecodeAndLoadKeys();
     char* szCDKey;
     szCDKey = _net_sid::NET_SID_CLIENT_GetCdKeyByType(0);
     uint32_t pKeyLenPtr;
     pKeyLenPtr = Storm::Source::SSTR::SStrLen(szCDKey);
     if (pKeyLenPtr == 0x10) {
-      bDecodeOk = BNSEND_DecodeCDKeyString(&__frame0.nProduct, &__frame0.nPublic, szCDKey, &__frame0.nPrivate);
+      bDecodeOk = BNSEND_DecodeCDKeyString(&nProduct, &nPublic, szCDKey, &nPrivate);
       if (!bDecodeOk) {
         goto cleanup;
       }
@@ -3420,7 +3414,7 @@ void __stdcall BNNEWS_DecodeCDKeys() {
         goto cleanup;
       }
 
-      _net_sid::NET_SID_CLIENT_TransformCdKeyToken((int32_t)szCDKey, &__frame0.nProduct, &__frame0.nPublic, __frame0.aExtra26);
+      _net_sid::NET_SID_CLIENT_TransformCdKeyToken((int32_t)szCDKey, &nProduct, &nPublic, aExtra26);
     }
 
     BOOL bIsExpansion;
@@ -3429,9 +3423,9 @@ void __stdcall BNNEWS_DecodeCDKeys() {
       szCDKey = _net_sid::NET_SID_CLIENT_GetCdKeyByType(1);
       pKeyLenPtr = Storm::Source::SSTR::SStrLen(szCDKey);
       if (pKeyLenPtr == 0x10) {
-        BNSEND_DecodeCDKeyString(&__frame0.nProduct, &__frame0.nPublic, szCDKey, &__frame0.nPrivate);
+        BNSEND_DecodeCDKeyString(&nProduct, &nPublic, szCDKey, &nPrivate);
       } else if (pKeyLenPtr == 0x1a && szCDKey) {
-        _net_sid::NET_SID_CLIENT_TransformCdKeyToken((int32_t)szCDKey, &__frame0.nProduct, &__frame0.nPublic, __frame0.aExtra26);
+        _net_sid::NET_SID_CLIENT_TransformCdKeyToken((int32_t)szCDKey, &nProduct, &nPublic, aExtra26);
       }
     }
 

@@ -100,29 +100,22 @@ void __fastcall SKILLEMONST_ApplyReflectedDamage(::SGAMEDATA * pGame, D2UnitStrc
 
 // Server do-function for skill 125 (Catapult Fire Bomb, Act 5 siege engine). Resolves the charge-up missile, gets the target/cursor position, computes the delta vector from the unit's current position to the target, spawns the firebomb missile with flags=2 (lobbed), then sets the missile's TargetX/Y to the rotated delta vector (perpendicular). Returns 1 on success, 0 on invalid skill or out-of-range missile ID.
 BOOL __fastcall Skills_SrvDoFunc_125_CatapultFireBomb(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetYOrX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetYOrX;
-      ::SGAMEDATA* pGameLocal;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bHasTarget;
     bool bHasTarget;
     D2SkillArgStrc sSkillArg;
+    uint32_t nTargetYOrX;
     eD2Skills eSkillId = eSkill;
     if ((int)eSkill < 0 || sgptDataTable->nTxtSkillsCount <= (int)eSkill || !(sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
 
-    __frame0.pGameLocal = pGame;
+    ::SGAMEDATA* pGameLocal = pGame;
     eMissilesId eMissileId = SkillAss::SKILLASS_GetChargeUpMissile(pUnit, eSkill);
     if (!(-1 < (int)eMissileId && (int)eMissileId < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
 
-    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGameLocal, pUnit, (uint32_t*)&eSkill, &__frame0.nTargetYOrX);
+    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGameLocal, pUnit, (uint32_t*)&eSkill, &nTargetYOrX);
     if (!_bHasTarget) {
       return 0;
     }
@@ -140,8 +133,8 @@ BOOL __fastcall Skills_SrvDoFunc_125_CatapultFireBomb(::SGAMEDATA * pGame, D2Uni
     int32_t nTmpPos = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
     sSkillArg.nUnitX = eSkill - nTmpPos;
     nTmpPos = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    sSkillArg.nUnitY = __frame0.nTargetYOrX - nTmpPos;
-    D2UnitStrc* pUnit_00 = MISSILES::Missiles::CreatingMissile(__frame0.pGameLocal, &sSkillArg);
+    sSkillArg.nUnitY = nTargetYOrX - nTmpPos;
+    D2UnitStrc* pUnit_00 = MISSILES::Missiles::CreatingMissile(pGameLocal, &sSkillArg);
     if (!pUnit_00) {
       return 0;
     }
@@ -500,17 +493,9 @@ void __fastcall SKILLEMONST_DetachFromHost(::SGAMEDATA * pGame, D2UnitStrc * pUn
 
 // SrvDoFunc 129: parasite attach/detach dispatch. If unit already has an owner, relocates it to target coords and calls SKILLEMONST_DetachFromHost. If no target exists, falls back to SrvDoFunc_098 teleport. Otherwise relocates unit onto the target and calls SKILLEMONST_AttachToHost.
 BOOL __fastcall Skills_SrvDoFunc_129_AttachOrDetachFromHost(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetX;
-      uint32_t nTargetY;
-      D2UnitStrc* pOwnerUnit;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bRelocated;
     BOOL bIsDead;
+    uint32_t nTargetY;
     if ((int)eSkill < 0) {
       return 0;
     }
@@ -526,12 +511,13 @@ BOOL __fastcall Skills_SrvDoFunc_129_AttachOrDetachFromHost(::SGAMEDATA * pGame,
       return 0;
     }
 
-    __frame0.pOwnerUnit = UNIT::SUnit::GetOwnerUnit(pGame, pUnit);
+    D2UnitStrc* pOwnerUnit = UNIT::SUnit::GetOwnerUnit(pGame, pUnit);
     D2UnitStrc* pUnit_00 = UNIT::SUnit::GetTargetEx(pGame, pUnit);
-    if (__frame0.pOwnerUnit) {
-      SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
-      UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, nullptr, __frame0.nTargetX, __frame0.nTargetY, 0, 0);
-      SKILLEMONST_DetachFromHost(pGame, pUnit, __frame0.pOwnerUnit, eSkill, nSkillLvl);
+    if (pOwnerUnit) {
+      uint32_t nTargetX;
+      SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nTargetX, &nTargetY);
+      UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, nullptr, nTargetX, nTargetY, 0, 0);
+      SKILLEMONST_DetachFromHost(pGame, pUnit, pOwnerUnit, eSkill, nSkillLvl);
       return 1;
     }
     if (!pUnit_00) {
@@ -903,25 +889,19 @@ BOOL __fastcall Skills_SrvDoFunc_134_AreaExplosionAttack(::SGAMEDATA * pGame, D2
 }
 
 BOOL __fastcall SKILLEMONST_SrvStFn62_MinionSpawner(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &eSpawnAnimMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t eSpawnAnimMode;
-      int32_t nSpawnX;
-      int32_t nSpawnY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int32_t eSpawnAnimMode;
+    int32_t nSpawnX;
+    int32_t nSpawnY;
     D2SkillStrc* pSkill = D2Common::Units::GetCurrentSkill(pUnit);
     if (!pSkill) {
       return 0;
     }
 
-    int32_t nParam1 = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 1, eSkill, nSkillLvl, &__frame0.eSpawnAnimMode, &__frame0.nSpawnY, &__frame0.nSpawnX);
+    int32_t nParam1 = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 1, eSkill, nSkillLvl, &eSpawnAnimMode, &nSpawnY, &nSpawnX);
     D2Common::Skills::SKILL_SetParam1(pSkill, nParam1);
-    D2Common::Skills::SKILL_SetParam2(pSkill, __frame0.nSpawnY);
-    D2Common::Skills::SKILL_SetParam3(pSkill, __frame0.nSpawnX);
-    D2Common::Skills::SKILL_SetParam4(pSkill, __frame0.eSpawnAnimMode);
+    D2Common::Skills::SKILL_SetParam2(pSkill, nSpawnY);
+    D2Common::Skills::SKILL_SetParam3(pSkill, nSpawnX);
+    D2Common::Skills::SKILL_SetParam4(pSkill, eSpawnAnimMode);
     return 1;
 }
 
@@ -977,15 +957,8 @@ BOOL __fastcall Skills_SrvDoFunc_135_SpawnMinionFromParams(::SGAMEDATA * pGame, 
 
 // Server DoFunc for skill 136 (monster fire-speed-scaled missile). Reads srvmissilea from the skill txt record, resolves the target or cursor position, spawns a missile via SKILLS_CreateMissileAtTarget, then scales the missile's total-frame lifetime proportionally to the distance to the cursor (closer targets get fewer frames so the missile appears to travel at a consistent visual speed). Returns 1 on success, 0 if skill/missile record is invalid or no target found.
 BOOL __fastcall Skills_SrvDoFunc_136_FireSpeedScaledMissile(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nCursorX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nCursorX;
-      uint32_t nCursorY;
-      ::SGAMEDATA* pGameCopy;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nCursorX;
+    uint32_t nCursorY;
     if ((int)eSkill < 0) {
       return 0;
     }
@@ -1003,8 +976,8 @@ BOOL __fastcall Skills_SrvDoFunc_136_FireSpeedScaledMissile(::SGAMEDATA * pGame,
       return 0;
     }
 
-    __frame0.pGameCopy = pGame;
-    BOOL nDist = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nCursorX, &__frame0.nCursorY);
+    ::SGAMEDATA* pGameCopy = pGame;
+    BOOL nDist = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nCursorX, &nCursorY);
     if (!nDist) {
       return 0;
     }
@@ -1012,31 +985,31 @@ BOOL __fastcall Skills_SrvDoFunc_136_FireSpeedScaledMissile(::SGAMEDATA * pGame,
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
 
-    D2UnitStrc* pMissile = SkillsServer::SKILLS_CreateMissileAtTarget(__frame0.pGameCopy, pUnit, eSkill, nSkillLvl, nMissileTxtNo, 0, 0);
+    D2UnitStrc* pMissile = SkillsServer::SKILLS_CreateMissileAtTarget(pGameCopy, pUnit, eSkill, nSkillLvl, nMissileTxtNo, 0, 0);
     if (!pMissile) {
       return 0;
     }
 
-    __frame0.pGameCopy = (::SGAMEDATA*)pMissile;
+    pGameCopy = (::SGAMEDATA*)pMissile;
     int32_t nAnimSpeed = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillRecord->calc[0], eSkill, nSkillLvl);
     if (0 < nAnimSpeed) {
       D2Common::Units::SetAnimationSpeed(pMissile, nAnimSpeed);
     }
 
     nAnimSpeed = D2Common::Units::Missile::GetTotalFrames(pMissile);
-    int nDistance = D2Common::Collision::GetDistanceToXY(pUnit, __frame0.nCursorX, __frame0.nCursorY);
-    ::SGAMEDATA* pMissileAlias = __frame0.pGameCopy;
+    int nDistance = D2Common::Collision::GetDistanceToXY(pUnit, nCursorX, nCursorY);
+    ::SGAMEDATA* pMissileAlias = pGameCopy;
     if (nDistance < 1) {
       nDistance = 1;
     } else if (9 < nDistance) {
       nDistance = nDistance * nAnimSpeed / 0xc;
-      D2Common::Units::Missile::SetTotalFrames((D2UnitStrc*)__frame0.pGameCopy, nDistance);
+      D2Common::Units::Missile::SetTotalFrames((D2UnitStrc*)pGameCopy, nDistance);
       D2Common::Units::Missile::SetCurrentFrame((D2UnitStrc*)pMissileAlias, nDistance);
       return 1;
     }
 
     nDistance = nDistance * nAnimSpeed / 0x18 + nAnimSpeed / 2;
-    D2Common::Units::Missile::SetTotalFrames((D2UnitStrc*)__frame0.pGameCopy, nDistance);
+    D2Common::Units::Missile::SetTotalFrames((D2UnitStrc*)pGameCopy, nDistance);
     D2Common::Units::Missile::SetCurrentFrame((D2UnitStrc*)pMissileAlias, nDistance);
     return 1;
 }
@@ -1072,21 +1045,13 @@ BOOL __fastcall Skills_SrvDoFunc_137_CorpseConsumptionAura(::SGAMEDATA * pGame, 
 
 // Server SrvDoFunc for skill 138: fires a line of missiles perpendicular to the aim direction. Computes the perpendicular unit vector from caster to cursor, then spawns calc[0] missiles evenly spread along that perpendicular axis, each using the calc[1] total-frames value. Also checks the inferno state and advances the unit's sequence frame if active.
 BOOL __fastcall Skills_SrvDoFunc_138_FirePerpendicularMissileLine(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -20..-4 are ONE object: &nDirY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nDirY;
-      int32_t nDirX;
-      uint32_t nCursorY;
-      uint32_t nCursorX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nTotalFrames;
     eD2States eUnitState;
     D2SkillArgStrc sSkillArg;
     int32_t nPerpOffset;
     int32_t nHalfLineSpread;
+    uint32_t nCursorY;
+    uint32_t nCursorX;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
@@ -1101,20 +1066,20 @@ BOOL __fastcall Skills_SrvDoFunc_138_FirePerpendicularMissileLine(::SGAMEDATA * 
       return 0;
     }
 
-    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nCursorX, &__frame0.nCursorY);
+    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nCursorX, &nCursorY);
     if (!bGotTargetPos) {
       return 1;
     }
 
     int32_t nUnitPosX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-    __frame0.nDirX = __frame0.nCursorX - nUnitPosX;
+    int32_t nDirX = nCursorX - nUnitPosX;
     int32_t nLineCount = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    __frame0.nDirY = __frame0.nCursorY - nLineCount;
-    SkillsServer::SKILLS_NormalizeDirectionMin(&__frame0.nDirX, &__frame0.nDirY);
-    SkillsServer::SKILLS_NormalizeDirectionPerp(&__frame0.nDirX, &__frame0.nDirY);
+    int32_t nDirY = nCursorY - nLineCount;
+    SkillsServer::SKILLS_NormalizeDirectionMin(&nDirX, &nDirY);
+    SkillsServer::SKILLS_NormalizeDirectionPerp(&nDirX, &nDirY);
     nLineCount = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillRecord->calc[0], eSkill, nSkillLvl);
-    __frame0.nCursorX -= nLineCount * __frame0.nDirX / 2;
-    __frame0.nCursorY -= nLineCount * __frame0.nDirY / 2;
+    nCursorX -= nLineCount * nDirX / 2;
+    nCursorY -= nLineCount * nDirY / 2;
     nTotalFrames = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillRecord->calc[1], eSkill, nSkillLvl);
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.nFlags = 0x20;
@@ -1126,11 +1091,11 @@ BOOL __fastcall Skills_SrvDoFunc_138_FirePerpendicularMissileLine(::SGAMEDATA * 
     sSkillArg.nTotalFrames = nTotalFrames;
     if (0 < nLineCount) {
       do {
-        sSkillArg.nUnitX = __frame0.nCursorX;
-        sSkillArg.nUnitY = __frame0.nCursorY;
+        sSkillArg.nUnitX = nCursorX;
+        sSkillArg.nUnitY = nCursorY;
         MISSILES::Missiles::CreatingMissile(pGame, &sSkillArg);
-        __frame0.nCursorX += __frame0.nDirX;
-        __frame0.nCursorY += __frame0.nDirY;
+        nCursorX += nDirX;
+        nCursorY += nDirY;
         nLineCount--;
       } while (nLineCount);
     }
@@ -1146,14 +1111,8 @@ BOOL __fastcall Skills_SrvDoFunc_138_FirePerpendicularMissileLine(::SGAMEDATA * 
 }
 
 BOOL __fastcall Skills_SrvDoFunc_139_FireOrthogonalMissile(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nCursorY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nCursorY;
-      uint32_t nCursorX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nCursorY;
+    uint32_t nCursorX;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
@@ -1166,7 +1125,7 @@ BOOL __fastcall Skills_SrvDoFunc_139_FireOrthogonalMissile(::SGAMEDATA * pGame, 
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
 
-    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &__frame0.nCursorX, &__frame0.nCursorY);
+    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, &nCursorX, &nCursorY);
     if (!bGotTargetPos) {
       return 0;
     }
@@ -1178,8 +1137,8 @@ BOOL __fastcall Skills_SrvDoFunc_139_FireOrthogonalMissile(::SGAMEDATA * pGame, 
       return 0;
     }
 
-    D2Common::Units::Missile::SetTargetX(pMissile, -(__frame0.nCursorY - nUnitY));
-    D2Common::Units::Missile::SetTargetY(pMissile, __frame0.nCursorX - nUnitX);
+    D2Common::Units::Missile::SetTargetX(pMissile, -(nCursorY - nUnitY));
+    D2Common::Units::Missile::SetTargetY(pMissile, nCursorX - nUnitX);
     return 1;
 }
 
@@ -1277,18 +1236,12 @@ void __fastcall SKILLEMONST_ProcessBloodMana(D2UnitStrc * pUnit, int32_t nParam)
 
 // Server-side skill DoFunc 140: scatters a difficulty-scaled number of minion monsters around the caster. Advances the caster unit's RNG seed; the spawn count is (2 + difficulty + seedLow mod 3). Determines the base spawn position from the caster's (or its current target's) static/dynamic path X/Y, then loops spawning monsters at randomized +-9 tile offsets via SpawnMonster, snapping each to a valid nearby room (DRLGROOM_FindBetterNearbyRoom). Each spawned minion is flagged NOXP|NOTC, given AI think mode 0xF (RestartAiThink), and has its owner stored as the caster. Returns 0 if pUnit is null, else 1.
 BOOL __fastcall Skills_SrvDoFunc_140_BaalTentacle(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nOffsetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nOffsetY;
-      uint32_t nOffsetX;
-      int32_t nBaseX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2RoomStrc* pRoom;
     uint32_t nMonStatsId;
     eD2MonsterAnimMode eSpawnAnimMode;
+    uint32_t nOffsetY;
+    uint32_t nOffsetX;
+    int32_t nBaseX;
     eD2UnitType eUnitType;
     uint32_t nSpawnYOffset;
     uint64_t uSeedRoll;
@@ -1303,7 +1256,7 @@ BOOL __fastcall Skills_SrvDoFunc_140_BaalTentacle(::SGAMEDATA * pGame, D2UnitStr
     nSpawnCount = (uint32_t)pGame->nDifficulty + (int)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) / 3) * -3 + 2 + sNewSeed.nSeedLow;
     ::SGAMEDATA* pGameLocal;
     pGameLocal = pGame;
-    D2Common::Monsters::MONSTERS::MONSTER_GetSpawnParameters(pUnit, (int*)&nMonStatsId, &__frame0.nOffsetX, &__frame0.nOffsetY, (uint32_t*)&eSpawnAnimMode, (uint32_t)pGame->nDifficulty, nullptr);
+    D2Common::Monsters::MONSTERS::MONSTER_GetSpawnParameters(pUnit, (int*)&nMonStatsId, &nOffsetX, &nOffsetY, (uint32_t*)&eSpawnAnimMode, (uint32_t)pGame->nDifficulty, nullptr);
     D2UnitStrc* pSpawnedMinion;
     pSpawnedMinion = UNIT::SUnit::GetTargetEx(pGame, pUnit);
     int nSpawnY;
@@ -1311,26 +1264,26 @@ BOOL __fastcall Skills_SrvDoFunc_140_BaalTentacle(::SGAMEDATA * pGame, D2UnitStr
     if (!pSpawnedMinion) {
       eUnitType = pUnit->eUnitType;
       if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-        __frame0.nBaseX = pUnit->pPath.pStaticPath->nPosX;
+        nBaseX = pUnit->pPath.pStaticPath->nPosX;
         goto spawn_tentacles_around_center;
       }
       if (pUnit->pPath.pDynamicPath) {
-        __frame0.nBaseX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+        nBaseX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
         goto spawn_tentacles_around_center;
       }
     } else {
       eUnitType = pSpawnedMinion->eUnitType;
       if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-        __frame0.nBaseX = pSpawnedMinion->pPath.pStaticPath->nPosX;
+        nBaseX = pSpawnedMinion->pPath.pStaticPath->nPosX;
         goto spawn_tentacles_around_center;
       }
       if (pSpawnedMinion->pPath.pDynamicPath) {
-        __frame0.nBaseX = D2Common::PATH::DynamicPath::GetXPos(pSpawnedMinion->pPath.pDynamicPath);
+        nBaseX = D2Common::PATH::DynamicPath::GetXPos(pSpawnedMinion->pPath.pDynamicPath);
         goto spawn_tentacles_around_center;
       }
     }
 
-    __frame0.nBaseX = 0;
+    nBaseX = 0;
     spawn_tentacles_around_center:
     if (!pSpawnedMinion) {
       eUnitType = pUnit->eUnitType;
@@ -1354,18 +1307,18 @@ BOOL __fastcall Skills_SrvDoFunc_140_BaalTentacle(::SGAMEDATA * pGame, D2UnitStr
     do {
       D2RoomStrc* pSpawnRoom;
       uSeedRoll = (uint64_t)pUnit->sSeed.nSeedLow * 0x6ac690c5 + (uint64_t)pUnit->sSeed.nSeedHigh;
-      __frame0.nOffsetX = (int)uSeedRoll + (int)((uSeedRoll & 0xffffffff) / 0x12) * -0x12 - 9 + __frame0.nBaseX;
+      nOffsetX = (int)uSeedRoll + (int)((uSeedRoll & 0xffffffff) / 0x12) * -0x12 - 9 + nBaseX;
       sNewSeed = D2_SEED_NEXT_VAL(uSeedRoll);
       pUnit->sSeed = sNewSeed;
       nSpawnYOffset = sNewSeed.nSeedLow + (int)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) / 0x12) * -0x12 - 9 + nSpawnY;
-      __frame0.nOffsetY = nSpawnYOffset;
+      nOffsetY = nSpawnYOffset;
       pSpawnRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pSpawnRoom, __frame0.nOffsetX, nSpawnYOffset);
+      pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pSpawnRoom, nOffsetX, nSpawnYOffset);
       if (pSpawnRoom) {
-        nSpawnYOffset = __frame0.nOffsetY;
+        nSpawnYOffset = nOffsetY;
         pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-        D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, __frame0.nOffsetX, nSpawnYOffset);
-        pSpawnedMinion = Monster::Create::SpawnMonsterAtRoomPos(pGameLocal, pSpawnRoom, __frame0.nOffsetX, __frame0.nOffsetY, nMonStatsId, eSpawnAnimMode, -1, 0);
+        D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nOffsetX, nSpawnYOffset);
+        pSpawnedMinion = Monster::Create::SpawnMonsterAtRoomPos(pGameLocal, pSpawnRoom, nOffsetX, nOffsetY, nMonStatsId, eSpawnAnimMode, -1, 0);
         if (pSpawnedMinion) {
           pSpawnedMinion->eUnitFlags |= UNITFLAG_NOXP | UNITFLAG_NOTC;
           Monster::AI::RestartAiThink(pGameLocal, pSpawnedMinion, 0xf);

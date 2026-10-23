@@ -572,26 +572,19 @@ int __stdcall GFX_LoadCompositCof(int * pnOutCofData, uint32_t nAnimMode, D2Unit
 
 // @sourcefile .\ENGINE\Gfx.cpp
 void GFX_LoadMonsterModeCof(D2UnitStrc * pUnit, uint32_t nComponent) {
-    // Frame slots -12..-4 are ONE object: &nAnimMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nAnimMode;
-      int nClassId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nOutCofData;
+    int nClassId;
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.nAnimMode, ".\\ENGINE\\Gfx.cpp", 0x464);
-    uint32_t bHasComponent = Source::ClientEngine::GetSomeMonsterStatFlag(__frame0.nClassId, nComponent);
+    int32_t nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nAnimMode, ".\\ENGINE\\Gfx.cpp", 0x464);
+    uint32_t bHasComponent = Source::ClientEngine::GetSomeMonsterStatFlag(nClassId, nComponent);
     if (!bHasComponent) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x486);
       exit(-1);
@@ -612,29 +605,22 @@ void GFX_LoadMonsterModeCof(D2UnitStrc * pUnit, uint32_t nComponent) {
 
 // @sourcefile .\ENGINE\Gfx.cpp
 void GFX_LoadObjectModeCof(D2UnitStrc * pUnit, uint32_t nComponent) {
-    // Frame slots -12..-4 are ONE object: &nAnimMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nAnimMode;
-      int nClassId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bHasComponent;
     int bLoaded;
     int nCofDataResult;
+    int nClassId;
     uint32_t bComponentAlreadyLoaded;
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.nAnimMode, ".\\ENGINE\\Gfx.cpp", 0x4be);
-    D2ObjectsTxt* pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(__frame0.nClassId);
+    int32_t nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nAnimMode, ".\\ENGINE\\Gfx.cpp", 0x4be);
+    D2ObjectsTxt* pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(nClassId);
     if (!pObjectsTxt) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4c2);
       exit(-1);
@@ -816,17 +802,10 @@ uint32_t GFX_GetUnitHealthBarColor(D2UnitStrc * pUnit) {
     static uint8_t gbHealthBarColorBlue;
     static BOOL BOOL_007a8924;
 
-    // Frame slots -16..-8 are ONE object: &nAnimMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nAnimMode;
-      int nClassId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nColorIndex;
     uint32_t nColorResult;
     D2MonStatsTxt* pMonStats;
+    int nClassId;
     if (!BOOL_007a8924) {
       nColorIndex = D2Win::Src::D2WinPalette::D2GFX_GetColorFromCurrentPallete(0, 0xc0, 0);
       gbHealthBarColorGreen = (uint8_t)nColorIndex;
@@ -841,22 +820,22 @@ uint32_t GFX_GetUnitHealthBarColor(D2UnitStrc * pUnit) {
 
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.nAnimMode, ".\\ENGINE\\Gfx.cpp", 0x991);
+    int32_t nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nAnimMode, ".\\ENGINE\\Gfx.cpp", 0x991);
     uint32_t dwColor = nColorResult;
     if (eUnitType != UNIT_MONSTER) {
       return (uint32_t)((uint32_t)((uint32_t)((int32_t)((uint32_t)(dwColor >> 8) << 8) >> 8) & 0xffffffu) << 8 | (uint32_t)(uint8_t)gbHealthBarColorGreen);
     }
-    if (__frame0.nClassId < 0 || sgptDataTable->nTxtMonStatsSize <= __frame0.nClassId) {
+    if (nClassId < 0 || sgptDataTable->nTxtMonStatsSize <= nClassId) {
       pMonStats = 0;
     } else {
-      pMonStats = sgptDataTable->pTxtMonStats + __frame0.nClassId;
+      pMonStats = sgptDataTable->pTxtMonStats + nClassId;
     }
     if (pMonStats->interact) {
       return (uint32_t)((uint32_t)((uint32_t)((int32_t)((uint32_t)((uint32_t)pMonStats >> 8) << 8) >> 8) & 0xffffffu) << 8 | (uint32_t)(uint8_t)gbHealthBarColorBlue);
@@ -885,24 +864,16 @@ uint32_t GFX_GetUnitHealthBarColor(D2UnitStrc * pUnit) {
 
 // @sourcefile .\ENGINE\Gfx.cpp
 uint32_t __fastcall DrawItemGfx(D2UnitStrc * pUnit, int32_t nHeight, int32_t nWidth) {
-    // Frame slots -16..-4 are ONE object: &nPalShiftIndex is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nPalShiftIndex;
-      int32_t nSavedX;
-      uint8_t __pad8[3];
-      char byColorOut;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nGoldAmount;
     D2GfxDataStrc sGfxData;
+    int nPalShiftIndex;
+    char byColorOut;
     if (!(pUnit && pUnit->eUnitType == UNIT_ITEM)) {
       return 0;
     }
 
     int32_t nDC6Height = 0;
-    __frame0.nSavedX = nHeight;
+    int32_t nSavedX = nHeight;
     eD2ItemTypes eItemType = D2Common::ITEMS::Items::ITEM_GetItemData_wType(pUnit);
     if (eItemType == ITEMTYPE_Gold) {
       nGoldAmount = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
@@ -916,7 +887,7 @@ uint32_t __fastcall DrawItemGfx(D2UnitStrc * pUnit, int32_t nHeight, int32_t nWi
     }
 
     memset(&sGfxData, 0, 0x48);
-    nDC6Height = DC6_AssignParams(&sGfxData, pUnit, nullptr, nDC6Height, 0, &__frame0.nPalShiftIndex, '\x01', (D2UnitStrc*)-1);
+    nDC6Height = DC6_AssignParams(&sGfxData, pUnit, nullptr, nDC6Height, 0, &nPalShiftIndex, '\x01', (D2UnitStrc*)-1);
     if (!nDC6Height) {
       return 0;
     }
@@ -933,7 +904,7 @@ uint32_t __fastcall DrawItemGfx(D2UnitStrc * pUnit, int32_t nHeight, int32_t nWi
       return 0;
     }
 
-    D2GamePalShiftGreenBloodStrc* pPalette = (D2GamePalShiftGreenBloodStrc*)D2Common::ITEMS::Items::GetItemColor(nullptr, pUnit, &__frame0.byColorOut, 1);
+    D2GamePalShiftGreenBloodStrc* pPalette = (D2GamePalShiftGreenBloodStrc*)D2Common::ITEMS::Items::GetItemColor(nullptr, pUnit, &byColorOut, 1);
     DRAWMODE eDrawMode = DRAW_SOLID;
     bEthereal = D2Common::ITEMS::Items::CheckItemFlag(pUnit, ITEMFLAG_ETHEREAL, 0xac2, ".\\ENGINE\\Gfx.cpp");
     if (bEthereal) {
@@ -942,8 +913,8 @@ uint32_t __fastcall DrawItemGfx(D2UnitStrc * pUnit, int32_t nHeight, int32_t nWi
 
     int32_t nBlendMode = -1;
     int32_t nDC6HeightTmp = D2CMP::SRC::CelCmp::GetDC6Height(sGfxData.pDC6Block);
-    nDC6Height = __frame0.nSavedX;
-    D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, __frame0.nSavedX, nDC6HeightTmp + nWidth, nBlendMode, eDrawMode, pPalette);
+    nDC6Height = nSavedX;
+    D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nSavedX, nDC6HeightTmp + nWidth, nBlendMode, eDrawMode, pPalette);
     nDC6HeightTmp = 0;
     nGoldAmount = D2CMP::SRC::CelCmp::GetDC6Height(sGfxData.pDC6Block);
     nDrawX = (nGoldAmount >> 1) + nWidth;

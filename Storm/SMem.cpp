@@ -548,43 +548,37 @@ void __stdcall SMEM_FreeEmptyHeaps() {
 
 // Grow, shrink or merge a heap block in place. The heap descriptor arrives in EAX.
 int32_t __stdcall SMemReallocInPlace(D2FogHeapBlockHdrStrc * pBlock, int32_t nOldSize, uint32_t nNewSize, D2FogHeapDescStrc * pHeap) {
-    // Frame slots -24..-4 are ONE object: &nLayoutFlag is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nLayoutFlag;
-      uint32_t nMergedSize;
-      void* nLayoutHigh;
-      uint32_t nTotalSize;
-      int nUsedSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2FogHeapDescStrc* pHeapSplitVarnode = pHeap;
     BOOL BVar1;
     uint16_t* pNextBlock;
     int nDelta;
     uint32_t nAccum;
-    SMemCalculateAllocationLayout(nNewSize, (int*)&__frame0.nLayoutHigh, (int*)&__frame0.nTotalSize, &__frame0.nUsedSize, &__frame0.nLayoutFlag);
-    if (0xffff < __frame0.nTotalSize) {
+    int nLayoutFlag;
+    uint32_t nMergedSize;
+    void* nLayoutHigh;
+    uint32_t nTotalSize;
+    int nUsedSize;
+    SMemCalculateAllocationLayout(nNewSize, (int*)&nLayoutHigh, (int*)&nTotalSize, &nUsedSize, &nLayoutFlag);
+    if (0xffff < nTotalSize) {
       return 0;
     }
-    if (__frame0.nLayoutHigh) {
+    if (nLayoutHigh) {
       return 0;
     }
 
     uint32_t nCurSize = (uint32_t)pBlock->wBlockSize;
-    if (__frame0.nTotalSize <= nCurSize) {
-      nDelta = nCurSize - __frame0.nTotalSize;
-      __frame0.nTotalSize += nDelta;
-      __frame0.nUsedSize += nDelta;
+    if (nTotalSize <= nCurSize) {
+      nDelta = nCurSize - nTotalSize;
+      nTotalSize += nDelta;
+      nUsedSize += nDelta;
     } else {
       uint32_t nNeeded;
-      nNeeded = __frame0.nTotalSize - nCurSize;
-      __frame0.nLayoutHigh = (void*)((uintptr_t)&pBlock->wBlockSize + __frame0.nTotalSize);
+      nNeeded = nTotalSize - nCurSize;
+      nLayoutHigh = (void*)((uintptr_t)&pBlock->wBlockSize + nTotalSize);
       nAccum = 0;
       pNextBlock = (uint16_t*)((uintptr_t)&pBlock->wBlockSize + nCurSize);
       if (!nNeeded) {
-        __frame0.nMergedSize = nNeeded;
+        nMergedSize = nNeeded;
       } else {
         do {
           if (pNextBlock == (unsigned short*)pHeap->pWriteCursor) {
@@ -598,18 +592,18 @@ int32_t __stdcall SMemReallocInPlace(D2FogHeapBlockHdrStrc * pBlock, int32_t nOl
           pNextBlock = (uint16_t*)((int)pNextBlock + (uint32_t)*pNextBlock);
         } while (nAccum < nNeeded);
 
-        __frame0.nMergedSize = nAccum;
+        nMergedSize = nAccum;
         if (nAccum <= nNeeded) {
-          __frame0.nMergedSize = nNeeded;
+          nMergedSize = nNeeded;
         }
       }
 
-      __frame0.nMergedSize = nCurSize + __frame0.nMergedSize;
-      if (0xffff < __frame0.nMergedSize) {
+      nMergedSize = nCurSize + nMergedSize;
+      if (0xffff < nMergedSize) {
         return 0;
       }
       if (nAccum < nNeeded) {
-        nCurSize = (int)__frame0.nLayoutHigh - (int)pHeap;
+        nCurSize = (int)nLayoutHigh - (int)pHeap;
         if (pHeap->nCommitted < nCurSize) {
           if (pHeap->nReserved < nCurSize) {
             return 0;
@@ -621,15 +615,15 @@ int32_t __stdcall SMemReallocInPlace(D2FogHeapBlockHdrStrc * pBlock, int32_t nOl
           }
         }
 
-        pHeap->pWriteCursor = __frame0.nLayoutHigh;
+        pHeap->pWriteCursor = nLayoutHigh;
       }
 
-      pBlock->wBlockSize = (uint16_t)__frame0.nMergedSize;
-      SMemCoalesceFreeBlocks(&__frame0.nUsedSize, pBlock, (int*)&__frame0.nTotalSize, pHeap);
-      pBlock->wBlockSize = (uint16_t)__frame0.nTotalSize;
-      if (__frame0.nLayoutHigh != pHeap->pWriteCursor) {
-        *(uint8_t*)((int)__frame0.nLayoutHigh + 3) &= 0xef;
-        if (*(uint8_t*)((int)__frame0.nLayoutHigh + 3) & 2 && pHeap->nFragCount) {
+      pBlock->wBlockSize = (uint16_t)nMergedSize;
+      SMemCoalesceFreeBlocks(&nUsedSize, pBlock, (int*)&nTotalSize, pHeap);
+      pBlock->wBlockSize = (uint16_t)nTotalSize;
+      if (nLayoutHigh != pHeap->pWriteCursor) {
+        *(uint8_t*)((int)nLayoutHigh + 3) &= 0xef;
+        if (*(uint8_t*)((int)nLayoutHigh + 3) & 2 && pHeap->nFragCount) {
           pHeap->nFragCount--;
         }
       }
@@ -637,28 +631,20 @@ int32_t __stdcall SMemReallocInPlace(D2FogHeapBlockHdrStrc * pBlock, int32_t nOl
       SMEM_CombineFreeBlocks(pHeap);
     }
 
-    SMemWriteBlockHeader(pBlock->byFlags & 0xfe | __frame0.nLayoutFlag != 0, __frame0.nUsedSize, pHeap, __frame0.nTotalSize, pBlock);
+    SMemWriteBlockHeader(pBlock->byFlags & 0xfe | nLayoutFlag != 0, nUsedSize, pHeap, nTotalSize, pBlock);
     pHeap->nBytesInUse += nNewSize - nOldSize;
     return 1;
 }
 
 void __stdcall SMemShrinkBlock(void * pBlock, int32_t nOldSize, uint32_t nNewSize, int32_t pHeap) {
-    // Frame slots -24..-4 are ONE object: &nLayoutHigh is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nLayoutHigh;
-      int nLayoutFlag;
-      int32_t nTotalSize;
-      int32_t nUsedSize;
-      uint8_t __pad16[3];
-      uint8_t byHeaderFlags;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    SMemCalculateAllocationLayout(nNewSize, &__frame0.nLayoutHigh, &__frame0.nTotalSize, &__frame0.nUsedSize, &__frame0.nLayoutFlag);
-    __frame0.byHeaderFlags = *(uint8_t*)((int)pBlock + 3) & 0xfe | __frame0.nLayoutFlag != 0;
-    SMemCoalesceFreeBlocks(&__frame0.nUsedSize, (D2FogHeapBlockHdrStrc*)pBlock, &__frame0.nTotalSize, (D2FogHeapDescStrc*)pHeap);
-    SMemWriteBlockHeader(__frame0.byHeaderFlags, __frame0.nUsedSize, (D2FogHeapDescStrc*)pHeap, __frame0.nTotalSize, (D2FogHeapBlockHdrStrc*)pBlock);
+    int nLayoutHigh;
+    int nLayoutFlag;
+    int32_t nTotalSize;
+    int32_t nUsedSize;
+    SMemCalculateAllocationLayout(nNewSize, &nLayoutHigh, &nTotalSize, &nUsedSize, &nLayoutFlag);
+    uint8_t byHeaderFlags = *(uint8_t*)((int)pBlock + 3) & 0xfe | nLayoutFlag != 0;
+    SMemCoalesceFreeBlocks(&nUsedSize, (D2FogHeapBlockHdrStrc*)pBlock, &nTotalSize, (D2FogHeapDescStrc*)pHeap);
+    SMemWriteBlockHeader(byHeaderFlags, nUsedSize, (D2FogHeapDescStrc*)pHeap, nTotalSize, (D2FogHeapBlockHdrStrc*)pBlock);
     *(int*)(pHeap + 0x18) += nNewSize - nOldSize;
 }
 
@@ -1148,18 +1134,6 @@ int32_t __stdcall SMemHeapSize(int32_t nHeapId, uint32_t dwFlags, int32_t pObjec
 
 // @blizzard AllocateHeapBlock (SMEM.CPP)
 uint32_t * __stdcall SMEM_AllocateHeapBlock(uint32_t nSize, uint8_t byFlags, D2FogHeapDescStrc * pHeap) {
-    // Frame slots -28..-4 are ONE object: &nLayoutHigh is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nLayoutHigh;
-      int nIsLargeAlloc;
-      int32_t nUsedSize;
-      D2FogHeapBlockHdrStrc* nBestFit;
-      D2FogHeapBlockHdrStrc* pAllocBlock;
-      uint32_t nTotalSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL nBlockResult;
     LPVOID pDebugPage;
     uint32_t* pDebugHeader;
@@ -1167,9 +1141,14 @@ uint32_t * __stdcall SMEM_AllocateHeapBlock(uint32_t nSize, uint8_t byFlags, D2F
     int iVar1;
     uint32_t nNeededTotal;
     bool bPageSizeUnset;
+    int nLayoutHigh;
+    int nIsLargeAlloc;
+    int32_t nUsedSize;
+    D2FogHeapBlockHdrStrc* pAllocBlock;
+    uint32_t nTotalSize;
     uint8_t byBlockFlags;
-    SMemCalculateAllocationLayout(nSize, &__frame0.nIsLargeAlloc, (int*)&__frame0.nTotalSize, &__frame0.nUsedSize, &__frame0.nLayoutHigh);
-    uint32_t nBinIndex = __frame0.nTotalSize >> 5;
+    SMemCalculateAllocationLayout(nSize, &nIsLargeAlloc, (int*)&nTotalSize, &nUsedSize, &nLayoutHigh);
+    uint32_t nBinIndex = nTotalSize >> 5;
     if (7 < nBinIndex) {
       nBinIndex = 8;
     }
@@ -1179,7 +1158,7 @@ uint32_t * __stdcall SMEM_AllocateHeapBlock(uint32_t nSize, uint8_t byFlags, D2F
 
     void* pFreeBinHead = pHeap->aFreeBins[nBinIndex];
     void** ppBinSlot = pHeap->aFreeBins + nBinIndex;
-    __frame0.nBestFit = (D2FogHeapBlockHdrStrc*)0x7fffffff;
+    D2FogHeapBlockHdrStrc* nBestFit = (D2FogHeapBlockHdrStrc*)0x7fffffff;
     while (true) {
       if (pFreeBinHead) {
         break;
@@ -1197,18 +1176,18 @@ uint32_t * __stdcall SMEM_AllocateHeapBlock(uint32_t nSize, uint8_t byFlags, D2F
     uint16_t* pFreeBlock = (uint16_t*)*ppBinSlot;
     void** ppBestSlot = 0;
     if (pFreeBlock) {
-      __frame0.pAllocBlock = (D2FogHeapBlockHdrStrc*)0x10;
+      pAllocBlock = (D2FogHeapBlockHdrStrc*)0x10;
       ppBestSlot = 0;
       do {
-        pFitRemainder = (D2FogHeapBlockHdrStrc*)(*pFreeBlock - __frame0.nTotalSize);
-        if (pFitRemainder < __frame0.nBestFit) {
+        pFitRemainder = (D2FogHeapBlockHdrStrc*)(*pFreeBlock - nTotalSize);
+        if (pFitRemainder < nBestFit) {
           ppBestSlot = ppBinSlot;
-          if (pFitRemainder < __frame0.pAllocBlock) {
+          if (pFitRemainder < pAllocBlock) {
             break;
           }
 
-          __frame0.pAllocBlock = (D2FogHeapBlockHdrStrc*)&__frame0.pAllocBlock->dwHeapSignature;
-          __frame0.nBestFit = pFitRemainder;
+          pAllocBlock = (D2FogHeapBlockHdrStrc*)&pAllocBlock->dwHeapSignature;
+          nBestFit = pFitRemainder;
         }
 
         ppBinSlot = (void**)(pFreeBlock + 2);
@@ -1216,11 +1195,11 @@ uint32_t * __stdcall SMEM_AllocateHeapBlock(uint32_t nSize, uint8_t byFlags, D2F
       } while (pFreeBlock);
     }
 
-    __frame0.nBestFit = 0;
+    nBestFit = 0;
     if (!ppBestSlot) {
       D2FogHeapDescStrc* pActiveHeap;
       nBinIndex = pHeap->nReserved;
-      nNeededTotal = (int)pHeap->pWriteCursor + (__frame0.nTotalSize - (int)pHeap);
+      nNeededTotal = (int)pHeap->pWriteCursor + (nTotalSize - (int)pHeap);
       if (nBinIndex < nNeededTotal) {
         nNeededTotal = nBinIndex * 2;
         if (0xfffffff < nBinIndex) {
@@ -1233,7 +1212,7 @@ uint32_t * __stdcall SMEM_AllocateHeapBlock(uint32_t nSize, uint8_t byFlags, D2F
         }
 
         pHeap->bActive = 0;
-        nNeededTotal = (int)pActiveHeap->pWriteCursor + (__frame0.nTotalSize - (int)pActiveHeap);
+        nNeededTotal = (int)pActiveHeap->pWriteCursor + (nTotalSize - (int)pActiveHeap);
         pHeap = pActiveHeap;
       }
       if (pHeap->nCommitted < nNeededTotal) {
@@ -1243,34 +1222,34 @@ uint32_t * __stdcall SMEM_AllocateHeapBlock(uint32_t nSize, uint8_t byFlags, D2F
         }
       }
 
-      __frame0.pAllocBlock = (D2FogHeapBlockHdrStrc*)pHeap->pWriteCursor;
-      pHeap->pWriteCursor = (void*)((uintptr_t)&__frame0.pAllocBlock->wBlockSize + __frame0.nTotalSize);
+      pAllocBlock = (D2FogHeapBlockHdrStrc*)pHeap->pWriteCursor;
+      pHeap->pWriteCursor = (void*)((uintptr_t)&pAllocBlock->wBlockSize + nTotalSize);
     } else {
-      __frame0.pAllocBlock = (D2FogHeapBlockHdrStrc*)*ppBestSlot;
-      byBlockFlags = __frame0.pAllocBlock->byFlags >> 4;
-      *ppBestSlot = (void*)__frame0.pAllocBlock->dwHeapSignature;
-      __frame0.nBestFit = (D2FogHeapBlockHdrStrc*)(byBlockFlags & 1);
-      pFreeBinHead = (void*)((uintptr_t)&__frame0.pAllocBlock->wBlockSize + (uint32_t)__frame0.pAllocBlock->wBlockSize);
+      pAllocBlock = (D2FogHeapBlockHdrStrc*)*ppBestSlot;
+      byBlockFlags = pAllocBlock->byFlags >> 4;
+      *ppBestSlot = (void*)pAllocBlock->dwHeapSignature;
+      nBestFit = (D2FogHeapBlockHdrStrc*)(byBlockFlags & 1);
+      pFreeBinHead = (void*)((uintptr_t)&pAllocBlock->wBlockSize + (uint32_t)pAllocBlock->wBlockSize);
       if (pHeap->nFragCount && (byBlockFlags & 1 || pFreeBinHead != pHeap->pWriteCursor && *(uint8_t*)((int)pFreeBinHead + 3) & 2)) {
         pHeap->nFragCount--;
       }
 
-      SMemCoalesceFreeBlocks(&__frame0.nUsedSize, __frame0.pAllocBlock, (int*)&__frame0.nTotalSize, pHeap);
+      SMemCoalesceFreeBlocks(&nUsedSize, pAllocBlock, (int*)&nTotalSize, pHeap);
     }
 
     pHeap->nBytesInUse += nSize;
     pHeap->nAllocCount++;
-    SMemWriteBlockHeader((__frame0.nBestFit ? 0x10U : 0) | (__frame0.nIsLargeAlloc ? 4U : 0) | __frame0.nLayoutHigh != 0 | byFlags, __frame0.nUsedSize, pHeap, __frame0.nTotalSize, __frame0.pAllocBlock);
+    SMemWriteBlockHeader((nBestFit ? 0x10U : 0) | (nIsLargeAlloc ? 4U : 0) | nLayoutHigh != 0 | byFlags, nUsedSize, pHeap, nTotalSize, pAllocBlock);
     iVar1 = g_SMemPageSize;
     nBinIndex = 0;
-    if (!__frame0.nIsLargeAlloc) {
-      return (uint32_t*)(__frame0.pAllocBlock + 1);
+    if (!nIsLargeAlloc) {
+      return (uint32_t*)(pAllocBlock + 1);
     }
 
     bPageSizeUnset = !g_SMemPageSize;
-    __frame0.pAllocBlock[1].wBlockSize = 0;
-    __frame0.pAllocBlock[1].byPadding = 0;
-    __frame0.pAllocBlock[1].byFlags = 0;
+    pAllocBlock[1].wBlockSize = 0;
+    pAllocBlock[1].byPadding = 0;
+    pAllocBlock[1].byFlags = 0;
     if (bPageSizeUnset) {
       SMEM_ComputePageSize();
       iVar1 = g_SMemPageSize;
@@ -1290,18 +1269,18 @@ uint32_t * __stdcall SMEM_AllocateHeapBlock(uint32_t nSize, uint8_t byFlags, D2F
 
     /* DWORD flProtect for VirtualAlloc */ /* DWORD flAllocationType for VirtualAlloc */ /* SIZE_T dwSize for VirtualAlloc */ /* LPVOID lpAddress for VirtualAlloc */ pDebugPage = VirtualAlloc(pDebugPage, nBinIndex + nNeededTotal, 0x1000, 4);
     if (!pDebugPage) {
-      SMEM_FreeHeapBlock(__frame0.pAllocBlock, pHeap);
+      SMEM_FreeHeapBlock(pAllocBlock, pHeap);
       return nullptr;
     }
 
     pDebugHeader = (uint32_t*)((int)pDebugPage + nBinIndex);
     *pDebugHeader = nSize;
-    pDebugHeader[1] = (uint32_t)__frame0.pAllocBlock;
+    pDebugHeader[1] = (uint32_t)pAllocBlock;
     *(short int*)(pDebugHeader + 2) = (short int)(nSize + 0xffff >> 0x10);
     *(uint8_t*)((int)pDebugHeader + 10) = 0;
     *(uint8_t*)((int)pDebugHeader + 0xb) = 0xc;
     pDebugHeader[3] = pHeap->dwSignature;
-    *(uint32_t**)(__frame0.pAllocBlock + 1) = pDebugHeader + 4;
+    *(uint32_t**)(pAllocBlock + 1) = pDebugHeader + 4;
     pHeap->nLargeBytes += nSize;
     return pDebugHeader + 4;
 }
@@ -1354,23 +1333,17 @@ uint32_t * __stdcall SMEM_SatisfyAllocRequest(D2FogHeapDescStrc * pHeap, uint32_
 }
 
 uint32_t * __stdcall SMemReallocCore(int * pnLockIndex, uint32_t * pHeap, uint32_t * pOldObject, uint16_t * pBlock, uint8_t byFlags, uint32_t nNewSize) {
-    // Frame slots -12..-4 are ONE object: &nHeaderOffset is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nHeaderOffset;
-      uint32_t nOldSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t* pNewObject;
-    SMemGetBlockDataAndSize(&__frame0.nHeaderOffset, (int32_t)pOldObject, (int*)&__frame0.nOldSize, (D2FogHeapBlockHdrStrc*)pBlock);
+    int nHeaderOffset;
+    uint32_t nOldSize;
+    SMemGetBlockDataAndSize(&nHeaderOffset, (int32_t)pOldObject, (int*)&nOldSize, (D2FogHeapBlockHdrStrc*)pBlock);
     uint32_t nCopySize;
-    nCopySize = __frame0.nOldSize;
+    nCopySize = nOldSize;
     if (!(*(uint8_t*)((int)pBlock + 3) & 4)) {
       int32_t nInPlaceOk;
-      if (nNewSize < __frame0.nOldSize) {
-        SMemShrinkBlock(pBlock, __frame0.nOldSize, nNewSize, (int32_t)pHeap);
-      } else if (nNewSize <= __frame0.nOldSize || (nInPlaceOk = SMemReallocInPlace((D2FogHeapBlockHdrStrc*)pBlock, __frame0.nOldSize, nNewSize, (D2FogHeapDescStrc*)pHeap) , !nInPlaceOk)) {
+      if (nNewSize < nOldSize) {
+        SMemShrinkBlock(pBlock, nOldSize, nNewSize, (int32_t)pHeap);
+      } else if (nNewSize <= nOldSize || (nInPlaceOk = SMemReallocInPlace((D2FogHeapBlockHdrStrc*)pBlock, nOldSize, nNewSize, (D2FogHeapDescStrc*)pHeap) , !nInPlaceOk)) {
         goto realloc_by_copy;
       }
 
@@ -1392,7 +1365,7 @@ uint32_t * __stdcall SMemReallocCore(int * pnLockIndex, uint32_t * pHeap, uint32
       }
 
       SMEM_SatisfyFreeRequest(pOldObject, (D2FogHeapDescStrc*)pHeap, (D2FogHeapBlockHdrStrc*)pBlock);
-      nCopySize = __frame0.nOldSize;
+      nCopySize = nOldSize;
       if (pNewObject) {
         fill_grown_tail:
         if (nCopySize < nNewSize) {

@@ -3457,34 +3457,24 @@ void __fastcall ITEMS_ReduceDurability(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
 
 // Splits nGoldAmount across up to nMaxPiles gold-item units dropped near pUnit's position. Each iteration creates a gold item via ITEM_CreateFromTemplate, caps the pile amount to the inventory gold limit if the recipient is a player, sets UNITSTAT_gold, and calls DropItem to place it at a collision-free nearby tile. Fills pUnitTable with created item pointers and updates *pnUnitCount. Uses the room collision system to find free coordinates; exits early if no free tile is found or the pile cap is reached.
 void __fastcall DROP_SpawnGoldPiles(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nGoldAmount, D2UnitStrc * * pUnitTable, int * pnUnitCount, int32_t nMaxPiles) {
-    // Frame slots -24..-4 are ONE object: &nGoldClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nGoldClassId;
-      ::SGAMEDATA* pGameSaved;
-      D2UnitStrc* pSourceUnit;
-      int32_t nGoldAllocated;
-      D2RoomStrc* pCurrentRoom;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2UnitStrc* pGoldItem;
     int32_t nGoldCapacity;
     int nY;
     int nX;
     POINT ptUnitCoords;
     POINT ptSpawnPos;
+    int32_t nGoldClassId;
     int32_t nPileAmount;
     *pnUnitCount = 0;
-    __frame0.pGameSaved = pGame;
-    __frame0.pSourceUnit = pUnit;
-    D2ItemsTxt* pGoldItemsTxt = D2Common::DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(0x20646c67, &__frame0.nGoldClassId);
+    ::SGAMEDATA* pGameSaved = pGame;
+    D2UnitStrc* pSourceUnit = pUnit;
+    D2ItemsTxt* pGoldItemsTxt = D2Common::DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(0x20646c67, &nGoldClassId);
     if (!pGoldItemsTxt) {
       return;
     }
 
-    __frame0.pCurrentRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    __frame0.nGoldAllocated = 0;
+    D2RoomStrc* pCurrentRoom = D2Common::Units::UNITS_GetRoom(pUnit);
+    int32_t nGoldAllocated = 0;
     uint32_t nGoldRemaining = nGoldAmount;
     if (!nGoldAmount) {
       return;
@@ -3501,12 +3491,12 @@ void __fastcall DROP_SpawnGoldPiles(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int
         nPileAmount = nGoldAmount;
       }
 
-      __frame0.nGoldAllocated += nPileAmount;
+      nGoldAllocated += nPileAmount;
       nGoldAmount -= nPileAmount;
       D2Common::Units::GetCoords(pUnit, &ptUnitCoords);
       nX = ptUnitCoords.x + 2;
       nY = ptUnitCoords.y + 3;
-      pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(__frame0.pCurrentRoom, nX, nY);
+      pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pCurrentRoom, nX, nY);
       ptSpawnPos.x = nX;
       ptSpawnPos.y = nY;
       if (!pSpawnRoom) {
@@ -3514,13 +3504,13 @@ void __fastcall DROP_SpawnGoldPiles(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int
         ptSpawnPos.y = ptUnitCoords.y;
       }
 
-      __frame0.pCurrentRoom = D2Common::Collision::GetFreeCoordinates_WithFieldCoords(__frame0.pCurrentRoom, &ptSpawnPos, &ptUnitCoords, 1, 0x3e01, 0x801, 0);
-      pUnit = __frame0.pSourceUnit;
-      if (!__frame0.pCurrentRoom) {
+      pCurrentRoom = D2Common::Collision::GetFreeCoordinates_WithFieldCoords(pCurrentRoom, &ptSpawnPos, &ptUnitCoords, 1, 0x3e01, 0x801, 0);
+      pUnit = pSourceUnit;
+      if (!pCurrentRoom) {
         return;
       }
 
-      pGoldItem = ITEM_CreateFromTemplate(__frame0.pSourceUnit, __frame0.nGoldClassId, __frame0.pGameSaved, 4, QUALITY_NORMAL, 1, 1, 1, 0, 0, 0);
+      pGoldItem = ITEM_CreateFromTemplate(pSourceUnit, nGoldClassId, pGameSaved, 4, QUALITY_NORMAL, 1, 1, 1, 0, 0, 0);
       if (pGoldItem) {
         if (nPileAmount < 0) {
           nPileAmount = 0;
@@ -3529,11 +3519,11 @@ void __fastcall DROP_SpawnGoldPiles(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int
         }
 
         D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pGoldItem, UNITSTAT_gold, nPileAmount, 0);
-        DropItem(__frame0.pGameSaved, (int32_t)pUnit, pGoldItem, __frame0.pCurrentRoom, ptSpawnPos.x, ptSpawnPos.y);
+        DropItem(pGameSaved, (int32_t)pUnit, pGoldItem, pCurrentRoom, ptSpawnPos.x, ptSpawnPos.y);
         pUnitTable[*pnUnitCount] = pGoldItem;
         (*pnUnitCount)++;
       }
-    } while ((uint32_t)__frame0.nGoldAllocated < nGoldRemaining);
+    } while ((uint32_t)nGoldAllocated < nGoldRemaining);
 }
 
 // Creates and drops an 'ear' trophy item when a player dies in PvP. Converts "ear " item code, finds spawn spot near corpse, creates item with victim's level (stat 0xC), drops it on the ground. Called from PLRMODES_Death.

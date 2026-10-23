@@ -154,18 +154,12 @@ void __stdcall D2COMP_ReleaseCOFCacheEntry(int32_t nParam, int * pnParam) {
 }
 
 void __stdcall D2COMP_BuildCOFFilePath(int32_t nAnimMode, uint32_t dwWeaponClassToken, char * pszDestPath, int32_t nPlayerClassId) {
-    // Frame slots -16..-4 are ONE object: &pArchiveHandle is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int* pArchiveHandle;
-      char COFanimation[4];
-      char COFhitclass[4];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t bMaskedTokenByte;
     char* pszCOFPathBase;
     int nOpenResult;
+    int* pArchiveHandle;
+    char COFanimation[4];
+    char COFhitclass[4];
     uint32_t uAnimCode;
     uint32_t uHitclassCode;
     if ((uint32_t)nPlayerClassId < 0x19) {
@@ -173,31 +167,31 @@ void __stdcall D2COMP_BuildCOFFilePath(int32_t nAnimMode, uint32_t dwWeaponClass
       if ((uint32_t)nAnimMode < gnD2CompCOFLayerCount) {
         uHitclassCode = gaCompCharClassTokens[nPlayerClassId];
         uAnimCode = gaCompAnimModeTokens[nAnimMode];
-        __frame0.COFhitclass[3] = '\0';
-        __frame0.COFhitclass[0] = (uint8_t)dwWeaponClassToken == 0x20 ? 0 : (uint8_t)dwWeaponClassToken;
-        __frame0.COFhitclass[1] = *(uint8_t*)((char*)&dwWeaponClassToken + 1) == 0x20 ? 0 : *(uint8_t*)((char*)&dwWeaponClassToken + 1);
-        __frame0.COFhitclass[2] = *(uint8_t*)((char*)&dwWeaponClassToken + 2) == 0x20 ? 0 : *(uint8_t*)((char*)&dwWeaponClassToken + 2);
+        COFhitclass[3] = '\0';
+        COFhitclass[0] = (uint8_t)dwWeaponClassToken == 0x20 ? 0 : (uint8_t)dwWeaponClassToken;
+        COFhitclass[1] = *(uint8_t*)((char*)&dwWeaponClassToken + 1) == 0x20 ? 0 : *(uint8_t*)((char*)&dwWeaponClassToken + 1);
+        COFhitclass[2] = *(uint8_t*)((char*)&dwWeaponClassToken + 2) == 0x20 ? 0 : *(uint8_t*)((char*)&dwWeaponClassToken + 2);
         *(uint8_t*)(char*)&dwWeaponClassToken = (uint8_t)uHitclassCode == 0x20 ? 0 : (uint8_t)uHitclassCode;
         bMaskedTokenByte = (uint8_t)(uHitclassCode >> 8);
         *(uint8_t*)((char*)&dwWeaponClassToken + 1) = bMaskedTokenByte == 0x20 ? 0 : bMaskedTokenByte;
         bHitclassByte3 = (uint8_t)(uHitclassCode >> 0x10);
         *(uint8_t*)((char*)&dwWeaponClassToken + 3) = 0;
-        __frame0.COFanimation[3] = '\0';
+        COFanimation[3] = '\0';
         *(uint8_t*)((char*)&dwWeaponClassToken + 2) = bHitclassByte3 == 0x20 ? 0 : bHitclassByte3;
-        __frame0.COFanimation[0] = (uint8_t)uAnimCode == 0x20 ? 0 : (uint8_t)uAnimCode;
+        COFanimation[0] = (uint8_t)uAnimCode == 0x20 ? 0 : (uint8_t)uAnimCode;
         bMaskedTokenByte = (uint8_t)(uAnimCode >> 8);
-        __frame0.COFanimation[1] = bMaskedTokenByte == 0x20 ? 0 : bMaskedTokenByte;
+        COFanimation[1] = bMaskedTokenByte == 0x20 ? 0 : bMaskedTokenByte;
         bMaskedTokenByte = (uint8_t)(uAnimCode >> 0x10);
-        __frame0.COFanimation[2] = bMaskedTokenByte == 0x20 ? 0 : bMaskedTokenByte;
+        COFanimation[2] = bMaskedTokenByte == 0x20 ? 0 : bMaskedTokenByte;
         pszCOFPathBase = "DATA\\GLOBAL\\CHARS";
         if (6 < (uint32_t)nPlayerClassId) {
           pszCOFPathBase = "DATA\\GLOBAL\\MONSTERS";
         }
 
-        /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(pszDestPath, "%s\\%s\\COF\\%s%s%s.COF", pszCOFPathBase, &dwWeaponClassToken, &dwWeaponClassToken, __frame0.COFanimation, __frame0.COFhitclass);
-        nOpenResult = Fog::Source::SFile::ARCHIVE_OpenD2FileWrap(pszDestPath, (D2MPQFileStrc**)&__frame0.pArchiveHandle);
+        /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(pszDestPath, "%s\\%s\\COF\\%s%s%s.COF", pszCOFPathBase, &dwWeaponClassToken, &dwWeaponClassToken, COFanimation, COFhitclass);
+        nOpenResult = Fog::Source::SFile::ARCHIVE_OpenD2FileWrap(pszDestPath, (D2MPQFileStrc**)&pArchiveHandle);
         if (nOpenResult) {
-          Fog::Source::SFile::ERRORMANAGER_FCloseFile((D2MPQFileStrc*)__frame0.pArchiveHandle);
+          Fog::Source::SFile::ERRORMANAGER_FCloseFile((D2MPQFileStrc*)pArchiveHandle);
           return;
         }
 
@@ -908,20 +902,14 @@ int32_t __stdcall D2COMP_LoadLayerSpritesAndCalcHeight(uint8_t * pbLayerCount, i
 }
 
 void __fastcall D2COMP_DrawUnitShadow(uint32_t * pCompUnit) {
-    // Frame slots -12..-4 are ONE object: &nMaxHeight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nMaxHeight;
-      uint8_t* pShadowLayerFlags;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nErrAddr;
     int* pCOFEntry;
     void* nLayerCount;
     uint32_t nLayerIndex;
     uint32_t nWeaponClass;
     D2GfxDataStrc sGfxData;
+    int nMaxHeight;
+    uint8_t* pShadowLayerFlags;
     uint8_t bVar1;
     int32_t nErrorLine;
     uint32_t nPositionX;
@@ -944,19 +932,19 @@ void __fastcall D2COMP_DrawUnitShadow(uint32_t * pCompUnit) {
         if (!pCOFLayerData) {
           nErrorLine = 0x5cb;
         } else {
-          __frame0.pShadowLayerFlags = (uint8_t*)D2COMP_AssertNotNull((int32_t)pCOFLayerData);
+          pShadowLayerFlags = (uint8_t*)D2COMP_AssertNotNull((int32_t)pCOFLayerData);
           nWeaponClass = (int)pCompUnit[2] >> 8;
           nLayerCount = D2COMP_ValidateCOFLayerData((uint32_t)(uint8_t)pCompUnit[1], nWeaponClass, pCOFLayerData);
           nLayerIndex = 0;
           if (!nLayerCount) {
             nErrorLine = 0x5d0;
           } else {
-            __frame0.nMaxHeight = 0;
-            nErrAddr = D2COMP_LoadLayerSpritesAndCalcHeight(__frame0.pShadowLayerFlags, (int32_t)nLayerCount, &__frame0.nMaxHeight, (uint8_t)pCompUnit[1], nWeaponClass, (int32_t)pCompUnit);
+            nMaxHeight = 0;
+            nErrAddr = D2COMP_LoadLayerSpritesAndCalcHeight(pShadowLayerFlags, (int32_t)nLayerCount, &nMaxHeight, (uint8_t)pCompUnit[1], nWeaponClass, (int32_t)pCompUnit);
             if (nErrAddr < 1) {
               return;
             }
-            if (!*__frame0.pShadowLayerFlags) {
+            if (!*pShadowLayerFlags) {
               return;
             }
 
@@ -970,7 +958,7 @@ void __fastcall D2COMP_DrawUnitShadow(uint32_t * pCompUnit) {
               D2COMP_InitComponentEntry((uint32_t)(uint8_t)pCompUnit[1], nWeaponClass, (int32_t)pCompUnit, bVar1, 0, &sGfxData);
               D2gfx::D2GFX::D2GFX_DrawShadow(&sGfxData, nPositionX - 2, nPositionY);
               nLayerIndex++;
-              if (*__frame0.pShadowLayerFlags <= nLayerIndex) {
+              if (*pShadowLayerFlags <= nLayerIndex) {
                 return;
               }
             }
@@ -2382,22 +2370,14 @@ void __fastcall D2COMP_DrawUnitNameAndTitle(uint32_t * pnParam) {
     // Static local variables (originally global data)
     static int gnItemQuality_Set = 0x7d;
 
-    // Frame slots -20..-4 are ONE object: &nTextHeight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTextHeight;
-      int nTextWidth;
-      int bDrawShadow;
-      int32_t nDrawColor;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nAddress;
     int i;
     int j;
     uint16_t wszTitlePrefix[256];
     uint16_t wszTempAppend[256];
     uint16_t wszTitleText[256];
+    int nTextHeight;
+    int nTextWidth;
     if (!pnParam) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6bb);
       exit(-1);
@@ -2418,16 +2398,16 @@ void __fastcall D2COMP_DrawUnitNameAndTitle(uint32_t * pnParam) {
 
     uint32_t dwGameType = pnParam[7];
     i = nCharClass + 6;
-    __frame0.nDrawColor = 0;
-    __frame0.bDrawShadow = 0;
+    int32_t nDrawColor = 0;
+    int bDrawShadow = 0;
     if (dwGameType == 0x14) {
-      __frame0.bDrawShadow = 1;
-      __frame0.nDrawColor = 3;
+      bDrawShadow = 1;
+      nDrawColor = 3;
     } else if (dwGameType == 0x12) {
-      __frame0.nDrawColor = 3;
-      __frame0.bDrawShadow = 1;
+      nDrawColor = 3;
+      bDrawShadow = 1;
     } else if (dwFlags & 0x20) {
-      __frame0.nDrawColor = 1;
+      nDrawColor = 1;
     }
     if (dwFlags & 0x100) {
       i = nCharClass + 0x15;
@@ -2473,12 +2453,12 @@ void __fastcall D2COMP_DrawUnitNameAndTitle(uint32_t * pnParam) {
 
     D2WinFont::SetAndReturnLastFont(0xc);
     D2COMP_TruncateStringToFitWidth(wszTitleText, 0x78);
-    D2WinFont::TEXT_CalcTextDimensions(wszTitleText, &__frame0.nTextWidth, &__frame0.nTextHeight);
-    if (__frame0.bDrawShadow) {
-      D2WinFont::DRAW_text(wszTitleText, pnParam[5] - (__frame0.nTextWidth >> 1) - 1, i - 1, 6, 0);
+    D2WinFont::TEXT_CalcTextDimensions(wszTitleText, &nTextWidth, &nTextHeight);
+    if (bDrawShadow) {
+      D2WinFont::DRAW_text(wszTitleText, pnParam[5] - (nTextWidth >> 1) - 1, i - 1, 6, 0);
     }
 
-    D2WinFont::DRAW_text(wszTitleText, pnParam[5] - (__frame0.nTextWidth >> 1), i, __frame0.nDrawColor, 0);
+    D2WinFont::DRAW_text(wszTitleText, pnParam[5] - (nTextWidth >> 1), i, nDrawColor, 0);
 }
 
 void __fastcall DRAW_OOG_ChannelPlayers(D2QuestDataA3Q6Strc * pA3Q6Data) {

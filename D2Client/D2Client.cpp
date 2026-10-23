@@ -2114,34 +2114,25 @@ int32_t __fastcall GFXUTIL_InitAndBuildMonsterCofParams(D2GfxDataStrc * pGfxData
 }
 
 int32_t __fastcall GFXUTIL_CalcMaxSpriteHeight(D2UnitStrc * pUnit, uint8_t * pbParam, int32_t pLayerArray, int * pOutMaxY, int32_t nPaletteShift, uint32_t nParam) {
-    // Frame slots -20..-4 are ONE object: &nOutItemClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nOutItemClassId;
-      uint8_t* pLayerArrayBase;
-      int nLayerIdx;
-      int nLoadedCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nSpriteLoaded;
     int32_t nOffsetY;
     int32_t nDrawWorldOffsetY;
     int32_t nWorldOffsetY;
     int iVar1;
     D2GfxDataStrc sGfxData;
+    int nOutItemClassId;
     uint8_t byLayerIdCheck;
-    __frame0.nLoadedCount = 0;
-    __frame0.nLayerIdx = 0;
-    __frame0.pLayerArrayBase = pbParam;
+    int nLoadedCount = 0;
+    int nLayerIdx = 0;
+    uint8_t* pLayerArrayBase = pbParam;
     if (!*pbParam) {
-      return __frame0.nLoadedCount;
+      return nLoadedCount;
     }
 
     do {
       int nBuilt;
-      iVar1 = __frame0.nLayerIdx;
-      byLayerIdCheck = *(uint8_t*)(__frame0.nLayerIdx + pLayerArray);
+      iVar1 = nLayerIdx;
+      byLayerIdCheck = *(uint8_t*)(nLayerIdx + pLayerArray);
       if (0xf < byLayerIdCheck) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x59d);
         exit(-1);
@@ -2152,7 +2143,7 @@ int32_t __fastcall GFXUTIL_CalcMaxSpriteHeight(D2UnitStrc * pUnit, uint8_t * pbP
       sGfxData.nFrameNumber = nParam;
       sGfxData.pDC6 = 0;
       sGfxData.nComponentType = byLayerIdCheck;
-      nBuilt = Engine::GfxUtil::GFXUTIL_BuildCofParams(&sGfxData, pUnit, (D2UnitStrc*)-1, &__frame0.nOutItemClassId);
+      nBuilt = Engine::GfxUtil::GFXUTIL_BuildCofParams(&sGfxData, pUnit, (D2UnitStrc*)-1, &nOutItemClassId);
       if (nBuilt) {
         nSpriteLoaded = D2CMP::SRC::SpriteCache::SPRITECACHE_GetOrLoadSprite(&sGfxData, 0, 1);
         if (nSpriteLoaded && sGfxData.pDC6Block) {
@@ -2164,15 +2155,15 @@ int32_t __fastcall GFXUTIL_CalcMaxSpriteHeight(D2UnitStrc * pUnit, uint8_t * pbP
             *pOutMaxY = iVar1;
           }
 
-          __frame0.nLoadedCount++;
-          iVar1 = __frame0.nLayerIdx;
+          nLoadedCount++;
+          iVar1 = nLayerIdx;
         }
       }
 
-      __frame0.nLayerIdx = iVar1 + 1;
-    } while (__frame0.nLayerIdx < (int)(uint32_t)*__frame0.pLayerArrayBase);
+      nLayerIdx = iVar1 + 1;
+    } while (nLayerIdx < (int)(uint32_t)*pLayerArrayBase);
 
-    return __frame0.nLoadedCount;
+    return nLoadedCount;
 }
 
 int32_t __fastcall GFXUTIL_GetOverlayFrameDelay(D2UnitStrc * pUnit, int32_t pOverlayEntry) {
@@ -2223,18 +2214,11 @@ void __fastcall GFXUTIL_GetOverlayDimensions(D2UnitStrc * pUnit, int nPaletteShi
 }
 
 uint32_t __fastcall GFXUTIL_IsUnitSpriteOnScreen(D2UnitStrc * pUnit, int32_t nParam, int32_t nWorldY) {
-    // Frame slots -16..-4 are ONE object: &nFrameMetrics2 is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nFrameMetrics2;
-      int nScreenX;
-      int nFrameMetrics;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2GfxDataStrc sGfxData;
+    int nFrameMetrics2;
+    int nFrameMetrics;
     int32_t nWorldOffsetX = UI::Path::DRAW_GetWorldOffsetX();
-    __frame0.nScreenX = nParam - nWorldOffsetX;
+    int nScreenX = nParam - nWorldOffsetX;
     int32_t nWorldOffsetY = UI::Path::DRAW_GetWorldOffsetY();
     int nOriginY = nWorldY - nWorldOffsetY;
     D2GfxInfoUnkStrc* pGfxInfo = Engine::Gfx::GFX_IsUnitOnScreen(pUnit, nParam - nWorldOffsetX, nOriginY, 0, 0);
@@ -2242,12 +2226,12 @@ uint32_t __fastcall GFXUTIL_IsUnitSpriteOnScreen(D2UnitStrc * pUnit, int32_t nPa
       return 0;
     }
 
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nFrameMetrics, &__frame0.nFrameMetrics2);
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, &nFrameMetrics, &nFrameMetrics2);
     memset(&sGfxData, 0, 0x48);
     uint8_t byDirection = D2Common::Units::GetDirection(pUnit);
     sGfxData.nDirection = (int)byDirection;
     sGfxData.pDC6 = 0;
-    sGfxData.nFrameNumber = __frame0.nFrameMetrics;
+    sGfxData.nFrameNumber = nFrameMetrics;
     sGfxData.nComponentType = '\x01';
     BOOL BVar1 = Engine::GfxUtil::GFXUTIL_BuildCofParams(&sGfxData, pUnit, (D2UnitStrc*)-1, &nWorldY);
     if (!BVar1) {
@@ -2259,7 +2243,7 @@ uint32_t __fastcall GFXUTIL_IsUnitSpriteOnScreen(D2UnitStrc * pUnit, int32_t nPa
       return 0;
     }
 
-    uint32_t bOnScreen = Engine::GfxUtil::GFXUTIL_IsDC6BlockOnScreen(sGfxData.pDC6Block, __frame0.nScreenX, nOriginY, 0);
+    uint32_t bOnScreen = Engine::GfxUtil::GFXUTIL_IsDC6BlockOnScreen(sGfxData.pDC6Block, nScreenX, nOriginY, 0);
     return bOnScreen;
 }
 

@@ -5448,23 +5448,14 @@ int __fastcall Hits(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pTarge
 
 // Server-side per-frame "do" routine for a moving collision missile (fastcall pGame,pMissile). Validates the missile classid against MissilesTxt; advances movement (UNITS_ProcessUnitMovement) and decrements the missile's frame counter, calling Hits (explode/expire, returns its code) when movement blocks, the timer runs out, or it leaves a valid room / hits a wall. While alive and not in Death/TownWalk mode, after the activation frame it walks the path's init-coords, runs CheckCollision_BlockAll_Width at each, and on collision invokes the per-anim-mode collision callback (gaMissileSrvDoFuncTable[mode]); if it returns a victim unit it calls Hits on that target (return code), and a wall collision triggers Hits(null)+return 2. Returns 1 normally, 2 on block/wall.
 int __fastcall MISSMODE_SrvDoFn01_BasicMissile(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    // Frame slots -32..-16 are ONE object: &pFuncEntry is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2PathPointStrc* pFuncEntry;
-      D2DynamicPathStrc* pDynamicPath;
-      ::SGAMEDATA* nPathCoordCount;
-      D2RoomStrc* pRoom;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nClassId;
     uint32_t nUnitWidth;
     D2UnitStrc* pTarget;
     uint32_t nCoordY;
     D2MissileSrvCollideCtxStrc sCollideCtx;
+    D2PathPointStrc* pFuncEntry;
     D2MissilesTxt* nPathCoordIdx;
-    __frame0.nPathCoordCount = pGame;
+    ::SGAMEDATA* nPathCoordCount = pGame;
     if (!pUnit || (nClassId = pUnit->nClassId , nClassId < 0) || sgptDataTable->nTxtMissilesSize <= nClassId || (nPathCoordIdx = sgptDataTable->pTxtMissiles + nClassId , !nPathCoordIdx)) {
       nClassId = Hits(pGame, pUnit, nullptr, 1);
       return nClassId;
@@ -5492,13 +5483,13 @@ int __fastcall MISSMODE_SrvDoFn01_BasicMissile(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     eD2CollisionUnitSize unitSize = eAnimMode;
-    __frame0.pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    __frame0.pDynamicPath = pUnit->pPath.pDynamicPath;
-    if (!(__frame0.pRoom && __frame0.pDynamicPath)) {
+    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
+    D2DynamicPathStrc* pDynamicPath = pUnit->pPath.pDynamicPath;
+    if (!(pRoom && pDynamicPath)) {
       return 2;
     }
 
-    eCollisionFlags eCollide = D2Common::PATH::DynamicPath::CheckAndGetCollisionFlag(__frame0.pDynamicPath);
+    eCollisionFlags eCollide = D2Common::PATH::DynamicPath::CheckAndGetCollisionFlag(pDynamicPath);
     uint32_t nLocalSecurity = (uint32_t)eCollide;
     if ((eCollide & (COLLIDE_WALL | COLLIDE_BLOCK_PLAYER)) != COLLIDE_NONE) {
       return 2;
@@ -5527,27 +5518,27 @@ int __fastcall MISSMODE_SrvDoFn01_BasicMissile(::SGAMEDATA * pGame, D2UnitStrc *
     sCollideCtx.pOwner = UNIT::SUnit::GetOwnerUnit(pGame, pUnit);
     sCollideCtx.pMissileTxt = nPathCoordIdx;
     unitSize = D2Common::Units::GetUnitSizeX(pUnit);
-    nCurrentFrame = D2Common::PATH::DynamicPath::GetInitCoords(__frame0.pDynamicPath, &__frame0.pFuncEntry);
+    nCurrentFrame = D2Common::PATH::DynamicPath::GetInitCoords(pDynamicPath, &pFuncEntry);
     nPathCoordIdx = 0;
     if (nCurrentFrame < 1) {
       return 1;
     }
 
-    __frame0.pDynamicPath = (D2DynamicPathStrc*)&gaMissileSrvDoFuncTable[eAnimModeIdx].nFlags;
+    pDynamicPath = (D2DynamicPathStrc*)&gaMissileSrvDoFuncTable[eAnimModeIdx].nFlags;
     do {
       uint32_t nCoordX;
-      nCoordX = (uint32_t)(uint16_t)__frame0.pFuncEntry[(int)nPathCoordIdx].nX;
-      nCoordY = (uint32_t)(uint16_t)__frame0.pFuncEntry[(int)nPathCoordIdx].nY;
-      eCollide = D2Common::Collision::CheckCollision_BlockAll_Width(__frame0.pRoom, nCoordX, nCoordY, unitSize, __frame0.pDynamicPath->Coords.tFixed.x);
+      nCoordX = (uint32_t)(uint16_t)pFuncEntry[(int)nPathCoordIdx].nX;
+      nCoordY = (uint32_t)(uint16_t)pFuncEntry[(int)nPathCoordIdx].nY;
+      eCollide = D2Common::Collision::CheckCollision_BlockAll_Width(pRoom, nCoordX, nCoordY, unitSize, pDynamicPath->Coords.tFixed.x);
       nLocalSecurity = (uint32_t)eCollide;
       if (eCollide != COLLIDE_NONE) {
-        pTarget = D2Common::Collision::CallCollisionFunction(__frame0.pRoom, nCoordX, nCoordY, pDVar1->pFunction, &sCollideCtx, unitSize);
+        pTarget = D2Common::Collision::CallCollisionFunction(pRoom, nCoordX, nCoordY, pDVar1->pFunction, &sCollideCtx, unitSize);
         if (pTarget) {
-          nClassId = Hits(__frame0.nPathCoordCount, pUnit, pTarget, 0);
+          nClassId = Hits(nPathCoordCount, pUnit, pTarget, 0);
           return nClassId;
         }
         if (nLocalSecurity & 4) {
-          Hits(__frame0.nPathCoordCount, pUnit, nullptr, 1);
+          Hits(nPathCoordCount, pUnit, nullptr, 1);
           return 2;
         }
       }

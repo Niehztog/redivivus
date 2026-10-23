@@ -180,15 +180,8 @@ BOOL __fastcall Skills_SrvDoFunc_115_SummonPoisonCreeper(::SGAMEDATA * pGame, D2
 
 // @sourcefile .\SKILLS\SkillDruid.cpp
 int32_t __fastcall SKILLDRUID_GetTransformGfx(D2UnitStrc * pUnit, int32_t nParam) {
-    // Frame slots -12..-4 are ONE object: &nMonClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nMonClassId;
-      int32_t nGfxId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2UnitType eUnitType;
+    int nMonClassId;
     if (!pUnit) {
       eUnitType = UNIT_COUNT;
     } else {
@@ -198,14 +191,14 @@ int32_t __fastcall SKILLDRUID_GetTransformGfx(D2UnitStrc * pUnit, int32_t nParam
       }
     }
     if (!pUnit) {
-      __frame0.nMonClassId = -1;
+      nMonClassId = -1;
     } else {
-      __frame0.nMonClassId = pUnit->nClassId;
+      nMonClassId = pUnit->nClassId;
     }
 
-    __frame0.nGfxId = nParam;
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nMonClassId, &__frame0.nGfxId, ".\\SKILLS\\SkillDruid.cpp", 0x9c);
-    return __frame0.nGfxId;
+    int32_t nGfxId = nParam;
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nMonClassId, &nGfxId, ".\\SKILLS\\SkillDruid.cpp", 0x9c);
+    return nGfxId;
 }
 
 void __fastcall SKILLDRUID_OnShapeshiftExpire(D2UnitStrc * pUnit, eD2States eState, D2StatListExStrc * param_1) {
@@ -521,20 +514,10 @@ BOOL __fastcall Skills_SrvDoFunc_118_Twister(::SGAMEDATA * pGame, D2UnitStrc * p
 
 // Server skill-do function for Druid Summon Dire Wolf (skill 119). Looks up the monster class ID and pet mode via SKILLS_GetSummonMonsterClassId, validates the pettype field bounds, gets a target/cursor position, fills a D2MonsterCastPetStrc, and calls SKILL_CreateSummon. On success, registers the summon in the game's unit node table, derives its level from skill calc[1] (min 1), and applies revive-corpse minion buffs plus standard summon buffs. Returns 1 on success, 0 otherwise.
 BOOL __fastcall Skills_SrvDoFunc_119_SummonDireWolf(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -20..-4 are ONE object: &nPetMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nPetMode;
-      int32_t nClassId;
-      ::SGAMEDATA* pGameSaved;
-      uint8_t __pad12[3];
-      uint8_t byPetType;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bHasTarget;
     bool bHasTarget;
     D2MonsterCastPetStrc sPetCast;
+    int32_t nPetMode;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
@@ -544,24 +527,24 @@ BOOL __fastcall Skills_SrvDoFunc_119_SummonDireWolf(::SGAMEDATA * pGame, D2UnitS
       return 0;
     }
 
-    __frame0.pGameSaved = pGame;
-    __frame0.nClassId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &__frame0.nPetMode, nullptr, nullptr);
-    if (-1 >= __frame0.nClassId) {
+    ::SGAMEDATA* pGameSaved = pGame;
+    int32_t nClassId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &nPetMode, nullptr, nullptr);
+    if (-1 >= nClassId) {
       return 0;
     }
 
-    __frame0.byPetType = pSkillTxt->pettype;
-    if (!(-1 < (char)__frame0.byPetType && (int)(char)__frame0.byPetType < sgptDataTable->nTxtPetTypeSize)) {
+    uint8_t byPetType = pSkillTxt->pettype;
+    if (!(-1 < (char)byPetType && (int)(char)byPetType < sgptDataTable->nTxtPetTypeSize)) {
       return 0;
     }
-    if (sgptDataTable->nTxtPetTypeSize <= (int)(uint32_t)__frame0.byPetType) {
-      __frame0.byPetType = 0;
+    if (sgptDataTable->nTxtPetTypeSize <= (int)(uint32_t)byPetType) {
+      byPetType = 0;
     }
     if (pUnit) {
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
 
-    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGameSaved, pUnit, (uint32_t*)&sPetCast.nPetType, (uint32_t*)&sPetCast.pSkillTxt);
+    _bHasTarget = SkillsServer::SKILLS_GetTargetOrCursorPos(pGameSaved, pUnit, (uint32_t*)&sPetCast.nPetType, (uint32_t*)&sPetCast.pSkillTxt);
     if (!_bHasTarget) {
       return 0;
     }
@@ -571,24 +554,24 @@ BOOL __fastcall Skills_SrvDoFunc_119_SummonDireWolf(::SGAMEDATA * pGame, D2UnitS
     sPetCast.nSkillCalc = 0;
     sPetCast.nFlags = 0;
     sPetCast.nFunctionId = 0;
-    sPetCast.nType = (uint32_t)__frame0.byPetType;
-    sPetCast.classId = __frame0.nClassId;
-    sPetCast.nMode = __frame0.nPetMode;
+    sPetCast.nType = (uint32_t)byPetType;
+    sPetCast.classId = nClassId;
+    sPetCast.nMode = nPetMode;
     sPetCast.pPlayer = pUnit;
     sPetCast.nSkillCalc = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->petmax, eSkill, nSkillLvl);
-    D2UnitStrc* pSummon = SkillsServer::SKILL_CreateSummon(__frame0.pGameSaved, &sPetCast);
+    D2UnitStrc* pSummon = SkillsServer::SKILL_CreateSummon(pGameSaved, &sPetCast);
     if (!pSummon) {
       return 0;
     }
 
-    GAME::Targets::CreateUnitNode(__frame0.pGameSaved, pSummon, nullptr, pUnit->nNodeTableIndex);
+    GAME::Targets::CreateUnitNode(pGameSaved, pSummon, nullptr, pUnit->nNodeTableIndex);
     int32_t nLevel = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->calc[1], eSkill, nSkillLvl);
     if (nLevel < 1) {
       nLevel = 1;
     }
 
-    SkillNec::SKILLNEC_ReviveCorpseAsMinion(__frame0.pGameSaved, pUnit, pSummon, nLevel, nSkillLvl);
-    SkillNec::SKILLNEC_ApplySummonBuffs(__frame0.pGameSaved, pUnit, pSummon, eSkill, nSkillLvl, 0);
+    SkillNec::SKILLNEC_ReviveCorpseAsMinion(pGameSaved, pUnit, pSummon, nLevel, nSkillLvl);
+    SkillNec::SKILLNEC_ApplySummonBuffs(pGameSaved, pUnit, pSummon, eSkill, nSkillLvl, 0);
     return 1;
 }
 
@@ -1048,34 +1031,27 @@ BOOL __fastcall Skills_SrvDoFunc_122_Hunger(::SGAMEDATA * pGame, D2UnitStrc * pU
 
 // Server DoFunc for Druid skill 123 (Tornado). Resolves the charge-up missile ID, gets the target/cursor position, checks missile collision clearance, then creates the Tornado missile via CreatingMissile with UNITFLAG_SKSRVDOFUNC set. Seeds the missile's target X from the unit's RNG (mod 256) for random spin direction. Sends a unit message packet to clients with skill, level, target coords, and the random seed byte.
 BOOL __fastcall Skills_SrvDoFunc_123_Tornado(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetY;
-      uint32_t nTargetX;
-      ::SGAMEDATA* pGameSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bHasTarget;
     bool bCanFire;
     D2SkillArgStrc sSkillArg;
+    uint32_t nTargetY;
+    uint32_t nTargetX;
     if ((int)eSkill < 0 || sgptDataTable->nTxtSkillsCount <= (int)eSkill || !(sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
 
-    __frame0.pGameSaved = pGame;
+    ::SGAMEDATA* pGameSaved = pGame;
     eMissilesId nMissileId = SkillAss::SKILLASS_GetChargeUpMissile(pUnit, eSkill);
     if (0 >= (int)nMissileId) {
       return 0;
     }
 
-    BOOL BVar1 = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGameSaved, pUnit, &__frame0.nTargetY, &__frame0.nTargetX);
+    BOOL BVar1 = SkillsServer::SKILLS_GetTargetOrCursorPos(pGameSaved, pUnit, &nTargetY, &nTargetX);
     if (!BVar1) {
       return 0;
     }
 
-    uint32_t uVar2 = SkillsServer::SKILLS_CheckMissileCollision(__frame0.pGameSaved, pUnit, nMissileId);
+    uint32_t uVar2 = SkillsServer::SKILLS_CheckMissileCollision(pGameSaved, pUnit, nMissileId);
     if (!uVar2) {
       return 0;
     }
@@ -1085,20 +1061,20 @@ BOOL __fastcall Skills_SrvDoFunc_123_Tornado(::SGAMEDATA * pGame, D2UnitStrc * p
 
     uVar2 = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 0x100);
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.nY = __frame0.nTargetX;
+    sSkillArg.nY = nTargetX;
     sSkillArg.nSkillLevel = nSkillLvl;
     sSkillArg.nFlags = 1;
-    sSkillArg.nX = __frame0.nTargetY;
+    sSkillArg.nX = nTargetY;
     sSkillArg.eSkillNo = eSkill;
     sSkillArg.pOwner = pUnit;
     sSkillArg.nMissileTxtNo = nMissileId;
-    D2UnitStrc* pUnit_00 = MISSILES::Missiles::CreatingMissile(__frame0.pGameSaved, &sSkillArg);
+    D2UnitStrc* pUnit_00 = MISSILES::Missiles::CreatingMissile(pGameSaved, &sSkillArg);
     if (!pUnit_00) {
       return 0;
     }
 
     D2Common::Units::Missile::SetTargetX(pUnit_00, uVar2 & 0xff);
-    UNIT::SUnitMsg::SERVER_SendUnitMessagePacket(pUnit, nullptr, (uint16_t)eSkill, (uint16_t)nSkillLvl, __frame0.nTargetY, __frame0.nTargetX, (uint8_t)uVar2);
+    UNIT::SUnitMsg::SERVER_SendUnitMessagePacket(pUnit, nullptr, (uint16_t)eSkill, (uint16_t)nSkillLvl, nTargetY, nTargetX, (uint8_t)uVar2);
     return 1;
 }
 

@@ -156,91 +156,82 @@ void __stdcall DRLGOUTROOM_PlaceAct5BorderPresets(D2DrlgLevelStrc * pLevel) {
 
 // Lays down road presets along the DrlgVertex path chain for Act5 outdoor levels.
 void __stdcall DRLGOUTROOM_PlaceAct5RoadPath(D2DrlgLevelStrc * pLevel) {
-    // Frame slots -52..-4 are ONE object: &nNextDx is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nNextDx;
-      int nNextDy;
-      int nRoadPresetId;
-      uint32_t nNextXAligned;
-      uint32_t nNextYAligned;
-      int nBasePresetId;
-      int nDy;
-      int nAbsDx;
-      int nAbsDy;
-      D2DrlgLevelDataWildernessLevel* pWildData;
-      int nDx;
-      D2DrlgVertexStrc* pNextVertex;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 48, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nMaxCoord;
     int32_t nAdjacentPresetId;
     D2DrlgGridStrc* pDrlgGrid;
     uint32_t nCurrentX;
     uint32_t nCurrentY;
     bool bNotAtStart;
-    __frame0.pWildData = pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData;
-    __frame0.nBasePresetId = (pLevel->eD2LevelId == 0x75) + 4;
-    D2DrlgVertexStrc* pDrlgVertex = __frame0.pWildData->pVertices;
-    __frame0.pNextVertex = __frame0.pWildData->pVertices->pNext;
+    int nNextDx;
+    int nNextDy;
+    int nRoadPresetId;
+    uint32_t nNextXAligned;
+    uint32_t nNextYAligned;
+    int nDy;
+    int nAbsDx;
+    int nAbsDy;
+    int nDx;
+    D2DrlgLevelDataWildernessLevel* pWildData = pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData;
+    int nBasePresetId = (pLevel->eD2LevelId == 0x75) + 4;
+    D2DrlgVertexStrc* pDrlgVertex = pWildData->pVertices;
+    D2DrlgVertexStrc* pNextVertex = pWildData->pVertices->pNext;
     do {
       D2DrlgVertexStrc** ppDVar1;
-      DrlgVer::GetCoordDiff(pDrlgVertex, &__frame0.nDx, &__frame0.nDy);
-      DrlgVer::GetCoordDiff(__frame0.pNextVertex, &__frame0.nNextDx, &__frame0.nNextDy);
-      __frame0.nAbsDx = __frame0.nDx;
-      if (__frame0.nDx < 0) {
-        __frame0.nAbsDx = -__frame0.nDx;
+      DrlgVer::GetCoordDiff(pDrlgVertex, &nDx, &nDy);
+      DrlgVer::GetCoordDiff(pNextVertex, &nNextDx, &nNextDy);
+      nAbsDx = nDx;
+      if (nDx < 0) {
+        nAbsDx = -nDx;
       }
-      if (__frame0.nDy < 0) {
-        __frame0.nAbsDy = -__frame0.nDy;
+      if (nDy < 0) {
+        nAbsDy = -nDy;
       } else {
-        __frame0.nAbsDy = __frame0.nDy;
+        nAbsDy = nDy;
       }
 
-      __frame0.nNextXAligned = __frame0.pNextVertex->nPosX & -2;
-      __frame0.nNextYAligned = __frame0.pNextVertex->nPosY & -2;
+      nNextXAligned = pNextVertex->nPosX & -2;
+      nNextYAligned = pNextVertex->nPosY & -2;
       nCurrentX = pDrlgVertex->nPosX & -2;
       nCurrentY = pDrlgVertex->nPosY & -2;
-      __frame0.nRoadPresetId = DRLGOUTPLACE_GetRoadPresetId(__frame0.nDx, __frame0.nDy, __frame0.nBasePresetId);
+      nRoadPresetId = DRLGOUTPLACE_GetRoadPresetId(nDx, nDy, nBasePresetId);
       if (!(pDrlgVertex->dwFlags & 2)) {
-        while (nCurrentX != __frame0.nNextXAligned || nCurrentY != __frame0.nNextYAligned) {
-          nCurrentY += __frame0.nDy * 2;
-          nCurrentX += __frame0.nDx * 2;
-          Outdoors::SpawnOutdoorLevelPresetEx(pLevel, nCurrentX, nCurrentY, __frame0.nRoadPresetId, -1, 0);
-          DrlgGrid::AlterGridFlag(&__frame0.pWildData->sGridOutdoor, nCurrentX, nCurrentY, 1, 0);
+        while (nCurrentX != nNextXAligned || nCurrentY != nNextYAligned) {
+          nCurrentY += nDy * 2;
+          nCurrentX += nDx * 2;
+          Outdoors::SpawnOutdoorLevelPresetEx(pLevel, nCurrentX, nCurrentY, nRoadPresetId, -1, 0);
+          DrlgGrid::AlterGridFlag(&pWildData->sGridOutdoor, nCurrentX, nCurrentY, 1, 0);
         }
       }
       if (pDrlgVertex->dwFlags & 1) {
         nMaxCoord = pDrlgVertex->nPosX;
-        if (pDrlgVertex->nPosX <= __frame0.pNextVertex->nPosX) {
-          nMaxCoord = __frame0.pNextVertex->nPosX;
+        if (pDrlgVertex->nPosX <= pNextVertex->nPosX) {
+          nMaxCoord = pNextVertex->nPosX;
         }
 
-        nCurrentY = nMaxCoord + __frame0.nAbsDx * -4 & -2;
-        nMaxCoord = __frame0.pNextVertex->nPosY;
-        if (__frame0.pNextVertex->nPosY < pDrlgVertex->nPosY) {
+        nCurrentY = nMaxCoord + nAbsDx * -4 & -2;
+        nMaxCoord = pNextVertex->nPosY;
+        if (pNextVertex->nPosY < pDrlgVertex->nPosY) {
           nMaxCoord = pDrlgVertex->nPosY;
         }
 
-        nCurrentX = nMaxCoord + __frame0.nAbsDy * -4 & -2;
-        pDrlgGrid = &__frame0.pWildData->sGridOutdoor;
+        nCurrentX = nMaxCoord + nAbsDy * -4 & -2;
+        pDrlgGrid = &pWildData->sGridOutdoor;
         DrlgGrid::AlterGridFlag(pDrlgGrid, nCurrentY, nCurrentX, 0x400, 0);
-        DrlgGrid::AlterGridFlag(pDrlgGrid, nCurrentY + __frame0.nAbsDx * 2, nCurrentX + __frame0.nAbsDy * 2, 0x400, 0);
+        DrlgGrid::AlterGridFlag(pDrlgGrid, nCurrentY + nAbsDx * 2, nCurrentX + nAbsDy * 2, 0x400, 0);
       }
 
-      nAdjacentPresetId = DRLGOUTPLACE_GetAdjacentRoadPresetId(__frame0.nDx * 2, __frame0.nDy * 2, __frame0.nNextDx * 2, __frame0.nNextDy * 2, __frame0.nBasePresetId);
-      nCurrentX = __frame0.nNextYAligned;
-      nCurrentY = __frame0.nNextXAligned;
+      nAdjacentPresetId = DRLGOUTPLACE_GetAdjacentRoadPresetId(nDx * 2, nDy * 2, nNextDx * 2, nNextDy * 2, nBasePresetId);
+      nCurrentX = nNextYAligned;
+      nCurrentY = nNextXAligned;
       if (nAdjacentPresetId) {
-        Outdoors::SpawnOutdoorLevelPresetEx(pLevel, __frame0.nNextXAligned, __frame0.nNextYAligned, nAdjacentPresetId, -1, 0);
-        DrlgGrid::AlterGridFlag(&__frame0.pWildData->sGridOutdoor, nCurrentY, nCurrentX, 1, 0);
+        Outdoors::SpawnOutdoorLevelPresetEx(pLevel, nNextXAligned, nNextYAligned, nAdjacentPresetId, -1, 0);
+        DrlgGrid::AlterGridFlag(&pWildData->sGridOutdoor, nCurrentY, nCurrentX, 1, 0);
       }
 
-      bNotAtStart = __frame0.pNextVertex != __frame0.pWildData->pVertices;
-      ppDVar1 = &__frame0.pNextVertex->pNext;
-      pDrlgVertex = __frame0.pNextVertex;
-      __frame0.pNextVertex = *ppDVar1;
+      bNotAtStart = pNextVertex != pWildData->pVertices;
+      ppDVar1 = &pNextVertex->pNext;
+      pDrlgVertex = pNextVertex;
+      pNextVertex = *ppDVar1;
     } while (bNotAtStart);
 
     if (pLevel->eD2LevelId != 0x6f) {

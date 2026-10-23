@@ -20,19 +20,13 @@ typedef uint8_t (__stdcall *pfnRGBToPaletteIndex)(uint8_t nRed, uint8_t nGreen, 
 namespace D2CMP::SRC::FastCmp {
 
 void __stdcall FASTCMP_CompressToRLE(uint8_t * pSrcData, uint32_t nLineCount, uint8_t * pDirectionOrder, uint8_t * * ppRLEBuffer, uint8_t * * ppRLEEnd, uint8_t * pBaseData) {
-    // Frame slots -16..-4 are ONE object: &nColorTailFlag is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nColorTailFlag;
-      int nZeroTailFlag;
-      uint32_t nLinesDone;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nColorRunLen;
+    uint32_t nColorTailFlag;
+    int nZeroTailFlag;
     uint8_t* pbRLEAlloc;
     pbRLEAlloc = (uint8_t*)Fog::Memory::AllocClientMemory(((int)pSrcData * 2 + 1) * nLineCount, ".\\SRC\\FastCmp.cpp", 0x25, 0);
-    __frame0.nLinesDone = 0;
+    uint32_t nLinesDone;
+    nLinesDone = 0;
     uint8_t* pbLineStride;
     pbLineStride = pSrcData;
     if (!((uint32_t)pDirectionOrder & 1)) {
@@ -49,8 +43,8 @@ void __stdcall FASTCMP_CompressToRLE(uint8_t * pSrcData, uint32_t nLineCount, ui
       int32_t nZeroRunLen;
       do {
         if (!*pBaseData) {
-          nZeroRunLen = D2CMP::SUBTILE_CountRunLength((char*)pBaseData, (char*)pSrcData, 0x7f, (uint32_t*)&__frame0.nZeroTailFlag, &__frame0.nColorTailFlag);
-          if (!__frame0.nColorTailFlag && !__frame0.nZeroTailFlag) {
+          nZeroRunLen = D2CMP::SUBTILE_CountRunLength((char*)pBaseData, (char*)pSrcData, 0x7f, (uint32_t*)&nZeroTailFlag, &nColorTailFlag);
+          if (!nColorTailFlag && !nZeroTailFlag) {
             *pbRLEOut = (uint8_t)nZeroRunLen | 0x80;
             pbRLEOut++;
             pBaseData += nZeroRunLen;
@@ -59,23 +53,23 @@ void __stdcall FASTCMP_CompressToRLE(uint8_t * pSrcData, uint32_t nLineCount, ui
             pSrcData += (int)pbLineStride;
             *pbRLEOut = 0x80;
             pbRLEOut++;
-            __frame0.nLinesDone++;
+            nLinesDone++;
             pBaseData = (uint8_t*)pDirectionOrder2;
             pDirectionOrder2 = (uint8_t*)pDirectionOrder2 + (int)pbLineStride;
           }
         } else {
-          nColorRunLen = SUBTILE_CountRunLengthForByte((char*)pBaseData, (char*)pSrcData, '\0', 0x7f, (uint32_t*)&__frame0.nZeroTailFlag, &__frame0.nColorTailFlag);
+          nColorRunLen = SUBTILE_CountRunLengthForByte((char*)pBaseData, (char*)pSrcData, '\0', 0x7f, (uint32_t*)&nZeroTailFlag, &nColorTailFlag);
           *pbRLEOut = (uint8_t)nColorRunLen;
           for (; pbRLEOut++ , nColorRunLen != 0; nColorRunLen--) {
             *pbRLEOut = *pBaseData;
             pBaseData++;
           }
 
-          if (__frame0.nZeroTailFlag) {
+          if (nZeroTailFlag) {
             goto end_line;
           }
         }
-      } while (__frame0.nLinesDone < nLineCount);
+      } while (nLinesDone < nLineCount);
     }
 
     *ppRLEBuffer = pbRLEAlloc;
@@ -110,21 +104,14 @@ void __fastcall FASTCMP_RemapFramePaletteIndices(DC6Block * pFrame, BYTE * pPale
 
 // Convert a DC6 sprite from RGB pixel data to palette-indexed RLE format using a caller-supplied colour-mapping callback
 void __fastcall FASTCMP_ConvertDCCWithPaletteRemap(DC6 * pDCC, DC6 * pDCCDest, pfnRGBToPaletteIndex pfnPaletteRemap, uint32_t dwColorKey) {
-    // Frame slots -28..-4 are ONE object: &pbCompressedData is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint8_t* pbCompressedData;
-      uint8_t* nCompressedSize;
-      uint32_t nFrameIndex;
-      uint8_t* pbIndexedBuf;
-      uint32_t nPixelIndex;
-      uint8_t* pbIndexOut;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t bVar3;
     size_t nPixelCount;
     uint8_t* pbSrcPixel;
+    uint8_t* pbCompressedData;
+    uint8_t* nCompressedSize;
+    uint8_t* pbIndexedBuf;
+    uint32_t nPixelIndex;
+    uint8_t* pbIndexOut;
     uint32_t nFrameFlags;
     uint8_t* nCompressedSizeOut;
     int32_t nErrorLine;
@@ -133,7 +120,7 @@ void __fastcall FASTCMP_ConvertDCCWithPaletteRemap(DC6 * pDCC, DC6 * pDCCDest, p
       exit(-1);
     }
 
-    __frame0.nFrameIndex = 0;
+    uint32_t nFrameIndex = 0;
     if (!(pDCC->nDirections * pDCC->nFrames)) {
       return;
     }
@@ -142,14 +129,14 @@ void __fastcall FASTCMP_ConvertDCCWithPaletteRemap(DC6 * pDCC, DC6 * pDCCDest, p
     do {
       uint32_t* pNewFrameData;
       nPixelCount = *(int*)(pSrcFrame->nVersion + 8) * *(int*)(pSrcFrame->nVersion + 4);
-      __frame0.pbIndexedBuf = (uint8_t*)Fog::Memory::AllocClientMemory(nPixelCount, ".\\SRC\\FastCmp.cpp", 0xd4, 0);
+      pbIndexedBuf = (uint8_t*)Fog::Memory::AllocClientMemory(nPixelCount, ".\\SRC\\FastCmp.cpp", 0xd4, 0);
       pbSrcPixel = (uint8_t*)(pSrcFrame->nVersion + 0x20);
-      __frame0.nPixelIndex = 0;
-      __frame0.pbIndexOut = __frame0.pbIndexedBuf;
+      nPixelIndex = 0;
+      pbIndexOut = pbIndexedBuf;
       if (nPixelCount) {
         do {
           if (*pbSrcPixel == (uint8_t)dwColorKey && pbSrcPixel[1] == (uint8_t)(dwColorKey >> 8) && pbSrcPixel[2] == *(uint8_t*)((char*)&dwColorKey + 2)) {
-            *__frame0.pbIndexOut = 0;
+            *pbIndexOut = 0;
           } else {
             bVar3 = (*pfnPaletteRemap)(*pbSrcPixel, pbSrcPixel[1], pbSrcPixel[2]);
             if (!bVar3) {
@@ -157,21 +144,21 @@ void __fastcall FASTCMP_ConvertDCCWithPaletteRemap(DC6 * pDCC, DC6 * pDCCDest, p
               exit(-1);
             }
 
-            *__frame0.pbIndexOut = bVar3;
+            *pbIndexOut = bVar3;
           }
 
-          __frame0.pbIndexOut++;
-          __frame0.nPixelIndex++;
+          pbIndexOut++;
+          nPixelIndex++;
           pbSrcPixel += 3;
-        } while (__frame0.nPixelIndex < nPixelCount);
+        } while (nPixelIndex < nPixelCount);
       }
 
       pNewFrameData = (uint32_t*)pSrcFrame->nVersion;
-      FASTCMP_CompressToRLE((uint8_t*)pNewFrameData[1], pNewFrameData[2], (uint8_t*)*pNewFrameData, &__frame0.pbCompressedData, &__frame0.nCompressedSize, __frame0.pbIndexedBuf);
-      Fog::Memory::FreeClientMemory(__frame0.pbIndexedBuf, ".\\SRC\\FastCmp.cpp", 0xf0, 0);
-      nCompressedSizeOut = __frame0.nCompressedSize;
-      pNewFrameData = (uint32_t*)Fog::Memory::AllocClientMemory((size_t)(__frame0.nCompressedSize + 0x23), ".\\SRC\\FastCmp.cpp", 0xf2, 0);
-      pbSrcPixel = __frame0.pbCompressedData;
+      FASTCMP_CompressToRLE((uint8_t*)pNewFrameData[1], pNewFrameData[2], (uint8_t*)*pNewFrameData, &pbCompressedData, &nCompressedSize, pbIndexedBuf);
+      Fog::Memory::FreeClientMemory(pbIndexedBuf, ".\\SRC\\FastCmp.cpp", 0xf0, 0);
+      nCompressedSizeOut = nCompressedSize;
+      pNewFrameData = (uint32_t*)Fog::Memory::AllocClientMemory((size_t)(nCompressedSize + 0x23), ".\\SRC\\FastCmp.cpp", 0xf2, 0);
+      pbSrcPixel = pbCompressedData;
       *pNewFrameData = *(uint32_t*)pSrcFrame->nVersion;
       pNewFrameData[1] = *(uint32_t*)(pSrcFrame->nVersion + 4);
       pNewFrameData[2] = *(uint32_t*)(pSrcFrame->nVersion + 8);
@@ -181,12 +168,12 @@ void __fastcall FASTCMP_ConvertDCCWithPaletteRemap(DC6 * pDCC, DC6 * pDCCDest, p
       pNewFrameData[4] = nFrameFlags;
       pNewFrameData[5] = 0;
       pNewFrameData[6] = 0;
-      memcpy(pNewFrameData + 8, __frame0.pbCompressedData, (size_t)nCompressedSizeOut);
+      memcpy(pNewFrameData + 8, pbCompressedData, (size_t)nCompressedSizeOut);
       Fog::Memory::FreeClientMemory(pbSrcPixel, ".\\SRC\\FastCmp.cpp", 0xfd, 0);
       *(uint32_t**)((int)pDCCDest - (int)pDCC + (int)pSrcFrame) = (uint32_t*)pNewFrameData;
-      __frame0.nFrameIndex++;
+      nFrameIndex++;
       pSrcFrame = (DC6*)&pSrcFrame->nFlags;
-    } while (__frame0.nFrameIndex < (uint32_t)(pDCC->nDirections * pDCC->nFrames));
+    } while (nFrameIndex < (uint32_t)(pDCC->nDirections * pDCC->nFrames));
 }
 
 // EAX is loaded from pbRLEData at entry and advanced through the whole RLE-skip loop; RET leaves the advanced pointer in EAX, matching the caller's own extraout variable name pbRLEData.
@@ -1870,20 +1857,12 @@ void __fastcall FASTCMP_DecompressRLEWithAlpha(BYTE * pFrameBlock, BYTE * pDst, 
 
 // Decompress indexed RLE frames from a source DCC linked-list and write palette-converted DC6Block frames into a destination DC6 sprite
 uint32_t __fastcall FASTCMP_DecompressRLEWithPaletteConversion(int32_t pDCCSrc, DC6 * pDCCDest) {
-    // Frame slots -20..-4 are ONE object: &nCompressedSize is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint8_t* nCompressedSize;
-      uint8_t* pbCompressedData;
-      uint32_t nFrameCounter;
-      uint32_t nFramesPerDir;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t* pNewFrame;
     uint32_t nDirectionIndex;
     uint32_t nFrameTableIndex;
     uint32_t nFrameInDir;
+    uint8_t* nCompressedSize;
+    uint8_t* pbCompressedData;
     uint32_t dwFrameFlags;
     uint8_t* nCompressedDataSize;
     uint8_t* pMemoryToFree;
@@ -1892,14 +1871,14 @@ uint32_t __fastcall FASTCMP_DecompressRLEWithPaletteConversion(int32_t pDCCSrc, 
       exit(-1);
     }
 
-    __frame0.nFramesPerDir = *(uint32_t*)(pDCCSrc + 0x24) / *(uint32_t*)(pDCCSrc + 0x28);
-    __frame0.nFrameCounter = 0;
+    uint32_t nFramesPerDir = *(uint32_t*)(pDCCSrc + 0x24) / *(uint32_t*)(pDCCSrc + 0x28);
+    uint32_t nFrameCounter = 0;
     uint32_t nDirectionCount = *(uint32_t*)(pDCCSrc + 0x34);
     for (nFrameInDir = (int)nDirectionCount < 1 ? 0 : nDirectionCount; 0 < (int)nFrameInDir; nFrameInDir = *(uint32_t*)(nFrameInDir + 4)) {
-      FASTCMP_CompressToRLE(*(uint8_t**)(nFrameInDir + 0xc), *(uint32_t*)(nFrameInDir + 0x10), *(uint8_t**)(nFrameInDir + 8), &__frame0.nCompressedSize, &__frame0.pbCompressedData, *(uint8_t**)(nFrameInDir + 0x20));
-      nCompressedDataSize = __frame0.pbCompressedData;
-      pNewFrame = (uint32_t*)Fog::Memory::AllocClientMemory((size_t)(__frame0.pbCompressedData + 0x23), ".\\SRC\\FastCmp.cpp", 0x82, 0);
-      pMemoryToFree = __frame0.nCompressedSize;
+      FASTCMP_CompressToRLE(*(uint8_t**)(nFrameInDir + 0xc), *(uint32_t*)(nFrameInDir + 0x10), *(uint8_t**)(nFrameInDir + 8), &nCompressedSize, &pbCompressedData, *(uint8_t**)(nFrameInDir + 0x20));
+      nCompressedDataSize = pbCompressedData;
+      pNewFrame = (uint32_t*)Fog::Memory::AllocClientMemory((size_t)(pbCompressedData + 0x23), ".\\SRC\\FastCmp.cpp", 0x82, 0);
+      pMemoryToFree = nCompressedSize;
       *pNewFrame = *(uint32_t*)(nFrameInDir + 8);
       pNewFrame[1] = *(uint32_t*)(nFrameInDir + 0xc);
       pNewFrame[2] = *(uint32_t*)(nFrameInDir + 0x10);
@@ -1909,20 +1888,20 @@ uint32_t __fastcall FASTCMP_DecompressRLEWithPaletteConversion(int32_t pDCCSrc, 
       pNewFrame[5] = 0;
       pNewFrame[6] = 0;
       pNewFrame[4] = dwFrameFlags;
-      memcpy(pNewFrame + 8, __frame0.nCompressedSize, (size_t)nCompressedDataSize);
+      memcpy(pNewFrame + 8, nCompressedSize, (size_t)nCompressedDataSize);
       Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\SRC\\FastCmp.cpp", 0x8d, 0);
       nDirectionCount = *(uint32_t*)(pDCCSrc + 0x28);
       if (nDirectionCount < 2) {
         nDirectionIndex = 1;
       } else {
-        nDirectionIndex = (__frame0.nFrameCounter / __frame0.nFramesPerDir << 6) / nDirectionCount;
+        nDirectionIndex = (nFrameCounter / nFramesPerDir << 6) / nDirectionCount;
       }
 
       nFrameTableIndex = CelCmp::CELCMP_GetDirectionFrameTableIndex(nDirectionIndex, nDirectionCount);
-      nDirectionCount = __frame0.nFrameCounter / __frame0.nFramesPerDir;
-      nDirectionIndex = __frame0.nFrameCounter % __frame0.nFramesPerDir;
-      __frame0.nFrameCounter++;
-      *(uint32_t**)(pDCCDest[1].nTerm + (nFrameTableIndex * __frame0.nFramesPerDir + nDirectionIndex) * 4 - 0xc) = (uint32_t*)pNewFrame;
+      nDirectionCount = nFrameCounter / nFramesPerDir;
+      nDirectionIndex = nFrameCounter % nFramesPerDir;
+      nFrameCounter++;
+      *(uint32_t**)(pDCCDest[1].nTerm + (nFrameTableIndex * nFramesPerDir + nDirectionIndex) * 4 - 0xc) = (uint32_t*)pNewFrame;
     }
 
     return nDirectionCount;

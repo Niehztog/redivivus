@@ -79,17 +79,14 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
     // Static local variables (originally global data)
     static char * gpD2DrlgFileBuffer = (char *)&s_HDM_006ee7c0;
 
-    // Frame slots -28..-4 are ONE object: &nPresetCount is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -16..-4 are ONE object: &szItemCode is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      uint32_t nPresetCount;
-      uint32_t nActId;
-      int eUnitType;
       int szItemCode;
       D2ArchiveStrc* nDs1Version;
       int nWallLayerIdx;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     int nCharLower;
     D2MonPresetTxt* pMonPresetTxt;
@@ -103,6 +100,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
     int* pPathEntry;
     char* pClassId;
     int nUnitCount;
+    uint32_t nPresetCount;
     uint8_t byPresetType;
     char* nPathNodeCount;
     D2ArchiveStrc* pDs1File;
@@ -112,13 +110,14 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
     pFile->nWidth = (int)pDs1File->pNext;
     char* pCursor;
     pCursor = pDs1File->szArchivePath + 4;
-    __frame0.nActId = 0;
+    uint32_t nActId;
+    nActId = 0;
     pFile->nHeight = *(int*)pDs1File->szArchivePath;
     if (7 < (int)__frame0.nDs1Version) {
-      __frame0.nActId = *(uint32_t*)pCursor;
+      nActId = *(uint32_t*)pCursor;
       pCursor = pDs1File->szArchivePath + 8;
-      if (4 < (int)__frame0.nActId) {
-        __frame0.nActId = 4;
+      if (4 < (int)nActId) {
+        nActId = 4;
       }
     }
 
@@ -139,12 +138,13 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
       }
     }
 
-    __frame0.eUnitType = (pFile->nHeight + 1) * (pFile->nWidth + 1);
+    int eUnitType;
+    eUnitType = (pFile->nHeight + 1) * (pFile->nWidth + 1);
     if (__frame0.nDs1Version[-1].szInternalPrefix + 0xff < (char*)0x5) {
       pCursor += 8;
     }
     if ((int)__frame0.nDs1Version < 4) {
-      i = __frame0.eUnitType * 4;
+      i = eUnitType * 4;
       pFile->pWallLayer[0] = pCursor;
       pCursor += i;
       pFile->pFloorLayer[0] = pCursor;
@@ -169,9 +169,9 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
         ppLayer = pFile->pTileTypeLayer;
         do {
           ppLayer[4] = pCursor2;
-          *ppLayer = pCursor2 + __frame0.eUnitType * 4;
+          *ppLayer = pCursor2 + eUnitType * 4;
           i++;
-          pCursor2 = pCursor2 + __frame0.eUnitType * 4 + __frame0.eUnitType * 4;
+          pCursor2 = pCursor2 + eUnitType * 4 + eUnitType * 4;
           ppLayer++;
         } while (i < pFile->nWallLayers);
       }
@@ -182,7 +182,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
         do {
           *ppLayer = pCursor2;
           i++;
-          pCursor2 += __frame0.eUnitType * 4;
+          pCursor2 += eUnitType * 4;
           ppLayer++;
         } while (i < pFile->nFloorLayers);
       }
@@ -193,8 +193,8 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
         pBuffer = (char*)pFile->pTileTypeLayer;
         do {
           pPathEntry = *(int**)pBuffer;
-          if (0 < __frame0.eUnitType) {
-            __frame0.szItemCode = __frame0.eUnitType;
+          if (0 < eUnitType) {
+            __frame0.szItemCode = eUnitType;
             do {
               i = DrlgAnim::DRLGANIM_GetOrientationFromIndex(*pPathEntry);
               *pPathEntry = i;
@@ -210,10 +210,10 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
     }
 
     pFile->pShadowLayer = pCursor2;
-    pCursor2 += __frame0.eUnitType * 4;
+    pCursor2 += eUnitType * 4;
     if (pFile->nAct - 1U < 2) {
       pFile->pSubstGroupTags = pCursor2;
-      pCursor2 += __frame0.eUnitType * 4;
+      pCursor2 += eUnitType * 4;
     }
     if (1 < (int)__frame0.nDs1Version) {
       nUnitCount = *(int*)pCursor2;
@@ -221,18 +221,18 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
       pCursor = pCursor2;
       if (0 < nUnitCount) {
         do {
-          __frame0.eUnitType = *(int*)pCursor;
+          eUnitType = *(int*)pCursor;
           pClassId = *(char**)(pCursor + 4);
           __frame0.nWallLayerIdx = 0;
           pBuffer = pClassId;
-          switch (__frame0.eUnitType) {
+          switch (eUnitType) {
             case 1:
               {
                 __frame0.nWallLayerIdx = 1;
                 if (4 < (int)__frame0.nDs1Version) {
-                  __frame0.nPresetCount = 0;
-                  pMonPresetTxt = DATATBLS::MonsterTbls::MONSTERTBLS_GetMonPresetRecord(__frame0.nActId, (int*)&__frame0.nPresetCount);
-                  if (pMonPresetTxt && (int)pBuffer < (int)__frame0.nPresetCount) {
+                  nPresetCount = 0;
+                  pMonPresetTxt = DATATBLS::MonsterTbls::MONSTERTBLS_GetMonPresetRecord(nActId, (int*)&nPresetCount);
+                  if (pMonPresetTxt && (int)pBuffer < (int)nPresetCount) {
                     byPresetType = pMonPresetTxt[(int)pBuffer].nType;
                     pBuffer = (char*)(uint32_t)pMonPresetTxt[(int)pBuffer].wPlace;
                     if (!byPresetType) {
@@ -248,7 +248,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
                   }
 
                   pClassId = pBuffer;
-                  if (__frame0.nActId == 2) {
+                  if (nActId == 2) {
                     if ((int)pBuffer < sgptDataTable->nTxtMonStatsSize) {
                       pCursor2 = (char*)D2Client::DataTbls::CheckMonStatId(0x129);
                       if (pClassId == pCursor2) {
@@ -263,12 +263,12 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
                       }
 
                       convert_to_object_preset:
-                      __frame0.eUnitType = 2;
+                      eUnitType = 2;
                       __frame0.nWallLayerIdx = 0;
                       pBuffer = pClassId;
                       break;
                     }
-                  } else if (__frame0.nActId == 4 && (int)pBuffer < sgptDataTable->nTxtMonStatsSize && -1 < (int)pBuffer) {
+                  } else if (nActId == 4 && (int)pBuffer < sgptDataTable->nTxtMonStatsSize && -1 < (int)pBuffer) {
                     if (pBuffer == (char*)0x202) {
                       pClassId = (char*)0x1cd;
                     } else {
@@ -294,7 +294,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
 
                   pClassId = (char*)-1;
                 } else if ((int)pClassId < 0x96) {
-                  pClassId = (char*)gpsPresetObjectTable[(int)(pClassId + __frame0.nActId * 0x96)];
+                  pClassId = (char*)gpsPresetObjectTable[(int)(pClassId + nActId * 0x96)];
                 } else {
                   pClassId += -0x96;
                 }
@@ -340,16 +340,16 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
 
           add_preset_unit:
           pCursor2 = pCursor + 0x10;
-          __frame0.nPresetCount = 0;
+          nPresetCount = 0;
           if (5 < (int)__frame0.nDs1Version) {
-            __frame0.nPresetCount = *(uint32_t*)pCursor2;
+            nPresetCount = *(uint32_t*)pCursor2;
             pCursor2 = pCursor + 0x14;
           }
-          if (-1 < (int)pClassId && (__frame0.eUnitType != 1 || 4 < (int)__frame0.nDs1Version)) {
-            pPreset = DrlgRoom::AllocPresetUnit(nullptr, nullptr, __frame0.eUnitType, (int32_t)pClassId, __frame0.nWallLayerIdx, *(int32_t*)(pCursor + 8), *(int32_t*)(pCursor + 0xc));
+          if (-1 < (int)pClassId && (eUnitType != 1 || 4 < (int)__frame0.nDs1Version)) {
+            pPreset = DrlgRoom::AllocPresetUnit(nullptr, nullptr, eUnitType, (int32_t)pClassId, __frame0.nWallLayerIdx, *(int32_t*)(pCursor + 8), *(int32_t*)(pCursor + 0xc));
             pPreset->pPresetUnitNext = pFile->pPresetUnit;
             pFile->pPresetUnit = pPreset;
-            pPreset->nFlags |= __frame0.nPresetCount;
+            pPreset->nFlags |= nPresetCount;
           }
 
           nUnitCount--;
@@ -538,43 +538,27 @@ void __stdcall CreatePresetObject_Unused(int32_t nParam1, int32_t nParam2, D2Poo
 
 // Spawns repeated object presets (class 0x41) along a vertical line in world coords from start to end, spaced by 0x28. Prepends each to pMap->pPresetUnit and marks flag bit 0x1.
 void CreateObjectPresets(int nWorldX, int nWorldY, D2DrlgMapStrc * pMap, D2PoolManagerStrc * pMemory) {
-    // Frame slots -20..-4 are ONE object: &worldYStart is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t worldYStart;
-      int worldX;
-      int worldYEnd;
-      int worldY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    __frame0.worldYStart = 0;
-    __frame0.worldYEnd = pMap->pDrlgFile->nHeight + nWorldY;
-    __frame0.worldX = nWorldX;
-    __frame0.worldY = nWorldY;
-    Transform::CoordsRoomToWorld(&__frame0.worldX, &__frame0.worldY);
-    Transform::CoordsRoomToWorld(&__frame0.worldYStart, &__frame0.worldYEnd);
-    while (__frame0.worldY < __frame0.worldYEnd) {
+    int32_t worldYStart = 0;
+    int worldYEnd = pMap->pDrlgFile->nHeight + nWorldY;
+    int worldX = nWorldX;
+    int worldY = nWorldY;
+    Transform::CoordsRoomToWorld(&worldX, &worldY);
+    Transform::CoordsRoomToWorld(&worldYStart, &worldYEnd);
+    while (worldY < worldYEnd) {
       D2PresetUnitStrc* pPreset;
-      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x41, 0, __frame0.worldX, __frame0.worldY);
+      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x41, 0, worldX, worldY);
       pPreset->nFlags |= 1;
       pPreset->pPresetUnitNext = pMap->pPresetUnit;
       pMap->pPresetUnit = pPreset;
-      __frame0.worldY += 0x28;
+      worldY += 0x28;
     }
 }
 
 // Populates a vertical strip of the preset map with a row of five object presets per Y tile (IDs 0x28, 0x29, 0x29, 0x29, 0x2A at X offsets 0/+5/+10/+15/+20). Skips ahead by +3 rows when the grid cell has specific floor-type flags (type 4, certain subtypes), all linked into pMapStrc->pPresetUnit.
 void __stdcall CreateObjectPresets2(uint32_t xOffset, D2DrlgGridStrc * pGrid, D2PoolManagerStrc * pMemory, D2DrlgMapStrc * pMapStrc) {
-    // Frame slots -12..-4 are ONE object: &worldY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t worldY;
-      int worldX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t cellFlags;
+    int32_t worldY;
+    int worldX;
     int yIndex = 0;
     if (0 >= pMapStrc->nSizeY) {
       return;
@@ -582,27 +566,27 @@ void __stdcall CreateObjectPresets2(uint32_t xOffset, D2DrlgGridStrc * pGrid, D2
 
     do {
       D2PresetUnitStrc* pPreset;
-      __frame0.worldX = pMapStrc->nRealOffsetX + xOffset;
-      __frame0.worldY = pMapStrc->nRealOffsetY + yIndex;
-      Transform::CoordsRoomToWorld(&__frame0.worldX, &__frame0.worldY);
-      __frame0.worldX += -5;
-      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x28, 0, __frame0.worldX, __frame0.worldY);
+      worldX = pMapStrc->nRealOffsetX + xOffset;
+      worldY = pMapStrc->nRealOffsetY + yIndex;
+      Transform::CoordsRoomToWorld(&worldX, &worldY);
+      worldX += -5;
+      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x28, 0, worldX, worldY);
       pPreset->nFlags |= 1;
       pPreset->pPresetUnitNext = pMapStrc->pPresetUnit;
       pMapStrc->pPresetUnit = pPreset;
-      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x29, 0, __frame0.worldX + 5, __frame0.worldY);
+      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x29, 0, worldX + 5, worldY);
       pPreset->nFlags |= 1;
       pPreset->pPresetUnitNext = pMapStrc->pPresetUnit;
       pMapStrc->pPresetUnit = pPreset;
-      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x29, 0, __frame0.worldX + 10, __frame0.worldY);
+      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x29, 0, worldX + 10, worldY);
       pPreset->nFlags |= 1;
       pPreset->pPresetUnitNext = pMapStrc->pPresetUnit;
       pMapStrc->pPresetUnit = pPreset;
-      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x29, 0, __frame0.worldX + 0xf, __frame0.worldY);
+      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x29, 0, worldX + 0xf, worldY);
       pPreset->nFlags |= 1;
       pPreset->pPresetUnitNext = pMapStrc->pPresetUnit;
       pMapStrc->pPresetUnit = pPreset;
-      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x2a, 0, __frame0.worldX + 0x14, __frame0.worldY);
+      pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_OBJECT, 0x2a, 0, worldX + 0x14, worldY);
       pPreset->nFlags |= 1;
       pPreset->pPresetUnitNext = pMapStrc->pPresetUnit;
       pMapStrc->pPresetUnit = pPreset;
@@ -666,18 +650,10 @@ void CreateObjectPresetsForMap(D2DrlgMapStrc * pMapStrc, D2PoolManagerStrc * pMe
 }
 
 void __stdcall CreateMonsterPreset(D2PoolManagerStrc * pMemory, D2DrlgMapStrc * pDrlgMap) {
-    // Frame slots -12..-4 are ONE object: &nX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nX;
-      int32_t nY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    __frame0.nX = pDrlgMap->nSizeX / 2 + pDrlgMap->nRealOffsetX;
-    __frame0.nY = pDrlgMap->nSizeY / 2 + pDrlgMap->nRealOffsetY;
-    Transform::CoordsRoomToWorld(&__frame0.nX, &__frame0.nY);
-    D2PresetUnitStrc* pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_MONSTER, 0x10a < sgptDataTable->nTxtMonStatsSize ? 0x10a : -1, 1, __frame0.nX, __frame0.nY);
+    int32_t nX = pDrlgMap->nSizeX / 2 + pDrlgMap->nRealOffsetX;
+    int32_t nY = pDrlgMap->nSizeY / 2 + pDrlgMap->nRealOffsetY;
+    Transform::CoordsRoomToWorld(&nX, &nY);
+    D2PresetUnitStrc* pPreset = DrlgRoom::AllocPresetUnit(nullptr, pMemory, UNIT_MONSTER, 0x10a < sgptDataTable->nTxtMonStatsSize ? 0x10a : -1, 1, nX, nY);
     pPreset->pPresetUnitNext = pDrlgMap->pPresetUnit;
     pDrlgMap->pPresetUnit = pPreset;
 }
@@ -906,27 +882,19 @@ void __fastcall DRLGPRESET_InitGridsFromDS1File(D2RoomExStrc * pRoom) {
 // Allocates up to 6 navigation waypoints (POINT array, 0x30 bytes) for a preset room, scanning the wall grid for tiles with type==10 and subtype 0x17..0x1B (burial-ground passage markers). Converts matching grid coordinates to world space (+2 offset) and stores them in pRoomExData->pNavigationPoints; only runs if the array is not yet allocated.
 // @sourcefile .\DRLG\Preset.cpp
 void DRLGROOMEX_AllocRoomExData_WorldPointsBurialGrounds(D2PoolManagerStrc * pMemory, D2RoomExStrc * pRoomEx) {
-    // Frame slots -20..-4 are ONE object: &nX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nX;
-      D2DrlgPresetRoomStrc* pRoomData;
-      int nOffsetY;
-      int nY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nOffsetX;
+    int nX;
+    int nY;
     D2DrlgPresetRoomStrc* pRoomExData = pRoomEx->pRoomExData.pRoomExDataPreset;
     int nIndex = 0;
     if (pRoomExData->pNavigationPoints) {
       return;
     }
 
-    __frame0.pRoomData = pRoomExData;
+    D2DrlgPresetRoomStrc* pRoomData = pRoomExData;
     void* pNavPoints = Fog::Memory::AllocServerMemory(pMemory, 0x30, ".\\DRLG\\Preset.cpp", 0x7ac, 0);
     pRoomExData->pNavigationPoints = (POINT*)pNavPoints;
-    __frame0.nOffsetY = 0;
+    int nOffsetY = 0;
     if (0 < pRoomEx->sCoords.WorldSize.y) {
       uint32_t dwGridFlags;
       do {
@@ -934,14 +902,14 @@ void DRLGROOMEX_AllocRoomExData_WorldPointsBurialGrounds(D2PoolManagerStrc * pMe
         if (0 < pRoomEx->sCoords.WorldSize.x) {
           do {
             /* Is sub 0x10 is a POINT ? Maybe ? Seems like it is but i cant be sure so leave
-                         it for now. */ dwGridFlags = DrlgGrid::GetGridFlags(__frame0.pRoomData->pWallGrid, nOffsetX, __frame0.nOffsetY);
+                         it for now. */ dwGridFlags = DrlgGrid::GetGridFlags(pRoomData->pWallGrid, nOffsetX, nOffsetY);
             if (((uint8_t)(dwGridFlags >> 0x14) & 0x3f) == 10 && (uint8_t)((char)(dwGridFlags >> 8) - 0x17U) < 5 && nIndex < 6) {
-              __frame0.nY = pRoomEx->sCoords.WorldPosition.y + __frame0.nOffsetY;
-              __frame0.nX = pRoomEx->sCoords.WorldPosition.x + nOffsetX;
-              Transform::CoordsRoomToWorld(&__frame0.nX, &__frame0.nY);
-              __frame0.nY += 2;
-              __frame0.pRoomData->pNavigationPoints[nIndex].x = __frame0.nX + 2;
-              __frame0.pRoomData->pNavigationPoints[nIndex].y = __frame0.nY;
+              nY = pRoomEx->sCoords.WorldPosition.y + nOffsetY;
+              nX = pRoomEx->sCoords.WorldPosition.x + nOffsetX;
+              Transform::CoordsRoomToWorld(&nX, &nY);
+              nY += 2;
+              pRoomData->pNavigationPoints[nIndex].x = nX + 2;
+              pRoomData->pNavigationPoints[nIndex].y = nY;
               nIndex++;
             }
 
@@ -949,9 +917,9 @@ void DRLGROOMEX_AllocRoomExData_WorldPointsBurialGrounds(D2PoolManagerStrc * pMe
           } while (nOffsetX < pRoomEx->sCoords.WorldSize.x);
         }
 
-        __frame0.nOffsetY++;
-        pRoomExData = __frame0.pRoomData;
-      } while (__frame0.nOffsetY < pRoomEx->sCoords.WorldSize.y);
+        nOffsetY++;
+        pRoomExData = pRoomData;
+      } while (nOffsetY < pRoomEx->sCoords.WorldSize.y);
     }
 
     pRoomExData->nNavigationPointsCount = nIndex;
@@ -1525,14 +1493,6 @@ void __fastcall DRLGPRESETUNIT_FreeDrlgPresetUnit(D2PoolManagerStrc * pMemory, D
 
 // Copies preset units from the DS1 into the drlg map list, with RNG-gated inclusion for specific monster/object class ids. Converts room offset to world coords before copying and prepends each new unit to pDrlgMap->pPresetUnit.
 void __fastcall DRLGPRESET_AddPresetUnitToDrlgMap(D2PoolManagerStrc * pMemory, D2DrlgMapStrc * pDrlgMap, D2SeedStrc * pSeed) {
-    // Frame slots -12..-4 are ONE object: &nWorldX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nWorldX;
-      int nWorldY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2PresetUnitStrc* pCopiedUnit;
     int nMonClassId;
     int32_t nMonExtraBase;
@@ -1542,9 +1502,11 @@ void __fastcall DRLGPRESET_AddPresetUnitToDrlgMap(D2PoolManagerStrc * pMemory, D
     D2SeedStrc newSeed;
     D2PresetUnitStrc* pPresetUnit;
     pPresetUnit = pDrlgMap->pDrlgFile->pPresetUnit;
-    __frame0.nWorldX = pDrlgMap->nRealOffsetX;
-    __frame0.nWorldY = pDrlgMap->nRealOffsetY;
-    Transform::CoordsRoomToWorld(&__frame0.nWorldX, &__frame0.nWorldY);
+    int nWorldX;
+    nWorldX = pDrlgMap->nRealOffsetX;
+    int nWorldY;
+    nWorldY = pDrlgMap->nRealOffsetY;
+    Transform::CoordsRoomToWorld(&nWorldX, &nWorldY);
     for (; pPresetUnit; pPresetUnit = pPresetUnit->pPresetUnitNext) {
       if (pPresetUnit->eType == UNIT_MONSTER) {
         nTableSize = sgptDataTable->nTxtMonStatsSize;
@@ -1594,7 +1556,7 @@ void __fastcall DRLGPRESET_AddPresetUnitToDrlgMap(D2PoolManagerStrc * pMemory, D
         }
 
         add_preset_copy:
-        pCopiedUnit = CopyPresetUnit(pMemory, pPresetUnit, __frame0.nWorldX, __frame0.nWorldY);
+        pCopiedUnit = CopyPresetUnit(pMemory, pPresetUnit, nWorldX, nWorldY);
         pCopiedUnit->pPresetUnitNext = pDrlgMap->pPresetUnit;
         pDrlgMap->pPresetUnit = pCopiedUnit;
       } else {

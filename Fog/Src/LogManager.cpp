@@ -610,18 +610,6 @@ void __fastcall WriteRealmStartupHeader(FILE * pFile) {
 
 // Returns the open log file for a name, opening it in a free slot and writing its header when it is new.
 FILE * __fastcall FindOrOpenLogFileSlot(uint8_t * szFileName, uint32_t * pnSlotIndex) {
-    // Frame slots -28..-4 are ONE object: &nIsNewFile is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nIsNewFile;
-      uint32_t dwNow;
-      uint32_t nEmptySlot;
-      uint32_t nFreeHandleSlot;
-      uint8_t* pSavedFileName;
-      uint32_t nLruSlot;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t pNameEnd;
     uint8_t* pSearchName;
     FILE* pOpenedFile;
@@ -629,27 +617,33 @@ FILE * __fastcall FindOrOpenLogFileSlot(uint8_t * szFileName, uint32_t * pnSlotI
     char* pStoredName;
     char* pSlotNameBase;
     _SYSTEMTIME localTime;
+    int nIsNewFile;
     uint8_t byChar;
     uint32_t nFreeHandleSlotTmp;
     uint32_t* pnSlotIndexOut;
     pnSlotIndexOut = pnSlotIndex;
-    __frame0.pSavedFileName = szFileName;
-    __frame0.dwNow = GetTickCount();
-    __frame0.nEmptySlot = -1;
-    __frame0.nFreeHandleSlot = -1;
-    __frame0.nLruSlot = 1;
+    uint8_t* pSavedFileName;
+    pSavedFileName = szFileName;
+    uint32_t dwNow;
+    dwNow = GetTickCount();
+    uint32_t nEmptySlot;
+    nEmptySlot = -1;
+    uint32_t nFreeHandleSlot;
+    nFreeHandleSlot = -1;
+    uint32_t nLruSlot;
+    nLruSlot = 1;
     uint32_t nSlot;
     nSlot = (uint32_t)(*szFileName != 0);
     if ((*szFileName != 0) < 0x14) {
       int nCmpResult;
       nSlotOffset = nSlot * 4;
-      __frame0.nIsNewFile = 4;
+      nIsNewFile = 4;
       pStoredName = gLogFileNameArray[nSlot];
-      pSearchName = __frame0.pSavedFileName;
+      pSearchName = pSavedFileName;
       pSlotNameBase = pStoredName;
       do {
         nCmpResult = strcmp(pStoredName, (char*)pSearchName);
-        szFileName = __frame0.pSavedFileName;
+        szFileName = pSavedFileName;
         if (!nCmpResult) {
           pOpenedFile = globalOpenFileHandleArray[nSlot];
           if (pOpenedFile) {
@@ -662,46 +656,46 @@ FILE * __fastcall FindOrOpenLogFileSlot(uint8_t * szFileName, uint32_t * pnSlotI
           break;
         }
 
-        nFreeHandleSlotTmp = __frame0.nFreeHandleSlot;
+        nFreeHandleSlotTmp = nFreeHandleSlot;
         if (!*pSlotNameBase) {
-          if ((int)__frame0.nEmptySlot < 0) {
-            __frame0.nEmptySlot = nSlot;
+          if ((int)nEmptySlot < 0) {
+            nEmptySlot = nSlot;
           }
         } else if (!*(int*)((int)globalOpenFileHandleArray + nSlotOffset)) {
           nFreeHandleSlotTmp = nSlot;
-          if (-1 < (int)__frame0.nFreeHandleSlot) {
-            nFreeHandleSlotTmp = __frame0.nFreeHandleSlot;
-            if (gLogFileLastAccessTimeArray[__frame0.nFreeHandleSlot] < __frame0.dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nSlotOffset)) {
+          if (-1 < (int)nFreeHandleSlot) {
+            nFreeHandleSlotTmp = nFreeHandleSlot;
+            if (gLogFileLastAccessTimeArray[nFreeHandleSlot] < dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nSlotOffset)) {
               nFreeHandleSlotTmp = nSlot;
             }
           }
-        } else if (__frame0.dwNow - *(int*)((int)gLogFileLastAccessTimeArray + __frame0.nIsNewFile) < __frame0.dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nSlotOffset)) {
-          __frame0.nIsNewFile = nSlotOffset;
-          __frame0.nLruSlot = nSlot;
+        } else if (dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nIsNewFile) < dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nSlotOffset)) {
+          nIsNewFile = nSlotOffset;
+          nLruSlot = nSlot;
         }
 
-        __frame0.nFreeHandleSlot = nFreeHandleSlotTmp;
+        nFreeHandleSlot = nFreeHandleSlotTmp;
         pStoredName = pSlotNameBase + 0x10;
         nSlot++;
         nSlotOffset += 4;
-        pSearchName = __frame0.pSavedFileName;
+        pSearchName = pSavedFileName;
         pSlotNameBase = pStoredName;
       } while ((int)pStoredName < (uintptr_t)((char*)&gLogFileNameArray + sizeof(gLogFileNameArray)));
 
-      nSlot = __frame0.nEmptySlot;
-      if (-1 < (int)__frame0.nEmptySlot) {
+      nSlot = nEmptySlot;
+      if (-1 < (int)nEmptySlot) {
         goto open_in_slot;
       }
-      if (-1 < (int)__frame0.nFreeHandleSlot) {
-        __frame0.nLruSlot = __frame0.nFreeHandleSlot;
+      if (-1 < (int)nFreeHandleSlot) {
+        nLruSlot = nFreeHandleSlot;
       }
     }
 
-    nSlot = __frame0.nLruSlot;
-    if (globalOpenFileHandleArray[__frame0.nLruSlot]) {
-      fclose(globalOpenFileHandleArray[__frame0.nLruSlot]);
-      globalOpenFileHandleArray[__frame0.nLruSlot] = 0;
-      nSlot = __frame0.nLruSlot;
+    nSlot = nLruSlot;
+    if (globalOpenFileHandleArray[nLruSlot]) {
+      fclose(globalOpenFileHandleArray[nLruSlot]);
+      globalOpenFileHandleArray[nLruSlot] = 0;
+      nSlot = nLruSlot;
     }
 
     open_in_slot:
@@ -718,12 +712,12 @@ FILE * __fastcall FindOrOpenLogFileSlot(uint8_t * szFileName, uint32_t * pnSlotI
       pSearchName++;
     } while (byChar);
 
-    pOpenedFile = (FILE*)OpenLogFileWithTimestamp((char*)szFileName, &localTime, "a", (uint32_t*)&__frame0.nIsNewFile, gLogFilePathArray[nSlot], 0x104);
+    pOpenedFile = (FILE*)OpenLogFileWithTimestamp((char*)szFileName, &localTime, "a", (uint32_t*)&nIsNewFile, gLogFilePathArray[nSlot], 0x104);
     globalOpenFileHandleArray[nSlot] = pOpenedFile;
-    gLogFileLastWriteTimeArray[nSlot] = __frame0.dwNow;
-    gLogFileLastAccessTimeArray[nSlot] = __frame0.dwNow;
+    gLogFileLastWriteTimeArray[nSlot] = dwNow;
+    gLogFileLastAccessTimeArray[nSlot] = dwNow;
     if (!gLogFileSlotMutex[nSlot] || !pOpenedFile) {
-      if (__frame0.nIsNewFile) {
+      if (nIsNewFile) {
         WriteLogFileHeader(pOpenedFile, &localTime);
       }
     } else {
@@ -1867,25 +1861,19 @@ int __stdcall IsWindowsNT() {
 }
 
 void InitHighResTimer() {
-    // Frame slots -28..-4 are ONE object: &qwTestValue is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int64_t qwTestValue;
-      int64_t qwTestTarget;
-      int64_t qwResult;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int64_t qwTestValue;
+    int64_t qwTestTarget;
+    int64_t qwResult;
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ InitializeCriticalSection(&gHighResTimerCS);
-    *(uint32_t*)(char*)&__frame0.qwTestTarget = 0;
-    *(uint32_t*)((char*)&__frame0.qwTestTarget + 4) = 0;
-    *(uint32_t*)(char*)&__frame0.qwTestValue = 0x29a;
-    *(uint32_t*)((char*)&__frame0.qwTestValue + 4) = 0;
-    *(uint32_t*)(char*)&__frame0.qwResult = -1;
-    *(uint32_t*)((char*)&__frame0.qwResult + 4) = -1;
-    Atomic64Store(&__frame0.qwTestTarget, &__frame0.qwTestValue);
-    Atomic64Load(&__frame0.qwResult, &__frame0.qwTestTarget);
-    if ((int)__frame0.qwResult == 0x29a && !*(uint32_t*)((char*)&__frame0.qwResult + 4)) {
+    *(uint32_t*)(char*)&qwTestTarget = 0;
+    *(uint32_t*)((char*)&qwTestTarget + 4) = 0;
+    *(uint32_t*)(char*)&qwTestValue = 0x29a;
+    *(uint32_t*)((char*)&qwTestValue + 4) = 0;
+    *(uint32_t*)(char*)&qwResult = -1;
+    *(uint32_t*)((char*)&qwResult + 4) = -1;
+    Atomic64Store(&qwTestTarget, &qwTestValue);
+    Atomic64Load(&qwResult, &qwTestTarget);
+    if ((int)qwResult == 0x29a && !*(uint32_t*)((char*)&qwResult + 4)) {
       D2HighResTimestampStrc tInitTimestamp;
       tInitTimestamp.nSeconds = _time32(nullptr);
       tInitTimestamp.dwTick = GetTickCount();

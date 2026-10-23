@@ -187,18 +187,12 @@ int32_t __stdcall GetTestedUnitsFromRoom(D2RoomStrc * pRoom, D2UnitStrc * * ppUn
 
 // Searches all rooms adjacent to pUnit's room for the nearest unit passing a caller-supplied predicate (fpUnitTest). Iterates each room's unit list, computes distance via GetDistanceToXY, and returns the closest unit within nRoomIdx tiles (0 = unlimited). Returns NULL if no candidate passes. Halts on bad function pointer.
 D2UnitStrc * __stdcall GetNearestTestedUnit(D2UnitStrc * pUnit, int32_t nX, int32_t nY, int32_t nRoomIdx, fpUnitTest nfpUnitTest) {
-    // Frame slots -16..-4 are ONE object: &nRoomCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nRoomCount;
-      int32_t nBestDist;
-      D2RoomStrc** ppRoomList;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nDistToUnit;
     int nDist;
     D2UnitStrc* pBestUnit;
+    int nRoomCount;
+    int32_t nBestDist;
+    D2RoomStrc** ppRoomList;
     int32_t nLine;
     D2UnitStrc* pCandUnit;
     D2RoomStrc* pRoom = UNITS_GetRoom(pUnit);
@@ -207,9 +201,9 @@ D2UnitStrc * __stdcall GetNearestTestedUnit(D2UnitStrc * pUnit, int32_t nX, int3
       exit(-1);
     } else {
       BOOL bBadPtr;
-      DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppRoomList, &__frame0.nRoomCount);
+      DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppRoomList, &nRoomCount);
       pBestUnit = 0;
-      __frame0.nBestDist = 0xffff;
+      nBestDist = 0xffff;
       nLine = nRoomIdx;
       if (!nRoomIdx) {
         nLine = 0x10000;
@@ -218,27 +212,27 @@ D2UnitStrc * __stdcall GetNearestTestedUnit(D2UnitStrc * pUnit, int32_t nX, int3
       /* FARPROC lpfn for IsBadCodePtr */ bBadPtr = IsBadCodePtr((FARPROC)nfpUnitTest);
       if (!bBadPtr) {
         nRoomIdx = 0;
-        if (0 >= __frame0.nRoomCount) {
+        if (0 >= nRoomCount) {
           return pBestUnit;
         }
 
         do {
-          bBadPtr = CheckRoomIfInRange(__frame0.ppRoomList[nRoomIdx], nX, nY, nLine);
+          bBadPtr = CheckRoomIfInRange(ppRoomList[nRoomIdx], nX, nY, nLine);
           if (bBadPtr) {
-            for (pCandUnit = __frame0.ppRoomList[nRoomIdx]->pUnitList; pCandUnit; pCandUnit = pCandUnit->pRoomNext) {
+            for (pCandUnit = ppRoomList[nRoomIdx]->pUnitList; pCandUnit; pCandUnit = pCandUnit->pRoomNext) {
               nDistToUnit = Collision::GetDistanceToXY(pCandUnit, nX, nY);
-              if (nDistToUnit < nLine && nDistToUnit < __frame0.nBestDist) {
+              if (nDistToUnit < nLine && nDistToUnit < nBestDist) {
                 nDist = (*nfpUnitTest)(pCandUnit, pUnit);
                 if (nDist) {
                   pBestUnit = pCandUnit;
-                  __frame0.nBestDist = nDistToUnit;
+                  nBestDist = nDistToUnit;
                 }
               }
             }
           }
 
           nRoomIdx++;
-        } while (nRoomIdx < __frame0.nRoomCount);
+        } while (nRoomIdx < nRoomCount);
 
         return pBestUnit;
       }
@@ -462,17 +456,10 @@ int32_t __stdcall TestUnit(D2UnitStrc * pUnit, D2UnitFindArgStrc * pUnitFindArg)
 // Searches the room containing pUnitFindData->pRoom and all adjacent rooms for units passing a caller-supplied filter. If the source room is out of the search range only the source room is checked; otherwise DRLGROOM_GetAdjacentRoomsList is used. For each in-range room iterates the room's unit linked-list, calling fpUnitTest (or TestUnit if NULL), accumulating matching units in pUnitFindData->pUnitsArray (auto-expanded via ExpandUnitFinds). Returns and stores the total found count. Aborts with an unrecoverable error if pUnitFindData is NULL or fpUnitTest fails IsBadCodePtr.
 // @blizzard UnitFindCullRange
 int32_t __stdcall UNITFINDS_FindCullRange(D2UnitFindDataStrc * pUnitFindData) {
-    // Frame slots -12..-4 are ONE object: &nRoomCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      DWORD nRoomCount;
-      uint32_t nRoomIdxInner;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int iVar1;
     uint32_t nRoomIdx;
     DWORD nLine;
+    DWORD nRoomCount;
     D2UnitStrc* pNextUnit;
     D2UnitStrc* pUnit;
     D2UnitFindDataStrc* pFindData = pUnitFindData;
@@ -489,24 +476,24 @@ int32_t __stdcall UNITFINDS_FindCullRange(D2UnitFindDataStrc * pUnitFindData) {
 
     BOOL bBadPtr = CheckRoomIfNotInRange(pUnitFindData->pRoom, pUnitFindData->nX, pUnitFindData->nY, pUnitFindData->nDistance);
     if (!bBadPtr) {
-      __frame0.nRoomCount = 1;
+      nRoomCount = 1;
       pUnitFindData = (D2UnitFindDataStrc*)ppRoom;
     } else {
-      DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(*ppRoom, (D2RoomStrc***)&pUnitFindData, (int*)&__frame0.nRoomCount);
+      DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(*ppRoom, (D2RoomStrc***)&pUnitFindData, (int*)&nRoomCount);
     }
 
     int nFoundCount = 0;
     int nIndex = 0;
-    __frame0.nRoomIdxInner = 0;
-    if (__frame0.nRoomCount) {
+    uint32_t nRoomIdxInner = 0;
+    if (nRoomCount) {
       BOOL bIsInTown;
       do {
-        nRoomIdx = __frame0.nRoomIdxInner;
-        if (!(pFindData->nFlags & 0x2000U) || (bIsInTown = DUNGEON::Dungeon::DRLGROOM_IsRoomInTown((D2RoomStrc*)(&pUnitFindData->pMemory)[__frame0.nRoomIdxInner]) , !bIsInTown)) {
+        nRoomIdx = nRoomIdxInner;
+        if (!(pFindData->nFlags & 0x2000U) || (bIsInTown = DUNGEON::Dungeon::DRLGROOM_IsRoomInTown((D2RoomStrc*)(&pUnitFindData->pMemory)[nRoomIdxInner]) , !bIsInTown)) {
           bBadPtr = CheckRoomIfInRange((D2RoomStrc*)(&pUnitFindData->pMemory)[nRoomIdx], pFindData->nX, pFindData->nY, pFindData->nDistance);
           if (bBadPtr) {
             /* ghidra fail here to decompile it properly pParam is DrlgRoom here */ pNextUnit = (D2UnitStrc*)(&pUnitFindData->pMemory)[nRoomIdx]->pPools[1].nAllocBlock;
-            nRoomIdx = __frame0.nRoomIdxInner;
+            nRoomIdx = nRoomIdxInner;
             while (true) {
               pUnit = pNextUnit;
               if (!pUnit) {
@@ -514,7 +501,7 @@ int32_t __stdcall UNITFINDS_FindCullRange(D2UnitFindDataStrc * pUnitFindData) {
               }
 
               pNextUnit = pUnit->pRoomNext;
-              __frame0.nRoomIdxInner = nRoomIdx;
+              nRoomIdxInner = nRoomIdx;
               if (!pFindData->fpUnitTest) {
                 iVar1 = TestUnit(pUnit, pFindData->pUnitFindArg);
               } else {
@@ -527,13 +514,13 @@ int32_t __stdcall UNITFINDS_FindCullRange(D2UnitFindDataStrc * pUnitFindData) {
                 iVar1 = pFindData->fpUnitTest(pUnit, pFindData->pUnitFindArg);
               }
 
-              nRoomIdx = __frame0.nRoomIdxInner;
+              nRoomIdx = nRoomIdxInner;
               if (iVar1) {
                 pFindData->pUnitsArray->aFoundUnitsList[nIndex] = pUnit;
                 nIndex++;
                 if (nIndex == pFindData->nUnitFindsSize) {
                   ExpandUnitFinds(pFindData, pNextUnit);
-                  nRoomIdx = __frame0.nRoomIdxInner;
+                  nRoomIdx = nRoomIdxInner;
                 }
               }
             }
@@ -542,8 +529,8 @@ int32_t __stdcall UNITFINDS_FindCullRange(D2UnitFindDataStrc * pUnitFindData) {
 
         nRoomIdx++;
         nFoundCount = nIndex;
-        __frame0.nRoomIdxInner = nRoomIdx;
-      } while (nRoomIdx < __frame0.nRoomCount);
+        nRoomIdxInner = nRoomIdx;
+      } while (nRoomIdx < nRoomCount);
     }
 
     pFindData->nCountedUnits = nFoundCount;

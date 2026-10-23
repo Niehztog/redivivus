@@ -181,14 +181,8 @@ int32_t __fastcall GetPalShiftIndex(D2UnitStrc * pUnit) {
 
 // Tests whether screen point (nClickX, nClickY) falls within the clickable bounding box of a warp unit. Fetches the room's shadow/bounds data, transforms the warp's map position to screen coords, and returns 1 if the point is inside the bounds rectangle defined by pShadowBounds[1..4]. Halts fatally if called on a non-UNIT_WARP unit.
 BOOL __fastcall WARP_IsPointInClickArea(D2UnitStrc * pUnit, int32_t nClickX, int32_t nClickY) {
-    // Frame slots -12..-4 are ONE object: &nPosY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nPosY;
-      int32_t nPosX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nPosY;
+    int32_t nPosX;
     if (pUnit->eUnitType != UNIT_WARP) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x58b);
       exit(-1);
@@ -202,25 +196,25 @@ BOOL __fastcall WARP_IsPointInClickArea(D2UnitStrc * pUnit, int32_t nClickX, int
 
     eD2UnitType eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nPosX = pUnit->pPath.pStaticPath->nPosX;
+      nPosX = pUnit->pPath.pStaticPath->nPosX;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nPosX = 0;
+      nPosX = 0;
     } else {
-      __frame0.nPosX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      nPosX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
     }
 
     eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nPosY = pUnit->pPath.pStaticPath->nPosY;
+      nPosY = pUnit->pPath.pStaticPath->nPosY;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nPosY = 0;
+      nPosY = 0;
     } else {
-      __frame0.nPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      nPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
     }
 
-    D2Common::Drlg::Transform::CoordsMapToScreen(&__frame0.nPosX, &__frame0.nPosY);
-    int iVar1 = pShadowBounds->SelectX + __frame0.nPosX;
-    int iVar2 = pShadowBounds->SelectY + __frame0.nPosY;
+    D2Common::Drlg::Transform::CoordsMapToScreen(&nPosX, &nPosY);
+    int iVar1 = pShadowBounds->SelectX + nPosX;
+    int iVar2 = pShadowBounds->SelectY + nPosY;
     if (!(iVar1 <= nClickX && iVar2 <= nClickY && nClickX <= pShadowBounds->SelectDX + iVar1 && nClickY <= pShadowBounds->SelectDY + iVar2)) {
       return 0;
     }
@@ -229,35 +223,29 @@ BOOL __fastcall WARP_IsPointInClickArea(D2UnitStrc * pUnit, int32_t nClickX, int
 }
 
 uint32_t __stdcall CUNIT_IsClickInSpriteBounds(int32_t nClickY, int * pUnit, D2ObjectsTxt * pObjectsTxt, int32_t nClickX) {
-    // Frame slots -12..-4 are ONE object: &nPosY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nPosY;
-      int32_t nPosX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nPosY;
+    int32_t nPosX;
     int nScreenX = *pUnit;
     if (nScreenX == 2 || 3 < nScreenX && nScreenX < 6) {
-      __frame0.nPosX = *(int32_t*)(pUnit[0xb] + 0xc);
+      nPosX = *(int32_t*)(pUnit[0xb] + 0xc);
     } else if (!(D2DynamicPathStrc*)pUnit[0xb]) {
-      __frame0.nPosX = 0;
+      nPosX = 0;
     } else {
-      __frame0.nPosX = D2Common::PATH::DynamicPath::GetXPos((D2DynamicPathStrc*)pUnit[0xb]);
+      nPosX = D2Common::PATH::DynamicPath::GetXPos((D2DynamicPathStrc*)pUnit[0xb]);
     }
 
     nScreenX = *pUnit;
     if (nScreenX == 2 || 3 < nScreenX && nScreenX < 6) {
-      __frame0.nPosY = *(int32_t*)(pUnit[0xb] + 0x10);
+      nPosY = *(int32_t*)(pUnit[0xb] + 0x10);
     } else if (!(D2DynamicPathStrc*)pUnit[0xb]) {
-      __frame0.nPosY = 0;
+      nPosY = 0;
     } else {
-      __frame0.nPosY = D2Common::PATH::DynamicPath::GetYPos((D2DynamicPathStrc*)pUnit[0xb]);
+      nPosY = D2Common::PATH::DynamicPath::GetYPos((D2DynamicPathStrc*)pUnit[0xb]);
     }
 
-    D2Common::Drlg::Transform::CoordsMapToScreen(&__frame0.nPosX, &__frame0.nPosY);
-    nScreenX = pObjectsTxt->Left + __frame0.nPosX;
-    int nScreenY = pObjectsTxt->Top + __frame0.nPosY;
+    D2Common::Drlg::Transform::CoordsMapToScreen(&nPosX, &nPosY);
+    nScreenX = pObjectsTxt->Left + nPosX;
+    int nScreenY = pObjectsTxt->Top + nPosY;
     if (!(nScreenX <= nClickX && nScreenY <= nClickY && nClickX <= pObjectsTxt->Width + nScreenX && nClickY <= pObjectsTxt->Height + nScreenY)) {
       return 0;
     }
@@ -817,14 +805,6 @@ uint16_t * __fastcall ROOM_GetWarpDestinationName(D2RoomStrc * pRoom, D2UnitStrc
 // Returns the localized display name (WCHAR*) of a unit by its type. Monsters: returns the player-owner override name if set, else the monstats NameStr locale string. Items: the items.txt wNameStr locale string. Objects: for open-warp objects walks the current and adjacent rooms to find the linked warp unit and returns its destination name; for shrines returns the shrine name string, for lockable/locked objects a generic locked string, doors map their anim mode to closed/open/destroyed strings, otherwise the objects.txt NameWideString. Halts (unrecoverable error) if pUnit is NULL; returns NULL for unknown unit types.
 // [override: patch]
 uint16_t * __fastcall GetName(D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &pAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjacentRooms;
-      uint32_t nAdjacentCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t nStrId;
     int32_t nLen;
     D2RoomStrc* pRoom;
@@ -836,6 +816,8 @@ uint16_t * __fastcall GetName(D2UnitStrc * pUnit) {
     uint32_t nIdx;
     uint32_t nAdjRoomIdx;
     uint32_t nAdjRoomCount;
+    D2RoomStrc** pAdjacentRooms;
+    uint32_t nAdjacentCount;
     eD2PlayerAnimMode eAnimMode;
     D2ObjectsTxt* pObjectsTxt;
     if (!pUnit) {
@@ -863,22 +845,22 @@ uint16_t * __fastcall GetName(D2UnitStrc * pUnit) {
             return pwszName;
           }
 
-          D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.pAdjacentRooms, (int*)&__frame0.nAdjacentCount);
+          D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pAdjacentRooms, (int*)&nAdjacentCount);
           nIdx = 0;
-          if (__frame0.nAdjacentCount) {
+          if (nAdjacentCount) {
             do {
-              if (__frame0.pAdjacentRooms[nIdx] != pRoom) {
-                pWarpUnit = CUNIT_IterateUntilWarp((int*)__frame0.pAdjacentRooms[nIdx]->pUnitList);
+              if (pAdjacentRooms[nIdx] != pRoom) {
+                pWarpUnit = CUNIT_IterateUntilWarp((int*)pAdjacentRooms[nIdx]->pUnitList);
                 (void)0;
-                (void)0;
+                nAdjacentCount;
                 if (pWarpUnit) {
-                  pwszName = ROOM_GetWarpDestinationName(__frame0.pAdjacentRooms[nIdx], pWarpUnit);
+                  pwszName = ROOM_GetWarpDestinationName(pAdjacentRooms[nIdx], pWarpUnit);
                   return pwszName;
                 }
               }
 
               nIdx++;
-            } while (nIdx < __frame0.nAdjacentCount);
+            } while (nIdx < nAdjacentCount);
           }
         }
       if (!pUnit->pUnitData.pUnitDataObject->pTxtObjectsLine->IsDoor) {
@@ -2331,23 +2313,6 @@ void __fastcall CreateUnitsForMissiles(D2RoomStrc * pRoom) {
 // Client-side hit-test: determines whether a screen-space click at (nClickX,nClickY) lands on the given unit and whether that unit is a valid selection/interaction target for the local player. Honors split-screen border halves, skips uninteractable/hidden units, validates interactability (CanInteractWith / owned-pet / allied / active-skill select proc), then performs geometric containment using monster hit-test rectangle (monstats2 noGfxHitTest box), object collision/door sprite bounds, item run-mode + hold-alt rules, warp click areas, or per-piece sprite-bounds iteration for multi-piece gfx. Returns nonzero if the click selects the unit, 0 otherwise. pObjectsTxt out-param scratch.
 // @sourcefile .\UNIT\CUnit.cpp
 uint32_t __fastcall HitTestScreen(D2UnitStrc * pUnit, int32_t nClickX, int32_t nClickY, D2ObjectsTxt * pObjectsTxt) {
-    // Frame slots -32..-20 are ONE object: &nAnimOrSeqMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nAnimOrSeqMode;
-      uint32_t nFrameCount;
-      D2UnitStrc* pUnitSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -12..-4 are ONE object: &nClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      int nClassId;
-      int32_t nClickXSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     POINT pt;
     BOOL bInRect;
     D2MonStats2Txt* pMonStats2;
@@ -2355,9 +2320,12 @@ uint32_t __fastcall HitTestScreen(D2UnitStrc * pUnit, int32_t nClickX, int32_t n
     pUnitTmp = pUnit;
     RECT rcBounds;
     int anFrameMetrics[2];
+    uint32_t nFrameCount;
     uint8_t byTotalPieces;
-    __frame0.pUnitSaved = pUnit;
-    __frame1.nClickXSaved = nClickX;
+    D2UnitStrc* pUnitSaved;
+    pUnitSaved = pUnit;
+    int32_t nClickXSaved;
+    nClickXSaved = nClickX;
     int nResult;
     nResult = UI::ui::GetMouseX();
     uint32_t uResult;
@@ -2442,11 +2410,13 @@ uint32_t __fastcall HitTestScreen(D2UnitStrc * pUnit, int32_t nClickX, int32_t n
       return 1;
     }
 
-    __frame0.nAnimOrSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    __frame1.nClassId = pUnit->nClassId;
+    int32_t nAnimOrSeqMode;
+    nAnimOrSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    int nClassId;
+    nClassId = pUnit->nClassId;
     eD2UnitType eUnitType;
     eUnitType = pUnit->eUnitType;
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame1.nClassId, &__frame0.nAnimOrSeqMode, ".\\UNIT\\CUnit.cpp", 0x6ed);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nAnimOrSeqMode, ".\\UNIT\\CUnit.cpp", 0x6ed);
     pObjectsTxt = 0;
     int32_t nScreenX;
     nScreenX = D2Common::Units::GetTargetX(pUnit);
@@ -2456,28 +2426,28 @@ uint32_t __fastcall HitTestScreen(D2UnitStrc * pUnit, int32_t nClickX, int32_t n
       case UNIT_PLAYER:
         goto check_gfx_bounds;
       case UNIT_MONSTER:
-        pMonStats2 = DataTbls::MonsterTbls::TXT_MonStats_GetMonStats2(__frame1.nClassId);
+        pMonStats2 = DataTbls::MonsterTbls::TXT_MonStats_GetMonStats2(nClassId);
       if (pMonStats2->noGfxHitTest) {
         rcBounds.left = pMonStats2->nHtLeft + nScreenX;
         rcBounds.right = pMonStats2->nHtWidth + rcBounds.left;
         rcBounds.top = pMonStats2->nHtTop + nScreenY;
         rcBounds.bottom = pMonStats2->nHtHeight + rcBounds.top;
         /* POINT pt for PtInRect */ pt.y = nClickY;
-        pt.x = __frame1.nClickXSaved;
+        pt.x = nClickXSaved;
         /* RECT * lprc for PtInRect */ bInRect = PtInRect(&rcBounds, pt);
         return (uint32_t)(bInRect != 0);
       }
 
       check_gfx_bounds:
-      bInRect = Engine::Gfx::GFX_IsUnitInsideBounds(pUnit, nScreenX, nScreenY, __frame1.nClickXSaved, nClickY);
+      bInRect = Engine::Gfx::GFX_IsUnitInsideBounds(pUnit, nScreenX, nScreenY, nClickXSaved, nClickY);
       if (!bInRect) {
         return 0;
       }
 
       break;
       case UNIT_OBJECT:
-        pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(__frame1.nClassId);
-      bInRect = Engine::Gfx::GFX_IsUnitInsideBounds(pUnit, nScreenX, nScreenY, __frame1.nClickXSaved, nClickY);
+        pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(nClassId);
+      bInRect = Engine::Gfx::GFX_IsUnitInsideBounds(pUnit, nScreenX, nScreenY, nClickXSaved, nClickY);
       if (!bInRect && !pObjectsTxt->IsDoor && !pObjectsTxt->CollisionSubst) {
         return 0;
       }
@@ -2497,7 +2467,7 @@ uint32_t __fastcall HitTestScreen(D2UnitStrc * pUnit, int32_t nClickX, int32_t n
 
       break;
       case UNIT_WARP:
-        uResult = WARP_IsPointInClickArea(pUnit, __frame1.nClickXSaved, nClickY);
+        uResult = WARP_IsPointInClickArea(pUnit, nClickXSaved, nClickY);
       return uResult;
     }
 
@@ -2506,7 +2476,7 @@ uint32_t __fastcall HitTestScreen(D2UnitStrc * pUnit, int32_t nClickX, int32_t n
     if (eUnitType != UNIT_PLAYER) {
       eD2PlayerAnimMode eVar1;
       if (eUnitType == UNIT_MONSTER) {
-        pMonStats2 = DataTbls::MonsterTbls::TXT_MonStats_GetMonStats2(__frame1.nClassId);
+        pMonStats2 = DataTbls::MonsterTbls::TXT_MonStats_GetMonStats2(nClassId);
         if (!pMonStats2) {
           goto test_frame_bounds;
         }
@@ -2522,13 +2492,13 @@ uint32_t __fastcall HitTestScreen(D2UnitStrc * pUnit, int32_t nClickX, int32_t n
         }
         if (!pObjectsTxt->IsDoor) {
           if (pObjectsTxt->CollisionSubst) {
-            uResult = CUNIT_IsClickInSpriteBounds(nClickY, (int*)__frame0.pUnitSaved, pObjectsTxt, __frame1.nClickXSaved);
+            uResult = CUNIT_IsClickInSpriteBounds(nClickY, (int*)pUnitSaved, pObjectsTxt, nClickXSaved);
             return uResult;
           }
         } else {
           eVar1 = pUnit->eAnimMode.ePlayerMode;
           if (eVar1 == Walk || eVar1 == eD2PlayerAnimMode_ns::GetHit || eVar1 == TownNeutral) {
-            uResult = CUNIT_IsClickInSpriteBounds(nClickY, (int*)__frame0.pUnitSaved, pObjectsTxt, __frame1.nClickXSaved);
+            uResult = CUNIT_IsClickInSpriteBounds(nClickY, (int*)pUnitSaved, pObjectsTxt, nClickXSaved);
             return uResult;
           }
         }
@@ -2542,7 +2512,7 @@ uint32_t __fastcall HitTestScreen(D2UnitStrc * pUnit, int32_t nClickX, int32_t n
 
     bMultiPiece = true;
     test_frame_bounds:
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, (int*)&__frame0.nFrameCount, anFrameMetrics);
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, (int*)&nFrameCount, anFrameMetrics);
     rcBounds.left = 0;
     rcBounds.top = 0;
     rcBounds.right = 0;
@@ -2552,15 +2522,15 @@ uint32_t __fastcall HitTestScreen(D2UnitStrc * pUnit, int32_t nClickX, int32_t n
     }
     if (bMultiPiece) {
       pObjectsTxt = 0;
-      while ((uResult = CUNIT_CalculateSpriteBounds(__frame0.nFrameCount, (uint32_t)pObjectsTxt, pUnit, (int*)&rcBounds.left) , !uResult || (uResult = Engine::GfxUtil::GFXUTIL_GetUnitCofDirectionOnScreen(pUnit, (uint32_t)pObjectsTxt) , !uResult)) || __frame1.nClickXSaved < rcBounds.left || rcBounds.right < __frame1.nClickXSaved || nClickY < rcBounds.bottom || rcBounds.top < nClickY) {
+      while ((uResult = CUNIT_CalculateSpriteBounds(nFrameCount, (uint32_t)pObjectsTxt, pUnit, (int*)&rcBounds.left) , !uResult || (uResult = Engine::GfxUtil::GFXUTIL_GetUnitCofDirectionOnScreen(pUnit, (uint32_t)pObjectsTxt) , !uResult)) || nClickXSaved < rcBounds.left || rcBounds.right < nClickXSaved || nClickY < rcBounds.bottom || rcBounds.top < nClickY) {
         pObjectsTxt = (D2ObjectsTxt*)(pObjectsTxt->Name + 1);
         if ((D2ObjectsTxt*)0xf < pObjectsTxt) {
           return 0;
         }
       }
     } else {
-      uResult = CUNIT_CalculateSpriteBounds(__frame0.nFrameCount, 1, pUnit, (int*)&rcBounds.left);
-      if (!uResult || __frame1.nClickXSaved < rcBounds.left || rcBounds.right < __frame1.nClickXSaved || nClickY < rcBounds.bottom || rcBounds.top < nClickY) {
+      uResult = CUNIT_CalculateSpriteBounds(nFrameCount, 1, pUnit, (int*)&rcBounds.left);
+      if (!uResult || nClickXSaved < rcBounds.left || rcBounds.right < nClickXSaved || nClickY < rcBounds.bottom || rcBounds.top < nClickY) {
         return 0;
       }
     }

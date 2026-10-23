@@ -121,24 +121,18 @@ void __stdcall SPRITECACHE_FreeEntry(D2TileLibraryEntryStrc * pTile) {
 
 // Reads the 0x114-byte DT1 header of szFilename and returns the size of its minimal form: numTiles (dword at header offset 0x10c) * 0x60 + 0x114, or 0 when the file cannot be opened. Frame is SUB ESP,0x11c: [EBP-0x11c] holds the archive handle CheckIfFileExists writes back, [EBP-0x118..EBP-0x5] the 0x114 header buffer, [EBP-0x4] the /GS cookie. The former ESI parameter dwParam was a phantom: no instruction between 005fdf80 and 005fdff8 reads or writes ESI, so it was never an incoming argument; it only forwarded into D2FILE_ReadFile's own phantom ESI slot. Removed 2026.09.08. Return storage is pinned to EAX because the tail CALL 00681a48 (GuardStack, MSVC __security_check_cookie) preserves EAX and the computed size is the return value.
 int __fastcall SPRITECACHE_LoadFromFile(char * szFilename) {
-    // Frame slots -288..-8 are ONE object: &pFile is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQFileStrc* pFile;
-      char local_11c[276];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 280, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    BOOL bFileExistsResult = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, szFilename, &__frame0.pFile, 0);
+    D2MPQFileStrc* pFile;
+    char local_11c[276];
+    BOOL bFileExistsResult = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, szFilename, &pFile, 0);
     if (!bFileExistsResult) {
       Fog::Debug::GuardStack();
       return 0;
     }
 
-    D2FILE_ReadFile(nullptr, __frame0.pFile, __frame0.local_11c, 0x114);
-    D2FILE_CloseFile(nullptr, __frame0.pFile);
+    D2FILE_ReadFile(nullptr, pFile, local_11c, 0x114);
+    D2FILE_CloseFile(nullptr, pFile);
     Fog::Debug::GuardStack();
-    return *(uint32_t*)((char*)&__frame0.local_11c + 268) * 0x60 + 0x114;
+    return *(uint32_t*)((char*)&local_11c + 268) * 0x60 + 0x114;
 }
 
 void __fastcall SPRITECACHE_SetMaxSize(size_t nSize) {
@@ -18317,24 +18311,16 @@ int __stdcall SPRITECACHE_GetOrLoadSprite(D2GfxDataStrc * pGfxData, int32_t bChe
     // Static local variables (originally global data)
     static uint32_t gbSpriteCachePaletteReloadNeeded;
 
-    // Frame slots -536..-4 are ONE object: &nDirections is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nDirections;
-      uint32_t nFrames;
-      char local_210[260];
-      char szSpritePath[260];
-      uint32_t dwStackCookie;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 532, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     DC6Block* pDC6BlockResult;
     uint32_t nPaletteShift;
     uint32_t nShiftRatio;
     BOOL BVar1;
+    char local_210[260];
+    char szSpritePath[260];
     D2CelCacheBlockStrc* pCachedCelEntry;
     D2AsyncData_Line0x128* ppAsyncHandle;
-    __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    uint32_t dwStackCookie;
+    dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (!pGfxData) {
       Fog::Debug::GuardStack();
       return 0;
@@ -18349,16 +18335,18 @@ int __stdcall SPRITECACHE_GetOrLoadSprite(D2GfxDataStrc * pGfxData, int32_t bChe
     }
 
     D2CelFileCacheEntryStrc* pCodecHeader;
-    pCodecHeader = SPRITECACHE_LoadDCC(__frame0.szSpritePath, __frame0.local_210, pGfxData);
-    __frame0.nDirections = 0;
-    __frame0.nFrames = 0;
+    pCodecHeader = SPRITECACHE_LoadDCC(szSpritePath, local_210, pGfxData);
+    int nDirections;
+    nDirections = 0;
+    uint32_t nFrames;
+    nFrames = 0;
     int nHashEntry;
-    nHashEntry = GfxHash::GFXHASH_FindEntryByGfxData(gaGfxHashTable, pGfxData, &__frame0.nDirections, &__frame0.nFrames, pCodecHeader);
+    nHashEntry = GfxHash::GFXHASH_FindEntryByGfxData(gaGfxHashTable, pGfxData, &nDirections, &nFrames, pCodecHeader);
     uint32_t bLoadSuccess;
     bLoadSuccess = 1;
     uint32_t bAsyncDone;
     bAsyncDone = 0;
-    if (1 < __frame0.nFrames && __frame0.nDirections) {
+    if (1 < nFrames && nDirections) {
       if (nHashEntry) {
         ppAsyncHandle = *(D2AsyncData_Line0x128**)(*(int*)(nHashEntry + 0x20) + 0xb0);
         if (!ppAsyncHandle) {
@@ -18372,7 +18360,7 @@ int __stdcall SPRITECACHE_GetOrLoadSprite(D2GfxDataStrc * pGfxData, int32_t bChe
         }
       }
       if (!(pCodecHeader->dwCacheFlags & 1)) {
-        nPaletteShift = CelCmp::CELCMP_GetPaletteShiftValue(pGfxData->nDirection * pCodecHeader->nDirections >> 6, pCodecHeader->nDirections, __frame0.nFrames, pGfxData->dwFlags & 4);
+        nPaletteShift = CelCmp::CELCMP_GetPaletteShiftValue(pGfxData->nDirection * pCodecHeader->nDirections >> 6, pCodecHeader->nDirections, nFrames, pGfxData->dwFlags & 4);
         if (pCodecHeader->nDirections < 2) {
           nShiftRatio = 1;
         } else {
@@ -18380,18 +18368,18 @@ int __stdcall SPRITECACHE_GetOrLoadSprite(D2GfxDataStrc * pGfxData, int32_t bChe
         }
 
         pGfxData->nDirection = nShiftRatio;
-        nHashEntry = GfxHash::GFXHASH_FindEntryByGfxData(gaGfxHashTable, pGfxData, &__frame0.nDirections, &__frame0.nFrames, pCodecHeader);
+        nHashEntry = GfxHash::GFXHASH_FindEntryByGfxData(gaGfxHashTable, pGfxData, &nDirections, &nFrames, pCodecHeader);
       }
     }
 
     load_or_use_cached:
     if (!nHashEntry) {
-      if (bCheckOnly || __frame0.szSpritePath[0] == '\0' && (BVar1 = SPRITECACHE_LoadDC6(__frame0.local_210, pGfxData, __frame0.szSpritePath) , !BVar1)) {
+      if (bCheckOnly || szSpritePath[0] == '\0' && (BVar1 = SPRITECACHE_LoadDC6(local_210, pGfxData, szSpritePath) , !BVar1)) {
         Fog::Debug::GuardStack();
         return 0;
       }
 
-      bLoadSuccess = SPRITECACHE_LoadDCCAndCache(pCodecHeader, __frame0.nDirections, __frame0.nFrames, __frame0.szSpritePath, pGfxData);
+      bLoadSuccess = SPRITECACHE_LoadDCCAndCache(pCodecHeader, nDirections, nFrames, szSpritePath, pGfxData);
       if (!bLoadSuccess) {
         Fog::Debug::GuardStack();
         return bLoadSuccess;
@@ -18423,43 +18411,36 @@ int __stdcall SPRITECACHE_GetOrLoadSprite(D2GfxDataStrc * pGfxData, int32_t bChe
         Fog::Debug::GuardStack();
         return 0;
       }
-      if (bAsyncDone || __frame0.nDirections || __frame0.nFrames < 2) {
+      if (bAsyncDone || nDirections || nFrames < 2) {
         Fog::Debug::GuardStack();
         return bLoadSuccess;
       }
-      if (__frame0.szSpritePath[0] == '\0') {
-        BVar1 = SPRITECACHE_LoadDC6(__frame0.local_210, pGfxData, __frame0.szSpritePath);
+      if (szSpritePath[0] == '\0') {
+        BVar1 = SPRITECACHE_LoadDC6(local_210, pGfxData, szSpritePath);
         if (!BVar1) {
           Fog::Debug::GuardStack();
           return 0;
         }
       }
     }
-    SPRITECACHE_LoadSpriteWithConversion(pCodecHeader, pGfxData, __frame0.nDirections, __frame0.nFrames, __frame0.local_210, nParam2, __frame0.szSpritePath);
+    SPRITECACHE_LoadSpriteWithConversion(pCodecHeader, pGfxData, nDirections, nFrames, local_210, nParam2, szSpritePath);
     Fog::Debug::GuardStack();
     return bLoadSuccess;
 }
 
 // Server sprite precache sync. GuardStack tail confirms BOOL return: GuardStack(1) on two early-out success paths, GuardStack(nLoadResult) on the cache-and-load path, GuardStack(0) on failure.
 BOOL __stdcall SPRITECACHE_PrecacheSpriteSync(D2GfxDataStrc * pGfxData) {
-    // Frame slots -536..-4 are ONE object: &nDirections is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nDirections;
-      int nFrames;
-      char sArchive[260];
-      char szFileName[260];
-      uint32_t dwStackCookie;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 532, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nErrAddr;
     DC6Block* nDC6BlockResult;
     uint32_t nPaletteShift;
     uint32_t uVar1;
     BOOL nLoadResult;
+    uint32_t nDirections;
+    int nFrames;
+    char sArchive[260];
+    char szFileName[260];
     int32_t nErrLine;
-    __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (!pGfxData) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), nErrLine);
       exit(-1);
@@ -18471,11 +18452,11 @@ BOOL __stdcall SPRITECACHE_PrecacheSpriteSync(D2GfxDataStrc * pGfxData) {
       return 1;
     }
 
-    D2CelFileCacheEntryStrc* pCodecHeader = SPRITECACHE_LoadDCC(__frame0.szFileName, __frame0.sArchive, pGfxData);
+    D2CelFileCacheEntryStrc* pCodecHeader = SPRITECACHE_LoadDCC(szFileName, sArchive, pGfxData);
     if (pCodecHeader) {
-      __frame0.nFrames = 0;
-      __frame0.nDirections = 0;
-      nErrAddr = GfxHash::GFXHASH_FindEntryByGfxData(gaGfxHashTable, pGfxData, &__frame0.nFrames, &__frame0.nDirections, pCodecHeader);
+      nFrames = 0;
+      nDirections = 0;
+      nErrAddr = GfxHash::GFXHASH_FindEntryByGfxData(gaGfxHashTable, pGfxData, &nFrames, &nDirections, pCodecHeader);
       if (nErrAddr) {
         if (*(uint8_t*)(*(int*)(nErrAddr + 0x20) + 0x20) & 1) {
           pGfxData->dwRenderFlags |= 4;
@@ -18484,8 +18465,8 @@ BOOL __stdcall SPRITECACHE_PrecacheSpriteSync(D2GfxDataStrc * pGfxData) {
         Fog::Debug::GuardStack();
         return 1;
       }
-      if (1 < __frame0.nDirections && __frame0.nFrames && !(pCodecHeader->dwCacheFlags & 1)) {
-        nPaletteShift = CelCmp::CELCMP_GetPaletteShiftValue(pGfxData->nDirection * pCodecHeader->nDirections >> 6, pCodecHeader->nDirections, __frame0.nDirections, pGfxData->dwFlags & 4);
+      if (1 < nDirections && nFrames && !(pCodecHeader->dwCacheFlags & 1)) {
+        nPaletteShift = CelCmp::CELCMP_GetPaletteShiftValue(pGfxData->nDirection * pCodecHeader->nDirections >> 6, pCodecHeader->nDirections, nDirections, pGfxData->dwFlags & 4);
         if (pCodecHeader->nDirections < 2) {
           uVar1 = 1;
         } else {
@@ -18493,18 +18474,18 @@ BOOL __stdcall SPRITECACHE_PrecacheSpriteSync(D2GfxDataStrc * pGfxData) {
         }
 
         pGfxData->nDirection = uVar1;
-        nErrAddr = GfxHash::GFXHASH_FindEntryByGfxData(gaGfxHashTable, pGfxData, &__frame0.nFrames, &__frame0.nDirections, pCodecHeader);
+        nErrAddr = GfxHash::GFXHASH_FindEntryByGfxData(gaGfxHashTable, pGfxData, &nFrames, &nDirections, pCodecHeader);
         if (!nErrAddr) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x7ab);
           exit(-1);
         }
-        if (__frame0.nFrames) {
+        if (nFrames) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x7ac);
           exit(-1);
         }
       }
-      if (__frame0.szFileName[0] != '\0' || (nLoadResult = SPRITECACHE_LoadDC6(__frame0.sArchive, pGfxData, __frame0.szFileName) , nLoadResult != 0)) {
-        nLoadResult = SPRITECACHE_LoadCelAndCache(pCodecHeader, __frame0.nFrames, __frame0.nDirections, __frame0.szFileName, pGfxData);
+      if (szFileName[0] != '\0' || (nLoadResult = SPRITECACHE_LoadDC6(sArchive, pGfxData, szFileName) , nLoadResult != 0)) {
+        nLoadResult = SPRITECACHE_LoadCelAndCache(pCodecHeader, nFrames, nDirections, szFileName, pGfxData);
         Fog::Debug::GuardStack();
         return nLoadResult;
       }

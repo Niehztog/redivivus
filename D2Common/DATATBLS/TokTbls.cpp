@@ -10,6 +10,7 @@
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Memory.h"
 #include "Fog/Src/ErrorManager.h"
+#include "Fog/Src/Excel.h"
 #include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -20,15 +21,9 @@ namespace D2Common::DATATBLS::TokTbls {
 // Loads and merges plrtype.txt and plrmode.txt token tables into a single contiguous server allocation. Compiles both tables (fields: name/ASCII, token/RAW4) via CompileTxt, concatenates them, frees the intermediate bins, and stores the combined pointer in pTxtPlrTypeMode1/2/3 with total count in nTxtPlrTypeModeSize.
 // @sourcefile .\DATATBLS\TokTbls.cpp
 void __fastcall TXT_AllocTxt_plrmode_plrtype(D2PoolManagerStrc * pMemory) {
-    // Frame slots -12..-4 are ONE object: &nTxtPlrModeSize is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTxtPlrModeSize;
-      int nTxtPlrTypeSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2BinFieldInputStrc plr[3];
+    int nTxtPlrModeSize;
+    int nTxtPlrTypeSize;
     plr[0].szName = "name";
     plr[0].eType = FIELDTYPE_ASCII;
     plr[0].nSize = 0x1f;
@@ -44,20 +39,20 @@ void __fastcall TXT_AllocTxt_plrmode_plrtype(D2PoolManagerStrc * pMemory) {
     plr[2].nSize = 0;
     plr[2].nOffset = 0;
     plr[2].fpLinker = 0;
-    D2PlrTypeModeTxt* pTxtPlrType = (D2PlrTypeModeTxt*)DataTbls::CompileTxt(pMemory, "plrtype", plr, &__frame0.nTxtPlrTypeSize, 0x34);
-    D2PlrTypeModeTxt* pTxtPlrMode = (D2PlrTypeModeTxt*)DataTbls::CompileTxt(pMemory, "plrmode", plr, &__frame0.nTxtPlrModeSize, 0x34);
-    int nTotalSize = __frame0.nTxtPlrModeSize + __frame0.nTxtPlrTypeSize;
+    D2PlrTypeModeTxt* pTxtPlrType = (D2PlrTypeModeTxt*)DataTbls::CompileTxt(pMemory, "plrtype", plr, &nTxtPlrTypeSize, 0x34);
+    D2PlrTypeModeTxt* pTxtPlrMode = (D2PlrTypeModeTxt*)DataTbls::CompileTxt(pMemory, "plrmode", plr, &nTxtPlrModeSize, 0x34);
+    int nTotalSize = nTxtPlrModeSize + nTxtPlrTypeSize;
     D2PlrTypeModeTxt* pTxtPlrTypeMode = (D2PlrTypeModeTxt*)Fog::Memory::AllocServerMemory(nullptr, nTotalSize * 0x34, ".\\DATATBLS\\TokTbls.cpp", 0x37, 0);
     if (!pTxtPlrTypeMode) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x38);
       exit(-1);
     }
 
-    memcpy(pTxtPlrTypeMode, pTxtPlrType, __frame0.nTxtPlrTypeSize * 0x34);
-    memcpy(pTxtPlrTypeMode + __frame0.nTxtPlrTypeSize, pTxtPlrMode, __frame0.nTxtPlrModeSize * 0x34);
+    memcpy(pTxtPlrTypeMode, pTxtPlrType, nTxtPlrTypeSize * 0x34);
+    memcpy(pTxtPlrTypeMode + nTxtPlrTypeSize, pTxtPlrMode, nTxtPlrModeSize * 0x34);
     DataTbls::UnloadBin(pTxtPlrType);
     DataTbls::UnloadBin(pTxtPlrMode);
-    pTxtPlrTypeMode3 = pTxtPlrTypeMode + __frame0.nTxtPlrTypeSize;
+    pTxtPlrTypeMode3 = pTxtPlrTypeMode + nTxtPlrTypeSize;
     pTxtPlrTypeMode1 = pTxtPlrTypeMode;
     pTxtPlrTypeMode2 = pTxtPlrTypeMode;
     nTxtPlrTypeModeSize = nTotalSize;
@@ -171,15 +166,9 @@ void __fastcall TXT_AllocTxt_monmode(D2PoolManagerStrc * pMemory) {
 // Loads and merges objtype.txt and objmode.txt token tables into a single contiguous server allocation. Mirrors TXT_AllocTxt_plrmode_plrtype but for object tokens; stores combined pointer in pTxtObjTypeMode with count in nTxtObjTypeModeSize.
 // @sourcefile .\DATATBLS\TokTbls.cpp
 void __fastcall TXT_AllocTxt_objtype_objmode(D2PoolManagerStrc * pMemory) {
-    // Frame slots -12..-4 are ONE object: &nObjModeSize is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nObjModeSize;
-      int nObjTypeSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2BinFieldInputStrc obj[3];
+    int nObjModeSize;
+    int nObjTypeSize;
     obj[0].szName = "name";
     obj[0].eType = FIELDTYPE_ASCII;
     obj[0].nSize = 0x1f;
@@ -195,20 +184,20 @@ void __fastcall TXT_AllocTxt_objtype_objmode(D2PoolManagerStrc * pMemory) {
     obj[2].nSize = 0;
     obj[2].nOffset = 0;
     obj[2].fpLinker = 0;
-    D2ObjTypeTxt* pTxtObjType_lcl = (D2ObjTypeTxt*)DataTbls::CompileTxt(pMemory, "objtype", obj, &__frame0.nObjTypeSize, 0x34);
-    D2ObjModeTxt* pTxtObjMode_lcl = (D2ObjModeTxt*)DataTbls::CompileTxt(pMemory, "objmode", obj, &__frame0.nObjModeSize, 0x34);
-    int nTotalSize = __frame0.nObjModeSize + __frame0.nObjTypeSize;
+    D2ObjTypeTxt* pTxtObjType_lcl = (D2ObjTypeTxt*)DataTbls::CompileTxt(pMemory, "objtype", obj, &nObjTypeSize, 0x34);
+    D2ObjModeTxt* pTxtObjMode_lcl = (D2ObjModeTxt*)DataTbls::CompileTxt(pMemory, "objmode", obj, &nObjModeSize, 0x34);
+    int nTotalSize = nObjModeSize + nObjTypeSize;
     D2ObjTypeTxt* pTxtObjType2 = (D2ObjTypeTxt*)Fog::Memory::AllocServerMemory(nullptr, nTotalSize * 0x34, ".\\DATATBLS\\TokTbls.cpp", 0x94, 0);
     if (!pTxtObjType2) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x95);
       exit(-1);
     }
 
-    memcpy(pTxtObjType2, pTxtObjType_lcl, __frame0.nObjTypeSize * 0x34);
-    memcpy((D2ObjModeTxt*)(pTxtObjType2 + __frame0.nObjTypeSize), pTxtObjMode_lcl, __frame0.nObjModeSize * 0x34);
+    memcpy(pTxtObjType2, pTxtObjType_lcl, nObjTypeSize * 0x34);
+    memcpy((D2ObjModeTxt*)(pTxtObjType2 + nObjTypeSize), pTxtObjMode_lcl, nObjModeSize * 0x34);
     DataTbls::UnloadBin(pTxtObjType_lcl);
     DataTbls::UnloadBin(pTxtObjMode_lcl);
-    pTxtObjMode = (D2ObjModeTxt*)(pTxtObjType2 + __frame0.nObjTypeSize);
+    pTxtObjMode = (D2ObjModeTxt*)(pTxtObjType2 + nObjTypeSize);
     pTxtObjTypeMode = pTxtObjType2;
     pTxtObjType = pTxtObjType2;
     nTxtObjTypeModeSize = nTotalSize;

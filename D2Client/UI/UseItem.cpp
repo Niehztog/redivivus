@@ -111,16 +111,6 @@ void __stdcall INPUT_UseItemPassthrough(D2UIMouseMsgStrc * pMsg) {
 
 // @sourcefile .\UI\UseItem.cpp
 void __stdcall TEXT_DrawCashDisplay() {
-    // Frame slots -20..-4 are ONE object: &nWrappedWidth is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nWrappedWidth;
-      int nMouseY;
-      int nTextWidth;
-      int nTabIdx2;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t* pszTooltipStr;
     D2TextLineStrc* pMemoryToFree;
     uint16_t nParam;
@@ -129,6 +119,10 @@ void __stdcall TEXT_DrawCashDisplay() {
     int nTabIdx;
     int nHalfTextWidth;
     D2GfxDataStrc sGfxData;
+    int nWrappedWidth;
+    int nMouseY;
+    int nTextWidth;
+    int nTabIdx2;
     int32_t dwColor;
     DRAWMODE nDrawMode;
     D2TextLineStrc* pWordWrapNode;
@@ -159,15 +153,15 @@ void __stdcall TEXT_DrawCashDisplay() {
       }
 
       nMouseX = ui::GetMouseX();
-      __frame0.nWrappedWidth = nMouseX;
+      nWrappedWidth = nMouseX;
       nTabIdx = ui::GetMouseY();
-      __frame0.nMouseY = nTabIdx;
+      nMouseY = nTabIdx;
       if (nMouseX < 0x140 && nTabIdx < ScreenSizeY - 0x30) {
-        __frame0.nTabIdx2 = 0;
+        nTabIdx2 = 0;
         if (0 < nCashDisplayItemCount) {
           do {
-            if (gaNpcCashTabs[__frame0.nTabIdx2].nHitBoxX1 <= nMouseX && nMouseX <= gaNpcCashTabs[__frame0.nTabIdx2].nHitBoxX2 && gaNpcCashTabs[__frame0.nTabIdx2].nHitBoxY1 <= nTabIdx && nTabIdx <= gaNpcCashTabs[__frame0.nTabIdx2].nHitBoxY2) {
-              nStringId = gaNpcCashTabs[__frame0.nTabIdx2].nTooltipStringId;
+            if (gaNpcCashTabs[nTabIdx2].nHitBoxX1 <= nMouseX && nMouseX <= gaNpcCashTabs[nTabIdx2].nHitBoxX2 && gaNpcCashTabs[nTabIdx2].nHitBoxY1 <= nTabIdx && nTabIdx <= gaNpcCashTabs[nTabIdx2].nHitBoxY2) {
+              nStringId = gaNpcCashTabs[nTabIdx2].nTooltipStringId;
               if (nStringId == 0xfb1) {
                 if (!nHoradricCubeUIState) {
                   nStringId = 0xd49;
@@ -185,22 +179,22 @@ void __stdcall TEXT_DrawCashDisplay() {
               }
 
               pszTooltipStr = D2Lang::StrTable::strtable::GetLocaleString(nStringId);
-              __frame0.nTextWidth = D2Win::Src::D2WinFont::DRAW_text0(pszTooltipStr);
+              nTextWidth = D2Win::Src::D2WinFont::DRAW_text0(pszTooltipStr);
               nDrawMode = DRAW_LESSTRANSPARENT;
               dwColor = 0;
-              nHalfTextWidth = __frame0.nTextWidth / 2;
+              nHalfTextWidth = nTextWidth / 2;
               uFontHeight = D2Win::Src::D2WinFont::D2WINFONT_GetCurrentFontHeight();
               nTabIdx = uFontHeight + 6;
-              nMouseX = __frame0.nTextWidth + 0xc;
+              nMouseX = nTextWidth + 0xc;
               uFontHeight = D2Win::Src::D2WinFont::D2WINFONT_GetCurrentFontHeight();
-              Engine::GfxInfo::D2GFX_DrawSolidRectExBySize(gaNpcCashTabs[__frame0.nTabIdx2].nTooltipX - nHalfTextWidth + 10, gaNpcCashTabs[__frame0.nTabIdx2].nTooltipY - uFontHeight - 0x2a, nMouseX, nTabIdx, dwColor, nDrawMode);
-              D2Win::Src::D2WinFont::DRAW_text(pszTooltipStr, gaNpcCashTabs[__frame0.nTabIdx2].nTooltipX - nHalfTextWidth + 0x10, gaNpcCashTabs[__frame0.nTabIdx2].nTooltipY - 0x26, 0, 0);
-              nTabIdx = __frame0.nMouseY;
-              nMouseX = __frame0.nWrappedWidth;
+              Engine::GfxInfo::D2GFX_DrawSolidRectExBySize(gaNpcCashTabs[nTabIdx2].nTooltipX - nHalfTextWidth + 10, gaNpcCashTabs[nTabIdx2].nTooltipY - uFontHeight - 0x2a, nMouseX, nTabIdx, dwColor, nDrawMode);
+              D2Win::Src::D2WinFont::DRAW_text(pszTooltipStr, gaNpcCashTabs[nTabIdx2].nTooltipX - nHalfTextWidth + 0x10, gaNpcCashTabs[nTabIdx2].nTooltipY - 0x26, 0, 0);
+              nTabIdx = nMouseY;
+              nMouseX = nWrappedWidth;
             }
 
-            __frame0.nTabIdx2++;
-          } while (__frame0.nTabIdx2 < nCashDisplayItemCount);
+            nTabIdx2++;
+          } while (nTabIdx2 < nCashDisplayItemCount);
         }
       }
       if (nHoradricCubeUIState == 1) {
@@ -216,7 +210,7 @@ void __stdcall TEXT_DrawCashDisplay() {
         }
 
         pszTooltipStr = D2Lang::StrTable::strtable::GetLocaleString(nParam);
-        pMemoryToFree = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(pszTooltipStr, &__frame0.nWrappedWidth, 300);
+        pMemoryToFree = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(pszTooltipStr, &nWrappedWidth, 300);
         if (pMemoryToFree) {
           nTabIdx = 0x1e;
           do {

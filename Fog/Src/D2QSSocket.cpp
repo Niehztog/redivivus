@@ -179,17 +179,10 @@ void __stdcall CloseSocket(D2QSSocketStrc * pQServer) {
 
 // Socket receive loop, passed as thread proc to Fog::Safesock::Create_Flag0
 void __stdcall ReceiveLoopCallback(D2QSSocketStrc * pQSSocket) {
-    // Frame slots -8312..-8304 are ONE object: &nSocketStatus is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nSocketStatus;
-      int nPendingBytes;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nBytesRecv;
     uint32_t nBufferSpace;
     int nWsaError;
+    int nSocketStatus;
     char aRecvBuffer[8296];
     uint32_t dwStackCookie;
     dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
@@ -197,7 +190,8 @@ void __stdcall ReceiveLoopCallback(D2QSSocketStrc * pQSSocket) {
     nPendingOffset = 0;
     D2NetDataStrc* pSafesock;
     pSafesock = pQSSocket->pSafesock;
-    __frame0.nPendingBytes = 0;
+    int nPendingBytes;
+    nPendingBytes = 0;
     while (!pSafesock) {
       if (pQSSocket->bStopRequested) {
         goto cleanup;
@@ -241,8 +235,8 @@ void __stdcall ReceiveLoopCallback(D2QSSocketStrc * pQSSocket) {
 
           nBufferSpace = 0x2064 - nPendingOffset;
           nBytesRecv = Safesock::WSASocket2_Read(pQSSocket->pSafesock, aRecvBuffer + nPendingOffset, nBufferSpace);
-          Safesock::GetSocketStatusAndWsaResultToArguments(pQSSocket->pSafesock, &__frame0.nSocketStatus, &nWsaError);
-          if (__frame0.nSocketStatus || !nBytesRecv || nBytesRecv == -1) {
+          Safesock::GetSocketStatusAndWsaResultToArguments(pQSSocket->pSafesock, &nSocketStatus, &nWsaError);
+          if (nSocketStatus || !nBytesRecv || nBytesRecv == -1) {
             pSafesock = pQSSocket->pSafesock;
             if (pSafesock && pSafesock->bConnected && pSafesock->hSocket) {
               /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&pSafesock->pSync);
@@ -256,8 +250,8 @@ void __stdcall ReceiveLoopCallback(D2QSSocketStrc * pQSSocket) {
             return;
           }
 
-          nPendingOffset = ProcessReceivedData(pQSSocket, aRecvBuffer, nBytesRecv + __frame0.nPendingBytes);
-          __frame0.nPendingBytes = nPendingOffset;
+          nPendingOffset = ProcessReceivedData(pQSSocket, aRecvBuffer, nBytesRecv + nPendingBytes);
+          nPendingBytes = nPendingOffset;
           if (nBytesRecv < nBufferSpace) {
             break;
           }

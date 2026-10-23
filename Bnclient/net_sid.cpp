@@ -2489,15 +2489,6 @@ void __stdcall DecodeAndLoadKeys() {
     static uint32_t g_dwCdKeyOwnerSize;
     static uint32_t g_dwCdKeyExpansionSize;
 
-    // Frame slots -340..-48 are ONE object: &pFileBuf is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int* pFileBuf;
-      char szFileName[260];
-      uint32_t aKeyPathTable[7];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 292, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t bDecodeResultClassic;
     int* pKeyBuf;
     int nXorByteIdx;
@@ -2505,6 +2496,9 @@ void __stdcall DecodeAndLoadKeys() {
     uint8_t byXorStep;
     uint32_t* pExpKeyPathSrc;
     uint32_t* pExpKeyBuf;
+    int* pFileBuf;
+    char szFileName[260];
+    uint32_t aKeyPathTable[7];
     uint8_t xorIdxTable[39];
     int nPermuteOffset;
     uint32_t dwStackCookie;
@@ -2514,16 +2508,16 @@ void __stdcall DecodeAndLoadKeys() {
       exit(-1);
     }
 
-    sprintf(__frame0.szFileName, "%s\\%s.gid", "font", "font");
-    D2Client::_CdKey::KeyClassic = (char*)NET_SID_CLIENT_LoadAndDecodeCDKeyFile((uint32_t*)__frame0.szFileName, (DWORD*)&g_dwCdKeyClassicSize);
+    sprintf(szFileName, "%s\\%s.gid", "font", "font");
+    D2Client::_CdKey::KeyClassic = (char*)NET_SID_CLIENT_LoadAndDecodeCDKeyFile((uint32_t*)szFileName, (DWORD*)&g_dwCdKeyClassicSize);
     uint32_t* pKeyClassicBuf;
     pKeyClassicBuf = (uint32_t*)D2Client::_CdKey::KeyClassic;
     if (!(uint32_t*)D2Client::_CdKey::KeyClassic) {
-      __frame0.aKeyPathTable[1] = 0x78617776;
-      __frame0.aKeyPathTable[2] = 0x72696e64;
-      __frame0.aKeyPathTable[3] = 0x6375736f;
-      __frame0.aKeyPathTable[4] = 0x67626c66;
-      __frame0.aKeyPathTable[5] = 0x2e5c74;
+      aKeyPathTable[1] = 0x78617776;
+      aKeyPathTable[2] = 0x72696e64;
+      aKeyPathTable[3] = 0x6375736f;
+      aKeyPathTable[4] = 0x67626c66;
+      aKeyPathTable[5] = 0x2e5c74;
       xorIdxTable[0] = 2;
       xorIdxTable[1] = 0x10;
       xorIdxTable[2] = 2;
@@ -2564,21 +2558,21 @@ void __stdcall DecodeAndLoadKeys() {
         nXorByteIdx = nPermuteOffset;
         nPermuteOffset = (int)(char)byXorStep;
         byXorStep = xorIdxTable[nXorByteIdx];
-        __frame0.szFileName[nXorByteIdx] = *(char*)((int)__frame0.aKeyPathTable + nPermuteOffset + 4);
+        szFileName[nXorByteIdx] = *(char*)((int)aKeyPathTable + nPermuteOffset + 4);
         nPermuteOffset = nXorByteIdx + 1;
       } while ((char)byXorStep < '\x13');
 
-      __frame0.szFileName[nXorByteIdx + 1] = '\0';
+      szFileName[nXorByteIdx + 1] = '\0';
       g_dwCdKeyClassicSize = 0x400;
-      Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)__frame0.szFileName, (void**)&__frame0.pFileBuf, (DWORD*)&g_dwCdKeyClassicSize, 1, 0);
-      if (__frame0.pFileBuf && g_dwCdKeyClassicSize) {
-        bDecodeResultClassic = NET_SID_CLIENT_DecodeAndValidateBuffer(__frame0.pFileBuf, g_dwCdKeyClassicSize);
-        pKeyClassicBuf = (uint32_t*)__frame0.pFileBuf;
+      Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)szFileName, (void**)&pFileBuf, (DWORD*)&g_dwCdKeyClassicSize, 1, 0);
+      if (pFileBuf && g_dwCdKeyClassicSize) {
+        bDecodeResultClassic = NET_SID_CLIENT_DecodeAndValidateBuffer(pFileBuf, g_dwCdKeyClassicSize);
+        pKeyClassicBuf = (uint32_t*)pFileBuf;
         if (bDecodeResultClassic) {
           goto store_classic_key;
         }
-        if (__frame0.pFileBuf) {
-          Storm::Source::SFile::SFileUnloadFile(__frame0.pFileBuf);
+        if (pFileBuf) {
+          Storm::Source::SFile::SFileUnloadFile(pFileBuf);
         }
       }
 
@@ -2587,28 +2581,28 @@ void __stdcall DecodeAndLoadKeys() {
 
     store_classic_key:
     D2Client::_CdKey::KeyClassic = (char*)pKeyClassicBuf;
-    sprintf(__frame0.szFileName, "%s\\%s.clh", "font", "font");
+    sprintf(szFileName, "%s\\%s.clh", "font", "font");
     g_dwCdKeyOwnerSize = 0x400;
-    Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)__frame0.szFileName, (void**)&__frame0.pFileBuf, (DWORD*)&g_dwCdKeyOwnerSize, 1, 0);
-    if (!__frame0.pFileBuf || !g_dwCdKeyOwnerSize) {
+    Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)szFileName, (void**)&pFileBuf, (DWORD*)&g_dwCdKeyOwnerSize, 1, 0);
+    if (!pFileBuf || !g_dwCdKeyOwnerSize) {
       pKeyBuf = 0;
     } else {
-      bDecodeResultClassic = NET_SID_CLIENT_DecodeAndValidateBuffer(__frame0.pFileBuf, g_dwCdKeyOwnerSize);
-      pKeyBuf = __frame0.pFileBuf;
+      bDecodeResultClassic = NET_SID_CLIENT_DecodeAndValidateBuffer(pFileBuf, g_dwCdKeyOwnerSize);
+      pKeyBuf = pFileBuf;
       if (!bDecodeResultClassic) {
-        if (__frame0.pFileBuf) {
-          Storm::Source::SFile::SFileUnloadFile(__frame0.pFileBuf);
+        if (pFileBuf) {
+          Storm::Source::SFile::SFileUnloadFile(pFileBuf);
         }
 
         pKeyBuf = 0;
       }
     }
     if (!pKeyBuf) {
-      __frame0.aKeyPathTable[2] = 0x72696e64;
-      __frame0.aKeyPathTable[1] = 0x78617776;
-      __frame0.aKeyPathTable[3] = 0x6375736f;
-      __frame0.aKeyPathTable[5] = 0x2e5c74;
-      __frame0.aKeyPathTable[4] = 0x67626c66;
+      aKeyPathTable[2] = 0x72696e64;
+      aKeyPathTable[1] = 0x78617776;
+      aKeyPathTable[3] = 0x6375736f;
+      aKeyPathTable[5] = 0x2e5c74;
+      aKeyPathTable[4] = 0x67626c66;
       xorIdxTable[0] = 2;
       xorIdxTable[1] = 0x10;
       xorIdxTable[2] = 2;
@@ -2649,22 +2643,22 @@ void __stdcall DecodeAndLoadKeys() {
         nXorByteIdx = nPermuteOffset;
         nPermuteOffset = (int)(char)byXorStep;
         byXorStep = xorIdxTable[nXorByteIdx];
-        __frame0.szFileName[nXorByteIdx] = *(char*)((int)__frame0.aKeyPathTable + nPermuteOffset + 4);
+        szFileName[nXorByteIdx] = *(char*)((int)aKeyPathTable + nPermuteOffset + 4);
         nPermuteOffset = nXorByteIdx + 1;
       } while ((char)byXorStep < '\x13');
 
-      __frame0.szFileName[nXorByteIdx + 1] = '\0';
+      szFileName[nXorByteIdx + 1] = '\0';
       g_dwCdKeyOwnerSize = 0x400;
       D2Client::_CdKey::KeyOwner = (char*)pKeyBuf;
-      Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)__frame0.szFileName, (void**)&__frame0.pFileBuf, (DWORD*)&g_dwCdKeyOwnerSize, 1, 0);
-      if (__frame0.pFileBuf && g_dwCdKeyOwnerSize) {
-        bDecodeResultClassic = NET_SID_CLIENT_DecodeAndValidateBuffer(__frame0.pFileBuf, g_dwCdKeyOwnerSize);
-        pKeyBuf = __frame0.pFileBuf;
+      Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)szFileName, (void**)&pFileBuf, (DWORD*)&g_dwCdKeyOwnerSize, 1, 0);
+      if (pFileBuf && g_dwCdKeyOwnerSize) {
+        bDecodeResultClassic = NET_SID_CLIENT_DecodeAndValidateBuffer(pFileBuf, g_dwCdKeyOwnerSize);
+        pKeyBuf = pFileBuf;
         if (bDecodeResultClassic) {
           goto store_owner_key;
         }
-        if (__frame0.pFileBuf) {
-          Storm::Source::SFile::SFileUnloadFile(__frame0.pFileBuf);
+        if (pFileBuf) {
+          Storm::Source::SFile::SFileUnloadFile(pFileBuf);
         }
       }
 
@@ -2678,7 +2672,7 @@ void __stdcall DecodeAndLoadKeys() {
     pKeyBuf = (int*)D2Client::_CdKey::KeyExpansion;
     if (bIsExpansion) {
       pExpKeyPathSrc = (uint32_t*)"vwaxdnirosucflbgt\\.mpyeh8";
-      pExpKeyBuf = __frame0.aKeyPathTable;
+      pExpKeyBuf = aKeyPathTable;
       for (nPermuteOffset = 6; nPermuteOffset; nPermuteOffset--) {
         *pExpKeyBuf = *pExpKeyPathSrc;
         pExpKeyPathSrc++;
@@ -2727,22 +2721,22 @@ void __stdcall DecodeAndLoadKeys() {
       nPermuteOffset = 0;
       do {
         nXorByteIdx = nPermuteOffset;
-        __frame0.szFileName[nXorByteIdx] = *(char*)((int)__frame0.aKeyPathTable + (int)(char)byXorStep);
+        szFileName[nXorByteIdx] = *(char*)((int)aKeyPathTable + (int)(char)byXorStep);
         byXorStep = xorIdxTable[nXorByteIdx];
         nPermuteOffset = nXorByteIdx + 1;
       } while (byXorStep < 0x1a);
 
-      __frame0.szFileName[nXorByteIdx + 1] = '\0';
+      szFileName[nXorByteIdx + 1] = '\0';
       g_dwCdKeyExpansionSize = 0x400;
-      Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)__frame0.szFileName, (void**)&__frame0.pFileBuf, (DWORD*)&g_dwCdKeyExpansionSize, 1, 0);
-      if (__frame0.pFileBuf && g_dwCdKeyExpansionSize) {
-        bDecodeResultClassic = NET_SID_CLIENT_DecodeAndValidateBuffer(__frame0.pFileBuf, g_dwCdKeyExpansionSize);
-        pKeyBuf = __frame0.pFileBuf;
+      Storm::Source::SFile::SFileLoadFile((D2ArchiveStrc*)szFileName, (void**)&pFileBuf, (DWORD*)&g_dwCdKeyExpansionSize, 1, 0);
+      if (pFileBuf && g_dwCdKeyExpansionSize) {
+        bDecodeResultClassic = NET_SID_CLIENT_DecodeAndValidateBuffer(pFileBuf, g_dwCdKeyExpansionSize);
+        pKeyBuf = pFileBuf;
         if (bDecodeResultClassic) {
           goto store_expansion_key;
         }
-        if (__frame0.pFileBuf) {
-          Storm::Source::SFile::SFileUnloadFile(__frame0.pFileBuf);
+        if (pFileBuf) {
+          Storm::Source::SFile::SFileUnloadFile(pFileBuf);
         }
       }
 
@@ -2752,8 +2746,8 @@ void __stdcall DecodeAndLoadKeys() {
     store_expansion_key:
     D2Client::_CdKey::KeyExpansion = (char*)pKeyBuf;
     g_dwProductId = 0;
-    if (__frame0.szFileName[0] != '\0') {
-      pLoadedKeyBuf = __frame0.szFileName;
+    if (szFileName[0] != '\0') {
+      pLoadedKeyBuf = szFileName;
       do {
         *pLoadedKeyBuf = '\0';
         pLoadedKeyBuf++;

@@ -544,15 +544,6 @@ size_t __stdcall NET_D2GS_CLIENT_ExtractPacketSize_from0xAE(char * pBytes, size_
 
 // @sourcefile .\SRC\Client.cpp
 int __stdcall NET_D2GS_CLIENT_ParseRecvBufferIntoPacketQueues() {
-    // Frame slots -268..-4 are ONE object: &nPacketSize is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nPacketSize;
-      uint8_t aHuffmanTable[256];
-      uint32_t local_8;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 264, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     size_t nPacketSizeResult;
     D2OnePacketClientStrc* pNewPacket;
     DWORD dwTickCount;
@@ -560,9 +551,11 @@ int __stdcall NET_D2GS_CLIENT_ParseRecvBufferIntoPacketQueues() {
     uint8_t* pcHuffmanTableOut;
     int nHuffmanIter;
     D2PacketsClientStrc* pWalkBuffer;
+    uint32_t nPacketSize;
+    uint8_t aHuffmanTable[256];
     uint8_t byFirstByte;
     D2OnePacketClientStrc* pWalkPacket;
-    __frame0.local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     size_t pBytesSize = pD2PacketsClientBuffer->nCount;
     int bHasCompressionPacket = 0;
     D2PacketsClientStrc* pBytes = pD2PacketsClientBuffer;
@@ -571,27 +564,27 @@ int __stdcall NET_D2GS_CLIENT_ParseRecvBufferIntoPacketQueues() {
         break;
       }
 
-      nPacketSizeResult = ::D2Net::Game::Server::NET_D2GS_CLIENT_GetIncomingPacketSizeFromTableAndVariableSize(pBytes->pBytes, pBytesSize, &__frame0.nPacketSize);
+      nPacketSizeResult = ::D2Net::Game::Server::NET_D2GS_CLIENT_GetIncomingPacketSizeFromTableAndVariableSize(pBytes->pBytes, pBytesSize, &nPacketSize);
       if (!nPacketSizeResult) {
         break;
       }
-      if (0x204 < __frame0.nPacketSize) {
+      if (0x204 < nPacketSize) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x129);
         exit(-1);
       }
-      if ((int)pBytesSize < (int)__frame0.nPacketSize) {
+      if ((int)pBytesSize < (int)nPacketSize) {
         break;
       }
 
       pNewPacket = (D2OnePacketClientStrc*)Fog::Memory::AllocClientMemory(0x210, ".\\SRC\\Client.cpp", 300, 0);
-      pNewPacket->nSize = __frame0.nPacketSize;
+      pNewPacket->nSize = nPacketSize;
       pNewPacket->nTickCount = 0;
       pNewPacket->pD2PacketClientNext = 0;
-      memcpy(pNewPacket, pBytes, __frame0.nPacketSize);
+      memcpy(pNewPacket, pBytes, nPacketSize);
       if (pBytes->pBytes[0] == -0x51 && pBytes->pBytes[1] != '\0') {
         bHasCompressionPacket = 1;
         if (pBytes->pBytes[1] == -0x7f) {
-          pcHuffmanTableOut = __frame0.aHuffmanTable + 1;
+          pcHuffmanTableOut = aHuffmanTable + 1;
           nHuffmanIter = 0x80;
           pWalkBuffer = pBytes;
           do {
@@ -603,7 +596,7 @@ int __stdcall NET_D2GS_CLIENT_ParseRecvBufferIntoPacketQueues() {
             nHuffmanIter--;
           } while (nHuffmanIter);
 
-          Fog::Source::SSComp::COMPRESS_BuildHuffmanDecodeTable(__frame0.aHuffmanTable);
+          Fog::Source::SSComp::COMPRESS_BuildHuffmanDecodeTable(aHuffmanTable);
         }
       } else if (pBytes->pBytes[0] == -0x71) {
         dwTickCount = GetTickCount();
@@ -622,8 +615,8 @@ int __stdcall NET_D2GS_CLIENT_ParseRecvBufferIntoPacketQueues() {
       }
 
       *ppTailNext = pNewPacket;
-      pBytesSize -= __frame0.nPacketSize;
-      pBytes = (D2PacketsClientStrc*)(pBytes->pBytes + __frame0.nPacketSize);
+      pBytesSize -= nPacketSize;
+      pBytes = (D2PacketsClientStrc*)(pBytes->pBytes + nPacketSize);
     }
 
     pWalkBuffer = pD2PacketsClientBuffer;

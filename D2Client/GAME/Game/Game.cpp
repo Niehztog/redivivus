@@ -668,23 +668,14 @@ void __fastcall InGameDraw(int32_t nParam) {
     static uint32_t gnLastCameraWorldY = -0x1;
     static uint32_t gnLastCameraWorldX = -0x1;
 
-    // Frame slots -32..-4 are ONE object: &nViewLeft is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nViewLeft;
-      int nViewTop;
-      int nViewRight;
-      int nViewBottom;
-      uint32_t myCenterY;
-      uint32_t myCenterX;
-      uint8_t __pad24[1];
-      uint8_t nRed;
-      uint8_t nGreen;
-      uint8_t nBlue;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2LevelsTxt* pLevelTxt;
+    int nViewLeft;
+    int nViewTop;
+    int nViewRight;
+    int nViewBottom;
+    uint8_t nRed;
+    uint8_t nGreen;
+    uint8_t nBlue;
     UI::Draw::CleanupAfterLoadingAct();
     int32_t nTmp = D2gfx::D2GFX::D2GFX_EndCutSceneReturnSceneState();
     if (nTmp) {
@@ -692,24 +683,24 @@ void __fastcall InGameDraw(int32_t nParam) {
     }
 
     D2UnitStrc* pUnit = UNIT::Player::GetPlayerUnit_UI();
-    View::VIEW_GetViewRect(D2GameView, &__frame0.nViewLeft, &__frame0.nViewTop, &__frame0.nViewRight, &__frame0.nViewBottom);
+    View::VIEW_GetViewRect(D2GameView, &nViewLeft, &nViewTop, &nViewRight, &nViewBottom);
     nTmp = D2Common::Units::GetTargetX(pUnit);
-    __frame0.myCenterX = nTmp - (__frame0.nViewRight - __frame0.nViewLeft) / 2;
+    uint32_t myCenterX = nTmp - (nViewRight - nViewLeft) / 2;
     nTmp = D2Common::Units::GetTargetY(pUnit);
-    __frame0.myCenterY = nTmp - (__frame0.nViewBottom - __frame0.nViewTop) / 2;
-    View::SHAKE_AdjustCenterByShake(&__frame0.myCenterX, &__frame0.myCenterY);
+    uint32_t myCenterY = nTmp - (nViewBottom - nViewTop) / 2;
+    View::SHAKE_AdjustCenterByShake(&myCenterX, &myCenterY);
     if (gnLastCameraWorldX != -1 || gnLastCameraWorldY != -1) {
-      gnCameraWorldDeltaX = __frame0.myCenterX - gnLastCameraWorldX;
-      gnCameraWorldDeltaY = __frame0.myCenterY - gnLastCameraWorldY;
+      gnCameraWorldDeltaX = myCenterX - gnLastCameraWorldX;
+      gnCameraWorldDeltaY = myCenterY - gnLastCameraWorldY;
     }
 
-    gnLastCameraWorldX = __frame0.myCenterX;
-    gnLastCameraWorldY = __frame0.myCenterY;
-    View::SetCenterXY(D2GameView, __frame0.myCenterX, __frame0.myCenterY);
+    gnLastCameraWorldX = myCenterX;
+    gnLastCameraWorldY = myCenterY;
+    View::SetCenterXY(D2GameView, myCenterX, myCenterY);
     View::GAMEVIEW_PrepareScene(D2GameView, 0);
     D2Client::Draw::Weather::WeatherEffects();
-    D2Common::Environment::DRLGENV_GetLightColorFromAct(sgpDrlgAct, &__frame0.nRed, &__frame0.nGreen, &__frame0.nBlue);
-    D2gfx::D2GFX::D2GFX_SetGlobalLight(__frame0.nRed, __frame0.nGreen, __frame0.nBlue);
+    D2Common::Environment::DRLGENV_GetLightColorFromAct(sgpDrlgAct, &nRed, &nGreen, &nBlue);
+    D2gfx::D2GFX::D2GFX_SetGlobalLight(nRed, nGreen, nBlue);
     D2RoomStrc* pRoom = UNIT::CUnit::GetCurrentRoom();
     int bClear = 0;
     if (pRoom) {
@@ -1759,27 +1750,20 @@ void __stdcall GAMEDATA_LoadActTiles(uint32_t nAct) {
 }
 
 void GAMEDATA_CheckColorTxtOverride(uint32_t pUnused) {
-    // Frame slots -12..-4 are ONE object: &pFileHandle is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQFileStrc* pFileHandle;
-      uint8_t __pad4[3];
-      char byColorByte;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2MPQFileStrc* pFileHandle;
+    char byColorByte;
     if (gbBloodFlag) {
       return;
     }
 
-    BOOL bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, "Data\\Local\\Color.txt", &__frame0.pFileHandle, 1);
+    BOOL bFileExists = D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, "Data\\Local\\Color.txt", &pFileHandle, 1);
     if (!bFileExists) {
       return;
     }
 
-    D2FILE_ReadFile(nullptr, __frame0.pFileHandle, &__frame0.byColorByte, 1);
-    D2FILE_CloseFile(nullptr, __frame0.pFileHandle);
-    if (__frame0.byColorByte != '1') {
+    D2FILE_ReadFile(nullptr, pFileHandle, &byColorByte, 1);
+    D2FILE_CloseFile(nullptr, pFileHandle);
+    if (byColorByte != '1') {
       return;
     }
 

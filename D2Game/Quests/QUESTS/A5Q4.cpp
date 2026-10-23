@@ -410,16 +410,8 @@ void __fastcall Q34_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 
 // Q34_CheckNearNihlathak (Betrayal of Harrogath). Per-player proximity check: if the player's room (or an adjacent room) is the stored Nihlathak room AND Prison of Ice is done AND Betrayal not yet complete/reward, sets the player's RewardAwaits + JustCompleted bits — i.e. completes the quest when a player is near the dying/dead Nihlathak. Skipped if CannotComplete or already Completed.
 BOOL __fastcall Q34_CheckNearNihlathak(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
-    // Frame slots -16..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nAdjacentRoomCount;
-      uint8_t __pad8[3];
-      char bIsNearNihlathak;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nAdjacentRoomCount;
     D2UnitDataPlayerStrc* pA5Q4Data = D2Common::Units::GetPlayerData(pUnit);
     D2BitBufferStrc* pBitBuffer = pA5Q4Data->pQuestRecord[pGame->nDifficulty];
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
@@ -439,28 +431,28 @@ BOOL __fastcall Q34_CheckNearNihlathak(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
 
     D2QuestDataStrc* pPlayerData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_BetrayalOfHaggorath);
     D2QuestDataA5Q4Strc* pBetrayalQuest = pPlayerData->pQuestSpecificData.pA5Q4;
-    __frame0.bIsNearNihlathak = '\0';
+    char bIsNearNihlathak = '\0';
     if (pRoom == (D2RoomStrc*)pBetrayalQuest->pRoomTarget) {
-      __frame0.bIsNearNihlathak = '\x01';
+      bIsNearNihlathak = '\x01';
     } else {
       uint32_t nAdjacentIdx;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nAdjacentRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
       nAdjacentIdx = 0;
-      if (__frame0.nAdjacentRoomCount) {
+      if (nAdjacentRoomCount) {
         do {
-          if (__frame0.ppAdjacentRooms[nAdjacentIdx] == (D2RoomStrc*)pBetrayalQuest->pRoomTarget) {
-            __frame0.bIsNearNihlathak = '\x01';
+          if (ppAdjacentRooms[nAdjacentIdx] == (D2RoomStrc*)pBetrayalQuest->pRoomTarget) {
+            bIsNearNihlathak = '\x01';
             break;
           }
 
           nAdjacentIdx++;
-        } while (nAdjacentIdx < __frame0.nAdjacentRoomCount);
+        } while (nAdjacentIdx < nAdjacentRoomCount);
       }
     }
 
     pA5Q4Data = D2Common::Units::GetPlayerData(pUnit);
     pBitBuffer = pA5Q4Data->pQuestRecord[pGame->nDifficulty];
-    if (__frame0.bIsNearNihlathak == '\0') {
+    if (bIsNearNihlathak == '\0') {
       return 0;
     }
 

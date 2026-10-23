@@ -98,15 +98,6 @@ D2MonTypeTxt * __fastcall GetMonTypeLine(int32_t nMonType) {
 }
 
 void __fastcall SKILLDESC_FormatItemStatLine(int32_t pUnit, uint16_t * wszText, int32_t nMaxBufferSize, int32_t nStatListFlags, uint32_t nParam2) {
-    // Frame slots -16..-4 are ONE object: &nCharClass is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nCharClass;
-      uint16_t* wszMinus;
-      uint16_t* wszOutputPtr;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nClassIndex;
     uint16_t* wszStatName;
     int i;
@@ -115,6 +106,7 @@ void __fastcall SKILLDESC_FormatItemStatLine(int32_t pUnit, uint16_t * wszText, 
     uint16_t wString2[128];
     char szTempBuf[12];
     uint16_t wszStatValueStr[10];
+    int nCharClass;
     int nStatValue;
     uint16_t wStatId;
     uint16_t* pInitDst = wString2;
@@ -131,8 +123,8 @@ void __fastcall SKILLDESC_FormatItemStatLine(int32_t pUnit, uint16_t * wszText, 
       pInitDst += 2;
     }
 
-    __frame0.wszOutputPtr = wszText;
-    __frame0.wszMinus = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
+    uint16_t* wszOutputPtr = wszText;
+    uint16_t* wszMinus = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
     /* - + */ pInitDst = D2Lang::StrTable::strtable::GetLocaleString(0xfa2);
     uint16_t* wszToSeparator = D2Lang::StrTable::strtable::GetLocaleString(0xfa3);
     uint16_t* wszText2 = D2Lang::StrTable::strtable::GetLocaleString(0xf9b);
@@ -167,22 +159,22 @@ void __fastcall SKILLDESC_FormatItemStatLine(int32_t pUnit, uint16_t * wszText, 
       D2Lang::Unicode::UNISYS::AppendToBuffer(wString2, wszStatName);
       if (nParam2 == 0x6b) {
         D2Lang::Unicode::UNISYS::AppendToBuffer(wString2, wszText2);
-        __frame0.nCharClass = 7;
-        nClassIndex = D2Common::Skills::SKILLS_GetCharClassFromSkillId_Validated((uint32_t)wStatId, &__frame0.nCharClass);
+        nCharClass = 7;
+        nClassIndex = D2Common::Skills::SKILLS_GetCharClassFromSkillId_Validated((uint32_t)wStatId, &nCharClass);
         if (nClassIndex) {
-          if (__frame0.nCharClass < 0 || 6 < __frame0.nCharClass || sgptDataTable->nTxtCharStatsSize <= __frame0.nCharClass || !(sgptDataTable->pTxtCharStats + __frame0.nCharClass)) {
-            D2Lang::Unicode::UNISYS::AppendToBuffer(wString2, __frame0.wszMinus);
-            D2Lang::Unicode::UNISYS::AppendToBuffer(__frame0.wszOutputPtr, wString2);
+          if (nCharClass < 0 || 6 < nCharClass || sgptDataTable->nTxtCharStatsSize <= nCharClass || !(sgptDataTable->pTxtCharStats + nCharClass)) {
+            D2Lang::Unicode::UNISYS::AppendToBuffer(wString2, wszMinus);
+            D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputPtr, wString2);
             return;
           }
 
-          wszStatName = D2Lang::StrTable::strtable::GetLocaleString(sgptDataTable->pTxtCharStats[__frame0.nCharClass].StrClassOnly);
+          wszStatName = D2Lang::StrTable::strtable::GetLocaleString(sgptDataTable->pTxtCharStats[nCharClass].StrClassOnly);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wString2, wszStatName);
         }
       }
 
-      D2Lang::Unicode::UNISYS::AppendToBuffer(wString2, __frame0.wszMinus);
-      D2Lang::Unicode::UNISYS::AppendToBuffer(__frame0.wszOutputPtr, wString2);
+      D2Lang::Unicode::UNISYS::AppendToBuffer(wString2, wszMinus);
+      D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputPtr, wString2);
       i++;
       if (nStatCount <= i) {
         return;
@@ -996,19 +988,6 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
     // Static local variables (originally global data)
     static uint8_t gaMonsterBoss_Flags_Lo = -0xd;
 
-    // Frame slots -60..-8 are ONE object: &nRepairCostAlt is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nRepairCostAlt;
-      int nRepairCostBase;
-      uint32_t nSecondaryStringId;
-      char szValueBuffer[12];
-      uint8_t __pad24[4];
-      uint16_t wszValueFormatted[10];
-      uint32_t nDescriptionValue;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 52, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t wStrId;
     int32_t nRepairCostFinal;
     D2MonTypeTxt* pMonTypeLine;
@@ -1022,6 +1001,10 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
     uint32_t nCharClassIndex;
     uint32_t uVar2;
     uint16_t wszFormatBuffer[256];
+    int nRepairCostAlt;
+    int nRepairCostBase;
+    char szValueBuffer[12];
+    uint16_t wszValueFormatted[10];
     *wszOutputBuffer = L'\0';
     if (nStatId < 0) {
       return 0;
@@ -1047,8 +1030,10 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
 
     uint8_t byDescFunc;
     byDescFunc = pStatCostLine->descfunc;
-    __frame0.nDescriptionValue = (uint32_t)(uint8_t)pStatCostLine->descval;
-    __frame0.nSecondaryStringId = (uint32_t)pStatCostLine->descstr2;
+    uint32_t nDescriptionValue;
+    nDescriptionValue = (uint32_t)(uint8_t)pStatCostLine->descval;
+    uint32_t nSecondaryStringId;
+    nSecondaryStringId = (uint32_t)pStatCostLine->descstr2;
     if (!nGroupMatchResult) {
       if (nGroupValue < 0) {
         wStrId = pStatCostLine->descstrneg;
@@ -1057,8 +1042,8 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
       }
     } else {
       byDescFunc = pStatCostLine->dgrpfunc;
-      __frame0.nDescriptionValue = (uint32_t)(uint8_t)pStatCostLine->dgrpval;
-      __frame0.nSecondaryStringId = (uint32_t)(uint16_t)pStatCostLine->dgrpstr2;
+      nDescriptionValue = (uint32_t)(uint8_t)pStatCostLine->dgrpval;
+      nSecondaryStringId = (uint32_t)(uint16_t)pStatCostLine->dgrpstr2;
       if (nGroupValue < 0) {
         wStrId = pStatCostLine->dgrpstrneg;
       } else {
@@ -1067,9 +1052,9 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
     }
 
     nStatId = (int32_t)D2Lang::StrTable::strtable::GetLocaleString(wStrId);
-    Storm::Source::SSTR::SStrPrintf(__frame0.szValueBuffer, 10, "%i", nGroupValue);
-    memset(__frame0.wszValueFormatted, 0, 10 * sizeof(__frame0.wszValueFormatted[0]));
-    D2Lang::UTF8_ConvertToWideChar(__frame0.wszValueFormatted, __frame0.szValueBuffer, 9);
+    Storm::Source::SSTR::SStrPrintf(szValueBuffer, 10, "%i", nGroupValue);
+    memset(wszValueFormatted, 0, 10 * sizeof(wszValueFormatted[0]));
+    D2Lang::UTF8_ConvertToWideChar(wszValueFormatted, szValueBuffer, 9);
     uint16_t* pStatList2;
     pStatList2 = (uint16_t*)D2Lang::StrTable::strtable::GetLocaleString(0xfa1);
     nStatValue = (int32_t)D2Lang::StrTable::strtable::GetLocaleString(0xf9b);
@@ -1086,7 +1071,7 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
       if (nGroupValue < 1) {
         no_plus_sign:
         wszFormatBuffer[0] = L'\0';
-        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszFormatBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszFormatBuffer, wszValueFormatted);
       } else if (byDescFunc != 0xc || 1 < nGroupValue) {
         goto prefix_plus_sign;
       }
@@ -1099,34 +1084,34 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
       case 3:
 
       case 9:
-        if (__frame0.nDescriptionValue != 1) {
-          if (__frame0.nDescriptionValue == 2) {
+        if (nDescriptionValue != 1) {
+          if (nDescriptionValue == 2) {
             D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, (uint16_t*)nStatId);
             D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
-            wszSecondaryStr = __frame0.wszValueFormatted;
+            wszSecondaryStr = wszValueFormatted;
             break;
           }
 
           goto text_only;
         }
-      wszLocaleStr = __frame0.wszValueFormatted;
+      wszLocaleStr = wszValueFormatted;
       goto value_then_text;
       case 4:
 
       case 8:
-        if (__frame0.nDescriptionValue == 1) {
+        if (nDescriptionValue == 1) {
           signed_percent_then_text:
           if (nGroupValue < 0) {
             *wszOutputBuffer = L'\0';
           } else {
             D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, wszLocaleStr);
           }
-          D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+          D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, pStatList2);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
           wszSecondaryStr = (uint16_t*)nStatId;
         } else {
-          if (__frame0.nDescriptionValue != 2) {
+          if (nDescriptionValue != 2) {
             goto text_only;
           }
 
@@ -1136,23 +1121,23 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
             D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszLocaleStr);
           }
 
-          D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+          D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
           wszSecondaryStr = pStatList2;
         }
       break;
       case 5:
 
       case 10:
-        Storm::Source::SSTR::SStrPrintf(__frame0.szValueBuffer, 10, "%i", (int)(nGroupValue * 100 + (nGroupValue * 100 >> 0x1f & 0x7fU)) >> 7);
-      D2Lang::UTF8_ConvertToWideChar(__frame0.wszValueFormatted, __frame0.szValueBuffer, 9);
+        Storm::Source::SSTR::SStrPrintf(szValueBuffer, 10, "%i", (int)(nGroupValue * 100 + (nGroupValue * 100 >> 0x1f & 0x7fU)) >> 7);
+      D2Lang::UTF8_ConvertToWideChar(wszValueFormatted, szValueBuffer, 9);
       percent_by_descval:
-      if (__frame0.nDescriptionValue == 1) {
-        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, __frame0.wszValueFormatted);
+      if (nDescriptionValue == 1) {
+        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, wszValueFormatted);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, pStatList2);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
         wszSecondaryStr = (uint16_t*)nStatId;
       } else {
-        if (__frame0.nDescriptionValue != 2) {
+        if (nDescriptionValue != 2) {
           text_only:
           D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, (uint16_t*)nStatId);
           goto append_descstr2;
@@ -1160,7 +1145,7 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
 
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, (uint16_t*)nStatId);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
-        D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
         wszSecondaryStr = pStatList2;
       }
       break;
@@ -1187,10 +1172,10 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
           return 0;
         }
 
-        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszFormatBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszFormatBuffer, wszValueFormatted);
       } else {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszFormatBuffer, wszLocaleStr);
-        D2Lang::Unicode::UNISYS::AppendToBuffer(wszFormatBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::AppendToBuffer(wszFormatBuffer, wszValueFormatted);
       }
 
       pCharStatsLine = DataTbls::INV_GetCharStatsTxtLine(nStatParam);
@@ -1199,11 +1184,11 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
       }
 
       wszSecondaryStr = D2Lang::StrTable::strtable::GetLocaleString(pCharStatsLine->StrAllSkills);
-      if (__frame0.nDescriptionValue == 1) {
+      if (nDescriptionValue == 1) {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, wszFormatBuffer);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
       } else {
-        if (__frame0.nDescriptionValue != 2) {
+        if (nDescriptionValue != 2) {
           goto append_descstr2;
         }
 
@@ -1265,9 +1250,9 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
         nStatParam = D2Common::Environment::DRLGENV_GetPeriodOfDayFromAct(sgpDrlgAct, (int32_t*)&pUnit);
       }
 
-      nRepairCostFinal = D2Common::ITEMS::ItemMods::ITEMMODS_CalculateRepairCost(nGroupValue, nStatParam, (int32_t)pUnit, (uint32_t*)&nStatParam, &__frame0.nRepairCostBase, &__frame0.nRepairCostAlt);
+      nRepairCostFinal = D2Common::ITEMS::ItemMods::ITEMMODS_CalculateRepairCost(nGroupValue, nStatParam, (int32_t)pUnit, (uint32_t*)&nStatParam, &nRepairCostBase, &nRepairCostAlt);
       if (!sgpDrlgAct) {
-        nRepairCostFinal = __frame0.nRepairCostBase;
+        nRepairCostFinal = nRepairCostBase;
       }
 
       nStatParam = nStatParam < 1 ? 0 : nStatParam;
@@ -1279,25 +1264,25 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszLocaleText);
       wszLocaleText = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszLocaleText);
-      Storm::Source::SSTR::SStrPrintf(__frame0.szValueBuffer, 10, "%i", nRepairCostFinal);
-      D2Lang::UTF8_ConvertToWideChar(__frame0.wszValueFormatted, __frame0.szValueBuffer, 9);
+      Storm::Source::SSTR::SStrPrintf(szValueBuffer, 10, "%i", nRepairCostFinal);
+      D2Lang::UTF8_ConvertToWideChar(wszValueFormatted, szValueBuffer, 9);
       if (nRepairCostFinal < 0) {
         if (nGroupValue < 0) {
-          D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszFormatBuffer, __frame0.wszValueFormatted);
+          D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszFormatBuffer, wszValueFormatted);
         }
       } else {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszFormatBuffer, wszLocaleStr);
-        D2Lang::Unicode::UNISYS::AppendToBuffer(wszFormatBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::AppendToBuffer(wszFormatBuffer, wszValueFormatted);
       }
       if (byDescFunc == 0x12) {
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszFormatBuffer, pStatList2);
       }
-      if (__frame0.nDescriptionValue == 1) {
+      if (nDescriptionValue == 1) {
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszFormatBuffer);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
         wszSecondaryStr = (uint16_t*)nStatId;
       } else {
-        if (__frame0.nDescriptionValue != 2) {
+        if (nDescriptionValue != 2) {
           goto append_descstr2;
         }
 
@@ -1314,12 +1299,12 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
 
       case 0x15:
         nGroupValue = -nGroupValue;
-      Storm::Source::SSTR::SStrPrintf(__frame0.szValueBuffer, 10, "%i", nGroupValue);
-      D2Lang::UTF8_ConvertToWideChar(__frame0.wszValueFormatted, __frame0.szValueBuffer, 9);
-      if (__frame0.nDescriptionValue == 1) {
+      Storm::Source::SSTR::SStrPrintf(szValueBuffer, 10, "%i", nGroupValue);
+      D2Lang::UTF8_ConvertToWideChar(wszValueFormatted, szValueBuffer, 9);
+      if (nDescriptionValue == 1) {
         goto signed_percent_then_text;
       }
-      if (__frame0.nDescriptionValue != 2) {
+      if (nDescriptionValue != 2) {
         goto text_only;
       }
 
@@ -1329,29 +1314,29 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszLocaleStr);
       }
 
-      D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+      D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
       wszSecondaryStr = pStatList2;
       break;
       case 0x16:
-        if (__frame0.nDescriptionValue == 1) {
+        if (nDescriptionValue == 1) {
           if (nGroupValue < 0) {
             *wszOutputBuffer = L'\0';
           } else {
             D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, wszLocaleStr);
           }
 
-          D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+          D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, pStatList2);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatId);
-        } else if (__frame0.nDescriptionValue == 2) {
+        } else if (nDescriptionValue == 2) {
           D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, (uint16_t*)nStatId);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
           if (-1 < nGroupValue) {
             D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszLocaleStr);
           }
 
-          D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+          D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, pStatList2);
         } else {
           D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, (uint16_t*)nStatId);
@@ -1372,15 +1357,15 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
       if (!pMonStatsLine) {
         return 0;
       }
-      if (__frame0.nDescriptionValue == 1) {
-        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, __frame0.wszValueFormatted);
+      if (nDescriptionValue == 1) {
+        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, wszValueFormatted);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, pStatList2);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatId);
-      } else if (__frame0.nDescriptionValue == 2) {
+      } else if (nDescriptionValue == 2) {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, (uint16_t*)nStatId);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
-        D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, pStatList2);
       } else {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, (uint16_t*)nStatId);
@@ -1403,9 +1388,9 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
       wszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0x5301);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszLocaleStr);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
-      Storm::Source::SSTR::SStrPrintf(__frame0.szValueBuffer, 10, "%i", nCharClassIndex);
-      D2Lang::UTF8_ConvertToWideChar(__frame0.wszValueFormatted, __frame0.szValueBuffer, 9);
-      D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+      Storm::Source::SSTR::SStrPrintf(szValueBuffer, 10, "%i", nCharClassIndex);
+      D2Lang::UTF8_ConvertToWideChar(wszValueFormatted, szValueBuffer, 9);
+      D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
       nRepairCostFinal = nStatValue;
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatParam);
@@ -1424,16 +1409,16 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
       prefix_plus_sign:
       wszFormatBuffer[0] = L'\0';
       D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszFormatBuffer, wszLocaleStr);
-      D2Lang::Unicode::UNISYS::AppendToBuffer(wszFormatBuffer, __frame0.wszValueFormatted);
+      D2Lang::Unicode::UNISYS::AppendToBuffer(wszFormatBuffer, wszValueFormatted);
       layout_by_descval:
-      if (__frame0.nDescriptionValue == 1) {
+      if (nDescriptionValue == 1) {
         wszLocaleStr = wszFormatBuffer;
         value_then_text:
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, wszLocaleStr);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
         wszSecondaryStr = (uint16_t*)nStatId;
       } else {
-        if (__frame0.nDescriptionValue != 2) {
+        if (nDescriptionValue != 2) {
           goto append_descstr2;
         }
 
@@ -1454,10 +1439,10 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
         goto append_descstr2;
       }
       if (nGroupValue < 1) {
-        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, wszValueFormatted);
       } else {
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszLocaleStr);
-        D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
       }
 
       nRepairCostFinal = nStatValue;
@@ -1501,13 +1486,13 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
         goto append_descstr2;
       }
 
-      Storm::Source::SSTR::SStrPrintf(__frame0.szValueBuffer, 10, "%i", nGroupValue);
-      D2Lang::UTF8_ConvertToWideChar(__frame0.wszValueFormatted, __frame0.szValueBuffer, 9);
+      Storm::Source::SSTR::SStrPrintf(szValueBuffer, 10, "%i", nGroupValue);
+      D2Lang::UTF8_ConvertToWideChar(wszValueFormatted, szValueBuffer, 9);
       if (nGroupValue < 1) {
-        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, wszValueFormatted);
       } else {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOutputBuffer, wszLocaleStr);
-        D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, __frame0.wszValueFormatted);
+        D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszValueFormatted);
       }
 
       nRepairCostFinal = nStatValue;
@@ -1522,7 +1507,7 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
     D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszSecondaryStr);
     append_descstr2:
     if (5 < byDescFunc && (byDescFunc < 0xb || byDescFunc == 0x15)) {
-      wStrId = (uint16_t)__frame0.nSecondaryStringId;
+      wStrId = (uint16_t)nSecondaryStringId;
       if (wStrId != 0x1506) {
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, (uint16_t*)nStatValue);
         wszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(wStrId);
@@ -4018,35 +4003,19 @@ void __fastcall SKILLDESC_DrawDamageWithRange(D2UnitStrc * pUnit, int * pnParam,
 }
 
 void __stdcall SKILLDESC_DrawElemDamageWithRange(D2UnitStrc * pUnit, int * pnParam1, int * pnParam2, int32_t * pdwParam, D2UnitStrc * pUnit2, D2SkillStrc * pSkill, int32_t nParam) {
-    // Frame slots -12..-4 are ONE object: &nCalcMaxDmg is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nCalcMaxDmg;
-      int nCalcMinDmg;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     if (!nParam) {
       return;
     }
 
-    __frame0.nCalcMinDmg = 0;
-    __frame0.nCalcMaxDmg = 0;
-    SKILLDESC_CalcWeaponDamageRange(pUnit, &__frame0.nCalcMinDmg, &__frame0.nCalcMaxDmg, pdwParam, 0, pSkill, 0x80, pUnit2, 0, 0);
-    SKILLDESC_CalcElemDamageRange(pUnit, &__frame0.nCalcMinDmg, &__frame0.nCalcMaxDmg, (uint32_t*)pdwParam, pSkill);
-    *pnParam1 += (int)(__frame0.nCalcMinDmg * nParam + (__frame0.nCalcMinDmg * nParam >> 0x1f & 0x7fU)) >> 7;
-    *pnParam2 += (int)((__frame0.nCalcMaxDmg * nParam >> 0x1f & 0x7fU) + __frame0.nCalcMaxDmg * nParam) >> 7;
+    int nCalcMinDmg = 0;
+    int nCalcMaxDmg = 0;
+    SKILLDESC_CalcWeaponDamageRange(pUnit, &nCalcMinDmg, &nCalcMaxDmg, pdwParam, 0, pSkill, 0x80, pUnit2, 0, 0);
+    SKILLDESC_CalcElemDamageRange(pUnit, &nCalcMinDmg, &nCalcMaxDmg, (uint32_t*)pdwParam, pSkill);
+    *pnParam1 += (int)(nCalcMinDmg * nParam + (nCalcMinDmg * nParam >> 0x1f & 0x7fU)) >> 7;
+    *pnParam2 += (int)((nCalcMaxDmg * nParam >> 0x1f & 0x7fU) + nCalcMaxDmg * nParam) >> 7;
 }
 
 void __stdcall SKILLDESC_DrawDamageNumbers(int32_t nParam1, int32_t nParam2, int32_t nColor, int32_t nYOffset, int32_t nParam3, int32_t nParam4) {
-    // Frame slots -12..-4 are ONE object: &nTextHeight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTextHeight;
-      int nTextWidth;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t wszDmgTextW16[32];
     char szDmgTextA[32];
     if (nParam2 <= nParam1) {
@@ -4075,11 +4044,11 @@ void __stdcall SKILLDESC_DrawDamageNumbers(int32_t nParam1, int32_t nParam2, int
 
     draw_damage_text:
     D2Lang::UTF8_ConvertToWideChar(wszDmgTextW16, szDmgTextA, 0x20);
-    __frame0.nTextWidth = 0;
-    __frame0.nTextHeight = 0;
-    D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszDmgTextW16, &__frame0.nTextWidth, &__frame0.nTextHeight);
-    __frame0.nTextWidth = __frame0.nTextWidth * 0xb / 7;
-    if (nParam3 - nParam4 < __frame0.nTextWidth) {
+    int nTextWidth = 0;
+    int nTextHeight = 0;
+    D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszDmgTextW16, &nTextWidth, &nTextHeight);
+    nTextWidth = nTextWidth * 0xb / 7;
+    if (nParam3 - nParam4 < nTextWidth) {
       D2Win::Src::D2WinFont::SetAndReturnLastFont(6);
       nYOffset--;
     } else {
@@ -4125,17 +4094,15 @@ void __stdcall SKILLDESC_DrawSingleNumber(int32_t nColorIdx, int32_t nScreenX, i
 }
 
 void __stdcall SKILLDESC_DrawSkillDmgPhysical(int32_t pSkillRecord, D2UnitStrc * pUnit, int32_t nItemClassId, pfnSkillDescWeaponDmgCalc pfnCalcWeaponDmg, int32_t nExtraFlags, D2UnitStrc * pCompareUnit, int32_t nScreenX, int32_t nScreenY, int32_t nScreenZ, int32_t nElemDmg, short * pnDamageRange) {
-    // Frame slots -28..-4 are ONE object: &nElemMaxDmg is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -20..-4 are ONE object: &nElemDmgTypeFlag is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      int nElemMaxDmg;
-      int nElemMinDmg;
       int32_t nElemDmgTypeFlag;
       int32_t nMainMinDmg;
       int32_t nOffhandMaxDmg;
       int32_t nDmgTypeFlag;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     uint16_t wszMainDmgW[32];
     uint16_t wszOffhandDmgW[32];
@@ -4152,12 +4119,14 @@ void __stdcall SKILLDESC_DrawSkillDmgPhysical(int32_t pSkillRecord, D2UnitStrc *
       return;
     }
 
-    __frame0.nElemMinDmg = 0;
-    __frame0.nElemMaxDmg = 0;
+    int nElemMinDmg;
+    nElemMinDmg = 0;
+    int nElemMaxDmg;
+    nElemMaxDmg = 0;
     __frame0.nDmgTypeFlag = 0;
     __frame0.nElemDmgTypeFlag = 0;
     if (nElemDmg) {
-      SKILLDESC_CalcSkillElemDamage(pUnit, &__frame0.nElemMinDmg, &__frame0.nElemMaxDmg, &__frame0.nDmgTypeFlag, pnDamageRange, nItemClassId);
+      SKILLDESC_CalcSkillElemDamage(pUnit, &nElemMinDmg, &nElemMaxDmg, &__frame0.nDmgTypeFlag, pnDamageRange, nItemClassId);
     }
 
     uint32_t nSrcDamPct;
@@ -4169,12 +4138,12 @@ void __stdcall SKILLDESC_DrawSkillDmgPhysical(int32_t pSkillRecord, D2UnitStrc *
     __frame0.nOffhandMaxDmg = 0;
     SKILLDESC_CalcDualWieldDamage(&__frame0.nMainMinDmg, &nElemDmg, &__frame0.nDmgTypeFlag, &nItemClassId, &__frame0.nOffhandMaxDmg, &__frame0.nElemDmgTypeFlag, (D2SkillStrc*)pSkillRecord, pfnCalcWeaponDmg, nExtraFlags, pCompareUnit, pUnit);
     if (__frame0.nMainMinDmg && nElemDmg) {
-      __frame0.nMainMinDmg = ((int)(__frame0.nMainMinDmg * nSrcDamPct + ((int)(__frame0.nMainMinDmg * nSrcDamPct) >> 0x1f & 0x7fU)) >> 7) + __frame0.nElemMinDmg;
-      nElemDmg = ((int)(nElemDmg * nSrcDamPct + ((int)(nElemDmg * nSrcDamPct) >> 0x1f & 0x7fU)) >> 7) + __frame0.nElemMaxDmg;
+      __frame0.nMainMinDmg = ((int)(__frame0.nMainMinDmg * nSrcDamPct + ((int)(__frame0.nMainMinDmg * nSrcDamPct) >> 0x1f & 0x7fU)) >> 7) + nElemMinDmg;
+      nElemDmg = ((int)(nElemDmg * nSrcDamPct + ((int)(nElemDmg * nSrcDamPct) >> 0x1f & 0x7fU)) >> 7) + nElemMaxDmg;
     }
     if (nItemClassId && __frame0.nOffhandMaxDmg) {
-      nItemClassId = ((int)(nItemClassId * nSrcDamPct + ((int)(nItemClassId * nSrcDamPct) >> 0x1f & 0x7fU)) >> 7) + __frame0.nElemMinDmg;
-      __frame0.nOffhandMaxDmg = ((int)(__frame0.nOffhandMaxDmg * nSrcDamPct + ((int)(__frame0.nOffhandMaxDmg * nSrcDamPct) >> 0x1f & 0x7fU)) >> 7) + __frame0.nElemMaxDmg;
+      nItemClassId = ((int)(nItemClassId * nSrcDamPct + ((int)(nItemClassId * nSrcDamPct) >> 0x1f & 0x7fU)) >> 7) + nElemMinDmg;
+      __frame0.nOffhandMaxDmg = ((int)(__frame0.nOffhandMaxDmg * nSrcDamPct + ((int)(__frame0.nOffhandMaxDmg * nSrcDamPct) >> 0x1f & 0x7fU)) >> 7) + nElemMaxDmg;
     }
     if (!__frame0.nMainMinDmg && !nElemDmg) {
       SKILLDESC_DrawDamageNumbers(nItemClassId, __frame0.nOffhandMaxDmg, __frame0.nElemDmgTypeFlag, nScreenY, nScreenZ, nScreenX);
@@ -4233,16 +4202,6 @@ void __stdcall SKILLDESC_DrawSkillDmgPhysical(int32_t pSkillRecord, D2UnitStrc *
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgElemental(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -20..-4 are ONE object: &nElemMinDmg is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nElemMinDmg;
-      uint32_t nElemColorIdx;
-      int32_t nElemDmgType;
-      int nElemMaxDmg;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t wszElemDmgW[32];
     uint16_t wszSkillDmgW[32];
     char szDmgTextA[32];
@@ -4257,15 +4216,19 @@ void __fastcall SKILLDESC_DrawSkillDmgElemental(D2UnitStrc * pUnit, D2SkillStrc 
       return;
     }
 
-    __frame0.nElemMinDmg = 0;
-    __frame0.nElemMaxDmg = 0;
-    __frame0.nElemDmgType = 0;
+    int nElemMinDmg;
+    nElemMinDmg = 0;
+    int nElemMaxDmg;
+    nElemMaxDmg = 0;
+    int32_t nElemDmgType;
+    nElemDmgType = 0;
     D2UnitStrc* pUnitSaved;
     pUnitSaved = pUnit;
-    SKILLDESC_DrawElemDamageWithRange(pUnit, &__frame0.nElemMinDmg, &__frame0.nElemMaxDmg, &__frame0.nElemDmgType, nullptr, pSkill, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
+    SKILLDESC_DrawElemDamageWithRange(pUnit, &nElemMinDmg, &nElemMaxDmg, &nElemDmgType, nullptr, pSkill, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
     D2SkillsTxt* pSkillsTxtSaved;
     pSkillsTxtSaved = pSkillsTxt;
-    __frame0.nElemColorIdx = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
+    uint32_t nElemColorIdx;
+    nElemColorIdx = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
     D2UnitStrc* pUnitCopy;
     pUnitCopy = pUnitSaved;
     int32_t nSkillLvlSaved;
@@ -4280,15 +4243,15 @@ void __fastcall SKILLDESC_DrawSkillDmgElemental(D2UnitStrc * pUnit, D2SkillStrc 
     nSkillLvlSaved = D2Common::Skills::SERVER_MaxDamage(pUnitCopy, (int)pSkillsTxtSaved->skill, nSkillLvlSaved, 1);
     pSkillsTxt = (D2SkillsTxt*)((int)pSkillsTxt->srvprgfunc + (nSkillLvlSaved >> 8) - 0x30);
     AdjustDamageByType(pUnitCopy, &nSkillLevel, (int*)&pSkillsTxt, pSkillsTxtSaved->EType);
-    nElemMaxCopy = __frame0.nElemMaxDmg;
-    nElemMinCopy = __frame0.nElemMinDmg;
+    nElemMaxCopy = nElemMaxDmg;
+    nElemMinCopy = nElemMinDmg;
     nPhysMinDmg = nSkillLevel;
-    if (!__frame0.nElemMinDmg && !__frame0.nElemMaxDmg) {
-      SKILLDESC_DrawDamageNumbers(nSkillLevel, (int32_t)pSkillsTxt, __frame0.nElemColorIdx, nY, nXRight, nXLeft);
+    if (!nElemMinDmg && !nElemMaxDmg) {
+      SKILLDESC_DrawDamageNumbers(nSkillLevel, (int32_t)pSkillsTxt, nElemColorIdx, nY, nXRight, nXLeft);
       return;
     }
     if (!nSkillLevel && !pSkillsTxt) {
-      SKILLDESC_DrawDamageNumbers(__frame0.nElemMinDmg, __frame0.nElemMaxDmg, __frame0.nElemDmgType, nY, nXRight, nXLeft);
+      SKILLDESC_DrawDamageNumbers(nElemMinDmg, nElemMaxDmg, nElemDmgType, nY, nXRight, nXLeft);
       return;
     }
 
@@ -4334,20 +4297,11 @@ void __fastcall SKILLDESC_DrawSkillDmgElemental(D2UnitStrc * pUnit, D2SkillStrc 
 
     draw_both_ranges:
     D2Lang::UTF8_ConvertToWideChar(wszSkillDmgW, szDmgTextA, 0x20);
-    SKILLDESC_DrawTwoLineText(wszElemDmgW, wszSkillDmgW, nXLeft, nY, nXRight, __frame0.nElemDmgType, __frame0.nElemColorIdx);
+    SKILLDESC_DrawTwoLineText(wszElemDmgW, wszSkillDmgW, nXLeft, nY, nXRight, nElemDmgType, nElemColorIdx);
 }
 
 // @sourcefile .\UI\SkillDesc.cpp
 void __fastcall SKILLDESC_DrawSkillDmgWithElem(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -16..-4 are ONE object: &nElemType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nElemType;
-      int nMinDamage;
-      int nMaxDamage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     if (!(pSkill && pSkillsTxt)) {
       return;
     }
@@ -4357,32 +4311,32 @@ void __fastcall SKILLDESC_DrawSkillDmgWithElem(D2UnitStrc * pUnit, D2SkillStrc *
       return;
     }
 
-    __frame0.nMinDamage = 0;
-    __frame0.nMaxDamage = 0;
-    __frame0.nElemType = 0;
+    int nMinDamage = 0;
+    int nMaxDamage = 0;
+    int32_t nElemType = 0;
     int32_t nDamageShifted = nSkillLevel;
     eD2Skills eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\UI\\SkillDesc.cpp", 0x98c);
     uint32_t uDamCalc1 = D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)pSkillDescTxt->ddamCalc1, eSkillId, nDamageShifted);
     nDamageShifted = nSkillLevel;
     eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\UI\\SkillDesc.cpp", 0x98d);
     uint32_t uDamCalc2 = D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)pSkillDescTxt->ddamCalc2, eSkillId, nDamageShifted);
-    SKILLDESC_CalcWeaponDamageRange(pUnit, &__frame0.nMinDamage, &__frame0.nMaxDamage, &__frame0.nElemType, uDamCalc2, pSkill, 0x80, nullptr, 0, uDamCalc1);
-    SKILLDESC_CalcElemDamageRange(pUnit, &__frame0.nMinDamage, &__frame0.nMaxDamage, (uint32_t*)&__frame0.nElemType, pSkill);
+    SKILLDESC_CalcWeaponDamageRange(pUnit, &nMinDamage, &nMaxDamage, &nElemType, uDamCalc2, pSkill, 0x80, nullptr, 0, uDamCalc1);
+    SKILLDESC_CalcElemDamageRange(pUnit, &nMinDamage, &nMaxDamage, (uint32_t*)&nElemType, pSkill);
     uint8_t byDmgShiftFactor = pSkillsTxt->SrcDam;
     if (byDmgShiftFactor != 0x80) {
-      __frame0.nMinDamage = Stats::D2ApplyPercent(__frame0.nMinDamage, (uint32_t)byDmgShiftFactor, 0x80);
-      __frame0.nMaxDamage = Stats::D2ApplyPercent(__frame0.nMaxDamage, (uint32_t)byDmgShiftFactor, 0x80);
+      nMinDamage = Stats::D2ApplyPercent(nMinDamage, (uint32_t)byDmgShiftFactor, 0x80);
+      nMaxDamage = Stats::D2ApplyPercent(nMaxDamage, (uint32_t)byDmgShiftFactor, 0x80);
     }
 
     nDamageShifted = D2Common::Skills::SKILL_CalcMinDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 0);
-    __frame0.nMinDamage += nDamageShifted >> 8;
+    nMinDamage += nDamageShifted >> 8;
     nDamageShifted = D2Common::Skills::SKILL_CalcMaxDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 0);
-    __frame0.nMaxDamage += nDamageShifted >> 8;
+    nMaxDamage += nDamageShifted >> 8;
     nDamageShifted = D2Common::Skills::SERVER_MinDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 1);
-    __frame0.nMinDamage += nDamageShifted >> 8;
+    nMinDamage += nDamageShifted >> 8;
     nDamageShifted = D2Common::Skills::SERVER_MaxDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 1);
-    __frame0.nMaxDamage += nDamageShifted >> 8;
-    SKILLDESC_DrawDamageNumbers(__frame0.nMinDamage, __frame0.nMaxDamage, __frame0.nElemType, nY, nXRight, nXLeft);
+    nMaxDamage += nDamageShifted >> 8;
+    SKILLDESC_DrawDamageNumbers(nMinDamage, nMaxDamage, nElemType, nY, nXRight, nXLeft);
 }
 
 // @sourcefile .\UI\SkillDesc.cpp
@@ -4447,15 +4401,8 @@ void __fastcall SKILLDESC_DrawSkillDmgType2(D2UnitStrc * pUnit, D2SkillStrc * pS
 
 // @sourcefile .\UI\SkillDesc.cpp
 void __fastcall SKILLDESC_DrawSkillDmgType3(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -12..-4 are ONE object: &nMinDamage is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nMinDamage;
-      int nMaxDamage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2Skills eSkillId;
+    uint32_t nMinDamage;
     int32_t nSkillLevelTmp;
     if (!(pSkill && pSkillsTxt)) {
       return;
@@ -4471,16 +4418,16 @@ void __fastcall SKILLDESC_DrawSkillDmgType3(D2UnitStrc * pUnit, D2SkillStrc * pS
       D2UnitStrc* pDamCalc2;
       nSkillLevelTmp = nSkillLevel;
       eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\UI\\SkillDesc.cpp", 0xa02);
-      __frame0.nMinDamage = D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)pSkillDescTxt->ddamCalc1, eSkillId, nSkillLevelTmp);
+      nMinDamage = D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)pSkillDescTxt->ddamCalc1, eSkillId, nSkillLevelTmp);
       nSkillLevelTmp = nSkillLevel;
       eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\UI\\SkillDesc.cpp", 0xa03);
       pDamCalc2 = (D2UnitStrc*)D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)pSkillDescTxt->ddamCalc2, eSkillId, nSkillLevelTmp);
-      SKILLDESC_DrawSkillDmgPhysical((int32_t)pSkill, pUnit, nSkillLevel, (pfnSkillDescWeaponDmgCalc)SKILLDESC_DrawDamageWithRange, __frame0.nMinDamage, pDamCalc2, nXLeft, nY, nXRight, 1, &pSkillsTxt->skill);
+      SKILLDESC_DrawSkillDmgPhysical((int32_t)pSkill, pUnit, nSkillLevel, (pfnSkillDescWeaponDmgCalc)SKILLDESC_DrawDamageWithRange, nMinDamage, pDamCalc2, nXLeft, nY, nXRight, 1, &pSkillsTxt->skill);
       return;
     }
 
-    __frame0.nMinDamage = 0;
-    __frame0.nMaxDamage = 0;
+    nMinDamage = 0;
+    int nMaxDamage = 0;
     pSkillsTxt = 0;
     nSkillLevelTmp = nSkillLevel;
     eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\UI\\SkillDesc.cpp", 0xa0c);
@@ -4488,8 +4435,8 @@ void __fastcall SKILLDESC_DrawSkillDmgType3(D2UnitStrc * pUnit, D2SkillStrc * pS
     nSkillLevelTmp = nSkillLevel;
     eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\UI\\SkillDesc.cpp", 0xa0d);
     uint32_t uDamCalc2 = D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)pSkillDescTxt->ddamCalc2, eSkillId, nSkillLevelTmp);
-    SKILLDESC_DrawDamageWithRange(pUnit, (int*)&__frame0.nMinDamage, &__frame0.nMaxDamage, (uint32_t*)&pSkillsTxt, uDamCalc1, uDamCalc2, pSkill, 0, nullptr);
-    SKILLDESC_DrawDamageNumbers(__frame0.nMinDamage, __frame0.nMaxDamage, (int32_t)pSkillsTxt, nY, nXRight, nXLeft);
+    SKILLDESC_DrawDamageWithRange(pUnit, (int*)&nMinDamage, &nMaxDamage, (uint32_t*)&pSkillsTxt, uDamCalc1, uDamCalc2, pSkill, 0, nullptr);
+    SKILLDESC_DrawDamageNumbers(nMinDamage, nMaxDamage, (int32_t)pSkillsTxt, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgBasic(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
@@ -4633,15 +4580,6 @@ void __fastcall SKILLDESC_CalcAuraDamageRange(D2UnitStrc * pUnit, int * pnMinDam
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgAura(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -16..-4 are ONE object: &nElemType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nElemType;
-      D2UnitStrc* nMinDamage;
-      int32_t nMaxDamage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nThrowMinDmg;
     int nDmgPercentMax;
     eD2States eConcState;
@@ -4653,7 +4591,7 @@ void __fastcall SKILLDESC_DrawSkillDmgAura(D2UnitStrc * pUnit, D2SkillStrc * pSk
       return;
     }
 
-    __frame0.nElemType = 0;
+    int32_t nElemType = 0;
     if (!pUnit->pInventory) {
       return;
     }
@@ -4663,7 +4601,7 @@ void __fastcall SKILLDESC_DrawSkillDmgAura(D2UnitStrc * pUnit, D2SkillStrc * pSk
       return;
     }
 
-    __frame0.nMinDamage = pWeaponUnit;
+    D2UnitStrc* nMinDamage = pWeaponUnit;
     int32_t nBonusApplied = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_throwable(pWeaponUnit);
     if (!nBonusApplied) {
       return;
@@ -4675,14 +4613,14 @@ void __fastcall SKILLDESC_DrawSkillDmgAura(D2UnitStrc * pUnit, D2SkillStrc * pSk
       nDmgBonus = nDmgBonus * sStrBonus / 100;
     }
 
-    sStrBonus = D2Common::ITEMS::Items::ITEM_GetItemsTxt_wDexBonus(__frame0.nMinDamage);
+    sStrBonus = D2Common::ITEMS::Items::ITEM_GetItemsTxt_wDexBonus(nMinDamage);
     if (sStrBonus) {
       nThrowMinDmg = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_dexterity, 0);
       nDmgBonus += nThrowMinDmg * sStrBonus / 100;
     }
 
     nThrowMinDmg = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_throw_mindamage, 0);
-    __frame0.nMaxDamage = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_throw_maxdamage, 0);
+    int32_t nMaxDamage = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_throw_maxdamage, 0);
     int nDmgPercentMin = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_damagepercent, 0);
     nDmgBonus += nDmgPercentMin;
     nDmgPercentMin = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_mindamage_percent, 0);
@@ -4692,40 +4630,34 @@ void __fastcall SKILLDESC_DrawSkillDmgAura(D2UnitStrc * pUnit, D2SkillStrc * pSk
     }
 
     nThrowMinDmg += (nDmgPercentMin + nDmgBonus) * nThrowMinDmg / 100;
-    __frame0.nMaxDamage += (nDmgPercentMax + nDmgBonus) * __frame0.nMaxDamage / 100;
+    nMaxDamage += (nDmgPercentMax + nDmgBonus) * nMaxDamage / 100;
     nBonusApplied = 0;
     eConcState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_throwingmastery);
     if (eConcState != STATE_none) {
-      nBonusApplied = D2Common::Skills::SKILLS_GetItemBonusDamage(pUnit, __frame0.nMinDamage, pSkill, 1);
+      nBonusApplied = D2Common::Skills::SKILLS_GetItemBonusDamage(pUnit, nMinDamage, pSkill, 1);
     }
 
     nDmgPercentResult = Stats::D2ApplyPercent(nThrowMinDmg, nBonusApplied, 100);
-    nSkillDescAddr = __frame0.nMaxDamage;
-    __frame0.nMinDamage = (D2UnitStrc*)(nThrowMinDmg + nDmgPercentResult);
-    nBonusApplied = Stats::D2ApplyPercent(__frame0.nMaxDamage, nBonusApplied, 100);
-    __frame0.nMaxDamage = nSkillDescAddr + nBonusApplied;
-    AdjustDamageByType(pUnit, (int*)&__frame0.nMinDamage, &__frame0.nMaxDamage, pSkillsTxt->EType);
-    pWeaponUnit = (D2UnitStrc*)__frame0.nMaxDamage;
-    if (__frame0.nMaxDamage < (int)__frame0.nMinDamage) {
-      pWeaponUnit = __frame0.nMinDamage;
+    nSkillDescAddr = nMaxDamage;
+    nMinDamage = (D2UnitStrc*)(nThrowMinDmg + nDmgPercentResult);
+    nBonusApplied = Stats::D2ApplyPercent(nMaxDamage, nBonusApplied, 100);
+    nMaxDamage = nSkillDescAddr + nBonusApplied;
+    AdjustDamageByType(pUnit, (int*)&nMinDamage, &nMaxDamage, pSkillsTxt->EType);
+    pWeaponUnit = (D2UnitStrc*)nMaxDamage;
+    if (nMaxDamage < (int)nMinDamage) {
+      pWeaponUnit = nMinDamage;
     }
 
     byDmgShiftFactor = pSkillsTxt->SrcDam;
-    __frame0.nMinDamage = (D2UnitStrc*)Stats::D2ApplyPercent((int32_t)__frame0.nMinDamage, (uint32_t)byDmgShiftFactor, 0x80);
-    __frame0.nMaxDamage = Stats::D2ApplyPercent((int32_t)pWeaponUnit, (uint32_t)byDmgShiftFactor, 0x80);
-    SKILLDESC_CalcSkillElemDamage(pUnit, (int*)&__frame0.nMinDamage, &__frame0.nMaxDamage, &__frame0.nElemType, &pSkillsTxt->skill, nSkillLevel);
-    SKILLDESC_DrawDamageNumbers((int32_t)__frame0.nMinDamage, __frame0.nMaxDamage, __frame0.nElemType, nY, nXRight, nXLeft);
+    nMinDamage = (D2UnitStrc*)Stats::D2ApplyPercent((int32_t)nMinDamage, (uint32_t)byDmgShiftFactor, 0x80);
+    nMaxDamage = Stats::D2ApplyPercent((int32_t)pWeaponUnit, (uint32_t)byDmgShiftFactor, 0x80);
+    SKILLDESC_CalcSkillElemDamage(pUnit, (int*)&nMinDamage, &nMaxDamage, &nElemType, &pSkillsTxt->skill, nSkillLevel);
+    SKILLDESC_DrawDamageNumbers((int32_t)nMinDamage, nMaxDamage, nElemType, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgAuraElem(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -12..-4 are ONE object: &nMinDamage is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nMinDamage;
-      int nMaxDamage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nMinDamage;
+    int nMaxDamage;
     D2SkillsTxt* nSkillDescAddrSaved = pSkillsTxt;
     if (!(pSkill && pSkillsTxt)) {
       return;
@@ -4733,54 +4665,34 @@ void __fastcall SKILLDESC_DrawSkillDmgAuraElem(D2UnitStrc * pUnit, D2SkillStrc *
 
     uint8_t byDmgShiftFactor = pSkillsTxt->SrcDam;
     pSkillsTxt = 0;
-    SKILLDESC_CalcAuraDamageRange(pUnit, &__frame0.nMinDamage, &__frame0.nMaxDamage, (uint32_t*)&pSkillsTxt, 0, 0, pSkill, 0, nullptr);
-    __frame0.nMinDamage *= (uint32_t)byDmgShiftFactor;
-    __frame0.nMinDamage = (int)(__frame0.nMinDamage + (__frame0.nMinDamage >> 0x1f & 0x7fU)) >> 7;
-    __frame0.nMaxDamage *= (uint32_t)byDmgShiftFactor;
-    __frame0.nMaxDamage = (int)(__frame0.nMaxDamage + (__frame0.nMaxDamage >> 0x1f & 0x7fU)) >> 7;
-    SKILLDESC_CalcSkillElemDamage(pUnit, &__frame0.nMinDamage, &__frame0.nMaxDamage, (int32_t*)&pSkillsTxt, &nSkillDescAddrSaved->skill, nSkillLevel);
-    SKILLDESC_DrawDamageNumbers(__frame0.nMinDamage, __frame0.nMaxDamage, (int32_t)pSkillsTxt, nY, nXRight, nXLeft);
+    SKILLDESC_CalcAuraDamageRange(pUnit, &nMinDamage, &nMaxDamage, (uint32_t*)&pSkillsTxt, 0, 0, pSkill, 0, nullptr);
+    nMinDamage *= (uint32_t)byDmgShiftFactor;
+    nMinDamage = (int)(nMinDamage + (nMinDamage >> 0x1f & 0x7fU)) >> 7;
+    nMaxDamage *= (uint32_t)byDmgShiftFactor;
+    nMaxDamage = (int)(nMaxDamage + (nMaxDamage >> 0x1f & 0x7fU)) >> 7;
+    SKILLDESC_CalcSkillElemDamage(pUnit, &nMinDamage, &nMaxDamage, (int32_t*)&pSkillsTxt, &nSkillDescAddrSaved->skill, nSkillLevel);
+    SKILLDESC_DrawDamageNumbers(nMinDamage, nMaxDamage, (int32_t)pSkillsTxt, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgDualWield(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -12..-4 are ONE object: &nMinDamage is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nMinDamage;
-      int nMaxDamage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     if (!(pSkill && pSkillsTxt)) {
       return;
     }
 
-    __frame0.nMinDamage = 0;
-    __frame0.nMaxDamage = 0;
+    int nMinDamage = 0;
+    int nMaxDamage = 0;
     pSkillsTxt = 0;
     D2UnitStrc* pPrimaryWeapon = SKILLDESC_GetPrimaryWeapon(pUnit);
     if (!pPrimaryWeapon) {
       return;
     }
 
-    SKILLDESC_CalcAuraDamageRange(pUnit, &__frame0.nMinDamage, &__frame0.nMaxDamage, (uint32_t*)&pSkillsTxt, 0, 0, pSkill, 0, pPrimaryWeapon);
+    SKILLDESC_CalcAuraDamageRange(pUnit, &nMinDamage, &nMaxDamage, (uint32_t*)&pSkillsTxt, 0, 0, pSkill, 0, pPrimaryWeapon);
     SKILLDESC_GetSecondaryWeapon(pUnit);
-    SKILLDESC_DrawDamageNumbers(__frame0.nMinDamage, __frame0.nMaxDamage, (int32_t)pSkillsTxt, nY, nXRight, nXLeft);
+    SKILLDESC_DrawDamageNumbers(nMinDamage, nMaxDamage, (int32_t)pSkillsTxt, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgComplex(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -28..-4 are ONE object: &nPhysColorIdx is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nPhysColorIdx;
-      int nElemColorIdx;
-      int32_t nElemMinDmg;
-      int nElemMaxDmg;
-      int nPhysMinDmg;
-      int nPhysMaxDmg;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t wszPhysDmgW[32];
     uint16_t wszElemDmgW[32];
     char szDmgTextA[32];
@@ -4794,30 +4706,36 @@ void __fastcall SKILLDESC_DrawSkillDmgComplex(D2UnitStrc * pUnit, D2SkillStrc * 
 
     uint8_t byDmgShiftFactor;
     byDmgShiftFactor = pSkillsTxt->SrcDam;
-    __frame0.nPhysMinDmg = 0;
-    __frame0.nPhysMaxDmg = 0;
-    __frame0.nPhysColorIdx = 0;
+    int nPhysMinDmg;
+    nPhysMinDmg = 0;
+    int nPhysMaxDmg;
+    nPhysMaxDmg = 0;
+    int32_t nPhysColorIdx;
+    nPhysColorIdx = 0;
     D2UnitStrc* pUnitSaved;
     pUnitSaved = pUnit;
-    SKILLDESC_CalcAuraDamageRange(pUnit, &__frame0.nPhysMinDmg, &__frame0.nPhysMaxDmg, (uint32_t*)&__frame0.nPhysColorIdx, 0, 0, pSkill, 0, nullptr);
+    SKILLDESC_CalcAuraDamageRange(pUnit, &nPhysMinDmg, &nPhysMaxDmg, (uint32_t*)&nPhysColorIdx, 0, 0, pSkill, 0, nullptr);
     int nPhysMinShifted;
-    nPhysMinShifted = Stats::D2ApplyPercent(__frame0.nPhysMinDmg, (uint32_t)byDmgShiftFactor, 0x80);
-    __frame0.nPhysMinDmg = nPhysMinShifted;
-    __frame0.nPhysMaxDmg = Stats::D2ApplyPercent(__frame0.nPhysMaxDmg, (uint32_t)byDmgShiftFactor, 0x80);
-    __frame0.nElemColorIdx = 0;
-    __frame0.nElemMaxDmg = 0;
-    __frame0.nElemMinDmg = 0;
-    SKILLDESC_CalcSkillElemDamage(pUnitSaved, &__frame0.nElemColorIdx, &__frame0.nElemMaxDmg, &__frame0.nElemMinDmg, &pSkillsTxt->skill, nSkillLevel);
+    nPhysMinShifted = Stats::D2ApplyPercent(nPhysMinDmg, (uint32_t)byDmgShiftFactor, 0x80);
+    nPhysMinDmg = nPhysMinShifted;
+    nPhysMaxDmg = Stats::D2ApplyPercent(nPhysMaxDmg, (uint32_t)byDmgShiftFactor, 0x80);
+    int nElemColorIdx;
+    nElemColorIdx = 0;
+    int nElemMaxDmg;
+    nElemMaxDmg = 0;
+    int32_t nElemMinDmg;
+    nElemMinDmg = 0;
+    SKILLDESC_CalcSkillElemDamage(pUnitSaved, &nElemColorIdx, &nElemMaxDmg, &nElemMinDmg, &pSkillsTxt->skill, nSkillLevel);
     int nElemMinShifted;
-    nElemMinShifted = __frame0.nPhysMaxDmg;
+    nElemMinShifted = nPhysMaxDmg;
     int nElemMaxShifted;
-    nElemMaxShifted = __frame0.nElemColorIdx;
-    if (!nPhysMinShifted && !__frame0.nPhysMaxDmg) {
-      SKILLDESC_DrawDamageNumbers(__frame0.nElemColorIdx, __frame0.nElemMaxDmg, __frame0.nElemMinDmg, nY, nXRight, nXLeft);
+    nElemMaxShifted = nElemColorIdx;
+    if (!nPhysMinShifted && !nPhysMaxDmg) {
+      SKILLDESC_DrawDamageNumbers(nElemColorIdx, nElemMaxDmg, nElemMinDmg, nY, nXRight, nXLeft);
       return;
     }
-    if (!__frame0.nElemColorIdx && !__frame0.nElemMaxDmg) {
-      SKILLDESC_DrawDamageNumbers(__frame0.nPhysMinDmg, __frame0.nPhysMaxDmg, __frame0.nPhysColorIdx, nY, nXRight, nXLeft);
+    if (!nElemColorIdx && !nElemMaxDmg) {
+      SKILLDESC_DrawDamageNumbers(nPhysMinDmg, nPhysMaxDmg, nPhysColorIdx, nY, nXRight, nXLeft);
       return;
     }
 
@@ -4843,12 +4761,12 @@ void __fastcall SKILLDESC_DrawSkillDmgComplex(D2UnitStrc * pUnit, D2SkillStrc * 
     format_second_range:
     D2Lang::UTF8_ConvertToWideChar(wszPhysDmgW, szDmgTextA, 0x20);
     Fog::File::CONTAINER_InitializeBuffer(wszElemDmgW, 2, 0x20, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
-    if (nElemMaxShifted == __frame0.nElemMaxDmg) {
+    if (nElemMaxShifted == nElemMaxDmg) {
       /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szDmgTextA, "%d", nElemMaxShifted);
     } else {
       if (nElemMaxShifted < 10000) {
-        if (__frame0.nElemMaxDmg < 10000) {
-          /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szDmgTextA, "%d-%d", nElemMaxShifted, __frame0.nElemMaxDmg);
+        if (nElemMaxDmg < 10000) {
+          /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szDmgTextA, "%d-%d", nElemMaxShifted, nElemMaxDmg);
           goto draw_both_ranges;
         }
 
@@ -4858,24 +4776,15 @@ void __fastcall SKILLDESC_DrawSkillDmgComplex(D2UnitStrc * pUnit, D2SkillStrc * 
         szFmtStr = "%s%dK-%dK";
       }
 
-      wsprintfA(szDmgTextA, szFmtStr, "", nElemMaxShifted, (__frame0.nElemMaxDmg + 500) / 1000);
+      wsprintfA(szDmgTextA, szFmtStr, "", nElemMaxShifted, (nElemMaxDmg + 500) / 1000);
     }
 
     draw_both_ranges:
     D2Lang::UTF8_ConvertToWideChar(wszElemDmgW, szDmgTextA, 0x20);
-    SKILLDESC_DrawTwoLineText(wszPhysDmgW, wszElemDmgW, nXLeft, nY, nXRight, __frame0.nPhysColorIdx, __frame0.nElemMinDmg);
+    SKILLDESC_DrawTwoLineText(wszPhysDmgW, wszElemDmgW, nXLeft, nY, nXRight, nPhysColorIdx, nElemMinDmg);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgElem2H(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -16..-4 are ONE object: &nElemType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nElemType;
-      int nMaxDamage;
-      int nMinDamage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nSynergyMaxScaled;
     D2UnitStrc* pUnitUnused = pUnit;
     D2SkillStrc* pSkillUnused = pSkill;
@@ -4883,85 +4792,63 @@ void __fastcall SKILLDESC_DrawSkillDmgElem2H(D2UnitStrc * pUnit, D2SkillStrc * p
       return;
     }
 
-    __frame0.nMaxDamage = 0;
-    __frame0.nMinDamage = 0;
-    __frame0.nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
-    SKILLDESC_DrawElemDamageWithRange(pUnitUnused, &__frame0.nMaxDamage, &__frame0.nMinDamage, (int32_t*)&__frame0.nElemType, nullptr, pSkillUnused, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
+    int nMaxDamage = 0;
+    int nMinDamage = 0;
+    uint32_t nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
+    SKILLDESC_DrawElemDamageWithRange(pUnitUnused, &nMaxDamage, &nMinDamage, (int32_t*)&nElemType, nullptr, pSkillUnused, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
     int32_t nDamageShifted = D2Common::Skills::SKILL_CalcMinDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 0);
-    __frame0.nMaxDamage += nDamageShifted >> 8;
+    nMaxDamage += nDamageShifted >> 8;
     nDamageShifted = D2Common::Skills::SKILL_CalcMaxDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 0);
-    __frame0.nMinDamage += nDamageShifted >> 8;
+    nMinDamage += nDamageShifted >> 8;
     if (pSkillsTxt->EType == ELEMENTAL_POISON) {
       int32_t nSynergyMaxDmg;
       nDamageShifted = D2Common::Skills::SERVER_Synergy1(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 1);
       nSynergyMaxDmg = D2Common::Skills::SERVER_MinDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 1);
-      __frame0.nMaxDamage += nSynergyMaxDmg * nDamageShifted >> 8;
+      nMaxDamage += nSynergyMaxDmg * nDamageShifted >> 8;
       nSynergyMaxDmg = D2Common::Skills::SERVER_MaxDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 1);
       nSynergyMaxScaled = nSynergyMaxDmg * nDamageShifted;
     } else {
       nDamageShifted = D2Common::Skills::SERVER_MinDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 1);
-      __frame0.nMaxDamage += nDamageShifted >> 8;
+      nMaxDamage += nDamageShifted >> 8;
       nSynergyMaxScaled = D2Common::Skills::SERVER_MaxDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 1);
     }
 
-    __frame0.nMinDamage += nSynergyMaxScaled >> 8;
-    SKILLDESC_DrawDamageNumbers(__frame0.nMaxDamage, __frame0.nMinDamage, __frame0.nElemType, nY, nXRight, nXLeft);
+    nMinDamage += nSynergyMaxScaled >> 8;
+    SKILLDESC_DrawDamageNumbers(nMaxDamage, nMinDamage, nElemType, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgElem2HAlt(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -20..-4 are ONE object: &nElemType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nElemType;
-      int nMaxDamage;
-      D2UnitStrc* pUnitSaved;
-      int nMinDamage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nMaxDmgScaled;
     if (!(pSkill && pSkillsTxt)) {
       return;
     }
 
     uint8_t byDmgShiftFactor = pSkillsTxt->SrcDam;
-    __frame0.pUnitSaved = pUnit;
-    __frame0.nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
+    D2UnitStrc* pUnitSaved = pUnit;
+    uint32_t nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
     int32_t nDamageShifted = D2Common::Skills::SKILL_CalcMinDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 0);
-    __frame0.nMinDamage = nDamageShifted >> 8;
+    int nMinDamage = nDamageShifted >> 8;
     nDamageShifted = D2Common::Skills::SKILL_CalcMaxDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 0);
-    __frame0.nMaxDamage = nDamageShifted >> 8;
-    SKILLDESC_DrawElemDamageWithRange(pUnit, &__frame0.nMinDamage, &__frame0.nMaxDamage, (int32_t*)&__frame0.nElemType, nullptr, pSkill, (uint32_t)byDmgShiftFactor);
-    D2UnitStrc* pUnitForMaxDmg = __frame0.pUnitSaved;
+    int nMaxDamage = nDamageShifted >> 8;
+    SKILLDESC_DrawElemDamageWithRange(pUnit, &nMinDamage, &nMaxDamage, (int32_t*)&nElemType, nullptr, pSkill, (uint32_t)byDmgShiftFactor);
+    D2UnitStrc* pUnitForMaxDmg = pUnitSaved;
     if (pSkillsTxt->EType == ELEMENTAL_POISON) {
       int32_t nSynergyFactor;
-      nDamageShifted = D2Common::Skills::SERVER_Synergy1(__frame0.pUnitSaved, (int)pSkillsTxt->skill, nSkillLevel, 1);
-      nSynergyFactor = D2Common::Skills::SERVER_MinDamage(__frame0.pUnitSaved, (int)pSkillsTxt->skill, nSkillLevel, 1);
-      __frame0.nMinDamage += nSynergyFactor * nDamageShifted >> 8;
-      nSynergyFactor = D2Common::Skills::SERVER_MaxDamage(__frame0.pUnitSaved, (int)pSkillsTxt->skill, nSkillLevel, 1);
+      nDamageShifted = D2Common::Skills::SERVER_Synergy1(pUnitSaved, (int)pSkillsTxt->skill, nSkillLevel, 1);
+      nSynergyFactor = D2Common::Skills::SERVER_MinDamage(pUnitSaved, (int)pSkillsTxt->skill, nSkillLevel, 1);
+      nMinDamage += nSynergyFactor * nDamageShifted >> 8;
+      nSynergyFactor = D2Common::Skills::SERVER_MaxDamage(pUnitSaved, (int)pSkillsTxt->skill, nSkillLevel, 1);
       nMaxDmgScaled = nSynergyFactor * nDamageShifted;
     } else {
-      nDamageShifted = D2Common::Skills::SERVER_MinDamage(__frame0.pUnitSaved, (int)pSkillsTxt->skill, nSkillLevel, 1);
-      __frame0.nMinDamage += nDamageShifted >> 8;
+      nDamageShifted = D2Common::Skills::SERVER_MinDamage(pUnitSaved, (int)pSkillsTxt->skill, nSkillLevel, 1);
+      nMinDamage += nDamageShifted >> 8;
       nMaxDmgScaled = D2Common::Skills::SERVER_MaxDamage(pUnitForMaxDmg, (int)pSkillsTxt->skill, nSkillLevel, 1);
     }
 
-    SKILLDESC_DrawDamageNumbers(__frame0.nMinDamage, __frame0.nMaxDamage + (nMaxDmgScaled >> 8), __frame0.nElemType, nY, nXRight, nXLeft);
+    SKILLDESC_DrawDamageNumbers(nMinDamage, nMaxDamage + (nMaxDmgScaled >> 8), nElemType, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgRanged(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -28..-4 are ONE object: &nElemColorIdx is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nElemColorIdx;
-      int nPhysMinDmg;
-      int nElemMinDmg;
-      int32_t nPhysColorIdx;
-      int nElemMaxDmg;
-      int nPhysMaxDmg;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t wszPhysDmgW[32];
     uint16_t wszElemDmgW[32];
     char szDmgTextA[32];
@@ -4973,27 +4860,33 @@ void __fastcall SKILLDESC_DrawSkillDmgRanged(D2UnitStrc * pUnit, D2SkillStrc * p
       return;
     }
 
-    __frame0.nPhysMinDmg = 0;
-    __frame0.nPhysMaxDmg = 0;
-    __frame0.nPhysColorIdx = 0;
-    SKILLDESC_CalcWeaponDamageRange(pUnit, &__frame0.nPhysMinDmg, &__frame0.nPhysMaxDmg, &__frame0.nPhysColorIdx, 0, pSkill, 0x80, nullptr, 0, 0);
-    SKILLDESC_CalcElemDamageRange(pUnit, &__frame0.nPhysMinDmg, &__frame0.nPhysMaxDmg, (uint32_t*)&__frame0.nPhysColorIdx, pSkill);
-    __frame0.nElemMinDmg = 0;
-    __frame0.nElemMaxDmg = 0;
-    __frame0.nElemColorIdx = 0;
-    SKILLDESC_CalcSkillElemDamage(pUnit, &__frame0.nElemMinDmg, &__frame0.nElemMaxDmg, &__frame0.nElemColorIdx, &pSkillsTxt->skill, nSkillLevel);
+    int nPhysMinDmg;
+    nPhysMinDmg = 0;
+    int nPhysMaxDmg;
+    nPhysMaxDmg = 0;
+    int32_t nPhysColorIdx;
+    nPhysColorIdx = 0;
+    SKILLDESC_CalcWeaponDamageRange(pUnit, &nPhysMinDmg, &nPhysMaxDmg, &nPhysColorIdx, 0, pSkill, 0x80, nullptr, 0, 0);
+    SKILLDESC_CalcElemDamageRange(pUnit, &nPhysMinDmg, &nPhysMaxDmg, (uint32_t*)&nPhysColorIdx, pSkill);
+    int nElemMinDmg;
+    nElemMinDmg = 0;
+    int nElemMaxDmg;
+    nElemMaxDmg = 0;
+    int32_t nElemColorIdx;
+    nElemColorIdx = 0;
+    SKILLDESC_CalcSkillElemDamage(pUnit, &nElemMinDmg, &nElemMaxDmg, &nElemColorIdx, &pSkillsTxt->skill, nSkillLevel);
     int nPhysMaxCopy;
-    nPhysMaxCopy = __frame0.nPhysMaxDmg;
+    nPhysMaxCopy = nPhysMaxDmg;
     int nElemMinCopy;
-    nElemMinCopy = __frame0.nElemMinDmg;
+    nElemMinCopy = nElemMinDmg;
     int nPhysMinCopy;
-    nPhysMinCopy = __frame0.nPhysMinDmg;
-    if (!__frame0.nPhysMinDmg && !__frame0.nPhysMaxDmg) {
-      SKILLDESC_DrawDamageNumbers(__frame0.nElemMinDmg, __frame0.nElemMaxDmg, __frame0.nElemColorIdx, nY, nXRight, nXLeft);
+    nPhysMinCopy = nPhysMinDmg;
+    if (!nPhysMinDmg && !nPhysMaxDmg) {
+      SKILLDESC_DrawDamageNumbers(nElemMinDmg, nElemMaxDmg, nElemColorIdx, nY, nXRight, nXLeft);
       return;
     }
-    if (!__frame0.nElemMinDmg && !__frame0.nElemMaxDmg) {
-      SKILLDESC_DrawDamageNumbers(__frame0.nPhysMinDmg, __frame0.nPhysMaxDmg, __frame0.nPhysColorIdx, nY, nXRight, nXLeft);
+    if (!nElemMinDmg && !nElemMaxDmg) {
+      SKILLDESC_DrawDamageNumbers(nPhysMinDmg, nPhysMaxDmg, nPhysColorIdx, nY, nXRight, nXLeft);
       return;
     }
 
@@ -5019,12 +4912,12 @@ void __fastcall SKILLDESC_DrawSkillDmgRanged(D2UnitStrc * pUnit, D2SkillStrc * p
     format_second_range:
     D2Lang::UTF8_ConvertToWideChar(wszPhysDmgW, szDmgTextA, 0x20);
     Fog::File::CONTAINER_InitializeBuffer(wszElemDmgW, 2, 0x20, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
-    if (nElemMinCopy == __frame0.nElemMaxDmg) {
+    if (nElemMinCopy == nElemMaxDmg) {
       /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szDmgTextA, "%d", nElemMinCopy);
     } else {
       if (nElemMinCopy < 10000) {
-        if (__frame0.nElemMaxDmg < 10000) {
-          /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szDmgTextA, "%d-%d", nElemMinCopy, __frame0.nElemMaxDmg);
+        if (nElemMaxDmg < 10000) {
+          /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szDmgTextA, "%d-%d", nElemMinCopy, nElemMaxDmg);
           goto draw_both_ranges;
         }
 
@@ -5034,12 +4927,12 @@ void __fastcall SKILLDESC_DrawSkillDmgRanged(D2UnitStrc * pUnit, D2SkillStrc * p
         szFmtStr = "%s%dK-%dK";
       }
 
-      wsprintfA(szDmgTextA, szFmtStr, "", nElemMinCopy, (__frame0.nElemMaxDmg + 500) / 1000);
+      wsprintfA(szDmgTextA, szFmtStr, "", nElemMinCopy, (nElemMaxDmg + 500) / 1000);
     }
 
     draw_both_ranges:
     D2Lang::UTF8_ConvertToWideChar(wszElemDmgW, szDmgTextA, 0x20);
-    SKILLDESC_DrawTwoLineText(wszPhysDmgW, wszElemDmgW, nXLeft, nY, nXRight, __frame0.nPhysColorIdx, __frame0.nElemColorIdx);
+    SKILLDESC_DrawTwoLineText(wszPhysDmgW, wszElemDmgW, nXLeft, nY, nXRight, nPhysColorIdx, nElemColorIdx);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgSimple(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
@@ -5078,14 +4971,6 @@ void __fastcall SKILLDESC_DrawSkillDmgPoisonRange(D2UnitStrc * pUnit, D2SkillStr
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgBow(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -12..-4 are ONE object: &nMinDamage is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nMinDamage;
-      D2UnitStrc* pUnitSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillsTxt* pDVar1 = pSkillsTxt;
     if (!(pSkill && pSkillsTxt)) {
       return;
@@ -5094,14 +4979,14 @@ void __fastcall SKILLDESC_DrawSkillDmgBow(D2UnitStrc * pUnit, D2SkillStrc * pSki
     uint8_t byDmgShift = pSkillsTxt->HitShift;
     int nMaxDmgTxtBase = pSkillsTxt->MaxDam;
     int nMinDmgTxtBase = pSkillsTxt->MinDam;
-    __frame0.pUnitSaved = pUnit;
+    D2UnitStrc* pUnitSaved = pUnit;
     int32_t nMinDmgShifted = D2Common::Skills::SERVER_MinDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 1);
-    int32_t nMaxDmgShifted = D2Common::Skills::SERVER_MaxDamage(__frame0.pUnitSaved, (int)pDVar1->skill, nSkillLevel, 1);
+    int32_t nMaxDmgShifted = D2Common::Skills::SERVER_MaxDamage(pUnitSaved, (int)pDVar1->skill, nSkillLevel, 1);
     nSkillLevel = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pDVar1->EType);
-    __frame0.nMinDamage = ((nMinDmgTxtBase << (byDmgShift & 0x1f)) + nMinDmgShifted) * 0x4b >> 8;
+    int32_t nMinDamage = ((nMinDmgTxtBase << (byDmgShift & 0x1f)) + nMinDmgShifted) * 0x4b >> 8;
     pSkillsTxt = (D2SkillsTxt*)(((nMaxDmgTxtBase << (byDmgShift & 0x1f)) + nMaxDmgShifted) * 0x4b >> 8);
-    SKILLDESC_DrawElemDamageWithRange(__frame0.pUnitSaved, &__frame0.nMinDamage, (int*)&pSkillsTxt, &nSkillLevel, nullptr, pSkill, (uint32_t)(uint8_t)pDVar1->SrcDam);
-    SKILLDESC_DrawDamageNumbers(__frame0.nMinDamage, (int32_t)pSkillsTxt, nSkillLevel, nY, nXRight, nXLeft);
+    SKILLDESC_DrawElemDamageWithRange(pUnitSaved, &nMinDamage, (int*)&pSkillsTxt, &nSkillLevel, nullptr, pSkill, (uint32_t)(uint8_t)pDVar1->SrcDam);
+    SKILLDESC_DrawDamageNumbers(nMinDamage, (int32_t)pSkillsTxt, nSkillLevel, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgThrow(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
@@ -5175,56 +5060,46 @@ void __fastcall SKILLDESC_DrawSkillDmgThrow(D2UnitStrc * pUnit, D2SkillStrc * pS
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgKick(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -24..-4 are ONE object: &nElemType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nElemType;
-      D2UnitStrc* pUnitSaved;
-      int nMaxDamage;
-      int nMinDamage;
-      int nMinDmgStat;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nHandedness;
     int nMastery;
     int32_t nBonusApplied;
     uint32_t nElemTypeOrPhys;
     D2UnitStrc* pUnitUnused = pUnit;
     D2SkillStrc* pSkillUnused = pSkill;
+    int nMinDmgStat;
     eD2UnitStat eUnitStat;
     if (!(pSkill && pSkillsTxt)) {
       return;
     }
 
-    __frame0.nMinDamage = 0;
-    __frame0.nMaxDamage = 0;
-    __frame0.pUnitSaved = pUnit;
-    __frame0.nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
-    SKILLDESC_DrawElemDamageWithRange(pUnitUnused, &__frame0.nMinDamage, &__frame0.nMaxDamage, (int32_t*)&__frame0.nElemType, nullptr, pSkillUnused, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
-    D2UnitStrc* pUnitWorking = __frame0.pUnitSaved;
-    D2UnitStrc* pWeapon = D2Common::Units::GetWeaponBySkill(__frame0.pUnitSaved, 1);
+    int nMinDamage = 0;
+    int nMaxDamage = 0;
+    D2UnitStrc* pUnitSaved = pUnit;
+    uint32_t nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
+    SKILLDESC_DrawElemDamageWithRange(pUnitUnused, &nMinDamage, &nMaxDamage, (int32_t*)&nElemType, nullptr, pSkillUnused, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
+    D2UnitStrc* pUnitWorking = pUnitSaved;
+    D2UnitStrc* pWeapon = D2Common::Units::GetWeaponBySkill(pUnitSaved, 1);
     if (!pWeapon || (nHandedness = D2Common::INVENTORY::Inventory::INVENTORY_GetWeaponHandedness(pUnitWorking, pUnitWorking->pInventory) , nHandedness != 2)) {
-      __frame0.nMinDmgStat = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnitWorking, UNITSTAT_mindamage, 0);
+      nMinDmgStat = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnitWorking, UNITSTAT_mindamage, 0);
       eUnitStat = UNITSTAT_maxdamage;
     } else {
-      __frame0.nMinDmgStat = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnitWorking, UNITSTAT_secondary_mindamage, 0);
+      nMinDmgStat = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnitWorking, UNITSTAT_secondary_mindamage, 0);
       eUnitStat = UNITSTAT_secondary_maxdamage;
     }
 
     nHandedness = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnitWorking, eUnitStat, 0);
-    if (__frame0.nMinDmgStat < 2) {
-      __frame0.nMinDmgStat = 1;
+    if (nMinDmgStat < 2) {
+      nMinDmgStat = 1;
     }
     if (nHandedness < 3) {
       nHandedness = 2;
     }
-    if (nHandedness < __frame0.nMinDmgStat) {
-      nHandedness = __frame0.nMinDmgStat;
+    if (nHandedness < nMinDmgStat) {
+      nHandedness = nMinDmgStat;
     }
 
-    __frame0.pUnitSaved = (D2UnitStrc*)(int)pSkillsTxt->skill;
-    int32_t nMaxDmgStat = D2Common::Skills::D2GetSkillCalc(pUnitWorking, pSkillsTxt->calc[0], (eD2Skills)__frame0.pUnitSaved, nSkillLevel);
+    pUnitSaved = (D2UnitStrc*)(int)pSkillsTxt->skill;
+    int32_t nMaxDmgStat = D2Common::Skills::D2GetSkillCalc(pUnitWorking, pSkillsTxt->calc[0], (eD2Skills)pUnitSaved, nSkillLevel);
     if (nMaxDmgStat) {
       nMastery = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnitWorking, UNITSTAT_passive_fire_mastery, 0);
       if (nMastery) {
@@ -5233,11 +5108,11 @@ void __fastcall SKILLDESC_DrawSkillDmgKick(D2UnitStrc * pUnit, D2SkillStrc * pSk
       }
     }
 
-    nBonusApplied = Stats::D2ApplyPercent(__frame0.nMinDmgStat, nMaxDmgStat, 100);
-    __frame0.nMinDamage += nBonusApplied;
+    nBonusApplied = Stats::D2ApplyPercent(nMinDmgStat, nMaxDmgStat, 100);
+    nMinDamage += nBonusApplied;
     nMaxDmgStat = Stats::D2ApplyPercent(nHandedness, nMaxDmgStat, 100);
-    __frame0.nMaxDamage += nMaxDmgStat;
-    nMaxDmgStat = D2Common::Skills::D2GetSkillCalc(pUnitWorking, pSkillsTxt->calc[1], (eD2Skills)__frame0.pUnitSaved, nSkillLevel);
+    nMaxDamage += nMaxDmgStat;
+    nMaxDmgStat = D2Common::Skills::D2GetSkillCalc(pUnitWorking, pSkillsTxt->calc[1], (eD2Skills)pUnitSaved, nSkillLevel);
     if (nMaxDmgStat) {
       nMastery = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnitWorking, UNITSTAT_passive_cold_mastery, 0);
       if (nMastery) {
@@ -5246,11 +5121,11 @@ void __fastcall SKILLDESC_DrawSkillDmgKick(D2UnitStrc * pUnit, D2SkillStrc * pSk
       }
     }
 
-    nBonusApplied = Stats::D2ApplyPercent(__frame0.nMinDmgStat, nMaxDmgStat, 100);
-    __frame0.nMinDamage += nBonusApplied;
+    nBonusApplied = Stats::D2ApplyPercent(nMinDmgStat, nMaxDmgStat, 100);
+    nMinDamage += nBonusApplied;
     nMaxDmgStat = Stats::D2ApplyPercent(nHandedness, nMaxDmgStat, 100);
-    __frame0.nMaxDamage += nMaxDmgStat;
-    nMaxDmgStat = D2Common::Skills::D2GetSkillCalc(pUnitWorking, pSkillsTxt->calc[2], (eD2Skills)__frame0.pUnitSaved, nSkillLevel);
+    nMaxDamage += nMaxDmgStat;
+    nMaxDmgStat = D2Common::Skills::D2GetSkillCalc(pUnitWorking, pSkillsTxt->calc[2], (eD2Skills)pUnitSaved, nSkillLevel);
     if (nMaxDmgStat) {
       nMastery = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnitWorking, UNITSTAT_passive_ltng_mastery, 0);
       if (nMastery) {
@@ -5259,26 +5134,18 @@ void __fastcall SKILLDESC_DrawSkillDmgKick(D2UnitStrc * pUnit, D2SkillStrc * pSk
       }
     }
 
-    nBonusApplied = Stats::D2ApplyPercent(__frame0.nMinDmgStat, nMaxDmgStat, 100);
-    __frame0.nMinDamage += nBonusApplied;
+    nBonusApplied = Stats::D2ApplyPercent(nMinDmgStat, nMaxDmgStat, 100);
+    nMinDamage += nBonusApplied;
     nMaxDmgStat = Stats::D2ApplyPercent(nHandedness, nMaxDmgStat, 100);
-    nElemTypeOrPhys = __frame0.nElemType;
-    if (!__frame0.nElemType) {
+    nElemTypeOrPhys = nElemType;
+    if (!nElemType) {
       nElemTypeOrPhys = 3;
     }
 
-    SKILLDESC_DrawDamageNumbers(__frame0.nMinDamage, __frame0.nMaxDamage + nMaxDmgStat, nElemTypeOrPhys, nY, nXRight, nXLeft);
+    SKILLDESC_DrawDamageNumbers(nMinDamage, nMaxDamage + nMaxDmgStat, nElemTypeOrPhys, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgFist(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -12..-4 are ONE object: &nElemMaxDmg is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nElemMaxDmg;
-      int nElemMinDmg;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nElemTypeOut;
     int32_t nMinDmgBonused;
     int32_t nMaxDmgBonused;
@@ -5289,24 +5156,24 @@ void __fastcall SKILLDESC_DrawSkillDmgFist(D2UnitStrc * pUnit, D2SkillStrc * pSk
 
     BOOL bIsExpansion = GAME::Game::CLIENT_CheckExpansion();
     pSkillsTxt = 0;
-    __frame0.nElemMinDmg = 0;
-    __frame0.nElemMaxDmg = 0;
+    int nElemMinDmg = 0;
+    int32_t nElemMaxDmg = 0;
     if (!bIsExpansion) {
-      SKILLDESC_CalcSkillElemDamage(pUnit, (int*)&pSkillsTxt, &__frame0.nElemMaxDmg, &__frame0.nElemMinDmg, &pSkillDescTxt->skill, nSkillLevel);
+      SKILLDESC_CalcSkillElemDamage(pUnit, (int*)&pSkillsTxt, &nElemMaxDmg, &nElemMinDmg, &pSkillDescTxt->skill, nSkillLevel);
       nElemTypeOut = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_damagepercent, 0);
       if (nElemTypeOut < -0x59) {
         nElemTypeOut = -0x5a;
       }
 
       nMinDmgBonused = (int)pSkillsTxt->srvprgfunc + nElemTypeOut * (int)pSkillsTxt / 100 - 0x30;
-      nMaxDmgBonused = __frame0.nElemMaxDmg + nElemTypeOut * __frame0.nElemMaxDmg / 100;
-      nElemTypeOut = __frame0.nElemMinDmg;
+      nMaxDmgBonused = nElemMaxDmg + nElemTypeOut * nElemMaxDmg / 100;
+      nElemTypeOut = nElemMinDmg;
     } else {
-      SKILLDESC_CalcSkillElemDamage(pUnit, (int*)&pSkillsTxt, &__frame0.nElemMinDmg, &__frame0.nElemMaxDmg, &pSkillDescTxt->skill, nSkillLevel);
+      SKILLDESC_CalcSkillElemDamage(pUnit, (int*)&pSkillsTxt, &nElemMinDmg, &nElemMaxDmg, &pSkillDescTxt->skill, nSkillLevel);
       nMaxDmgBonused = D2Common::Skills::SKILL_GetConcentrationDamageBonus(pUnit, (int)pSkillDescTxt->skill);
       nMinDmgBonused = (int)pSkillsTxt->srvprgfunc + nMaxDmgBonused * (int)pSkillsTxt / 100 - 0x30;
-      nMaxDmgBonused = __frame0.nElemMinDmg + nMaxDmgBonused * __frame0.nElemMinDmg / 100;
-      nElemTypeOut = __frame0.nElemMaxDmg;
+      nMaxDmgBonused = nElemMinDmg + nMaxDmgBonused * nElemMinDmg / 100;
+      nElemTypeOut = nElemMaxDmg;
     }
 
     SKILLDESC_DrawDamageNumbers(nMinDmgBonused, nMaxDmgBonused, nElemTypeOut, nY, nXRight, nXLeft);
@@ -5314,23 +5181,15 @@ void __fastcall SKILLDESC_DrawSkillDmgFist(D2UnitStrc * pUnit, D2SkillStrc * pSk
 
 // @sourcefile .\UI\SkillDesc.cpp
 void __fastcall SKILLDESC_DrawSkillDmgTrap(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -12..-4 are ONE object: &nElemType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nElemType;
-      int nMinDmgAccum;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nTrapDmgBonus;
     if (!(pSkill && pSkillsTxt)) {
       return;
     }
 
-    __frame0.nMinDmgAccum = 0;
+    int nMinDmgAccum = 0;
     pSkillsTxt = 0;
-    __frame0.nElemType = 0;
-    SKILLDESC_CalcWeaponDamageRange(pUnit, &__frame0.nMinDmgAccum, (int*)&pSkillsTxt, &__frame0.nElemType, 0, pSkill, 0, nullptr, 0, 0);
+    int32_t nElemType = 0;
+    SKILLDESC_CalcWeaponDamageRange(pUnit, &nMinDmgAccum, (int*)&pSkillsTxt, &nElemType, 0, pSkill, 0, nullptr, 0, 0);
     eD2Skills eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\UI\\SkillDesc.cpp", 0xd40);
     if ((int)eSkillId < 0 || sgptDataTable->nTxtSkillsCount <= (int)eSkillId || !(sgptDataTable->pTxtSkills + eSkillId)) {
       nTrapDmgBonus = 0;
@@ -5338,72 +5197,51 @@ void __fastcall SKILLDESC_DrawSkillDmgTrap(D2UnitStrc * pUnit, D2SkillStrc * pSk
       nTrapDmgBonus = sgptDataTable->pTxtSkills[eSkillId].Param[4];
     }
 
-    __frame0.nMinDmgAccum += nTrapDmgBonus * __frame0.nMinDmgAccum / 100;
+    nMinDmgAccum += nTrapDmgBonus * nMinDmgAccum / 100;
     pSkillsTxt = (D2SkillsTxt*)((int)pSkillsTxt->srvprgfunc + nTrapDmgBonus * (int)pSkillsTxt / 100 - 0x30);
-    SKILLDESC_CalcElemDamageRange(pUnit, &__frame0.nMinDmgAccum, (int*)&pSkillsTxt, (uint32_t*)&__frame0.nElemType, pSkill);
-    SKILLDESC_DrawDamageNumbers(__frame0.nMinDmgAccum, (int32_t)pSkillsTxt, __frame0.nElemType, nY, nXRight, nXLeft);
+    SKILLDESC_CalcElemDamageRange(pUnit, &nMinDmgAccum, (int*)&pSkillsTxt, (uint32_t*)&nElemType, pSkill);
+    SKILLDESC_DrawDamageNumbers(nMinDmgAccum, (int32_t)pSkillsTxt, nElemType, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgConversion(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -24..-4 are ONE object: &nAuraMaxDmg is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nAuraMaxDmg;
-      D2UnitStrc* pUnitSaved;
-      int32_t nElemType;
-      int32_t nKickBonusPct;
-      int nKickMaxDmg;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     if (!(pSkill && pSkillsTxt)) {
       return;
     }
 
     eD2Skills eSkill = (eD2Skills)pSkillsTxt->skill;
-    __frame0.nElemType = 0;
-    __frame0.pUnitSaved = pUnit;
+    int32_t nElemType = 0;
+    D2UnitStrc* pUnitSaved = pUnit;
     int32_t nMinDmgShifted = D2Common::Skills::SKILL_CalcMinDamage(pUnit, eSkill, nSkillLevel, 1);
     int32_t nKickMinApplied = D2Common::Skills::SKILL_CalcMaxDamage(pUnit, eSkill, nSkillLevel, 1);
-    __frame0.nAuraMaxDmg = nKickMinApplied >> 8;
+    int nAuraMaxDmg = nKickMinApplied >> 8;
     nKickMinApplied = SKILLDESC_GetAuraBonusDamage();
     int32_t nConvRangeBonus = DataTbls::TXT_Skills_GetSkillRange(eSkill, nSkillLevel);
     int nConversionBonus = nKickMinApplied + nConvRangeBonus;
     if (nConversionBonus) {
-      __frame0.nElemType = 3;
+      nElemType = 3;
     }
 
     pSkillsTxt = 0;
-    __frame0.nKickMaxDmg = 0;
-    __frame0.nKickBonusPct = nConversionBonus;
-    D2Common::Skills::SKILL_CalcKickDamage(__frame0.pUnitSaved, (int*)&pSkillsTxt, &__frame0.nKickMaxDmg, &__frame0.nKickBonusPct);
-    nKickMinApplied = Stats::D2ApplyPercent((int32_t)pSkillsTxt, __frame0.nKickBonusPct, 100);
+    int nKickMaxDmg = 0;
+    int32_t nKickBonusPct = nConversionBonus;
+    D2Common::Skills::SKILL_CalcKickDamage(pUnitSaved, (int*)&pSkillsTxt, &nKickMaxDmg, &nKickBonusPct);
+    nKickMinApplied = Stats::D2ApplyPercent((int32_t)pSkillsTxt, nKickBonusPct, 100);
     nConvRangeBonus = Stats::D2ApplyPercent(nMinDmgShifted >> 8, nConversionBonus, 100);
-    int nKickMaxSaved = __frame0.nKickMaxDmg;
+    int nKickMaxSaved = nKickMaxDmg;
     pSkillsTxt = (D2SkillsTxt*)((int)pSkillsTxt->srvprgfunc + nConvRangeBonus + nKickMinApplied + (nMinDmgShifted >> 8) - 0x30);
-    nMinDmgShifted = Stats::D2ApplyPercent(__frame0.nKickMaxDmg, __frame0.nKickBonusPct, 100);
-    int nAuraMaxSaved = __frame0.nAuraMaxDmg;
-    nKickMinApplied = Stats::D2ApplyPercent(__frame0.nAuraMaxDmg, nConversionBonus, 100);
-    __frame0.nKickMaxDmg = nKickMaxSaved + nKickMinApplied + nMinDmgShifted + nAuraMaxSaved;
+    nMinDmgShifted = Stats::D2ApplyPercent(nKickMaxDmg, nKickBonusPct, 100);
+    int nAuraMaxSaved = nAuraMaxDmg;
+    nKickMinApplied = Stats::D2ApplyPercent(nAuraMaxDmg, nConversionBonus, 100);
+    nKickMaxDmg = nKickMaxSaved + nKickMinApplied + nMinDmgShifted + nAuraMaxSaved;
     nSkillLevel = 0;
-    __frame0.nAuraMaxDmg = 0;
-    SKILLDESC_AccumulateAuraBonusDmg(__frame0.pUnitSaved, &nSkillLevel, &__frame0.nAuraMaxDmg, (uint32_t*)&__frame0.nElemType);
+    nAuraMaxDmg = 0;
+    SKILLDESC_AccumulateAuraBonusDmg(pUnitSaved, &nSkillLevel, &nAuraMaxDmg, (uint32_t*)&nElemType);
     pSkillsTxt = (D2SkillsTxt*)((int)pSkillsTxt->srvprgfunc + nSkillLevel - 0x30);
-    __frame0.nKickMaxDmg += __frame0.nAuraMaxDmg;
-    SKILLDESC_DrawDamageNumbers((int32_t)pSkillsTxt, __frame0.nKickMaxDmg, __frame0.nElemType, nY, nXRight, nXLeft);
+    nKickMaxDmg += nAuraMaxDmg;
+    SKILLDESC_DrawDamageNumbers((int32_t)pSkillsTxt, nKickMaxDmg, nElemType, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgSummon(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -20..-4 are ONE object: &nElemType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nElemType;
-      int32_t nKickBonusPct;
-      int nMaxDamage;
-      int nMinDamage;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2UnitStrc* pPrimaryWeapon;
     uint32_t uIsWeapon;
     BOOL bWeaponEnabled;
@@ -5417,27 +5255,27 @@ void __fastcall SKILLDESC_DrawSkillDmgSummon(D2UnitStrc * pUnit, D2SkillStrc * p
     }
 
     eD2Skills eSkillId = (eD2Skills)pSkillsTxt->skill;
-    __frame0.nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
+    uint32_t nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
     int32_t nMinDmgShifted = D2Common::Skills::SKILL_CalcMinDamage(pUnit, eSkillId, nSkillLevel, 0);
     int32_t nMaxDmgShifted = D2Common::Skills::SKILL_CalcMaxDamage(pUnit, eSkillId, nSkillLevel, 0);
     int32_t nAuraBonusDmg = SKILLDESC_GetAuraBonusDamage();
-    __frame0.nMaxDamage = 0;
-    __frame0.nMinDamage = 0;
-    __frame0.nKickBonusPct = nAuraBonusDmg;
-    D2Common::Skills::SKILL_CalcKickDamage(pUnit, &__frame0.nMaxDamage, &__frame0.nMinDamage, &__frame0.nKickBonusPct);
-    int32_t nKickMinBonus = Stats::D2ApplyPercent(__frame0.nMaxDamage, __frame0.nKickBonusPct, 100);
+    int nMaxDamage = 0;
+    int nMinDamage = 0;
+    int32_t nKickBonusPct = nAuraBonusDmg;
+    D2Common::Skills::SKILL_CalcKickDamage(pUnit, &nMaxDamage, &nMinDamage, &nKickBonusPct);
+    int32_t nKickMinBonus = Stats::D2ApplyPercent(nMaxDamage, nKickBonusPct, 100);
     int32_t nSkillCalcBonus = Stats::D2ApplyPercent(nMinDmgShifted >> 8, nAuraBonusDmg, 100);
-    __frame0.nMaxDamage = __frame0.nMaxDamage + nSkillCalcBonus + nKickMinBonus + (nMinDmgShifted >> 8);
-    nMinDmgShifted = Stats::D2ApplyPercent(__frame0.nMinDamage, __frame0.nKickBonusPct, 100);
+    nMaxDamage = nMaxDamage + nSkillCalcBonus + nKickMinBonus + (nMinDmgShifted >> 8);
+    nMinDmgShifted = Stats::D2ApplyPercent(nMinDamage, nKickBonusPct, 100);
     nAuraBonusDmg = Stats::D2ApplyPercent(nMaxDmgShifted >> 8, nAuraBonusDmg, 100);
-    __frame0.nMinDamage = __frame0.nMinDamage + nAuraBonusDmg + nMinDmgShifted + (nMaxDmgShifted >> 8);
+    nMinDamage = nMinDamage + nAuraBonusDmg + nMinDmgShifted + (nMaxDmgShifted >> 8);
     nMinDmgShifted = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxt->calc[0], eSkillId, nSkillLevel);
-    int nMaxDmgSaved = __frame0.nMaxDamage;
-    nMaxDmgShifted = Stats::D2ApplyPercent(__frame0.nMaxDamage, nMinDmgShifted, 100);
-    int nMinDmgBonusSaved = __frame0.nMinDamage;
-    __frame0.nMaxDamage = nMaxDmgSaved + nMaxDmgShifted;
-    nMinDmgShifted = Stats::D2ApplyPercent(__frame0.nMinDamage, nMinDmgShifted, 100);
-    __frame0.nMinDamage = nMinDmgBonusSaved + nMinDmgShifted;
+    int nMaxDmgSaved = nMaxDamage;
+    nMaxDmgShifted = Stats::D2ApplyPercent(nMaxDamage, nMinDmgShifted, 100);
+    int nMinDmgBonusSaved = nMinDamage;
+    nMaxDamage = nMaxDmgSaved + nMaxDmgShifted;
+    nMinDmgShifted = Stats::D2ApplyPercent(nMinDamage, nMinDmgShifted, 100);
+    nMinDamage = nMinDmgBonusSaved + nMinDmgShifted;
     D2InventoryStrc* pInvSaved = pUnit->pInventory;
     if (pInvSaved) {
       eD2BodyLoc eBodyLoc;
@@ -5467,27 +5305,16 @@ void __fastcall SKILLDESC_DrawSkillDmgSummon(D2UnitStrc * pUnit, D2SkillStrc * p
         }
       }
 
-      SKILLDESC_CalcElemDamageRange(pUnit, &__frame0.nMaxDamage, &__frame0.nMinDamage, &__frame0.nElemType, pSkill);
+      SKILLDESC_CalcElemDamageRange(pUnit, &nMaxDamage, &nMinDamage, &nElemType, pSkill);
       if (pPrimaryWeapon) {
         D2Common::Stats::StatsEx::STATLIST_SetItemStatActive(pUnit, pPrimaryWeapon, 1);
       }
     }
 
-    SKILLDESC_DrawDamageNumbers(__frame0.nMaxDamage, __frame0.nMinDamage, __frame0.nElemType, nY, nXRight, nXLeft);
+    SKILLDESC_DrawDamageNumbers(nMaxDamage, nMinDamage, nElemType, nY, nXRight, nXLeft);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgProgressive(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
-    // Frame slots -24..-4 are ONE object: &nPhysMax is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nPhysMax;
-      int32_t nElemColor;
-      int nPhysMin;
-      D2SkillDescTxt* pSkillDescTxt;
-      D2SkillStrc* pSkillSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t wszLine1Text[32];
     uint16_t wszLine2Text[32];
     char szNumberBuffer[32];
@@ -5501,39 +5328,44 @@ void __fastcall SKILLDESC_DrawSkillDmgProgressive(D2UnitStrc * pUnit, D2SkillStr
 
     eD2Skills eSkillId;
     eSkillId = (eD2Skills)pSkillsTxt->skill;
-    __frame0.pSkillSaved = pSkill;
-    __frame0.pSkillDescTxt = DataTbls::GetSkillDescription(eSkillId);
+    D2SkillStrc* pSkillSaved;
+    pSkillSaved = pSkill;
+    D2SkillDescTxt* pSkillDescTxt;
+    pSkillDescTxt = DataTbls::GetSkillDescription(eSkillId);
     int32_t nSkillLevel_00;
     nSkillLevel_00 = nSkillLevel;
-    if (!__frame0.pSkillDescTxt) {
+    if (!pSkillDescTxt) {
       return;
     }
 
-    __frame0.nPhysMax = 0;
-    __frame0.nPhysMin = 0;
-    __frame0.nElemColor = 0;
-    nSkillLevel = D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)__frame0.pSkillDescTxt->ddamCalc1, eSkillId, nSkillLevel);
+    int nPhysMax;
+    nPhysMax = 0;
+    int nPhysMin;
+    nPhysMin = 0;
+    int32_t nElemColor;
+    nElemColor = 0;
+    nSkillLevel = D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)pSkillDescTxt->ddamCalc1, eSkillId, nSkillLevel);
     uint32_t nDamCalc2;
-    nDamCalc2 = D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)__frame0.pSkillDescTxt->ddamCalc2, eSkillId, nSkillLevel_00);
+    nDamCalc2 = D2Common::Skills::SKILLS_EvalDescCalcBytecode(pUnit, (uint32_t)pSkillDescTxt->ddamCalc2, eSkillId, nSkillLevel_00);
     D2SkillStrc* pSkillLevelB;
-    pSkillLevelB = __frame0.pSkillSaved;
-    SKILLDESC_CalcWeaponDamageRange(pUnit, &__frame0.nPhysMax, &__frame0.nPhysMin, &__frame0.nElemColor, nDamCalc2, __frame0.pSkillSaved, 0x80, nullptr, 0, nSkillLevel);
-    SKILLDESC_CalcElemDamageRange(pUnit, &__frame0.nPhysMax, &__frame0.nPhysMin, (uint32_t*)&__frame0.nElemColor, pSkillLevelB);
-    __frame0.pSkillSaved = 0;
+    pSkillLevelB = pSkillSaved;
+    SKILLDESC_CalcWeaponDamageRange(pUnit, &nPhysMax, &nPhysMin, &nElemColor, nDamCalc2, pSkillSaved, 0x80, nullptr, 0, nSkillLevel);
+    SKILLDESC_CalcElemDamageRange(pUnit, &nPhysMax, &nPhysMin, (uint32_t*)&nElemColor, pSkillLevelB);
+    pSkillSaved = 0;
     nSkillLevel = 0;
-    __frame0.pSkillDescTxt = 0;
-    SKILLDESC_CalcSkillElemDamage(pUnit, (int*)&__frame0.pSkillSaved, &nSkillLevel, (int32_t*)&__frame0.pSkillDescTxt, &pSkillsTxt->skill, nSkillLevel_00);
-    pSkillLevelB = __frame0.pSkillSaved;
+    pSkillDescTxt = 0;
+    SKILLDESC_CalcSkillElemDamage(pUnit, (int*)&pSkillSaved, &nSkillLevel, (int32_t*)&pSkillDescTxt, &pSkillsTxt->skill, nSkillLevel_00);
+    pSkillLevelB = pSkillSaved;
     int nPhysMinShifted;
-    nPhysMinShifted = __frame0.nPhysMin;
+    nPhysMinShifted = nPhysMin;
     int nPhysMaxShifted;
-    nPhysMaxShifted = __frame0.nPhysMax;
-    if (!__frame0.nPhysMax && !__frame0.nPhysMin) {
-      SKILLDESC_DrawDamageNumbers((int32_t)__frame0.pSkillSaved, nSkillLevel, (int32_t)__frame0.pSkillDescTxt, nY, nXRight, nXLeft);
+    nPhysMaxShifted = nPhysMax;
+    if (!nPhysMax && !nPhysMin) {
+      SKILLDESC_DrawDamageNumbers((int32_t)pSkillSaved, nSkillLevel, (int32_t)pSkillDescTxt, nY, nXRight, nXLeft);
       return;
     }
-    if (!__frame0.pSkillSaved && !nSkillLevel) {
-      SKILLDESC_DrawDamageNumbers(__frame0.nPhysMax, __frame0.nPhysMin, __frame0.nElemColor, nY, nXRight, nXLeft);
+    if (!pSkillSaved && !nSkillLevel) {
+      SKILLDESC_DrawDamageNumbers(nPhysMax, nPhysMin, nElemColor, nY, nXRight, nXLeft);
       return;
     }
 
@@ -5579,7 +5411,7 @@ void __fastcall SKILLDESC_DrawSkillDmgProgressive(D2UnitStrc * pUnit, D2SkillStr
 
     draw_both_ranges:
     D2Lang::UTF8_ConvertToWideChar(wszLine2Text, szNumberBuffer, 0x20);
-    SKILLDESC_DrawTwoLineText(wszLine1Text, wszLine2Text, nXLeft, nY, nXRight, __frame0.nElemColor, (int32_t)__frame0.pSkillDescTxt);
+    SKILLDESC_DrawTwoLineText(wszLine1Text, wszLine2Text, nXLeft, nY, nXRight, nElemColor, (int32_t)pSkillDescTxt);
 }
 
 void __fastcall SKILLDESC_DrawSkillDmgProgElem(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
@@ -7267,20 +7099,6 @@ BOOL __fastcall SKILLDESC_ProcessDescLine(D2UnitStrc * pUnit, uint16_t * pwszOut
 }
 
 void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nClassMask, int32_t nSkillLevel, int32_t nCalcIndex, int32_t nScreenX, int32_t nScreenY) {
-    // Frame slots -36..-4 are ONE object: &nTooltipHeight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTooltipHeight;
-      int bAtMaxLevel;
-      int bAnyDescLine;
-      int nSkillTxtOffset;
-      int32_t nNextSkillLevel;
-      int bIsPassive;
-      D2SkillsTxt* pSkillsTxt;
-      D2UnitStrc* pUnitLocal;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL nLineResult;
     uint16_t wStrId;
     int nIter;
@@ -7289,6 +7107,10 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
     char szLevelBuf[32];
     int nTooltipWidth;
     uint16_t wszLevelBuf[32];
+    int nTooltipHeight;
+    int bAtMaxLevel;
+    int32_t nNextSkillLevel;
+    int bIsPassive;
     bool bSectionHasDescLine;
     if (!pUnit) {
       return;
@@ -7300,22 +7122,25 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
       return;
     }
 
-    __frame0.nSkillTxtOffset = eSkill * 0x23c;
-    __frame0.pSkillsTxt = sgptDataTable->pTxtSkills + eSkill;
-    if (!__frame0.pSkillsTxt) {
+    int nSkillTxtOffset;
+    nSkillTxtOffset = eSkill * 0x23c;
+    D2SkillsTxt* pSkillsTxt;
+    pSkillsTxt = sgptDataTable->pTxtSkills + eSkill;
+    if (!pSkillsTxt) {
       return;
     }
 
-    __frame0.pUnitLocal = pUnit;
+    D2UnitStrc* pUnitLocal;
+    pUnitLocal = pUnit;
     D2SkillStrc* pSkill;
     pSkill = D2Common::Skills::GetSkillByIdAndOwner(pUnit, eSkill, -1);
     if (!pSkill || (nIter = D2Common::Skills::GetSkillLevel(pUnit, pSkill, 1) , !nIter)) {
-      __frame0.bIsPassive = 0;
+      bIsPassive = 0;
     } else {
       nIter = D2Common::Skills::GetSkillLevel(pUnit, pSkill, 0);
-      __frame0.bIsPassive = 1;
+      bIsPassive = 1;
       if (nIter) {
-        __frame0.bIsPassive = 0;
+        bIsPassive = 0;
       }
     }
 
@@ -7335,35 +7160,35 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
       int32_t nMaxSkillLevel;
       nIter = D2Common::Skills::GetSkillLevel(pUnit, pSkill, 0);
       nMaxSkillLevel = DataTbls::SKILL_GetMaxLevelForSkill(eSkill);
-      __frame0.bAtMaxLevel = 1;
+      bAtMaxLevel = 1;
       if (nMaxSkillLevel <= nIter) {
         goto append_dsc3_lines;
       }
     }
 
-    __frame0.bAtMaxLevel = 0;
+    bAtMaxLevel = 0;
     append_dsc3_lines:
-    __frame0.nNextSkillLevel = nSkillLevel + 1;
-    __frame0.bAnyDescLine = 0;
+    nNextSkillLevel = nSkillLevel + 1;
+    int bAnyDescLine = 0;
     nIter = 0x10;
     do {
-      nLineResult = SKILLDESC_ProcessDescLine(__frame0.pUnitLocal, wszTooltipBuf, __frame0.pSkillsTxt, eSkill, __frame0.nNextSkillLevel, nCalcIndex, nIter, '\0');
+      nLineResult = SKILLDESC_ProcessDescLine(pUnitLocal, wszTooltipBuf, pSkillsTxt, eSkill, nNextSkillLevel, nCalcIndex, nIter, '\0');
       if (nLineResult) {
-        __frame0.bAnyDescLine = 1;
+        bAnyDescLine = 1;
       }
 
       nIter--;
     } while (9 < nIter);
 
-    if (__frame0.bAnyDescLine) {
+    if (bAnyDescLine) {
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     }
-    if (!__frame0.bAtMaxLevel) {
+    if (!bAtMaxLevel) {
       bSectionHasDescLine = false;
       nIter = 0;
       do {
-        nLineResult = SKILLDESC_ProcessDescLine(__frame0.pUnitLocal, wszTooltipBuf, __frame0.pSkillsTxt, eSkill, __frame0.nNextSkillLevel, nCalcIndex, nIter, '\0');
+        nLineResult = SKILLDESC_ProcessDescLine(pUnitLocal, wszTooltipBuf, pSkillsTxt, eSkill, nNextSkillLevel, nCalcIndex, nIter, '\0');
         if (nLineResult) {
           bSectionHasDescLine = true;
         }
@@ -7390,7 +7215,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
     if (0 < nSkillLevel) {
       bSectionHasDescLine = false;
       do {
-        nLineResult = SKILLDESC_ProcessDescLine(__frame0.pUnitLocal, wszTooltipBuf, __frame0.pSkillsTxt, eSkill, nSkillLevel, nCalcIndex, nIter, '\0');
+        nLineResult = SKILLDESC_ProcessDescLine(pUnitLocal, wszTooltipBuf, pSkillsTxt, eSkill, nSkillLevel, nCalcIndex, nIter, '\0');
         if (nLineResult) {
           bSectionHasDescLine = true;
         }
@@ -7404,7 +7229,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
         pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0x109e);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, wszLevelBuf);
-        if (__frame0.bIsPassive) {
+        if (bIsPassive) {
           pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0x1112);
           D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
         }
@@ -7419,7 +7244,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
     bSectionHasDescLine = false;
     nIter = 6;
     do {
-      nLineResult = SKILLDESC_ProcessDescLine(__frame0.pUnitLocal, wszTooltipBuf, __frame0.pSkillsTxt, eSkill, __frame0.nNextSkillLevel, nCalcIndex, nIter, '\0');
+      nLineResult = SKILLDESC_ProcessDescLine(pUnitLocal, wszTooltipBuf, pSkillsTxt, eSkill, nNextSkillLevel, nCalcIndex, nIter, '\0');
       if (nLineResult) {
         bSectionHasDescLine = true;
       }
@@ -7431,7 +7256,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     }
-    if ((int)eSkill < sgptDataTable->nTxtSkillsCount && (nIter = (int)sgptDataTable->pTxtSkills->srvprgfunc + __frame0.nSkillTxtOffset - 0x30 , nIter != 0) && (nIter = (int)*(short int*)(nIter + 0x194) , -1 < nIter) && nIter < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nIter) {
+    if ((int)eSkill < sgptDataTable->nTxtSkillsCount && (nIter = (int)sgptDataTable->pTxtSkills->srvprgfunc + nSkillTxtOffset - 0x30 , nIter != 0) && (nIter = (int)*(short int*)(nIter + 0x194) , -1 < nIter) && nIter < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nIter) {
       wStrId = sgptDataTable->pTxtSkillDesc[nIter].strLong;
     } else {
       wStrId = 0x1506;
@@ -7448,7 +7273,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
       pWszLocale += 2;
     }
 
-    if ((int)eSkill < sgptDataTable->nTxtSkillsCount && (nIter = (int)sgptDataTable->pTxtSkills->srvprgfunc + __frame0.nSkillTxtOffset - 0x30 , nIter != 0) && (nIter = (int)*(short int*)(nIter + 0x194) , -1 < nIter && nIter < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nIter)) {
+    if ((int)eSkill < sgptDataTable->nTxtSkillsCount && (nIter = (int)sgptDataTable->pTxtSkills->srvprgfunc + nSkillTxtOffset - 0x30 , nIter != 0) && (nIter = (int)*(short int*)(nIter + 0x194) , -1 < nIter && nIter < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nIter)) {
       wStrId = sgptDataTable->pTxtSkillDesc[nIter].strName;
     } else {
       wStrId = 0x1506;
@@ -7458,7 +7283,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
     D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszSkillNameBuf, pWszLocale);
     ui::AppendAsWideChar(wszSkillNameBuf, '\x02');
     D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, wszSkillNameBuf);
-    if (__frame0.bIsPassive) {
+    if (bIsPassive) {
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
@@ -7467,7 +7292,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     }
 
-    nIter = SKILLDESC_HasAnyClassSkill(__frame0.pUnitLocal, nClassMask);
+    nIter = SKILLDESC_HasAnyClassSkill(pUnitLocal, nClassMask);
     if (!nIter) {
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
@@ -7477,23 +7302,11 @@ void __fastcall SKILLDESC_BuildSkillTooltip(D2UnitStrc * pUnit, eD2Skills eSkill
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     }
 
-    D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszTooltipBuf, &nTooltipWidth, &__frame0.nTooltipHeight);
-    D2Win::Src::D2WinFont::TEXT_TooltipSetAttributes(wszTooltipBuf, nScreenX - 0x18, __frame0.nTooltipHeight + 3 + nScreenY, 0, 0);
+    D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszTooltipBuf, &nTooltipWidth, &nTooltipHeight);
+    D2Win::Src::D2WinFont::TEXT_TooltipSetAttributes(wszTooltipBuf, nScreenX - 0x18, nTooltipHeight + 3 + nScreenY, 0, 0);
 }
 
 void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nClassMask, int32_t nSkillLevel, int32_t nCalcIndex, int32_t nScreenX, int32_t nScreenY) {
-    // Frame slots -28..-4 are ONE object: &nTooltipHeight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTooltipHeight;
-      int bAnyDescLine;
-      int nSkillTxtOffset;
-      D2SkillsTxt* pSkillsTxt;
-      int bIsPassive;
-      D2UnitStrc* pUnitLocal;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL nLineResult;
     int32_t nClampedLevel;
     uint16_t wStrId;
@@ -7503,6 +7316,8 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
     char szLevelBuf[32];
     int nTooltipWidth;
     uint16_t wszLevelBuf[64];
+    int nTooltipHeight;
+    int bIsPassive;
     if (!pUnit) {
       return;
     }
@@ -7513,24 +7328,27 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
       return;
     }
 
-    __frame0.nSkillTxtOffset = eSkill * 0x23c;
-    __frame0.pSkillsTxt = sgptDataTable->pTxtSkills + eSkill;
-    if (!__frame0.pSkillsTxt) {
+    int nSkillTxtOffset;
+    nSkillTxtOffset = eSkill * 0x23c;
+    D2SkillsTxt* pSkillsTxt;
+    pSkillsTxt = sgptDataTable->pTxtSkills + eSkill;
+    if (!pSkillsTxt) {
       return;
     }
 
-    __frame0.pUnitLocal = pUnit;
+    D2UnitStrc* pUnitLocal;
+    pUnitLocal = pUnit;
     D2SkillStrc* pSkillLocal;
     pSkillLocal = D2Common::Skills::GetSkillByIdAndOwner(pUnit, eSkill, -1);
     D2SkillStrc* pSkill;
     pSkill = D2Common::Skills::GetSkillByIdAndOwner(pUnit, eSkill, -1);
     if (!pSkill || (nIter = D2Common::Skills::GetSkillLevel(pUnit, pSkill, 1) , !nIter)) {
-      __frame0.bIsPassive = 0;
+      bIsPassive = 0;
     } else {
       nIter = D2Common::Skills::GetSkillLevel(pUnit, pSkill, 0);
-      __frame0.bIsPassive = 1;
+      bIsPassive = 1;
       if (nIter) {
-        __frame0.bIsPassive = 0;
+        bIsPassive = 0;
       }
     }
 
@@ -7545,18 +7363,19 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
     memset(wszLevelBuf + 32, 0, 32 * sizeof(wszLevelBuf[0]));
     pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0x109c);
     D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszTooltipBuf, pWszLocale);
-    __frame0.bAnyDescLine = 0;
+    int bAnyDescLine;
+    bAnyDescLine = 0;
     nIter = 0x10;
     do {
-      nLineResult = SKILLDESC_ProcessDescLine(__frame0.pUnitLocal, wszTooltipBuf, __frame0.pSkillsTxt, eSkill, nSkillLevel + 1, nCalcIndex, nIter, '\x01');
+      nLineResult = SKILLDESC_ProcessDescLine(pUnitLocal, wszTooltipBuf, pSkillsTxt, eSkill, nSkillLevel + 1, nCalcIndex, nIter, '\x01');
       if (nLineResult) {
-        __frame0.bAnyDescLine = 1;
+        bAnyDescLine = 1;
       }
 
       nIter--;
     } while (9 < nIter);
 
-    if (__frame0.bAnyDescLine) {
+    if (bAnyDescLine) {
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     }
@@ -7570,7 +7389,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
         nClampedLevel = 1;
       }
 
-      nLineResult = SKILLDESC_ProcessDescLine(__frame0.pUnitLocal, wszTooltipBuf, __frame0.pSkillsTxt, eSkill, nClampedLevel, nCalcIndex, nIter, '\x01');
+      nLineResult = SKILLDESC_ProcessDescLine(pUnitLocal, wszTooltipBuf, pSkillsTxt, eSkill, nClampedLevel, nCalcIndex, nIter, '\x01');
       if (nLineResult) {
         bSectionHasDescLine = true;
       }
@@ -7590,7 +7409,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
       }
 
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
-      if (__frame0.bIsPassive) {
+      if (bIsPassive) {
         pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0x1112);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
       }
@@ -7609,7 +7428,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
         nClampedLevel = 1;
       }
 
-      nLineResult = SKILLDESC_ProcessDescLine(__frame0.pUnitLocal, wszTooltipBuf, __frame0.pSkillsTxt, eSkill, nClampedLevel, nCalcIndex, nIter, '\x01');
+      nLineResult = SKILLDESC_ProcessDescLine(pUnitLocal, wszTooltipBuf, pSkillsTxt, eSkill, nClampedLevel, nCalcIndex, nIter, '\x01');
       if (nLineResult) {
         bSectionHasDescLine = true;
       }
@@ -7623,7 +7442,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
     }
     if (!pSkillLocal) {
       append_required_level:
-      nIter = __frame0.pSkillsTxt->reqlevel + nSkillLevel;
+      nIter = pSkillsTxt->reqlevel + nSkillLevel;
       memset(wszLevelBuf, 0, 32 * sizeof(wszLevelBuf[0]));
       if (!nIter) {
         goto append_desc_and_name;
@@ -7640,7 +7459,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
         nIter = 0x14;
       }
 
-      iVar1 = D2Common::Skills::GetSkillLevel(__frame0.pUnitLocal, pSkillLocal, 0);
+      iVar1 = D2Common::Skills::GetSkillLevel(pUnitLocal, pSkillLocal, 0);
       if (iVar1 < nIter) {
         goto append_required_level;
       }
@@ -7652,7 +7471,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
     pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
     D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     append_desc_and_name:
-    if ((int)eSkill < sgptDataTable->nTxtSkillsCount && (nIter = (int)sgptDataTable->pTxtSkills->srvprgfunc + __frame0.nSkillTxtOffset - 0x30 , nIter != 0) && (nIter = (int)*(short int*)(nIter + 0x194) , -1 < nIter) && nIter < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nIter) {
+    if ((int)eSkill < sgptDataTable->nTxtSkillsCount && (nIter = (int)sgptDataTable->pTxtSkills->srvprgfunc + nSkillTxtOffset - 0x30 , nIter != 0) && (nIter = (int)*(short int*)(nIter + 0x194) , -1 < nIter) && nIter < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nIter) {
       wStrId = sgptDataTable->pTxtSkillDesc[nIter].strLong;
     } else {
       wStrId = 0x1506;
@@ -7668,7 +7487,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
       pWszLocale += 2;
     }
 
-    if ((int)eSkill < sgptDataTable->nTxtSkillsCount && (nIter = (int)sgptDataTable->pTxtSkills->srvprgfunc + __frame0.nSkillTxtOffset - 0x30 , nIter != 0) && (nIter = (int)*(short int*)(nIter + 0x194) , -1 < nIter && nIter < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nIter)) {
+    if ((int)eSkill < sgptDataTable->nTxtSkillsCount && (nIter = (int)sgptDataTable->pTxtSkills->srvprgfunc + nSkillTxtOffset - 0x30 , nIter != 0) && (nIter = (int)*(short int*)(nIter + 0x194) , -1 < nIter && nIter < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nIter)) {
       wStrId = sgptDataTable->pTxtSkillDesc[nIter].strName;
     } else {
       wStrId = 0x1506;
@@ -7678,7 +7497,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
     D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszSkillNameBuf, pWszLocale);
     ui::AppendAsWideChar(wszSkillNameBuf, '\x02');
     D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, wszSkillNameBuf);
-    if (__frame0.bIsPassive) {
+    if (bIsPassive) {
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
@@ -7687,7 +7506,7 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     }
 
-    nIter = SKILLDESC_HasAnyClassSkill(__frame0.pUnitLocal, nClassMask);
+    nIter = SKILLDESC_HasAnyClassSkill(pUnitLocal, nClassMask);
     if (!nIter) {
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
@@ -7697,40 +7516,31 @@ void __fastcall SKILLDESC_BuildSkillTooltip_NoMaxLevelCheck(D2UnitStrc * pUnit, 
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     }
 
-    D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszTooltipBuf, &nTooltipWidth, &__frame0.nTooltipHeight);
-    D2Win::Src::D2WinFont::TEXT_TooltipSetAttributes(wszTooltipBuf, nScreenX, __frame0.nTooltipHeight + 3 + nScreenY, 1, 0);
+    D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszTooltipBuf, &nTooltipWidth, &nTooltipHeight);
+    D2Win::Src::D2WinFont::TEXT_TooltipSetAttributes(wszTooltipBuf, nScreenX, nTooltipHeight + 3 + nScreenY, 1, 0);
 }
 
 void __fastcall SKILLDESC_BuildSkillShortTooltip(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLevel, int32_t nCalcIndex, int32_t nParam1, int32_t nParam2, int32_t nParam3) {
-    // Frame slots -24..-8 are ONE object: &nTooltipHeight is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTooltipHeight;
-      int nSkillTxtOffset;
-      int bAnyDescLine;
-      D2UnitStrc* pUnitLocal;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint16_t wStrId;
     int nLineResult;
     uint16_t wszTooltipBuf[1024];
     char szLevelBuf[32];
     int nTooltipWidth;
     uint16_t wszLevelBuf[32];
+    int nTooltipHeight;
     int nDescLineIdx = 0;
     if (!(pUnit && -1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return;
     }
 
-    __frame0.nSkillTxtOffset = eSkill * 0x23c;
+    int nSkillTxtOffset = eSkill * 0x23c;
     D2SkillsTxt* pSkillsTxtBase = sgptDataTable->pTxtSkills;
     if (!(pSkillsTxtBase + eSkill)) {
       return;
     }
 
     uint16_t* pWszLocale = wszTooltipBuf;
-    __frame0.pUnitLocal = pUnit;
+    D2UnitStrc* pUnitLocal = pUnit;
     eD2Skills eSkillLocal = eSkill;
     for (nLineResult = 0x200; nLineResult; nLineResult--) {
       pWszLocale[0] = L'\0';
@@ -7741,18 +7551,18 @@ void __fastcall SKILLDESC_BuildSkillShortTooltip(D2UnitStrc * pUnit, eD2Skills e
     memset(wszLevelBuf, 0, 32 * sizeof(wszLevelBuf[0]));
     pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0x109c);
     D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszTooltipBuf, pWszLocale);
-    __frame0.bAnyDescLine = 0;
+    int bAnyDescLine = 0;
     do {
       BOOL BVar1;
-      BVar1 = SKILLDESC_ProcessDescLine(__frame0.pUnitLocal, wszTooltipBuf, pSkillsTxtBase + eSkill, eSkillLocal, nSkillLevel, nCalcIndex, nDescLineIdx, (char)nParam1);
+      BVar1 = SKILLDESC_ProcessDescLine(pUnitLocal, wszTooltipBuf, pSkillsTxtBase + eSkill, eSkillLocal, nSkillLevel, nCalcIndex, nDescLineIdx, (char)nParam1);
       if (BVar1) {
-        __frame0.bAnyDescLine = 1;
+        bAnyDescLine = 1;
       }
 
       nDescLineIdx++;
     } while (nDescLineIdx < 10);
 
-    if (__frame0.bAnyDescLine) {
+    if (bAnyDescLine) {
       /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szLevelBuf, "%d", nSkillLevel);
       D2Lang::UTF8_ConvertToWideChar(wszLevelBuf, szLevelBuf, 0x20);
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0x109e);
@@ -7765,11 +7575,11 @@ void __fastcall SKILLDESC_BuildSkillShortTooltip(D2UnitStrc * pUnit, eD2Skills e
     }
 
     eD2Skills eSkillForDesc = eSkillLocal;
-    if (eSkillLocal == SKILL_Attack && __frame0.pUnitLocal->eUnitType == UNIT_PLAYER && __frame0.pUnitLocal->nClassId == 6) {
+    if (eSkillLocal == SKILL_Attack && pUnitLocal->eUnitType == UNIT_PLAYER && pUnitLocal->nClassId == 6) {
       pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0x5722);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     }
-    if ((int)eSkillForDesc < sgptDataTable->nTxtSkillsCount && (nDescLineIdx = (int)sgptDataTable->pTxtSkills->srvprgfunc + __frame0.nSkillTxtOffset - 0x30 , nDescLineIdx != 0) && (nDescLineIdx = (int)*(short int*)(nDescLineIdx + 0x194) , -1 < nDescLineIdx && nDescLineIdx < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nDescLineIdx)) {
+    if ((int)eSkillForDesc < sgptDataTable->nTxtSkillsCount && (nDescLineIdx = (int)sgptDataTable->pTxtSkills->srvprgfunc + nSkillTxtOffset - 0x30 , nDescLineIdx != 0) && (nDescLineIdx = (int)*(short int*)(nDescLineIdx + 0x194) , -1 < nDescLineIdx && nDescLineIdx < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nDescLineIdx)) {
       wStrId = sgptDataTable->pTxtSkillDesc[nDescLineIdx].strShort;
     } else {
       wStrId = 0x1506;
@@ -7779,7 +7589,7 @@ void __fastcall SKILLDESC_BuildSkillShortTooltip(D2UnitStrc * pUnit, eD2Skills e
     D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
     pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
     D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
-    if ((int)eSkillForDesc < sgptDataTable->nTxtSkillsCount && (nDescLineIdx = (int)sgptDataTable->pTxtSkills->srvprgfunc + __frame0.nSkillTxtOffset - 0x30 , nDescLineIdx != 0) && (nDescLineIdx = (int)*(short int*)(nDescLineIdx + 0x194) , -1 < nDescLineIdx) && nDescLineIdx < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nDescLineIdx) {
+    if ((int)eSkillForDesc < sgptDataTable->nTxtSkillsCount && (nDescLineIdx = (int)sgptDataTable->pTxtSkills->srvprgfunc + nSkillTxtOffset - 0x30 , nDescLineIdx != 0) && (nDescLineIdx = (int)*(short int*)(nDescLineIdx + 0x194) , -1 < nDescLineIdx) && nDescLineIdx < sgptDataTable->nTxtSkillDescSize && sgptDataTable->pTxtSkillDesc + nDescLineIdx) {
       wStrId = sgptDataTable->pTxtSkillDesc[nDescLineIdx].strName;
     } else {
       wStrId = 0x1506;
@@ -7787,8 +7597,8 @@ void __fastcall SKILLDESC_BuildSkillShortTooltip(D2UnitStrc * pUnit, eD2Skills e
 
     pWszLocale = D2Lang::StrTable::strtable::GetLocaleString(wStrId);
     D2Lang::Unicode::UNISYS::AppendToBuffer(wszTooltipBuf, pWszLocale);
-    D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszTooltipBuf, &nTooltipWidth, &__frame0.nTooltipHeight);
-    D2Win::Src::D2WinFont::TEXT_TooltipSetAttributes(wszTooltipBuf, nParam2, __frame0.nTooltipHeight + 3 + nParam3, nParam1, 0);
+    D2Win::Src::D2WinFont::TEXT_CalcTextDimensions(wszTooltipBuf, &nTooltipWidth, &nTooltipHeight);
+    D2Win::Src::D2WinFont::TEXT_TooltipSetAttributes(wszTooltipBuf, nParam2, nTooltipHeight + 3 + nParam3, nParam1, 0);
 }
 
 } // namespace D2Client::UI::SkillDesc

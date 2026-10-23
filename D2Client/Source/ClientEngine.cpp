@@ -1172,38 +1172,31 @@ void __fastcall DRLGROOM_SpawnRandomMonsters(D2RoomStrc * pRoom) {
 }
 
 int32_t __fastcall CLIENT_ForEachUnitInAdjacentRooms(D2UnitStrc * pUnit, D2UnitStrc * * ppBestUnit, int32_t * pnBestValue, fnRoomUnitScanCallback pfnCallback) {
-    // Frame slots -16..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nRoomCount;
-      uint32_t nRoomIndex;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nCallbackResult;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
     D2UnitStrc* pCurUnit;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pRoom) {
       return 0;
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
-    __frame0.nRoomIndex = 0;
-    if (!__frame0.nRoomCount) {
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
+    uint32_t nRoomIndex = 0;
+    if (!nRoomCount) {
       return 0;
     }
 
     do {
-      for (pCurUnit = __frame0.ppAdjacentRooms[__frame0.nRoomIndex]->pUnitList; pCurUnit; pCurUnit = pCurUnit->pRoomNext) {
+      for (pCurUnit = ppAdjacentRooms[nRoomIndex]->pUnitList; pCurUnit; pCurUnit = pCurUnit->pRoomNext) {
         nCallbackResult = (*pfnCallback)(pUnit, pCurUnit, ppBestUnit, pnBestValue);
         if (nCallbackResult) {
           return nCallbackResult;
         }
       }
 
-      __frame0.nRoomIndex++;
-    } while (__frame0.nRoomIndex < __frame0.nRoomCount);
+      nRoomIndex++;
+    } while (nRoomIndex < nRoomCount);
 
     return 0;
 }
@@ -2185,14 +2178,6 @@ void __fastcall CLIENT_DispatchMonsterAiBehavior(D2UnitStrc * pUnit) {
 }
 
 eD2UnitType __fastcall CLIENT_GetEffectiveUnitType(D2UnitStrc * pUnit) {
-    // Frame slots -16..-8 are ONE object: &nClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nClassId;
-      int32_t nAnimMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     if (!pUnit) {
       return UNIT_COUNT;
     }
@@ -2201,28 +2186,22 @@ eD2UnitType __fastcall CLIENT_GetEffectiveUnitType(D2UnitStrc * pUnit) {
     }
 
     eD2UnitType eEffectiveType = pUnit->eUnitType;
-    __frame0.nClassId = pUnit->nClassId;
-    __frame0.nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eEffectiveType, &__frame0.nClassId, &__frame0.nAnimMode, "d:\\diablo2\\Diablo2\\Source\\D2Client/Engine.h", 0xf2);
+    int nClassId = pUnit->nClassId;
+    int32_t nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eEffectiveType, &nClassId, &nAnimMode, "d:\\diablo2\\Diablo2\\Source\\D2Client/Engine.h", 0xf2);
     return eEffectiveType;
 }
 
 int __fastcall CLIENT_GetEffectiveAnimMode(D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &nClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nClassId;
-      int32_t pnEffectiveAnimMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nClassId;
+    int32_t pnEffectiveAnimMode;
     if (pUnit && pUnit->eUnitFlagsEx >> 3 & 1) {
       eD2UnitType eUnitType;
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
-      __frame0.pnEffectiveAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-      D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.pnEffectiveAnimMode, "d:\\diablo2\\Diablo2\\Source\\D2Client/Engine.h", 0x104);
-      return __frame0.pnEffectiveAnimMode;
+      nClassId = pUnit->nClassId;
+      pnEffectiveAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+      D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &pnEffectiveAnimMode, "d:\\diablo2\\Diablo2\\Source\\D2Client/Engine.h", 0x104);
+      return pnEffectiveAnimMode;
     }
 
     int32_t pnAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
@@ -2230,14 +2209,6 @@ int __fastcall CLIENT_GetEffectiveAnimMode(D2UnitStrc * pUnit) {
 }
 
 DWORD __fastcall CLIENT_GetEffectiveClassId(D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &nAnimMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nAnimMode;
-      DWORD nEffectiveClassId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     if (!pUnit) {
       return -1;
     }
@@ -2246,10 +2217,10 @@ DWORD __fastcall CLIENT_GetEffectiveClassId(D2UnitStrc * pUnit) {
     }
 
     eD2UnitType eUnitType = pUnit->eUnitType;
-    __frame0.nEffectiveClassId = pUnit->nClassId;
-    __frame0.nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, (int*)&__frame0.nEffectiveClassId, &__frame0.nAnimMode, "d:\\diablo2\\Diablo2\\Source\\D2Client/Engine.h", 0x116);
-    return __frame0.nEffectiveClassId;
+    DWORD nEffectiveClassId = pUnit->nClassId;
+    int32_t nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, (int*)&nEffectiveClassId, &nAnimMode, "d:\\diablo2\\Diablo2\\Source\\D2Client/Engine.h", 0x116);
+    return nEffectiveClassId;
 }
 
 } // namespace D2Client::Source::ClientEngine

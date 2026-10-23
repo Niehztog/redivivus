@@ -200,15 +200,8 @@ void __fastcall Q13_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 
 // A2Q5 "The Summoner" - per-player kill-credit check (iterated over players when the Summoner dies). Determines if this player is in the Summoner's room or an adjacent room (pA2Q5->sQuestGUID.aPlayerGUID[1] holds the Summoner room ptr); checks the room and its DRLG adjacent-room list. If the player is in/near the Summoner room AND the quest is not already Completed/RewardAwaits, it sets JustCompleted (0xd) and RewardAwaits (1) in the player's record - granting kill credit and arming the reward. (Halts with internal error 0x10d/0x11c if quest data or room is missing.)
 BOOL __fastcall Q13_CheckSummonerKillAndReward(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
-    // Frame slots -16..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nAdjacentRoomCount;
-      int bPlayerNearSummoner;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nAdjacentRoomCount;
     D2UnitDataPlayerStrc* pDVar2 = D2Common::Units::GetPlayerData(pUnit);
     D2BitBufferStrc* pBitBuffer = pDVar2->pQuestRecord[pGame->nDifficulty];
     D2RoomStrc* pDVar3 = D2Common::Units::UNITS_GetRoom(pUnit);
@@ -223,9 +216,9 @@ BOOL __fastcall Q13_CheckSummonerKillAndReward(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     D2QuestDataA2Q5Strc* pDVar1 = pDVar4->pQuestSpecificData.pA2Q5;
-    __frame0.bPlayerNearSummoner = 0;
+    int bPlayerNearSummoner = 0;
     if (pDVar3 == pDVar1->pSummonerRoom) {
-      __frame0.bPlayerNearSummoner = 1;
+      bPlayerNearSummoner = 1;
     } else {
       uint32_t iAdjacentRoom;
       pDVar3 = D2Common::Units::UNITS_GetRoom(pUnit);
@@ -234,17 +227,17 @@ BOOL __fastcall Q13_CheckSummonerKillAndReward(::SGAMEDATA * pGame, D2UnitStrc *
         exit(-1);
       }
 
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pDVar3, &__frame0.ppAdjacentRooms, (int*)&__frame0.nAdjacentRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pDVar3, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
       iAdjacentRoom = 0;
-      if (__frame0.nAdjacentRoomCount) {
+      if (nAdjacentRoomCount) {
         do {
-          if (__frame0.ppAdjacentRooms[iAdjacentRoom] == pDVar1->pSummonerRoom) {
-            __frame0.bPlayerNearSummoner = 1;
+          if (ppAdjacentRooms[iAdjacentRoom] == pDVar1->pSummonerRoom) {
+            bPlayerNearSummoner = 1;
             break;
           }
 
           iAdjacentRoom++;
-        } while (iAdjacentRoom < __frame0.nAdjacentRoomCount);
+        } while (iAdjacentRoom < nAdjacentRoomCount);
       }
     }
 
@@ -254,7 +247,7 @@ BOOL __fastcall Q13_CheckSummonerKillAndReward(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     BVar5 = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheSummoner, QUESTSTATE_RewardAwaits);
-    if (!(!BVar5 && __frame0.bPlayerNearSummoner)) {
+    if (!(!BVar5 && bPlayerNearSummoner)) {
       return 0;
     }
 

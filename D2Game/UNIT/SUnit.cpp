@@ -748,88 +748,73 @@ void __fastcall UNITS_ClearAnimTimerEvents(::SGAMEDATA * pGame, D2UnitStrc * pUn
 
 // Schedules animation-frame timer events for pUnit in pGame. Iterates over animation frames at the unit's current speed (or sequence speed if pAnimSeq is set), reads per-frame event types from the AnimData hash table (or via ANIM_GetEventFrame for sequences), and calls SetEvent for attack/sound/other (types 1/2/4/3). Sets nGfxCurrentFrame to the current game frame and always schedules a terminal event one frame past the last.
 void __fastcall UNITS_SetupAnimTimerEvents(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    // Frame slots -28..-4 are ONE object: &nEventType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nEventType;
-      ::SGAMEDATA* pGameCopy;
-      uint32_t nTotalFrameCount;
-      int nAnimSpeedAccum;
-      uint32_t nAnimSpeed;
-      int pEventData;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nEventType;
+    uint32_t nTotalFrameCount;
+    uint32_t nAnimSpeed;
     uint32_t nNextEventFrame = pGame->dwGameFrame;
-    __frame0.pGameCopy = pGame;
+    ::SGAMEDATA* pGameCopy = pGame;
     uint32_t nWeaponAnimClass = D2Common::Units::GetWeaponAnimClass(pUnit);
     if (!pUnit->pAnimSeq) {
-      __frame0.nAnimSpeed = (uint32_t)pUnit->nAnimSpeed;
-      __frame0.nTotalFrameCount = pUnit->nFrameCount;
+      nAnimSpeed = (uint32_t)pUnit->nAnimSpeed;
+      nTotalFrameCount = pUnit->nFrameCount;
     } else {
-      __frame0.nAnimSpeed = pUnit->nSeqAnimSpeed;
-      __frame0.nTotalFrameCount = pUnit->nSeqFrameCount;
+      nAnimSpeed = pUnit->nSeqAnimSpeed;
+      nTotalFrameCount = pUnit->nSeqFrameCount;
     }
-    if (!__frame0.nAnimSpeed) {
+    if (!nAnimSpeed) {
       GAME::Event::SetEvent(pGame, pUnit, 1, pGame->dwGameFrame + 1, 0, 0);
       return;
     }
 
     D2AnimDataRecordStrc* pAnimData = pUnit->pAnimData;
-    __frame0.nAnimSpeedAccum = nWeaponAnimClass * 0x100 + __frame0.nAnimSpeed;
+    int nAnimSpeedAccum = nWeaponAnimClass * 0x100 + nAnimSpeed;
     int iVar1 = (int)(nWeaponAnimClass * 0x100) >> 8;
-    __frame0.pEventData = 0;
-    while (__frame0.nAnimSpeedAccum < (int)__frame0.nTotalFrameCount) {
+    int pEventData = 0;
+    while (nAnimSpeedAccum < (int)nTotalFrameCount) {
       int nFrameIndex;
-      nFrameIndex = __frame0.nAnimSpeedAccum >> 8;
+      nFrameIndex = nAnimSpeedAccum >> 8;
       nNextEventFrame++;
       for (; iVar1 <= nFrameIndex && iVar1 < 0x90; iVar1++) {
         if (!pUnit->pAnimSeq) {
-          __frame0.nEventType = (uint32_t)pAnimData->pFrameFlags[iVar1];
+          nEventType = (uint32_t)pAnimData->pFrameFlags[iVar1];
         } else {
-          D2Common::Merc::ANIM_GetEventFrame((int32_t)pUnit->pAnimSeq, iVar1 << 8, &__frame0.nEventType);
+          D2Common::Merc::ANIM_GetEventFrame((int32_t)pUnit->pAnimSeq, iVar1 << 8, &nEventType);
         }
-        if (__frame0.nEventType) {
-          switch (__frame0.nEventType) {
+        if (nEventType) {
+          switch (nEventType) {
             case 1:
 
             case 2:
 
             case 4:
-              GAME::Event::SetEvent(__frame0.pGameCopy, pUnit, 0, nNextEventFrame, __frame0.nEventType, __frame0.pEventData);
-            __frame0.pEventData++;
+              GAME::Event::SetEvent(pGameCopy, pUnit, 0, nNextEventFrame, nEventType, pEventData);
+            pEventData++;
             break;
             case 3:
-              GAME::Event::SetEvent(__frame0.pGameCopy, pUnit, 0, nNextEventFrame, __frame0.nEventType, 0);
+              GAME::Event::SetEvent(pGameCopy, pUnit, 0, nNextEventFrame, nEventType, 0);
           }
         }
       }
 
-      __frame0.nAnimSpeedAccum += __frame0.nAnimSpeed;
+      nAnimSpeedAccum += nAnimSpeed;
     }
 
-    ::SGAMEDATA* pGameCopy2 = __frame0.pGameCopy;
-    if (nNextEventFrame == __frame0.pGameCopy->dwGameFrame) {
+    ::SGAMEDATA* pGameCopy2 = pGameCopy;
+    if (nNextEventFrame == pGameCopy->dwGameFrame) {
       nNextEventFrame++;
     }
 
-    GAME::Event::SetEvent(__frame0.pGameCopy, pUnit, 1, nNextEventFrame + 1, 0, 0);
+    GAME::Event::SetEvent(pGameCopy, pUnit, 1, nNextEventFrame + 1, 0, 0);
     pUnit->nGfxCurrentFrame = pGameCopy2->dwGameFrame << 8;
 }
 
 // Resets animation timer events for pUnit starting at nPercent% through the current animation cycle. Fires MODECHANGE and ENDANIM trigger callbacks first, resets nGfxCurrentFrame based on the percentage offset, then schedules per-frame anim events (attack/cast/special hits, type 1-4) into the game event queue for the remaining frames, and finally queues the ENDANIM event. Handles both normal and sequenced (merc) animations.
 void __fastcall UNITS_SetupAnimTimerEventsFromPercent(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nPercent) {
-    // Frame slots -16..-4 are ONE object: &nEventType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nEventType;
-      uint32_t pCurEventFrame;
-      uint32_t nTotalFrameCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nAnimSpeedAccum;
     uint32_t nAnimSpeed;
+    uint32_t nEventType;
+    uint32_t pCurEventFrame;
+    uint32_t nTotalFrameCount;
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_MODECHANGE, 0);
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_ENDANIM, 0);
     uint32_t nNextEventFrame = pGame->dwGameFrame;
@@ -837,10 +822,10 @@ void __fastcall UNITS_SetupAnimTimerEventsFromPercent(::SGAMEDATA * pGame, D2Uni
     pUnit->nGfxCurrentFrame = (nNextEventFrame - nFrameOffset) * 0x100;
     if (!pUnit->pAnimSeq) {
       nAnimSpeed = (uint32_t)pUnit->nAnimSpeed;
-      __frame0.nTotalFrameCount = pUnit->nFrameCount;
+      nTotalFrameCount = pUnit->nFrameCount;
     } else {
       nAnimSpeed = pUnit->nSeqAnimSpeed;
-      __frame0.nTotalFrameCount = pUnit->nSeqFrameCount;
+      nTotalFrameCount = pUnit->nSeqFrameCount;
     }
     if (!nAnimSpeed) {
       GAME::Event::SetEvent(pGame, pUnit, 1, pGame->dwGameFrame + 1, 0, 0);
@@ -850,22 +835,22 @@ void __fastcall UNITS_SetupAnimTimerEventsFromPercent(::SGAMEDATA * pGame, D2Uni
     int nFrameIdx = nFrameOffset - 1;
     nFrameOffset *= 0x100;
     nAnimSpeedAccum = nFrameOffset + nAnimSpeed;
-    while (nAnimSpeedAccum < (int)__frame0.nTotalFrameCount) {
+    while (nAnimSpeedAccum < (int)nTotalFrameCount) {
       D2AnimDataRecordStrc* pAnimData = pUnit->pAnimData;
       nNextEventFrame++;
       nFrameOffset += nAnimSpeed;
       nAnimSpeedAccum += nAnimSpeed;
-      for (; __frame0.pCurEventFrame = nNextEventFrame , nFrameIdx <= nFrameOffset >> 8; nFrameIdx++) {
+      for (; pCurEventFrame = nNextEventFrame , nFrameIdx <= nFrameOffset >> 8; nFrameIdx++) {
         if (!pUnit->pAnimSeq) {
-          __frame0.nEventType = (uint32_t)pAnimData->pFrameFlags[nFrameIdx];
+          nEventType = (uint32_t)pAnimData->pFrameFlags[nFrameIdx];
         } else {
-          D2Common::Merc::ANIM_GetEventFrame((int32_t)pUnit->pAnimSeq, nFrameIdx << 8, &__frame0.nEventType);
+          D2Common::Merc::ANIM_GetEventFrame((int32_t)pUnit->pAnimSeq, nFrameIdx << 8, &nEventType);
         }
-        if (0 < (int)__frame0.nEventType && (int)__frame0.nEventType < 5) {
-          GAME::Event::SetEvent(pGame, pUnit, 0, __frame0.pCurEventFrame, __frame0.nEventType, 0);
+        if (0 < (int)nEventType && (int)nEventType < 5) {
+          GAME::Event::SetEvent(pGame, pUnit, 0, pCurEventFrame, nEventType, 0);
         }
 
-        nNextEventFrame = __frame0.pCurEventFrame;
+        nNextEventFrame = pCurEventFrame;
       }
     }
 
@@ -878,18 +863,11 @@ void __fastcall UNITS_SetupAnimTimerEventsFromPercent(::SGAMEDATA * pGame, D2Uni
 
 // Rebuilds animation timer events for pUnit starting nDelay frames in the past relative to the current game frame. Flushes existing MODECHANGE and ENDANIM triggers, resyncs nGfxCurrentFrame, then iterates the animation hash table (or sequence via ANIM_GetEventFrame) to re-schedule event types 1-4 at their correct future frames, and sets the end-of-anim event.
 void __fastcall UNITS_SetupAnimTimerEventsWithDelay(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nDelay) {
-    // Frame slots -20..-4 are ONE object: &nEventType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nEventType;
-      int nFrameOffsetAccum;
-      uint32_t pCurEventFrame;
-      uint32_t nTotalFrameCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nAnimSpeedAccum;
     uint32_t nAnimSpeed;
+    uint32_t nEventType;
+    uint32_t pCurEventFrame;
+    uint32_t nTotalFrameCount;
     if (0 >= nDelay) {
       return;
     }
@@ -897,14 +875,14 @@ void __fastcall UNITS_SetupAnimTimerEventsWithDelay(::SGAMEDATA * pGame, D2UnitS
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_MODECHANGE, 0);
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_ENDANIM, 0);
     uint32_t nNextEventFrame = pGame->dwGameFrame;
-    __frame0.nFrameOffsetAccum = nNextEventFrame - (pUnit->nGfxCurrentFrame >> 8) - nDelay;
-    pUnit->nGfxCurrentFrame = (nNextEventFrame - __frame0.nFrameOffsetAccum) * 0x100;
+    int nFrameOffsetAccum = nNextEventFrame - (pUnit->nGfxCurrentFrame >> 8) - nDelay;
+    pUnit->nGfxCurrentFrame = (nNextEventFrame - nFrameOffsetAccum) * 0x100;
     if (!pUnit->pAnimSeq) {
       nAnimSpeed = (uint32_t)pUnit->nAnimSpeed;
-      __frame0.nTotalFrameCount = pUnit->nFrameCount;
+      nTotalFrameCount = pUnit->nFrameCount;
     } else {
       nAnimSpeed = pUnit->nSeqAnimSpeed;
-      __frame0.nTotalFrameCount = pUnit->nSeqFrameCount;
+      nTotalFrameCount = pUnit->nSeqFrameCount;
     }
     if (!nAnimSpeed) {
       GAME::Event::SetEvent(pGame, pUnit, 1, pGame->dwGameFrame + 1, 0, 0);
@@ -912,26 +890,26 @@ void __fastcall UNITS_SetupAnimTimerEventsWithDelay(::SGAMEDATA * pGame, D2UnitS
     }
 
     D2AnimDataRecordStrc* pAnimData = pUnit->pAnimData;
-    int nFrameIdx = __frame0.nFrameOffsetAccum - 1;
-    __frame0.nFrameOffsetAccum *= 0x100;
-    nAnimSpeedAccum = __frame0.nFrameOffsetAccum + nAnimSpeed;
-    while (nAnimSpeedAccum < (int)__frame0.nTotalFrameCount) {
+    int nFrameIdx = nFrameOffsetAccum - 1;
+    nFrameOffsetAccum *= 0x100;
+    nAnimSpeedAccum = nFrameOffsetAccum + nAnimSpeed;
+    while (nAnimSpeedAccum < (int)nTotalFrameCount) {
       int nFrameIndexShifted;
       nNextEventFrame++;
-      __frame0.nFrameOffsetAccum += nAnimSpeed;
+      nFrameOffsetAccum += nAnimSpeed;
       nAnimSpeedAccum += nAnimSpeed;
-      nFrameIndexShifted = __frame0.nFrameOffsetAccum >> 8;
-      for (; __frame0.pCurEventFrame = nNextEventFrame , nFrameIdx <= nFrameIndexShifted; nFrameIdx++) {
+      nFrameIndexShifted = nFrameOffsetAccum >> 8;
+      for (; pCurEventFrame = nNextEventFrame , nFrameIdx <= nFrameIndexShifted; nFrameIdx++) {
         if (!pUnit->pAnimSeq) {
-          __frame0.nEventType = (uint32_t)pAnimData->pFrameFlags[nFrameIdx];
+          nEventType = (uint32_t)pAnimData->pFrameFlags[nFrameIdx];
         } else {
-          D2Common::Merc::ANIM_GetEventFrame((int32_t)pUnit->pAnimSeq, nFrameIdx << 8, &__frame0.nEventType);
+          D2Common::Merc::ANIM_GetEventFrame((int32_t)pUnit->pAnimSeq, nFrameIdx << 8, &nEventType);
         }
-        if (0 < (int)__frame0.nEventType && (int)__frame0.nEventType < 5) {
-          GAME::Event::SetEvent(pGame, pUnit, 0, __frame0.pCurEventFrame, __frame0.nEventType, 0);
+        if (0 < (int)nEventType && (int)nEventType < 5) {
+          GAME::Event::SetEvent(pGame, pUnit, 0, pCurEventFrame, nEventType, 0);
         }
 
-        nNextEventFrame = __frame0.pCurEventFrame;
+        nNextEventFrame = pCurEventFrame;
       }
     }
 
@@ -944,27 +922,20 @@ void __fastcall UNITS_SetupAnimTimerEventsWithDelay(::SGAMEDATA * pGame, D2UnitS
 
 // Identical to UNITS_SetupAnimTimerEventsFromPercent but takes a raw frame index (nFrame) instead of a percentage. Resets nGfxCurrentFrame to (currentGameFrame - nFrame)*256, then schedules remaining per-frame anim events and the terminal ENDANIM event. Used when the exact starting frame is known rather than a proportional position.
 void __fastcall UNITS_SetupAnimTimerEventsFromFrame(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nFrame) {
-    // Frame slots -20..-4 are ONE object: &nEventType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nEventType;
-      int nFrameOffsetAccum;
-      uint32_t pCurEventFrame;
-      uint32_t nTotalFrameCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nAnimSpeed;
+    uint32_t nEventType;
+    uint32_t pCurEventFrame;
+    uint32_t nTotalFrameCount;
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_MODECHANGE, 0);
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_ENDANIM, 0);
     uint32_t nNextEventFrame = pGame->dwGameFrame;
     pUnit->nGfxCurrentFrame = (nNextEventFrame - nFrame) * 0x100;
     if (!pUnit->pAnimSeq) {
       nAnimSpeed = (uint32_t)pUnit->nAnimSpeed;
-      __frame0.nTotalFrameCount = pUnit->nFrameCount;
+      nTotalFrameCount = pUnit->nFrameCount;
     } else {
       nAnimSpeed = pUnit->nSeqAnimSpeed;
-      __frame0.nTotalFrameCount = pUnit->nSeqFrameCount;
+      nTotalFrameCount = pUnit->nSeqFrameCount;
     }
     if (!nAnimSpeed) {
       GAME::Event::SetEvent(pGame, pUnit, 1, pGame->dwGameFrame + 1, 0, 0);
@@ -973,25 +944,25 @@ void __fastcall UNITS_SetupAnimTimerEventsFromFrame(::SGAMEDATA * pGame, D2UnitS
 
     D2AnimDataRecordStrc* pAnimData = pUnit->pAnimData;
     int nFrameIdx = nFrame - 1;
-    __frame0.nFrameOffsetAccum = nFrame * 0x100;
-    int nAnimSpeedAccum = __frame0.nFrameOffsetAccum + nAnimSpeed;
-    while (nAnimSpeedAccum < (int)__frame0.nTotalFrameCount) {
+    int nFrameOffsetAccum = nFrame * 0x100;
+    int nAnimSpeedAccum = nFrameOffsetAccum + nAnimSpeed;
+    while (nAnimSpeedAccum < (int)nTotalFrameCount) {
       int nFrameIndexShifted;
       nNextEventFrame++;
-      __frame0.nFrameOffsetAccum += nAnimSpeed;
+      nFrameOffsetAccum += nAnimSpeed;
       nAnimSpeedAccum += nAnimSpeed;
-      nFrameIndexShifted = __frame0.nFrameOffsetAccum >> 8;
-      for (; __frame0.pCurEventFrame = nNextEventFrame , nFrameIdx <= nFrameIndexShifted; nFrameIdx++) {
+      nFrameIndexShifted = nFrameOffsetAccum >> 8;
+      for (; pCurEventFrame = nNextEventFrame , nFrameIdx <= nFrameIndexShifted; nFrameIdx++) {
         if (!pUnit->pAnimSeq) {
-          __frame0.nEventType = (uint32_t)pAnimData->pFrameFlags[nFrameIdx];
+          nEventType = (uint32_t)pAnimData->pFrameFlags[nFrameIdx];
         } else {
-          D2Common::Merc::ANIM_GetEventFrame((int32_t)pUnit->pAnimSeq, nFrameIdx << 8, &__frame0.nEventType);
+          D2Common::Merc::ANIM_GetEventFrame((int32_t)pUnit->pAnimSeq, nFrameIdx << 8, &nEventType);
         }
-        if (0 < (int)__frame0.nEventType && (int)__frame0.nEventType < 5) {
-          GAME::Event::SetEvent(pGame, pUnit, 0, __frame0.pCurEventFrame, __frame0.nEventType, 0);
+        if (0 < (int)nEventType && (int)nEventType < 5) {
+          GAME::Event::SetEvent(pGame, pUnit, 0, pCurEventFrame, nEventType, 0);
         }
 
-        nNextEventFrame = __frame0.pCurEventFrame;
+        nNextEventFrame = pCurEventFrame;
       }
     }
 

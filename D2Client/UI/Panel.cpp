@@ -282,15 +282,6 @@ void __stdcall PANEL_DrawHostileIndicator() {
 }
 
 void __fastcall SPELLSEL_DrawSkillIcon(D2UnitStrc * pUnit, D2SkillStrc * pSkill, int32_t nScreenX, int32_t nScreenY, int32_t nParam) {
-    // Frame slots -20..-8 are ONE object: &nIconCell is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nIconCell;
-      int32_t nSkillLevel;
-      int32_t nReqLevel;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL bInTown;
     if (!(pUnit && pSkill)) {
       return;
@@ -314,12 +305,12 @@ void __fastcall SPELLSEL_DrawSkillIcon(D2UnitStrc * pUnit, D2SkillStrc * pSkill,
       }
     }
 
-    __frame0.nSkillLevel = 0;
-    __frame0.nReqLevel = 0;
-    __frame0.nIconCell = -1;
-    bInTown = D2Common::Skills::SKILLS_GetSkillData(pSkill, &__frame0.nIconCell, nullptr, &__frame0.nSkillLevel, &__frame0.nReqLevel);
+    int32_t nSkillLevel = 0;
+    int32_t nReqLevel = 0;
+    int32_t nIconCell = -1;
+    bInTown = D2Common::Skills::SKILLS_GetSkillData(pSkill, &nIconCell, nullptr, &nSkillLevel, &nReqLevel);
     if (!bInTown) {
-      __frame0.nSkillLevel = D2Common::Skills::GetSkillLevel(pUnit, pSkill, 1);
+      nSkillLevel = D2Common::Skills::GetSkillLevel(pUnit, pSkill, 1);
     }
 
     int32_t nQuantity = 0;
@@ -327,13 +318,13 @@ void __fastcall SPELLSEL_DrawSkillIcon(D2UnitStrc * pUnit, D2SkillStrc * pSkill,
       nQuantity = D2Common::Skills::SKILL_GetQuantity(pSkill);
     }
 
-    SpellSel::SPELLSEL_DrawSkillIconWithQuantity(pSkillIconDC6, &pSkillTxt->skill, __frame0.nIconCell, __frame0.nReqLevel, ePalette, nScreenX, nScreenY, nParam);
+    SpellSel::SPELLSEL_DrawSkillIconWithQuantity(pSkillIconDC6, &pSkillTxt->skill, nIconCell, nReqLevel, ePalette, nScreenX, nScreenY, nParam);
     if (nQuantity) {
       SpellSel::SPELLSEL_DrawSkillRequirementTooltip(&pSkillTxt->skill, ePalette, nQuantity, nScreenX, nScreenY);
       return;
     }
 
-    SpellSel::SPELLSEL_DrawSkillTooltip(&pSkillTxt->skill, ePalette, __frame0.nSkillLevel, __frame0.nReqLevel, nScreenX, nScreenY);
+    SpellSel::SPELLSEL_DrawSkillTooltip(&pSkillTxt->skill, ePalette, nSkillLevel, nReqLevel, nScreenX, nScreenY);
 }
 
 void __stdcall PANEL_DrawSkillIcons() {

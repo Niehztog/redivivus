@@ -1177,27 +1177,20 @@ BOOL __fastcall SKILPAL_SrvStFn35_Vengeance(::SGAMEDATA * pGame, D2UnitStrc * pU
 
 // Server do-function for skill 73 (Fist of the Heavens). Resolves the charge-up missile via SKILLASS_GetChargeUpMissile, gets the target/cursor position, spawns the FotH missile via CreatingMissile with path type 0xE (arcing), then applies Concentration aura magic-damage bonus to the missile's magicmindam/magicmaxdam stats if active. Returns 1 on success, 0 on invalid skill or no target.
 BOOL __fastcall Skills_SrvDoFunc_073_BlessedHammer(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, D2DynamicPathStrc * nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTargetY;
-      ::SGAMEDATA* pGameSaved;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    uint32_t nTargetY;
     eD2Skills eSkillSaved = eSkill;
     if ((int)eSkill < 0 || sgptDataTable->nTxtSkillsCount <= (int)eSkill || !(sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
 
-    __frame0.pGameSaved = pGame;
+    ::SGAMEDATA* pGameSaved = pGame;
     eMissilesId eSkillId = SkillAss::SKILLASS_GetChargeUpMissile(pUnit, eSkill);
     if (0 >= (int)eSkillId) {
       return 0;
     }
 
-    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(__frame0.pGameSaved, pUnit, (uint32_t*)&eSkill, &__frame0.nTargetY);
+    BOOL bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGameSaved, pUnit, (uint32_t*)&eSkill, &nTargetY);
     if (!bGotTargetPos) {
       return 0;
     }
@@ -1206,7 +1199,7 @@ BOOL __fastcall Skills_SrvDoFunc_073_BlessedHammer(::SGAMEDATA * pGame, D2UnitSt
     }
 
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.nUnitY = __frame0.nTargetY;
+    sSkillArg.nUnitY = nTargetY;
     sSkillArg.nSkillLevel = (int32_t)nSkillLvl;
     sSkillArg.nFlags = 0x20;
     sSkillArg.nUnitX = eSkill;
@@ -1214,7 +1207,7 @@ BOOL __fastcall Skills_SrvDoFunc_073_BlessedHammer(::SGAMEDATA * pGame, D2UnitSt
     sSkillArg.pOwner = pUnit;
     sSkillArg.pMissile = pUnit;
     sSkillArg.nMissileTxtNo = eSkillId;
-    D2UnitStrc* pUnit_00 = MISSILES::Missiles::CreatingMissile(__frame0.pGameSaved, &sSkillArg);
+    D2UnitStrc* pUnit_00 = MISSILES::Missiles::CreatingMissile(pGameSaved, &sSkillArg);
     if (!pUnit_00) {
       return 0;
     }

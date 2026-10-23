@@ -916,20 +916,14 @@ void __stdcall SetAnimOrSeqMode(D2UnitStrc * pUnit, int32_t nAnimMode) {
 }
 
 int32_t __stdcall UpdateSequenceMode(D2UnitStrc * pUnit, uint32_t nSeqMode) {
-    // Frame slots -16..-4 are ONE object: &nFrameCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nFrameCount;
-      uint8_t byActionFrame[4];
-      uint32_t nStartFrame;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nFrameCount;
+    uint8_t byActionFrame[4];
+    uint32_t nStartFrame;
     uint32_t nPrevSeqMode = pUnit->nSeqMode;
-    Merc::ANIM_GetSequenceFrameInfo((uint8_t*)pUnit->pAnimSeq, pUnit->nSeqFrame, nSeqMode, &nSeqMode, &__frame0.nStartFrame, &__frame0.nFrameCount, (uint32_t*)__frame0.byActionFrame);
-    pUnit->nGfxCurrentFrame = __frame0.nStartFrame << 8;
+    Merc::ANIM_GetSequenceFrameInfo((uint8_t*)pUnit->pAnimSeq, pUnit->nSeqFrame, nSeqMode, &nSeqMode, &nStartFrame, &nFrameCount, (uint32_t*)byActionFrame);
+    pUnit->nGfxCurrentFrame = nStartFrame << 8;
     pUnit->nSeqMode = nSeqMode;
-    pUnit->nActionFrame = __frame0.byActionFrame[0];
+    pUnit->nActionFrame = byActionFrame[0];
     return (uint32_t)(nSeqMode != nPrevSeqMode);
 }
 
@@ -1291,14 +1285,8 @@ void __stdcall SetAnimActionFrame(D2UnitStrc * pUnit, int32_t nFrame) {
 }
 
 int32_t __stdcall GetEventFrameInfo(D2UnitStrc * pUnit, int32_t nFrame) {
-    // Frame slots -12..-4 are ONE object: &nSeqCurrentFrame is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nSeqCurrentFrame;
-      uint32_t nSeqFrameCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    uint32_t nSeqCurrentFrame;
+    uint32_t nSeqFrameCount;
     int32_t nFrameOrAddr = nFrame;
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdcc);
@@ -1321,7 +1309,7 @@ int32_t __stdcall GetEventFrameInfo(D2UnitStrc * pUnit, int32_t nFrame) {
     }
 
     D2MonSeqTxt* pSeqTxt = Merc::MERC_GetSequenceTxt(pUnit);
-    Merc::ANIM_GetSequenceFrameInfo((uint8_t*)pSeqTxt, nFrameOrAddr << 8, nFrameOrAddr << 8, &__frame0.nSeqCurrentFrame, &__frame0.nSeqFrameCount, (uint32_t*)&nFrame, (uint32_t*)&pUnit);
+    Merc::ANIM_GetSequenceFrameInfo((uint8_t*)pSeqTxt, nFrameOrAddr << 8, nFrameOrAddr << 8, &nSeqCurrentFrame, &nSeqFrameCount, (uint32_t*)&nFrame, (uint32_t*)&pUnit);
     return (int32_t)pUnit;
 }
 
@@ -2015,34 +2003,22 @@ int32_t __stdcall GetBlockRate(D2UnitStrc * pUnit, BOOL bExpansion) {
 }
 
 D2UnitStrc * __stdcall GetEquippedWeapon(D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &nBodyLoc is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nBodyLoc;
-      BOOL bSwitch;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int32_t nBodyLoc;
+    BOOL bSwitch;
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && pUnit->pInventory)) {
       return nullptr;
     }
 
-    BOOL bHasWeapon = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pUnit->pInventory, &pUnit, &__frame0.nBodyLoc, &__frame0.bSwitch);
+    BOOL bHasWeapon = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pUnit->pInventory, &pUnit, &nBodyLoc, &bSwitch);
     return bHasWeapon ? (D2UnitStrc*)pUnit : nullptr;
 }
 
 int32_t __stdcall GetMeleeRange(D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &nBodyLoc is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nBodyLoc;
-      BOOL bWeaponSwitch;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool bHasWeapon;
     D2MonStats2Txt* pMonStats2;
     BOOL bEquippedWeapon;
+    int32_t nBodyLoc;
+    BOOL bWeaponSwitch;
     D2UnitStrc* pUnit_00 = pUnit;
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x11be);
@@ -2050,7 +2026,7 @@ int32_t __stdcall GetMeleeRange(D2UnitStrc * pUnit) {
     }
     if (pUnit->eUnitType == UNIT_PLAYER) {
       uint8_t nRangeAdder;
-      bEquippedWeapon = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pUnit->pInventory, &pUnit, &__frame0.nBodyLoc, &__frame0.bWeaponSwitch);
+      bEquippedWeapon = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pUnit->pInventory, &pUnit, &nBodyLoc, &bWeaponSwitch);
       if (bEquippedWeapon) {
         nRangeAdder = ITEMS::Items::ITEM_GetItemsTxt_nRangeAdder(pUnit);
         return (uint32_t)nRangeAdder;

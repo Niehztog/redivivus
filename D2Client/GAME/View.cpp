@@ -952,18 +952,12 @@ void __fastcall ViewDraw2(D2GameViewStrc * pGameView) {
     // Static local variables (originally global data)
     static uint32_t gnFrameDrawCounter;
 
-    // Frame slots -12..-4 are ONE object: &nShakeOffsetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nShakeOffsetY;
-      int32_t nShakeOffsetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bPerspective;
     bool bPerspective;
     D2UnitStrc* pPlayerUnit_lcl;
     int32_t nYScale;
+    int32_t nShakeOffsetY;
+    int32_t nShakeOffsetX;
     if (!(pGameView->pView.right || pGameView->pView.bottom)) {
       return;
     }
@@ -976,14 +970,14 @@ void __fastcall ViewDraw2(D2GameViewStrc * pGameView) {
       pPlayerUnit_lcl = UNIT::Player::GetPlayerUnit_UI();
       nXScale = D2Common::Units::GetPrecisionX(pPlayerUnit_lcl);
       nYScale = D2Common::Units::GetPrecisionY(pPlayerUnit_lcl);
-      __frame0.nShakeOffsetX = 0;
-      __frame0.nShakeOffsetY = 0;
+      nShakeOffsetX = 0;
+      nShakeOffsetY = 0;
       if (SHAKE_Amplitude) {
-        __frame0.nShakeOffsetX = SHAKE_OFFSET_X << 0x10;
-        __frame0.nShakeOffsetY = SHAKE_OFFSET_Y << 0x10;
-        D2Common::Drlg::Transform::DRLG_WorldToScreenShift5(&__frame0.nShakeOffsetX, &__frame0.nShakeOffsetY);
-        nXScale += __frame0.nShakeOffsetX;
-        nYScale += __frame0.nShakeOffsetY;
+        nShakeOffsetX = SHAKE_OFFSET_X << 0x10;
+        nShakeOffsetY = SHAKE_OFFSET_Y << 0x10;
+        D2Common::Drlg::Transform::DRLG_WorldToScreenShift5(&nShakeOffsetX, &nShakeOffsetY);
+        nXScale += nShakeOffsetX;
+        nYScale += nShakeOffsetY;
       }
 
       D2gfx::D2GFX::D2GFX_SetPerspectiveScale(nXScale, nYScale);

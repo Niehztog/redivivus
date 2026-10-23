@@ -12,6 +12,7 @@
 struct D2AllStatesDataTbl;
 struct D2AnimDataStrc;
 struct D2ArchiveStrc;
+struct D2BinFieldInputStrc;
 struct D2CharStatsTxt;
 struct D2DifficultyLevelsTxt;
 struct D2InventoryToBeUpdatedStrc;
@@ -20,15 +21,6 @@ struct D2PoolManagerStrc;
 struct D2StatesDataTbls;
 struct D2UnitStrc;
 typedef int eD2UnitType;
-
-// Data types
-struct __attribute__((packed)) D2BinFieldInputStrc {
-    /* 0x00 */ char * szName;
-    /* 0x04 */ eD2BinFieldInputType eType;
-    /* 0x08 */ size_t nSize;
-    /* 0x0C */ int nOffset;
-    /* 0x10 */ void * fpLinker; // by eType: struct D2TxtLinkStrc** (CODE*/NAME*), PFN_TxtKeyToWord* (KEY_WORD), PFN_TxtFieldLinker* (LINKER_*)
-};
 
 namespace D2Common::DATATBLS::DataTbls {
 

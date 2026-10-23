@@ -270,17 +270,9 @@ BOOL __fastcall Skills_CltDoFunc_Ama_PlayDoSound(D2UnitStrc * pUnit, eD2Skills e
 
 // Client-side do-function for the Amazon Multi Shot skill. Selects the missile type from cltmissilea/cltmissileb based on weapon class, computes the arrow count via calc[0], then fans out nArrowCount missiles in a line perpendicular to the target direction, spacing them by a scaled perpendicular unit vector. Sets UNITFLAG_SKSRVDOFUNC on the caster and returns TRUE on success.
 BOOL __fastcall Skills_CltDoFunc_Ama_MultiShotArrows(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -20..-4 are ONE object: &nDirY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nDirY;
-      int nDirX;
-      int nTargetY;
-      int nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    int nTargetY;
+    int nTargetX;
     if (pUnit) {
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
@@ -303,19 +295,19 @@ BOOL __fastcall Skills_CltDoFunc_Ama_MultiShotArrows(D2UnitStrc * pUnit, eD2Skil
     }
 
     int32_t nArrowCount = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->calc[0], eSkill, nSkillLvl);
-    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &nTargetX, &nTargetY);
     if (!bGotCoords) {
       return 0;
     }
 
     int32_t nTmp = Units::GetXPosFromDynamicPathUnit(pUnit);
-    __frame0.nDirX = __frame0.nTargetX - nTmp;
+    int nDirX = nTargetX - nTmp;
     nTmp = Units::GetYPosFromDynamicPathUnit(pUnit);
-    __frame0.nDirY = __frame0.nTargetY - nTmp;
-    Skills::SKILL_ScaleUpVelocityVector(&__frame0.nDirX, &__frame0.nDirY);
-    Skills::SKILL_ComputePerpendicularUnitVector(&__frame0.nDirX, &__frame0.nDirY);
-    __frame0.nTargetX -= __frame0.nDirX * nArrowCount / 2;
-    __frame0.nTargetY -= __frame0.nDirY * nArrowCount / 2;
+    int nDirY = nTargetY - nTmp;
+    Skills::SKILL_ScaleUpVelocityVector(&nDirX, &nDirY);
+    Skills::SKILL_ComputePerpendicularUnitVector(&nDirX, &nDirY);
+    nTargetX -= nDirX * nArrowCount / 2;
+    nTargetY -= nDirY * nArrowCount / 2;
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.nFlags = 0x820;
     sSkillArg.nSkillLevel = nSkillLvl;
@@ -329,11 +321,11 @@ BOOL __fastcall Skills_CltDoFunc_Ama_MultiShotArrows(D2UnitStrc * pUnit, eD2Skil
     }
 
     do {
-      sSkillArg.nUnitX = __frame0.nTargetX;
-      sSkillArg.nUnitY = __frame0.nTargetY;
+      sSkillArg.nUnitX = nTargetX;
+      sSkillArg.nUnitY = nTargetY;
       UNIT::Missile::MakeMissile(&sSkillArg);
-      __frame0.nTargetX += __frame0.nDirX;
-      __frame0.nTargetY += __frame0.nDirY;
+      nTargetX += nDirX;
+      nTargetY += nDirY;
       nArrowCount--;
     } while (nArrowCount);
 
@@ -342,15 +334,9 @@ BOOL __fastcall Skills_CltDoFunc_Ama_MultiShotArrows(D2UnitStrc * pUnit, eD2Skil
 
 // Client DoFunc for Amazon Guided Arrow. Sets UNITFLAG_SKSRVDOFUNC, resolves target coords via GetCoordinates, selects missile via SKILLSASS_GetCltMissileByAuraLevel. If target present uses flag 0x20, otherwise 0x420 (no-lock). Spawns missile via MakeMissile, sets TargetX to mode 1 (locked) or 2 (free-flight), and encodes the relative target offset into TargetY as a packed short pair for the homing system.
 BOOL __fastcall Skills_CltDoFunc_Ama_GuidedArrow(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTargetY;
-      int nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    int nTargetY;
+    int nTargetX;
     int32_t nTargetMode;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
@@ -359,7 +345,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_GuidedArrow(D2UnitStrc * pUnit, eD2Skills e
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
 
-    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &nTargetX, &nTargetY);
     if (!bGotCoords) {
       return 0;
     }
@@ -371,9 +357,9 @@ BOOL __fastcall Skills_CltDoFunc_Ama_GuidedArrow(D2UnitStrc * pUnit, eD2Skills e
 
     D2UnitStrc* pTarget = UNIT::CUnit::GetConfirmedTargetUnit(pUnit);
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.nUnitX = __frame0.nTargetX;
+    sSkillArg.nUnitX = nTargetX;
     sSkillArg.nFlags = 0x20;
-    sSkillArg.nUnitY = __frame0.nTargetY;
+    sSkillArg.nUnitY = nTargetY;
     sSkillArg.nSkillLevel = nSkillLvl;
     if (!pTarget) {
       sSkillArg.nFlags = 0x420;
@@ -396,7 +382,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_GuidedArrow(D2UnitStrc * pUnit, eD2Skills e
     D2Common::Units::Missile::SetTargetX(pMissileUnit, nTargetMode);
     nTargetMode = Units::GetXPosFromDynamicPathUnit(pUnit);
     int32_t nUnitPosY = Units::GetYPosFromDynamicPathUnit(pUnit);
-    D2Common::Units::Missile::SetTargetY(pMissileUnit, (short int)((short int)__frame0.nTargetY - (short int)nUnitPosY) * 0x10000 + (int)(short int)((short int)__frame0.nTargetX - (short int)nTargetMode));
+    D2Common::Units::Missile::SetTargetY(pMissileUnit, (short int)((short int)nTargetY - (short int)nUnitPosY) * 0x10000 + (int)(short int)((short int)nTargetX - (short int)nTargetMode));
     return 1;
 }
 
@@ -453,18 +439,11 @@ BOOL __fastcall Skills_CltDoFunc_Ama_LinearMissileSpray(D2UnitStrc * pUnit, eD2S
 
 // Client-side do-function for the Amazon Strafe skill. Each call fires one missile (cltmissilea or cltmissileb based on weapon class) toward the current or nearest valid target within aura range, decrements the remaining shot counter (SKILL_GetParam1), and if shots remain, finds the next closest target (excluding the one just shot), redirects the unit's dynamic path toward it, and updates the stored target GUID/type in skill params 2/3. Returns FALSE when no target or no shots left.
 BOOL __fastcall Skills_CltDoFunc_Ama_Strafe(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -28..-16 are ONE object: &nTargetX2 is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTargetX2;
-      int nTargetY;
-      int32_t nAuraRange;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int pCltMissileId;
     eMissilesId eVar1;
     D2SkillArgStrc sSkillArg;
+    int nTargetX2;
+    int nTargetY;
     if ((int)eSkill < 0) {
       return 0;
     }
@@ -488,15 +467,15 @@ BOOL __fastcall Skills_CltDoFunc_Ama_Strafe(D2UnitStrc * pUnit, eD2Skills eSkill
       return 0;
     }
 
-    __frame0.nAuraRange = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxt->aurarangecalc, eCurrentSkill, nSkillLvl);
+    int32_t nAuraRange = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxt->aurarangecalc, eCurrentSkill, nSkillLvl);
     eMissilesId nPrevTargetGUID = D2Common::Skills::SKILL_GetParam3(pSkill);
     eD2UnitType ePrevTargetType = D2Common::Skills::SKILL_GetParam2(pSkill);
     D2UnitStrc* pTargetUnit = UNIT::Player::UNITS_FindClientSideUnit(nPrevTargetGUID, ePrevTargetType);
-    if (pTargetUnit || (pTargetUnit = Skills::SKILL_FindClosestTargetWithStats(pUnit, 0, 0, __frame0.nAuraRange, 3, nPrevTargetGUID, nullptr) , pTargetUnit != 0)) {
+    if (pTargetUnit || (pTargetUnit = Skills::SKILL_FindClosestTargetWithStats(pUnit, 0, 0, nAuraRange, 3, nPrevTargetGUID, nullptr) , pTargetUnit != 0)) {
       D2Common::Units::SetTargetUnitForDynamicUnit(pUnit, pTargetUnit);
     }
 
-    BOOL bHasCoords = Skills::GetCooordinates(pUnit, &__frame0.nTargetY, &__frame0.nTargetX2);
+    BOOL bHasCoords = Skills::GetCooordinates(pUnit, &nTargetY, &nTargetX2);
     if (!bHasCoords) {
       return 0;
     }
@@ -517,8 +496,8 @@ BOOL __fastcall Skills_CltDoFunc_Ama_Strafe(D2UnitStrc * pUnit, eD2Skills eSkill
     sSkillArg.nY = Units::GetYPosFromDynamicPathUnit(pUnit);
     sSkillArg.eSkillNo = eCurrentSkill;
     sSkillArg.nSkillLevel = nSkillLvl;
-    sSkillArg.nUnitX = __frame0.nTargetY;
-    sSkillArg.nUnitY = __frame0.nTargetX2;
+    sSkillArg.nUnitX = nTargetY;
+    sSkillArg.nUnitY = nTargetX2;
     sSkillArg.nMissileTxtNo = eVar1;
     UNIT::Missile::MakeMissile(&sSkillArg);
     D2Common::Skills::SKILL_SetParam1(pSkill, nShotsLeft - 1);
@@ -531,7 +510,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_Strafe(D2UnitStrc * pUnit, eD2Skills eSkill
       pCltMissileId = pTargetUnit->nUnitGUID;
     }
 
-    D2UnitStrc* pNextTarget = Skills::SKILL_FindClosestTargetWithStats(pUnit, 0, 0, __frame0.nAuraRange, 3, pCltMissileId, nullptr);
+    D2UnitStrc* pNextTarget = Skills::SKILL_FindClosestTargetWithStats(pUnit, 0, 0, nAuraRange, 3, pCltMissileId, nullptr);
     if (!pNextTarget) {
       return 0;
     }

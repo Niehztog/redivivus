@@ -1487,16 +1487,15 @@ uint32_t __fastcall SFILE_CompareFileName(int * pLeft, int * pnParam) {
 // @sourcefile .\SOURCE\SFILE.CPP
 // @blizzard InternalReadAligned (SFILE.CPP)
 uint32_t __stdcall SFILE_InternalReadAligned(D2MPQFileStrc * pArchive, uint32_t nFileOffset, uint32_t * pDstBuf, uint32_t nReadLen) {
-    // Frame slots -24..-4 are ONE object: &nDestSize is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -20..-4 are ONE object: &nBytesRead is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      uint32_t nDestSize;
       uint32_t nBytesRead;
       uint32_t nReadCount;
       uint32_t nBaseOffset;
       uint32_t* pReadBuffer;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     uint32_t nCount;
     uint32_t nSectorSize;
@@ -1507,6 +1506,7 @@ uint32_t __stdcall SFILE_InternalReadAligned(D2MPQFileStrc * pArchive, uint32_t 
     uint32_t nFileSizeBits;
     uint32_t* pSectorEntry;
     uint32_t nChunkSize;
+    uint32_t nDestSize;
     uint32_t nSectorIdx;
     D2MPQFileStrc* pMPQFileSaved;
     pMPQFileSaved = pArchive;
@@ -1668,7 +1668,7 @@ uint32_t __stdcall SFILE_InternalReadAligned(D2MPQFileStrc * pArchive, uint32_t 
                   pMPQFileSaved->nChecksumState = 1;
                 }
 
-                __frame0.nDestSize = nChunkSize;
+                nDestSize = nChunkSize;
                 /* SCompDecompress argument evidence (pushes are right-to-left, RET 0x14 == 5
                          args):
                            arg1 pDst    = [EBP-0x8] + [EBP+0x10] = nBaseOffset + pDstBuf
@@ -1687,7 +1687,7 @@ uint32_t __stdcall SFILE_InternalReadAligned(D2MPQFileStrc * pArchive, uint32_t 
                          (compressed). Destination advance is therefore bounded by nReadLen rounded up
                          to whole
                          sectors; SFILE_ReadSectors cannot itself walk pDstBuf out of the caller's
-                         buffer. */ BVar1 = SSComp::SCompDecompress((uint32_t*)(__frame0.nBaseOffset + (int)pDstBuf), &__frame0.nDestSize, (uint32_t*)((int)__frame0.pReadBuffer + (int)(pArchive->szFileName - 8)), nSectorSize, (uint32_t)pMpqArchive->szArchivePath);
+                         buffer. */ BVar1 = SSComp::SCompDecompress((uint32_t*)(__frame0.nBaseOffset + (int)pDstBuf), &nDestSize, (uint32_t*)((int)__frame0.pReadBuffer + (int)(pArchive->szFileName - 8)), nSectorSize, (uint32_t)pMpqArchive->szArchivePath);
                 if (!BVar1) {
                   SErr::SErrDisplayError(0x85100083, (uint32_t*)pMPQFileSaved->pArchive->szArchivePath, -4, nullptr, 0, 1);
                 }
@@ -2352,16 +2352,6 @@ void __fastcall SFILE_RemoveFileRecordFromList1(int32_t pThis, int * pLink) {
 }
 
 int __fastcall SFILE_SearchFileInArchives(D2ArchiveStrc * pArchive, D2MPQBlockEntryStrc * * ppBlockEntryOut, char * szFileName, uint8_t bSearchFlags, D2ArchiveStrc * * ppArchiveOut, char * szDiskPathOut) {
-    // Frame slots -532..-4 are ONE object: &pValidatedArchive is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2ArchiveStrc* pValidatedArchive;
-      char szDiskPath[260];
-      char szPrefixedName[260];
-      uint32_t nStackCookie;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 528, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nRet;
     uint32_t nPrefixLen;
     uint32_t nSepLen;
@@ -2370,7 +2360,9 @@ int __fastcall SFILE_SearchFileInArchives(D2ArchiveStrc * pArchive, D2MPQBlockEn
     D2MPQBlockEntryStrc* pBlockEntry;
     D2ArchiveStrc* pSearchArchive;
     char* szFileName_00;
-    __frame0.nStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    char szDiskPath[260];
+    char szPrefixedName[260];
+    uint32_t nStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (ppArchiveOut) {
       *ppArchiveOut = 0;
     }
@@ -2378,9 +2370,9 @@ int __fastcall SFILE_SearchFileInArchives(D2ArchiveStrc * pArchive, D2MPQBlockEn
       *ppBlockEntryOut = 0;
     }
 
-    __frame0.pValidatedArchive = 0;
+    D2ArchiveStrc* pValidatedArchive = 0;
     if (pArchive) {
-      nRet = SFILE_CheckArchiveHandle(pArchive, &__frame0.pValidatedArchive);
+      nRet = SFILE_CheckArchiveHandle(pArchive, &pValidatedArchive);
       if (!nRet) {
         Fog::Debug::GuardStack();
         return 0;
@@ -2388,7 +2380,7 @@ int __fastcall SFILE_SearchFileInArchives(D2ArchiveStrc * pArchive, D2MPQBlockEn
     }
 
     D2ArchiveStrc* pCurArchive = (D2ArchiveStrc*)(gMpqArchiveList.pNext < 1 ? 0 : gMpqArchiveList.pNext);
-    D2ArchiveStrc* pTargetArchive = __frame0.pValidatedArchive;
+    D2ArchiveStrc* pTargetArchive = pValidatedArchive;
     do {
       if ((!pTargetArchive || pCurArchive == pTargetArchive) && (!pCurArchive || pCurArchive->nPriority < 1)) {
         pSearchArchive = pCurArchive;
@@ -2398,16 +2390,16 @@ int __fastcall SFILE_SearchFileInArchives(D2ArchiveStrc * pArchive, D2MPQBlockEn
 
         szFileName_00 = szFileName;
         if (pCurArchive && pCurArchive->szInternalPrefix[0] != '\0') {
-          nPrefixLen = SSTR::SStrCopy(__frame0.szPrefixedName, pCurArchive->szInternalPrefix, 0x104);
-          nSepLen = SSTR::SStrCopy(__frame0.szPrefixedName + nPrefixLen, "\\", 0x104);
-          SSTR::SStrCopy(__frame0.szPrefixedName + nPrefixLen + nSepLen, szFileName, 0x104);
-          szFileName_00 = __frame0.szPrefixedName;
+          nPrefixLen = SSTR::SStrCopy(szPrefixedName, pCurArchive->szInternalPrefix, 0x104);
+          nSepLen = SSTR::SStrCopy(szPrefixedName + nPrefixLen, "\\", 0x104);
+          SSTR::SStrCopy(szPrefixedName + nPrefixLen + nSepLen, szFileName, 0x104);
+          szFileName_00 = szPrefixedName;
         }
         if (bSearchFlags & 3 && (!pSearchArchive || !pSearchArchive->nFlags)) {
-          bFoundOnDisk = SFILE_FindFileOnDisk(bSearchFlags, __frame0.szDiskPath, szFileName_00);
+          bFoundOnDisk = SFILE_FindFileOnDisk(bSearchFlags, szDiskPath, szFileName_00);
           if (bFoundOnDisk) {
             if (szDiskPathOut) {
-              SSTR::SStrCopy(szDiskPathOut, __frame0.szDiskPath, 0x104);
+              SSTR::SStrCopy(szDiskPathOut, szDiskPath, 0x104);
             }
 
             Fog::Debug::GuardStack();
@@ -2419,7 +2411,7 @@ int __fastcall SFILE_SearchFileInArchives(D2ArchiveStrc * pArchive, D2MPQBlockEn
         }
 
         nHashIndex = SFILE_SearchHashTable(pSearchArchive, gnSFileSearchLocale, gnSFileSearchHashOffset, szFileName_00);
-        pTargetArchive = __frame0.pValidatedArchive;
+        pTargetArchive = pValidatedArchive;
         if (nHashIndex != -1) {
           nRet = 1;
           pBlockEntry = SFILE_GetBlockTableEntry(pSearchArchive, nHashIndex);
@@ -3384,17 +3376,6 @@ int __stdcall SFileOpenFileEx(D2ArchiveStrc * pArchive, char * szFileName, uint3
     // Static local variables (originally global data)
     static char gbSFileStreamCallbackPending;
 
-    // Frame slots -280..-4 are ONE object: &pBlockEntry is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQBlockEntryStrc* pBlockEntry;
-      char* pFileName;
-      D2ArchiveStrc* pArchiveFound;
-      char szResolvedPath[260];
-      uint32_t dwStackCookie;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 276, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t* puVar1;
     int nOpenResult;
     HANDLE hDiskFile;
@@ -3405,12 +3386,15 @@ int __stdcall SFileOpenFileEx(D2ArchiveStrc * pArchive, char * szFileName, uint3
     D2MPQFileStrc* pMpqFileRecord;
     void* pReadBuffer;
     uint32_t nDecryptKey;
+    D2MPQBlockEntryStrc* pBlockEntry;
+    D2ArchiveStrc* pArchiveFound;
+    char szResolvedPath[260];
     D2MPQBlockEntryStrc* pSavedBlockEntry;
     D2ArchiveStrc* pFileArchive;
     int* pRefCount;
-    __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     uint32_t nResult = -1;
-    __frame0.pFileName = szFileName;
+    char* pFileName = szFileName;
     if (!phFile) {
       nResult = 0;
     } else {
@@ -3420,24 +3404,24 @@ int __stdcall SFileOpenFileEx(D2ArchiveStrc * pArchive, char * szFileName, uint3
       /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_00779068);
       SFILE_EnsureHashSource();
       nResult = 0;
-      nOpenResult = SFILE_SearchFileInArchives(pArchive, &__frame0.pBlockEntry, szFileName, (uint8_t)dwFlags, &__frame0.pArchiveFound, __frame0.szResolvedPath);
+      nOpenResult = SFILE_SearchFileInArchives(pArchive, &pBlockEntry, szFileName, (uint8_t)dwFlags, &pArchiveFound, szResolvedPath);
       if (nOpenResult) {
         if (nOpenResult == 2) {
-          /* HANDLE hTemplateFile for CreateFileA */ /* DWORD dwFlagsAndAttributes for CreateFileA */ /* DWORD dwCreationDisposition for CreateFileA */ /* LPSECURITY_ATTRIBUTES lpSecurityAttributes for CreateFileA */ /* DWORD dwShareMode for CreateFileA */ /* DWORD dwDesiredAccess for CreateFileA */ /* LPCSTR lpFileName for CreateFileA */ hDiskFile = CreateFileA(__frame0.szResolvedPath, 0x80000000, 1, (LPSECURITY_ATTRIBUTES)0x0, 3, 0x8000000, (HANDLE)0x0);
-          szFileName = __frame0.pFileName;
+          /* HANDLE hTemplateFile for CreateFileA */ /* DWORD dwFlagsAndAttributes for CreateFileA */ /* DWORD dwCreationDisposition for CreateFileA */ /* LPSECURITY_ATTRIBUTES lpSecurityAttributes for CreateFileA */ /* DWORD dwShareMode for CreateFileA */ /* DWORD dwDesiredAccess for CreateFileA */ /* LPCSTR lpFileName for CreateFileA */ hDiskFile = CreateFileA(szResolvedPath, 0x80000000, 1, (LPSECURITY_ATTRIBUTES)0x0, 3, 0x8000000, (HANDLE)0x0);
+          szFileName = pFileName;
           if (hDiskFile == (HANDLE)-1) {
             nResult = 0;
           } else if (!(dwFlags & 4)) {
             pFileRecord = SFILE_AllocFileRecord((int**)&gSFileOpenFileList, 1, 0, 0);
-            SSTR::SStrCopy(pFileRecord->szFileName, __frame0.pFileName, 0x104);
-            pPathCopy = SSTR::SStrDup(__frame0.szResolvedPath);
+            SSTR::SStrCopy(pFileRecord->szFileName, pFileName, 0x104);
+            pPathCopy = SSTR::SStrDup(szResolvedPath);
             pFileRecord->szFilePath = (char*)pPathCopy;
             pFileRecord->hFile = hDiskFile;
             pFileRecord->nRefCount = 1;
             pFileRecord->bChecksumEnabled = 0;
             *phFile = pFileRecord;
             nResult = 2;
-            szFileName = __frame0.pFileName;
+            szFileName = pFileName;
           } else {
             *phFile = hDiskFile;
             nResult = 2;
@@ -3454,27 +3438,27 @@ int __stdcall SFileOpenFileEx(D2ArchiveStrc * pArchive, char * szFileName, uint3
           }
 
           nDecryptKey = SFILE_Hash(3, szFileName);
-          pFileArchive = __frame0.pArchiveFound;
-          pSavedBlockEntry = __frame0.pBlockEntry;
-          puVar1 = &__frame0.pBlockEntry->dwFlags;
+          pFileArchive = pArchiveFound;
+          pSavedBlockEntry = pBlockEntry;
+          puVar1 = &pBlockEntry->dwFlags;
           if (*puVar1 & 0x20000) {
-            nDecryptKey = __frame0.pBlockEntry->dwFilePos - __frame0.pArchiveFound->nArchiveOffset + nDecryptKey ^ __frame0.pBlockEntry->dwFileSize;
+            nDecryptKey = pBlockEntry->dwFilePos - pArchiveFound->nArchiveOffset + nDecryptKey ^ pBlockEntry->dwFileSize;
           }
 
-          __frame0.pBlockEntry = (D2MPQBlockEntryStrc*)((__frame0.pBlockEntry->dwFileSize - 1 + __frame0.pArchiveFound->nSectorSize) / __frame0.pArchiveFound->nSectorSize);
-          __frame0.pArchiveFound = 0;
+          pBlockEntry = (D2MPQBlockEntryStrc*)((pBlockEntry->dwFileSize - 1 + pArchiveFound->nSectorSize) / pArchiveFound->nSectorSize);
+          pArchiveFound = 0;
           if (*puVar1 & 0xff00) {
-            __frame0.pArchiveFound = (D2ArchiveStrc*)SMem::SMemAlloc((int)__frame0.pBlockEntry * 4 + 4, ".\\SOURCE\\SFILE.CPP", 0x1231, 0);
+            pArchiveFound = (D2ArchiveStrc*)SMem::SMemAlloc((int)pBlockEntry * 4 + 4, ".\\SOURCE\\SFILE.CPP", 0x1231, 0);
           }
 
           pMpqFileRecord = SFILE_AllocFileRecord((int**)&gSFileOpenFileList, 1, 0, 0);
-          SSTR::SStrCopy(pMpqFileRecord->szFileName, __frame0.pFileName, 0x104);
+          SSTR::SStrCopy(pMpqFileRecord->szFileName, pFileName, 0x104);
           pMpqFileRecord->hFile = (HANDLE)-1;
           pMpqFileRecord->pArchive = pFileArchive;
           pMpqFileRecord->pBlockEntry = pSavedBlockEntry;
           pMpqFileRecord->nDecryptKey = nDecryptKey;
-          pMpqFileRecord->nSectorCount = (uint32_t)__frame0.pBlockEntry;
-          pMpqFileRecord->pSectorTable = (uint32_t*)__frame0.pArchiveFound;
+          pMpqFileRecord->nSectorCount = (uint32_t)pBlockEntry;
+          pMpqFileRecord->pSectorTable = (uint32_t*)pArchiveFound;
           pReadBuffer = SMem::SMemAlloc(0x1000, ".\\SOURCE\\SFILE.CPP", 0x123c, 0);
           pMpqFileRecord->pReadBuffer = pReadBuffer;
           pMpqFileRecord->nRefCount = 1;
@@ -3485,15 +3469,15 @@ int __stdcall SFileOpenFileEx(D2ArchiveStrc * pArchive, char * szFileName, uint3
           (*pRefCount)++;
           *phFile = pMpqFileRecord;
           nResult = 1;
-          szFileName = __frame0.pFileName;
+          szFileName = pFileName;
         } else {
-          /* HANDLE hTemplateFile for CreateFileA */ /* DWORD dwFlagsAndAttributes for CreateFileA */ /* DWORD dwCreationDisposition for CreateFileA */ /* LPSECURITY_ATTRIBUTES lpSecurityAttributes for CreateFileA */ /* DWORD dwShareMode for CreateFileA */ /* DWORD dwDesiredAccess for CreateFileA */ /* LPCSTR lpFileName for CreateFileA */ hOpenedFile = CreateFileA(__frame0.pArchiveFound->szArchivePath, 0x80000000, 1, (LPSECURITY_ATTRIBUTES)0x0, 3, 0x8000000, (HANDLE)0x0);
+          /* HANDLE hTemplateFile for CreateFileA */ /* DWORD dwFlagsAndAttributes for CreateFileA */ /* DWORD dwCreationDisposition for CreateFileA */ /* LPSECURITY_ATTRIBUTES lpSecurityAttributes for CreateFileA */ /* DWORD dwShareMode for CreateFileA */ /* DWORD dwDesiredAccess for CreateFileA */ /* LPCSTR lpFileName for CreateFileA */ hOpenedFile = CreateFileA(pArchiveFound->szArchivePath, 0x80000000, 1, (LPSECURITY_ATTRIBUTES)0x0, 3, 0x8000000, (HANDLE)0x0);
           nResult = (uint32_t)(hOpenedFile != (HANDLE)-1);
           *phFile = hOpenedFile;
           if (!nResult) {
             SErr::SErrSetLastError(2);
           } else {
-            /* DWORD dwMoveMethod for SetFilePointer */ /* PLONG lpDistanceToMoveHigh for SetFilePointer */ /* LONG lDistanceToMove for SetFilePointer */ /* HANDLE hFile for SetFilePointer */ SetFilePointer(hOpenedFile, __frame0.pBlockEntry->dwFilePos, (PLONG)0x0, 0);
+            /* DWORD dwMoveMethod for SetFilePointer */ /* PLONG lpDistanceToMoveHigh for SetFilePointer */ /* LONG lDistanceToMove for SetFilePointer */ /* HANDLE hFile for SetFilePointer */ SetFilePointer(hOpenedFile, pBlockEntry->dwFilePos, (PLONG)0x0, 0);
           }
         }
       }
@@ -4336,18 +4320,6 @@ void __stdcall SFILE_SelectAsyncRequest(int32_t nFileHandle, uint32_t nCurrentFi
 // Async I/O worker thread (lpStartAddress for CreateThread). Main loop: process cancelled requests, select next request (priority vs normal queue), read file via SFILE_ReadFileBytes/SFILE_SyncReadFile, invoke completion callbacks, signal hCompletionEvent, and free request when done. Throttles based on gnSFileDataChunkSize/gnSFileAsyncBudgetBytesPerSec. Exits when gbAsyncIOWorkerShutdown shutdown flag is set. Updates gpCurrentAsyncIORequest during execution.
 // @blizzard CdThreadProc (SFILE.CPP)
 DWORD __stdcall SFILE_CdThreadProc(void * lpThreadParam) {
-    // Frame slots -28..-4 are ONE object: &pPriorityRequest is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2StormAsyncOpStrc* pPriorityRequest;
-      int* nWaitTime;
-      D2StormAsyncOpStrc* pNormalRequest;
-      uint32_t nLastSeekPos;
-      D2ArchiveStrc* nLastFileHandle;
-      DWORD dwLastTickCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2MPQFileStrc* pDVar1;
     HANDLE hEvent;
     D2StormAsyncOpStrc* pSelectedRequest;
@@ -4356,10 +4328,13 @@ DWORD __stdcall SFILE_CdThreadProc(void * lpThreadParam) {
     int* pCancelledRequest;
     D2StormAsyncOpStrc* pDVar2;
     uint32_t nThrottleDelay;
+    D2StormAsyncOpStrc* pPriorityRequest;
+    int* nWaitTime;
+    D2StormAsyncOpStrc* pNormalRequest;
     int nFileHandle;
-    __frame0.nLastFileHandle = 0;
-    __frame0.nLastSeekPos = 0;
-    __frame0.dwLastTickCount = GetTickCount();
+    D2ArchiveStrc* nLastFileHandle = 0;
+    uint32_t nLastSeekPos = 0;
+    DWORD dwLastTickCount = GetTickCount();
     if (gbAsyncIOWorkerShutdown) {
       gbAsyncIOWorkerShutdown = 0;
       return 0;
@@ -4379,20 +4354,20 @@ DWORD __stdcall SFILE_CdThreadProc(void * lpThreadParam) {
       }
 
       SFILE_ProcessAsyncRequests();
-      SFILE_SelectAsyncRequest((int32_t)__frame0.nLastFileHandle, __frame0.nLastSeekPos, (int**)&__frame0.pPriorityRequest, (int**)&__frame0.pNormalRequest, &__frame0.nWaitTime);
-      pDVar2 = __frame0.pPriorityRequest;
-      if ((!__frame0.pNormalRequest || (pSelectedRequest = __frame0.pNormalRequest , 1000 < (int)__frame0.nWaitTime)) && (!__frame0.pPriorityRequest || (pSelectedRequest = __frame0.pPriorityRequest , dwCurrentTick - __frame0.dwLastTickCount < nThrottleDelay))) {
+      SFILE_SelectAsyncRequest((int32_t)nLastFileHandle, nLastSeekPos, (int**)&pPriorityRequest, (int**)&pNormalRequest, &nWaitTime);
+      pDVar2 = pPriorityRequest;
+      if ((!pNormalRequest || (pSelectedRequest = pNormalRequest , 1000 < (int)nWaitTime)) && (!pPriorityRequest || (pSelectedRequest = pPriorityRequest , dwCurrentTick - dwLastTickCount < nThrottleDelay))) {
         /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
         if (!pDVar2) {
           dwCurrentTick = 0xfa;
         } else {
-          dwCurrentTick = nThrottleDelay - dwCurrentTick + __frame0.dwLastTickCount;
+          dwCurrentTick = nThrottleDelay - dwCurrentTick + dwLastTickCount;
         }
 
         /* DWORD dwMilliseconds for WaitForSingleObject */ /* HANDLE hHandle for WaitForSingleObject */ WaitForSingleObject(ghAsyncIOEvent, dwCurrentTick);
       } else {
-        __frame0.nLastFileHandle = pSelectedRequest->pFile->pArchive;
-        __frame0.nLastSeekPos = pSelectedRequest->nSeekFilePos;
+        nLastFileHandle = pSelectedRequest->pFile->pArchive;
+        nLastSeekPos = pSelectedRequest->nSeekFilePos;
         nFileHandle = pSelectedRequest->pPrevLink;
         gpCurrentAsyncIORequest = pSelectedRequest;
         if (nFileHandle) {
@@ -4409,7 +4384,7 @@ DWORD __stdcall SFILE_CdThreadProc(void * lpThreadParam) {
           pSelectedRequest->pNext = 0;
         }
 
-        __frame0.dwLastTickCount = dwCurrentTick;
+        dwLastTickCount = dwCurrentTick;
         /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
         pDVar2 = gpCurrentAsyncIORequest;
         pReadBuffer = (uint32_t*)gpCurrentAsyncIORequest->pChunkWritePtr;
@@ -5441,20 +5416,20 @@ int __stdcall SFileOpenArchive(char * szArchiveName, int * pUserData, uint32_t n
 
 // @sourcefile .\SOURCE\SFILE.CPP
 void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName, int * pUserData, uint32_t nFlags, D2ArchiveStrc * * ppArchive) {
-    // Frame slots -276..-4 are ONE object: &pOpenedFile is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -272..-4 are ONE object: &pBlockInfo is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      D2MPQFileStrc* pOpenedFile;
       D2MPQFileStrc* pBlockInfo;
       char szResolvedPath[260];
       uint32_t dwStackCookie;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 272, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 268, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     D2ArchiveStrc* pNewArchive;
     D2MPQHeaderStrc* pHeaderBuf;
     D2MPQFileStrc* pMpqFileThis;
     D2ArchiveStrc* pArchive;
+    D2MPQFileStrc* pOpenedFile;
     __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     D2MPQFileStrc** pMpqFile = &__frame0.pBlockInfo;
     uint32_t nSearchFlags = SFILE_GetOpenFlags();
@@ -5465,8 +5440,8 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_00779068);
-    SFILE_CheckFileHandle(__frame0.pBlockInfo, &__frame0.pOpenedFile);
-    if (__frame0.pOpenedFile->hFile != (HANDLE)-1) {
+    SFILE_CheckFileHandle(__frame0.pBlockInfo, &pOpenedFile);
+    if (pOpenedFile->hFile != (HANDLE)-1) {
       SFileCloseFile(pMpqFileThis);
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
       nSearchFlags = SFILE_GetOpenFlags();
@@ -5475,7 +5450,7 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
       Fog::Debug::GuardStack();
       return;
     }
-    if (!(__frame0.pOpenedFile->pBlockEntry->dwFlags & 0x1ff00)) {
+    if (!(pOpenedFile->pBlockEntry->dwFlags & 0x1ff00)) {
       pNewArchive = (D2ArchiveStrc*)SMem::SMemAlloc(0x25c, sRTTI_ARCHIVEREC_AllocTag, -2, 8);
       pArchive = 0;
       if (pNewArchive) {
@@ -5485,8 +5460,8 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
       }
 
       SSTR::SStrCopy(pArchive->szArchivePath, szFileName, 0x104);
-      pArchive->hFile = __frame0.pOpenedFile->pArchive->hFile;
-      pArchive->nArchiveType = __frame0.pOpenedFile->pArchive->nArchiveType;
+      pArchive->hFile = pOpenedFile->pArchive->hFile;
+      pArchive->nArchiveType = pOpenedFile->pArchive->nArchiveType;
       pArchive->nFlags = nFlags >> 2 & 1;
       pArchive->pMpqFileRecord = (D2MPQFileStrc*)pUserData;
       pArchive->nPriority = 0;
@@ -5494,8 +5469,8 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
       pArchive->bDontCloseHandle = (int)__frame0.pBlockInfo;
       pHeaderBuf = (D2MPQHeaderStrc*)SMem::SMemAlloc(0x20, ".\\SOURCE\\SFILE.CPP", 0x11ad, 0);
       pArchive->pMpqHeader = pHeaderBuf;
-      pArchive->nArchiveOffset = __frame0.pOpenedFile->pBlockEntry->dwFilePos;
-      pArchive->nArchiveFileSize = __frame0.pOpenedFile->pBlockEntry->dwFileSize + __frame0.pOpenedFile->pBlockEntry->dwFilePos;
+      pArchive->nArchiveOffset = pOpenedFile->pBlockEntry->dwFilePos;
+      pArchive->nArchiveFileSize = pOpenedFile->pBlockEntry->dwFileSize + pOpenedFile->pBlockEntry->dwFilePos;
       SFILE_s_OpenArchive(pArchive, nFlags, pArchive->nArchiveType, ppArchive);
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
       Fog::Debug::GuardStack();

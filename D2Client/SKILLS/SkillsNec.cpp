@@ -71,18 +71,11 @@ BOOL __fastcall Skills_CltStFunc_SpawnCltMissileC(D2UnitStrc * pUnit, eD2Skills 
 
 // Client-side do-function for Necromancer curse skills that emit a streaming AoE center missile (e.g. Amplify Damage, Decrepify). Creates a MISSILE_Cursecenter at the target coordinates, frees its existing light map and allocates a new one, then sets the stream missile type and range (from aurarangecalc, clamped to min 2) so the missile fans out stream missiles over its radius. Returns TRUE on success.
 BOOL __fastcall Skills_CltDoFunc_Nec_CurseCenter_StreamMissile(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTargetY;
-      int nTargetX;
-      D2UnitStrc* pCasterUnit;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2UnitStrc* pMissileUnit;
     D2LightMapStrc* pLightMap;
     D2SkillArgStrc sSkillArg;
+    int nTargetY;
+    int nTargetX;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
@@ -100,8 +93,8 @@ BOOL __fastcall Skills_CltDoFunc_Nec_CurseCenter_StreamMissile(D2UnitStrc * pUni
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
 
-    __frame0.pCasterUnit = pUnit;
-    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    D2UnitStrc* pCasterUnit = pUnit;
+    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &nTargetX, &nTargetY);
     if (!bGotCoords) {
       return 0;
     }
@@ -113,11 +106,11 @@ BOOL __fastcall Skills_CltDoFunc_Nec_CurseCenter_StreamMissile(D2UnitStrc * pUni
     }
 
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.pOwner = __frame0.pCasterUnit;
+    sSkillArg.pOwner = pCasterUnit;
     sSkillArg.nSkillLevel = nSkillLvl;
     sSkillArg.nFlags = 1;
-    sSkillArg.nX = __frame0.nTargetX;
-    sSkillArg.nY = __frame0.nTargetY;
+    sSkillArg.nX = nTargetX;
+    sSkillArg.nY = nTargetY;
     sSkillArg.nMissileTxtNo = MISSILE_Cursecenter;
     sSkillArg.eSkillNo = eSkill;
     pMissileUnit = UNIT::Missile::MakeMissile(&sSkillArg);
@@ -139,21 +132,14 @@ BOOL __fastcall Skills_CltDoFunc_Nec_CurseCenter_StreamMissile(D2UnitStrc * pUni
 
 // Client-side: spawns a single Bone Wall/Prison missile segment at the correct orientation. Gets target coords via GetCooordinates, computes delta from caster to target and distance, calculates a normalized direction for the wall segment. Fills D2SkillArgStrc with the given eMissileId, eSkill, nParam (as nToHit), nFlags=3, and perpendicular velocity components. After MakeMissile, sets the missile's facing via PATH_SetNewDirection to point toward the target. Returns 1 on success, 0 if coords unavailable or missile allocation failed.
 uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam, eMissilesId eMissileId, D2UnitStrc * pUnit) {
-    // Frame slots -20..-4 are ONE object: &nTargetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nTargetY;
-      int nTargetX;
-      int32_t nUnitPosY;
-      int32_t nDist;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nDeltaX;
     int nNormDeltaX;
     int nDeltaY;
     D2SkillArgStrc sSkillArg;
-    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    int nTargetY;
+    int nTargetX;
+    int32_t nUnitPosY;
+    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &nTargetX, &nTargetY);
     if (!bGotCoords) {
       return 0;
     }
@@ -167,7 +153,7 @@ uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam,
       nDeltaX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
     }
 
-    nDeltaX = __frame0.nTargetX - nDeltaX;
+    nDeltaX = nTargetX - nDeltaX;
     eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
       nNormDeltaX = pUnit->pPath.pStaticPath->nPosY;
@@ -177,10 +163,10 @@ uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam,
       nNormDeltaX = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
     }
 
-    nNormDeltaX = __frame0.nTargetY - nNormDeltaX;
-    __frame0.nDist = D2Common::Collision::GetDistanceToXY(pUnit, __frame0.nTargetX, __frame0.nTargetY);
-    if (__frame0.nDist < 2) {
-      __frame0.nDist = 1;
+    nNormDeltaX = nTargetY - nNormDeltaX;
+    int32_t nDist = D2Common::Collision::GetDistanceToXY(pUnit, nTargetX, nTargetY);
+    if (nDist < 2) {
+      nDist = 1;
     }
 
     eUnitType = pUnit->eUnitType;
@@ -192,14 +178,14 @@ uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam,
       nDeltaY = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
     }
 
-    int nDirection = nDeltaX * 2 / __frame0.nDist;
+    int nDirection = nDeltaX * 2 / nDist;
     eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nUnitPosY = pUnit->pPath.pStaticPath->nPosY;
+      nUnitPosY = pUnit->pPath.pStaticPath->nPosY;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nUnitPosY = 0;
+      nUnitPosY = 0;
     } else {
-      __frame0.nUnitPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      nUnitPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
     }
 
     memset(&sSkillArg, 0, 0x5c);
@@ -207,7 +193,7 @@ uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam,
     sSkillArg.nMissileTxtNo = eMissileId;
     sSkillArg.nSkillLevel = nParam;
     sSkillArg.nFlags = 3;
-    sSkillArg.nY = nNormDeltaX * 2 / __frame0.nDist + __frame0.nUnitPosY;
+    sSkillArg.nY = nNormDeltaX * 2 / nDist + nUnitPosY;
     sSkillArg.nUnitX = nDeltaX * 5;
     sSkillArg.nUnitY = nNormDeltaX * 5;
     sSkillArg.pOwner = pUnit;
@@ -217,7 +203,7 @@ uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam,
       return 0;
     }
 
-    nDeltaX = D2Common::Units::GetDirectionToCoords(pUnit, __frame0.nTargetX, __frame0.nTargetY);
+    nDeltaX = D2Common::Units::GetDirectionToCoords(pUnit, nTargetX, nTargetY);
     D2Common::PATH::DynamicPath::PATH_SetNewDirection(pMissileUnit->pPath.pDynamicPath, (uint8_t)nDeltaX);
     return 1;
 }
@@ -532,14 +518,8 @@ BOOL __fastcall Skills_CltDoFunc_Nec_BoneSpear(D2UnitStrc * pUnit, eD2Skills eSk
 
 // Client StFunc prerequisite check for Necromancer skills that forbid casting in town. Resolves target coordinates, finds the best nearby room, and returns FALSE if the room is in town (unless skill flags2 bit 0 is set to allow town use). Returns TRUE only if caster room is valid and not in town.
 BOOL __fastcall Skills_CltStFunc_CheckCasterRoomNotInTownNec(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTargetX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nTargetX;
-      int32_t nTargetY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int32_t nTargetX;
+    int32_t nTargetY;
     if ((int)eSkill < 0) {
       return 0;
     }
@@ -557,12 +537,12 @@ BOOL __fastcall Skills_CltStFunc_CheckCasterRoomNotInTownNec(D2UnitStrc * pUnit,
       return 0;
     }
 
-    BOOL bResult = Skills::GetCooordinates(pUnit, &__frame0.nTargetX, &__frame0.nTargetY);
+    BOOL bResult = Skills::GetCooordinates(pUnit, &nTargetX, &nTargetY);
     if (!bResult) {
       return 0;
     }
 
-    pRoom = UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, __frame0.nTargetX, __frame0.nTargetY);
+    pRoom = UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nTargetX, nTargetY);
     if (!pRoom) {
       return 0;
     }

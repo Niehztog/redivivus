@@ -328,18 +328,10 @@ BOOL __fastcall Q09_SetCannotComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit, v
 
 // A2Q1: per-player reward grant when Radament dies. Run via IteratePlayerOrMonsterUnits over all players; only credits players in (or adjacent to) the room where Radament was killed (pRadamentRoom stored in A1Q1-aliased quest GUID slot). If the player has not already Completed nor has RewardAwaits, transitions: SetQuestState JustCompleted (0xd) -> RewardAwaits (1) -> Step0x05 (book-not-yet-read marker), pushes quest info to the unit, then propagates the same reward to every party member via Q09_SetRadamentRewardOnPartyMember. local_8 = "player was near the kill".
 BOOL __fastcall Q09_CheckRadamentKillAndReward(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
-    // Frame slots -20..-4 are ONE object: &pAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pAdjacentRooms;
-      uint32_t nAdjacentRoomCount;
-      D2UnitStrc* pPlayerUnit_lcl;
-      int bPlayerNearKill;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** pAdjacentRooms;
+    uint32_t nAdjacentRoomCount;
     int32_t nErrorLine = 0x598e36;
-    __frame0.pPlayerUnit_lcl = pUnit;
+    D2UnitStrc* pPlayerUnit_lcl = pUnit;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pRoom) {
       return 0;
@@ -352,32 +344,32 @@ BOOL __fastcall Q09_CheckRadamentKillAndReward(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     D2QuestDataA2Q1Strc* pA1Q1Data = pRadamentRoom->pQuestSpecificData.pA2Q1;
-    __frame0.bPlayerNearKill = 0;
+    int bPlayerNearKill = 0;
     if (pRoom == pA1Q1Data->pRadamentRoom) {
-      __frame0.bPlayerNearKill = 1;
+      bPlayerNearKill = 1;
     } else {
       uint32_t nAdjacentRoomIdx;
-      pRoom = D2Common::Units::UNITS_GetRoom(__frame0.pPlayerUnit_lcl);
+      pRoom = D2Common::Units::UNITS_GetRoom(pPlayerUnit_lcl);
       if (!pRoom) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x195);
         exit(-1);
       }
 
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.pAdjacentRooms, (int*)&__frame0.nAdjacentRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pAdjacentRooms, (int*)&nAdjacentRoomCount);
       nAdjacentRoomIdx = 0;
-      if (__frame0.nAdjacentRoomCount) {
+      if (nAdjacentRoomCount) {
         do {
-          if (__frame0.pAdjacentRooms[nAdjacentRoomIdx] == pA1Q1Data->pRadamentRoom) {
-            __frame0.bPlayerNearKill = 1;
+          if (pAdjacentRooms[nAdjacentRoomIdx] == pA1Q1Data->pRadamentRoom) {
+            bPlayerNearKill = 1;
             break;
           }
 
           nAdjacentRoomIdx++;
-        } while (nAdjacentRoomIdx < __frame0.nAdjacentRoomCount);
+        } while (nAdjacentRoomIdx < nAdjacentRoomCount);
       }
     }
 
-    D2UnitDataPlayerStrc* pQuestData = D2Common::Units::GetPlayerData(__frame0.pPlayerUnit_lcl);
+    D2UnitDataPlayerStrc* pQuestData = D2Common::Units::GetPlayerData(pPlayerUnit_lcl);
     D2BitBufferStrc* pBitBuffer = pQuestData->pQuestRecord[pGame->nDifficulty];
     BOOL BVar1 = D2Common::QuestRecord::GetQuestState(pBitBuffer, pRadamentRoom->nQuestIdReal, QUESTSTATE_Completed);
     /* GetQuestState RewardAwaits: skip if book already owed/awaiting collection */ if (BVar1) {
@@ -385,7 +377,7 @@ BOOL __fastcall Q09_CheckRadamentKillAndReward(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     BVar1 = D2Common::QuestRecord::GetQuestState(pBitBuffer, pRadamentRoom->nQuestIdReal, QUESTSTATE_RewardAwaits);
-    if (!(!BVar1 && __frame0.bPlayerNearKill)) {
+    if (!(!BVar1 && bPlayerNearKill)) {
       return 0;
     }
 
@@ -393,8 +385,8 @@ BOOL __fastcall Q09_CheckRadamentKillAndReward(::SGAMEDATA * pGame, D2UnitStrc *
     /* SetQuestState RewardAwaits (1): book is now owed to self player */ D2Common::QuestRecord::SetQuestState(pBitBuffer, pRadamentRoom->nQuestIdReal, QUESTSTATE_RewardAwaits);
     /* SetQuestState Step0x05 (9): "reward earned, Book of Skill not yet read"
                          marker */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_RadamentsLair, QUESTSTATE_Step0x05);
-    D2UnitStrc* pPartyUnit = __frame0.pPlayerUnit_lcl;
-    QUEST_SendQuestInfoToUnit(pRadamentRoom->pGame, __frame0.pPlayerUnit_lcl);
+    D2UnitStrc* pPartyUnit = pPlayerUnit_lcl;
+    QUEST_SendQuestInfoToUnit(pRadamentRoom->pGame, pPlayerUnit_lcl);
     int16_t nPartyId = UNIT::SUnit::GetPartyId(pPartyUnit);
     if (nPartyId == -1) {
       return 0;
@@ -434,14 +426,7 @@ BOOL __fastcall Q09_CheckBookOfSkillAndSound(::SGAMEDATA * pGame, D2UnitStrc * p
 
 // A2Q1 callback[8]: Radament death handler (the actual quest-objective trigger). For an active (non-intro) quest: debug-logs, advances nStateFlag to 4, pushes QUESTSTATE_JustCompleted to the quest record, records Radament's room (pRadamentRoom in the A1Q3-aliased scratch), unhooks handler[2]. Then iterates all players: Q09_CheckRadamentKillAndReward (grant reward to nearby), Q09_SetCannotComplete (lock out absent), Q09_CheckBookOfSkillAndSound (tally how many Book-of-Skill copies must drop). Schedules Q09_OnEndCallback timer (0xc) once. Finally sets the target's dropItemCode to 0x20737361 ('ass '=Book of Skill) and drops that many shield-type reward items so each eligible player can get a book.
 void __fastcall Q09_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
-    // Frame slots -12..-4 are ONE object: &nDropItemCode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nDropItemCode;
-      int nBookDropCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int32_t nDropItemCode;
     if (!pQuestData->bIsNotIntroduction) {
       return;
     }
@@ -467,15 +452,15 @@ void __fastcall Q09_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
     }
 
     pQuestArgs->pTarget->dwDropItemCode = 0x20737361;
-    __frame0.nBookDropCount = 0;
+    int nBookDropCount = 0;
     if (0 >= pDVar1->nBookOfSkillDropCount) {
       return;
     }
 
     do {
-      ITEMS::Items::Drop::ITEM_RewardItemToDrop(pQuestData->pGame, pQuestArgs->pTarget, ITEMTYPE_Shield, &__frame0.nDropItemCode, nullptr, -1, 0);
-      __frame0.nBookDropCount++;
-    } while (__frame0.nBookDropCount < pDVar1->nBookOfSkillDropCount);
+      ITEMS::Items::Drop::ITEM_RewardItemToDrop(pQuestData->pGame, pQuestArgs->pTarget, ITEMTYPE_Shield, &nDropItemCode, nullptr, -1, 0);
+      nBookDropCount++;
+    } while (nBookDropCount < pDVar1->nBookOfSkillDropCount);
 }
 
 // A2Q1 callback[3]: Atma introduction-reply handler. Triggered when the gossip control id == 0x28 (player finished Atma's intro speech). Removes the player from the pending-gossip GUID list. If quest is at nStateFlag==2 (introduced) and not yet Completed/RewardAwaits, advances to nStateFlag 3 (objective active: go kill Radament) and mirrors state into all players' records via Q09_UpdateQuestRecord.

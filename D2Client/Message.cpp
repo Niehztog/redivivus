@@ -40,22 +40,14 @@ void __stdcall MESSAGE_OnClose(HWND * phWnd) {
 }
 
 LRESULT __stdcall WndProcB(HWND hWnd, uint32_t uMsg, WPARAM wParam, LPARAM lParam) {
-    // Frame slots -12..-4 are ONE object: &lDispatchResult is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t lDispatchResult;
-      BOOL bHandled;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    __frame0.lDispatchResult = 0;
+    int32_t lDispatchResult = 0;
     GAME::Record::HandleWinProcMsg(uMsg, wParam, lParam);
     BOOL nHandled = GAME::Record::IsPlaybackActive();
     if (!nHandled || uMsg == 0x10) {
-      __frame0.bHandled = 0;
-      nHandled = Storm::WindowHandle::SMsgDispatchMessage(hWnd, uMsg, wParam, lParam, &__frame0.bHandled, (LRESULT*)&__frame0.lDispatchResult);
-      if (nHandled && __frame0.bHandled) {
-        return __frame0.lDispatchResult;
+      BOOL bHandled = 0;
+      nHandled = Storm::WindowHandle::SMsgDispatchMessage(hWnd, uMsg, wParam, lParam, &bHandled, (LRESULT*)&lDispatchResult);
+      if (nHandled && bHandled) {
+        return lDispatchResult;
       }
     }
 

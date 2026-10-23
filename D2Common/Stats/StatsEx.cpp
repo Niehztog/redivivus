@@ -1299,14 +1299,6 @@ int32_t __stdcall STATLIST_GetItemStatBonusValues(D2UnitStrc * pItem, uint32_t n
 
 // Calculates the combined value of a stat for a D2StatListExStrc, including all ItemStatCost formula operations (op types 1-13). Reads base value from CalcFullStatFromChildren, then applies complex stat formulas involving other stats, character class bonuses, and time-of-day modifiers.
 int32_t __fastcall STATLIST_CalcCombinedStatValue(D2StatListExStrc * pStatList, int32_t nStatShifted) {
-    // Frame slots -28..-20 are ONE object: &nPeriod2 is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nPeriod2;
-      int32_t nPeriod;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2StatInfoStrc* pnParam;
     D2StatStrc* pDVar1;
     int32_t nBaseValue;
@@ -1322,6 +1314,8 @@ int32_t __fastcall STATLIST_CalcCombinedStatValue(D2StatListExStrc * pStatList, 
     int32_t nStatCount;
     int nApplyResult3;
     int32_t nRelatedStatShifted;
+    int32_t nPeriod2;
+    int32_t nPeriod;
     short int* pOpRelationSaved;
     D2StatInfoStrc* pBaseStatInfo;
     D2StatStrc* pBaseStatEntry;
@@ -1459,19 +1453,19 @@ int32_t __fastcall STATLIST_CalcCombinedStatValue(D2StatListExStrc * pStatList, 
         break;
         case 6:
           if (pStatList->pOwner && (pDrlgAct = pStatList->pOwner->pDrlgAct , pDrlgAct != 0) && (uTimeModStat = STATLIST_CalcCombinedStatValue(pStatList, (uint32_t)(uint16_t)*pOpRelation << 0x10) , uTimeModStat != 0)) {
-            __frame0.nPeriod = 0;
-            nRelatedStatVal = Environment::DRLGENV_GetPeriodOfDayFromAct(pDrlgAct, &__frame0.nPeriod);
-            nApplyResult2 = ITEMS::ItemMods::ITEMMODS_CalculateRepairCost(uTimeModStat, nRelatedStatVal, __frame0.nPeriod, nullptr, nullptr, nullptr);
+            nPeriod = 0;
+            nRelatedStatVal = Environment::DRLGENV_GetPeriodOfDayFromAct(pDrlgAct, &nPeriod);
+            nApplyResult2 = ITEMS::ItemMods::ITEMMODS_CalculateRepairCost(uTimeModStat, nRelatedStatVal, nPeriod, nullptr, nullptr, nullptr);
             add_to_total:
             nCombinedValue += nApplyResult2;
           }
         break;
         case 7:
           if (pStatList->pOwner && (pDrlgAct = pStatList->pOwner->pDrlgAct , pDrlgAct != 0) && (uTimeModStat = STATLIST_CalcCombinedStatValue(pStatList, (uint32_t)(uint16_t)*pOpRelation << 0x10) , uTimeModStat != 0)) {
-            __frame0.nPeriod2 = 0;
-            nRelatedStatVal = Environment::DRLGENV_GetPeriodOfDayFromAct(pDrlgAct, &__frame0.nPeriod2);
+            nPeriod2 = 0;
+            nRelatedStatVal = Environment::DRLGENV_GetPeriodOfDayFromAct(pDrlgAct, &nPeriod2);
             n100Percent = 100;
-            nBaseStatLookup = ITEMS::ItemMods::ITEMMODS_CalculateRepairCost(uTimeModStat, nRelatedStatVal, __frame0.nPeriod2, nullptr, nullptr, nullptr);
+            nBaseStatLookup = ITEMS::ItemMods::ITEMMODS_CalculateRepairCost(uTimeModStat, nRelatedStatVal, nPeriod2, nullptr, nullptr, nullptr);
             nRelatedStatVal = nCombinedValue;
             nBaseStatLookup = D2Client::Stats::D2ApplyPercent(nCombinedValue, nBaseStatLookup, n100Percent);
             nCombinedValue = nRelatedStatVal + nBaseStatLookup;

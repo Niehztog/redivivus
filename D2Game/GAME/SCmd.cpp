@@ -1756,19 +1756,13 @@ void __fastcall NET_D2GS_SERVER_Send_0x4D_SKILL_XY(D2ClientStrc * pClient, uint8
 // Smart optimization: avoids sending GUID for units client might not know about yet.
 // Sent for all skill casts: player, monster, missile triggers.
 void __fastcall NET_D2GS_SERVER_Send_0x4C_UnitCastSkill_Target_0x4D_UnitCastSkill_XY(D2ClientStrc * pClient, uint8_t nUnitType, uint32_t dwAttackerGUID, uint8_t byAttackerType2, uint32_t dwSkillID, uint16_t wUnused, uint16_t wSkillLevel, uint8_t bUseXY, int32_t nPacketIdModifier) {
-    // Frame slots -16..-4 are ONE object: &pRoomList is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** pRoomList;
-      int nRoomCount;
-      uint8_t byAttackerTypeLo;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t aPacket[17];
+    D2RoomStrc** pRoomList;
+    int nRoomCount;
     uint32_t dwTargetUnitGUID;
     dwTargetUnitGUID = dwSkillID;
-    __frame0.byAttackerTypeLo = nUnitType;
+    uint8_t byAttackerTypeLo;
+    byAttackerTypeLo = nUnitType;
     ::SGAMEDATA* pGame;
     pGame = Clients::CLIENT_GetGame(pClient);
     D2UnitStrc* pUnit;
@@ -1793,24 +1787,24 @@ void __fastcall NET_D2GS_SERVER_Send_0x4C_UnitCastSkill_Target_0x4D_UnitCastSkil
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit_00);
     if (pRoom) {
       int iRoom;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.pRoomList, &__frame0.nRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pRoomList, &nRoomCount);
       pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      if (0 < __frame0.nRoomCount) {
+      if (0 < nRoomCount) {
         iRoom = 0;
         do {
-          if (pRoom == __frame0.pRoomList[iRoom]) {
-            aPacket[1] = __frame0.byAttackerTypeLo;
+          if (pRoom == pRoomList[iRoom]) {
+            aPacket[1] = byAttackerTypeLo;
             goto send_cast_on_target;
           }
 
           iRoom++;
-        } while (iRoom < __frame0.nRoomCount);
+        } while (iRoom < nRoomCount);
       }
     }
 
     uint32_t nTargetY = D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath);
     aPacket[0] = nPacketIdModifier ? 0x9a : 0x4d;
-    aPacket[1] = __frame0.byAttackerTypeLo;
+    aPacket[1] = byAttackerTypeLo;
     *(uint32_t*)((char*)&aPacket + 2) = dwAttackerGUID;
     uint32_t nTargetX = D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath);
     *(uint32_t*)((char*)&aPacket + 6) = (uint32_t)(uint16_t)wUnused;

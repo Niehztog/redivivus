@@ -96,18 +96,10 @@ int __stdcall TILEPROJECT_GetProjectId(char * szText) {
 
 // @sourcefile .\SRC\TileProjects.cpp
 D2TileLibraryHeaderStrc * __stdcall Alloc(D2TileLibraryHashStrc * * ppHash, char * szFilename) {
-    // Frame slots -12..-4 are ONE object: &pFile is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2MPQFileStrc* pFile;
-      D2TileLibraryHeaderStrc* pTileData;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nNameCopyOffset;
     char cNameChar;
-    __frame0.pTileData = 0;
-    __frame0.pFile = 0;
+    D2TileLibraryHeaderStrc* pTileData = 0;
+    D2MPQFileStrc* pFile = 0;
     D2TileProjectStrc* pExistingNode = TILEPROJECT_FindByFilename(szFilename);
     if (pExistingNode) {
       *ppHash = pExistingNode->pHash;
@@ -122,16 +114,16 @@ D2TileLibraryHeaderStrc * __stdcall Alloc(D2TileLibraryHashStrc * * ppHash, char
     } else {
       D2TileLibraryHashStrc* pNewHash;
       memset(pTileBuffer, 0, nFileSize);
-      D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, szFilename, &__frame0.pFile, 0);
-      D2FILE_ReadFile(nullptr, __frame0.pFile, pTileBuffer, nFileSize);
-      D2FILE_CloseFile(nullptr, __frame0.pFile);
-      Tilecmp::TILECMP_FixupMinimalPointers(pTileBuffer, (int**)&__frame0.pTileData, szFilename);
-      pNewHash = Tilecmp::TILECMP_RegisterTilesForLookup(__frame0.pTileData);
+      D2Common::DATATBLS::DataTbls::CheckIfFileExists(nullptr, szFilename, &pFile, 0);
+      D2FILE_ReadFile(nullptr, pFile, pTileBuffer, nFileSize);
+      D2FILE_CloseFile(nullptr, pFile);
+      Tilecmp::TILECMP_FixupMinimalPointers(pTileBuffer, (int**)&pTileData, szFilename);
+      pNewHash = Tilecmp::TILECMP_RegisterTilesForLookup(pTileData);
       pExistingNode = (D2TileProjectStrc*)Fog::Memory::AllocClientMemory(0x110, ".\\SRC\\TileProjects.cpp", 0x7b, 0);
       if (pExistingNode) {
         memset(pExistingNode, 0, 0x110);
         pExistingNode->pNext = gpTileProjectListHead;
-        pExistingNode->pTileLibrary = __frame0.pTileData;
+        pExistingNode->pTileLibrary = pTileData;
         pExistingNode->pHash = pNewHash;
         nNameCopyOffset = (int)pExistingNode - (int)szFilename;
         gpTileProjectListHead = pExistingNode;
@@ -142,7 +134,7 @@ D2TileLibraryHeaderStrc * __stdcall Alloc(D2TileLibraryHashStrc * * ppHash, char
         } while (cNameChar != '\0');
 
         *ppHash = pExistingNode->pHash;
-        return __frame0.pTileData;
+        return pTileData;
       }
 
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x7c);

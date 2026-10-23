@@ -414,58 +414,46 @@ BOOL __stdcall PATH_ComputeDirectMovementVector(int * pVelOut, int * pDynamicPat
 // Traces a straight-line path from the dynamic path's current position by (nStartX, nStartY) fixed-point steps, checking collision at each cell transition via PATH_CheckCollisionOnStep. On collision writes the last valid cell centre into pFinalCoords and step count into pNumStepsTraced and returns 1; if the endpoint is reached without collision returns 0 with the full target coords. Optionally records each crossed cell in pDynamicPath->SaveCoords (flag 0x20000).
 // Stack-slot reuse: the nStartY slot holds the packed next cell (nextCellY << 16 | nextCellX) passed to PATH_CheckCollisionOnStep.
 BOOL __stdcall PATH_TraceCollisionPath(int32_t nStartX, uint32_t nStartY, uint32_t * pFinalCoords, uint32_t * pNumStepsTraced, D2DynamicPathStrc * pDynamicPath) {
-    // Frame slots -24..-4 are ONE object: &nStepX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nStepX;
-      uint32_t nStepY;
-      uint32_t bDistantFlag;
-      uint16_t targetCellX;
-      short int targetCellY;
-      uint32_t nCellPackedXY;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int iVar1;
     BOOL nStepResult;
     short int currentCellY;
     short int nextCellY;
     uint32_t nextPosXfp;
     uint32_t nNextPosYfp;
-    __frame0.nStepY = nStartY;
+    uint32_t nStepY = nStartY;
     pDynamicPath->nSaveCoordsSize = 0;
-    __frame0.nStepX = nStartX;
-    Drlg::Path::DRLGPATH_NormalizeFixedPointPair(&__frame0.nStepX, (int*)&__frame0.nStepY);
+    int32_t nStepX = nStartX;
+    Drlg::Path::DRLGPATH_NormalizeFixedPointPair(&nStepX, (int*)&nStepY);
     uint32_t currentPosXfp = pDynamicPath->Coords.tFixed.x;
     uint32_t currentPosYfp = pDynamicPath->Coords.tFixed.y;
     uint32_t targetPosYfp = currentPosYfp + nStartY;
     uint32_t targetPosXfp = currentPosXfp + nStartX;
-    __frame0.nCellPackedXY = (uint32_t)((uint32_t)(uint16_t)(short int)(currentPosYfp >> 0x10) << 16 | (uint32_t)(uint16_t)(short int)(currentPosXfp >> 0x10));
-    __frame0.targetCellY = (short int)(targetPosYfp >> 0x10);
+    uint32_t nCellPackedXY = (uint32_t)((uint32_t)(uint16_t)(short int)(currentPosYfp >> 0x10) << 16 | (uint32_t)(uint16_t)(short int)(currentPosXfp >> 0x10));
+    short int targetCellY = (short int)(targetPosYfp >> 0x10);
     uint32_t nTargetCellX = targetPosXfp >> 0x10;
-    __frame0.bDistantFlag = pDynamicPath->nFlags & 0x20000;
-    __frame0.targetCellX = (uint16_t)(targetPosXfp >> 0x10);
+    uint32_t bDistantFlag = pDynamicPath->nFlags & 0x20000;
+    uint16_t targetCellX = (uint16_t)(targetPosXfp >> 0x10);
     while (true) {
       short int nextCellX;
-      currentCellY = (short int)(__frame0.nCellPackedXY >> 0x10);
-      if ((short int)__frame0.nCellPackedXY == (short int)nTargetCellX && currentCellY == __frame0.targetCellY) {
+      currentCellY = (short int)(nCellPackedXY >> 0x10);
+      if ((short int)nCellPackedXY == (short int)nTargetCellX && currentCellY == targetCellY) {
         break;
       }
 
-      nextPosXfp = __frame0.nStepX + currentPosXfp;
-      nNextPosYfp = __frame0.nStepY + currentPosYfp;
+      nextPosXfp = nStepX + currentPosXfp;
+      nNextPosYfp = nStepY + currentPosYfp;
       nextCellX = (short int)(nextPosXfp >> 0x10);
       nextCellY = (short int)(nNextPosYfp >> 0x10);
       nStartY = (uint32_t)((uint32_t)(uint16_t)nextCellY << 16 | (uint32_t)(uint16_t)nextCellX);
-      if ((short int)__frame0.nCellPackedXY != nextCellX || currentCellY != nextCellY) {
-        nStepResult = PATH_CheckCollisionOnStep(nStartY, __frame0.nCellPackedXY, pDynamicPath);
+      if ((short int)nCellPackedXY != nextCellX || currentCellY != nextCellY) {
+        nStepResult = PATH_CheckCollisionOnStep(nStartY, nCellPackedXY, pDynamicPath);
         if (!nStepResult) {
           *pFinalCoords = (currentPosXfp & -65536) + 0x8000;
           pFinalCoords[1] = (currentPosYfp & -65536) + 0x8000;
           *pNumStepsTraced = pDynamicPath->nSaveCoordsSize;
           return 1;
         }
-        if (__frame0.bDistantFlag) {
+        if (bDistantFlag) {
           iVar1 = pDynamicPath->nSaveCoordsSize;
           pDynamicPath->SaveCoords[iVar1].nX = nextCellX;
           pDynamicPath->SaveCoords[iVar1].nY = nextCellY;
@@ -477,8 +465,8 @@ BOOL __stdcall PATH_TraceCollisionPath(int32_t nStartX, uint32_t nStartY, uint32
         }
       }
 
-      __frame0.nCellPackedXY = nStartY;
-      nTargetCellX = (uint32_t)__frame0.targetCellX;
+      nCellPackedXY = nStartY;
+      nTargetCellX = (uint32_t)targetCellX;
       currentPosYfp = nNextPosYfp;
       currentPosXfp = nextPosXfp;
     }

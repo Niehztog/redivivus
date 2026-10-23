@@ -332,15 +332,9 @@ BOOL __fastcall Skills_CltStFunc_SetChargeUpState(D2UnitStrc * pUnit, eD2Skills 
 
 // Client-side DoFunc for the Assassin charge-up aura level skill. Clears UNITFLAG_SKSRVDOFUNC, resolves the aura-level missile via SKILLSASS_GetCltMissileByAuraLevel, and if the charge counter (skill param1) is zero spawns a client missile at the unit's position with a shifted particle effect. Decrements the charge counter via SKILL_SetParam1; advances the unit sequence frame if the inferno state is active.
 BOOL __fastcall Skills_CltDoFunc_Ass_AuraLevel_SpawnMissileCharge(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -20..-12 are ONE object: &nUnitY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nUnitY;
-      int nUnitX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    int nUnitY;
+    int nUnitX;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
@@ -368,7 +362,7 @@ BOOL __fastcall Skills_CltDoFunc_Ass_AuraLevel_SpawnMissileCharge(D2UnitStrc * p
       pUnit->eUnitFlags &= ~UNITFLAG_SKSRVDOFUNC;
     }
 
-    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nUnitX, &__frame0.nUnitY);
+    BOOL bGotCoords = Skills::GetCooordinates(pUnit, &nUnitX, &nUnitY);
     if (!bGotCoords) {
       return 0;
     }
@@ -378,10 +372,10 @@ BOOL __fastcall Skills_CltDoFunc_Ass_AuraLevel_SpawnMissileCharge(D2UnitStrc * p
       D2UnitStrc* pMissileUnit;
       memset(&sSkillArg, 0, 0x5c);
       sSkillArg.nMissileTxtNo = eMissileId;
-      sSkillArg.nUnitY = __frame0.nUnitY;
+      sSkillArg.nUnitY = nUnitY;
       sSkillArg.nFlags = 0x20;
       sSkillArg.nSkillLevel = nSkillLvl;
-      sSkillArg.nUnitX = __frame0.nUnitX;
+      sSkillArg.nUnitX = nUnitX;
       sSkillArg.pOwner = pUnit;
       sSkillArg.pMissile = pUnit;
       sSkillArg.eSkillNo = eSkill;
@@ -436,16 +430,9 @@ BOOL __fastcall Skills_CltDoFunc_Ass_AuraLevel_CastAttackTarget(D2UnitStrc * pUn
 
 // Assassin skill client do-func: spawns a client-side stream missile for a charge-up aura. Resolves caster coordinates, computes aura range via aurarangecalc, creates a missile from cltmissilea at the caster's position, then configures it with the stream-missile type (cltmissileb) and calculated range.
 BOOL __fastcall Skills_CltDoFunc_Ass_AuraLevel_StreamMissile(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -16..-4 are ONE object: &nPosY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nPosY;
-      int nPosX;
-      D2UnitStrc* pOwnerUnit;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillArgStrc sSkillArg;
+    int nPosY;
+    int nPosX;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
@@ -455,8 +442,8 @@ BOOL __fastcall Skills_CltDoFunc_Ass_AuraLevel_StreamMissile(D2UnitStrc * pUnit,
       return 0;
     }
 
-    __frame0.pOwnerUnit = pUnit;
-    BOOL bHasCoords = Skills::GetCooordinates(pUnit, &__frame0.nPosX, &__frame0.nPosY);
+    D2UnitStrc* pOwnerUnit = pUnit;
+    BOOL bHasCoords = Skills::GetCooordinates(pUnit, &nPosX, &nPosY);
     if (!bHasCoords) {
       return 0;
     }
@@ -466,12 +453,12 @@ BOOL __fastcall Skills_CltDoFunc_Ass_AuraLevel_StreamMissile(D2UnitStrc * pUnit,
       return 0;
     }
 
-    int32_t nAuraRange = D2Common::Skills::D2GetSkillCalc(__frame0.pOwnerUnit, pSkillTxt->aurarangecalc, eSkill, nSkillLvl);
+    int32_t nAuraRange = D2Common::Skills::D2GetSkillCalc(pOwnerUnit, pSkillTxt->aurarangecalc, eSkill, nSkillLvl);
     memset(&sSkillArg, 0, 0x5c);
-    sSkillArg.pOwner = __frame0.pOwnerUnit;
+    sSkillArg.pOwner = pOwnerUnit;
     sSkillArg.nFlags = 1;
-    sSkillArg.nX = __frame0.nPosX;
-    sSkillArg.nY = __frame0.nPosY;
+    sSkillArg.nX = nPosX;
+    sSkillArg.nY = nPosY;
     sSkillArg.nSkillLevel = nSkillLvl;
     sSkillArg.nMissileTxtNo = (int)sCltMissileA;
     sSkillArg.eSkillNo = eSkill;

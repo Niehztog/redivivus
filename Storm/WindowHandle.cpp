@@ -511,19 +511,11 @@ void __stdcall SMsgUnregisterMessage(uint32_t hWnd, char * szText1, char * szTex
 }
 
 LRESULT __stdcall WndProcC(HWND hWnd, uint32_t nParam1, uint32_t nParam2, LPARAM lParam) {
-    // Frame slots -12..-4 are ONE object: &lOutResult is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t lOutResult;
-      BOOL bHandled;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    __frame0.bHandled = 0;
-    __frame0.lOutResult = 0;
-    BOOL bDispatched = SMsgDispatchMessage(hWnd, nParam1, nParam2, lParam, &__frame0.bHandled, (LRESULT*)&__frame0.lOutResult);
-    if (bDispatched && __frame0.bHandled) {
-      return __frame0.lOutResult;
+    BOOL bHandled = 0;
+    int32_t lOutResult = 0;
+    BOOL bDispatched = SMsgDispatchMessage(hWnd, nParam1, nParam2, lParam, &bHandled, (LRESULT*)&lOutResult);
+    if (bDispatched && bHandled) {
+      return lOutResult;
     }
 
     int32_t lResult = DefWindowProcA(hWnd, nParam1, nParam2, lParam);

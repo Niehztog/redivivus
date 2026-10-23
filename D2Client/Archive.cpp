@@ -256,23 +256,15 @@ uint32_t __fastcall ARCHIVE_RemoveNode(int32_t pThis, int * pNode) {
 // NOTE: Callee-saved register params inferred (medium confidence): param_esi (ESI): LPOVERLAPPED, param_edi (EDI): LPOVERLAPPED, param_ebx (EBX): LPOVERLAPPED
 // @sourcefile SOURCE\D2HELL\Src\Archive.cpp
 void ARCHIVE_WriteMemoryCheckReport() {
-    // Frame slots -32..-24 are ONE object: &pBlock is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint16_t* pBlock;
-      uint16_t** pHeapEnum;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     // Frame slots -16..-4 are ONE object: &pListTail is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
+    struct __frame0_t {
       int* pListTail;
       int**** pListHead;
       int*** pListPrev;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 12, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
     int* pInsertLink;
     uint32_t pRec;
     int* pPrevLink;
@@ -289,12 +281,12 @@ void ARCHIVE_WriteMemoryCheckReport() {
     HANDLE hFile = hFileTmp;
     ARCHIVE_WriteFormattedText(hFileTmp, "D2 MEMORY CHECK\n");
     ARCHIVE_WriteFormattedText(hFileTmp, "================================================\n\n");
-    __frame1.pListHead = (int****)&__frame1.pListHead;
-    __frame1.pListPrev = (int***)~(uint32_t)__frame1.pListHead;
-    __frame1.pListTail = 0;
-    __frame0.pHeapEnum = 0;
+    __frame0.pListHead = (int****)&__frame0.pListHead;
+    __frame0.pListPrev = (int***)~(uint32_t)__frame0.pListHead;
+    __frame0.pListTail = 0;
+    uint16_t** pHeapEnum = 0;
     heapInfo[0].DebugInfo = (PRTL_CRITICAL_SECTION_DEBUG)0x128;
-    int nResult = Storm::SMem::SMemFindNextHeap(0, (int*)&__frame0.pHeapEnum, heapInfo);
+    int nResult = Storm::SMem::SMemFindNextHeap(0, (int*)&pHeapEnum, heapInfo);
     while (nResult) {
       int**** pNewRec;
       pNewRec = (int****)Storm::SMem::SMemAlloc(0x130, s___AUTALLOCREC___00711480, -2, 8);
@@ -313,7 +305,7 @@ void ARCHIVE_WriteMemoryCheckReport() {
         ppWalk++;
       }
 
-      if ((int)__frame1.pListPrev < 1 || (ppWalk = (int****)__frame1.pListPrev , __frame1.pListPrev[0x4b] < nSortKey)) {
+      if ((int)__frame0.pListPrev < 1 || (ppWalk = (int****)__frame0.pListPrev , __frame0.pListPrev[0x4b] < nSortKey)) {
         pNextNode = *pNewRec;
         if (pNextNode) {
           pNextLink = pNewRec[1];
@@ -329,21 +321,21 @@ void ARCHIVE_WriteMemoryCheckReport() {
           pNewRec[1] = 0;
         }
 
-        *pNewRec = (int***)&__frame1.pListHead;
-        pNewRec[1] = __frame1.pListPrev;
-        if ((int)__frame1.pListPrev < 0) {
-          pInsertLink = (int*)~(uint32_t)__frame1.pListPrev;
+        *pNewRec = (int***)&__frame0.pListHead;
+        pNewRec[1] = __frame0.pListPrev;
+        if ((int)__frame0.pListPrev < 0) {
+          pInsertLink = (int*)~(uint32_t)__frame0.pListPrev;
         } else {
-          pPrevLink = __frame1.pListTail;
-          if ((int)__frame1.pListTail < 0) {
-            pPrevLink = (int*)((uintptr_t)&__frame1.pListHead - (int)__frame1.pListHead[1]);
+          pPrevLink = __frame0.pListTail;
+          if ((int)__frame0.pListTail < 0) {
+            pPrevLink = (int*)((uintptr_t)&__frame0.pListHead - (int)__frame0.pListHead[1]);
           }
 
-          pInsertLink = (int*)((int)__frame1.pListPrev + (int)pPrevLink);
+          pInsertLink = (int*)((int)__frame0.pListPrev + (int)pPrevLink);
         }
 
         *pInsertLink = (int)pNewRec;
-        __frame1.pListPrev = (int***)pNewRec;
+        __frame0.pListPrev = (int***)pNewRec;
       } else {
         do {
           ppInsertAfter = ppWalk;
@@ -353,10 +345,10 @@ void ARCHIVE_WriteMemoryCheckReport() {
           }
         } while (nSortKey < (int**)ppWalk[0x4b]);
 
-        ARCHIVE_LinkNode((int**)pNewRec, 1, (int**)ppInsertAfter, &__frame1.pListTail);
+        ARCHIVE_LinkNode((int**)pNewRec, 1, (int**)ppInsertAfter, &__frame0.pListTail);
       }
 
-      nResult = Storm::SMem::SMemFindNextHeap((uint32_t)__frame0.pHeapEnum, (int*)&__frame0.pHeapEnum, heapInfo);
+      nResult = Storm::SMem::SMemFindNextHeap((uint32_t)pHeapEnum, (int*)&pHeapEnum, heapInfo);
       hFileTmp = hFile;
     }
 
@@ -369,7 +361,7 @@ void ARCHIVE_WriteMemoryCheckReport() {
     int nHeapCount = 0;
     ARCHIVE_WriteFormattedText(hFileTmp, "      SIZE|    BLOCKS|  RESERVED| COMMITTED|       MAX|   REGIONS|FILENAME:LINE\n");
     hFileTmp = hFile;
-    for (pRec = (int)__frame1.pListPrev < 1 ? 0 : (uint32_t)__frame1.pListPrev; hFile = hFileTmp , 0 < (int)pRec; pRec = *(uint32_t*)(pRec + 4)) {
+    for (pRec = (int)__frame0.pListPrev < 1 ? 0 : (uint32_t)__frame0.pListPrev; hFile = hFileTmp , 0 < (int)pRec; pRec = *(uint32_t*)(pRec + 4)) {
       ARCHIVE_WriteFormattedText(hFileTmp, "%10d|%10d|%10d|%10d|%10d|%10d|%s:%d\n", *(uint32_t*)(pRec + 300), *(uint32_t*)(pRec + 0x128), *(uint32_t*)(pRec + 0x120), *(uint32_t*)(pRec + 0x11c), *(uint32_t*)(pRec + 0x124), *(uint32_t*)(pRec + 0x118), pRec + 0x10, *(uint32_t*)(pRec + 0x114));
       nTotalMax += *(int*)(pRec + 0x120);
       nTotalBytes += *(int*)(pRec + 300);
@@ -390,35 +382,35 @@ void ARCHIVE_WriteMemoryCheckReport() {
     ARCHIVE_WriteFormattedText(hFileTmp, "TOTAL MAX:       %10d\n", nTotalRegions);
     ARCHIVE_WriteFormattedText(hFileTmp, "TOTAL REGIONS:   %10d\n\n\n\n\n", nTotalReserved);
     ARCHIVE_WriteFormattedText(hFileTmp, "================================================\n\n");
-    __frame0.pHeapEnum = (uint16_t**)Storm::SMem::SMemGetHeapByCaller((int*)"SOURCE\\D2HELL\\Src\\Archive.cpp", 0xf5);
+    pHeapEnum = (uint16_t**)Storm::SMem::SMemGetHeapByCaller((int*)"SOURCE\\D2HELL\\Src\\Archive.cpp", 0xf5);
     nResult = 0;
     sBlockInfo.dwSize = 0x1c;
-    __frame0.pBlock = 0;
+    uint16_t* pBlock = 0;
     nTotalReserved = 0;
     nTotalBytes = 0;
-    int bFoundNextBlock = Storm::SMem::SMemFindNextBlock(__frame0.pHeapEnum, 0, &__frame0.pBlock, (int*)&sBlockInfo);
+    int bFoundNextBlock = Storm::SMem::SMemFindNextBlock(pHeapEnum, 0, &pBlock, (int*)&sBlockInfo);
     do {
       if (!bFoundNextBlock) {
         ARCHIVE_WriteFormattedText(hFileTmp, "TOTAL MEMORY: %8d\n", nResult);
         ARCHIVE_WriteFormattedText(hFileTmp, "TOTAL ALLOC:  %8d\n", nTotalBytes);
         ARCHIVE_WriteFormattedText(hFileTmp, "TOTAL BLOCKS: %8d\n\n\n\n", nTotalReserved);
         /* HANDLE hObject for CloseHandle */ CloseHandle(hFileTmp);
-        ARCHIVE_ClearList((uintptr_t)&__frame1.pListTail);
-        if (!(int*****)__frame1.pListHead) {
+        ARCHIVE_ClearList((uintptr_t)&__frame0.pListTail);
+        if (!(int*****)__frame0.pListHead) {
           return;
         }
-        if ((int)__frame1.pListPrev < 0) {
-          *(int*****)~(uint32_t)__frame1.pListPrev = (int****)__frame1.pListHead;
-          __frame1.pListHead[1] = __frame1.pListPrev;
+        if ((int)__frame0.pListPrev < 0) {
+          *(int*****)~(uint32_t)__frame0.pListPrev = (int****)__frame0.pListHead;
+          __frame0.pListHead[1] = __frame0.pListPrev;
           return;
         }
 
-        *(int*****)((int)__frame1.pListPrev + ((uintptr_t)&__frame1.pListHead - (int)__frame1.pListHead[1])) = (int****)__frame1.pListHead;
-        __frame1.pListHead[1] = __frame1.pListPrev;
+        *(int*****)((int)__frame0.pListPrev + ((uintptr_t)&__frame0.pListHead - (int)__frame0.pListHead[1])) = (int****)__frame0.pListHead;
+        __frame0.pListHead[1] = __frame0.pListPrev;
         return;
       }
       if (0x220 < sBlockInfo.nBlockSize && sBlockInfo.nBlockField40 && sBlockInfo.nBlockField44) {
-        for (pScan = __frame0.pBlock; hFileTmp = hFile , pScan < (uint16_t*)(sBlockInfo.nBlockSize + (int)__frame0.pBlock); pScan += 2) {
+        for (pScan = pBlock; hFileTmp = hFile , pScan < (uint16_t*)(sBlockInfo.nBlockSize + (int)pBlock); pScan += 2) {
           if (*(int*)pScan == 0x4c4f4144 && *(int*)(pScan + 2) == 0x4655434b && *(int*)(pScan + 4) == 0x54484953 && *(int*)(pScan + 6) == 0x4e4f5720) {
             ARCHIVE_WriteFormattedText(hFile, "%8d\t%50s\t(%s:%d)\n", *(int*)(pScan + 10), pScan + 0x8e, pScan + 0xc, *(int*)(pScan + 8));
             nResult += *(int*)(pScan + 10);
@@ -430,7 +422,7 @@ void ARCHIVE_WriteMemoryCheckReport() {
         }
       }
 
-      bFoundNextBlock = Storm::SMem::SMemFindNextBlock(__frame0.pHeapEnum, (int32_t)__frame0.pBlock, &__frame0.pBlock, (int*)&sBlockInfo);
+      bFoundNextBlock = Storm::SMem::SMemFindNextBlock(pHeapEnum, (int32_t)pBlock, &pBlock, (int*)&sBlockInfo);
     } while (true);
 }
 

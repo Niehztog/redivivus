@@ -3478,17 +3478,11 @@ BOOL SKILLS_HasEnoughManaForSkill(D2SkillStrc * pSkillStrc, D2UnitStrc * pUnitSt
 
 // Checks whether the unit satisfies a skill's weapon/ammo requirement before the skill can be used. If the skill record has flag 0x10 set it instead checks the skill's nQuantity (charge/ammo count > 0). Otherwise it branches on the skill record's weapon-requirement code: 2 and 4 require an equipped throwable weapon (or its item_throwable stat) in main/alt hand via INVENTORY_GetEquippedWeaponInfo + SKILLS_GetWeaponByHand; 5 requires a melee weapon of ITEMTYPE_Weapon and dual-wield capability. Any other code returns 1 (no requirement). Returns nonzero if the requirement is met, 0 otherwise.
 uint32_t __fastcall SKILLS_HasRequiredWeaponOrQuantity(D2SkillStrc * pSkill, D2UnitStrc * pUnit) {
-    // Frame slots -16..-4 are ONE object: &nWeaponSlot is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nWeaponSlot;
-      int nHandedness;
-      D2UnitStrc* pWeapon;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t bHasAmmo;
     D2UnitStrc* pAltWeapon;
+    int32_t nWeaponSlot;
+    int nHandedness;
+    D2UnitStrc* pWeapon;
     short int nWeaponReqType;
     if (!pUnit || !pSkill) {
       return 0;
@@ -3507,24 +3501,24 @@ uint32_t __fastcall SKILLS_HasRequiredWeaponOrQuantity(D2SkillStrc * pSkill, D2U
 
         bGotWeaponInfo = Units::CanDualWield(pUnit);
         if (!bGotWeaponInfo) {
-          bGotWeaponInfo = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &__frame0.pWeapon, &__frame0.nWeaponSlot, &__frame0.nHandedness);
-          if (bGotWeaponInfo && __frame0.nHandedness) {
-            bHasAmmo = ITEMS::Items::ITEM_GetTxtItemTypes_throwable(__frame0.pWeapon);
+          bGotWeaponInfo = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &pWeapon, &nWeaponSlot, &nHandedness);
+          if (bGotWeaponInfo && nHandedness) {
+            bHasAmmo = ITEMS::Items::ITEM_GetTxtItemTypes_throwable(pWeapon);
             if (!bHasAmmo) {
-              bHasAmmo = Stats::StatsEx::ITEM_GetMinimalStatValueShifted(__frame0.pWeapon, UNITSTAT_item_throwable, 0);
+              bHasAmmo = Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pWeapon, UNITSTAT_item_throwable, 0);
               return bHasAmmo;
             }
           }
         } else {
-          bGotWeaponInfo = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &__frame0.pWeapon, &__frame0.nWeaponSlot, &__frame0.nHandedness);
+          bGotWeaponInfo = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &pWeapon, &nWeaponSlot, &nHandedness);
           if (bGotWeaponInfo) {
-            if (!__frame0.nHandedness) {
-              __frame0.pWeapon = SKILLS_GetWeaponByHand(__frame0.nWeaponSlot, pInventory);
+            if (!nHandedness) {
+              pWeapon = SKILLS_GetWeaponByHand(nWeaponSlot, pInventory);
             }
-            if (__frame0.pWeapon) {
-              bHasAmmo = ITEMS::Items::ITEM_GetTxtItemTypes_throwable(__frame0.pWeapon);
+            if (pWeapon) {
+              bHasAmmo = ITEMS::Items::ITEM_GetTxtItemTypes_throwable(pWeapon);
               if (!bHasAmmo) {
-                bHasAmmo = Stats::StatsEx::ITEM_GetMinimalStatValueShifted(__frame0.pWeapon, UNITSTAT_item_throwable, 0);
+                bHasAmmo = Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pWeapon, UNITSTAT_item_throwable, 0);
                 return bHasAmmo;
               }
             }
@@ -3536,16 +3530,16 @@ uint32_t __fastcall SKILLS_HasRequiredWeaponOrQuantity(D2SkillStrc * pSkill, D2U
           return 0;
         }
 
-        bGotWeaponInfo = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &__frame0.pWeapon, &__frame0.nWeaponSlot, &__frame0.nHandedness);
+        bGotWeaponInfo = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &pWeapon, &nWeaponSlot, &nHandedness);
         if (bGotWeaponInfo) {
-          if (!__frame0.nHandedness) {
-            bHasAmmo = ITEMS::Items::ITEM_GetTxtItemTypes_throwable(__frame0.pWeapon);
+          if (!nHandedness) {
+            bHasAmmo = ITEMS::Items::ITEM_GetTxtItemTypes_throwable(pWeapon);
             if (!bHasAmmo) {
-              bHasAmmo = Stats::StatsEx::ITEM_GetMinimalStatValueShifted(__frame0.pWeapon, UNITSTAT_item_throwable, 0);
+              bHasAmmo = Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pWeapon, UNITSTAT_item_throwable, 0);
               return bHasAmmo;
             }
           } else {
-            pAltWeapon = SKILLS_GetWeaponByHand(__frame0.nWeaponSlot, pInventory);
+            pAltWeapon = SKILLS_GetWeaponByHand(nWeaponSlot, pInventory);
             if (pAltWeapon) {
               bHasAmmo = ITEMS::Items::ITEM_GetTxtItemTypes_throwable(pAltWeapon);
               if (!bHasAmmo) {
@@ -3568,14 +3562,14 @@ uint32_t __fastcall SKILLS_HasRequiredWeaponOrQuantity(D2SkillStrc * pSkill, D2U
         }
 
         bHasAmmo = 0;
-        bGotWeaponInfo = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &__frame0.pWeapon, &__frame0.nWeaponSlot, &__frame0.nHandedness);
+        bGotWeaponInfo = INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &pWeapon, &nWeaponSlot, &nHandedness);
         if (bGotWeaponInfo) {
-          if (!__frame0.nHandedness) {
-            bHasAmmo = ITEMS::Items::ITEMS_IsA(__frame0.pWeapon, ITEMTYPE_Weapon);
+          if (!nHandedness) {
+            bHasAmmo = ITEMS::Items::ITEMS_IsA(pWeapon, ITEMTYPE_Weapon);
             return bHasAmmo;
           }
 
-          pAltWeapon = SKILLS_GetWeaponByHand(__frame0.nWeaponSlot, pInventory);
+          pAltWeapon = SKILLS_GetWeaponByHand(nWeaponSlot, pInventory);
           if (pAltWeapon) {
             bHasAmmo = ITEMS::Items::ITEMS_IsA(pAltWeapon, ITEMTYPE_Weapon);
             return bHasAmmo;

@@ -856,55 +856,46 @@ void * __fastcall Alloc(D2PoolManagerStrc * pMemory, size_t MemSize, char * szFi
 }
 
 void * __fastcall ReAlloc(D2PoolManagerStrc * pMemory, void * pMemoryToRealloc, size_t nAllocSize, char * szFile, int32_t nLine) {
-    // Frame slots -20..-4 are ONE object: &pOldPtr is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      void* pOldPtr;
-      uint32_t* pFoundBlock;
-      D2PoolManagerStrc* pOrigManager;
-      D2PoolManagerStrc* pManager;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nSlotIndex;
     void* pNewAlloc;
-    __frame0.pManager = pMemory;
+    uint32_t* pFoundBlock;
+    D2PoolManagerStrc* pManager = pMemory;
     if (!pMemory) {
-      __frame0.pManager = pGlobalPoolSystem.pManagers;
+      pManager = pGlobalPoolSystem.pManagers;
     }
 
-    D2PoolManagerStrc* pManager2 = __frame0.pManager;
-    __frame0.pOldPtr = pMemoryToRealloc;
-    __frame0.pOrigManager = pMemory;
+    D2PoolManagerStrc* pManager2 = pManager;
+    void* pOldPtr = pMemoryToRealloc;
+    D2PoolManagerStrc* pOrigManager = pMemory;
     if (!pMemoryToRealloc) {
       pNewAlloc = Memory::Alloc(pMemory, nAllocSize, szFile, nLine);
     } else {
       LPCRITICAL_SECTION lpCriticalSection;
-      __frame0.pFoundBlock = (uint32_t*)FindBlockContainingAddress((uint32_t)pMemoryToRealloc, (int32_t)__frame0.pManager);
-      if (!__frame0.pFoundBlock) {
+      pFoundBlock = (uint32_t*)FindBlockContainingAddress((uint32_t)pMemoryToRealloc, (int32_t)pManager);
+      if (!pFoundBlock) {
         pNewAlloc = (void*)ReallocTrackedAllocation(pManager2, pMemoryToRealloc, nAllocSize, szFile, nLine);
       } else {
-        if ((void*)*__frame0.pFoundBlock <= pMemoryToRealloc) {
-          lpCriticalSection = (LPCRITICAL_SECTION)__frame0.pFoundBlock[5];
-          nSlotIndex = ((int)pMemoryToRealloc - (int)*__frame0.pFoundBlock) / (int)lpCriticalSection[1].DebugInfo;
+        if ((void*)*pFoundBlock <= pMemoryToRealloc) {
+          lpCriticalSection = (LPCRITICAL_SECTION)pFoundBlock[5];
+          nSlotIndex = ((int)pMemoryToRealloc - (int)*pFoundBlock) / (int)lpCriticalSection[1].DebugInfo;
           if ((int)nSlotIndex < lpCriticalSection[1].LockCount) {
             /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(lpCriticalSection);
-            /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ if (!(gadwBitMasks[nSlotIndex & 0x1f] & *(uint32_t*)(__frame0.pFoundBlock[1] + ((int)nSlotIndex >> 5) * 4))) {
+            /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ if (!(gadwBitMasks[nSlotIndex & 0x1f] & *(uint32_t*)(pFoundBlock[1] + ((int)nSlotIndex >> 5) * 4))) {
               LeaveCriticalSection(lpCriticalSection);
               Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Src::ErrorManager::GetInstructionPointer(), (int32_t)(char*)0x6a0);
               exit(-1);
             } else {
-              __frame0.pFoundBlock = (uint32_t*)lpCriticalSection[1].DebugInfo;
-              if ((int)nAllocSize <= (int)__frame0.pFoundBlock) {
+              pFoundBlock = (uint32_t*)lpCriticalSection[1].DebugInfo;
+              if ((int)nAllocSize <= (int)pFoundBlock) {
                 LeaveCriticalSection(lpCriticalSection);
                 return pMemoryToRealloc;
               }
 
               LeaveCriticalSection(lpCriticalSection);
-              pNewAlloc = Memory::Alloc(__frame0.pOrigManager, nAllocSize, szFile, nLine);
+              pNewAlloc = Memory::Alloc(pOrigManager, nAllocSize, szFile, nLine);
               if (pNewAlloc) {
-                memcpy(pNewAlloc, pMemoryToRealloc, (size_t)__frame0.pFoundBlock);
-                Memory::Free(__frame0.pOrigManager, &__frame0.pOldPtr, szFile, nLine);
+                memcpy(pNewAlloc, pMemoryToRealloc, (size_t)pFoundBlock);
+                Memory::Free(pOrigManager, &pOldPtr, szFile, nLine);
                 return pNewAlloc;
               }
 
@@ -912,7 +903,7 @@ void * __fastcall ReAlloc(D2PoolManagerStrc * pMemory, void * pMemoryToRealloc, 
               exit(-1);
             }
           } else {
-            pNewAlloc = (void*)ReallocTrackedAllocation(__frame0.pManager, pMemoryToRealloc, nAllocSize, szFile, nLine);
+            pNewAlloc = (void*)ReallocTrackedAllocation(pManager, pMemoryToRealloc, nAllocSize, szFile, nLine);
             if (pNewAlloc) {
               return pNewAlloc;
             }

@@ -195,40 +195,28 @@ int __stdcall DRLGOUTDOOR_ApplySubTileToGrid(int nBaseX, int nBaseY, D2UnkOutdoo
 
 // Paste preset units from a LvlSub definition into the active outdoor room. Converts bounds to world coordinates, then for each preset check if it falls inside the sub-rect and spawn a new preset unit offset into the room’s local space.
 void __stdcall DRLGOUTDOOR_CopyPresetUnitsFromSubTxt(int32_t roomX, int32_t roomY, D2DrlgWallLayerGridsStrc * pRoomCtx, D2PoolManagerStrc * pMemory, D2LvlSubTxt * pLvlSub, int * pRect) {
-    // Frame slots -28..-4 are ONE object: &worldYBase is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int worldYBase;
-      int worldXBase;
-      int rectY1;
-      int rectX1;
-      int rectY0;
-      int rectX0;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t* pCurrentPreset;
     int presetY1;
-    __frame0.rectX0 = *pRect;
-    __frame0.rectY0 = pRect[1];
-    __frame0.rectX1 = pRect[2];
-    __frame0.rectY1 = pRect[3];
-    __frame0.worldYBase = roomX;
-    __frame0.worldXBase = roomY;
-    Transform::CoordsRoomToWorld(&__frame0.worldYBase, &__frame0.worldXBase);
-    Transform::CoordsRoomToWorld(&__frame0.rectX0, &__frame0.rectY0);
-    Transform::CoordsRoomToWorld(&__frame0.rectX1, &__frame0.rectY1);
-    int presetY0 = __frame0.rectY0;
-    int presetX0 = __frame0.rectX0;
+    int rectX0 = *pRect;
+    int rectY0 = pRect[1];
+    int rectX1 = pRect[2];
+    int rectY1 = pRect[3];
+    int worldYBase = roomX;
+    int worldXBase = roomY;
+    Transform::CoordsRoomToWorld(&worldYBase, &worldXBase);
+    Transform::CoordsRoomToWorld(&rectX0, &rectY0);
+    Transform::CoordsRoomToWorld(&rectX1, &rectY1);
+    int presetY0 = rectY0;
+    int presetX0 = rectX0;
     for (pCurrentPreset = (uint32_t*)&pLvlSub->pDrlgFile->pPresetUnit->nMode; pCurrentPreset; pCurrentPreset = (uint32_t*)pCurrentPreset[3]) {
       int presetX1;
       presetX1 = pCurrentPreset[2];
       if (presetX0 < presetX1) {
         presetY1 = pCurrentPreset[6];
-        if (presetY0 < presetY1 && presetX1 < __frame0.rectX1 + presetX0 && presetY1 < __frame0.rectY1 + presetY0) {
-          DrlgRoom::AllocPresetUnit(pRoomCtx->pRoomEx, pMemory, pCurrentPreset[5], pCurrentPreset[1], *pCurrentPreset, presetX1 - presetX0 + __frame0.worldYBase, presetY1 - presetY0 + __frame0.worldXBase);
-          presetX0 = __frame0.rectX0;
-          presetY0 = __frame0.rectY0;
+        if (presetY0 < presetY1 && presetX1 < rectX1 + presetX0 && presetY1 < rectY1 + presetY0) {
+          DrlgRoom::AllocPresetUnit(pRoomCtx->pRoomEx, pMemory, pCurrentPreset[5], pCurrentPreset[1], *pCurrentPreset, presetX1 - presetX0 + worldYBase, presetY1 - presetY0 + worldXBase);
+          presetX0 = rectX0;
+          presetY0 = rectY0;
         }
       }
     }

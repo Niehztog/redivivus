@@ -525,14 +525,6 @@ void __stdcall GFX_BuildMonsterCofPath(uint32_t nModeId, LPSTR szOutputPath, int
 }
 
 void __stdcall GFX_PrecacheMonsterCofSprites(D2MonStatsTxt * pMonStatsTxt, uint32_t nModeId, int32_t bSync, short * pComponentTable) {
-    // Frame slots -12..-4 are ONE object: &nComponentCode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nComponentCode;
-      void* pCofFile;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t bParamsValid1;
     DC6* pDC6;
     uint32_t nComponentRow;
@@ -540,18 +532,19 @@ void __stdcall GFX_PrecacheMonsterCofSprites(D2MonStatsTxt * pMonStatsTxt, uint3
     D2GfxDataStrc sGfxData2;
     D2GfxDataStrc sGfxData;
     int nLayerIndex;
+    int32_t nComponentCode;
     uint8_t byComponent;
     uint8_t* pLayerData;
     szCofPath[0] = '\0';
     memset(szCofPath + 1, 0, 0x103);
-    GFX_BuildMonsterCofPath(nModeId, szCofPath, &__frame0.nComponentCode, (int)*pComponentTable);
-    __frame0.pCofFile = GFX_FindTextureInCache(&gMonsterCofCache, szCofPath);
-    if (!__frame0.pCofFile && (__frame0.pCofFile = GFX_LoadCofFile(&gMonsterCofCache, szCofPath) , !__frame0.pCofFile)) {
+    GFX_BuildMonsterCofPath(nModeId, szCofPath, &nComponentCode, (int)*pComponentTable);
+    void* pCofFile = GFX_FindTextureInCache(&gMonsterCofCache, szCofPath);
+    if (!pCofFile && (pCofFile = GFX_LoadCofFile(&gMonsterCofCache, szCofPath) , !pCofFile)) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xec3);
       exit(-1);
     } else {
       uint8_t* pLayerCount;
-      pLayerData = *(uint8_t**)((int)__frame0.pCofFile + 0x14);
+      pLayerData = *(uint8_t**)((int)pCofFile + 0x14);
       if (!pLayerData) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xec9);
         exit(-1);
@@ -578,7 +571,7 @@ void __stdcall GFX_PrecacheMonsterCofSprites(D2MonStatsTxt * pMonStatsTxt, uint3
               }
               if (*(char*)((int)pComponentTable + 3) == '\0') {
                 memset(&sGfxData2, 0, 0x48);
-                bParamsValid1 = GFXUTIL_InitAndBuildMonsterCofParams(&sGfxData2, 0, 0, byComponent, nModeId, __frame0.nComponentCode, __frame0.pCofFile, pComponentTable, pMonStatsTxt, 0);
+                bParamsValid1 = GFXUTIL_InitAndBuildMonsterCofParams(&sGfxData2, 0, 0, byComponent, nModeId, nComponentCode, pCofFile, pComponentTable, pMonStatsTxt, 0);
                 if (bParamsValid1) {
                   if (!bSync) {
                     D2CMP::SRC::SpriteCache::SPRITECACHE_GetOrLoadSprite(&sGfxData2, 0, 0);
@@ -595,7 +588,7 @@ void __stdcall GFX_PrecacheMonsterCofSprites(D2MonStatsTxt * pMonStatsTxt, uint3
                 if (*(char*)((int)pComponentTable + 3) != '\0') {
                   do {
                     memset(&sGfxData, 0, 0x48);
-                    bParamsValid1 = GFXUTIL_InitAndBuildMonsterCofParams(&sGfxData, 0, 0, byComponent, nModeId, __frame0.nComponentCode, __frame0.pCofFile, pComponentTable, pMonStatsTxt, nComponentRow);
+                    bParamsValid1 = GFXUTIL_InitAndBuildMonsterCofParams(&sGfxData, 0, 0, byComponent, nModeId, nComponentCode, pCofFile, pComponentTable, pMonStatsTxt, nComponentRow);
                     if (bParamsValid1) {
                       if (!bSync) {
                         D2CMP::SRC::SpriteCache::SPRITECACHE_GetOrLoadSprite(&sGfxData, 0, 0);
@@ -693,29 +686,22 @@ int32_t __fastcall GFX_GetModeStatusEntry(int32_t nParam) {
 
 // @sourcefile .\ENGINE\Gfx.cpp
 void GFX_LoadMonsterModeCofByState(D2UnitStrc * pUnit, uint32_t nAnimMode) {
-    // Frame slots -12..-4 are ONE object: &nClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nClassId;
-      uint32_t nSeqMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nClassId;
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, (int*)&__frame0.nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x498);
+    uint32_t nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, (int*)&nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x498);
     if (nAnimMode == 0xe) {
-      nAnimMode = __frame0.nSeqMode;
+      nAnimMode = nSeqMode;
     }
 
-    uint32_t bHasModeFlag = Source::ClientEngine::GetSomeMonsterStatFlag(__frame0.nClassId, nAnimMode);
+    uint32_t bHasModeFlag = Source::ClientEngine::GetSomeMonsterStatFlag(nClassId, nAnimMode);
     if (!bHasModeFlag) {
       return;
     }
@@ -726,7 +712,7 @@ void GFX_LoadMonsterModeCofByState(D2UnitStrc * pUnit, uint32_t nAnimMode) {
       return;
     }
     if (nAnimMode == 0xe) {
-      uint32_t nSeqModeOrig = __frame0.nSeqMode;
+      uint32_t nSeqModeOrig = nSeqMode;
       nAnimMode = nSeqModeOrig;
     }
 
@@ -791,14 +777,6 @@ D2GfxInfoUnkStrc * __stdcall GFX_AsyncLoadUnitSprites(int32_t nAsyncBlockId, D2U
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -12..-4 are ONE object: &nFrame is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      uint32_t nFrame;
-      uint32_t nLayerIdx;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     uint8_t nDirectionCur;
     BOOL nCallResult;
     D2UnitStrc* pOwnerUnit;
@@ -809,6 +787,8 @@ D2GfxInfoUnkStrc * __stdcall GFX_AsyncLoadUnitSprites(int32_t nAsyncBlockId, D2U
     D2GfxDataStrc sSpriteParams;
     eD2UnitType eUnitType;
     uint8_t* pCofIdentity;
+    uint32_t nFrame;
+    uint32_t nLayerIdx;
     int32_t nErrLineVal;
     uint8_t* pCofData;
     int* pFrameResult;
@@ -843,27 +823,27 @@ D2GfxInfoUnkStrc * __stdcall GFX_AsyncLoadUnitSprites(int32_t nAsyncBlockId, D2U
               Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6c3);
               exit(-1);
             } else {
-              __frame1.nLayerIdx = (uint32_t)pCofIdentity[2];
-              __frame1.nFrame = 0;
+              nLayerIdx = (uint32_t)pCofIdentity[2];
+              nFrame = 0;
               nDirection = D2Common::Units::GetDirection(pUnit);
               eUnitType = pUnit->eUnitType;
               __frame0.nDir = (uint32_t)nDirection;
               __frame0.nClassId = pUnit->nClassId;
               __frame0.nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
               D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x6cd);
-              GfxUtil::GFXUTIL_CalcDirectionAndFrame(__frame0.nClassId, nAnimMode, &__frame0.nDir, &__frame1.nFrame, &__frame0.nFrameCount, __frame1.nLayerIdx, 0, pUnit, eUnitType);
-              __frame0.pLayerData = GfxUtil::GFXUTIL_GetCofLayerData(pCofData, __frame1.nFrame, 0);
+              GfxUtil::GFXUTIL_CalcDirectionAndFrame(__frame0.nClassId, nAnimMode, &__frame0.nDir, &nFrame, &__frame0.nFrameCount, nLayerIdx, 0, pUnit, eUnitType);
+              __frame0.pLayerData = GfxUtil::GFXUTIL_GetCofLayerData(pCofData, nFrame, 0);
               if (!__frame0.pLayerData) {
                 Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6d6);
                 exit(-1);
               } else {
-                __frame1.nLayerIdx = 0;
+                nLayerIdx = 0;
                 if (!*pCofIdentity) {
                   return __frame0.pRetVal;
                 }
 
                 while (true) {
-                  nDirection = __frame0.pLayerData[__frame1.nLayerIdx];
+                  nDirection = __frame0.pLayerData[nLayerIdx];
                   if (nDirection >= 0x10) {
                     break;
                   }
@@ -888,8 +868,8 @@ D2GfxInfoUnkStrc * __stdcall GFX_AsyncLoadUnitSprites(int32_t nAsyncBlockId, D2U
                     }
                   }
 
-                  __frame1.nLayerIdx++;
-                  if ((int)(uint32_t)*pCofIdentity <= (int)__frame1.nLayerIdx) {
+                  nLayerIdx++;
+                  if ((int)(uint32_t)*pCofIdentity <= (int)nLayerIdx) {
                     return __frame0.pRetVal;
                   }
                 }
@@ -1021,19 +1001,12 @@ void Gfx_UpdateNearbyUnitGfx(int32_t bShowLoadingUi) {
     static uint32_t gaNearbyPlayerCofUpdateQueue[8] = { 0x5, 0x6, 0x1, 0x2, 0x3, 0x7, 0xa, 0x4 };
     static uint32_t gnNearbyPlayerCofCount = 0x8;
 
-    // Frame slots -32..-12 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nRoomCount;
-      uint32_t nRoomIdx;
-      int nSeqMode;
-      int nClassId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nEvictCount;
     uint32_t nIdx;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
+    int nSeqMode;
+    int nClassId;
     eD2UnitType eUnitType;
     D2UnitStrc* pUnit;
     pUnit = UNIT::Player::GetPlayerUnit_UI();
@@ -1043,16 +1016,17 @@ void Gfx_UpdateNearbyUnitGfx(int32_t bShowLoadingUi) {
       return;
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pPlayerRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pPlayerRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     uint32_t nLoadUiCounter;
     nLoadUiCounter = 0;
-    __frame0.nRoomIdx = 0;
-    if (!__frame0.nRoomCount) {
+    uint32_t nRoomIdx;
+    nRoomIdx = 0;
+    if (!nRoomCount) {
       return;
     }
 
     do {
-      nIdx = __frame0.nRoomIdx;
+      nIdx = nRoomIdx;
       if (!gnGfxThrottleUpdateFrameCountDynamic) {
         check_load_backlog:
         nEvictCount = D2CMP::SRC::SpriteCache::SPRITECACHE_CountPendingLoads();
@@ -1072,15 +1046,15 @@ void Gfx_UpdateNearbyUnitGfx(int32_t bShowLoadingUi) {
         }
       }
 
-      pUnit = __frame0.ppAdjacentRooms[nIdx]->pUnitList;
+      pUnit = ppAdjacentRooms[nIdx]->pUnitList;
       for (; pUnit; pUnit = pUnit->pRoomNext) {
         eUnitType = UNIT_COUNT;
         eUnitType = pUnit->eUnitType;
-        __frame0.nClassId = pUnit->nClassId;
-        __frame0.nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-        D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x7aa);
+        nClassId = pUnit->nClassId;
+        nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+        D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x7aa);
         if (eUnitType == UNIT_MONSTER) {
-          if (__frame0.nClassId < sgptDataTable->nTxtMonStatsSize && (__frame0.nSeqMode != 0xc || !g_pMonsterSpriteCofStatusTable[__frame0.nClassId].nModeLoadStatus[0xc])) {
+          if (nClassId < sgptDataTable->nTxtMonStatsSize && (nSeqMode != 0xc || !g_pMonsterSpriteCofStatusTable[nClassId].nModeLoadStatus[0xc])) {
             GFX_PrecacheMonsterModeSprites(bShowLoadingUi, pUnit);
           }
         } else if (eUnitType == UNIT_PLAYER) {
@@ -1103,11 +1077,11 @@ void Gfx_UpdateNearbyUnitGfx(int32_t bShowLoadingUi) {
           }
         }
 
-        nIdx = __frame0.nRoomIdx;
+        nIdx = nRoomIdx;
       }
 
-      __frame0.nRoomIdx = nIdx + 1;
-    } while (__frame0.nRoomIdx < __frame0.nRoomCount);
+      nRoomIdx = nIdx + 1;
+    } while (nRoomIdx < nRoomCount);
 }
 
 // @sourcefile .\ENGINE\Gfx.cpp
@@ -1350,30 +1324,22 @@ void __fastcall GFX_GetUnitSpriteOffset(D2UnitStrc * pUnit, uint8_t byComponent,
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -12..-4 are ONE object: &nClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      int nClassId;
-      int32_t pSeqMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     BOOL nFrameShifted;
     D2UnitStrc* pOwnerUnit;
     D2InventoryStrc* pInventoryUsed;
     D2GfxDataStrc sSpriteParams;
     D2PathUnion uPathUnion = pUnit->pPath;
     eD2UnitType eUnitType = pUnit->eUnitType;
-    __frame1.nClassId = pUnit->nClassId;
-    __frame1.pSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame1.nClassId, &__frame1.pSeqMode, ".\\ENGINE\\Gfx.cpp", 0xd4d);
+    int nClassId = pUnit->nClassId;
+    int32_t pSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &pSeqMode, ".\\ENGINE\\Gfx.cpp", 0xd4d);
     if (!(pUnit->eUnitFlagsEx >> 3 & 1) || (nFrameShifted = D2Common::DATATBLS::ItemStats::ITEMSTATS_CheckUnitHasStateFlagIndex(pUnit, 0x25) , !nFrameShifted) || (pOwnerUnit = UNIT::Player::MISSILE_GetOwnerUnit(pUnit) , !pOwnerUnit)) {
       pInventoryUsed = pUnit->pInventory;
     } else {
       pInventoryUsed = pOwnerUnit->pInventory;
     }
 
-    uint32_t nWeaponClass = D2Common::COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pInventoryUsed, (uint32_t*)&__frame0.nTransformGfx, __frame1.pSeqMode, 0);
+    uint32_t nWeaponClass = D2Common::COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pInventoryUsed, (uint32_t*)&__frame0.nTransformGfx, pSeqMode, 0);
     D2GfxInfoUnkStrc* pGfxInfoUnk = GfxInfo::GFX_FindGfxInfoByModeAndWeapon(pUnit, nWeaponClass, -1);
     if (!pGfxInfoUnk) {
       pGfxInfoUnk = GFX_EnsureUnitCofLoaded(pUnit, nWeaponClass, -1);
@@ -1382,7 +1348,7 @@ void __fastcall GFX_GetUnitSpriteOffset(D2UnitStrc * pUnit, uint8_t byComponent,
       }
     }
 
-    int32_t iVar1 = __frame1.pSeqMode;
+    int32_t iVar1 = pSeqMode;
     D2GfxInfoStrc* pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
     if (!pGfxInfo) {
       return;
@@ -1431,14 +1397,6 @@ void __fastcall GFX_GetUnitSpriteOffset(D2UnitStrc * pUnit, uint8_t byComponent,
 
 // @sourcefile .\ENGINE\Gfx.cpp
 BOOL __fastcall GFX_IsUnitInsideBounds(D2UnitStrc * pUnit, int32_t nOriginX, int32_t nOriginY, int32_t nTestX, int32_t nTestY) {
-    // Frame slots -12..-4 are ONE object: &nClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nClassId;
-      int pSeqMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL nCofIdentity;
     D2UnitStrc* pOwnerUnit;
     D2InventoryStrc* pInventoryUsed;
@@ -1457,16 +1415,16 @@ BOOL __fastcall GFX_IsUnitInsideBounds(D2UnitStrc * pUnit, int32_t nOriginX, int
     }
 
     eD2UnitType eUnitType = pUnit->eUnitType;
-    __frame0.nClassId = pUnit->nClassId;
-    __frame0.pSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.pSeqMode, ".\\ENGINE\\Gfx.cpp", 0xd90);
+    int nClassId = pUnit->nClassId;
+    int pSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &pSeqMode, ".\\ENGINE\\Gfx.cpp", 0xd90);
     D2GfxInfoStrc* pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
     if (!pGfxInfo) {
       return 0;
     }
 
     for (pGfxInfoUnk = pGfxInfo->pGfxInfoUnk; pGfxInfoUnk; pGfxInfoUnk = pGfxInfoUnk->pNext) {
-      int pAnimMode = __frame0.pSeqMode;
+      int pAnimMode = pSeqMode;
       if (pGfxInfoUnk->nAnimMode == pAnimMode) {
         if (!pGfxInfoUnk->pCofDataArray[5]) {
           return 0;
@@ -1499,20 +1457,11 @@ BOOL __fastcall GFX_IsUnitInsideBounds(D2UnitStrc * pUnit, int32_t nOriginX, int
 
 // @sourcefile .\ENGINE\Gfx.cpp
 D2GfxInfoUnkStrc * __fastcall GFX_IsUnitOnScreen(D2UnitStrc * pUnit, int32_t nOriginX, int32_t nOriginY, uint32_t nUnused, int32_t bCenterAdjust) {
-    // Frame slots -16..-4 are ONE object: &nClassId is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nClassId;
-      int32_t nOriginXAdj;
-      int pSeqMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL pCofIdentity;
     D2UnitStrc* pOwnerUnit;
     D2InventoryStrc* pInventoryUsed;
     int32_t nTransformGfx;
-    __frame0.nOriginXAdj = nOriginX;
+    int32_t nOriginXAdj = nOriginX;
     if (!pUnit || !(pUnit->eUnitFlagsEx >> 3 & 1) || (pCofIdentity = D2Common::DATATBLS::ItemStats::ITEMSTATS_CheckUnitHasStateFlagIndex(pUnit, 0x25) , !pCofIdentity) || (pOwnerUnit = UNIT::Player::MISSILE_GetOwnerUnit(pUnit) , !pOwnerUnit)) {
       pInventoryUsed = pUnit->pInventory;
     } else {
@@ -1526,10 +1475,10 @@ D2GfxInfoUnkStrc * __fastcall GFX_IsUnitOnScreen(D2UnitStrc * pUnit, int32_t nOr
     }
 
     eD2UnitType eUnitType = pUnit->eUnitType;
-    __frame0.nClassId = pUnit->nClassId;
-    __frame0.pSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.pSeqMode, ".\\ENGINE\\Gfx.cpp", 0xdc2);
-    int nWeaponClassOrFlag = __frame0.pSeqMode;
+    int nClassId = pUnit->nClassId;
+    int pSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &pSeqMode, ".\\ENGINE\\Gfx.cpp", 0xdc2);
+    int nWeaponClassOrFlag = pSeqMode;
     D2GfxInfoStrc* pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
     if (!pGfxInfo) {
       return nullptr;
@@ -1557,11 +1506,11 @@ D2GfxInfoUnkStrc * __fastcall GFX_IsUnitOnScreen(D2UnitStrc * pUnit, int32_t nOr
       exit(-1);
     }
 
-    nWeaponClassOrFlag = *(int*)(iVar1 + 8) + __frame0.nOriginXAdj;
+    nWeaponClassOrFlag = *(int*)(iVar1 + 8) + nOriginXAdj;
     if (bCenterAdjust) {
       nWeaponClassOrFlag -= (*(int*)(iVar1 + 0x14) - *(int*)(iVar1 + 0x10)) / 2;
     }
-    if (!(nWeaponClassOrFlag < ScreenSizeX - 1 && -1 < *(int*)(iVar1 + 0xc) + __frame0.nOriginXAdj && -1 < *(int*)(iVar1 + 0x14) + nOriginY)) {
+    if (!(nWeaponClassOrFlag < ScreenSizeX - 1 && -1 < *(int*)(iVar1 + 0xc) + nOriginXAdj && -1 < *(int*)(iVar1 + 0x14) + nOriginY)) {
       return nullptr;
     }
 
@@ -1588,32 +1537,25 @@ void __stdcall GFX_UpdateGfxThrottled() {
 
 // @sourcefile .\ENGINE\Gfx.cpp
 void __fastcall ANIM_ResetMonsterFrameCache(D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &nSeqMode is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nSeqMode;
-      int nClassId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nSceneState;
+    int nClassId;
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x1072);
+    int nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x1072);
     D2MonsterCofStatusEntryStrc* pCofStatusTable = g_pMonsterSpriteCofStatusTable;
-    if (!(eUnitType == UNIT_MONSTER && __frame0.nClassId < sgptDataTable->nTxtMonStatsSize)) {
+    if (!(eUnitType == UNIT_MONSTER && nClassId < sgptDataTable->nTxtMonStatsSize)) {
       return;
     }
 
-    g_pMonsterSpriteCofStatusTable[__frame0.nClassId].nModeLoadStatus[__frame0.nSeqMode] = 0;
-    pCofStatusTable[__frame0.nClassId].nModePrecacheStatus[__frame0.nSeqMode] = 0;
+    g_pMonsterSpriteCofStatusTable[nClassId].nModeLoadStatus[nSeqMode] = 0;
+    pCofStatusTable[nClassId].nModePrecacheStatus[nSeqMode] = 0;
     int32_t bShowLoadingUi = 1;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pRoom || (nSceneState = D2gfx::D2GFX::D2GFX_EndCutSceneReturnSceneState() , nSceneState || (nSceneState = UI::Draw::DRAW_GetLastPanelId() , nSceneState != 0))) {
@@ -1767,35 +1709,6 @@ void __fastcall GFX_UpdateOverlayAnimations(D2UnitStrc * pUnit) {
 
 // @sourcefile .\ENGINE\Gfx.cpp
 D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nLightColor, int32_t bTransparent, int32_t bDrawStates, int32_t nWorldY, D2UnitStrc * pUnit) {
-    // Frame slots -108..-16 are ONE object: &nTransformGfx is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nTransformGfx;
-      int nFrameCount;
-      int nFrameMetricY;
-      BOOL nPerspCapable;
-      uint32_t nFrame;
-      uint8_t* pCofLayerData;
-      uint32_t bIsSelected;
-      int32_t nFrameMetricX;
-      uint32_t nDirection;
-      uint8_t* pCofDataBase;
-      uint8_t* pCofIdentity;
-      uint32_t nFrameResult;
-      int nClassId;
-      int32_t bPerspToggled;
-      uint32_t nBorderType;
-      int nLayerIdx;
-      int bApplyItemColor;
-      BOOL bEthereal;
-      int bOrderedDraw;
-      D2GamePalShiftGreenBloodStrc* pPalShift;
-      uint32_t bPerspective;
-      int nDrawY;
-      int32_t pSeqMode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 92, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nCallResult;
     D2UnitStrc* pUnitTmp;
     D2InventoryStrc* pInventory;
@@ -1807,6 +1720,23 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
     D2GamePalShiftGreenBloodStrc* pPalette;
     uint32_t nLayerComponentU;
     D2GfxDataStrc sGfxData;
+    int32_t nTransformGfx;
+    int nFrameCount;
+    int nFrameMetricY;
+    uint32_t nFrame;
+    uint8_t* pCofLayerData;
+    uint32_t bIsSelected;
+    int32_t nFrameMetricX;
+    uint32_t nDirection;
+    uint8_t* pCofDataBase;
+    uint8_t* pCofIdentity;
+    uint32_t nFrameResult;
+    int nClassId;
+    int nLayerIdx;
+    int bApplyItemColor;
+    BOOL bEthereal;
+    int bOrderedDraw;
+    D2GamePalShiftGreenBloodStrc* pPalShift;
     DRAWMODE eDrawModeCalc;
     DRAWMODE eDrawMode;
     int32_t nClassIdTmp;
@@ -1814,29 +1744,33 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
     eD2UnitType eUnitType;
     eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.pSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.pSeqMode, ".\\ENGINE\\Gfx.cpp", 0x52b);
+    int32_t pSeqMode;
+    pSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &pSeqMode, ".\\ENGINE\\Gfx.cpp", 0x52b);
     int32_t nErrLine;
     nErrLine = UI::Path::DRAW_GetWorldOffsetX();
     int nDrawX;
     nDrawX = nWorldX - nErrLine;
     nErrLine = UI::Path::DRAW_GetWorldOffsetY();
-    __frame0.nDrawY = nWorldY - nErrLine;
+    int nDrawY;
+    nDrawY = nWorldY - nErrLine;
     uint32_t nCofFrameCount;
     nCofFrameCount = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
-    __frame0.bPerspective = nCofFrameCount;
-    __frame0.nBorderType = UI::Path::DRAW_GetTypeOfBorder();
+    uint32_t bPerspective;
+    bPerspective = nCofFrameCount;
+    uint32_t nBorderType;
+    nBorderType = UI::Path::DRAW_GetTypeOfBorder();
     if (nCofFrameCount) {
-      if (__frame0.nBorderType == 1) {
+      if (nBorderType == 1) {
         nCallResult = -((int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2);
       } else {
-        if (__frame0.nBorderType != 2) {
+        if (nBorderType != 2) {
           goto draw_components;
         }
 
@@ -1848,22 +1782,24 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
 
     draw_components:
     nCallResult = 0;
-    __frame0.bPerspToggled = 0;
+    int32_t bPerspToggled;
+    bPerspToggled = 0;
     BOOL bPerspectiveCapable;
     bPerspectiveCapable = D2gfx::D2GFX::D2GFX_GetPerspectiveCapable();
-    __frame0.nPerspCapable = bPerspectiveCapable;
-    if (bPerspectiveCapable && __frame0.bPerspective) {
+    BOOL nPerspCapable;
+    nPerspCapable = bPerspectiveCapable;
+    if (bPerspectiveCapable && bPerspective) {
       pUnitTmp = UNIT::Player::GetPlayerUnit_UI();
       if (pUnit == pUnitTmp && eUnitType == UNIT_PLAYER) {
         D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(0);
         nCallResult = 1;
-        __frame0.bPerspToggled = 1;
-        __frame0.bPerspective = 0;
+        bPerspToggled = 1;
+        bPerspective = 0;
       }
     }
 
     D2GfxInfoUnkStrc* pGfxInfoUnk;
-    pGfxInfoUnk = GFX_IsUnitOnScreen(pUnit, nDrawX, __frame0.nDrawY, 1, 0);
+    pGfxInfoUnk = GFX_IsUnitOnScreen(pUnit, nDrawX, nDrawY, 1, 0);
     if (!pGfxInfoUnk) {
       if (nCallResult) {
         D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(bPerspectiveCapable);
@@ -1874,11 +1810,11 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
         GfxInfo::DRAW_UNIT_States(pUnit, nLightColor, 1, -1, -1, nCallResult);
       }
 
-      D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nFrameMetricX, &__frame0.nFrameMetricY);
+      D2Common::Units::GetShiftedFrameMetrics(pUnit, &nFrameMetricX, &nFrameMetricY);
       nCallResult = pUnit->uSideData.pClientSide.nPaletteIndex;
-      __frame0.pPalShift = 0;
+      pPalShift = 0;
       if (nCallResult) {
-        __frame0.pPalShift = (D2GamePalShiftGreenBloodStrc*)D2Win::Src::D2WinPalette::D2WINPAL_GetActPalettePointer(nCallResult - 1);
+        pPalShift = (D2GamePalShiftGreenBloodStrc*)D2Win::Src::D2WinPalette::D2WINPAL_GetActPalettePointer(nCallResult - 1);
       }
       if (!(pUnit->eUnitFlagsEx >> 3 & 1) || (bPerspectiveCapable = D2Common::DATATBLS::ItemStats::ITEMSTATS_CheckUnitHasStateFlagIndex(pUnit, 0x25) , !bPerspectiveCapable) || (pUnitTmp = UNIT::Player::MISSILE_GetOwnerUnit(pUnit) , !pUnitTmp)) {
         pInventory = pUnit->pInventory;
@@ -1886,10 +1822,10 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
         pInventory = pUnitTmp->pInventory;
       }
 
-      nCofFrameCount = D2Common::COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pInventory, (uint32_t*)&__frame0.nTransformGfx, __frame0.pSeqMode, 0);
+      nCofFrameCount = D2Common::COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pInventory, (uint32_t*)&nTransformGfx, pSeqMode, 0);
       pGfxInfoUnk = GfxInfo::GFX_FindGfxInfoByModeAndWeapon(pUnit, nCofFrameCount, -1);
       if (pGfxInfoUnk || (pGfxInfoUnk = GFX_EnsureUnitCofLoaded(pUnit, nCofFrameCount, -1) , pGfxInfoUnk != 0)) {
-        nErrLine = __frame0.pSeqMode;
+        nErrLine = pSeqMode;
         pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
         if (pGfxInfo) {
           pGfxInfoUnk = pGfxInfo->pGfxInfoUnk;
@@ -1903,44 +1839,44 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
 
             pCofData = (uint8_t*)pGfxInfoUnk->pCofDataArray[5];
             if (pCofData) {
-              __frame0.pCofDataBase = pCofData;
+              pCofDataBase = pCofData;
               pCofIdentityData = (uint8_t*)GfxUtil::GFXUTIL_Identity((int32_t)pCofData);
-              __frame0.pCofIdentity = pCofIdentityData;
-              if (!__frame0.pPalShift) {
-                __frame0.pPalShift = (D2GamePalShiftGreenBloodStrc*)GAME::PalShift::PALSHIFT_GetMonsterTransform(pUnit);
+              pCofIdentity = pCofIdentityData;
+              if (!pPalShift) {
+                pPalShift = (D2GamePalShiftGreenBloodStrc*)GAME::PalShift::PALSHIFT_GetMonsterTransform(pUnit);
               }
 
-              __frame0.bIsSelected = UNIT::CUnit::IsSelected(pUnit);
+              bIsSelected = UNIT::CUnit::IsSelected(pUnit);
               byLayerComponent = D2Common::Units::GetDirection(pUnit);
-              __frame0.nDirection = (uint32_t)byLayerComponent;
-              GfxUtil::GFXUTIL_CalcDirectionAndFrame(__frame0.nClassId, __frame0.pSeqMode, &__frame0.nDirection, &__frame0.nFrame, &__frame0.nFrameCount, (uint32_t)pCofIdentityData[2], 1, pUnit, eUnitType);
-              __frame0.pCofLayerData = GfxUtil::GFXUTIL_GetCofLayerData(pCofData, __frame0.nFrame, __frame0.nFrameMetricX);
-              if (!__frame0.pCofLayerData) {
+              nDirection = (uint32_t)byLayerComponent;
+              GfxUtil::GFXUTIL_CalcDirectionAndFrame(nClassId, pSeqMode, &nDirection, &nFrame, &nFrameCount, (uint32_t)pCofIdentityData[2], 1, pUnit, eUnitType);
+              pCofLayerData = GfxUtil::GFXUTIL_GetCofLayerData(pCofData, nFrame, nFrameMetricX);
+              if (!pCofLayerData) {
                 Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x58e);
                 exit(-1);
               }
 
-              __frame0.bOrderedDraw = 0;
+              bOrderedDraw = 0;
               if (eUnitType == UNIT_OBJECT) {
                 pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pUnit->nClassId);
-                if (pObjectsTxt->OrderFlag[__frame0.pSeqMode] == '\x01') {
-                  __frame0.bOrderedDraw = 1;
+                if (pObjectsTxt->OrderFlag[pSeqMode] == '\x01') {
+                  bOrderedDraw = 1;
                 }
               }
 
-              __frame0.bApplyItemColor = 1;
+              bApplyItemColor = 1;
               bPerspectiveCapable = D2Common::DATATBLS::ItemStats::STATES_HasDisguiseState(pUnit);
               if (bPerspectiveCapable) {
                 pUnitTmp = UNIT::Player::GetPlayerUnit_UI();
                 if (pUnit != pUnitTmp || (nCofFrameCount = GAME::Rendering::IsWindowMode() , !nCofFrameCount)) {
-                  __frame0.bApplyItemColor = 0;
+                  bApplyItemColor = 0;
                 }
               }
 
-              __frame0.nLayerIdx = 0;
+              nLayerIdx = 0;
               if (*pCofIdentityData) {
                 do {
-                  byLayerComponent = __frame0.pCofLayerData[__frame0.nLayerIdx];
+                  byLayerComponent = pCofLayerData[nLayerIdx];
                   nLayerComponentU = (uint32_t)byLayerComponent;
                   if (nLayerComponentU == 0xf) {
                     pPalette = 0;
@@ -1957,23 +1893,23 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
 
                     draw_layer:
                     memset(&sGfxData, 0, 0x48);
-                    __frame0.nFrameResult = -1;
-                    nErrLine = DC6_AssignParams(&sGfxData, pUnit, nullptr, __frame0.nDirection, __frame0.nFrameMetricX, (int*)&__frame0.nFrameResult, byLayerComponent, (D2UnitStrc*)-1);
+                    nFrameResult = -1;
+                    nErrLine = DC6_AssignParams(&sGfxData, pUnit, nullptr, nDirection, nFrameMetricX, (int*)&nFrameResult, byLayerComponent, (D2UnitStrc*)-1);
                     if (nErrLine) {
                       eDrawModeCalc = DRAW_SOLID;
-                      __frame0.bEthereal = GfxUtil::GFXUTIL_GetEtherealTransparency(pUnit, nLayerComponentU, (uint32_t*)&eDrawModeCalc, __frame0.nFrameResult);
-                      if (__frame0.bApplyItemColor && (eUnitType != UNIT_PLAYER || pUnit->uSideData.pClientSide.nPaletteIndex != 0x6c)) {
+                      bEthereal = GfxUtil::GFXUTIL_GetEtherealTransparency(pUnit, nLayerComponentU, (uint32_t*)&eDrawModeCalc, nFrameResult);
+                      if (bApplyItemColor && (eUnitType != UNIT_PLAYER || pUnit->uSideData.pClientSide.nPaletteIndex != 0x6c)) {
                         pPalette = (D2GamePalShiftGreenBloodStrc*)GfxUtil::GFXUTIL_GetItemColorForBodyLoc(pUnit, nLayerComponentU, pPalette->abyRemap);
                       }
 
-                      nCofFrameCount = GfxUtil::GFXUTIL_GetCofFrameCount(__frame0.pCofDataBase, nLayerComponentU);
+                      nCofFrameCount = GfxUtil::GFXUTIL_GetCofFrameCount(pCofDataBase, nLayerComponentU);
                       if (!nCofFrameCount) {
-                        if (!__frame0.bIsSelected && !__frame0.bEthereal) {
+                        if (!bIsSelected && !bEthereal) {
                           if (!bTransparent) {
-                            if (__frame0.bPerspective && __frame0.bOrderedDraw) {
+                            if (bPerspective && bOrderedDraw) {
                               nErrLine = D2Common::Units::GetPrecisionX(pUnit);
                               nClassIdTmp = D2Common::Units::GetPrecisionY(pUnit);
-                              D2gfx::D2GFX::D2GFX_DrawPerspectiveImage(&sGfxData, nErrLine, nClassIdTmp, nLightColor, 5, __frame0.nBorderType, pPalette->abyRemap);
+                              D2gfx::D2GFX::D2GFX_DrawPerspectiveImage(&sGfxData, nErrLine, nClassIdTmp, nLightColor, 5, nBorderType, pPalette->abyRemap);
                               goto next_layer;
                             }
 
@@ -1988,7 +1924,7 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
                             eDrawMode = eDrawModeCalc;
                           } else {
                             eDrawMode = eDrawModeCalc;
-                            if (!__frame0.bEthereal && __frame0.bIsSelected) {
+                            if (!bEthereal && bIsSelected) {
                               nLayerComponentU = (nLightColor & 0xff) * 2;
                               eDrawModeCalc = DRAW_LIGHTERSOLID;
                               if (nLayerComponentU < 0x41) {
@@ -2003,28 +1939,28 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
                           }
                         }
 
-                        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nDrawX, __frame0.nDrawY, nLightColor, eDrawMode, pPalette);
+                        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nDrawX, nDrawY, nLightColor, eDrawMode, pPalette);
                       } else {
                         if (!bTransparent) {
-                          if (!__frame0.bEthereal) {
-                            eDrawModeCalc = GfxUtil::GFXUTIL_GetCofDrawOrder(__frame0.pCofDataBase, nLayerComponentU);
+                          if (!bEthereal) {
+                            eDrawModeCalc = GfxUtil::GFXUTIL_GetCofDrawOrder(pCofDataBase, nLayerComponentU);
                           }
                         } else {
                           eDrawModeCalc = DRAW_TRANSPARENT;
                         }
 
                         eDrawMode = eDrawModeCalc;
-                        if (!__frame0.bPerspective || !__frame0.bOrderedDraw) {
-                          D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nDrawX, __frame0.nDrawY, nLightColor, eDrawMode, pPalette);
+                        if (!bPerspective || !bOrderedDraw) {
+                          D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nDrawX, nDrawY, nLightColor, eDrawMode, pPalette);
                         } else {
                           nErrLine = D2Common::Units::GetPrecisionX(pUnit);
                           nClassIdTmp = D2Common::Units::GetPrecisionY(pUnit);
-                          D2gfx::D2GFX::D2GFX_DrawPerspectiveImage(&sGfxData, nErrLine, nClassIdTmp, nLightColor, eDrawModeCalc, __frame0.nBorderType, pPalette->abyRemap);
+                          D2gfx::D2GFX::D2GFX_DrawPerspectiveImage(&sGfxData, nErrLine, nClassIdTmp, nLightColor, eDrawModeCalc, nBorderType, pPalette->abyRemap);
                         }
                       }
                     }
                   } else {
-                    pPalette = __frame0.pPalShift;
+                    pPalette = pPalShift;
                     if (nLayerComponentU != 0xe) {
                       goto draw_layer;
                     }
@@ -2036,17 +1972,17 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
                   }
 
                   next_layer:
-                  __frame0.nLayerIdx++;
-                } while (__frame0.nLayerIdx < (int)(uint32_t)*__frame0.pCofIdentity);
+                  nLayerIdx++;
+                } while (nLayerIdx < (int)(uint32_t)*pCofIdentity);
               }
               if (bDrawStates) {
-                GfxInfo::DRAW_UNIT_States(pUnit, nLightColor, 0, -1, -1, __frame0.bPerspToggled);
+                GfxInfo::DRAW_UNIT_States(pUnit, nLightColor, 0, -1, -1, bPerspToggled);
               }
-              if (!__frame0.bPerspToggled) {
+              if (!bPerspToggled) {
                 return (D2GfxInfoUnkStrc*)0x1;
               }
 
-              D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(__frame0.nPerspCapable);
+              D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(nPerspCapable);
               return (D2GfxInfoUnkStrc*)0x1;
             }
           }
@@ -2059,26 +1995,16 @@ D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nL
 
 // @sourcefile .\ENGINE\Gfx.cpp
 BOOL __fastcall GFX_DrawUnitShadow(D2UnitStrc * pUnit) {
-    // Frame slots -40..-4 are ONE object: &nFrameResult is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nFrameResult;
-      int nFrameMetricY;
-      int32_t nFrameMetricX;
-      uint32_t bPerspective;
-      int nOffsetY;
-      int32_t nSeqMode;
-      int dwClassId;
-      uint8_t __pad28[7];
-      uint8_t nDirection;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 36, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nCallResult;
     int32_t nTargetX;
     uint32_t nBorderType;
     D2GfxInfoUnkStrc* pOnScreen;
     D2GfxDataStrc local_70;
+    int nFrameResult;
+    int nFrameMetricY;
+    int32_t nFrameMetricX;
+    int dwClassId;
+    uint8_t nDirection;
     int nOffsetX = 0;
     if (pUnit && pUnit->eUnitFlags >> 5 & 1) {
       return 0;
@@ -2091,19 +2017,19 @@ BOOL __fastcall GFX_DrawUnitShadow(D2UnitStrc * pUnit) {
 
     eD2UnitType neD2UnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.dwClassId = -1;
+      dwClassId = -1;
     } else {
       neD2UnitType = pUnit->eUnitType;
-      __frame0.dwClassId = pUnit->nClassId;
+      dwClassId = pUnit->nClassId;
     }
 
-    __frame0.nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &neD2UnitType, &__frame0.dwClassId, &__frame0.nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x86f);
-    __frame0.bPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
-    __frame0.nOffsetY = 0;
+    int32_t nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &neD2UnitType, &dwClassId, &nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x86f);
+    uint32_t bPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
+    int nOffsetY = 0;
     if (neD2UnitType == UNIT_OBJECT) {
       D2ObjectsTxt* pObjectsTxt;
-      pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(__frame0.dwClassId);
+      pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(dwClassId);
       if (!pObjectsTxt) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x87a);
         exit(-1);
@@ -2111,12 +2037,12 @@ BOOL __fastcall GFX_DrawUnitShadow(D2UnitStrc * pUnit) {
       if (!pObjectsTxt->Draw) {
         return 0;
       }
-      if (!pObjectsTxt->BlocksLight[__frame0.nSeqMode]) {
+      if (!pObjectsTxt->BlocksLight[nSeqMode]) {
         return 0;
       }
 
       nOffsetX = pObjectsTxt->Xoffset;
-      __frame0.nOffsetY = pObjectsTxt->Yoffset;
+      nOffsetY = pObjectsTxt->Yoffset;
     }
 
     nCallResult = UI::Path::DRAW_GetWorldOffsetX();
@@ -2124,12 +2050,12 @@ BOOL __fastcall GFX_DrawUnitShadow(D2UnitStrc * pUnit) {
     int32_t nDrawX = Particle::PARTICLE_GetPosXShifted(pUnit);
     nDrawX = nDrawX + nTargetX + (nOffsetX - nCallResult);
     nCallResult = UI::Path::DRAW_GetWorldOffsetY();
-    nOffsetX = __frame0.nOffsetY - nCallResult;
+    nOffsetX = nOffsetY - nCallResult;
     nCallResult = D2Common::Units::GetTargetY(pUnit);
-    __frame0.nOffsetY = nCallResult + nOffsetX;
+    nOffsetY = nCallResult + nOffsetX;
     nCallResult = Particle::PARTICLE_GetPosYShifted(pUnit);
-    nCallResult += __frame0.nOffsetY;
-    if (__frame0.bPerspective) {
+    nCallResult += nOffsetY;
+    if (bPerspective) {
       nBorderType = UI::Path::DRAW_GetTypeOfBorder();
       if (nBorderType == 1) {
         nOffsetX = -((int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2);
@@ -2147,10 +2073,10 @@ BOOL __fastcall GFX_DrawUnitShadow(D2UnitStrc * pUnit) {
       return 0;
     }
 
-    __frame0.nDirection = D2Common::Units::GetDirection(pUnit);
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nFrameMetricX, &__frame0.nFrameMetricY);
+    nDirection = D2Common::Units::GetDirection(pUnit);
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, &nFrameMetricX, &nFrameMetricY);
     memset(&local_70, 0, 0x48);
-    nTargetX = DC6_AssignParams(&local_70, pUnit, nullptr, (uint32_t)__frame0.nDirection, __frame0.nFrameMetricX, &__frame0.nFrameResult, '\x01', (D2UnitStrc*)-1);
+    nTargetX = DC6_AssignParams(&local_70, pUnit, nullptr, (uint32_t)nDirection, nFrameMetricX, &nFrameResult, '\x01', (D2UnitStrc*)-1);
     if (!nTargetX) {
       return 0;
     }
@@ -2162,31 +2088,14 @@ BOOL __fastcall GFX_DrawUnitShadow(D2UnitStrc * pUnit) {
 // Draw shadow sprite layers for a unit. Skips hidden/dead units. Handles perspective view toggling for player unit. Returns 1 if shadow was drawn, 0 if skipped or off-screen.
 // @sourcefile .\ENGINE\Gfx.cpp
 int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
-    // Frame slots -84..-72 are ONE object: &nTransformGfx is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -12..-4 are ONE object: &nScreenX is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      int32_t nTransformGfx;
-      int nFrameResult;
-      int nFrameCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -44..-4 are ONE object: &nFrameMetricX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      uint32_t nFrameMetricX;
-      uint8_t* pCofDataBase;
-      uint32_t nDirection;
-      int32_t nSeqMode;
-      uint8_t* pZHalfOffset;
-      int nDrawX;
-      BOOL nPerspCapable;
-      int bPerspToggled;
       int nScreenX;
       int nScreenY;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 40, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
     D2UnitStrc* pPlayerOrOwner;
     eD2UnitType eUnitType;
     int32_t nTmp;
@@ -2201,10 +2110,19 @@ int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
     uint32_t nCallResult2;
     uint32_t nLayerIdx;
     D2GfxDataStrc sGfxData;
+    int32_t nTransformGfx;
+    int nFrameResult;
+    int nFrameCount;
     int aFrameMetrics[3];
     int nClassId;
     eD2UnitType eUnitTypeGfx;
     int nDrawY;
+    uint32_t nFrameMetricX;
+    uint8_t* pCofDataBase;
+    uint32_t nDirection;
+    int32_t nSeqMode;
+    uint8_t* pZHalfOffset;
+    int nDrawX;
     if (pUnit && pUnit->eUnitFlags >> 5 & 1) {
       return 0;
     }
@@ -2222,9 +2140,11 @@ int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
       return 1;
     }
 
-    __frame1.bPerspToggled = 0;
-    __frame1.nPerspCapable = D2gfx::D2GFX::D2GFX_GetPerspectiveCapable();
-    if (__frame1.nPerspCapable) {
+    int bPerspToggled;
+    bPerspToggled = 0;
+    BOOL nPerspCapable;
+    nPerspCapable = D2gfx::D2GFX::D2GFX_GetPerspectiveCapable();
+    if (nPerspCapable) {
       nCallResult2 = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
       if (nCallResult2) {
         pPlayerOrOwner = UNIT::Player::GetPlayerUnit_UI();
@@ -2232,7 +2152,7 @@ int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
           eUnitType = Source::ClientEngine::CLIENT_GetEffectiveUnitType(pUnit);
           if (eUnitType == UNIT_PLAYER) {
             D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(0);
-            __frame1.bPerspToggled = 1;
+            bPerspToggled = 1;
           }
         }
       }
@@ -2243,51 +2163,51 @@ int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
     if (!pCofLayerDataBase) {
       nTmp = Particle::PARTICLE_GetScreenZ(pUnit);
       nCoordTmp = D2Common::Units::GetTargetX(pUnit);
-      __frame1.nScreenX = nCoordTmp + nTmp / 2;
+      __frame0.nScreenX = nCoordTmp + nTmp / 2;
       nCoordTmp = D2Common::Units::GetTargetY(pUnit);
-      __frame1.nScreenY = nCoordTmp + nTmp / 2;
+      __frame0.nScreenY = nCoordTmp + nTmp / 2;
     } else {
       nTmp = Particle::PARTICLE_GetPosZRaw(pUnit);
-      __frame1.pZHalfOffset = (uint8_t*)(nTmp / 2);
+      pZHalfOffset = (uint8_t*)(nTmp / 2);
       nCoordTmp = D2Common::Units::GetPrecisionX(pUnit);
       nPrecisionX = nCoordTmp - nTmp / 2;
       nTmp = D2Common::Units::GetPrecisionY(pUnit);
-      nResult = nTmp - (int)__frame1.pZHalfOffset;
+      nResult = nTmp - (int)pZHalfOffset;
       nCallResult2 = D2gfx::D2GFX::D2GFX_IsInPerspectiveBounds(nPrecisionX, nResult);
       if (!nCallResult2) {
-        if (!__frame1.bPerspToggled) {
+        if (!bPerspToggled) {
           return 0;
         }
 
-        D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(__frame1.nPerspCapable);
+        D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(nPerspCapable);
         return 0;
       }
 
-      D2gfx::D2GFX::D2GFX_AdjustPerspectivePosition(nPrecisionX, nResult, 0, &__frame1.nScreenX, &__frame1.nScreenY);
+      D2gfx::D2GFX::D2GFX_AdjustPerspectivePosition(nPrecisionX, nResult, 0, &__frame0.nScreenX, &__frame0.nScreenY);
       nTmp = UI::Path::DRAW_GetWorldOffsetX();
-      __frame1.nScreenX += nTmp;
+      __frame0.nScreenX += nTmp;
       nTmp = UI::Path::DRAW_GetWorldOffsetY();
-      __frame1.nScreenY = __frame1.nScreenY + 0x10 + nTmp;
+      __frame0.nScreenY = __frame0.nScreenY + 0x10 + nTmp;
     }
-    if (__frame1.bPerspToggled) {
-      __frame1.nScreenY += -8;
+    if (bPerspToggled) {
+      __frame0.nScreenY += -8;
     }
 
     nTmp = Particle::PARTICLE_GetX(pUnit);
-    __frame1.nScreenX += nTmp;
+    __frame0.nScreenX += nTmp;
     nTmp = Particle::PARTICLE_GetY(pUnit);
-    __frame1.nScreenY += nTmp;
+    __frame0.nScreenY += nTmp;
     nTmp = UI::Path::DRAW_GetWorldOffsetX();
-    nCoordTmp = __frame1.nScreenX - nTmp - 2;
-    __frame1.nDrawX = nCoordTmp;
+    nCoordTmp = __frame0.nScreenX - nTmp - 2;
+    nDrawX = nCoordTmp;
     nTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nResult = __frame1.nScreenY - nTmp;
+    nResult = __frame0.nScreenY - nTmp;
     nDrawY = nResult;
     if (pUnit && pUnit->eUnitType == UNIT_OBJECT) {
       pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pUnit->nClassId);
       nCoordTmp += pObjectsTxt->Xoffset;
       nDrawY = nResult + pObjectsTxt->Yoffset;
-      __frame1.nDrawX = nCoordTmp;
+      nDrawX = nCoordTmp;
     }
 
     nResult = nDrawY;
@@ -2304,7 +2224,7 @@ int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
       }
 
       nCoordTmp += nPrecisionX;
-      __frame1.nDrawX = nCoordTmp;
+      nDrawX = nCoordTmp;
     }
 
     draw_shadow:
@@ -2319,16 +2239,16 @@ int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
         nClassId = pUnit->nClassId;
       }
 
-      __frame1.nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-      D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitTypeGfx, &nClassId, &__frame1.nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x926);
-      D2Common::Units::GetShiftedFrameMetrics(pUnit, (int*)&__frame1.nFrameMetricX, aFrameMetrics);
+      nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+      D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitTypeGfx, &nClassId, &nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x926);
+      D2Common::Units::GetShiftedFrameMetrics(pUnit, (int*)&nFrameMetricX, aFrameMetrics);
       if (!pUnit || !(pUnit->eUnitFlagsEx >> 3 & 1) || (BVar1 = D2Common::DATATBLS::ItemStats::ITEMSTATS_CheckUnitHasStateFlagIndex(pUnit, 0x25) , !BVar1) || (pPlayerOrOwner = UNIT::Player::MISSILE_GetOwnerUnit(pUnit) , !pPlayerOrOwner)) {
         pInventoryUsed = pUnit->pInventory;
       } else {
         pInventoryUsed = pPlayerOrOwner->pInventory;
       }
 
-      nCallResult2 = D2Common::COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pInventoryUsed, (uint32_t*)&__frame0.nTransformGfx, __frame1.nSeqMode, 0);
+      nCallResult2 = D2Common::COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pInventoryUsed, (uint32_t*)&nTransformGfx, nSeqMode, 0);
       pGfxInfoUnk = GfxInfo::GFX_FindGfxInfoByModeAndWeapon(pUnit, nCallResult2, -1);
       if (!pGfxInfoUnk) {
         pGfxInfoUnk = GFX_EnsureUnitCofLoaded(pUnit, nCallResult2, -1);
@@ -2337,18 +2257,18 @@ int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
         }
       }
 
-      pCofData = (uint8_t*)GfxInfo::GFX_GetGfxInfoCofData(pUnit, __frame1.nSeqMode);
+      pCofData = (uint8_t*)GfxInfo::GFX_GetGfxInfoCofData(pUnit, nSeqMode);
       if (!pCofData) {
         return 0;
       }
 
-      __frame1.pCofDataBase = pCofData;
+      pCofDataBase = pCofData;
       pCofIdentity = (uint8_t*)GfxUtil::GFXUTIL_Identity((int32_t)pCofData);
-      __frame1.pZHalfOffset = pCofIdentity;
+      pZHalfOffset = pCofIdentity;
       byLayerComponent = D2Common::Units::GetDirection(pUnit);
-      __frame1.nDirection = (uint32_t)byLayerComponent;
-      GfxUtil::GFXUTIL_CalcDirectionAndFrame(nClassId, __frame1.nSeqMode, &__frame1.nDirection, (uint32_t*)(aFrameMetrics + 2), &__frame0.nFrameCount, (uint32_t)pCofIdentity[2], 1, pUnit, eUnitTypeGfx);
-      pCofData = GfxUtil::GFXUTIL_GetCofLayerData(pCofData, aFrameMetrics[2], __frame1.nFrameMetricX);
+      nDirection = (uint32_t)byLayerComponent;
+      GfxUtil::GFXUTIL_CalcDirectionAndFrame(nClassId, nSeqMode, &nDirection, (uint32_t*)(aFrameMetrics + 2), &nFrameCount, (uint32_t)pCofIdentity[2], 1, pUnit, eUnitTypeGfx);
+      pCofData = GfxUtil::GFXUTIL_GetCofLayerData(pCofData, aFrameMetrics[2], nFrameMetricX);
       pCofLayerDataBase = pCofData;
       if (!pCofData) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x94e);
@@ -2356,10 +2276,10 @@ int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
       }
 
       aFrameMetrics[1] = 0;
-      nTmp = GFXUTIL_CalcMaxSpriteHeight(pUnit, pCofIdentity, (int32_t)pCofData, aFrameMetrics + 1, __frame1.nDirection, __frame1.nFrameMetricX);
+      nTmp = GFXUTIL_CalcMaxSpriteHeight(pUnit, pCofIdentity, (int32_t)pCofData, aFrameMetrics + 1, nDirection, nFrameMetricX);
       if (0 < nTmp) {
         nLayerIdx = 0;
-        if (*__frame1.pZHalfOffset) {
+        if (*pZHalfOffset) {
           do {
             byLayerComponent = pCofData[nLayerIdx];
             if (0xf < byLayerComponent) {
@@ -2367,84 +2287,78 @@ int32_t __fastcall DrawUnitShadows(D2UnitStrc * pUnit) {
               exit(-1);
             }
 
-            nCallResult2 = GfxUtil::GFXUTIL_GetCofAnimSpeed(__frame1.pCofDataBase, (uint32_t)byLayerComponent);
+            nCallResult2 = GfxUtil::GFXUTIL_GetCofAnimSpeed(pCofDataBase, (uint32_t)byLayerComponent);
             if (nCallResult2) {
               memset(&sGfxData, 0, 0x48);
-              nTmp = DC6_AssignParams(&sGfxData, pUnit, nullptr, __frame1.nDirection, __frame1.nFrameMetricX, &__frame0.nFrameResult, byLayerComponent, (D2UnitStrc*)-1);
+              nTmp = DC6_AssignParams(&sGfxData, pUnit, nullptr, nDirection, nFrameMetricX, &nFrameResult, byLayerComponent, (D2UnitStrc*)-1);
               if (nTmp) {
-                D2gfx::D2GFX::D2GFX_DrawShadow(&sGfxData, __frame1.nDrawX, nDrawY);
+                D2gfx::D2GFX::D2GFX_DrawShadow(&sGfxData, nDrawX, nDrawY);
               }
             }
 
             nLayerIdx++;
             pCofData = pCofLayerDataBase;
-          } while (nLayerIdx < *__frame1.pZHalfOffset);
+          } while (nLayerIdx < *pZHalfOffset);
         }
-        if (!__frame1.bPerspToggled) {
+        if (!bPerspToggled) {
           return 1;
         }
 
-        D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(__frame1.nPerspCapable);
+        D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(nPerspCapable);
         return 1;
       }
     }
-    if (!__frame1.bPerspToggled) {
+    if (!bPerspToggled) {
       return 0;
     }
 
-    D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(__frame1.nPerspCapable);
+    D2gfx::D2GFX::D2GFX_SetPerspectiveCapable(nPerspCapable);
     return 0;
 }
 
 // @sourcefile .\ENGINE\Gfx.cpp
 BOOL __fastcall GFX_DrawUnitColoredShape(D2UnitStrc * pUnit) {
-    // Frame slots -40..-12 are ONE object: &nFrameResult is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nFrameResult;
-      int nFrameMetricY;
-      int32_t nFrameMetricX;
-      uint32_t nPerspActive;
-      int nOffsetY;
-      int32_t nSeqMode;
-      int nClassId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nWorldX;
     int32_t nDrawX;
     uint32_t nBorderType;
     int nBorderAdj;
     D2GfxInfoUnkStrc* pOnScreen;
     D2GfxDataStrc sGfxData;
+    int nFrameResult;
+    int nFrameMetricY;
+    int32_t nFrameMetricX;
+    int nClassId;
     uint8_t nDirection;
     int nDrawY;
     nDrawY = 0;
-    __frame0.nOffsetY = 0;
+    int nOffsetY;
+    nOffsetY = 0;
     eD2UnitType eUnitType;
     eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x9b6);
-    __frame0.nPerspActive = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
+    int32_t nSeqMode;
+    nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nSeqMode, ".\\ENGINE\\Gfx.cpp", 0x9b6);
+    uint32_t nPerspActive;
+    nPerspActive = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
     if (eUnitType == UNIT_OBJECT) {
       D2ObjectsTxt* pObjectsTxt;
-      pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(__frame0.nClassId);
+      pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(nClassId);
       if (!pObjectsTxt) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9be);
         exit(-1);
       }
-      if (!pObjectsTxt->Draw || !pObjectsTxt->BlocksLight[__frame0.nSeqMode]) {
+      if (!pObjectsTxt->Draw || !pObjectsTxt->BlocksLight[nSeqMode]) {
         return 0;
       }
 
-      __frame0.nOffsetY = pObjectsTxt->Yoffset;
+      nOffsetY = pObjectsTxt->Yoffset;
       nDrawY = pObjectsTxt->Xoffset;
     }
 
@@ -2452,10 +2366,10 @@ BOOL __fastcall GFX_DrawUnitColoredShape(D2UnitStrc * pUnit) {
     nDrawX = D2Common::Units::GetTargetX(pUnit);
     nDrawX += nDrawY - nWorldX;
     nWorldX = UI::Path::DRAW_GetWorldOffsetY();
-    __frame0.nOffsetY -= nWorldX;
+    nOffsetY -= nWorldX;
     nWorldX = D2Common::Units::GetTargetY(pUnit);
-    nDrawY = nWorldX + __frame0.nOffsetY;
-    if (__frame0.nPerspActive) {
+    nDrawY = nWorldX + nOffsetY;
+    if (nPerspActive) {
       nBorderType = UI::Path::DRAW_GetTypeOfBorder();
       if (nBorderType == 1) {
         nBorderAdj = -((int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2);
@@ -2477,48 +2391,29 @@ BOOL __fastcall GFX_DrawUnitColoredShape(D2UnitStrc * pUnit) {
     }
 
     nBorderType = GfxInfo::GFX_GetUnitHealthBarColor(pUnit);
-    __frame0.nPerspActive = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&__frame0.nPerspActive + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)(char)nBorderType);
+    nPerspActive = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&nPerspActive + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)(char)nBorderType);
     nDirection = D2Common::Units::GetDirection(pUnit);
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nFrameMetricX, &__frame0.nFrameMetricY);
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, &nFrameMetricX, &nFrameMetricY);
     memset(&sGfxData, 0, 0x48);
-    nWorldX = DC6_AssignParams(&sGfxData, pUnit, nullptr, (uint32_t)nDirection, __frame0.nFrameMetricX, &__frame0.nFrameResult, '\x01', (D2UnitStrc*)-1);
+    nWorldX = DC6_AssignParams(&sGfxData, pUnit, nullptr, (uint32_t)nDirection, nFrameMetricX, &nFrameResult, '\x01', (D2UnitStrc*)-1);
     if (!nWorldX) {
       return 0;
     }
 
-    D2gfx::D2GFX::D2GFX_DrawImageColoredShape(&sGfxData, nDrawX, nDrawY, __frame0.nPerspActive);
+    D2gfx::D2GFX::D2GFX_DrawImageColoredShape(&sGfxData, nDrawX, nDrawY, nPerspActive);
     return 1;
 }
 
 // @sourcefile .\ENGINE\Gfx.cpp
 BOOL __fastcall GFX_DrawUnitSelectionShape(D2UnitStrc * pUnit) {
-    // Frame slots -68..-28 are ONE object: &nFrameMetricY is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -12..-4 are ONE object: &nScreenY is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      int nFrameMetricY;
-      int nFrameResult;
-      int nFrameCount;
-      int32_t nTransformGfx;
-      int32_t nHealthBarColor;
-      int nMaxSpriteHeight;
-      uint32_t nFrame;
-      int nClassId;
-      uint8_t* pCofLayerData;
-      uint8_t* pCofIdentityBase;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 40, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -24..-4 are ONE object: &nFrameMetricX is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      uint32_t nFrameMetricX;
-      uint32_t nDirection;
-      int32_t nSeqMode;
       int nScreenY;
       int nScreenX;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 20, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
     uint8_t byLayerComponent;
     int32_t nCoord;
     int32_t nWorldOffsetVal;
@@ -2532,7 +2427,20 @@ BOOL __fastcall GFX_DrawUnitSelectionShape(D2UnitStrc * pUnit) {
     uint8_t* pCofIdentity;
     uint32_t nLayerIdx;
     D2GfxDataStrc sGfxData;
+    int nFrameMetricY;
+    int nFrameResult;
+    int nFrameCount;
+    int32_t nTransformGfx;
+    int32_t nHealthBarColor;
+    int nMaxSpriteHeight;
+    uint32_t nFrame;
+    int nClassId;
+    uint8_t* pCofLayerData;
+    uint8_t* pCofIdentityBase;
     eD2UnitType eUnitType;
+    uint32_t nFrameMetricX;
+    uint32_t nDirection;
+    int32_t nSeqMode;
     int* pScreenYOut;
     uint32_t nCallResult = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
     if (!pUnit || (int)pUnit->eUnitType < 0 || 2 < (int)pUnit->eUnitType) {
@@ -2543,85 +2451,85 @@ BOOL __fastcall GFX_DrawUnitSelectionShape(D2UnitStrc * pUnit) {
       nCoord = D2Common::Units::GetTargetX(pUnit);
       nWorldOffsetVal = UI::Path::DRAW_GetWorldOffsetX();
       nParticleXY = Particle::PARTICLE_GetX(pUnit);
-      __frame1.nScreenX = nParticleXY + (nCoord - nWorldOffsetVal);
+      __frame0.nScreenX = nParticleXY + (nCoord - nWorldOffsetVal);
       nCoord = D2Common::Units::GetTargetY(pUnit);
       nWorldOffsetVal = UI::Path::DRAW_GetWorldOffsetY();
       nParticleXY = Particle::PARTICLE_GetY(pUnit);
-      __frame1.nScreenY = nParticleXY + (nCoord - nWorldOffsetVal);
+      __frame0.nScreenY = nParticleXY + (nCoord - nWorldOffsetVal);
       nParticleOffset = Particle::PARTICLE_GetScreenZ(pUnit);
     } else {
       int* pScreenXOut;
       nCoord = Particle::PARTICLE_GetScreenZ(pUnit);
-      pScreenYOut = &__frame1.nScreenY;
-      pScreenXOut = &__frame1.nScreenX;
+      pScreenYOut = &__frame0.nScreenY;
+      pScreenXOut = &__frame0.nScreenX;
       nWorldOffsetVal = D2Common::Units::GetPrecisionY(pUnit);
       nParticleXY = D2Common::Units::GetPrecisionX(pUnit);
       D2gfx::D2GFX::D2GFX_AdjustPerspectivePosition(nParticleXY, nWorldOffsetVal, nCoord, pScreenXOut, pScreenYOut);
       nCallResult = UI::Path::DRAW_GetTypeOfBorder();
       if (nCallResult == 1) {
         nParticleOffset = -((int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2);
-        __frame1.nScreenX += nParticleOffset;
+        __frame0.nScreenX += nParticleOffset;
       } else if (nCallResult == 2) {
         nParticleOffset = (int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2;
-        __frame1.nScreenX += nParticleOffset;
+        __frame0.nScreenX += nParticleOffset;
       }
 
-      __frame1.nScreenY += 0x10;
+      __frame0.nScreenY += 0x10;
       nCoord = Particle::PARTICLE_GetX(pUnit);
-      __frame1.nScreenX += nCoord;
+      __frame0.nScreenX += nCoord;
       nParticleOffset = Particle::PARTICLE_GetY(pUnit);
     }
 
-    __frame1.nScreenY += nParticleOffset;
-    pGfxInfoUnk = GFX_IsUnitOnScreen(pUnit, __frame1.nScreenX, __frame1.nScreenY, 0, 0);
+    __frame0.nScreenY += nParticleOffset;
+    pGfxInfoUnk = GFX_IsUnitOnScreen(pUnit, __frame0.nScreenX, __frame0.nScreenY, 0, 0);
     if (!pGfxInfoUnk) {
       return 0;
     }
 
     nCallResult = GfxInfo::GFX_GetUnitHealthBarColor(pUnit);
     eUnitType = pUnit->eUnitType;
-    __frame0.nClassId = pUnit->nClassId;
-    __frame0.nHealthBarColor = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&__frame0.nHealthBarColor + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)(char)nCallResult);
-    __frame1.nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame1.nSeqMode, ".\\ENGINE\\Gfx.cpp", 0xa2f);
+    nClassId = pUnit->nClassId;
+    nHealthBarColor = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&nHealthBarColor + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)(char)nCallResult);
+    nSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nSeqMode, ".\\ENGINE\\Gfx.cpp", 0xa2f);
     byLayerComponent = D2Common::Units::GetDirection(pUnit);
-    __frame1.nDirection = (uint32_t)byLayerComponent;
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, (int*)&__frame1.nFrameMetricX, &__frame0.nFrameMetricY);
+    nDirection = (uint32_t)byLayerComponent;
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, (int*)&nFrameMetricX, &nFrameMetricY);
     if (!(pUnit->eUnitFlagsEx >> 3 & 1) || (BVar1 = D2Common::DATATBLS::ItemStats::ITEMSTATS_CheckUnitHasStateFlagIndex(pUnit, 0x25) , !BVar1) || (pOwnerUnit = UNIT::Player::MISSILE_GetOwnerUnit(pUnit) , !pOwnerUnit)) {
       pInventoryUsed = pUnit->pInventory;
     } else {
       pInventoryUsed = pOwnerUnit->pInventory;
     }
 
-    nCallResult = D2Common::COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pInventoryUsed, (uint32_t*)&__frame0.nTransformGfx, __frame1.nSeqMode, 0);
+    nCallResult = D2Common::COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pInventoryUsed, (uint32_t*)&nTransformGfx, nSeqMode, 0);
     pGfxInfoUnk = GfxInfo::GFX_FindGfxInfoByModeAndWeapon(pUnit, nCallResult, -1);
     if (!(pGfxInfoUnk || (pGfxInfoUnk = GFX_EnsureUnitCofLoaded(pUnit, nCallResult, -1) , pGfxInfoUnk != 0))) {
       return 0;
     }
 
-    pCofData = (uint8_t*)GfxInfo::GFX_GetGfxInfoCofData(pUnit, __frame1.nSeqMode);
+    pCofData = (uint8_t*)GfxInfo::GFX_GetGfxInfoCofData(pUnit, nSeqMode);
     if (!pCofData) {
       return 0;
     }
 
     pCofIdentity = (uint8_t*)GfxUtil::GFXUTIL_Identity((int32_t)pCofData);
-    __frame0.pCofIdentityBase = pCofIdentity;
-    GfxUtil::GFXUTIL_CalcDirectionAndFrame(__frame0.nClassId, __frame1.nSeqMode, &__frame1.nDirection, &__frame0.nFrame, &__frame0.nFrameCount, (uint32_t)pCofIdentity[2], 1, pUnit, eUnitType);
-    pCofData = GfxUtil::GFXUTIL_GetCofLayerData(pCofData, __frame0.nFrame, __frame1.nFrameMetricX);
-    __frame0.pCofLayerData = pCofData;
+    pCofIdentityBase = pCofIdentity;
+    GfxUtil::GFXUTIL_CalcDirectionAndFrame(nClassId, nSeqMode, &nDirection, &nFrame, &nFrameCount, (uint32_t)pCofIdentity[2], 1, pUnit, eUnitType);
+    pCofData = GfxUtil::GFXUTIL_GetCofLayerData(pCofData, nFrame, nFrameMetricX);
+    pCofLayerData = pCofData;
     if (!pCofData) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xa56);
       exit(-1);
     }
 
-    __frame0.nMaxSpriteHeight = 0;
-    nCoord = GFXUTIL_CalcMaxSpriteHeight(pUnit, pCofIdentity, (int32_t)pCofData, &__frame0.nMaxSpriteHeight, __frame1.nDirection, __frame1.nFrameMetricX);
+    nMaxSpriteHeight = 0;
+    nCoord = GFXUTIL_CalcMaxSpriteHeight(pUnit, pCofIdentity, (int32_t)pCofData, &nMaxSpriteHeight, nDirection, nFrameMetricX);
     if (nCoord < 1) {
       return 0;
     }
 
     nLayerIdx = 0;
-    if (!*__frame0.pCofIdentityBase) {
+    if (!*pCofIdentityBase) {
       return 1;
     }
 
@@ -2630,35 +2538,21 @@ BOOL __fastcall GFX_DrawUnitSelectionShape(D2UnitStrc * pUnit) {
       nCallResult = GfxUtil::GFXUTIL_GetUnitCofDirectionOnScreen(pUnit, (uint32_t)byLayerComponent);
       if (nCallResult) {
         memset(&sGfxData, 0, 0x48);
-        nCoord = DC6_AssignParams(&sGfxData, pUnit, nullptr, __frame1.nDirection, __frame1.nFrameMetricX, &__frame0.nFrameResult, byLayerComponent, (D2UnitStrc*)-1);
+        nCoord = DC6_AssignParams(&sGfxData, pUnit, nullptr, nDirection, nFrameMetricX, &nFrameResult, byLayerComponent, (D2UnitStrc*)-1);
         if (nCoord) {
-          D2gfx::D2GFX::D2GFX_DrawImageColoredShape(&sGfxData, __frame1.nScreenX, __frame1.nScreenY, __frame0.nHealthBarColor);
+          D2gfx::D2GFX::D2GFX_DrawImageColoredShape(&sGfxData, __frame0.nScreenX, __frame0.nScreenY, nHealthBarColor);
         }
       }
 
       nLayerIdx++;
-      pCofData = __frame0.pCofLayerData;
-    } while (nLayerIdx < *__frame0.pCofIdentityBase);
+      pCofData = pCofLayerData;
+    } while (nLayerIdx < *pCofIdentityBase);
 
     return 1;
 }
 
 // @sourcefile .\ENGINE\Gfx.cpp
 D2GfxInfoUnkStrc * __fastcall DRAW_WORLD_Unit_1(D2UnitStrc * pUnit, uint32_t nGamma, uint32_t bIsSelected, DRAWMODE nScreenY, D2GamePalShiftGreenBloodStrc * pPalShift, int32_t bDrawStates) {
-    // Frame slots -44..-12 are ONE object: &nFrameOut is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nFrameOut;
-      int nFrameMetricY;
-      uint32_t bPerspective;
-      int32_t nFrame;
-      int32_t nAnimMode;
-      int nYoffset;
-      int nXoffset;
-      int nClassId;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint8_t byDirection;
     D2GfxInfoUnkStrc* pGfxResult;
     D2UnitStrc* pPlayerUnit_lcl;
@@ -2672,10 +2566,15 @@ D2GfxInfoUnkStrc * __fastcall DRAW_WORLD_Unit_1(D2UnitStrc * pUnit, uint32_t nGa
     int nDrawY;
     DRAWMODE eDrawMode;
     D2GfxDataStrc sGfxData;
+    int nFrameOut;
+    int nFrameMetricY;
+    int32_t nFrame;
+    int nClassId;
     uint8_t* pPalShift2;
     uint32_t nGammaCopy;
     nGammaCopy = nGamma;
-    __frame0.bPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
+    uint32_t bPerspective;
+    bPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
     if (pUnit && pUnit->eUnitType == UNIT_WARP) {
       return nullptr;
     }
@@ -2689,16 +2588,19 @@ D2GfxInfoUnkStrc * __fastcall DRAW_WORLD_Unit_1(D2UnitStrc * pUnit, uint32_t nGa
     eD2UnitType eUnitType;
     eUnitType = UNIT_COUNT;
     if (!pUnit) {
-      __frame0.nClassId = -1;
+      nClassId = -1;
     } else {
       eUnitType = pUnit->eUnitType;
-      __frame0.nClassId = pUnit->nClassId;
+      nClassId = pUnit->nClassId;
     }
 
-    __frame0.nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
-    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &__frame0.nClassId, &__frame0.nAnimMode, ".\\ENGINE\\Gfx.cpp", 0xaf0);
-    __frame0.nXoffset = 0;
-    __frame0.nYoffset = 0;
+    int32_t nAnimMode;
+    nAnimMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
+    D2Common::Skills::SKILLS_GetStateTransformGfx(pUnit, &eUnitType, &nClassId, &nAnimMode, ".\\ENGINE\\Gfx.cpp", 0xaf0);
+    int nXoffset;
+    nXoffset = 0;
+    int nYoffset;
+    nYoffset = 0;
     int32_t nCallResult;
     nCallResult = Particle::PARTICLE_GetX(pUnit);
     bIsSelected += nCallResult;
@@ -2708,7 +2610,7 @@ D2GfxInfoUnkStrc * __fastcall DRAW_WORLD_Unit_1(D2UnitStrc * pUnit, uint32_t nGa
     nDrawY += nCallResult;
     if (eUnitType == UNIT_OBJECT) {
       D2ObjectsTxt* pObjectsTxt;
-      pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(__frame0.nClassId);
+      pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(nClassId);
       if (!pObjectsTxt) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xafd);
         exit(-1);
@@ -2717,10 +2619,10 @@ D2GfxInfoUnkStrc * __fastcall DRAW_WORLD_Unit_1(D2UnitStrc * pUnit, uint32_t nGa
         return nullptr;
       }
 
-      __frame0.nXoffset = pObjectsTxt->Xoffset;
-      __frame0.nYoffset = pObjectsTxt->Yoffset;
-      bIsSelected += __frame0.nXoffset;
-      nDrawY += __frame0.nYoffset;
+      nXoffset = pObjectsTxt->Xoffset;
+      nYoffset = pObjectsTxt->Yoffset;
+      bIsSelected += nXoffset;
+      nDrawY += nYoffset;
     }
 
     nPaletteOrFlag = GfxUtil::GFXUTIL_IsValidUnitType(pUnit);
@@ -2731,7 +2633,7 @@ D2GfxInfoUnkStrc * __fastcall DRAW_WORLD_Unit_1(D2UnitStrc * pUnit, uint32_t nGa
 
     byDirection = D2Common::Units::GetDirection(pUnit);
     nScreenY = (uint32_t)((uint32_t)(uint8_t)byDirection << 24 | (uint32_t)((uint32_t)nScreenY & 0xffffffu));
-    D2Common::Units::GetShiftedFrameMetrics(pUnit, &__frame0.nFrame, &__frame0.nFrameMetricY);
+    D2Common::Units::GetShiftedFrameMetrics(pUnit, &nFrame, &nFrameMetricY);
     nPaletteOrFlag = pUnit->uSideData.pClientSide.nPaletteIndex;
     pPalShift2 = 0;
     if (nPaletteOrFlag) {
@@ -2757,7 +2659,7 @@ D2GfxInfoUnkStrc * __fastcall DRAW_WORLD_Unit_1(D2UnitStrc * pUnit, uint32_t nGa
     }
 
     memset(&sGfxData, 0, 0x48);
-    nCallResult = DC6_AssignParams(&sGfxData, pUnit, nullptr, nDirOrGoldTier, __frame0.nFrame, &__frame0.nFrameOut, '\x01', (D2UnitStrc*)-1);
+    nCallResult = DC6_AssignParams(&sGfxData, pUnit, nullptr, nDirOrGoldTier, nFrame, &nFrameOut, '\x01', (D2UnitStrc*)-1);
     if (!nCallResult) {
       return nullptr;
     }
@@ -2768,10 +2670,10 @@ D2GfxInfoUnkStrc * __fastcall DRAW_WORLD_Unit_1(D2UnitStrc * pUnit, uint32_t nGa
     }
 
     nCallResult = UI::Path::DRAW_GetWorldOffsetX();
-    nCallResult = __frame0.nXoffset + bIsSelected - nCallResult;
+    nCallResult = nXoffset + bIsSelected - nCallResult;
     nErrLine = UI::Path::DRAW_GetWorldOffsetY();
-    nDrawY = nDrawY + __frame0.nYoffset - nErrLine;
-    if (__frame0.bPerspective) {
+    nDrawY = nDrawY + nYoffset - nErrLine;
+    if (bPerspective) {
       nGfxTimerOrBorder = UI::Path::DRAW_GetTypeOfBorder();
       if (nGfxTimerOrBorder == 1) {
         nPaletteOrFlag = -((int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2);

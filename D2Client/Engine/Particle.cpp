@@ -224,20 +224,14 @@ void __fastcall PARTICLE_ClearLifetimeFlag(D2UnitStrc * pUnit) {
 }
 
 void __stdcall PARTICLE_UpdatePosition(D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &nSpriteOffsetY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nSpriteOffsetY;
-      int32_t nSpriteOffsetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int* pX;
     int* pY;
     eD2UnitType eUnitType;
     int nOffsetX1;
     uint8_t bySpriteLayer;
     int nOffsetX0;
+    int32_t nSpriteOffsetY;
+    int32_t nSpriteOffsetX;
     int32_t nErrorLine;
     int nOffsetY0;
     D2ParticleStrc* pParticle;
@@ -287,8 +281,8 @@ void __stdcall PARTICLE_UpdatePosition(D2UnitStrc * pUnit) {
           goto project_to_screen;
         }
 
-        __frame0.nSpriteOffsetX = 0;
-        __frame0.nSpriteOffsetY = 0;
+        nSpriteOffsetX = 0;
+        nSpriteOffsetY = 0;
         bySpriteLayer = '\b';
         if (!pUnit) {
           eUnitType = UNIT_COUNT;
@@ -312,11 +306,11 @@ void __stdcall PARTICLE_UpdatePosition(D2UnitStrc * pUnit) {
           bySpriteLayer = '\x0e';
         }
 
-        Gfx::GFX_GetUnitSpriteOffset(pOwner, bySpriteLayer, &__frame0.nSpriteOffsetX, &__frame0.nSpriteOffsetY);
-        pParticle->nX = __frame0.nSpriteOffsetX;
-        pParticle->nScreenOffsetZ = __frame0.nSpriteOffsetY;
+        Gfx::GFX_GetUnitSpriteOffset(pOwner, bySpriteLayer, &nSpriteOffsetX, &nSpriteOffsetY);
+        pParticle->nX = nSpriteOffsetX;
+        pParticle->nScreenOffsetZ = nSpriteOffsetY;
         if (pUnit && pUnit->eUnitType == UNIT_MISSILE) {
-          pParticle->nScreenOffsetZ = __frame0.nSpriteOffsetY + 10;
+          pParticle->nScreenOffsetZ = nSpriteOffsetY + 10;
         }
 
         nErrorLine = PARTICLE_GetX(pOwner);

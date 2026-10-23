@@ -1149,21 +1149,14 @@ DWORD __fastcall PLAYER_CountPlayersWithFilter2(::SGAMEDATA * pGame, int * pnFil
 
 // Returns the weapon unit the player should use when casting the current skill, respecting dual-wield and weapon-switch rules. For non-dual-wield classes returns the equipped primary weapon. For dual-wield capable classes dispatches on SkillsTxt.weapsel: 2=off-hand preference with main-hand fallback if no valid off-hand, 3=switch-state dependent (reads nSeqFrame weapon-switch bit), 4=no weapon (returns null), default/1=primary then off-hand fallback. Returns the equipped default if the resolved weapon is broken or disabled.
 D2UnitStrc * __fastcall PLAYER_GetActiveWeaponForSkill(D2UnitStrc * pUnit) {
-    // Frame slots -20..-4 are ONE object: &nWeaponSwitch is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nWeaponSwitch;
-      BOOL bIsDualWieldActive;
-      D2UnitStrc* pWeaponSwitch;
-      D2UnitStrc* pEquippedWeapon;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2UnitStrc* pWeaponPrimary;
     D2UnitStrc* pWeaponResult;
     uint32_t bIsNotBroken;
     uint32_t dwSkillFlags;
     bool bIsWeaponSwitch;
+    int32_t nWeaponSwitch;
+    BOOL bIsDualWieldActive;
+    D2UnitStrc* pEquippedWeapon;
     if (!pUnit) {
       return nullptr;
     }
@@ -1173,21 +1166,21 @@ D2UnitStrc * __fastcall PLAYER_GetActiveWeaponForSkill(D2UnitStrc * pUnit) {
       return nullptr;
     }
 
-    __frame0.pWeaponSwitch = pUnit;
-    D2Common::INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &__frame0.pEquippedWeapon, &__frame0.nWeaponSwitch, &__frame0.bIsDualWieldActive);
+    D2UnitStrc* pWeaponSwitch = pUnit;
+    D2Common::INVENTORY::Inventory::INVENTORY_GetEquippedWeaponInfo(pInventory, &pEquippedWeapon, &nWeaponSwitch, &bIsDualWieldActive);
     BOOL bCanDualWield = D2Common::Units::CanDualWield(pUnit);
     if (!bCanDualWield) {
-      return __frame0.pEquippedWeapon;
+      return pEquippedWeapon;
     }
 
     D2SkillStrc* pSkill = D2Common::Units::GetCurrentSkill(pUnit);
     if (!pSkill) {
-      return __frame0.pEquippedWeapon;
+      return pEquippedWeapon;
     }
 
     D2SkillsTxt* pSkillsTxt = D2Common::Skills::GetSkillsTxt(pSkill);
     if (!pSkillsTxt) {
-      return __frame0.pEquippedWeapon;
+      return pEquippedWeapon;
     }
 
     switch (pSkillsTxt->weapsel) {
@@ -1201,7 +1194,7 @@ D2UnitStrc * __fastcall PLAYER_GetActiveWeaponForSkill(D2UnitStrc * pUnit) {
 
       break;
       case '\x03':
-        dwSkillFlags = (int)__frame0.pWeaponSwitch->nSeqFrame >> 8 & 0x80000001;
+        dwSkillFlags = (int)pWeaponSwitch->nSeqFrame >> 8 & 0x80000001;
       bIsWeaponSwitch = !dwSkillFlags;
       if ((int)dwSkillFlags < 0) {
         bIsWeaponSwitch = (dwSkillFlags - 1 | -2) == -1;
@@ -1216,7 +1209,7 @@ D2UnitStrc * __fastcall PLAYER_GetActiveWeaponForSkill(D2UnitStrc * pUnit) {
       pWeaponResult = D2Common::INVENTORY::Inventory::INVENTORY_FindWornItemByType(pInventory, bIsNotBroken);
       break;
       case '\x04':
-        __frame0.pEquippedWeapon = 0;
+        pEquippedWeapon = 0;
       pWeaponResult = 0;
       break;
       default:
@@ -1235,12 +1228,12 @@ D2UnitStrc * __fastcall PLAYER_GetActiveWeaponForSkill(D2UnitStrc * pUnit) {
 
     bIsNotBroken = D2Common::ITEMS::Items::ITEMS_IsA(pWeaponResult, ITEMTYPE_Weapon);
     if (!bIsNotBroken) {
-      return __frame0.pEquippedWeapon;
+      return pEquippedWeapon;
     }
 
     bCanDualWield = D2Common::ITEMS::Items::ITEM_CheckIfItemIsNotBrokenAndNotDisabled(pWeaponResult);
     if (!bCanDualWield) {
-      return __frame0.pEquippedWeapon;
+      return pEquippedWeapon;
     }
 
     return pWeaponResult;

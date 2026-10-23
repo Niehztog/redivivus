@@ -1026,15 +1026,15 @@ void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t nOpcode
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -4632..-4620 are ONE object: &pArchiveHandle is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -4625..-4620 are ONE object: &byVersionByte is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
+    #pragma pack(push, 1)
     struct __frame1_t {
-      D2ArchiveStrc* pArchiveHandle;
-      uint8_t __pad4[3];
       uint8_t byVersionByte;
       D2MPQFileStrc* archiveFileCtx;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 12, "frame group __frame1_t must reproduce the Ghidra frame layout");
+    #pragma pack(pop)
+    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 5, "frame group __frame1_t must reproduce the Ghidra frame layout");
     __frame1_t __frame1;
     // Frame -4620..-520 is ONE object: a call writes 4100 literal bytes starting at &dwSigVerifyResult.
     // Separate locals let the compiler reorder them, and the write would run off the frame.
@@ -1067,6 +1067,7 @@ void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t nOpcode
     uint32_t uVar1;
     uint8_t* _Str1;
     FILETIME FStack_1224;
+    D2ArchiveStrc* pArchiveHandle;
     char szAdMessage[252];
     uint8_t byScanChar;
     char cStrChar;
@@ -1187,20 +1188,20 @@ void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t nOpcode
           }
 
           case_0x80000006:
-          __frame1.pArchiveHandle = 0;
+          pArchiveHandle = 0;
           __frame1.archiveFileCtx = 0;
           __frame3.cTempDllPath = '\0';
           memset(__frame3.szTempDllPathTail, 0, 0x103);
           Debug::DEBUG_UnusedDebugFunction("Processing ExtraWork file");
-          bOpened = Storm::Source::SFile::SFileOpenArchive(szDestPath, nullptr, 0, &__frame1.pArchiveHandle);
+          bOpened = Storm::Source::SFile::SFileOpenArchive(szDestPath, nullptr, 0, &pArchiveHandle);
           if (!bOpened) {
             Fog::Debug::GuardStack();
             return;
           }
 
-          Storm::Source::SFile::SFileAuthenticateArchive(__frame1.pArchiveHandle, &__frame0.dwAuthResult);
+          Storm::Source::SFile::SFileAuthenticateArchive(pArchiveHandle, &__frame0.dwAuthResult);
           if (!__frame0.dwAuthResult || 4 < __frame0.dwAuthResult) {
-            bCopyDllOk = NET_CopyDllFromArchive(__frame1.pArchiveHandle, szDestPath, &__frame3.cTempDllPath);
+            bCopyDllOk = NET_CopyDllFromArchive(pArchiveHandle, szDestPath, &__frame3.cTempDllPath);
             if (!(uint32_t)((uint32_t)((uint32_t)bCopyExtended & 0xffffffu) << 8 | (uint32_t)(uint8_t)bCopyDllOk)) {
               Debug::DEBUG_UnusedDebugFunction("<ERROR: Failed to extract ExtraWork DLL!>");
             } else {
@@ -1256,8 +1257,8 @@ void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t nOpcode
           } else {
             Debug::DEBUG_UnusedDebugFunction("<ERROR: Failed ExtraWork archive authentication!>");
           }
-          if (__frame1.pArchiveHandle) {
-            Storm::Source::SFile::SFileCloseArchive(__frame1.pArchiveHandle);
+          if (pArchiveHandle) {
+            Storm::Source::SFile::SFileCloseArchive(pArchiveHandle);
           }
 
           /* DWORD dwMilliseconds for Sleep */ Sleep(0x32);

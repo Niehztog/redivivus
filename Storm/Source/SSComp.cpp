@@ -434,30 +434,23 @@ void SCOMP_PkwareBufferWrite(void * pSrc, uint32_t * pnReqSize, PKWARE_STREAM * 
 // @sourcefile .\SOURCE\SCOMP.CPP
 // @blizzard PkwareCompress (SCOMP.CPP)
 void __fastcall SCOMP_PkwareCompress(void * pOutBuf, uint32_t * pdwOutLength, void * pInBuf, uint32_t nInLen, int * pnMode, uint32_t dwUnused) {
-    // Frame slots -12..-4 are ONE object: &nCompType is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nCompType;
-      uint32_t nDictSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     PKWARE_STREAM Stream;
+    uint32_t nDictSize;
     TCmpStruct* pWorkBuf = (TCmpStruct*)SMem::SMemAlloc(0x8dd8, ".\\SOURCE\\SCOMP.CPP", 0x440, 0);
     Stream.nOutLen = *pdwOutLength;
     Stream.nOutPos = 0;
-    __frame0.nCompType = (uint32_t)(*pnMode == 2);
+    uint32_t nCompType = (uint32_t)(*pnMode == 2);
     Stream.nInPos = 0;
     Stream.pInBuf = pInBuf;
     Stream.nInLen = nInLen;
     if (nInLen < 0xc00) {
-      __frame0.nDictSize = (nInLen < 0x600 ? -1024 : 0) + 0x800;
+      nDictSize = (nInLen < 0x600 ? -1024 : 0) + 0x800;
     } else {
-      __frame0.nDictSize = 0x1000;
+      nDictSize = 0x1000;
     }
 
     Stream.pOutBuf = pOutBuf;
-    PKWARE_implode((pfnPkwareRead)SCOMP_PkwareBufferRead, (pfnPkwareWrite)SCOMP_PkwareBufferWrite, pWorkBuf, &Stream, &__frame0.nCompType, &__frame0.nDictSize);
+    PKWARE_implode((pfnPkwareRead)SCOMP_PkwareBufferRead, (pfnPkwareWrite)SCOMP_PkwareBufferWrite, pWorkBuf, &Stream, &nCompType, &nDictSize);
     SMem::SMemFree(pWorkBuf, ".\\SOURCE\\SCOMP.CPP", 0x467, 0);
     *pdwOutLength = Stream.nOutPos;
     *pnMode = 0;
@@ -822,15 +815,13 @@ uint32_t __stdcall SCompCompress(uint32_t * pDst, uint32_t * pnDstLen, uint32_t 
 // @basis behaviour-confirmed and the exact inverse of SCompCompress. (dst, pdstsize, src, srcsize, flags). Reads the leading method byte that SCompCompress wrote, rejects unsupported bits (byte & 0x34), then walks the same codec dispatch table BACKWARDS - opposite direction to the compressor - ping-ponging between the destination and a scratch buffer. srcsize == dstsize short-circuits to a plain memcpy, which is the uncompressed-sector case.
 // @seealso SCompCompress 0041e570
 BOOL __stdcall SCompDecompress(uint32_t * pDst, uint32_t * pnDstSize, uint32_t * pSrc, uint32_t nSrcSizeIn, uint32_t dwFlags) {
-    // Frame slots -20..-4 are ONE object: &bTempBufShared is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -12..-4 are ONE object: &nSavedSize is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
-      int32_t bTempBufShared;
-      uint32_t dwMethodFlags;
       uint32_t nSavedSize;
       uint32_t nDestSize;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     uint32_t* pStageBuf;
     uint32_t dwFlagsTmp;
@@ -838,6 +829,8 @@ BOOL __stdcall SCompDecompress(uint32_t * pDst, uint32_t * pnDstSize, uint32_t *
     pfnSCompCodec* ppMethodEntry;
     uint32_t* pSrcCur;
     uint32_t* puVar2;
+    int32_t bTempBufShared;
+    uint32_t dwMethodFlags;
     __frame0.nDestSize = *pnDstSize;
     if (!(!nSrcSizeIn ? 0 : (pDst ? (__frame0.nDestSize < nSrcSizeIn) - 1 : 0) & -(uint32_t)(pSrc != 0))) {
       SErr::SErrSetLastError(0x57);
@@ -851,7 +844,7 @@ BOOL __stdcall SCompDecompress(uint32_t * pDst, uint32_t * pnDstSize, uint32_t *
     } else {
       uint8_t bVar1;
       bVar1 = (uint8_t)*pSrc;
-      __frame0.dwMethodFlags = (uint32_t)bVar1;
+      dwMethodFlags = (uint32_t)bVar1;
       pSrcCur = (uint32_t*)((int)pSrc + 1);
       nSrcSize = nSrcSizeIn - 1;
       nSrcSizeIn = (uint32_t)((bVar1 & 8) != 0);
@@ -868,7 +861,7 @@ BOOL __stdcall SCompDecompress(uint32_t * pDst, uint32_t * pnDstSize, uint32_t *
         nSrcSizeIn++;
       }
 
-      pSrc = (uint32_t*)(__frame0.dwMethodFlags & -204);
+      pSrc = (uint32_t*)(dwMethodFlags & -204);
       if (bVar1 & 0x34) {
         return 0;
       }
@@ -888,9 +881,9 @@ BOOL __stdcall SCompDecompress(uint32_t * pDst, uint32_t * pnDstSize, uint32_t *
                          0x08,0x02,0x01,0x80,0x40).
                          Any instrumentation that reads pSrc/nSrcSizeIn after 0041e7a4 reports the
                          reused value, not
-                         the caller's argument. */ __frame0.bTempBufShared = (int32_t)pSrc;
+                         the caller's argument. */ bTempBufShared = (int32_t)pSrc;
       if (1 < nSrcSizeIn || pSrcCur < (uint32_t*)((int)pDst + nSrcSize) && pDst < (uint32_t*)((int)pSrcCur + nSrcSize) && nSrcSizeIn) {
-        pSrc = SCOMP_AcquireTempBuffer(__frame0.nDestSize, &__frame0.bTempBufShared);
+        pSrc = SCOMP_AcquireTempBuffer(__frame0.nDestSize, &bTempBufShared);
       }
 
       /* Codec table walk (verified): ESI starts at 0x6cfee8 =
@@ -904,7 +897,7 @@ BOOL __stdcall SCompDecompress(uint32_t * pDst, uint32_t * pnDstSize, uint32_t *
                          0x40->0041e3a0. The decompiler's "ppMethodEntry += -2 while 0x6cfec7 <
                          ppMethodEntry" is
                          correct (pfnSCompCodec** stride 2 == 8 bytes). */ ppMethodEntry = &paSCompDecompressCodecTable[4].pfnCodec;
-      dwFlagsTmp = __frame0.dwMethodFlags;
+      dwFlagsTmp = dwMethodFlags;
       do {
         pStageBuf = pSrcCur;
         if ((uint32_t)ppMethodEntry[-1] & dwFlagsTmp) {
@@ -921,7 +914,7 @@ BOOL __stdcall SCompDecompress(uint32_t * pDst, uint32_t * pnDstSize, uint32_t *
 
           __frame0.nSavedSize = __frame0.nDestSize;
           (**ppMethodEntry)(pStageBuf, &__frame0.nSavedSize, pSrcCur, nSrcSize, dwFlags);
-          dwFlagsTmp = __frame0.dwMethodFlags;
+          dwFlagsTmp = dwMethodFlags;
           nSrcSize = __frame0.nSavedSize;
         }
 
@@ -934,7 +927,7 @@ BOOL __stdcall SCompDecompress(uint32_t * pDst, uint32_t * pnDstSize, uint32_t *
       }
 
       *pnDstSize = nSrcSize;
-      SCOMP_ReleaseTempBuffer(__frame0.bTempBufShared, pSrc);
+      SCOMP_ReleaseTempBuffer(bTempBufShared, pSrc);
     }
 
     return 1;

@@ -364,21 +364,13 @@ void __stdcall CUBE_ParseInputItem(char * pszField, D2CubeInputStrc * pInput) {
 // CUBE_ParseOutputItem
 // Parses cubeserver output token into D2CubeOutputStrc (portals/useitem/usetype/item code, qty, pre/suf, quality, flags: eth/sock/mod/uns/rem/reg/exc/eli/rep/rch).
 void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * pszField) {
-    // Frame slots -16..-4 are ONE object: &pszPadded is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      char* pszPadded;
-      char* pszItemCodeField;
-      char* szPaddedCode;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2CubeOutputStrc* pDVar1;
     int32_t nItemTypeClassId;
     int32_t nLinkIndex;
     long int nAtol;
     char* pcVar2;
     bool bTokenMatch;
+    char* pszPadded;
     D2CubeOutputStrc* pOutputCopy;
     pOutputCopy = pOutput;
     if (*pszField == '\"') {
@@ -398,7 +390,8 @@ void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * pszField)
       cCur = *pszCursor;
     }
 
-    __frame0.pszItemCodeField = pszField;
+    char* pszItemCodeField;
+    pszItemCodeField = pszField;
     size_t nSpanLen;
     nSpanLen = strcspn(pszField, ",");
     pszCursor = pszField + nSpanLen;
@@ -409,7 +402,8 @@ void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * pszField)
       pszCursor++;
     }
 
-    __frame0.szPaddedCode = pszCursor;
+    char* szPaddedCode;
+    szPaddedCode = pszCursor;
     int nTokenCmpLen;
     nTokenCmpLen = __stricmp(pszField, "Cow Portal");
     if (!nTokenCmpLen) {
@@ -424,46 +418,46 @@ void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * pszField)
         if (!nTokenCmpLen) {
           pOutputCopy->nType = 3;
         } else {
-          bTokenMatch = !strcmp(__frame0.pszItemCodeField, "usetype");
-          pszCursor = __frame0.szPaddedCode;
+          bTokenMatch = !strcmp(pszItemCodeField, "usetype");
+          pszCursor = szPaddedCode;
           if (bTokenMatch) {
             pOutputCopy->nType = 0xff;
           } else {
-            bTokenMatch = !strcmp(__frame0.pszItemCodeField, "useitem");
+            bTokenMatch = !strcmp(pszItemCodeField, "useitem");
             if (bTokenMatch) {
               pOutputCopy->nType = 0xfe;
             } else {
-              pszCursor = __frame0.pszItemCodeField;
+              pszCursor = pszItemCodeField;
               pszCursor = pszCursor + strlen(pszCursor) + 1;
-              if ((uint32_t)((int)pszCursor - (int)(__frame0.pszItemCodeField + 1)) < 5) {
-                CUBE_PadItemCodeString(__frame0.pszItemCodeField, (char*)&__frame0.pszPadded);
-                pItemsTxt = DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine((uint32_t)__frame0.pszPadded, (int*)&__frame0.pszPadded);
+              if ((uint32_t)((int)pszCursor - (int)(pszItemCodeField + 1)) < 5) {
+                CUBE_PadItemCodeString(pszItemCodeField, (char*)&pszPadded);
+                pItemsTxt = DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine((uint32_t)pszPadded, (int*)&pszPadded);
                 if (pItemsTxt) {
                   pOutputCopy->nType = 0xfc;
-                  pOutputCopy->nItemClassId = (uint16_t)(uintptr_t)__frame0.pszPadded;
-                  pszCursor = __frame0.szPaddedCode;
+                  pOutputCopy->nItemClassId = (uint16_t)(uintptr_t)pszPadded;
+                  pszCursor = szPaddedCode;
                   goto parse_modifiers;
                 }
               }
 
-              pszCursor = __frame0.pszItemCodeField;
+              pszCursor = pszItemCodeField;
               pszCursor = pszCursor + strlen(pszCursor) + 1;
-              if ((uint32_t)((int)pszCursor - (int)(__frame0.pszItemCodeField + 1)) < 5) {
-                CUBE_PadItemCodeString(__frame0.pszItemCodeField, (char*)&__frame0.pszPadded);
-                nItemTypeClassId = Fog::Src::Excel::GetClassIdFromName(sgtDataTable.pTxtItemTypesLink, (uint32_t)__frame0.pszPadded, 0);
+              if ((uint32_t)((int)pszCursor - (int)(pszItemCodeField + 1)) < 5) {
+                CUBE_PadItemCodeString(pszItemCodeField, (char*)&pszPadded);
+                nItemTypeClassId = Fog::Src::Excel::GetClassIdFromName(sgtDataTable.pTxtItemTypesLink, (uint32_t)pszPadded, 0);
                 if (-1 < nItemTypeClassId) {
                   pOutputCopy->nType = 0xfd;
                   pOutputCopy->nItemClassId = (uint16_t)nItemTypeClassId;
-                  pszCursor = __frame0.szPaddedCode;
+                  pszCursor = szPaddedCode;
                   goto parse_modifiers;
                 }
               }
-              if (!sgtDataTable.pTxtUniqueItemsLink || (nLinkIndex = Fog::Src::Excel::GetLinkNodeIndex(sgtDataTable.pTxtUniqueItemsLink, __frame0.pszItemCodeField, 0) , nLinkIndex < 0)) {
+              if (!sgtDataTable.pTxtUniqueItemsLink || (nLinkIndex = Fog::Src::Excel::GetLinkNodeIndex(sgtDataTable.pTxtUniqueItemsLink, pszItemCodeField, 0) , nLinkIndex < 0)) {
                 if (!sgtDataTable.pTxtSetItemsLink) {
                   return;
                 }
 
-                nLinkIndex = Fog::Src::Excel::GetLinkNodeIndex(sgtDataTable.pTxtSetItemsLink, __frame0.pszItemCodeField, 0);
+                nLinkIndex = Fog::Src::Excel::GetLinkNodeIndex(sgtDataTable.pTxtSetItemsLink, pszItemCodeField, 0);
                 if (-1 >= nLinkIndex) {
                   return;
                 }
@@ -478,14 +472,14 @@ void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * pszField)
                 return;
               }
 
-              DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(sgtDataTable.pTxtUniqueItems[nLinkIndex].dwItemCode, (int*)&__frame0.pszPadded);
+              DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(sgtDataTable.pTxtUniqueItems[nLinkIndex].dwItemCode, (int*)&pszPadded);
               pOutputCopy->wFlagsAndUpgrade |= 8;
               pOutputCopy->nType = 0xfc;
               pOutputCopy->nQuality = 7;
               pOutputCopy->nUniqueItemId = (short int)nLinkIndex + 1;
-              pOutputCopy->nItemClassId = (uint16_t)(uintptr_t)__frame0.pszPadded;
+              pOutputCopy->nItemClassId = (uint16_t)(uintptr_t)pszPadded;
               pOutputCopy->nILvl = (uint8_t)sgtDataTable.pTxtUniqueItems[nLinkIndex].lvl;
-              pszCursor = __frame0.szPaddedCode;
+              pszCursor = szPaddedCode;
             }
           }
         }
@@ -494,69 +488,69 @@ void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * pszField)
 
     parse_modifiers:
     if (pszCursor) {
-      __frame0.pszPadded = (char*)pOutputCopy->wSuffixId;
-      __frame0.pszItemCodeField = (char*)pOutputCopy->wPrefixId;
+      pszPadded = (char*)pOutputCopy->wSuffixId;
+      pszItemCodeField = (char*)pOutputCopy->wPrefixId;
       do {
-        pszCursor = __frame0.szPaddedCode;
-        nSpanLen = strcspn(__frame0.szPaddedCode, "=,");
+        pszCursor = szPaddedCode;
+        nSpanLen = strcspn(szPaddedCode, "=,");
         pDVar1 = pOutput;
         pcVar2 = pszCursor + nSpanLen;
         if (*pcVar2 == '\0') {
-          __frame0.szPaddedCode = 0;
+          szPaddedCode = 0;
         } else {
           *pcVar2 = '\0';
-          __frame0.szPaddedCode = pcVar2 + 1;
+          szPaddedCode = pcVar2 + 1;
         }
 
-        pcVar2 = __frame0.szPaddedCode;
+        pcVar2 = szPaddedCode;
         if (!pszCursor) {
           return;
         }
 
         bTokenMatch = !strcmp(pszCursor, "qty");
         if (bTokenMatch) {
-          nSpanLen = strcspn(__frame0.szPaddedCode, ",");
+          nSpanLen = strcspn(szPaddedCode, ",");
           pszCursor = pcVar2 + nSpanLen;
           if (*pszCursor == '\0') {
-            __frame0.szPaddedCode = 0;
+            szPaddedCode = 0;
             nAtol = atol(pcVar2);
             pOutput->nQuantity = (uint8_t)nAtol;
           } else {
             *pszCursor = '\0';
-            __frame0.szPaddedCode = pszCursor + 1;
+            szPaddedCode = pszCursor + 1;
             nAtol = atol(pcVar2);
             pOutput->nQuantity = (uint8_t)nAtol;
           }
         } else {
           bTokenMatch = !strcmp(pszCursor, "pre");
           if (bTokenMatch) {
-            nSpanLen = strcspn(__frame0.szPaddedCode, ",");
+            nSpanLen = strcspn(szPaddedCode, ",");
             pszCursor = pcVar2 + nSpanLen;
             if (*pszCursor == '\0') {
-              __frame0.szPaddedCode = 0;
+              szPaddedCode = 0;
             } else {
               *pszCursor = '\0';
-              __frame0.szPaddedCode = pszCursor + 1;
+              szPaddedCode = pszCursor + 1;
             }
 
             nAtol = atol(pcVar2);
-            *(short int*)__frame0.pszItemCodeField = (short int)nAtol;
-            __frame0.pszItemCodeField += 2;
+            *(short int*)pszItemCodeField = (short int)nAtol;
+            pszItemCodeField += 2;
           } else {
             bTokenMatch = !strcmp(pszCursor, "suf");
             if (bTokenMatch) {
-              nSpanLen = strcspn(__frame0.szPaddedCode, ",");
+              nSpanLen = strcspn(szPaddedCode, ",");
               pszCursor = pcVar2 + nSpanLen;
               if (*pszCursor == '\0') {
-                __frame0.szPaddedCode = 0;
+                szPaddedCode = 0;
               } else {
                 *pszCursor = '\0';
-                __frame0.szPaddedCode = pszCursor + 1;
+                szPaddedCode = pszCursor + 1;
               }
 
               nAtol = atol(pcVar2);
-              *(short int*)__frame0.pszPadded = (short int)nAtol;
-              __frame0.pszPadded += 2;
+              *(short int*)pszPadded = (short int)nAtol;
+              pszPadded += 2;
             } else {
               bTokenMatch = !strcmp(pszCursor, "low");
               if (bTokenMatch) {
@@ -601,7 +595,7 @@ void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * pszField)
                                   bTokenMatch = !strcmp(pszCursor, "sock");
                                   if (bTokenMatch) {
                                     pOutput->wFlagsAndUpgrade |= 2;
-                                    nLinkIndex = CUBE_TokenizeAndParseInt(",", &__frame0.szPaddedCode);
+                                    nLinkIndex = CUBE_TokenizeAndParseInt(",", &szPaddedCode);
                                     pDVar1->nQuantity = (uint8_t)nLinkIndex;
                                   } else {
                                     bTokenMatch = !strcmp(pszCursor, "mod");
@@ -660,7 +654,7 @@ void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * pszField)
             }
           }
         }
-      } while (__frame0.szPaddedCode);
+      } while (szPaddedCode);
     }
 }
 
@@ -712,19 +706,12 @@ void __fastcall DATATBLS_LinkerItemStatCost(char * pszStatName, int32_t * pnStat
 
 // Loads and parses CubMain.txt (or cubeserver.txt/bin) into the pTxtCubeMain table. Allocates D2CubeMainTxt array, parses each line with 50+ fields including enabled, ladder, difficulty, class, op/param/value (conditions), nNumInputs, wVersion, 7 input descriptors (item code, quality, quantity, sockets, ethereal, etc.), and 3 output descriptors (type, level, quality, affixes, mods). Handles both text and binary formats. Stores result in pTxtCubeMain global.
 void __fastcall CUBE_LoadCubeMainTable(D2PoolManagerStrc * pMemory) {
-    // Frame slots -272..-4 are ONE object: &pFileData is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      void* pFileData;
-      char szFilePath[260];
-      uint32_t nStackCookie;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 268, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bFileExists;
     bool bFileExists;
     D2BinFieldInputStrc cubemain[104];
-    __frame0.nStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    void* pFileData;
+    char szFilePath[260];
+    uint32_t nStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     cubemain[0].szName = "enabled";
     cubemain[0].eType = FIELDTYPE_CHAR;
     cubemain[0].nSize = 0;
@@ -1245,11 +1232,11 @@ void __fastcall CUBE_LoadCubeMainTable(D2PoolManagerStrc * pMemory) {
     cubemain[0x66].eType = FIELDTYPE_SHORT;
     cubemain[0x66].nOffset = 0x144;
     cubemain[0x67].szName = "end";
-    wsprintfA(__frame0.szFilePath, "%s\\%s", "DATA\\GLOBAL\\EXCEL", "cubeserver.bin");
-    _bFileExists = DATATBLS::DataTbls::CheckIfFileExists(pMemory, __frame0.szFilePath, (D2MPQFileStrc**)&__frame0.pFileData, 1);
+    wsprintfA(szFilePath, "%s\\%s", "DATA\\GLOBAL\\EXCEL", "cubeserver.bin");
+    _bFileExists = DATATBLS::DataTbls::CheckIfFileExists(pMemory, szFilePath, (D2MPQFileStrc**)&pFileData, 1);
     if (!_bFileExists) {
-      /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(__frame0.szFilePath, "%s\\%s", "DATA\\GLOBAL\\EXCEL", "cubeserver.txt");
-      _bFileExists = DATATBLS::DataTbls::CheckIfFileExists(pMemory, __frame0.szFilePath, (D2MPQFileStrc**)&__frame0.pFileData, 1);
+      /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szFilePath, "%s\\%s", "DATA\\GLOBAL\\EXCEL", "cubeserver.txt");
+      _bFileExists = DATATBLS::DataTbls::CheckIfFileExists(pMemory, szFilePath, (D2MPQFileStrc**)&pFileData, 1);
       if (!_bFileExists) {
         pTxtCubeMain = (D2CubeMainTxt*)DATATBLS::DataTbls::CompileTxt(pMemory, "cubemain", cubemain, &nTxtCubeMainSize, 0x148);
         Fog::Debug::GuardStack();

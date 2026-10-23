@@ -400,17 +400,6 @@ BOOL CoordIsInRoom(D2RoomStrc * pRoom, int32_t nX, int32_t nSize, int32_t nY) {
 
 // Collision/proximity scan (apparently unreferenced): finds the first unit adjacent to pUnit that satisfies a caller-supplied predicate. Bails unless pUnit's X-size is 1..3. Gets pUnit's room and dynamic-path X/Y, enumerates the adjacent-room list (DRLGROOM_GetAdjacentRoomsList), and for each candidate player/monster/missile (skipping dead/special anim modes) computes a size-pair-indexed range test (switch on candidateSizeX + unitSizeX*3 - 4) between the two units' positions. On a position match it invokes pfCallback (a __stdcall code pointer, dwCallbackParam appears unused in the call) and returns the candidate unit if the callback returns nonzero. Returns NULL if none match.
 D2UnitStrc * __stdcall _unused(D2UnitStrc * pUnit, pfnUnitProximityTest pfnCallback, void * pCallbackParam) {
-    // Frame slots -24..-4 are ONE object: &nAdjacentRoomCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nAdjacentRoomCount;
-      D2RoomStrc** ppAdjacentRooms;
-      int nAdjRoomIdx;
-      int32_t nPosY;
-      int32_t nPosX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bCandidateInRoom;
     bool bCandidateInRoom;
     int32_t nCandidateSizeX;
@@ -420,6 +409,8 @@ D2UnitStrc * __stdcall _unused(D2UnitStrc * pUnit, pfnUnitProximityTest pfnCallb
     int32_t nCallbackReturn;
     int nCallbackResult;
     bool bSignedLessOrEqual;
+    int32_t nAdjacentRoomCount;
+    D2RoomStrc** ppAdjacentRooms;
     eD2UnitType eUnitType;
     D2UnitStrc* pCandidate;
     int32_t nUnitSizeX;
@@ -434,19 +425,22 @@ D2UnitStrc * __stdcall _unused(D2UnitStrc * pUnit, pfnUnitProximityTest pfnCallb
       return nullptr;
     }
 
-    __frame0.nPosX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-    __frame0.nPosY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pUnitRoom, &__frame0.ppAdjacentRooms, &__frame0.nAdjacentRoomCount);
-    __frame0.nAdjRoomIdx = 0;
-    if (0 >= __frame0.nAdjacentRoomCount) {
+    int32_t nPosX;
+    nPosX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
+    int32_t nPosY;
+    nPosY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
+    DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pUnitRoom, &ppAdjacentRooms, &nAdjacentRoomCount);
+    int nAdjRoomIdx;
+    nAdjRoomIdx = 0;
+    if (0 >= nAdjacentRoomCount) {
       return nullptr;
     }
 
     do {
-      iVar1 = __frame0.nAdjRoomIdx;
-      _bCandidateInRoom = CoordIsInRoom(__frame0.ppAdjacentRooms[__frame0.nAdjRoomIdx], __frame0.nPosX, 2, __frame0.nPosY);
+      iVar1 = nAdjRoomIdx;
+      _bCandidateInRoom = CoordIsInRoom(ppAdjacentRooms[nAdjRoomIdx], nPosX, 2, nPosY);
       if (_bCandidateInRoom) {
-        for (pCandidate = __frame0.ppAdjacentRooms[iVar1]->pUnitList; pCandidate; pCandidate = pCandidate->pRoomNext) {
+        for (pCandidate = ppAdjacentRooms[iVar1]->pUnitList; pCandidate; pCandidate = pCandidate->pRoomNext) {
           if (!false) {
             switch (pCandidate->eUnitType) {
               case UNIT_PLAYER:
@@ -490,19 +484,19 @@ D2UnitStrc * __stdcall _unused(D2UnitStrc * pUnit, pfnUnitProximityTest pfnCallb
 
               switch (nCandidateSizeX + nUnitSizeX * 3 - 4) {
                 case 0:
-                  if (__frame0.nPosX != nRoomIdx || __frame0.nPosY != nCandidatePosY) {
+                  if (nPosX != nRoomIdx || nPosY != nCandidatePosY) {
                     break;
                   }
                 goto try_candidate;
                 case 1:
 
                 case 3:
-                  iVar1 = __frame0.nPosX - nRoomIdx;
+                  iVar1 = nPosX - nRoomIdx;
                 if (iVar1 < 0) {
                   iVar1 = -iVar1;
                 }
 
-                nCallbackResult = __frame0.nPosY - nCandidatePosY;
+                nCallbackResult = nPosY - nCandidatePosY;
                 if (nCallbackResult < 0) {
                   nCallbackResult = -nCallbackResult;
                 }
@@ -513,20 +507,20 @@ D2UnitStrc * __stdcall _unused(D2UnitStrc * pUnit, pfnUnitProximityTest pfnCallb
                 case 2:
 
                 case 6:
-                  if (nRoomIdx - 1 <= __frame0.nPosX && __frame0.nPosX <= nRoomIdx + 1 && nCandidatePosY - 1 <= __frame0.nPosY) {
+                  if (nRoomIdx - 1 <= nPosX && nPosX <= nRoomIdx + 1 && nCandidatePosY - 1 <= nPosY) {
                     iVar1 = nCandidatePosY + 1;
                     test_y_upper_bound:
-                    bSignedLessOrEqual = __frame0.nPosY <= iVar1;
+                    bSignedLessOrEqual = nPosY <= iVar1;
                     goto test_in_range;
                   }
                 break;
                 case 4:
-                  iVar1 = __frame0.nPosX - nRoomIdx;
+                  iVar1 = nPosX - nRoomIdx;
                 if (iVar1 < 0) {
                   iVar1 = -iVar1;
                 }
 
-                nCallbackResult = __frame0.nPosY - nCandidatePosY;
+                nCallbackResult = nPosY - nCandidatePosY;
                 if (nCallbackResult < 0) {
                   nCallbackResult = -nCallbackResult;
                 }
@@ -544,12 +538,12 @@ D2UnitStrc * __stdcall _unused(D2UnitStrc * pUnit, pfnUnitProximityTest pfnCallb
                 case 5:
 
                 case 7:
-                  iVar1 = __frame0.nPosX - nRoomIdx;
+                  iVar1 = nPosX - nRoomIdx;
                 if (iVar1 < 0) {
                   iVar1 = -iVar1;
                 }
 
-                nCallbackResult = __frame0.nPosY - nCandidatePosY;
+                nCallbackResult = nPosY - nCandidatePosY;
                 if (nCallbackResult < 0) {
                   nCallbackResult = -nCallbackResult;
                 }
@@ -563,7 +557,7 @@ D2UnitStrc * __stdcall _unused(D2UnitStrc * pUnit, pfnUnitProximityTest pfnCallb
 
                 break;
                 case 8:
-                  if (nRoomIdx - 2 <= __frame0.nPosX && __frame0.nPosX <= nRoomIdx + 2 && nCandidatePosY - 2 <= __frame0.nPosY) {
+                  if (nRoomIdx - 2 <= nPosX && nPosX <= nRoomIdx + 2 && nCandidatePosY - 2 <= nPosY) {
                     iVar1 = nCandidatePosY + 2;
                     goto test_y_upper_bound;
                   }
@@ -575,22 +569,14 @@ D2UnitStrc * __stdcall _unused(D2UnitStrc * pUnit, pfnUnitProximityTest pfnCallb
         }
       }
 
-      __frame0.nAdjRoomIdx++;
-    } while (__frame0.nAdjRoomIdx < __frame0.nAdjacentRoomCount);
+      nAdjRoomIdx++;
+    } while (nAdjRoomIdx < nAdjacentRoomCount);
 
     return nullptr;
 }
 
 // Scans units near (nX,nY) within a footprint (nWidth 1..3) and invokes a per-unit callback, returning the first unit for which it returns nonzero. Gets the adjacent-room list for pRoom, and for each room whose bounds contain the point iterates its unit list (offset 0x1d). Skips dead/dying players and dead/kicking monsters; only players, monsters and missiles are considered. Computes each candidate's coords (dynamic or static path by unit type), clamps its size to 1..3, and uses a (size,width)-indexed distance test (exact tile, manhattan radius, or bounding box) to decide overlap. On overlap calls pSrvDoFuncData(pUnit, pGame); first nonzero result returns that unit. Returns NULL if none. Used server-side for missile/collision hit detection over an area.
 D2UnitStrc * __stdcall CallCollisionFunction(D2RoomStrc * pRoom, int32_t nX, int32_t nY, fpMissileSrvDoFuncData pfnFilter, void * pContext, int32_t nWidth) {
-    // Frame slots -12..-4 are ONE object: &nAdjacentRoomCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nAdjacentRoomCount;
-      int nAdjRoomIdx;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bCandidateInRoom;
     bool bCandidateInRoom;
     int32_t nUnitSizeX;
@@ -599,6 +585,7 @@ D2UnitStrc * __stdcall CallCollisionFunction(D2RoomStrc * pRoom, int32_t nX, int
     int iVar1;
     int iVar2;
     bool bSignedLessOrEqual;
+    int32_t nAdjacentRoomCount;
     eD2UnitType eUnitType;
     D2UnitStrc* pUnit;
     if (!pRoom || 2 < nWidth - 1U) {
@@ -606,15 +593,16 @@ D2UnitStrc * __stdcall CallCollisionFunction(D2RoomStrc * pRoom, int32_t nX, int
     }
 
     nWidth = nWidth * 3 - 3;
-    DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, (D2RoomStrc***)&pRoom, &__frame0.nAdjacentRoomCount);
-    __frame0.nAdjRoomIdx = 0;
-    if (0 >= __frame0.nAdjacentRoomCount) {
+    DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, (D2RoomStrc***)&pRoom, &nAdjacentRoomCount);
+    int nAdjRoomIdx;
+    nAdjRoomIdx = 0;
+    if (0 >= nAdjacentRoomCount) {
       return nullptr;
     }
 
     do {
-      iVar1 = __frame0.nAdjRoomIdx;
-      _bCandidateInRoom = CoordIsInRoom((D2RoomStrc*)pRoom->nLastDeadGUIDs[__frame0.nAdjRoomIdx - 0xe], nX, 2, nY);
+      iVar1 = nAdjRoomIdx;
+      _bCandidateInRoom = CoordIsInRoom((D2RoomStrc*)pRoom->nLastDeadGUIDs[nAdjRoomIdx - 0xe], nX, 2, nY);
       if (_bCandidateInRoom) {
         pUnit = *(D2UnitStrc**)(pRoom->nLastDeadGUIDs[iVar1 - 0xe] + 0x74);
         for (; pUnit; pUnit = pUnit->pRoomNext) {
@@ -743,12 +731,12 @@ D2UnitStrc * __stdcall CallCollisionFunction(D2RoomStrc * pRoom, int32_t nX, int
             }
           }
 
-          iVar1 = __frame0.nAdjRoomIdx;
+          iVar1 = nAdjRoomIdx;
         }
       }
 
-      __frame0.nAdjRoomIdx = iVar1 + 1;
-    } while (__frame0.nAdjRoomIdx < __frame0.nAdjacentRoomCount);
+      nAdjRoomIdx = iVar1 + 1;
+    } while (nAdjRoomIdx < nAdjacentRoomCount);
 
     return nullptr;
 }
@@ -870,17 +858,11 @@ void __stdcall AddCollisionFlagToCoords(int32_t nY, int32_t nX, D2RoomCollisionG
 
 // Stamps collision flags from a tile library array (pTileData, nTilesSize tiles) into pCollisionMap for tiles that fall inside the room bounds. Derives eCollisionFlags from per-tile nFlags bits (COLLIDE_ALTERNATE_FLOOR / BLOCK_PLAYER / WALL). bReplace selects between AddCollision and SetCollision (overwrite vs. OR). Called during room collision grid build.
 void __stdcall TileLibrary_SetupCollision(D2DrlgTileDataStrc * pTileData, int32_t nTilesSize, D2RoomCollisionGridStrc * pCollisionMap, D2RoomCollisionGridStrc * pCollisionMapCurrent, BOOL bReplace) {
-    // Frame slots -12..-4 are ONE object: &nWorldY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nWorldY;
-      int nWorldX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eCollisionFlags eCollisionFlag;
     int nY;
     int nX;
+    int nWorldY;
+    int nWorldX;
     uint32_t nTileFlags;
     if (0 >= nTilesSize) {
       return;
@@ -890,13 +872,13 @@ void __stdcall TileLibrary_SetupCollision(D2DrlgTileDataStrc * pTileData, int32_
     int nCounter = nTilesSize;
     do {
       BOOL bIsInsideRoom;
-      __frame0.nWorldX = (int)pTileLibraryEntry[-4] + pCollisionMapCurrent->sCoords.sTileRect.left;
-      __frame0.nWorldY = pCollisionMapCurrent->sCoords.sTileRect.top + (int)pTileLibraryEntry[-3];
-      Drlg::Transform::CoordsRoomToWorld(&__frame0.nWorldX, &__frame0.nWorldY);
-      bIsInsideRoom = DUNGEON::Dungeon::AreSubtileCoordinatesInsideRoom((D2DrlgCoordsStrc*)pCollisionMap, __frame0.nWorldX, __frame0.nWorldY);
+      nWorldX = (int)pTileLibraryEntry[-4] + pCollisionMapCurrent->sCoords.sTileRect.left;
+      nWorldY = pCollisionMapCurrent->sCoords.sTileRect.top + (int)pTileLibraryEntry[-3];
+      Drlg::Transform::CoordsRoomToWorld(&nWorldX, &nWorldY);
+      bIsInsideRoom = DUNGEON::Dungeon::AreSubtileCoordinatesInsideRoom((D2DrlgCoordsStrc*)pCollisionMap, nWorldX, nWorldY);
       if (bIsInsideRoom) {
-        nY = __frame0.nWorldX - pCollisionMap->sCoords.dwXStart;
-        nX = __frame0.nWorldY - pCollisionMap->sCoords.dwYStart;
+        nY = nWorldX - pCollisionMap->sCoords.dwXStart;
+        nX = nWorldY - pCollisionMap->sCoords.dwYStart;
         if (!bReplace) {
           TileLibrary_AddCollision(*pTileLibraryEntry, nX, nY, pCollisionMap);
         } else {
@@ -925,14 +907,6 @@ void __stdcall TileLibrary_SetupCollision(D2DrlgTileDataStrc * pTileData, int32_
 }
 
 void __fastcall TileLibrary_UpdateCollision(D2RoomStrc * pRoom, D2DrlgTileDataStrc * pTileData, D2TileLibraryEntryStrc * pTileLibraryEntry) {
-    // Frame slots -12..-4 are ONE object: &nWorldY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nWorldY;
-      int32_t nWorldX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     if (!pRoom) {
       return;
     }
@@ -942,10 +916,10 @@ void __fastcall TileLibrary_UpdateCollision(D2RoomStrc * pRoom, D2DrlgTileDataSt
       return;
     }
 
-    __frame0.nWorldX = pCollision->sCoords.sTileRect.left + pTileData->nPosX;
-    __frame0.nWorldY = pCollision->sCoords.sTileRect.top + pTileData->nPosY;
-    Drlg::Transform::CoordsRoomToWorld(&__frame0.nWorldX, &__frame0.nWorldY);
-    D2RoomStrc* pBetterRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, __frame0.nWorldX, __frame0.nWorldY);
+    int32_t nWorldX = pCollision->sCoords.sTileRect.left + pTileData->nPosX;
+    int32_t nWorldY = pCollision->sCoords.sTileRect.top + pTileData->nPosY;
+    Drlg::Transform::CoordsRoomToWorld(&nWorldX, &nWorldY);
+    D2RoomStrc* pBetterRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nWorldX, nWorldY);
     if (!pBetterRoom) {
       return;
     }
@@ -955,8 +929,8 @@ void __fastcall TileLibrary_UpdateCollision(D2RoomStrc * pRoom, D2DrlgTileDataSt
       return;
     }
 
-    uint32_t nY = __frame0.nWorldX - pCollision->sCoords.dwXStart;
-    uint32_t nX = __frame0.nWorldY - pCollision->sCoords.dwYStart;
+    uint32_t nY = nWorldX - pCollision->sCoords.dwXStart;
+    uint32_t nX = nWorldY - pCollision->sCoords.dwYStart;
     TileLibrary_RemoveCollision(pTileData->pTileLibraryEntry, nX, nY, pCollision);
     if (!pTileLibraryEntry) {
       return;
@@ -968,18 +942,12 @@ void __fastcall TileLibrary_UpdateCollision(D2RoomStrc * pRoom, D2DrlgTileDataSt
 // Allocates and populates the collision grid (D2RoomCollisionGridStrc) for pRoom from the server memory pool. Copies room coordinates into the grid header, zeroes the map, then calls TileLibrary_SetupCollision for floor, wall, and roof tile layers of each adjacent room. Side effect: sets the collision grid pointer in pRoom via DRLGROOM_SetCollisionGridInRoom.
 // @sourcefile .\COLLISN\Collisn.cpp
 void __fastcall AllocRoomCollisionGrid(D2DrlgActStrc * pMemPool, D2RoomStrc * pRoom) {
-    // Frame slots -16..-4 are ONE object: &nAdjacentRoomsCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nAdjacentRoomsCount;
-      D2RoomStrc** pRoomsNear;
-      int32_t nTilesSize;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2DrlgTileDataStrc* pTileData;
     int nRoomsNearIndex;
     D2DrlgRoomCoordsStrc sRoomCoords;
+    int nAdjacentRoomsCount;
+    D2RoomStrc** pRoomsNear;
+    int32_t nTilesSize;
     if (!pRoom) {
       return;
     }
@@ -1000,23 +968,23 @@ void __fastcall AllocRoomCollisionGrid(D2DrlgActStrc * pMemPool, D2RoomStrc * pR
     DUNGEON::Dungeon::DRLGROOM_SetCollisionGridInRoom(pRoomSaved, pCollisionMapNew);
     pCollisionMapNew->pMapStart = pCollisionMapNew->aMap;
     memset(pCollisionMapNew->aMap, 0, nRoomCoordsCount * 2);
-    DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoomAdj, &__frame0.pRoomsNear, &__frame0.nAdjacentRoomsCount);
+    DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoomAdj, &pRoomsNear, &nAdjacentRoomsCount);
     nRoomsNearIndex = 0;
-    if (0 >= __frame0.nAdjacentRoomsCount) {
+    if (0 >= nAdjacentRoomsCount) {
       return;
     }
 
     do {
       D2RoomCollisionGridStrc* pCollisionMapCurrent;
-      pCollisionMapCurrent = DUNGEON::Dungeon::DRLGROOM_GetCollisionGridFromRoom(__frame0.pRoomsNear[nRoomsNearIndex]);
-      pTileData = DUNGEON::Dungeon::DRLGROOM_GetFloorTilesFromRoom(__frame0.pRoomsNear[nRoomsNearIndex], &__frame0.nTilesSize);
-      TileLibrary_SetupCollision(pTileData, __frame0.nTilesSize, pCollisionMapNew, pCollisionMapCurrent, 0);
-      pTileData = DUNGEON::Dungeon::DRLGROOM_GetWallTilesFromRoom(__frame0.pRoomsNear[nRoomsNearIndex], &__frame0.nTilesSize);
-      TileLibrary_SetupCollision(pTileData, __frame0.nTilesSize, pCollisionMapNew, pCollisionMapCurrent, 0);
-      pTileData = DUNGEON::Dungeon::DRLGROOM_GetRoofTilesFromRoom(__frame0.pRoomsNear[nRoomsNearIndex], &__frame0.nTilesSize);
-      TileLibrary_SetupCollision(pTileData, __frame0.nTilesSize, pCollisionMapNew, pCollisionMapCurrent, 0);
+      pCollisionMapCurrent = DUNGEON::Dungeon::DRLGROOM_GetCollisionGridFromRoom(pRoomsNear[nRoomsNearIndex]);
+      pTileData = DUNGEON::Dungeon::DRLGROOM_GetFloorTilesFromRoom(pRoomsNear[nRoomsNearIndex], &nTilesSize);
+      TileLibrary_SetupCollision(pTileData, nTilesSize, pCollisionMapNew, pCollisionMapCurrent, 0);
+      pTileData = DUNGEON::Dungeon::DRLGROOM_GetWallTilesFromRoom(pRoomsNear[nRoomsNearIndex], &nTilesSize);
+      TileLibrary_SetupCollision(pTileData, nTilesSize, pCollisionMapNew, pCollisionMapCurrent, 0);
+      pTileData = DUNGEON::Dungeon::DRLGROOM_GetRoofTilesFromRoom(pRoomsNear[nRoomsNearIndex], &nTilesSize);
+      TileLibrary_SetupCollision(pTileData, nTilesSize, pCollisionMapNew, pCollisionMapCurrent, 0);
       nRoomsNearIndex++;
-    } while (nRoomsNearIndex < __frame0.nAdjacentRoomsCount);
+    } while (nRoomsNearIndex < nAdjacentRoomsCount);
 }
 
 // @sourcefile .\COLLISN\Collisn.cpp

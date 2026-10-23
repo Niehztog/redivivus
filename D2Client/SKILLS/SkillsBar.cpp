@@ -450,14 +450,6 @@ BOOL __stdcall SKILL_CanUseAtLocation(D2UnitStrc * pUnit, int32_t nX, int32_t nY
 // Skill client-state setup func for a teleport/leap-to-location skill: computes and commits the destination into the unit's current D2SkillStrc params. For the local player, aborts if uninterruptable or already casting this very skill. For non-monsters it reads the requested coords (GetCooordinates), checks SKILL_CanUseAtLocation and SKILL_ValidateTeleportDestination. For monsters it targets the confirmed target's mirrored position (2*target - self) or the requested coords. Snaps to a free cell, adds the unit's collision footprint at the destination, stores dest in SKILL param1/param2 (param3/param4 = target type/GUID for monsters), sets skill flags 0x1080 and rebuilds the active-skill stat list. Returns TRUE if a valid destination was set, else FALSE.
 // @sourcefile .\SKILLS\SkillsBar.cpp
 BOOL __fastcall Skills_CltStFunc_SetupLeapTeleportDest(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nDestY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int32_t nDestY;
-      int32_t nDestX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bUnitIsMonster;
     bool bValidDest;
     eD2Skills eCurrentSkillId;
@@ -468,6 +460,8 @@ BOOL __fastcall Skills_CltStFunc_SetupLeapTeleportDest(D2UnitStrc * pUnit, eD2Sk
     int32_t eCollisionFlag;
     POINT nFreeCoordTmp;
     bool bUnitIsMonster;
+    int32_t nDestY;
+    int32_t nDestX;
     BOOL bGotCoords;
     POINT* pFreeCoord;
     D2SkillStrc* pSkill;
@@ -502,11 +496,11 @@ BOOL __fastcall Skills_CltStFunc_SetupLeapTeleportDest(D2UnitStrc * pUnit, eD2Sk
 
     _bUnitIsMonster = (uint32_t)(eUnitType == UNIT_MONSTER);
     if (!_bUnitIsMonster) {
-      bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nDestX, &__frame0.nDestY);
+      bGotCoords = Skills::GetCooordinates(pUnit, &nDestX, &nDestY);
       if (bGotCoords) {
-        bGotCoords = SKILL_CanUseAtLocation(pUnit, __frame0.nDestX, __frame0.nDestY, eSkill);
+        bGotCoords = SKILL_CanUseAtLocation(pUnit, nDestX, nDestY, eSkill);
         if (bGotCoords) {
-          bGotCoords = SKILL_ValidateTeleportDestination(pUnit, nSkillLvl, &__frame0.nDestX, &__frame0.nDestY, eSkill);
+          bGotCoords = SKILL_ValidateTeleportDestination(pUnit, nSkillLvl, &nDestX, &nDestY, eSkill);
           if (bGotCoords) {
             goto commit_destination;
           }
@@ -515,41 +509,41 @@ BOOL __fastcall Skills_CltStFunc_SetupLeapTeleportDest(D2UnitStrc * pUnit, eD2Sk
     } else {
       pPlayerOrTarget = UNIT::CUnit::GetConfirmedTargetUnit(pUnit);
       if (!pPlayerOrTarget) {
-        bGotCoords = Skills::GetCooordinates(pUnit, &__frame0.nDestX, &__frame0.nDestY);
+        bGotCoords = Skills::GetCooordinates(pUnit, &nDestX, &nDestY);
         if (!bGotCoords) {
           return 0;
         }
 
         D2Common::Skills::SKILL_SetParam4(pSkill, -1);
       } else {
-        __frame0.nDestX = Units::GetXPosFromDynamicPathUnit(pPlayerOrTarget);
-        __frame0.nDestY = Units::GetYPosFromDynamicPathUnit(pPlayerOrTarget);
+        nDestX = Units::GetXPosFromDynamicPathUnit(pPlayerOrTarget);
+        nDestY = Units::GetYPosFromDynamicPathUnit(pPlayerOrTarget);
         nCalcTmp = Units::GetXPosFromDynamicPathUnit(pUnit);
-        __frame0.nDestX = __frame0.nDestX * 2 - nCalcTmp;
+        nDestX = nDestX * 2 - nCalcTmp;
         nCalcTmp = Units::GetYPosFromDynamicPathUnit(pUnit);
-        __frame0.nDestY = __frame0.nDestY * 2 - nCalcTmp;
+        nDestY = nDestY * 2 - nCalcTmp;
       }
 
       bGotCoords = 0;
       eCollisionFlag = 0x3c01;
-      nFreeCoordTmp.x = __frame0.nDestX;
-      nFreeCoordTmp.y = __frame0.nDestY;
+      nFreeCoordTmp.x = nDestX;
+      nFreeCoordTmp.y = nDestY;
       nCalcTmp = D2Common::Units::GetUnitSizeX(pUnit);
       pFreeCoord = &nFreeCoordTmp;
       pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
       pRoom = D2Common::Collision::GetFreeCoordinates_WithNeighboorRooms(pRoom, pFreeCoord, nCalcTmp, eCollisionFlag, bGotCoords);
       if (pRoom) {
-        __frame0.nDestX = nFreeCoordTmp.x;
-        __frame0.nDestY = nFreeCoordTmp.y;
+        nDestX = nFreeCoordTmp.x;
+        nDestY = nFreeCoordTmp.y;
         commit_destination:
-        nCalcTmp = __frame0.nDestY;
+        nCalcTmp = nDestY;
         pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-        pRoom = UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, __frame0.nDestX, nCalcTmp);
+        pRoom = UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nDestX, nCalcTmp);
         nCalcTmp = 0x80;
         nType = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-        D2Common::Collision::AddCollision_Type(pRoom, __frame0.nDestX, __frame0.nDestY, nType, nCalcTmp);
-        D2Common::Skills::SKILL_SetParam1(pSkill, __frame0.nDestX);
-        D2Common::Skills::SKILL_SetParam2(pSkill, __frame0.nDestY);
+        D2Common::Collision::AddCollision_Type(pRoom, nDestX, nDestY, nType, nCalcTmp);
+        D2Common::Skills::SKILL_SetParam1(pSkill, nDestX);
+        D2Common::Skills::SKILL_SetParam2(pSkill, nDestY);
         if (_bUnitIsMonster) {
           pPlayerOrTarget = UNIT::CUnit::GetConfirmedTargetUnit(pUnit);
           if (pPlayerOrTarget) {
@@ -987,14 +981,6 @@ BOOL __fastcall Skills_CltDoFunc_Bar_Leap_ArcParticle(D2DynamicPathStrc * pUnit,
 // Client-side state function for Barbarian Leap Attack teleport targeting. For the local player, checks that the unit is not in an uninterruptable state and the skill is not already flagged active. Calls SKILL_FindTeleportPosition to locate a valid destination near the confirmed target; on success, registers the collision tile, stores destination coords in skill params 1-2, stores target type/GUID in params 3-4, sets skill flags 0x1080, and creates the active skill stat list. If already in melee range, triggers the melee hit message instead. Plays sound 0x13 when no position is found.
 // @sourcefile .\SKILLS\SkillsBar.cpp
 BOOL __fastcall Skills_CltStFunc_FindTeleportPositionForTarget(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -12..-4 are ONE object: &nTeleportY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTeleportY;
-      uint32_t nTeleportX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bFoundPos;
     bool bFoundPos;
     eD2Skills eCurrentSkillId;
@@ -1025,9 +1011,9 @@ BOOL __fastcall Skills_CltStFunc_FindTeleportPositionForTarget(D2UnitStrc * pUni
     }
 
     pPlayerUnit_lcl = UNIT::CUnit::GetConfirmedTargetUnit(pUnit);
-    __frame0.nTeleportX = 0;
-    __frame0.nTeleportY = 0;
-    _bFoundPos = D2Common::Skills::SKILL_FindTeleportPosition(pUnit, pPlayerUnit_lcl, &__frame0.nTeleportX, &__frame0.nTeleportY);
+    uint32_t nTeleportX = 0;
+    uint32_t nTeleportY = 0;
+    _bFoundPos = D2Common::Skills::SKILL_FindTeleportPosition(pUnit, pPlayerUnit_lcl, &nTeleportX, &nTeleportY);
     if (!_bFoundPos) {
       if (pPlayerUnit_lcl) {
         bInMeleeRange = D2Common::Units::IsInMeleeRange(pUnit, pPlayerUnit_lcl, 0);
@@ -1043,9 +1029,9 @@ BOOL __fastcall Skills_CltStFunc_FindTeleportPositionForTarget(D2UnitStrc * pUni
       pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
       if (pRoom) {
         nUnitWidth = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-        D2Common::Collision::AddCollision_Type(pRoom, __frame0.nTeleportX, __frame0.nTeleportY, nUnitWidth, 0x80);
-        D2Common::Skills::SKILL_SetParam1(pSkill, __frame0.nTeleportX);
-        D2Common::Skills::SKILL_SetParam2(pSkill, __frame0.nTeleportY);
+        D2Common::Collision::AddCollision_Type(pRoom, nTeleportX, nTeleportY, nUnitWidth, 0x80);
+        D2Common::Skills::SKILL_SetParam1(pSkill, nTeleportX);
+        D2Common::Skills::SKILL_SetParam2(pSkill, nTeleportY);
         if (!pPlayerUnit_lcl) {
           D2Common::Skills::SKILL_SetParam3(pSkill, 6);
         } else {
@@ -1194,18 +1180,6 @@ void __fastcall SKILL_DrawUnitAtRotatedAngle(D2UnitStrc * pUnit, uint32_t nParam
 // Client start-func for a Leap-style skill (player or monster): computes and commits the leap destination via pathfinding. Validates the unit/skill/server path; for the local player rejects if the skill is already active (flag bit0) or the unit is in an uninterruptable state. If a confirmed target is in melee range it instead forwards a 0x16 unit message and returns. Otherwise it sets the server path's collision pattern (0xc01) and path type 7, runs PATH_CalculatePath, applies the class/monster walk velocity (CharStats WalkVelocity or MonStats Velocity), retakes the path's last point as the destination, adds a collision at that tile, sets the skill active (flag 1) with param1/param2 = dest X/Y, and creates the active-skill stat list. Returns TRUE if a destination was committed, 0 otherwise (restoring the collision pattern on failure).
 // @sourcefile .\SKILLS\SkillsBar.cpp
 BOOL __fastcall Skills_CltStFunc_CalcLeapDestViaPathfind(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    // Frame slots -24..-4 are ONE object: &pPathPoints is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2PathPointStrc* pPathPoints;
-      bool bIsPlayer;
-      uint8_t __pad5[3];
-      uint32_t nSrcY;
-      uint32_t nSrcX;
-      D2DynamicPathStrc* pServerPath;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bIsPlayer;
     bool _bPathFound;
     bool bPathFound;
@@ -1215,6 +1189,10 @@ BOOL __fastcall Skills_CltStFunc_CalcLeapDestViaPathfind(D2UnitStrc * pUnit, eD2
     D2MonStatsTxt* pMonStatsTxt;
     eD2CollisionShapeType nType;
     D2RoomStrc* pRoom;
+    D2PathPointStrc* pPathPoints;
+    bool bIsPlayer;
+    uint32_t nSrcY;
+    uint32_t nSrcX;
     char* szSkillsBarCpp;
     uint32_t nDestY;
     int32_t nLine;
@@ -1223,11 +1201,11 @@ BOOL __fastcall Skills_CltStFunc_CalcLeapDestViaPathfind(D2UnitStrc * pUnit, eD2
     }
 
     D2SkillStrc* pSkill = D2Common::Skills::SKILLS_GetSkillByEnum(eSkill, pUnit);
-    __frame0.pServerPath = (D2DynamicPathStrc*)pUnit->pPath.pStaticPath;
+    D2DynamicPathStrc* pServerPath = (D2DynamicPathStrc*)pUnit->pPath.pStaticPath;
     if (!pSkill) {
       return 0;
     }
-    if (!__frame0.pServerPath) {
+    if (!pServerPath) {
       return 0;
     }
 
@@ -1248,7 +1226,7 @@ BOOL __fastcall Skills_CltStFunc_CalcLeapDestViaPathfind(D2UnitStrc * pUnit, eD2
       }
     }
 
-    BOOL bInMeleeRange = Skills::GetCooordinates(pUnit, (int32_t*)&__frame0.nSrcX, (int32_t*)&__frame0.nSrcY);
+    BOOL bInMeleeRange = Skills::GetCooordinates(pUnit, (int32_t*)&nSrcX, (int32_t*)&nSrcY);
     if (!bInMeleeRange) {
       return 0;
     }
@@ -1265,45 +1243,45 @@ BOOL __fastcall Skills_CltStFunc_CalcLeapDestViaPathfind(D2UnitStrc * pUnit, eD2
     _bIsPlayer = (uint32_t)(pUnit->eUnitType == UNIT_PLAYER);
     bool bIsPlayerBool = _bIsPlayer != 0;
     int eCollisionFlag = (_bIsPlayer ? -128 : 0) + 0x100;
-    D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(__frame0.pServerPath, 0xc01);
-    D2Common::PATH::DynamicPath::PATH_SetPathType(__frame0.pServerPath, 7);
-    _bPathFound = D2Common::PATH::DynamicPath::PATH_CalculatePath(__frame0.pServerPath, pUnit, 0);
+    D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pServerPath, 0xc01);
+    D2Common::PATH::DynamicPath::PATH_SetPathType(pServerPath, 7);
+    _bPathFound = D2Common::PATH::DynamicPath::PATH_CalculatePath(pServerPath, pUnit, 0);
     if (_bPathFound) {
       if (!_bIsPlayer) {
         nLine = 0x49f;
         szSkillsBarCpp = ".\\SKILLS\\SkillsBar.cpp";
         pMonStatsTxt = DataTbls::MonsterTbls::TXT_MonStats_GetLine(pUnit->nClassId);
         nSkillFlags = (uint32_t)pMonStatsTxt->Velocity;
-        D2Common::PATH::DynamicPath::SetVelocities(__frame0.pServerPath, nSkillFlags << 8, szSkillsBarCpp, nLine);
+        D2Common::PATH::DynamicPath::SetVelocities(pServerPath, nSkillFlags << 8, szSkillsBarCpp, nLine);
       } else {
         pCharStatsTxt = DataTbls::INV_GetCharStatsTxtLine(pUnit->nClassId);
         if (pCharStatsTxt) {
           nSkillFlags = (uint32_t)(uint8_t)pCharStatsTxt->WalkVelocity;
           nLine = 0x499;
           szSkillsBarCpp = ".\\SKILLS\\SkillsBar.cpp";
-          D2Common::PATH::DynamicPath::SetVelocities(__frame0.pServerPath, nSkillFlags << 8, szSkillsBarCpp, nLine);
+          D2Common::PATH::DynamicPath::SetVelocities(pServerPath, nSkillFlags << 8, szSkillsBarCpp, nLine);
         }
       }
 
-      D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(__frame0.pServerPath, 0x401);
-      nLine = D2Common::PATH::DynamicPath::GetPathPoint(__frame0.pServerPath, &__frame0.pPathPoints);
+      D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pServerPath, 0x401);
+      nLine = D2Common::PATH::DynamicPath::GetPathPoint(pServerPath, &pPathPoints);
       if (nLine) {
-        __frame0.nSrcX = (uint32_t)(uint16_t)__frame0.pPathPoints[nLine - 1].nX;
-        __frame0.nSrcY = (uint32_t)(uint16_t)__frame0.pPathPoints[nLine - 1].nY;
+        nSrcX = (uint32_t)(uint16_t)pPathPoints[nLine - 1].nX;
+        nSrcY = (uint32_t)(uint16_t)pPathPoints[nLine - 1].nY;
         nType = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-        nSkillFlags = __frame0.nSrcX;
-        nDestY = __frame0.nSrcY;
+        nSkillFlags = nSrcX;
+        nDestY = nSrcY;
         pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
         D2Common::Collision::AddCollision_Type(pRoom, nSkillFlags, nDestY, nType, eCollisionFlag);
         D2Common::Skills::SKILL_SetFlags(pSkill, 1);
-        D2Common::Skills::SKILL_SetParam1(pSkill, __frame0.nSrcX);
-        D2Common::Skills::SKILL_SetParam2(pSkill, __frame0.nSrcY);
+        D2Common::Skills::SKILL_SetParam1(pSkill, nSrcX);
+        D2Common::Skills::SKILL_SetParam2(pSkill, nSrcY);
         Skills::SKILL_CreateActiveSkillStatList(pUnit);
         return 1;
       }
     }
 
-    D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(__frame0.pServerPath, (bIsPlayerBool ? -8184 : 0) + 0x3c01);
+    D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pServerPath, (bIsPlayerBool ? -8184 : 0) + 0x3c01);
     return 0;
 }
 

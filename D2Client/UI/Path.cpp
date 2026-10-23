@@ -97,53 +97,38 @@ int32_t __stdcall DRAW_GetWorldOffsetY() {
 }
 
 void __fastcall ConvertCoordToPerspectiveView(int * pX, int * pY) {
-    // Frame slots -12..-4 are ONE object: &nY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nY;
-      int nX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    __frame0.nX = *pX;
-    __frame0.nY = *pY;
+    int nX = *pX;
+    int nY = *pY;
     uint32_t bPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
     if (bPerspective) {
       int nDiv;
-      nDiv = (int)((uint64_t)((int64_t)__frame0.nY * -0x66666667) >> 0x20);
-      __frame0.nY += (nDiv >> 4) - (nDiv >> 0x1f);
-      __frame0.nX += (0x28 - ((int)((__frame0.nY >> 0x1f & 3U) + __frame0.nY) >> 2)) * (__frame0.nX - ScreenSizeX / 2) / (ScreenSizeX / 2);
+      nDiv = (int)((uint64_t)((int64_t)nY * -0x66666667) >> 0x20);
+      nY += (nDiv >> 4) - (nDiv >> 0x1f);
+      nX += (0x28 - ((int)((nY >> 0x1f & 3U) + nY) >> 2)) * (nX - ScreenSizeX / 2) / (ScreenSizeX / 2);
     }
 
-    __frame0.nY += MouseYOffset;
-    __frame0.nX += MouseXOffset - MouseYRelatedB;
-    D2Common::Drlg::Transform::DRLG_WorldToScreenShift5(&__frame0.nX, &__frame0.nY);
-    *pX = __frame0.nX;
-    *pY = __frame0.nY;
+    nY += MouseYOffset;
+    nX += MouseXOffset - MouseYRelatedB;
+    D2Common::Drlg::Transform::DRLG_WorldToScreenShift5(&nX, &nY);
+    *pX = nX;
+    *pY = nY;
 }
 
 void __fastcall DRAW_DrawRoomUnits(D2RoomStrc * pRoom) {
-    // Frame slots -16..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      D2RoomStrc* pRoomSaved;
-      uint32_t nRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nYStart;
     int32_t iVar4;
     int nYEnd;
     int nScreenX;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
     DWORD nColor_lcl;
     DWORD nLineAlpha;
     D2GfxInfoStrc* pGfxInfo;
     D2UnitStrc* pUnit;
-    __frame0.pRoomSaved = pRoom;
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
+    D2RoomStrc* pRoomSaved = pRoom;
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     uint32_t i = 0;
-    if (!__frame0.nRoomCount) {
+    if (!nRoomCount) {
       return;
     }
 
@@ -166,11 +151,11 @@ void __fastcall DRAW_DrawRoomUnits(D2RoomStrc * pRoom) {
           }
         }
 
-        pRoom = __frame0.pRoomSaved;
+        pRoom = pRoomSaved;
       }
 
       i++;
-    } while (i < __frame0.nRoomCount);
+    } while (i < nRoomCount);
 }
 
 void __fastcall DEBUG_DrawRoomBoundsRect(int32_t nX, int32_t nY, BYTE bColor) {
@@ -183,15 +168,9 @@ void __fastcall DEBUG_DrawRoomBoundsRect(int32_t nX, int32_t nY, BYTE bColor) {
 }
 
 void __stdcall DEBUG_DrawUnitShadowBounds(D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &nY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nY;
-      int32_t nX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     RECT rect;
+    int nY;
+    int32_t nX;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     D2LvlWarpTxt* pShadows = D2Common::DUNGEON::Dungeon::DUNGEON_GetLvlWarpTxtForWarpUnit(pRoom, pUnit);
     if (!pShadows) {
@@ -201,44 +180,44 @@ void __stdcall DEBUG_DrawUnitShadowBounds(D2UnitStrc * pUnit) {
     eD2UnitType eUnitType = pUnit->eUnitType;
     D2LvlWarpTxt* pShadowData = pShadows;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nX = pUnit->pPath.pStaticPath->nPosX;
+      nX = pUnit->pPath.pStaticPath->nPosX;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nX = 0;
+      nX = 0;
     } else {
-      __frame0.nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
     }
 
     eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nY = pUnit->pPath.pStaticPath->nPosY;
+      nY = pUnit->pPath.pStaticPath->nPosY;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nY = 0;
+      nY = 0;
     } else {
-      __frame0.nY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      nY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
     }
 
-    D2Common::Drlg::Transform::CoordsMapToScreen(&__frame0.nX, &__frame0.nY);
-    int nYStart = pShadows->SelectY - MouseYOffset + __frame0.nY;
-    int nXStart = pShadows->SelectX - MouseXOffset + __frame0.nX;
+    D2Common::Drlg::Transform::CoordsMapToScreen(&nX, &nY);
+    int nYStart = pShadows->SelectY - MouseYOffset + nY;
+    int nXStart = pShadows->SelectX - MouseXOffset + nX;
     int nBottomY = pShadowData->SelectDY + nYStart;
     int nXEnd = pShadows->SelectDX + nXStart;
     D2gfx::D2GFX::D2GFX_DrawLine(nXStart, nYStart, nXStart, nBottomY, 0xff, 0xff);
     D2gfx::D2GFX::D2GFX_DrawLine(nXStart, nYStart, nXEnd, nYStart, 0xff, 0xff);
     D2gfx::D2GFX::D2GFX_DrawLine(nXStart, nBottomY, nXEnd, nBottomY, 0xff, 0xff);
     D2gfx::D2GFX::D2GFX_DrawLine(nXEnd, nYStart, nXEnd, nBottomY, 0xff, 0xff);
-    __frame0.nX++;
-    rect.left = __frame0.nX - MouseXOffset - 0x10;
-    rect.right = __frame0.nX - MouseXOffset + 0x10;
-    rect.top = __frame0.nY - MouseYOffset;
+    nX++;
+    rect.left = nX - MouseXOffset - 0x10;
+    rect.right = nX - MouseXOffset + 0x10;
+    rect.top = nY - MouseYOffset;
     rect.bottom = rect.top + 0x10;
     D2gfx::D2GFX::D2GFX_DrawRect(&rect, 0xff);
     eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-      __frame0.nX = pUnit->pPath.pStaticPath->nPosX;
+      nX = pUnit->pPath.pStaticPath->nPosX;
     } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nX = 0;
+      nX = 0;
     } else {
-      __frame0.nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
     }
 
     eUnitType = pUnit->eUnitType;
@@ -250,35 +229,29 @@ void __stdcall DEBUG_DrawUnitShadowBounds(D2UnitStrc * pUnit) {
       nXEnd = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
     }
 
-    __frame0.nX += pShadowData->ExitWalkX;
-    __frame0.nY = pShadowData->ExitWalkY + nXEnd;
-    D2Common::Drlg::Transform::CoordsMapToScreen(&__frame0.nX, &__frame0.nY);
-    __frame0.nX++;
-    rect.left = __frame0.nX - MouseXOffset - 0x10;
-    rect.right = __frame0.nX - MouseXOffset + 0x10;
-    rect.top = __frame0.nY - MouseYOffset;
+    nX += pShadowData->ExitWalkX;
+    nY = pShadowData->ExitWalkY + nXEnd;
+    D2Common::Drlg::Transform::CoordsMapToScreen(&nX, &nY);
+    nX++;
+    rect.left = nX - MouseXOffset - 0x10;
+    rect.right = nX - MouseXOffset + 0x10;
+    rect.top = nY - MouseYOffset;
     rect.bottom = rect.top + 0x10;
     D2gfx::D2GFX::D2GFX_DrawRect(&rect, '-');
 }
 
 void __stdcall DEBUG_DrawWarpUnitBounds() {
-    // Frame slots -12..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
     D2UnitStrc* pUnit;
     D2RoomStrc* pRoom = UNIT::CUnit::GetCurrentRoom();
     if (!pRoom) {
       return;
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     uint32_t i = 0;
-    if (!__frame0.nRoomCount) {
+    if (!nRoomCount) {
       return;
     }
 
@@ -290,21 +263,15 @@ void __stdcall DEBUG_DrawWarpUnitBounds() {
       }
 
       i++;
-    } while (i < __frame0.nRoomCount);
+    } while (i < nRoomCount);
 }
 
 void __stdcall DRAW_UpdateMouseWorldOffsets() {
     // Static local variables (originally global data)
     static int gnMouseWorldXBorder;
 
-    // Frame slots -12..-4 are ONE object: &nShakeY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nShakeY;
-      int nShakeX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    int nShakeY;
+    int nShakeX;
     gnMouseWorldXBorder = -0xa0;
     if (gnBorderType == 2) {
       gnMouseWorldXBorder = ScreenSizeX / 2 - 0xa0;
@@ -317,27 +284,21 @@ void __stdcall DRAW_UpdateMouseWorldOffsets() {
     int32_t nTargetY = D2Common::Units::GetTargetY(pUnit);
     MouseXOffset = nTargetX - ScreenSizeX / 2;
     MouseYOffset = nTargetY - ScreenSizeY / 2 + 0x10;
-    BOOL bHasShake = GAME::View::SHAKE_GetShake(&__frame0.nShakeX, &__frame0.nShakeY);
+    BOOL bHasShake = GAME::View::SHAKE_GetShake(&nShakeX, &nShakeY);
     if (!bHasShake) {
       return;
     }
 
-    MouseXOffset += __frame0.nShakeX;
-    MouseYOffset += __frame0.nShakeY;
+    MouseXOffset += nShakeX;
+    MouseYOffset += nShakeY;
 }
 
 void __stdcall DRAW_DrawRoomCollisionGrid(D2RoomStrc * pRoom) {
-    // Frame slots -12..-4 are ONE object: &nScreenY is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nScreenY;
-      int nScreenX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t nGridIndex;
     D2DrlgRoomCoordsStrc roomCoords;
     RECT rect;
+    int nScreenY;
+    int nScreenX;
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &roomCoords);
     int nY = roomCoords.dwYStart + 2;
     if (nY >= roomCoords.dwYSize + 5 + roomCoords.dwYStart) {
@@ -352,17 +313,17 @@ void __stdcall DRAW_DrawRoomCollisionGrid(D2RoomStrc * pRoom) {
       nX = nXStart + 3;
       while (nX < nXEnd) {
         nGridIndex = D2Common::DUNGEON::Dungeon::GetGridIndex(pRoom, nX, nY);
-        __frame0.nScreenY = nY;
-        __frame0.nScreenX = nX;
-        D2Common::Drlg::Transform::CoordsMapToScreen(&__frame0.nScreenX, &__frame0.nScreenY);
-        rect.left = __frame0.nScreenX - MouseXOffset - 0x10;
-        rect.right = __frame0.nScreenX - MouseXOffset + 0x10;
-        rect.top = __frame0.nScreenY - MouseYOffset;
+        nScreenY = nY;
+        nScreenX = nX;
+        D2Common::Drlg::Transform::CoordsMapToScreen(&nScreenX, &nScreenY);
+        rect.left = nScreenX - MouseXOffset - 0x10;
+        rect.right = nScreenX - MouseXOffset + 0x10;
+        rect.top = nScreenY - MouseYOffset;
         rect.bottom = rect.top + 0x10;
         D2gfx::D2GFX::D2GFX_DrawRect(&rect, 'F');
-        __frame0.nScreenX += -7 - MouseXOffset;
-        __frame0.nScreenY -= MouseYOffset;
-        D2gfx::D2GFX::D2GFX_DrawString(__frame0.nScreenX, __frame0.nScreenY, "%d", nGridIndex);
+        nScreenX += -7 - MouseXOffset;
+        nScreenY -= MouseYOffset;
+        D2gfx::D2GFX::D2GFX_DrawString(nScreenX, nScreenY, "%d", nGridIndex);
         nX += 5;
         nXEnd = roomCoords.dwXSize + 5 + roomCoords.dwXStart;
         nXStart = roomCoords.dwXStart;
@@ -374,15 +335,6 @@ void __stdcall DRAW_DrawRoomCollisionGrid(D2RoomStrc * pRoom) {
 }
 
 void __stdcall DRAW_DrawRoomWallTiles(D2RoomStrc * pRoom) {
-    // Frame slots -16..-4 are ONE object: &nTileCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      uint32_t nTileCount;
-      int nScreenY;
-      int nScreenX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int32_t* pY;
     int32_t* pX;
     uint32_t nTileFlags;
@@ -392,54 +344,57 @@ void __stdcall DRAW_DrawRoomWallTiles(D2RoomStrc * pRoom) {
     D2DrlgRoomCoordsStrc roomCoords;
     RECT rect;
     int anYCoords[4];
+    uint32_t nTileCount;
+    int nScreenY;
+    int nScreenX;
     uint8_t byColor;
-    D2DrlgTileDataStrc* pWallTiles = D2Common::DUNGEON::Dungeon::DRLGROOM_GetWallTilesFromRoom(pRoom, (int*)&__frame0.nTileCount);
-    if (!pWallTiles && __frame0.nTileCount) {
+    D2DrlgTileDataStrc* pWallTiles = D2Common::DUNGEON::Dungeon::DRLGROOM_GetWallTilesFromRoom(pRoom, (int*)&nTileCount);
+    if (!pWallTiles && nTileCount) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2d5);
       exit(-1);
     }
 
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &roomCoords);
     uint32_t i = 0;
-    if (__frame0.nTileCount) {
+    if (nTileCount) {
       pTile = &pWallTiles->nPosY;
       do {
         if (pTile[1]) {
-          __frame0.nScreenX = (pTile[-1] + roomCoords.sTileRect.left) * 5 + 3;
-          __frame0.nScreenY = (*pTile + roomCoords.sTileRect.top) * 5 + 3;
-          D2Common::Drlg::Transform::CoordsMapToScreen(&__frame0.nScreenX, &__frame0.nScreenY);
+          nScreenX = (pTile[-1] + roomCoords.sTileRect.left) * 5 + 3;
+          nScreenY = (*pTile + roomCoords.sTileRect.top) * 5 + 3;
+          D2Common::Drlg::Transform::CoordsMapToScreen(&nScreenX, &nScreenY);
           if (pTile[4] != 0xf && (pTile[2] & 0x1c000U) == 0x4000) {
             nTileFlags = D2CMP::DUNGEON::Dungeon::TILEPROJECT_GetTileCount((int32_t)pTile[3]);
             if (!(nTileFlags & 4)) {
               if (!(pTile[2] & 0x800U)) {
                 byColor = 0xff;
-                nTmp = __frame0.nScreenX;
-                nScreenYArg = __frame0.nScreenY;
+                nTmp = nScreenX;
+                nScreenYArg = nScreenY;
               } else {
                 byColor = 'x';
-                nTmp = __frame0.nScreenX + 0x10;
-                nScreenYArg = __frame0.nScreenY + 8;
+                nTmp = nScreenX + 0x10;
+                nScreenYArg = nScreenY + 8;
               }
 
               DEBUG_DrawRoomBoundsRect(nTmp, nScreenYArg, byColor);
             } else {
-              rect.right = __frame0.nScreenX + 0x20 - MouseXOffset;
+              rect.right = nScreenX + 0x20 - MouseXOffset;
               rect.left = rect.right - 0x10;
               rect.right += 0x10;
-              rect.top = __frame0.nScreenY - MouseYOffset;
+              rect.top = nScreenY - MouseYOffset;
               rect.bottom = rect.top + 0x10;
               D2gfx::D2GFX::D2GFX_DrawRect(&rect, 'x');
             }
 
-            __frame0.nScreenY -= MouseYOffset;
-            __frame0.nScreenX += -7 - MouseXOffset;
-            D2gfx::D2GFX::D2GFX_DrawString(__frame0.nScreenX, __frame0.nScreenY, "%d", *(uint32_t*)(pTile[1] + 0x28));
+            nScreenY -= MouseYOffset;
+            nScreenX += -7 - MouseXOffset;
+            D2gfx::D2GFX::D2GFX_DrawString(nScreenX, nScreenY, "%d", *(uint32_t*)(pTile[1] + 0x28));
           }
         }
 
         i++;
         pTile += 0xc;
-      } while (i < __frame0.nTileCount);
+      } while (i < nTileCount);
     }
 
     D2RoomStrc* pCurrentRoom = UNIT::CUnit::GetCurrentRoom();
@@ -447,11 +402,11 @@ void __stdcall DRAW_DrawRoomWallTiles(D2RoomStrc * pRoom) {
       return;
     }
 
-    for (__frame0.nScreenY = (int)D2Common::DUNGEON::Dungeon::GetCoordList(pRoom); (D2RoomCoordListStrc*)__frame0.nScreenY; __frame0.nScreenY = *(int*)(__frame0.nScreenY + 0x2c)) {
-      rect.left = ((D2RoomCoordListStrc*)__frame0.nScreenY)->pBox.nPosX;
-      rect.right = ((D2RoomCoordListStrc*)__frame0.nScreenY)->pBox.nWidth;
-      anYCoords[0] = ((D2RoomCoordListStrc*)__frame0.nScreenY)->pBox.nPosY;
-      anYCoords[1] = ((D2RoomCoordListStrc*)__frame0.nScreenY)->pBox.nHeight;
+    for (nScreenY = (int)D2Common::DUNGEON::Dungeon::GetCoordList(pRoom); (D2RoomCoordListStrc*)nScreenY; nScreenY = *(int*)(nScreenY + 0x2c)) {
+      rect.left = ((D2RoomCoordListStrc*)nScreenY)->pBox.nPosX;
+      rect.right = ((D2RoomCoordListStrc*)nScreenY)->pBox.nWidth;
+      anYCoords[0] = ((D2RoomCoordListStrc*)nScreenY)->pBox.nPosY;
+      anYCoords[1] = ((D2RoomCoordListStrc*)nScreenY)->pBox.nHeight;
       nTmp = 0;
       rect.top = rect.left;
       rect.bottom = rect.right;

@@ -269,16 +269,6 @@ void __fastcall FreeClientList(::SGAMEDATA * pGame) {
 
 // Server-side handler invoked when a client's active room changes (pRoom = new room). If different from the client's current room, swaps room data/active-room-ex between the old and new levels, then diffs the adjacency lists: reveals and streams units for newly-adjacent rooms (CLIENT_RevealRoomAndSendUnits) and clears/hides map for rooms no longer adjacent (RoomClearForClientAndHideMap), re-resolving the client's player unit and issuing a movement/position packet update when the client's own room is cleared. Updates pClient->pRoom and OR-merges the new level's portal flag into the player's explored-portal flags. Custom calling convention: pClient in ESI, pRoom on stack.
 void __stdcall GAME_OnClientRoomChange(D2RoomStrc * pRoom, D2ClientStrc * pClient) {
-    // Frame slots -20..-4 are ONE object: &ppNewAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppNewAdjacentRooms;
-      D2RoomStrc** ppOldAdjacentRooms;
-      int nOldRoomCount;
-      int nNewRoomCountTmp;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     int nOldRoomIdx;
     if (!(pClient && pClient->pGame)) {
       return;
@@ -292,29 +282,33 @@ void __stdcall GAME_OnClientRoomChange(D2RoomStrc * pRoom, D2ClientStrc * pClien
 
     D2Common::DUNGEON::Dungeon::DRLGROOM_SwapRoomDataForRoomEx(pRoom_00, pRoom);
     D2Common::DUNGEON::Dungeon::DRLGROOM_SwapActiveRoomExBetweenLevels(pRoom_00, pRoom);
-    __frame0.ppNewAdjacentRooms = 0;
-    __frame0.nNewRoomCountTmp = 0;
+    D2RoomStrc** ppNewAdjacentRooms;
+    ppNewAdjacentRooms = 0;
+    int nNewRoomCountTmp;
+    nNewRoomCountTmp = 0;
     if (pRoom) {
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppNewAdjacentRooms, &__frame0.nNewRoomCountTmp);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppNewAdjacentRooms, &nNewRoomCountTmp);
     }
 
-    __frame0.ppOldAdjacentRooms = 0;
-    __frame0.nOldRoomCount = 0;
+    D2RoomStrc** ppOldAdjacentRooms;
+    ppOldAdjacentRooms = 0;
+    int nOldRoomCount;
+    nOldRoomCount = 0;
     if (pRoom_00) {
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom_00, &__frame0.ppOldAdjacentRooms, &__frame0.nOldRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom_00, &ppOldAdjacentRooms, &nOldRoomCount);
     }
 
     int nNewRoomIdx;
     nNewRoomIdx = 0;
     int nNewRoomCount;
-    nNewRoomCount = __frame0.nNewRoomCountTmp;
-    if (0 < __frame0.nNewRoomCountTmp) {
+    nNewRoomCount = nNewRoomCountTmp;
+    if (0 < nNewRoomCountTmp) {
       do {
         nOldRoomIdx = 0;
-        if (0 < __frame0.nOldRoomCount) {
+        if (0 < nOldRoomCount) {
           do {
-            if (__frame0.ppNewAdjacentRooms[nNewRoomIdx] == __frame0.ppOldAdjacentRooms[nOldRoomIdx]) {
-              if (nOldRoomIdx < __frame0.nOldRoomCount) {
+            if (ppNewAdjacentRooms[nNewRoomIdx] == ppOldAdjacentRooms[nOldRoomIdx]) {
+              if (nOldRoomIdx < nOldRoomCount) {
                 goto next_new_room;
               }
 
@@ -322,24 +316,24 @@ void __stdcall GAME_OnClientRoomChange(D2RoomStrc * pRoom, D2ClientStrc * pClien
             }
 
             nOldRoomIdx++;
-          } while (nOldRoomIdx < __frame0.nOldRoomCount);
+          } while (nOldRoomIdx < nOldRoomCount);
         }
 
-        CLIENT_RevealRoomAndSendUnits(pClient->pGame, __frame0.ppNewAdjacentRooms[nNewRoomIdx], pClient);
-        nNewRoomCount = __frame0.nNewRoomCountTmp;
+        CLIENT_RevealRoomAndSendUnits(pClient->pGame, ppNewAdjacentRooms[nNewRoomIdx], pClient);
+        nNewRoomCount = nNewRoomCountTmp;
         next_new_room:
         nNewRoomIdx++;
       } while (nNewRoomIdx < nNewRoomCount);
     }
 
     nNewRoomIdx = 0;
-    if (0 < __frame0.nOldRoomCount) {
+    if (0 < nOldRoomCount) {
       D2UnitStrc* pUnit;
       do {
         nOldRoomIdx = 0;
         if (0 < nNewRoomCount) {
           do {
-            if (__frame0.ppOldAdjacentRooms[nNewRoomIdx] == __frame0.ppNewAdjacentRooms[nOldRoomIdx]) {
+            if (ppOldAdjacentRooms[nNewRoomIdx] == ppNewAdjacentRooms[nOldRoomIdx]) {
               if (nOldRoomIdx < nNewRoomCount) {
                 goto next_old_room;
               }
@@ -351,9 +345,9 @@ void __stdcall GAME_OnClientRoomChange(D2RoomStrc * pRoom, D2ClientStrc * pClien
           } while (nOldRoomIdx < nNewRoomCount);
         }
 
-        RoomClearForClientAndHideMap(pClient->pGame, __frame0.ppOldAdjacentRooms[nNewRoomIdx], pClient);
-        nNewRoomCount = __frame0.nNewRoomCountTmp;
-        if (pClient->pRoom == __frame0.ppOldAdjacentRooms[nNewRoomIdx]) {
+        RoomClearForClientAndHideMap(pClient->pGame, ppOldAdjacentRooms[nNewRoomIdx], pClient);
+        nNewRoomCount = nNewRoomCountTmp;
+        if (pClient->pRoom == ppOldAdjacentRooms[nNewRoomIdx]) {
           if (!(pClient->fClientFlags & 1)) {
             if (!pClient->pPlayer) {
               pUnit = 0;
@@ -368,12 +362,12 @@ void __stdcall GAME_OnClientRoomChange(D2RoomStrc * pRoom, D2ClientStrc * pClien
           }
 
           PLAYER::PlayerModes::PacketUpdateForClient(pClient->pGame, pUnit, pClient, 0);
-          nNewRoomCount = __frame0.nNewRoomCountTmp;
+          nNewRoomCount = nNewRoomCountTmp;
         }
 
         next_old_room:
         nNewRoomIdx++;
-      } while (nNewRoomIdx < __frame0.nOldRoomCount);
+      } while (nNewRoomIdx < nOldRoomCount);
     }
 
     pClient->pRoom = pRoom;
@@ -560,47 +554,40 @@ void __fastcall GAME_CollectNearbyUnitPositions(D2ClientStrc * pClient, uint32_t
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -32..-4 are ONE object: &pnMaxDist is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      int32_t pnMaxDist;
-      int32_t nX;
-      int32_t nY;
-      uint32_t nMaxUnits;
-      uint32_t nAdjacentRoomCount;
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nRoomIdx;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 28, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
-    __frame1.nMaxUnits = nParam;
+    int32_t pnMaxDist;
+    int32_t nX;
+    int32_t nY;
+    uint32_t nAdjacentRoomCount;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomIdx;
+    uint32_t nMaxUnits = nParam;
     if (!pClient->pRoom) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x70b);
       exit(-1);
     } else {
       D2UnitStrc* pPlayerUnit_lcl;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &__frame1.ppAdjacentRooms, (int*)&__frame1.nAdjacentRoomCount);
-      if (__frame1.ppAdjacentRooms) {
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
+      if (ppAdjacentRooms) {
         pPlayerUnit_lcl = CLIENTS_GetControlUnit(pClient, 0);
         if (!pPlayerUnit_lcl) {
           return;
         }
 
-        __frame1.nX = D2Client::Units::GetXPosFromDynamicPathUnit(pPlayerUnit_lcl);
-        __frame1.nY = D2Client::Units::GetYPosFromDynamicPathUnit(pPlayerUnit_lcl);
-        __frame1.pnMaxDist = 0;
+        nX = D2Client::Units::GetXPosFromDynamicPathUnit(pPlayerUnit_lcl);
+        nY = D2Client::Units::GetYPosFromDynamicPathUnit(pPlayerUnit_lcl);
+        pnMaxDist = 0;
         memset(pClient->nPacketBuffer + 500, 0, 4 * sizeof(pClient->nPacketBuffer[0]));
         __frame0.nSortBufNext = 0;
         __frame0.nSortBufHead = 0;
-        __frame1.nRoomIdx = 0;
-        if (__frame1.nAdjacentRoomCount) {
+        nRoomIdx = 0;
+        if (nAdjacentRoomCount) {
           do {
-            for (pPlayerUnit_lcl = __frame1.ppAdjacentRooms[__frame1.nRoomIdx]->pUnitList; pPlayerUnit_lcl; pPlayerUnit_lcl = pPlayerUnit_lcl->pRoomNext) {
-              CLIENT_AddUnitToProximitySortedList(__frame1.nX, pPlayerUnit_lcl, __frame1.nY, &__frame1.pnMaxDist, pClient, __frame1.nMaxUnits, (uint32_t*)&__frame0.pSortList);
+            for (pPlayerUnit_lcl = ppAdjacentRooms[nRoomIdx]->pUnitList; pPlayerUnit_lcl; pPlayerUnit_lcl = pPlayerUnit_lcl->pRoomNext) {
+              CLIENT_AddUnitToProximitySortedList(nX, pPlayerUnit_lcl, nY, &pnMaxDist, pClient, nMaxUnits, (uint32_t*)&__frame0.pSortList);
             }
 
-            __frame1.nRoomIdx++;
-          } while (__frame1.nRoomIdx < __frame1.nAdjacentRoomCount);
+            nRoomIdx++;
+          } while (nRoomIdx < nAdjacentRoomCount);
         }
 
         CLIENT_PopulateVisibilityPacketBuffer((int**)&__frame0.pSortList, pClient);
@@ -794,14 +781,8 @@ void __fastcall CLIENT_SetUnk0x1AD(D2ClientStrc * pClient, uint8_t nValue) {
 
 // Sends an init-unit packet to pClient for a non-player unit that has just entered the client's visibility. Verifies pUnit is not the client's own player, resolves the unit's room, then checks whether that room appears in the client's adjacent-room list. If the unit's room is not adjacent the packet is skipped; if it is in the list but the check passes, SERVER_SendInitUnitPacket is called. Halts fatally on a null room or null adjacent-room entry.
 void __fastcall InitUnitForClient(D2ClientStrc * pClient, D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nAdjacentRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nAdjacentRoomCount;
     ::SGAMEDATA* pGame = pClient->pGame;
     D2UnitStrc* pPlayerUnit_lcl = CLIENTS_GetControlUnit(pClient, 0);
     if (pUnit == pPlayerUnit_lcl) {
@@ -817,26 +798,26 @@ void __fastcall InitUnitForClient(D2ClientStrc * pClient, D2UnitStrc * pUnit) {
       exit(-1);
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nAdjacentRoomCount);
-    if (__frame0.nAdjacentRoomCount) {
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
+    if (nAdjacentRoomCount) {
       uint32_t nRoomIdx = 0;
       while (true) {
-        if (!__frame0.ppAdjacentRooms[nRoomIdx]) {
+        if (!ppAdjacentRooms[nRoomIdx]) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x840);
           exit(-1);
         }
-        if (pUnitRoom == __frame0.ppAdjacentRooms[nRoomIdx]) {
+        if (pUnitRoom == ppAdjacentRooms[nRoomIdx]) {
           break;
         }
 
         nRoomIdx++;
-        if (__frame0.nAdjacentRoomCount <= nRoomIdx) {
+        if (nAdjacentRoomCount <= nRoomIdx) {
           UNIT::SUnitMsg::SERVER_SendInitUnitPacket(pGame, pUnit, pClient);
           return;
         }
       }
 
-      if (nRoomIdx < __frame0.nAdjacentRoomCount) {
+      if (nRoomIdx < nAdjacentRoomCount) {
         return;
       }
     }
@@ -846,15 +827,9 @@ void __fastcall InitUnitForClient(D2ClientStrc * pClient, D2UnitStrc * pUnit) {
 
 // Sends a remove-object packet to pClient for a unit that is leaving its visibility. Resolves the unit's current room, then scans the client's adjacent-room list; if the unit's room is still adjacent the packet is suppressed (unit still visible). If the room is not in the list, SendRemoveObject is called. Halts fatally if pClient is null, pClient->pRoom is null, or an adjacent-room slot is null.
 void __fastcall RemoveUnitForClient(D2ClientStrc * pClient, D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nAdjacentRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t nRoomIdx;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nAdjacentRoomCount;
     if (!pClient) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x853);
       exit(-1);
@@ -862,26 +837,26 @@ void __fastcall RemoveUnitForClient(D2ClientStrc * pClient, D2UnitStrc * pUnit) 
       D2RoomStrc* pUnitRoom;
       pUnitRoom = D2Common::Units::UNITS_GetRoom(pUnit);
       if (pClient->pRoom) {
-        D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nAdjacentRoomCount);
+        D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
         nRoomIdx = 0;
-        if (__frame0.nAdjacentRoomCount) {
+        if (nAdjacentRoomCount) {
           while (true) {
-            if (!__frame0.ppAdjacentRooms[nRoomIdx]) {
+            if (!ppAdjacentRooms[nRoomIdx]) {
               Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x85e);
               exit(-1);
             }
-            if (pUnitRoom == __frame0.ppAdjacentRooms[nRoomIdx]) {
+            if (pUnitRoom == ppAdjacentRooms[nRoomIdx]) {
               break;
             }
 
             nRoomIdx++;
-            if (__frame0.nAdjacentRoomCount <= nRoomIdx) {
+            if (nAdjacentRoomCount <= nRoomIdx) {
               UNIT::SUnitMsg::SendRemoveObject(pUnit, pClient);
               return;
             }
           }
 
-          if (nRoomIdx < __frame0.nAdjacentRoomCount) {
+          if (nRoomIdx < nAdjacentRoomCount) {
             return;
           }
         }
@@ -2492,14 +2467,8 @@ void __stdcall CLIENT_SendRoomUnitUpdates(D2RoomStrc * pRoom, D2ClientStrc * pCl
 }
 
 void __fastcall UnusedUpdateFunctionForUnits(D2RoomStrc * pRoom, D2ClientStrc * pClient) {
-    // Frame slots -12..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
     int32_t nErrorLine;
     D2UnitStrc* pUnit;
     if (!pRoom) {
@@ -2507,38 +2476,32 @@ void __fastcall UnusedUpdateFunctionForUnits(D2RoomStrc * pRoom, D2ClientStrc * 
       exit(-1);
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     uint32_t nRoomIdx = 0;
-    if (!__frame0.nRoomCount) {
+    if (!nRoomCount) {
       return;
     }
 
     do {
-      if (!__frame0.ppAdjacentRooms[nRoomIdx]) {
+      if (!ppAdjacentRooms[nRoomIdx]) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x62);
         exit(-1);
       }
 
-      for (pUnit = __frame0.ppAdjacentRooms[nRoomIdx]->pUnitList; pUnit; pUnit = pUnit->pRoomNext) {
+      for (pUnit = ppAdjacentRooms[nRoomIdx]->pUnitList; pUnit; pUnit = pUnit->pRoomNext) {
         UNIT::SUnit::UNITS_SendUnitUpdateToClient(pUnit, pClient);
       }
 
       nRoomIdx++;
-    } while (nRoomIdx < __frame0.nRoomCount);
+    } while (nRoomIdx < nRoomCount);
 }
 
 // Sends SCMD 0x0A (RemoveObject) packets to pClient for every entry in the DrlgDelete list of each adjacent room, skipping the client's own player unit. Iterates all adjacent rooms of pRoom, walks each room's pDrlgDelete linked list, and calls NET_D2GS_SERVER_Send_0x0A_RemoveObject for non-self entries. Halts fatally if pRoom is null or the player unit cannot be resolved.
 void __fastcall GAME_SendRemoveObjectsForAdjacentRooms(D2RoomStrc * pRoom, D2ClientStrc * pClient) {
-    // Frame slots -12..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2DrlgDeleteStrc* pDrlgDelete;
     uint32_t nRoomIdx;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
     eD2UnitType ePlayerUnitType;
     int nPlayerGUID;
     if (!pRoom) {
@@ -2546,25 +2509,25 @@ void __fastcall GAME_SendRemoveObjectsForAdjacentRooms(D2RoomStrc * pRoom, D2Cli
       exit(-1);
     } else {
       D2UnitStrc* pPlayerUnit_lcl;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
       pPlayerUnit_lcl = CLIENTS_GetControlUnit(pClient, 0);
       if (pPlayerUnit_lcl) {
         ePlayerUnitType = pPlayerUnit_lcl->eUnitType;
         nPlayerGUID = pPlayerUnit_lcl->nUnitGUID;
         nRoomIdx = 0;
-        if (!__frame0.nRoomCount) {
+        if (!nRoomCount) {
           return;
         }
 
         do {
-          for (pDrlgDelete = D2Common::DUNGEON::Dungeon::GetDrlgDeleteFromRoom(__frame0.ppAdjacentRooms[nRoomIdx]); pDrlgDelete; pDrlgDelete = pDrlgDelete->pNext) {
+          for (pDrlgDelete = D2Common::DUNGEON::Dungeon::GetDrlgDeleteFromRoom(ppAdjacentRooms[nRoomIdx]); pDrlgDelete; pDrlgDelete = pDrlgDelete->pNext) {
             if (pDrlgDelete->eUnitType != ePlayerUnitType || pDrlgDelete->nUnitGUID != nPlayerGUID) {
               SCmd::NET_D2GS_SERVER_Send_0x0A_REMOVEUNIT(pClient, 10, (eD2UnitType)(uint8_t)(char)pDrlgDelete->eUnitType, pDrlgDelete->nUnitGUID);
             }
           }
 
           nRoomIdx++;
-        } while (nRoomIdx < __frame0.nRoomCount);
+        } while (nRoomIdx < nRoomCount);
 
         return;
       }
@@ -2692,26 +2655,20 @@ void __fastcall MovementUpdateForClient(::SGAMEDATA * pGame, D2RoomStrc * * ppRo
 }
 
 void __fastcall CLIENT_BroadcastMovementToAdjacentRooms(::SGAMEDATA * pGame, D2RoomStrc * pRoom, D2UnitStrc * pUnit) {
-    // Frame slots -12..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
     if (pRoom) {
       uint32_t nRoomIdx;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
       nRoomIdx = 0;
-      if (!__frame0.nRoomCount) {
+      if (!nRoomCount) {
         return;
       }
 
       do {
-        MovementUpdateForClient(pGame, (D2RoomStrc**)__frame0.ppAdjacentRooms[nRoomIdx], pUnit);
+        MovementUpdateForClient(pGame, (D2RoomStrc**)ppAdjacentRooms[nRoomIdx], pUnit);
         nRoomIdx++;
-      } while (nRoomIdx < __frame0.nRoomCount);
+      } while (nRoomIdx < nRoomCount);
 
       return;
     }
@@ -2721,29 +2678,23 @@ void __fastcall CLIENT_BroadcastMovementToAdjacentRooms(::SGAMEDATA * pGame, D2R
 }
 
 void __fastcall CLIENT_RemoveFromAdjacentRooms(D2RoomStrc * pRoom, int32_t nClientId) {
-    // Frame slots -12..-4 are ONE object: &ppAdjacentRooms is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      D2RoomStrc** ppAdjacentRooms;
-      uint32_t nRoomCount;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    D2RoomStrc** ppAdjacentRooms;
+    uint32_t nRoomCount;
     if (!pRoom) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x14e);
       exit(-1);
     }
 
-    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &__frame0.ppAdjacentRooms, (int*)&__frame0.nRoomCount);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     uint32_t nRoomIdx = 0;
-    if (!__frame0.nRoomCount) {
+    if (!nRoomCount) {
       return;
     }
 
     do {
-      D2Common::DUNGEON::Dungeon::DRLGROOM_RemoveClientFromRoom(__frame0.ppAdjacentRooms[nRoomIdx], nClientId);
+      D2Common::DUNGEON::Dungeon::DRLGROOM_RemoveClientFromRoom(ppAdjacentRooms[nRoomIdx], nClientId);
       nRoomIdx++;
-    } while (nRoomIdx < __frame0.nRoomCount);
+    } while (nRoomIdx < nRoomCount);
 }
 
 void __fastcall TellClientToLoadAct(::SGAMEDATA * pGame, D2ClientStrc * pClient) {
@@ -2759,27 +2710,21 @@ void __fastcall TellClientToLoadAct(::SGAMEDATA * pGame, D2ClientStrc * pClient)
     #pragma pack(pop)
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 10, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -16..-8 are ONE object: &nTicksOut is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      int nTicksOut;
-      int nCycleOut;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     uint8_t _byActNoArg;
     uint8_t bEclipseOut[4];
+    int nTicksOut;
+    int nCycleOut;
     uint8_t byActNoArg;
     uint32_t uStack_7;
     uint8_t bActNo = GetAct(pClient);
     _byActNoArg = (uint32_t)((uint32_t)((uint32_t)uStack_7 & 0xffffffu) << 8 | (uint32_t)(uint8_t)bActNo);
     eD2LevelId eTownLevelId = D2Common::DUNGEON::Dungeon::GetTownLevelIdFromAct(pGame->pAct[bActNo]);
     SCmd::NET_D2GS_SERVER_Send_0x03_NEWACT(pClient, '\x03', (uint8_t)_byActNoArg, pGame->pInitSeed.nSeedLow, pGame->pInitSeed.nSeedHigh, (uint16_t)eTownLevelId);
-    D2Common::Environment::DRLGENV_GetCycleIndex_Ticks_EclipseFromAct(pGame->pAct[bActNo], &__frame1.nCycleOut, &__frame1.nTicksOut, (BOOL*)bEclipseOut);
-    __frame0.nTicks = __frame1.nTicksOut;
+    D2Common::Environment::DRLGENV_GetCycleIndex_Ticks_EclipseFromAct(pGame->pAct[bActNo], &nCycleOut, &nTicksOut, (BOOL*)bEclipseOut);
+    __frame0.nTicks = nTicksOut;
     __frame0.bEclipse = bEclipseOut[0];
     __frame0.byPacketId = 0x53;
-    __frame0.nCycleIndex = __frame1.nCycleOut;
+    __frame0.nCycleIndex = nCycleOut;
     SCmd::NET_D2GS_SERVER_Send_0x53_ACTTIMEOFDAY(pClient, (D2GSPacketSrv0x53*)&__frame0.byPacketId);
 }
 

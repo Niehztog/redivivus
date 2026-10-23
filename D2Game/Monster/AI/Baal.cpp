@@ -879,19 +879,13 @@ uint32_t __stdcall AI_Baal_SpawnClone(::SGAMEDATA * pGame, int32_t nParam, D2Uni
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -16..-4 are ONE object: &nSpawnYOut is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
-      uint32_t nSpawnYOut;
-      D2PoolManagerStrc* pMemoryTmp;
-      int nTargetX;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 12, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
     BOOL bIsOwnerAlive;
     D2DynamicPathStrc* pDynamicPath;
     int32_t nOwnerGuid;
     eD2UnitType eOwnerType;
+    uint32_t nSpawnYOut;
+    D2PoolManagerStrc* pMemoryTmp;
+    int nTargetX;
     int32_t nStatLayer;
     int nPosY;
     nPosY = 0;
@@ -916,12 +910,12 @@ uint32_t __stdcall AI_Baal_SpawnClone(::SGAMEDATA * pGame, int32_t nParam, D2Uni
     eD2MonsterAnimMode eSpawnAnimMode;
     eSpawnAnimMode = eD2MonsterAnimMode_ns::Neutral;
     __frame0.nCloneClassId = 0x23a < sgptDataTable->nTxtMonStatsSize ? 0x23a : -1;
-    D2Common::Monsters::MONSTERS::MONSTER_GetSpawnParameters(pUnit, (int*)&__frame0.nCloneClassId, (uint32_t*)&__frame1.pMemoryTmp, &__frame1.nSpawnYOut, (uint32_t*)&eSpawnAnimMode, (uint32_t)pGame->nDifficulty, nullptr);
+    D2Common::Monsters::MONSTERS::MONSTER_GetSpawnParameters(pUnit, (int*)&__frame0.nCloneClassId, (uint32_t*)&pMemoryTmp, &nSpawnYOut, (uint32_t*)&eSpawnAnimMode, (uint32_t)pGame->nDifficulty, nullptr);
     pTargetUnit = UNIT::SUnit::GetTargetEx(pGame, pUnit);
     if (!pTargetUnit) {
       eOwnerType = pUnit->eUnitType;
       if (eOwnerType == UNIT_OBJECT || 3 < (int)eOwnerType && (int)eOwnerType < 6) {
-        __frame1.nTargetX = pUnit->pPath.pStaticPath->nPosX;
+        nTargetX = pUnit->pPath.pStaticPath->nPosX;
         goto spawn_near_center;
       }
 
@@ -929,16 +923,16 @@ uint32_t __stdcall AI_Baal_SpawnClone(::SGAMEDATA * pGame, int32_t nParam, D2Uni
     } else {
       eOwnerType = pTargetUnit->eUnitType;
       if (eOwnerType == UNIT_OBJECT || 3 < (int)eOwnerType && (int)eOwnerType < 6) {
-        __frame1.nTargetX = pTargetUnit->pPath.pStaticPath->nPosX;
+        nTargetX = pTargetUnit->pPath.pStaticPath->nPosX;
         goto spawn_near_center;
       }
 
       pDynamicPath = pTargetUnit->pPath.pDynamicPath;
     }
     if (!pDynamicPath) {
-      __frame1.nTargetX = 0;
+      nTargetX = 0;
     } else {
-      __frame1.nTargetX = D2Common::PATH::DynamicPath::GetXPos(pDynamicPath);
+      nTargetX = D2Common::PATH::DynamicPath::GetXPos(pDynamicPath);
     }
 
     spawn_near_center:
@@ -958,21 +952,21 @@ uint32_t __stdcall AI_Baal_SpawnClone(::SGAMEDATA * pGame, int32_t nParam, D2Uni
       }
     }
     uint64_t uSeedRollX = (uint64_t)pUnit->sSeed.nSeedLow * 0x6ac690c5 + (uint64_t)pUnit->sSeed.nSeedHigh;
-    __frame1.pMemoryTmp = (D2PoolManagerStrc*)((int)uSeedRollX + (int)((uSeedRollX & 0xffffffff) / 0x18) * -0x18 - 0xc + __frame1.nTargetX);
+    pMemoryTmp = (D2PoolManagerStrc*)((int)uSeedRollX + (int)((uSeedRollX & 0xffffffff) / 0x18) * -0x18 - 0xc + nTargetX);
     D2SeedStrc sNewSeed = D2_SEED_NEXT_VAL(uSeedRollX);
     pUnit->sSeed = sNewSeed;
     uint32_t nSpawnYJitter = sNewSeed.nSeedLow + (int)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) / 0x18) * -0x18 - 0xc + nPosY;
-    __frame1.nSpawnYOut = nSpawnYJitter;
+    nSpawnYOut = nSpawnYJitter;
     D2RoomStrc* pSpawnRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pSpawnRoom, (int32_t)__frame1.pMemoryTmp, nSpawnYJitter);
+    pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pSpawnRoom, (int32_t)pMemoryTmp, nSpawnYJitter);
     if (!pSpawnRoom) {
       return 0;
     }
 
-    nSpawnYJitter = __frame1.nSpawnYOut;
+    nSpawnYJitter = nSpawnYOut;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, (int32_t)__frame1.pMemoryTmp, nSpawnYJitter);
-    pTargetUnit = Create::SpawnMonsterAtRoomPos(pGame, pSpawnRoom, (int32_t)__frame1.pMemoryTmp, __frame1.nSpawnYOut, __frame0.nCloneClassId, eSpawnAnimMode, -1, 0);
+    D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, (int32_t)pMemoryTmp, nSpawnYJitter);
+    pTargetUnit = Create::SpawnMonsterAtRoomPos(pGame, pSpawnRoom, (int32_t)pMemoryTmp, nSpawnYOut, __frame0.nCloneClassId, eSpawnAnimMode, -1, 0);
     if (!pTargetUnit) {
       return 0;
     }
@@ -1198,19 +1192,11 @@ void __fastcall BaalCrabAi_ResetInfernoAndReattach(::SGAMEDATA * pGame, D2UnitSt
 
 // Baal Crab (Baal's crab minion) AI tick. Selects best target via SelectTargetBaal, stores an anchor position AI-cmd (id=10) on first tick, then calls AI_BaalEvaluateCombatAction to choose an action and AI_Baal_ExecuteAction to perform it. Schedules next tick in 25 frames (RestartAiThink 0x19).
 void __fastcall AI_Fn1_BaalCrab(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2AiParamStrc * pAiParam) {
-    // Frame slots -12..-4 are ONE object: &nCandidateCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nCandidateCount;
-      int nBestScore;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     eD2UnitType eUnitType;
-    __frame0.nCandidateCount = 0;
-    __frame0.nBestScore = 0;
+    int nCandidateCount = 0;
+    int nBestScore = 0;
     ::SGAMEDATA* pGameSaved = pGame;
-    D2UnitStrc* pBestTarget = SelectTargetBaal(pGame, &__frame0.nCandidateCount, &__frame0.nBestScore, 0, (fpAiTargetPredicate)AI_BAAL_IsUnitInRange, pUnit);
+    D2UnitStrc* pBestTarget = SelectTargetBaal(pGame, &nCandidateCount, &nBestScore, 0, (fpAiTargetPredicate)AI_BAAL_IsUnitInRange, pUnit);
     D2UnitDataClientSide* pAnchorCmd = (D2UnitDataClientSide*)Ai::AiGeneral::FindMonsterAiCmd(pUnit, 10, 0);
     if (!pAnchorCmd) {
       D2AiCmdArgumentsStrc anchorCmdArgs;
@@ -1238,7 +1224,7 @@ void __fastcall AI_Fn1_BaalCrab(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2AiPar
     }
 
     D2AiGeneralStrc* pMonsterAiGeneral = pAiParam->pMonsterAiGeneral;
-    int32_t nSelectedAction = AI_BaalEvaluateCombatAction(pUnit, pGameSaved, (int32_t)pMonsterAiGeneral, __frame0.nCandidateCount, __frame0.nBestScore, (int32_t)pAnchorCmd, pBestTarget, pUnit);
+    int32_t nSelectedAction = AI_BaalEvaluateCombatAction(pUnit, pGameSaved, (int32_t)pMonsterAiGeneral, nCandidateCount, nBestScore, (int32_t)pAnchorCmd, pBestTarget, pUnit);
     ::SGAMEDATA* pGameCopy = pGameSaved;
     AI_Baal_ExecuteAction(pGameSaved, pUnit, (int32_t)pMonsterAiGeneral, pBestTarget, nSelectedAction, pAnchorCmd);
     RestartAiThink(pGameCopy, pUnit, 0x19);
@@ -1301,18 +1287,12 @@ void __fastcall AI_Fn1_UberBaal(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2AiPar
 
 // Baal Crab Clone AI tick. Verifies its owner (both AI-general owner and unit owner) is still alive; kills itself via SERVER_KillMonster if owner is dead. If alive, runs the same SelectTargetBaal + anchor + AI_BaalEvaluateCombatAction loop as the real crab, but suppresses action ids 7/9/14/15 (special Baal-only actions), replacing them with action 2. Walks to idle position if no target found.
 void __fastcall AI_Fn1_BaalCrabClone(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2AiParamStrc * pAiParam) {
-    // Frame slots -12..-4 are ONE object: &nCandidateCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nCandidateCount;
-      int nBestScore;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     BOOL bIsDead;
     int nAction;
     D2AiCmdArgumentsStrc anchorCmdArgs;
     D2UnitStrc* pBestTarget;
+    int nCandidateCount;
+    int nBestScore;
     D2AiGeneralStrc* pMonsterAiGeneral;
     D2UnitStrc* pOwner;
     pOwner = Ai::AiGeneral::GetOwnerUnit(pUnit);
@@ -1328,9 +1308,9 @@ void __fastcall AI_Fn1_BaalCrabClone(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2
       D2UnitDataClientSide* pAiCmd;
       bIsDead = UNIT::SUnit::CheckForModeZeroDeath(pOwner);
       if (!bIsDead) {
-        __frame0.nCandidateCount = 0;
-        __frame0.nBestScore = 0;
-        pBestTarget = SelectTargetBaal(pGame, &__frame0.nCandidateCount, &__frame0.nBestScore, 0, (fpAiTargetPredicate)AI_BAAL_IsUnitInRange, pUnit);
+        nCandidateCount = 0;
+        nBestScore = 0;
+        pBestTarget = SelectTargetBaal(pGame, &nCandidateCount, &nBestScore, 0, (fpAiTargetPredicate)AI_BAAL_IsUnitInRange, pUnit);
         pAiCmd = (D2UnitDataClientSide*)Ai::AiGeneral::FindMonsterAiCmd(pUnit, 10, 0);
         if (!pAiCmd) {
           anchorCmdArgs.nCmdId = 10;
@@ -1341,7 +1321,7 @@ void __fastcall AI_Fn1_BaalCrabClone(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2
         }
 
         pMonsterAiGeneral = pAiParam->pMonsterAiGeneral;
-        nAction = AI_BaalEvaluateCombatAction(pUnit, pGame, (int32_t)pMonsterAiGeneral, __frame0.nCandidateCount, __frame0.nBestScore, (int32_t)pAiCmd, pBestTarget, pUnit);
+        nAction = AI_BaalEvaluateCombatAction(pUnit, pGame, (int32_t)pMonsterAiGeneral, nCandidateCount, nBestScore, (int32_t)pAiCmd, pBestTarget, pUnit);
         if (nAction == 7 || nAction == 9 || nAction == 0xe || nAction == 0xf) {
           nAction = 2;
         }
