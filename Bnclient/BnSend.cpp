@@ -36,6 +36,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fnInterlockedCompareExchange
 #define RECON_FPTD_fnInterlockedCompareExchange
@@ -95,75 +103,65 @@ DWORD __stdcall BNCLIENT_GetBNetClientToken() {
 }
 
 void __fastcall NET_SID_CLIENT_Send_0x29_LogonResponse(char * szText1, char * szText2) {
-    // Frame slots -576..-568 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -576..-4 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       DWORD dwClientToken;
       uint32_t dwServerToken;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -292..-284 are ONE object: &dwTickCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
+      D2SHA1 sha1Combined;
+      char szUsername[256];
       DWORD dwTickCount;
       uint32_t dwServerTokenSaved;
+      D2SHA1 sha1Password;
+      char szPasswordLower[256];
+      uint32_t local_8;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
-    D2SHA1 sha1Combined;
-    char szUsername[256];
-    D2SHA1 sha1Password;
-    char szPasswordLower[256];
-    uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 572, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
+    __frame0.local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     _net_sid::NET_SID_CLIENT_ResetRequireResponse(0x29);
-    Storm::Source::SSTR::SStrCopy(szPasswordLower, szText2, 0x100);
-    uint32_t nLen = Storm::Source::SSTR::SStrLen(szPasswordLower);
-    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(szPasswordLower, nLen);
-    __frame1.dwTickCount = GetTickCount();
-    __frame1.dwServerTokenSaved = g_nBNetServerToken;
-    _net_sid::SHA1(&sha1Password, szPasswordLower, nLen);
-    __frame0.dwClientToken = __frame1.dwTickCount;
-    __frame0.dwServerToken = __frame1.dwServerTokenSaved;
-    _net_sid::SHA1(&sha1Combined, (char*)&__frame1.dwTickCount, 0x1c);
-    uint32_t uVar1 = Storm::Source::SSTR::SStrCopy(szUsername, szText1, 0x100);
+    Storm::Source::SSTR::SStrCopy(__frame0.szPasswordLower, szText2, 0x100);
+    uint32_t nLen = Storm::Source::SSTR::SStrLen(__frame0.szPasswordLower);
+    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(__frame0.szPasswordLower, nLen);
+    __frame0.dwTickCount = GetTickCount();
+    __frame0.dwServerTokenSaved = g_nBNetServerToken;
+    _net_sid::SHA1(&__frame0.sha1Password, __frame0.szPasswordLower, nLen);
+    __frame0.dwClientToken = __frame0.dwTickCount;
+    __frame0.dwServerToken = __frame0.dwServerTokenSaved;
+    _net_sid::SHA1(&__frame0.sha1Combined, (char*)&__frame0.dwTickCount, 0x1c);
+    uint32_t uVar1 = Storm::Source::SSTR::SStrCopy(__frame0.szUsername, szText1, 0x100);
     NET_SID_CLIENT_Send(0x29, (char*)&__frame0.dwClientToken, uVar1 + 0x1d);
     Fog::Debug::GuardStack();
 }
 
 void __fastcall NET_SID_CLIENT_Send_0x3A_LogonResponse2(char * szText1, char * szText2) {
-    // Frame slots -576..-568 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -576..-4 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       DWORD dwClientToken;
       uint32_t dwServerToken;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -292..-284 are ONE object: &dwTickCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
+      D2SHA1 sha1Combined;
+      char szUsername[256];
       DWORD dwTickCount;
       uint32_t dwServerTokenSaved;
+      D2SHA1 sha1Password;
+      char szPasswordLower[256];
+      uint32_t local_8;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
-    D2SHA1 sha1Combined;
-    char szUsername[256];
-    D2SHA1 sha1Password;
-    char szPasswordLower[256];
-    uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 572, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
+    __frame0.local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     _net_sid::NET_SID_CLIENT_ResetRequireResponse(0x3a);
-    Storm::Source::SSTR::SStrCopy(szPasswordLower, szText2, 0x100);
-    uint32_t nLen = Storm::Source::SSTR::SStrLen(szPasswordLower);
-    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(szPasswordLower, nLen);
-    __frame1.dwTickCount = GetTickCount();
-    __frame1.dwServerTokenSaved = g_nBNetServerToken;
-    _net_sid::SHA1(&sha1Password, szPasswordLower, nLen);
-    __frame0.dwClientToken = __frame1.dwTickCount;
-    __frame0.dwServerToken = __frame1.dwServerTokenSaved;
-    _net_sid::SHA1(&sha1Combined, (char*)&__frame1.dwTickCount, 0x1c);
-    uint32_t uVar1 = Storm::Source::SSTR::SStrCopy(szUsername, szText1, 0x100);
+    Storm::Source::SSTR::SStrCopy(__frame0.szPasswordLower, szText2, 0x100);
+    uint32_t nLen = Storm::Source::SSTR::SStrLen(__frame0.szPasswordLower);
+    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(__frame0.szPasswordLower, nLen);
+    __frame0.dwTickCount = GetTickCount();
+    __frame0.dwServerTokenSaved = g_nBNetServerToken;
+    _net_sid::SHA1(&__frame0.sha1Password, __frame0.szPasswordLower, nLen);
+    __frame0.dwClientToken = __frame0.dwTickCount;
+    __frame0.dwServerToken = __frame0.dwServerTokenSaved;
+    _net_sid::SHA1(&__frame0.sha1Combined, (char*)&__frame0.dwTickCount, 0x1c);
+    uint32_t uVar1 = Storm::Source::SSTR::SStrCopy(__frame0.szUsername, szText1, 0x100);
     NET_SID_CLIENT_Send(0x3a, (char*)&__frame0.dwClientToken, uVar1 + 0x1d);
     Fog::Debug::GuardStack();
 }
@@ -183,42 +181,37 @@ void __fastcall NET_SID_CLIENT_Send_0x3D_CreateAccount2(char * szText1, char * s
 }
 
 void __fastcall NET_SID_CLIENT_Send_0x31_ChangePassword(char * szText1, char * szText2, char * szNewPassword) {
-    // Frame slots -596..-588 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -596..-4 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       DWORD dwClientToken;
       uint32_t dwServerToken;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -292..-284 are ONE object: &dwTickCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
+      D2SHA1 sha1OldCombined;
+      D2SHA1 sha1NewPassword;
+      char szUsername[256];
       DWORD dwTickCount;
       uint32_t dwServerTokenSaved;
+      D2SHA1 sha1OldPassword;
+      char szPasswordLower[256];
+      uint32_t local_8;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
-    D2SHA1 sha1OldCombined;
-    D2SHA1 sha1NewPassword;
-    char szUsername[256];
-    D2SHA1 sha1OldPassword;
-    char szPasswordLower[256];
-    uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    Storm::Source::SSTR::SStrCopy(szPasswordLower, szText2, 0x100);
-    uint32_t nLen = Storm::Source::SSTR::SStrLen(szPasswordLower);
-    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(szPasswordLower, nLen);
-    __frame1.dwTickCount = GetTickCount();
-    __frame1.dwServerTokenSaved = g_nBNetServerToken;
-    _net_sid::SHA1(&sha1OldPassword, szPasswordLower, nLen);
-    Storm::Source::SSTR::SStrCopy(szPasswordLower, szNewPassword, 0x100);
-    uint32_t uVar1 = Storm::Source::SSTR::SStrLen(szPasswordLower);
-    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(szPasswordLower, uVar1);
-    __frame0.dwClientToken = __frame1.dwTickCount;
-    __frame0.dwServerToken = __frame1.dwServerTokenSaved;
-    _net_sid::SHA1(&sha1OldCombined, (char*)&__frame1.dwTickCount, 0x1c);
-    _net_sid::SHA1(&sha1NewPassword, szPasswordLower, uVar1);
-    uVar1 = Storm::Source::SSTR::SStrCopy(szUsername, szText1, 0x100);
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 592, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
+    __frame0.local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    Storm::Source::SSTR::SStrCopy(__frame0.szPasswordLower, szText2, 0x100);
+    uint32_t nLen = Storm::Source::SSTR::SStrLen(__frame0.szPasswordLower);
+    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(__frame0.szPasswordLower, nLen);
+    __frame0.dwTickCount = GetTickCount();
+    __frame0.dwServerTokenSaved = g_nBNetServerToken;
+    _net_sid::SHA1(&__frame0.sha1OldPassword, __frame0.szPasswordLower, nLen);
+    Storm::Source::SSTR::SStrCopy(__frame0.szPasswordLower, szNewPassword, 0x100);
+    uint32_t uVar1 = Storm::Source::SSTR::SStrLen(__frame0.szPasswordLower);
+    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(__frame0.szPasswordLower, uVar1);
+    __frame0.dwClientToken = __frame0.dwTickCount;
+    __frame0.dwServerToken = __frame0.dwServerTokenSaved;
+    _net_sid::SHA1(&__frame0.sha1OldCombined, (char*)&__frame0.dwTickCount, 0x1c);
+    _net_sid::SHA1(&__frame0.sha1NewPassword, __frame0.szPasswordLower, uVar1);
+    uVar1 = Storm::Source::SSTR::SStrCopy(__frame0.szUsername, szText1, 0x100);
     NET_SID_CLIENT_Send(0x31, (char*)&__frame0.dwClientToken, uVar1 + 0x31);
     Fog::Debug::GuardStack();
 }
@@ -365,7 +358,7 @@ void * __stdcall NET_SID_CLIENT_Send_0x40_QueryRealms2() {
 // @sourcefile .\BnSend.cpp
 void __stdcall BNSEND_FreeChannelListData() {
     if (g_pBNetChannelListData) {
-      Fog::Memory::FreeClientMemory(g_pBNetChannelListData, ".\\BnSend.cpp", 0x1ef, 0);
+      D2_FREE(g_pBNetChannelListData);
     }
 
     g_pBNetChannelListData = 0;
@@ -619,7 +612,7 @@ BOOL __fastcall BNCLIENT_GetEnterChatResponseFlags(uint32_t * pOutFlags) {
 // @sourcefile .\BnSend.cpp
 void __stdcall BNSEND_FreeGameListData() {
     if (g_pBNetGameListData) {
-      Fog::Memory::FreeClientMemory(g_pBNetGameListData, ".\\BnSend.cpp", 0x36a, 0);
+      D2_FREE(g_pBNetGameListData);
     }
 
     g_pBNetGameListData = 0;
@@ -679,11 +672,11 @@ void __fastcall NET_SID_CLIENT_Send_0x22_NotifyJoin(char * szText1, char * szTex
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreUserProfileData(uint8_t * pbProfileData, size_t nDataSize) {
     if (gpBNetWriteUserData) {
-      Fog::Memory::FreeClientMemory(gpBNetWriteUserData, ".\\BnSend.cpp", 0x3b2, 0);
+      D2_FREE(gpBNetWriteUserData);
     }
 
     gpBNetWriteUserData = 0;
-    gpBNetWriteUserData = Fog::Memory::AllocClientMemory(nDataSize + 4, ".\\BnSend.cpp", 0x3bb, 0);
+    gpBNetWriteUserData = D2_ALLOC(nDataSize + 4);
     *(size_t*)gpBNetWriteUserData = nDataSize;
     memcpy((void*)((int)gpBNetWriteUserData + 4), pbProfileData, nDataSize);
     if (!(nDataSize != 8 && 0x47 < nDataSize)) {
@@ -802,7 +795,7 @@ uint32_t __fastcall NET_SID_CLIENT_Send_0x27_WriteUserData(char * szAccount, uin
       } while (nIdx);
     }
 
-    char* pPacketBuf = (char*)Fog::Memory::AllocClientMemory(iVar1 + 8, ".\\BnSend.cpp", 0x4c4, 0);
+    char* pPacketBuf = (char*)D2_ALLOC(iVar1 + 8);
     pPacketBuf[0] = '\x01';
     pPacketBuf[1] = '\0';
     pPacketBuf[2] = '\0';
@@ -830,17 +823,17 @@ uint32_t __fastcall NET_SID_CLIENT_Send_0x27_WriteUserData(char * szAccount, uin
 
     _net_sid::NET_SID_CLIENT_ResetRequireResponse(0x27);
     int32_t nSendResult = NET_SID_CLIENT_Send(0x27, pPacketBuf, (int)szBufferOutput - (int)pPacketBuf);
-    Fog::Memory::FreeClientMemory(pPacketBuf, ".\\BnSend.cpp", 0x4e0, 0);
+    D2_FREE(pPacketBuf);
     return (uint32_t)(-1 < nSendResult);
 }
 
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreReadUserData(uint8_t * pbReadData, size_t nSize) {
     if (g_pBNetReadUserData) {
-      Fog::Memory::FreeClientMemory(g_pBNetReadUserData, ".\\BnSend.cpp", 0x4ec, 0);
+      D2_FREE(g_pBNetReadUserData);
     }
 
-    g_pBNetReadUserData = Fog::Memory::AllocClientMemory(nSize, ".\\BnSend.cpp", 0x4ed, 0);
+    g_pBNetReadUserData = D2_ALLOC(nSize);
     memcpy(g_pBNetReadUserData, pbReadData, nSize);
 }
 
@@ -857,7 +850,7 @@ uint32_t __fastcall NET_SID_CLIENT_Send_0x26_ReadUserData(char * szAccount, uint
       } while (nIdx < nCount);
     }
 
-    char* pPacketBuf = (char*)Fog::Memory::AllocClientMemory(iVar1 + 0xc, ".\\BnSend.cpp", 0x506, 0);
+    char* pPacketBuf = (char*)D2_ALLOC(iVar1 + 0xc);
     pPacketBuf[0] = '\x01';
     pPacketBuf[1] = '\0';
     pPacketBuf[2] = '\0';
@@ -877,7 +870,7 @@ uint32_t __fastcall NET_SID_CLIENT_Send_0x26_ReadUserData(char * szAccount, uint
 
     _net_sid::NET_SID_CLIENT_ResetRequireResponse(0x26);
     int32_t nSendResult = NET_SID_CLIENT_Send(0x26, pPacketBuf, (int)szBufferOutput - (int)pPacketBuf);
-    Fog::Memory::FreeClientMemory(pPacketBuf, ".\\BnSend.cpp", 0x521, 0);
+    D2_FREE(pPacketBuf);
     return (uint32_t)(-1 < nSendResult);
 }
 
@@ -1038,33 +1031,33 @@ void __stdcall NET_SID_CLIENT_Send_0x5D_ReportCrash() {
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreRealmQueryData(uint8_t * pbRealmData, size_t nSize) {
     if (gpRealmQueryData) {
-      Fog::Memory::FreeClientMemory(gpRealmQueryData, ".\\BnSend.cpp", 0x19a, 0);
+      D2_FREE(gpRealmQueryData);
     }
 
     gpRealmQueryData = 0;
-    gpRealmQueryData = Fog::Memory::AllocClientMemory(nSize, ".\\BnSend.cpp", 0x16b, 0);
+    gpRealmQueryData = D2_ALLOC(nSize);
     memcpy(gpRealmQueryData, pbRealmData, nSize);
 }
 
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreChannelListData(uint8_t * pbChannelData, size_t nSize) {
     if (g_pBNetChannelListData) {
-      Fog::Memory::FreeClientMemory(g_pBNetChannelListData, ".\\BnSend.cpp", 0x1ef, 0);
+      D2_FREE(g_pBNetChannelListData);
     }
 
     g_pBNetChannelListData = 0;
-    g_pBNetChannelListData = Fog::Memory::AllocClientMemory(nSize, ".\\BnSend.cpp", 0x1e6, 0);
+    g_pBNetChannelListData = D2_ALLOC(nSize);
     memcpy(g_pBNetChannelListData, pbChannelData, nSize);
 }
 
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreGameListData(uint8_t * pbGameData, size_t nSize) {
     if (g_pBNetGameListData) {
-      Fog::Memory::FreeClientMemory(g_pBNetGameListData, ".\\BnSend.cpp", 0x36a, 0);
+      D2_FREE(g_pBNetGameListData);
     }
 
     g_pBNetGameListData = 0;
-    g_pBNetGameListData = Fog::Memory::AllocClientMemory(nSize, ".\\BnSend.cpp", 0x326, 0);
+    g_pBNetGameListData = D2_ALLOC(nSize);
     memcpy(g_pBNetGameListData, pbGameData, nSize);
 }
 
@@ -2367,7 +2360,7 @@ void __stdcall BNNEWS_SaveToCache() {
     }
 
     nTotalSize = nAccumSize;
-    uint32_t* pMemoryToFree = (uint32_t*)Fog::Memory::AllocClientMemory(nAccumSize, ".\\BNNews.cpp", 0x154, 0);
+    uint32_t* pMemoryToFree = (uint32_t*)D2_ALLOC(nAccumSize);
     if (!pMemoryToFree) {
       return;
     }
@@ -2406,7 +2399,7 @@ void __stdcall BNNEWS_SaveToCache() {
     /* LPSYSTEMTIME lpSystemTime for GetSystemTime */ GetSystemTime(&stSystemTime);
     /* LPFILETIME lpFileTime for SystemTimeToFileTime */ /* SYSTEMTIME * lpSystemTime for SystemTimeToFileTime */ SystemTimeToFileTime(&stSystemTime, &ftWriteTime);
     Cache::CACHE_WriteData(szBnNewsChannelName, (LPCVOID)pMemoryToFree, nTotalSize, (uint32_t*)&ftWriteTime.dwLowDateTime, -1, -1);
-    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\BNNews.cpp", 0x17b, 0);
+    D2_FREE(pMemoryToFree);
 }
 
 void __stdcall BNNEWS_InvokeCallbacks() {
@@ -3257,7 +3250,7 @@ BOOL __fastcall BNNEWS_DecodeCDKey26Char(char * szCDKey, uint32_t * pOutValue1, 
 }
 
 // Prepares CD key hash structure for authentication. Supports both 16-char (classic) and 26-char (expansion) CD keys. Output structure contains: key length, public value, product value, and 20-byte SHA-1 hash.
-int32_t __stdcall BNSEND_PrepareCDKeyHash(uint32_t nToken, char * szCDKey, D2CDKeyHashStrc * pOutHash) {
+int32_t __stdcall BNSEND_PrepareCDKeyHash(uint32_t nToken, uint32_t nServerToken, char * szCDKey, D2CDKeyHashStrc * pOutHash) {
     // Frame slots -64..-4 are ONE object: &nTokenCopy is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -3321,8 +3314,8 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
 
     DWORD dwTickCount;
     BOOL bIsExpansion;
-    int32_t bHash1Ok;
     uint32_t uVar2;
+    int32_t bHash1Ok;
     size_t nSizeNoHeader;
     uint8_t* pSendData;
     uint32_t aExpansionPacket[3];
@@ -3349,8 +3342,8 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
       aExpansionHashBuf.abHash[0xe] = 0;
       aExpansionHashBuf.abHash[0xf] = 0;
       *(uint32_t*)((char*)&aExpansionHashBuf.abHash + 16) = nProductId;
-      BNSEND_GetServerToken();
-      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, szOwnerCopy, &aClassicHashBuf);
+      uVar2 = BNSEND_GetServerToken();
+      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, uVar2, szOwnerCopy, &aClassicHashBuf);
       if (!bHash1Ok) {
         Fog::Debug::GuardStack();
         return;
@@ -3360,15 +3353,15 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
       nSizeNoHeader = uVar2 + 0x31;
       pSendData = aExpansionHashBuf.abHash + 8;
     } else {
-      BNSEND_GetServerToken();
-      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, szOwnerCopy, &aExpansionHashBuf);
+      uVar2 = BNSEND_GetServerToken();
+      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, uVar2, szOwnerCopy, &aExpansionHashBuf);
       if (!bHash1Ok) {
         Fog::Debug::GuardStack();
         return;
       }
 
-      BNSEND_GetServerToken();
-      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, szOwnerCopy2, &aClassicHashBuf);
+      uVar2 = BNSEND_GetServerToken();
+      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, uVar2, szOwnerCopy2, &aClassicHashBuf);
       if (!bHash1Ok) {
         Fog::Debug::GuardStack();
         return;
@@ -3436,9 +3429,9 @@ void __stdcall BNNEWS_DecodeCDKeys() {
 
 // High-level CD key hash helper. Gets server token, retrieves CD key by type (0=classic, 1=expansion), and prepares hash structure for SID_AUTH_CHECK.
 void __fastcall BNSEND_HashCDKeyByType(D2CDKeyHashStrc * pOutHash, uint32_t nToken, int32_t nCDKeyType) {
-    BNSEND_GetServerToken();
+    uint32_t nServerToken = BNSEND_GetServerToken();
     char* szCDKey = _net_sid::NET_SID_CLIENT_GetCdKeyByType(nCDKeyType);
-    BNSEND_PrepareCDKeyHash(nToken, szCDKey, pOutHash);
+    BNSEND_PrepareCDKeyHash(nToken, nServerToken, szCDKey, pOutHash);
 }
 
 void __fastcall BNSEND_SendRawBytes(void * pBytes, size_t nSize) {

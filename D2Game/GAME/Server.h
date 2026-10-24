@@ -343,7 +343,7 @@ BOOL __fastcall QSERVER_HasActiveTaskQueue(int32_t pQServer);
 void * __fastcall QSERVER_GetTaskQueuePointer(int32_t pQServer);
 // GAME_SendSaveFileChunk - Sends save file to client in 255-byte chunks via 0xB3 packet. Iterates save buffer with offset tracking.
 // @sourcefile .\GAME\Game.cpp
-void __stdcall NET_D2GS_SERVER_Send_0xB3_SendSaveFile(::SGAMEDATA * pGame);
+void __stdcall NET_D2GS_SERVER_Send_0xB3_SendSaveFile(::SGAMEDATA * pGame, struct D2ClientStrc * pClient);
 void __fastcall SendSaveFileToClient(::SGAMEDATA * pGame);
 // Flushes the server-side outbound packet queue for one client. If nParam != 0 and the client is connected (state 4), optionally sends nearby unit positions and player vital stats first. For OBNet/LAN games also sends the save-file packet (0xB3). Then drains the client's dispatch list by calling NET_D2GS_SERVER_SendPacketToClient in a loop; on send failure increments a retry counter and requeues the list, disconnecting the client after 3 consecutive failures. Halts with an internal error if pGame or pClient is NULL.
 void __stdcall FlushClientPackets(::SGAMEDATA * pGame, int32_t nParam, struct D2ClientStrc * pClient);

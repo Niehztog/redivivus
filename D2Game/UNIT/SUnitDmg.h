@@ -43,7 +43,7 @@ struct D2DamageContext {
     /* 0x10 */ int bAttackerIsMonster; // attacker is non-merc monster
     /* 0x14 */ int bDefenderIsMonster; // defender is non-merc monster
     /* 0x18 */ struct D2DamageStrc * pDamage; // damage result struct
-    /* 0x1C */ int bBypassEnabled; // undead/demon/bypass flag
+    /* 0x1C */ int anDamageReduction[3]; // indexed by D2ResistTableEntry.nDisplayIndex: [0]=0, [1]=normal damage reduction<<8 after pierce, [2]=magic damage reduction<<8 after pierce
 };
 
 struct D2DifficultyLevelsTxt {
@@ -182,8 +182,8 @@ void __stdcall DAMAGE_ReduceEquipmentDurability(::SGAMEDATA * pGame, struct D2Un
 void __fastcall DAMAGE_ProcessCombatQueueEntry(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pVictim, uint32_t dwParam);
 struct D2DamageStrc * __fastcall DAMAGE_FindCombatEntry(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 uint32_t __stdcall DAMAGE_RollMinMaxDamageRange(int32_t nParam, uint32_t * pnParam1, uint32_t * pnParam2);
-// NOTE: Callee-saved register params inferred (medium confidence): pint (ESI): int*, pUnitStrc (EDI): D2UnitStrc*
-void DAMAGE_CheckPreventHealAndSetState(int * pint, struct D2UnitStrc * pUnitStrc);
+// Gives a monster defender the prevent-heal state when a player attacker has item_preventheal (stat 0x75): STATE 0x34 for 120000 frames on armorclass, through SKILLS_SetStateWithExpiryTime with no expire callback. Classes 0x2C0-0x2C5 are exempt. Register arguments: pDefender in ESI, pAttacker in EDI; nothing is returned.
+void DAMAGE_CheckPreventHealAndSetState(struct D2UnitStrc * pDefender, struct D2UnitStrc * pAttacker);
 // Applies three hit-chance modifiers from the attacker's (pUnit) stats to the in/out hit-chance (pnParam1) and armor-class (pnParam2) values. First, if the attacker has UNITSTAT_item_ignoretargetac and the defender is a non-boss, non-unique, non-merc monster, zeroes the AC. Second, reduces AC by the fractional-AC percent (halved vs. players/bosses/mercs, clamped 0-100). Third, adds demon/undead +to-hit bonuses to the attack rating.
 void __stdcall DAMAGE_ApplyIgnoreAndFractionalAC(int * pnHitChance, int * pnArmorClass, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 // TO-HIT CALCULATION: AR vs AC formula with level penalty.

@@ -32,6 +32,22 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2ArenaControlStrc) == 0x10, "D2_NEW(D2ArenaControlStrc): the 32-bit layout must be the 0x10 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitDataPlayerArenaStrc) == 0x8, "D2_NEW(D2UnitDataPlayerArenaStrc): the 32-bit layout must be the 0x8 bytes 1.14d allocates");
+
 
 namespace D2Game::GAME::Arena {
 
@@ -47,7 +63,7 @@ bool __stdcall ARENA_TestFlag(::SGAMEDATA * pGame, uint32_t nParam) {
 
 // @sourcefile .\GAME\Arena.cpp
 void AllocArenaControl(void * pThis, eD2ArenaFlags eArenaFlags, uint8_t nTemplate) {
-    D2ArenaControlStrc* pArenaCtrl = (D2ArenaControlStrc*)Fog::Memory::AllocServerMemory(*(D2PoolManagerStrc**)((int)pThis + 0x1c), 0x10, ".\\GAME\\Arena.cpp", 0x32, 0);
+    D2ArenaControlStrc* pArenaCtrl = D2_NEW_POOL(*(D2PoolManagerStrc**)((int)pThis + 0x1c), D2ArenaControlStrc);
     pArenaCtrl->eLevelId = LEVEL_None;
     pArenaCtrl->nArenaTxtRecord = 0;
     pArenaCtrl->nTemplateLevel = 0;
@@ -62,13 +78,13 @@ void __fastcall FreeArenaControl(::SGAMEDATA * pGame) {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pGame->pArenaCtrl, ".\\GAME\\Arena.cpp", 0x40, 0);
+    D2_FREE_POOL(pGame->pMemoryPool, pGame->pArenaCtrl);
     pGame->pArenaCtrl = 0;
 }
 
 // @sourcefile .\GAME\Arena.cpp
 void __fastcall AllocPlayerArena(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    D2UnitDataPlayerArenaStrc* pArena = (D2UnitDataPlayerArenaStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 8, ".\\GAME\\Arena.cpp", 0x47, 0);
+    D2UnitDataPlayerArenaStrc* pArena = D2_NEW_POOL(pGame->pMemoryPool, D2UnitDataPlayerArenaStrc);
     pArena->nScore = 0;
     pArena->bScoreDirty = 0;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
@@ -91,7 +107,7 @@ void __fastcall FreePlayerArena(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pPlayerData->pArena, ".\\GAME\\Arena.cpp", 0x57, 0);
+    D2_FREE_POOL(pGame->pMemoryPool, pPlayerData->pArena);
     pPlayerData->pArena = 0;
 }
 

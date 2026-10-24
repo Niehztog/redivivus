@@ -37,6 +37,24 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_REALLOC_POOL
+#define D2_REALLOC_POOL(pPool, p, size) Fog::Memory::ReAllocServerMemory((pPool), (p), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitFindsStrc) == 0x3c, "D2_NEW(D2UnitFindsStrc): the 32-bit layout must be the 0x3c bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_UNITFINDTEST
 #define RECON_FPTD_UNITFINDTEST
@@ -250,7 +268,7 @@ void ExpandUnitFinds(D2UnitFindDataStrc * pUnitFindData, D2UnitStrc * pUnit) {
     }
 
     int nNewSize = pUnitFindData->nUnitFindsSize + 0xf;
-    D2UnitFindsStrc* pNewArray = (D2UnitFindsStrc*)Fog::Memory::ReAllocServerMemory(pUnitFindData->pMemory, pUnitFindData->pUnitsArray, nNewSize * 4, ".\\UNITS\\UnitFinds.cpp", 0xc5, 0);
+    D2UnitFindsStrc* pNewArray = (D2UnitFindsStrc*)D2_REALLOC_POOL(pUnitFindData->pMemory, pUnitFindData->pUnitsArray, nNewSize * 4);
     pUnitFindData->nUnitFindsSize = nNewSize;
     pUnitFindData->pUnitsArray = pNewArray;
 }
@@ -262,7 +280,7 @@ void __stdcall InitializeUnitFindData(::SGAMEDATA * pMemPool, D2UnitFindDataStrc
       exit(-1);
     } else {
       D2UnitFindsStrc* pInitArray;
-      pInitArray = (D2UnitFindsStrc*)Fog::Memory::AllocServerMemory((D2PoolManagerStrc*)pMemPool, 0x3c, ".\\UNITS\\UnitFinds.cpp", 0xe4, 0);
+      pInitArray = D2_NEW_POOL((D2PoolManagerStrc*)pMemPool, D2UnitFindsStrc);
       pUnitFindData->pUnitsArray = pInitArray;
       if (pInitArray) {
         memset(pInitArray, 0, 0x3c);
@@ -290,7 +308,7 @@ void __stdcall FreeUnitFindData(D2UnitFindDataStrc * pUnitFindData) {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(pUnitFindData->pMemory, pUnitFindData->pUnitsArray, ".\\UNITS\\UnitFinds.cpp", 0xff, 0);
+    D2_FREE_POOL(pUnitFindData->pMemory, pUnitFindData->pUnitsArray);
     pUnitFindData->pUnitsArray = 0;
 }
 

@@ -5,7 +5,6 @@
 #include "D2Common/D2SeedStrc.h"
 #include "Fog/BitBuffer.h"
 #include "Storm/SMem.h"
-#include "Storm/_unnamespaced.h"
 #include "globals/globals.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
@@ -269,11 +268,10 @@ void ARCHIVE_WriteMemoryCheckReport() {
     uint32_t pRec;
     int* pPrevLink;
     int**** ppInsertAfter;
-    _RTL_CRITICAL_SECTION* pSrcInfo;
+    SMemHeapDetailsStrc* pSrcInfo;
     uint16_t* pScan;
     int**** ppWalk;
-    _RTL_CRITICAL_SECTION heapInfo[12];
-    int** nSortKey;
+    SMemHeapDetailsStrc sHeapDetails;
     SMemBlockInfo sBlockInfo;
     int*** pNextLink;
     int*** pNextNode;
@@ -285,8 +283,8 @@ void ARCHIVE_WriteMemoryCheckReport() {
     __frame0.pListPrev = (int***)~(uint32_t)__frame0.pListHead;
     __frame0.pListTail = 0;
     uint16_t** pHeapEnum = 0;
-    heapInfo[0].DebugInfo = (PRTL_CRITICAL_SECTION_DEBUG)0x128;
-    int nResult = Storm::SMem::SMemFindNextHeap(0, (int*)&pHeapEnum, heapInfo);
+    sHeapDetails.dwSize = 0x128;
+    int nResult = Storm::SMem::SMemFindNextHeap(0, (int*)&pHeapEnum, &sHeapDetails);
     while (nResult) {
       int**** pNewRec;
       pNewRec = (int****)Storm::SMem::SMemAlloc(0x130, s___AUTALLOCREC___00711480, -2, 8);
@@ -297,15 +295,15 @@ void ARCHIVE_WriteMemoryCheckReport() {
         pNewRec[1] = 0;
       }
 
-      pSrcInfo = heapInfo;
+      pSrcInfo = &sHeapDetails;
       ppWalk = pNewRec + 2;
       for (nResult = 0x4a; nResult; nResult--) {
-        *ppWalk = (int***)pSrcInfo->DebugInfo;
-        pSrcInfo = (_RTL_CRITICAL_SECTION*)&pSrcInfo->LockCount;
+        *ppWalk = (int***)pSrcInfo->dwSize;
+        pSrcInfo = (SMemHeapDetailsStrc*)&pSrcInfo->hHeap;
         ppWalk++;
       }
 
-      if ((int)__frame0.pListPrev < 1 || (ppWalk = (int****)__frame0.pListPrev , __frame0.pListPrev[0x4b] < nSortKey)) {
+      if ((int)__frame0.pListPrev < 1 || (ppWalk = (int****)__frame0.pListPrev , (uintptr_t)__frame0.pListPrev[0x4b] < sHeapDetails.dwUnknown124)) {
         pNextNode = *pNewRec;
         if (pNextNode) {
           pNextLink = pNewRec[1];
@@ -343,12 +341,12 @@ void ARCHIVE_WriteMemoryCheckReport() {
           if ((int)ppWalk < 1) {
             break;
           }
-        } while (nSortKey < (int**)ppWalk[0x4b]);
+        } while (sHeapDetails.dwUnknown124 < (uintptr_t)ppWalk[0x4b]);
 
         ARCHIVE_LinkNode((int**)pNewRec, 1, (int**)ppInsertAfter, &__frame0.pListTail);
       }
 
-      nResult = Storm::SMem::SMemFindNextHeap((uint32_t)pHeapEnum, (int*)&pHeapEnum, heapInfo);
+      nResult = Storm::SMem::SMemFindNextHeap((uint32_t)pHeapEnum, (int*)&pHeapEnum, &sHeapDetails);
       hFileTmp = hFile;
     }
 

@@ -61,6 +61,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitDataObjectStrc) == 0x38, "D2_NEW(D2UnitDataObjectStrc): the 32-bit layout must be the 0x38 bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Client::UNIT::Object {
 
@@ -73,7 +87,7 @@ void __fastcall AllocObjectData(D2UnitStrc * pUnit, D2RoomStrc * pRoom, int32_t 
     BOOL nAutoLightResult;
     pUnit->uSideData.pClientSide.pLight = 0;
     pUnit->eAnimMode.ePlayerMode = nInitMode & 0xff;
-    D2UnitDataObjectStrc* pObjectData = (D2UnitDataObjectStrc*)Fog::Memory::AllocClientMemory(0x38, ".\\UNIT\\Object.cpp", 0x76, 0);
+    D2UnitDataObjectStrc* pObjectData = D2_NEW(D2UnitDataObjectStrc);
     pUnit->pUnitData.pUnitDataObject = pObjectData;
     memset(pObjectData, 0, 0x38);
     pUnit->pUnitData.pUnitDataPlayer->pQuestRecord[0] = 0;
@@ -187,7 +201,7 @@ void __fastcall FreeObjectData(D2UnitStrc * pUnit) {
       CUnit::FreeLightMap(pUnit);
     }
 
-    Fog::Memory::FreeClientMemory(pUnit->pUnitData.pUnitDataPlayer, ".\\UNIT\\Object.cpp", 0xfe, 0);
+    D2_FREE(pUnit->pUnitData.pUnitDataPlayer);
 }
 
 void OBJECT_ToggleDoorState(D2UnitStrc * pUnit) {

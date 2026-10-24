@@ -761,7 +761,7 @@ void StaticInit_6caa10() {
 
 void StaticInit_6caa30() {
     int nWordsRemaining;
-    uint16_t* pImmunityBuf1 = &gU16ImmunityStringBuffer1;
+    uint16_t* pImmunityBuf1 = gU16ImmunityStringBuffer1;
     for (nWordsRemaining = 0x80; nWordsRemaining; nWordsRemaining--) {
       pImmunityBuf1[0] = 0;
       pImmunityBuf1[1] = 0;
@@ -771,7 +771,7 @@ void StaticInit_6caa30() {
 
 void StaticInit_6caa50() {
     int nWordsRemaining;
-    uint16_t* pImmunityBuf2 = &gU16ImmunityStringBuffer2;
+    uint16_t* pImmunityBuf2 = gU16ImmunityStringBuffer2;
     for (nWordsRemaining = 0x80; nWordsRemaining; nWordsRemaining--) {
       pImmunityBuf2[0] = 0;
       pImmunityBuf2[1] = 0;

@@ -44,6 +44,18 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_REALLOC_POOL
+#define D2_REALLOC_POOL(pPool, p, size) Fog::Memory::ReAllocServerMemory((pPool), (p), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Common::DATATBLS::MonsterTbls {
 
@@ -1769,7 +1781,7 @@ D2ParsedTreasureClassStrc * __fastcall TC_ExtendTreasureClassSize(char * szText)
       nAllocMask = (nAllocMask - 1 | -16) + 1;
     }
     if (!nAllocMask) {
-      sgtDataTable.pParsedTreasureClass = (D2ParsedTreasureClassStrc*)Fog::Memory::ReAllocServerMemory(nullptr, sgtDataTable.pParsedTreasureClass, (sgtDataTable.nParsedTreasureClassSize + 0x10) * 0x2c, ".\\DATATBLS\\MonsterTbls.cpp", 0x3a2, 0);
+      sgtDataTable.pParsedTreasureClass = (D2ParsedTreasureClassStrc*)D2_REALLOC_POOL(nullptr, sgtDataTable.pParsedTreasureClass, (sgtDataTable.nParsedTreasureClassSize + 0x10) * 0x2c);
     }
 
     memset(sgtDataTable.pParsedTreasureClass + sgtDataTable.nParsedTreasureClassSize, 0, 0x2c);
@@ -1779,7 +1791,7 @@ D2ParsedTreasureClassStrc * __fastcall TC_ExtendTreasureClassSize(char * szText)
 }
 
 void __fastcall ResizeParsedTCEntries(D2ParsedTreasureClassStrc * pParsedTC, int32_t nCount) {
-    D2ParsedTreasureClassEntriesStrc* pNewEntries = (D2ParsedTreasureClassEntriesStrc*)Fog::Memory::ReAllocServerMemory(nullptr, pParsedTC->pEntries, nCount * 0x1c, ".\\DATATBLS\\MonsterTbls.cpp", 0x3ba, 0);
+    D2ParsedTreasureClassEntriesStrc* pNewEntries = (D2ParsedTreasureClassEntriesStrc*)D2_REALLOC_POOL(nullptr, pParsedTC->pEntries, nCount * 0x1c);
     pParsedTC->pEntries = pNewEntries;
     memset(pNewEntries + pParsedTC->nEntriesCount, 0, (nCount - pParsedTC->nEntriesCount) * 0x1c);
     pParsedTC->nEntriesCount = nCount;
@@ -2408,7 +2420,7 @@ void __stdcall FreeParsedTC() {
       nTCStride = 0;
       do {
         if ((void*)sgtDataTable.pParsedTreasureClass[nTCStride].pEntries) {
-          Fog::Memory::FreeServerMemory(nullptr, (void*)sgtDataTable.pParsedTreasureClass[nTCStride].pEntries, ".\\DATATBLS\\MonsterTbls.cpp", 0x643, 0);
+          D2_FREE_POOL(nullptr, (void*)sgtDataTable.pParsedTreasureClass[nTCStride].pEntries);
         }
 
         nIdx++;
@@ -2416,7 +2428,7 @@ void __stdcall FreeParsedTC() {
       } while (nIdx < sgtDataTable.nParsedTreasureClassSize);
     }
 
-    Fog::Memory::FreeServerMemory(nullptr, sgtDataTable.pParsedTreasureClass, ".\\DATATBLS\\MonsterTbls.cpp", 0x647, 0);
+    D2_FREE_POOL(nullptr, sgtDataTable.pParsedTreasureClass);
     sgtDataTable.pParsedTreasureClass = 0;
     sgtDataTable.nParsedTreasureClassSize = 0;
 }
@@ -4465,7 +4477,7 @@ void __fastcall TXT_AllocTxt_monstats2(D2PoolManagerStrc * pMemory) {
 }
 
 // Breadth-first traversal of the monstypes.txt equiv1/equiv2/equiv3 parent-type hierarchy to test whether monster type nMonTypeId belongs to type nCheckTypeId. Returns 1 if found, 0 if not found, out-of-range, or stack depth exceeds 124. Despite its name, behaves as a monster-type membership test (analogous to ITEMTBLS_CheckItemTypeRecursive but for MonType with three equiv slots).
-BOOL __fastcall MONSTERTBLS_GetMonSeqFrameCount(int32_t nMonTypeId, int32_t nCheckTypeId) {
+BOOL MONSTERTBLS_GetMonSeqFrameCount(int32_t nMonTypeId, int32_t nCheckTypeId) {
     int nNewStackSize;
     int32_t typeStack[128];
     short int wEquiv3;
@@ -4512,11 +4524,9 @@ BOOL __fastcall MONSTERTBLS_GetMonSeqFrameCount(int32_t nMonTypeId, int32_t nChe
 }
 
 // Loads and compiles the montype.txt data table into sgtDataTable.pTxtMonType. Defines 7 field descriptors (type, equiv1-3, strsing, strplur, end), calls CompileTxt, then allocates and populates a bitfield matrix (nTxtMonTypeSize x ceil(nTxtMonTypeSize/32) words) encoding the transitive type-membership graph by calling MONSTERTBLS_GetMonSeqFrameCount for every (row, col) type pair.
-// [override: patch]
 void __fastcall TXT_AllocTxt_montype(D2PoolManagerStrc * pMemory) {
     BOOL bIsSubType;
-    int32_t nBitIdx;
-    uint32_t nColTypeIdx;
+    uint32_t nBitIdx;
     D2BinFieldInputStrc aFieldDefs[7];
     uint8_t* pBitArray;
     aFieldDefs[0].fpLinker = &sgtDataTable.pTxtMonTypeLink;
@@ -4558,7 +4568,7 @@ void __fastcall TXT_AllocTxt_montype(D2PoolManagerStrc * pMemory) {
     sgtDataTable.pTxtMonType = (D2MonTypeTxt*)DataTbls::CompileTxt(pMemory, "montype", aFieldDefs, &sgtDataTable.nTxtMonTypeSize, 0xc);
     sgtDataTable.nMonTypeEquivRowDwords = (int)(sgtDataTable.nTxtMonTypeSize + 0x1f + (sgtDataTable.nTxtMonTypeSize + 0x1f >> 0x1f & 0x1fU)) >> 5;
     size_t nBitMatrixBytes = sgtDataTable.nMonTypeEquivRowDwords * sgtDataTable.nTxtMonTypeSize * 4;
-    sgtDataTable.pTxtMonTypeUnknown = Fog::Memory::AllocServerMemory(nullptr, nBitMatrixBytes, ".\\DATATBLS\\MonsterTbls.cpp", 0xafc, 0);
+    sgtDataTable.pTxtMonTypeUnknown = D2_ALLOC_POOL(nullptr, nBitMatrixBytes);
     memset(sgtDataTable.pTxtMonTypeUnknown, 0, nBitMatrixBytes);
     int nRowTypeIdx = 0;
     int nMonTypeTotal = sgtDataTable.nTxtMonTypeSize;
@@ -4575,12 +4585,12 @@ void __fastcall TXT_AllocTxt_montype(D2PoolManagerStrc * pMemory) {
         do {
           bIsSubType = MONSTERTBLS_GetMonSeqFrameCount(nRowTypeIdx, nBitIdx);
           if (bIsSubType) {
-            *(uint32_t*)(pBitArray + ((int)nBitIdx >> 5) * 4 + nTypeIdx * 4) |= gadwBitMasks[nColTypeIdx & 0x1f];
+            *(uint32_t*)(pBitArray + ((int)nBitIdx >> 5) * 4 + nTypeIdx * 4) |= gadwBitMasks[nBitIdx & 0x1f];
             nMonTypeTotal = sgtDataTable.nTxtMonTypeSize;
           }
 
-          nBitIdx = nBitIdx + 1;
-        } while (nBitIdx < nMonTypeTotal);
+          nBitIdx++;
+        } while ((int)nBitIdx < nMonTypeTotal);
       }
 
       nRowTypeIdx++;
@@ -4594,7 +4604,7 @@ void __stdcall MONSTERTBLS_FreeMonPlaceTxt() {
 
     DataTbls::UnloadBin(sgtDataTable.pTxtMonType);
     Fog::Src::Excel::STRUCT_FreeTxtLink(sgtDataTable.pTxtMonTypeLink);
-    Fog::Memory::FreeServerMemory(nullptr, sgtDataTable.pTxtMonTypeUnknown, ".\\DATATBLS\\MonsterTbls.cpp", 0xb16, 0);
+    D2_FREE_POOL(nullptr, sgtDataTable.pTxtMonTypeUnknown);
     sgtDataTable.pTxtMonType = 0;
     sgtDataTable.pTxtMonTypeLink = 0;
 }
@@ -5434,7 +5444,7 @@ void __fastcall TXT_AllocTxt_monseq(D2PoolManagerStrc * pMemory) {
     }
 
     sgtDataTable.nMonSeqMonsterTblsSize = sgtDataTable.pTxtMonSeq[sgtDataTable.nTxtMonSeqSize - 1].sequence + 1;
-    sgtDataTable.pMonSeqMonsterTbls = (D2MonSeqMonsterTbls*)Fog::Memory::AllocServerMemory(nullptr, sgtDataTable.nMonSeqMonsterTblsSize * 0xc, ".\\DATATBLS\\MonsterTbls.cpp", 0xccc, 0);
+    sgtDataTable.pMonSeqMonsterTbls = (D2MonSeqMonsterTbls*)D2_ALLOC_POOL(nullptr, sgtDataTable.nMonSeqMonsterTblsSize * 0xc);
     memset(sgtDataTable.pMonSeqMonsterTbls, 0, sgtDataTable.nMonSeqMonsterTblsSize * 0xc);
     int i = 0;
     if (0 >= sgtDataTable.nTxtMonSeqSize) {
@@ -5465,7 +5475,7 @@ void __stdcall MONSTERTBLS_FreeMonPropTxt() {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(nullptr, sgtDataTable.pMonSeqMonsterTbls, ".\\DATATBLS\\MonsterTbls.cpp", 0xcea, 0);
+    D2_FREE_POOL(nullptr, sgtDataTable.pMonSeqMonsterTbls);
     sgtDataTable.nMonSeqMonsterTblsSize = 0;
 }
 

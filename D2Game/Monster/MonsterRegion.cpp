@@ -44,6 +44,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2MonsterRegionStrc) == 0x2e4, "D2_NEW(D2MonsterRegionStrc): the 32-bit layout must be the 0x2e4 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Game::Monster::MonsterRegion {
 
@@ -267,7 +281,7 @@ void __fastcall AllocMonsterRegion(D2PoolManagerStrc * pMemory, D2Row_D2MonsterR
 
       do {
         pMonRegionListEntry = (int*)((int)pMonsterRegionList + 4);
-        pMonsterRegion = (D2MonsterRegionStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x2e4, ".\\MONSTER\\MonsterRegion.cpp", 0x87, 0);
+        pMonsterRegion = D2_NEW_POOL(pMemory, D2MonsterRegionStrc);
         memset(pMonsterRegion, 0, 0x2e4);
         pLevelTxt = D2Common::DATATBLS::LvlTbls::TXT_Levels_GetLine(nSeedLow);
         pMonsterRegion->nAct = pLevelTxt->Act;
@@ -321,7 +335,7 @@ void __fastcall FreeMonsterRegion(D2PoolManagerStrc * pMemory, int32_t nParam) {
     do {
       nParam += 4;
       if (*(void**)nParam) {
-        Fog::Memory::FreeServerMemory(pMemory, *(void**)nParam, ".\\MONSTER\\MonsterRegion.cpp", 0xc5, 0);
+        D2_FREE_POOL(pMemory, *(void**)nParam);
       }
 
       i++;

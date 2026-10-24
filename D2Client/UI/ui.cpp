@@ -60,6 +60,7 @@
 #include "D2Common/D2RoomStrc.h"
 #include "D2Common/D2SeedStrc.h"
 #include "D2Common/D2SkillsTxt.h"
+#include "D2Common/D2StatInfoStrc.h"
 #include "D2Common/D2StatListExStrc.h"
 #include "D2Common/DATATBLS/DataTbls.h"
 #include "D2Common/DATATBLS/ItemStats.h"
@@ -119,6 +120,14 @@
 #include "D2Launch/MainMenus.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
 
 
 #ifndef RECON_FPTD_pfnEHHandlerRoutine
@@ -357,11 +366,11 @@ void __fastcall UI_SetTooltipAttributesWithCustomField(uint16_t * wszText, int32
 
 void __fastcall UI_StoreGlobalUIText(uint16_t * wszText, DWORD dwTextColor) {
     if (!wszText) {
-      gU16ImmunityStringBuffer1 = 0;
+      gU16ImmunityStringBuffer1[0] = 0;
       return;
     }
 
-    D2Lang::Unicode::UNISYS::STRING_CopyWideString((uint16_t*)&gU16ImmunityStringBuffer1, wszText);
+    D2Lang::Unicode::UNISYS::STRING_CopyWideString((uint16_t*)gU16ImmunityStringBuffer1, wszText);
     gnImmunityText1Color = dwTextColor;
 }
 
@@ -521,7 +530,7 @@ void UI_BuildUberBossImmunityString(D2UnitStrc * pUnit) {
       pImmunityTblEntry += 5;
     } while ((int)pImmunityTblEntry < (uintptr_t)((char*)&gaUberBossImmunities + sizeof(gaUberBossImmunities) + 4));
 
-    D2Lang::Unicode::UNISYS::STRING_CopyWideString((uint16_t*)&gU16ImmunityStringBuffer2, wszBuffer);
+    D2Lang::Unicode::UNISYS::STRING_CopyWideString((uint16_t*)gU16ImmunityStringBuffer2, wszBuffer);
     gnImmunityText2Color = 4;
 }
 
@@ -1842,8 +1851,8 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
           while (pWordWrapLine) {
             Dialog::AddStringData(Dialog::gpDialog, pWordWrapLine->wszLine, 0x18, 0, 4, 1, nullptr, 0);
             pNextWordWrapLine = pWordWrapLine->pNext;
-            Fog::Memory::FreeClientMemory(pWordWrapLine->wszLine, ".\\UI\\ui.cpp", 0x1827, 0);
-            Fog::Memory::FreeClientMemory(pWordWrapLine, ".\\UI\\ui.cpp", 0x1828, 0);
+            D2_FREE(pWordWrapLine->wszLine);
+            D2_FREE(pWordWrapLine);
             pWordWrapLine = pNextWordWrapLine;
             nTransactionType = (int32_t)pAllocCtx;
           }
@@ -2002,7 +2011,7 @@ void * __fastcall UI_LoadFileToMemory(LPCSTR szFilename, size_t * pSize) {
     DWORD dwFileSize = GetFileSize(hFile, (LPDWORD)0x0);
     size_t* pSizeTmp = __frame0.pSizeOut;
     *__frame0.pSizeOut = dwFileSize;
-    void* pBuffer = Fog::Memory::AllocClientMemory(dwFileSize, ".\\UI\\ui.cpp", 0x18ad, 0);
+    void* pBuffer = D2_ALLOC(dwFileSize);
     memset(pBuffer, 0, *pSizeTmp);
     /* LPOVERLAPPED lpOverlapped for ReadFile */ /* LPDWORD lpNumberOfBytesRead for ReadFile */ /* DWORD nNumberOfBytesToRead for ReadFile */ /* LPVOID lpBuffer for ReadFile */ /* HANDLE hFile for ReadFile */ ReadFile(hFile, pBuffer, *pSizeTmp, &__frame0.dwBytesRead, (LPOVERLAPPED)0x0);
     /* HANDLE hObject for CloseHandle */ CloseHandle(hFile);
@@ -4300,8 +4309,7 @@ void __fastcall UI_DrawTextCentered(int32_t nPositionXStart, int32_t nParam1, in
 
 int32_t UI_GetStatDescriptionStringId(int32_t nUnit) {
     eD2ItemTypes eItemType;
-    uint16_t auStack_114[2];
-    int aBonusStringIds[63];
+    D2StatStrc aBonusStringIds[32];
     int nCandidateStringId;
     int i = 0;
     if (!nUnit) {
@@ -4316,22 +4324,22 @@ int32_t UI_GetStatDescriptionStringId(int32_t nUnit) {
       pLeftHandItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pPlayerInventory, 5);
     }
 
-    int32_t nBonusCount = D2Common::Stats::StatsEx::STATLIST_GetItemStatBonusValues((D2UnitStrc*)nUnit, 0x15c, (int*)auStack_114, 0x20);
+    int32_t iVar1 = D2Common::Stats::StatsEx::STATLIST_GetItemStatBonusValues((D2UnitStrc*)nUnit, 0x15c, aBonusStringIds, 0x20);
     int nBestStringId = 0;
-    if (0 >= nBonusCount) {
+    if (0 >= iVar1) {
       return nBestStringId;
     }
 
     do {
       uint32_t bIsOfType;
-      eItemType = (eD2ItemTypes)auStack_114[i * 4];
-      nCandidateStringId = aBonusStringIds[i * 2];
+      eItemType = (eD2ItemTypes)(uint16_t)aBonusStringIds[i].wSubIndex;
+      nCandidateStringId = aBonusStringIds[i].nStatValue;
       if (eItemType == ITEMTYPE_None1 || (pLeftHandItem && (bIsOfType = D2Common::ITEMS::Items::ITEMS_IsA(pLeftHandItem, eItemType) , bIsOfType != 0) || pRightHandItem && (bIsOfType = D2Common::ITEMS::Items::ITEMS_IsA(pRightHandItem, eItemType) , bIsOfType != 0)) && nBestStringId < nCandidateStringId) {
         nBestStringId = nCandidateStringId;
       }
 
       i++;
-    } while (i < nBonusCount);
+    } while (i < iVar1);
 
     return nBestStringId;
 }
@@ -5598,7 +5606,7 @@ void __fastcall UI_HandleNpcInteractionPacket(uint8_t nUpdateType, int32_t nUnit
       Text::TEXT_ShowNpcDialog(pNpcUnit, wMsgType0, 1);
       npcmenu::NPCMENU_AddHandledMessageId(wMsgType0);
       dwNextMsgType1 = npcmenu::NPCMENU_FindNextUnhandledMessage(wNextMsgType);
-      gnNpcMenuTradeActionGold = (uint16_t)dwNextMsgType1;
+      gnNpcMenuTradeActionGold = (int16_t)dwNextMsgType1;
       GAME::Msg::NET_D2GS_CLIENT_Send_INT_INT(0x31, pNpcUnit->nUnitGUID, dwMsgType & 0xffff);
       gnNpcMenuActiveMode = 1;
       Text::TEXT_SetScrollCompleteCallback((pfnTextScrollComplete)npcmenu::NPCMENU_OnScrollComplete, nullptr);
@@ -5621,7 +5629,7 @@ void __fastcall UI_HandleNpcInteractionPacket(uint8_t nUpdateType, int32_t nUnit
       Draw::UI_CloseActivePanels(0, 0);
       gnNpcMenuRepairCostGold = wMsgType1;
       dwMsgType = npcmenu::NPCMENU_FindNextUnhandledMessage(wMsgType1);
-      gnNpcMenuTradeActionGold = (uint16_t)dwMsgType;
+      gnNpcMenuTradeActionGold = (int16_t)dwMsgType;
       npcmenu::NPCMENU_OpenInteraction(pNpcUnit);
       gnNpcMenuShopMode = 0;
       return;

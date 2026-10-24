@@ -39,6 +39,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnUnitProximityTest
 #define RECON_FPTD_pfnUnitProximityTest
@@ -955,7 +963,7 @@ void __fastcall AllocRoomCollisionGrid(D2DrlgActStrc * pMemPool, D2RoomStrc * pR
     D2RoomStrc* pRoomSaved = pRoom;
     DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &sRoomCoords);
     int nRoomCoordsCount = sRoomCoords.dwYSize * sRoomCoords.dwXSize;
-    D2RoomCollisionGridStrc* pCollisionMapNew = (D2RoomCollisionGridStrc*)Fog::Memory::AllocServerMemory((D2PoolManagerStrc*)pMemPool, (nRoomCoordsCount + 0x12 + sRoomCoords.dwYSize * 2) * 2, ".\\COLLISN\\Collisn.cpp", 0x185, 0);
+    D2RoomCollisionGridStrc* pCollisionMapNew = (D2RoomCollisionGridStrc*)D2_ALLOC_POOL((D2PoolManagerStrc*)pMemPool, (nRoomCoordsCount + 0x12 + sRoomCoords.dwYSize * 2) * 2);
     D2RoomStrc* pRoomAdj = pRoomSaved;
     D2DrlgRoomCoordsStrc* pCoordsIter = &sRoomCoords;
     int* pCollisionMapWriter = (int*)pCollisionMapNew;
@@ -998,7 +1006,7 @@ void __fastcall FreeRoomCollisionGrid(D2PoolManagerStrc * pMemory, D2RoomStrc * 
       return;
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pDrlgRoomCollsionMap, ".\\COLLISN\\Collisn.cpp", 0x1c1, 0);
+    D2_FREE_POOL(pMemory, pDrlgRoomCollsionMap);
     DUNGEON::Dungeon::DRLGROOM_SetCollisionGridInRoom(pRoom, nullptr);
 }
 
@@ -1367,15 +1375,14 @@ void __fastcall AddCollision_BoundingBox(D2RoomStrc * pRoom, D2BoundingBoxStrc *
     } while (iBboxRemaining);
 }
 
-D2BoundingBoxStrc * __fastcall BoundingBox(int32_t nX, uint32_t nVectorY, int32_t nY, uint32_t nVectorX) {
-    D2BoundingBoxStrc* nBoundingBox;
+D2BoundingBoxStrc * __fastcall BoundingBox(D2BoundingBoxStrc * pBox, int32_t nX, uint32_t nVectorY, int32_t nY, uint32_t nVectorX) {
     int nHalfWidth = nX - (nVectorX >> 1);
-    nBoundingBox->nLeft = nHalfWidth;
-    nBoundingBox->nRight = nHalfWidth - 1 + nVectorX;
+    pBox->nLeft = nHalfWidth;
+    pBox->nRight = nHalfWidth - 1 + nVectorX;
     nHalfWidth = nY - (nVectorY >> 1);
-    nBoundingBox->nBottom = nHalfWidth;
-    nBoundingBox->nTop = nHalfWidth - 1 + nVectorY;
-    return nBoundingBox;
+    pBox->nBottom = nHalfWidth;
+    pBox->nTop = nHalfWidth - 1 + nVectorY;
+    return pBox;
 }
 
 // ORs the collision flags of the center cell plus its four cardinal neighbours (N/S/E/W) at (nX,nY) in the room collision grid, masked by eCollisionFlag. Handles edge/boundary cases by fetching adjacent-room flags via CheckCollision_BlockPlayerMissile_Internal1 when any neighbour lies outside the current room grid. Returns the combined masked flags, or eCollisionFlag if the room/grid is missing.

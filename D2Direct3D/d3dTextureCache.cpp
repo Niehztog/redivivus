@@ -19,6 +19,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Direct3D::d3dTextureCache {
 
@@ -245,7 +249,7 @@ void __fastcall D3DTEXCACHE_Free(D3DTextureCacheStrc * pCache, BOOL bInvalidateA
         }
       }
       if (pCache->pNodeBuffer) {
-        Fog::Memory::FreeClientMemory(pCache->pNodeBuffer, ".\\Src\\d3dTextureCache.cpp", 0x94, 0);
+        D2_FREE(pCache->pNodeBuffer);
         pCache->pNodeBuffer = 0;
       }
 

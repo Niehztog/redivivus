@@ -52,6 +52,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnVoidNoArgCallback
 #define RECON_FPTD_pfnVoidNoArgCallback
@@ -168,7 +176,7 @@ void __stdcall D2WINMAIN_FreeLeadingFormControls() {
 
     while (!(D2Client::Forms::pFormUnknown->dwState & 1U)) {
       pDVar1 = D2Client::Forms::pFormUnknown->pNext;
-      Fog::Memory::FreeClientMemory(D2Client::Forms::pFormUnknown, ".\\Src\\D2WinMain.cpp", 0x25a, 0);
+      D2_FREE(D2Client::Forms::pFormUnknown);
       D2Client::Forms::pFormUnknown = pDVar1;
       if (!pDVar1) {
         return;
@@ -181,7 +189,7 @@ void __stdcall D2WINMAIN_FreeLeadingFormControls() {
       }
 
       pDVar1 = D2Client::Forms::pFormUnknown->pNext;
-      Fog::Memory::FreeClientMemory(D2Client::Forms::pFormUnknown, ".\\Src\\D2WinMain.cpp", 0x263, 0);
+      D2_FREE(D2Client::Forms::pFormUnknown);
       D2Client::Forms::pFormUnknown = pDVar1;
     } while (pDVar1);
 }
@@ -907,14 +915,14 @@ void __fastcall D2WIN_TakeThrottledScreenshot(LPCSTR szFileName) {
     __frame0.nScreenWidth = 0;
     __frame0.nScreenHeight = 0;
     D2gfx::D2GFX::D2GFX_GetScreenSize(&__frame0.nScreenWidth, &__frame0.nScreenHeight);
-    uint8_t* pBuffer = (uint8_t*)Fog::Memory::AllocClientMemory(__frame0.nScreenHeight * __frame0.nScreenWidth * 3, ".\\Src\\D2WinMain.cpp", 0x6a7, 0);
+    uint8_t* pBuffer = (uint8_t*)D2_ALLOC(__frame0.nScreenHeight * __frame0.nScreenWidth * 3);
     BOOL bGotBackBuffer = D2gfx::D2GFX::D2GFX_GetBackBuffer(pBuffer);
     if (bGotBackBuffer) {
       D2WIN_SaveScreenshotToFile(pBuffer, szFileName, __frame0.nScreenWidth, __frame0.nScreenHeight);
     }
 
     gdwLastScreenshotTick = dwTickCount;
-    Fog::Memory::FreeClientMemory(pBuffer, ".\\Src\\D2WinMain.cpp", 0x6b4, 0);
+    D2_FREE(pBuffer);
 }
 
 void __stdcall D2WIN_ToggleMusicOptions(int32_t nParam) {
@@ -1294,14 +1302,14 @@ void __stdcall TakeScreenshot() {
     __frame0.nScreenWidth = 0;
     __frame0.nScreenHeight = 0;
     D2gfx::D2GFX::D2GFX_GetScreenSize(&__frame0.nScreenWidth, &__frame0.nScreenHeight);
-    uint8_t* pBuffer = (uint8_t*)Fog::Memory::AllocClientMemory(__frame0.nScreenHeight * __frame0.nScreenWidth * 3, ".\\Src\\D2WinMain.cpp", 0x6a7, 0);
+    uint8_t* pBuffer = (uint8_t*)D2_ALLOC(__frame0.nScreenHeight * __frame0.nScreenWidth * 3);
     BOOL bGotBackBuffer = D2gfx::D2GFX::D2GFX_GetBackBuffer(pBuffer);
     if (bGotBackBuffer) {
       D2WIN_SaveScreenshotToFile(pBuffer, (LPCSTR)0x0, __frame0.nScreenWidth, __frame0.nScreenHeight);
     }
 
     gdwLastScreenshotTick = dwTickCount;
-    Fog::Memory::FreeClientMemory(pBuffer, ".\\Src\\D2WinMain.cpp", 0x6b4, 0);
+    D2_FREE(pBuffer);
 }
 
 void __stdcall D2WIN_Unused_Placeholder_5(int32_t nParam) {

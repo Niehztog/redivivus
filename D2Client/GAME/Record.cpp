@@ -19,6 +19,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2GameRecordStrc) == 0x1f4c, "D2_NEW(D2GameRecordStrc): the 32-bit layout must be the 0x1f4c bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_RecordCleanupFn
 #define RECON_FPTD_RecordCleanupFn
@@ -33,7 +47,7 @@ namespace D2Client::GAME::Record {
 
 // @sourcefile .\GAME\Record.cpp
 void __stdcall AllocGameRecord() {
-    D2GameRecordStrc* pRecord = (D2GameRecordStrc*)Fog::Memory::AllocClientMemory(0x1f4c, ".\\GAME\\Record.cpp", 0x35, 0);
+    D2GameRecordStrc* pRecord = D2_NEW(D2GameRecordStrc);
     pRecord->nEntrySize = 0;
     pRecord->nPlaybackIndex = 0;
     gpCurrentGameRecord->pNext = pRecord;
@@ -170,7 +184,7 @@ void __stdcall LoadGameRecordFromFile() {
       D2GameRecordStrc* pBlock;
       do {
         if (nBlockIndex) {
-          pBlock = (D2GameRecordStrc*)Fog::Memory::AllocClientMemory(0x1f4c, ".\\GAME\\Record.cpp", 0x35, 0);
+          pBlock = D2_NEW(D2GameRecordStrc);
           pBlock->nEntrySize = 0;
           pBlock->nPlaybackIndex = 0;
           gpCurrentGameRecord->pNext = pBlock;
@@ -202,7 +216,7 @@ void __stdcall FreeGameRecord() {
     while (pMemoryToFree) {
       D2GameRecordStrc* pNextRecord;
       pNextRecord = pMemoryToFree->pNext;
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\GAME\\Record.cpp", 0x120, 0);
+      D2_FREE(pMemoryToFree);
       pMemoryToFree = pNextRecord;
     }
 }

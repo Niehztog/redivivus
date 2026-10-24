@@ -25,6 +25,7 @@
 #include "D2Common/D2RoomStrc.h"
 #include "D2Common/D2SkillStrc.h"
 #include "D2Common/D2SkillsTxt.h"
+#include "D2Common/D2StatInfoStrc.h"
 #include "D2Common/D2StatListExStrc.h"
 #include "D2Common/DATATBLS/DataTbls.h"
 #include "D2Common/DATATBLS/ItemStats.h"
@@ -101,7 +102,7 @@ void __fastcall SKILLDESC_FormatItemStatLine(int32_t pUnit, uint16_t * wszText, 
     uint32_t nClassIndex;
     uint16_t* wszStatName;
     int i;
-    int anStatValues[256];
+    D2StatStrc anStatValues[128];
     uint16_t wString1[128];
     uint16_t wString2[128];
     char szTempBuf[12];
@@ -136,8 +137,8 @@ void __fastcall SKILLDESC_FormatItemStatLine(int32_t pUnit, uint16_t * wszText, 
 
     do {
       uint16_t wStatNameStrId;
-      wStatId = *(uint16_t*)(anStatValues + i * 2);
-      nStatValue = anStatValues[i * 2 + 1];
+      wStatId = anStatValues[i].wSubIndex;
+      nStatValue = anStatValues[i].nStatValue;
       wString2[0] = L'\0';
       wString1[0] = L'\0';
       wStatNameStrId = SKILLDESC_GetStatNameString((uint32_t)wStatId, 0);
@@ -986,7 +987,7 @@ BOOL __stdcall SKILLDESC_CalcStatGroupMinMax(D2UnitStrc * pUnit, D2StatListExStr
 // The stack parameter slots are reused for locale-string pointers later in the body (address-taken), so some reads cast them.
 BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExStrc * pStatList, int32_t nStatId, int32_t nStatParam, int32_t nStatValue, uint16_t * wszOutputBuffer) {
     // Static local variables (originally global data)
-    static uint8_t gaMonsterBoss_Flags_Lo = -0xd;
+    static uint16_t gaMonsterBoss_Flags_Lo[4] = { 0x52f3, 0x52f5, 0x52f2, 0x52f4 };
 
     uint16_t wStrId;
     int32_t nRepairCostFinal;
@@ -1260,7 +1261,7 @@ BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatListExSt
         nStatParam = 3;
       }
 
-      wszLocaleText = D2Lang::StrTable::strtable::GetLocaleString(*(uint16_t*)(&gaMonsterBoss_Flags_Lo + nStatParam * 2));
+      wszLocaleText = D2Lang::StrTable::strtable::GetLocaleString(gaMonsterBoss_Flags_Lo[nStatParam]);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszLocaleText);
       wszLocaleText = D2Lang::StrTable::strtable::GetLocaleString(0xf9e);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszOutputBuffer, wszLocaleText);
@@ -4786,8 +4787,6 @@ void __fastcall SKILLDESC_DrawSkillDmgComplex(D2UnitStrc * pUnit, D2SkillStrc * 
 
 void __fastcall SKILLDESC_DrawSkillDmgElem2H(D2UnitStrc * pUnit, D2SkillStrc * pSkill, D2SkillsTxt * pSkillsTxt, int32_t nSkillLevel, int32_t nXLeft, int32_t nY, int32_t nXRight) {
     int nSynergyMaxScaled;
-    D2UnitStrc* pUnitUnused = pUnit;
-    D2SkillStrc* pSkillUnused = pSkill;
     if (!(pSkill && pSkillsTxt)) {
       return;
     }
@@ -4795,7 +4794,7 @@ void __fastcall SKILLDESC_DrawSkillDmgElem2H(D2UnitStrc * pUnit, D2SkillStrc * p
     int nMaxDamage = 0;
     int nMinDamage = 0;
     uint32_t nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
-    SKILLDESC_DrawElemDamageWithRange(pUnitUnused, &nMaxDamage, &nMinDamage, (int32_t*)&nElemType, nullptr, pSkillUnused, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
+    SKILLDESC_DrawElemDamageWithRange(pUnit, &nMaxDamage, &nMinDamage, (int32_t*)&nElemType, nullptr, pSkill, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
     int32_t nDamageShifted = D2Common::Skills::SKILL_CalcMinDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 0);
     nMaxDamage += nDamageShifted >> 8;
     nDamageShifted = D2Common::Skills::SKILL_CalcMaxDamage(pUnit, (int)pSkillsTxt->skill, nSkillLevel, 0);
@@ -5064,8 +5063,6 @@ void __fastcall SKILLDESC_DrawSkillDmgKick(D2UnitStrc * pUnit, D2SkillStrc * pSk
     int nMastery;
     int32_t nBonusApplied;
     uint32_t nElemTypeOrPhys;
-    D2UnitStrc* pUnitUnused = pUnit;
-    D2SkillStrc* pSkillUnused = pSkill;
     int nMinDmgStat;
     eD2UnitStat eUnitStat;
     if (!(pSkill && pSkillsTxt)) {
@@ -5076,7 +5073,7 @@ void __fastcall SKILLDESC_DrawSkillDmgKick(D2UnitStrc * pUnit, D2SkillStrc * pSk
     int nMaxDamage = 0;
     D2UnitStrc* pUnitSaved = pUnit;
     uint32_t nElemType = SKILLDESC_ElemTypeToColorIndex((eD2ElementalDamageTypeDWORD)pSkillsTxt->EType);
-    SKILLDESC_DrawElemDamageWithRange(pUnitUnused, &nMinDamage, &nMaxDamage, (int32_t*)&nElemType, nullptr, pSkillUnused, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
+    SKILLDESC_DrawElemDamageWithRange(pUnit, &nMinDamage, &nMaxDamage, (int32_t*)&nElemType, nullptr, pSkill, (uint32_t)(uint8_t)pSkillsTxt->SrcDam);
     D2UnitStrc* pUnitWorking = pUnitSaved;
     D2UnitStrc* pWeapon = D2Common::Units::GetWeaponBySkill(pUnitSaved, 1);
     if (!pWeapon || (nHandedness = D2Common::INVENTORY::Inventory::INVENTORY_GetWeaponHandedness(pUnitWorking, pUnitWorking->pInventory) , nHandedness != 2)) {

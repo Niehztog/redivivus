@@ -113,18 +113,16 @@ int32_t GetMappedValue(::IgnoreList * pThis, char * szKey, char * szOut, int32_t
 int32_t RemoveByPattern(::IgnoreList * pThis, char * szPattern) {
     bool _bIsEnabled;
     bool bIsEnabled;
-    ::StringEntryNode* pEntry;
-    char szParsed;
-    uint8_t auStack_107[255];
-    uint32_t uSecCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    char szParsed[256];
     if (szPattern && *szPattern != '\0') {
+      ::StringEntryNode* pEntry;
       _bIsEnabled = pThis->_vfptr->GetPersistentSetting(pThis);
       if (_bIsEnabled) {
-        szParsed = '\0';
-        memset(auStack_107, 0, 0xff);
-        IGNORELIST_ParsePattern(szPattern, &szParsed, 0x100);
-        if (szParsed != '\0') {
-          pEntry = pThis->tIgnoredPatterns.Ptr(&szParsed);
+        szParsed[0] = '\0';
+        memset(szParsed + 1, 0, 0xff);
+        IGNORELIST_ParsePattern(szPattern, szParsed, 0x100);
+        if (szParsed[0] != '\0') {
+          pEntry = pThis->tIgnoredPatterns.Ptr(szParsed);
           if (pEntry) {
             pThis->tIgnoredPatterns.Unlink(pEntry);
             IgnoreList::SaveToFile(pThis);
@@ -226,36 +224,32 @@ int32_t CheckIgnored(::IgnoreList * pThis, char * szPlayerName) {
     bool _bIsEnabled;
     bool bIsEnabled;
     bool bFound;
-    char szPrefix;
-    uint8_t auStack_207[255];
-    char szSuffix;
-    uint8_t auStack_107[255];
-    uint32_t uSecCookie;
-    uSecCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    char szSuffix[256];
     if (!(!szPlayerName || *szPlayerName == '\0')) {
+      char szPrefix[256];
       _bIsEnabled = pThis->_vfptr->GetPersistentSetting(pThis);
       if (_bIsEnabled) {
-        szSuffix = '\0';
-        memset(auStack_107, 0, 0xff);
-        szPrefix = '\0';
-        memset(auStack_207, 0, 0xff);
-        IGNORELIST_ExtractPrefix(szPlayerName, &szPrefix, 0x100);
-        pThis->_vfptr->GetMappedValue(pThis, &szPrefix, &szSuffix, 0x100);
-        if (szSuffix == '\0') {
-          IGNORELIST_ExtractSuffix(szPlayerName, (uintptr_t)&szSuffix, 0x100);
-          if (szSuffix != '\0') {
+        szSuffix[0] = '\0';
+        memset(szSuffix + 1, 0, 0xff);
+        szPrefix[0] = '\0';
+        memset(szPrefix + 1, 0, 0xff);
+        IGNORELIST_ExtractPrefix(szPlayerName, szPrefix, 0x100);
+        pThis->_vfptr->GetMappedValue(pThis, szPrefix, szSuffix, 0x100);
+        if (szSuffix[0] == '\0') {
+          IGNORELIST_ExtractSuffix(szPlayerName, (int32_t)szSuffix, 0x100);
+          if (szSuffix[0] != '\0') {
             goto check_alternate_name;
           }
         } else {
           check_alternate_name:
-          _bIsEnabled = CheckCharNameIgnored(pThis, &szSuffix);
+          _bIsEnabled = CheckCharNameIgnored(pThis, szSuffix);
           if (_bIsEnabled) {
             Fog::Debug::GuardStack();
             return 1;
           }
         }
-        if (szPrefix != '\0') {
-          _bIsEnabled = CheckCharNameIgnored(pThis, &szPrefix);
+        if (szPrefix[0] != '\0') {
+          _bIsEnabled = CheckCharNameIgnored(pThis, szPrefix);
           if (_bIsEnabled) {
             Fog::Debug::GuardStack();
             return 1;
@@ -298,22 +292,20 @@ void Destructor(::IgnoreList * pThis) {
 
 // Adds a name pattern to the ignore list and returns the result. Tail-calls Fog::Debug::GuardStack, which returns its argument, so the value is already in EAX; typed void the reconstruction dropped it.
 int32_t AddByPattern(::IgnoreList * pThis, char * szPattern) {
-    int32_t bCanAdd;
     ::StringEntryNode* pExistingEntry;
-    char szParsedPattern;
-    uint8_t auStack_107[255];
-    uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    char szParsedPattern[256];
     if (szPattern && *szPattern != '\0') {
+      int32_t bCanAdd;
       bCanAdd = pThis->_vfptr->GetPersistentSetting(pThis);
       if (bCanAdd) {
-        szParsedPattern = '\0';
-        memset(auStack_107, 0, 0xff);
-        IGNORELIST_ParsePattern(szPattern, &szParsedPattern, 0x100);
-        if (szParsedPattern != '\0') {
-          pExistingEntry = pThis->tIgnoredPatterns.Ptr(&szParsedPattern);
+        szParsedPattern[0] = '\0';
+        memset(szParsedPattern + 1, 0, 0xff);
+        IGNORELIST_ParsePattern(szPattern, szParsedPattern, 0x100);
+        if (szParsedPattern[0] != '\0') {
+          pExistingEntry = pThis->tIgnoredPatterns.Ptr(szParsedPattern);
           if (!pExistingEntry) {
-            pThis->tIgnoredPatterns.New(&szParsedPattern, 0, 0);
-            AppendLineToFile(pThis, &szParsedPattern);
+            pThis->tIgnoredPatterns.New(szParsedPattern, 0, 0);
+            AppendLineToFile(pThis, szParsedPattern);
           }
 
           Fog::Debug::GuardStack();

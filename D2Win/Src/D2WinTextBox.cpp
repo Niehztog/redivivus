@@ -26,6 +26,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinTextBox) == 0xac, "D2_NEW(D2WinTextBox): the 32-bit layout must be the 0xac bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_OnPress
 #define RECON_FPTD_OnPress
@@ -119,13 +133,13 @@ void __fastcall D2WINTEXTBOX_ClearAllLines(::D2WinTextBox * pTextBox) {
       do {
         pMemoryToFree = *(void**)((int)pMemoryToFree_00 + nColIdx * 4);
         if (pMemoryToFree) {
-          Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\D2WinTextBox.cpp", 0xe7, 0);
+          D2_FREE(pMemoryToFree);
         }
 
         nColIdx++;
       } while (nColIdx < 5);
 
-      Fog::Memory::FreeClientMemory(pMemoryToFree_00, ".\\Src\\D2WinTextBox.cpp", 0xe9, 0);
+      D2_FREE(pMemoryToFree_00);
       pMemoryToFree_00 = pNextLineNode;
     }
 
@@ -234,7 +248,7 @@ void __fastcall D2WINTEXTBOX_ClearLineRow(::D2WinTextBox * pnParam, int32_t nRow
           do {
             pMemoryToFree = *(void**)(pCurLineNode + nCurNode * 4);
             if (pMemoryToFree) {
-              Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\D2WinTextBox.cpp", 0x231, 0);
+              D2_FREE(pMemoryToFree);
               *(uint32_t*)(pCurLineNode + nCurNode * 4) = 0;
             }
 
@@ -1219,7 +1233,7 @@ int __fastcall D2WINTEXTBOX_GetScrollbarStyle(::D2WinTextBox * pTextBox) {
     int32_t nScrollPageSize;
     int nScrollbarPosX;
     int nScrollbarPosY;
-    ::D2WinTextBox* pNew = (::D2WinTextBox*)Fog::Memory::AllocClientMemory(0xac, ".\\Src\\D2WinTextBox.cpp", 99, 0);
+    ::D2WinTextBox* pNew = D2_NEW(::D2WinTextBox);
     memset(pNew, 0, 0xac);
     if (nParam & 4 && !pnParam2) {
       nWidth += -0x1a;
@@ -1397,7 +1411,7 @@ uint32_t __fastcall SetText(::D2WinTextBox * pTextBox, uint16_t * szText, int32_
           }
         }
 
-        pLineEntry = (int*)Fog::Memory::AllocClientMemory(0x20, ".\\Src\\D2WinTextBox.cpp", 0x15d, 0);
+        pLineEntry = (int*)D2_ALLOC(0x20);
         nStrLen = 0;
         if (nAlignment == 2) {
           nSourceLine = 0x161;
@@ -1488,8 +1502,8 @@ void __fastcall D2WINTEXTBOX_AddLines(::D2WinTextBox * pnParam, uint16_t * wszTe
         nLine = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszText);
         if (0 < nRepeatCount) {
           do {
-            pNewEntry = (uint32_t*)Fog::Memory::AllocClientMemory(0x20, ".\\Src\\D2WinTextBox.cpp", 0x1af, 0);
-            pAllocedText = (uint16_t*)Fog::Memory::AllocClientMemory(nLine * 2 + 2, ".\\Src\\D2WinTextBox.cpp", 0x1b0, 0);
+            pNewEntry = (uint32_t*)D2_ALLOC(0x20);
+            pAllocedText = (uint16_t*)D2_ALLOC(nLine * 2 + 2);
             *pNewEntry = (uint32_t)(uintptr_t)pAllocedText;
             D2Lang::Unicode::UNISYS::STRING_CopyWideString(pAllocedText, wszText);
             memset(pNewEntry + 1, 0, 4 * sizeof(pNewEntry[0]));

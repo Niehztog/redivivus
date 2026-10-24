@@ -7,6 +7,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Glide::glTextureCache {
 
@@ -20,7 +28,7 @@ int __fastcall GLTEXCACHE_Initialize(GlTextureCacheStrc * pCache, int nVramStart
     pCache->dwEntrySize = dwTextureSize;
     size_t nAllocSize = nEntryCount * 0x1c;
     pCache->nMaxEntries = nEntryCount;
-    uint8_t* pNodeArray = (uint8_t*)Fog::Memory::AllocClientMemory(nAllocSize, ".\\Src\\glTextureCache.cpp", 0x2d, 0);
+    uint8_t* pNodeArray = (uint8_t*)D2_ALLOC(nAllocSize);
     pCache->pNodes = pNodeArray;
     memset(pNodeArray, 0, nAllocSize);
     int iNode = 0;
@@ -251,7 +259,7 @@ void __fastcall GLTEXCACHE_Destroy(GlTextureCacheStrc * pCacheData, GlTextureCac
       }
     }
     if (pCacheData->pNodes) {
-      Fog::Memory::FreeClientMemory(pCacheData->pNodes, ".\\Src\\glTextureCache.cpp", 0x7f, 0);
+      D2_FREE(pCacheData->pNodes);
       pCacheData->pNodes = 0;
     }
 

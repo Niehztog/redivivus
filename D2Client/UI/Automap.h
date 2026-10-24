@@ -47,10 +47,10 @@ struct D2AutomapFileEntryStrc {
     /* 0x10 */ uint32_t dwWallDataSize; // read from the .map file with a 4-byte ReadFile (AUTOMAP_LoadLayerFromFile)
     /* 0x14 */ uint32_t dwObjectDataSize; // read from the .map file with a 4-byte ReadFile (AUTOMAP_LoadLayerFromFile)
     /* 0x18 */ uint32_t dwExtraDataSize; // read from the .map file with a 4-byte ReadFile (AUTOMAP_LoadLayerFromFile)
-    /* 0x1C */ int nReserved0;
-    /* 0x20 */ int nReserved1;
-    /* 0x24 */ int nReserved2;
-    /* 0x28 */ int nReserved3;
+    /* 0x1C */ void * pFloorData; // serialized floor cells (AUTOMAP_SaveCurrentLayer); written after the header by AUTOMAP_SaveLayerToFile, not stored in the file
+    /* 0x20 */ void * pWallData; // serialized wall cells; save side only
+    /* 0x24 */ void * pObjectData; // serialized object cells; save side only
+    /* 0x28 */ void * pExtraData; // serialized extra cells; save side only
 };
 
 struct D2AutomapRelatedTxt {
@@ -142,7 +142,7 @@ void __stdcall AUTOMAP_RevealTile(struct D2RoomExStrc * pRoomEx, struct D2Automa
 void __stdcall AUTOMAP_AddCellByCoords(int16_t nCellNo, int16_t nPixelX, int16_t nPixelY, struct D2AutomapCellStrc * pAutomapCell1, struct D2AutomapCellStrc * pAutomapCell2);
 void __stdcall AUTOMAP_AddCellForUnit(int32_t nParam, struct D2AutomapCellStrc * pAutomapCell, struct D2UnitStrc * pUnit);
 HANDLE __stdcall AUTOMAP_GetMapFileHandle();
-void AUTOMAP_SaveLayerToFile(int * pnParam);
+void AUTOMAP_SaveLayerToFile(struct D2AutomapFileEntryStrc * pEntry);
 void __fastcall AUTOMAP_CalcCellTreeSize(struct D2AutomapCellStrc * pAutomapCell, size_t * nSize);
 void __fastcall AUTOMAP_SerializeCellTree(struct D2AutomapCellStrc * pAutomapCell);
 // @sourcefile .\UI\automap.cpp

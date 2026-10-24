@@ -394,7 +394,7 @@ int __stdcall PLRSAVE_RestoreEquippedItem(::SGAMEDATA * pGame, D2UnknownItemRela
         pItem->eUnitFlags &= ~UNITFLAG_ISRESURRECT;
         D2Common::INVENTORY::Inventory::UpsertToUpdateList(pCurInventory, pItem);
         D2Common::Units::RefreshInventory(pUnit, 1);
-        Quests::QUESTS::QUEST_OnItemPickedUp(pItem);
+        Quests::QUESTS::QUEST_OnItemPickedUp(pGame, pUnit, pItem);
         goto item_restored;
       }
       if (eItemMode != TownWalk) {
@@ -505,7 +505,7 @@ int __stdcall PLRSAVE_RestoreItemToBodyLoc(D2UnitStrc * pUnit, ::SGAMEDATA * pGa
 
         D2Common::INVENTORY::Inventory::UpsertToUpdateList(pInventory, pUnit);
         D2Common::Units::RefreshInventory(pUnit2, 1);
-        Quests::QUESTS::QUEST_OnItemPickedUp(pUnit);
+        Quests::QUESTS::QUEST_OnItemPickedUp(pGame, pUnit2, pUnit);
         return 0;
       }
       if (eAnimMode != TownWalk) {
@@ -2600,8 +2600,15 @@ int32_t __fastcall SERVER_LoadPlayerFromSaveFile(::SGAMEDATA * pGame, D2ClientSt
 }
 
 int32_t __fastcall CLIENT_ReadAndLoadSaveFile(D2ClientStrc * pClient, D2RoomStrc * dwParam, D2UnitStrc * * ppUnit, ::SGAMEDATA * pGame, char * charName, uint32_t nX, uint32_t nY) {
+    // Frame -9724..-1532 is ONE object: a call writes 8192 literal bytes starting at &saveBuffer.
+    // Separate locals let the compiler reorder them, and the write would run off the frame.
+    struct __frame0_t {
+      D2CharSelCompStrc saveBuffer[14];
+      uint8_t __pad7896[296];
+    };
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8192, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
     size_t nBytesRead;
-    D2CharSelCompStrc saveBuffer[14];
     char saveDirectory[1024];
     char saveFile[500];
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
@@ -2612,10 +2619,10 @@ int32_t __fastcall CLIENT_ReadAndLoadSaveFile(D2ClientStrc * pClient, D2RoomStrc
     sprintf(saveFile, "%s%s.d2s", saveDirectory, charName);
     FILE* pFile = fopen(saveFile, "rb");
     if (pFile) {
-      nBytesRead = fread(saveBuffer, 1, 0x2000, pFile);
+      nBytesRead = fread(__frame0.saveBuffer, 1, 0x2000, pFile);
       fclose(pFile);
       if (nBytesRead) {
-        nLoadResult = SERVER_LoadPlayerFromSaveFile(pGame, pClient, (D2SaveFileHeaderStrc*)saveBuffer, nBytesRead, &pLoadedUnit, (uint32_t)dwParam, nX, nY);
+        nLoadResult = SERVER_LoadPlayerFromSaveFile(pGame, pClient, (D2SaveFileHeaderStrc*)__frame0.saveBuffer, nBytesRead, &pLoadedUnit, (uint32_t)dwParam, nX, nY);
         if (nLoadResult) {
           Fog::Debug::GuardStack();
           return nLoadResult;
@@ -2653,17 +2660,15 @@ int32_t __fastcall CLIENT_LoadPlayerFromDisk(::SGAMEDATA * pGame, uint32_t dwPar
     return nResult;
 }
 
-int32_t __stdcall CLIENT_LoadPlayerFromNetworkSave(::SGAMEDATA * pGame, uint32_t dwParam1, uint32_t dwParam2, uint32_t dwParam3) {
-    D2ClientStrc* pClientLocal;
-    D2UnitStrc** ppUnit;
+int32_t __stdcall CLIENT_LoadPlayerFromNetworkSave(::SGAMEDATA * pGame, D2ClientStrc * pClient, D2UnitStrc * * ppUnit, uint32_t dwParam1, uint32_t dwParam2, uint32_t dwParam3) {
     *ppUnit = 0;
-    D2SaveFileHeaderStrc* pSavegame = GAME::Clients::GetSaveGame(pClientLocal);
-    size_t nSaveGameSize = GAME::Clients::GetSaveGameSize(pClientLocal);
+    D2SaveFileHeaderStrc* pSavegame = GAME::Clients::GetSaveGame(pClient);
+    size_t nSaveGameSize = GAME::Clients::GetSaveGameSize(pClient);
     if (!nSaveGameSize) {
       return 0xe;
     }
 
-    int32_t nResult = SERVER_LoadPlayerFromSaveFile(pGame, pClientLocal, pSavegame, nSaveGameSize, ppUnit, dwParam1, dwParam2, dwParam3);
+    int32_t nResult = SERVER_LoadPlayerFromSaveFile(pGame, pClient, pSavegame, nSaveGameSize, ppUnit, dwParam1, dwParam2, dwParam3);
     if (nResult) {
       *ppUnit = 0;
       return nResult;
@@ -2672,7 +2677,7 @@ int32_t __stdcall CLIENT_LoadPlayerFromNetworkSave(::SGAMEDATA * pGame, uint32_t
       return 0;
     }
     if (pGame->nGameType == SGAMETYPE_OBNET_HOST || pGame->nGameType == SGAMETYPE_LAN_HOST) {
-      GAME::Clients::DeleteCurrentSave(pClientLocal);
+      GAME::Clients::DeleteCurrentSave(pClient);
     }
 
     Quests::QUESTS::QUEST_OnPlayerJoinGame(pGame, *ppUnit, 0);
@@ -2685,7 +2690,7 @@ BOOL __fastcall CLIENT_LoadOrCreatePlayerUnit(::SGAMEDATA * pGame, D2ClientStrc 
     /* This is the loader for battle net. unkBool is always 1 from the path of
                          ClientJoinGame */ if (pGame->nGameType == SGAMETYPE_OBNET_HOST || pGame->nGameType == SGAMETYPE_LAN_HOST || BattleNetServerService) {
       if (bLoadFromSave) {
-        bResult = CLIENT_LoadPlayerFromNetworkSave(pGame, pRoomOrNull, nX, nY);
+        bResult = CLIENT_LoadPlayerFromNetworkSave(pGame, pClient, (D2UnitStrc**)ppUnitOut, pRoomOrNull, nX, nY);
         goto finish_player_unit;
       }
     } else if (bLoadFromSave) {

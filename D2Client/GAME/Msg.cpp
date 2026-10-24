@@ -22,6 +22,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Client::GAME::Msg {
 
@@ -256,7 +264,7 @@ uint8_t * MSG_ReadSaveFileToBuffer(size_t * pnFileSize) {
       nFileSize = ftell(pFile);
       *pnFileSize = nFileSize;
       fseek(pFile, 0, 0);
-      pBuffer = (D2CharSelCompStrc*)Fog::Memory::AllocClientMemory(*pnFileSize, ".\\GAME\\Msg.cpp", 0x1ff, 0);
+      pBuffer = (D2CharSelCompStrc*)D2_ALLOC(*pnFileSize);
       fread(pBuffer, *pnFileSize, 1, pFile);
       fclose(pFile);
       return (uint8_t*)pBuffer;
@@ -364,7 +372,7 @@ void __fastcall NET_D2GS_CLIENT_Send_0x6C(int32_t bAnimate) {
     D2Net::SRC::Client::NET_D2GS_CLIENT_SendPacketAfterChecks(nBytesCopied + 7U, 0, &__frame0.packetId);
     gnD2GSBytesSentTotal = gnD2GSBytesSentTotal + nBytesCopied + 7U;
     gnD2GSPacketsSentTotal++;
-    Fog::Memory::FreeClientMemory(pSaveBuffer, ".\\GAME\\Msg.cpp", 0x262, 0);
+    D2_FREE(pSaveBuffer);
     if (nTotalChunks) {
       gnLoadingProgressRatio = (nTotalChunks << 8) / nTotalChunks;
       return;

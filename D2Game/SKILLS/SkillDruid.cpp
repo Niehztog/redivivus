@@ -79,8 +79,8 @@ BOOL __fastcall Skills_SrvDoFunc_114_SummonRaven(::SGAMEDATA * pGame, D2UnitStrc
     }
 
     ::SGAMEDATA* pGameSaved = pGame;
-    sSummonParams.classId = (uint32_t)(uintptr_t)(D2SkillsTxt*)SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &sSummonParams.nPetType, nullptr, nullptr);
-    if (-1 >= (int)sSummonParams.classId) {
+    sSummonParams.classId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &sSummonParams.nPetType, nullptr, nullptr);
+    if (-1 >= sSummonParams.classId) {
       return 0;
     }
 
@@ -135,8 +135,8 @@ BOOL __fastcall Skills_SrvDoFunc_115_SummonPoisonCreeper(::SGAMEDATA * pGame, D2
     }
 
     ::SGAMEDATA* pGameSaved = pGame;
-    sCastPetParams.classId = (uint32_t)(uintptr_t)(D2SkillsTxt*)SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &sCastPetParams.nPetType, nullptr, nullptr);
-    if (-1 >= (int)sCastPetParams.classId) {
+    sCastPetParams.classId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &sCastPetParams.nPetType, nullptr, nullptr);
+    if (-1 >= sCastPetParams.classId) {
       return 0;
     }
 
@@ -588,8 +588,8 @@ uint32_t __fastcall SKILLDRUID_CreateSummon(::SGAMEDATA * pGame, D2UnitStrc * pU
     }
 
     ::SGAMEDATA* pGameSaved = pGame;
-    sPetCast.classId = (uint32_t)(uintptr_t)(D2SkillsTxt*)SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl2, &sPetCast.nPetType, nullptr, nullptr);
-    if (-1 >= (int)sPetCast.classId) {
+    sPetCast.classId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl2, &sPetCast.nPetType, nullptr, nullptr);
+    if (-1 >= sPetCast.classId) {
       return 0;
     }
 
@@ -894,7 +894,7 @@ void __stdcall SKILLDRUID_GetSummonDamageBonus(D2SkillsTxt * pSkillTxt, ::SGAMED
     UNIT::SUnitDmg::DAMAGE_ProcessCombatQueueEntry(pGame, pUnit2, pUnit, 0);
 }
 
-void __stdcall SKILLDRUID_CreateAuraMissile(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nDuration, int32_t nSkillLvl, eD2Skills eSkill) {
+void __stdcall SKILLDRUID_CreateAuraMissile(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pTargetUnit, int32_t nDuration, int32_t nSkillLvl, eD2Skills eSkill) {
     D2SkillArgStrc sSkillArg;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return;
@@ -909,6 +909,8 @@ void __stdcall SKILLDRUID_CreateAuraMissile(::SGAMEDATA * pGame, D2UnitStrc * pU
     sSkillArg.nSkillLevel = nSkillLvl;
     sSkillArg.nTotalFrames = nDuration;
     sSkillArg.nFlags = 0x8000;
+    sSkillArg.pOwner = pTargetUnit;
+    sSkillArg.pMissile = pTargetUnit;
     sSkillArg.nMissileTxtNo = eMissileId;
     sSkillArg.eSkillNo = eSkill;
     D2UnitStrc* pMissile = MISSILES::Missiles::CreatingMissile(pGame, &sSkillArg);
@@ -942,7 +944,7 @@ void __fastcall SKILLDRUID_ApplyAuraWithMissile(::SGAMEDATA * pGame, D2UnitStrc 
       return;
     }
 
-    SKILLDRUID_CreateAuraMissile(pGame, pUnit, nDuration, nParam, eSkill);
+    SKILLDRUID_CreateAuraMissile(pGame, pUnit, pTargetUnit, nDuration, nParam, eSkill);
 }
 
 BOOL __fastcall SKILLDRUID_SrvStFn58_FireClaws(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {

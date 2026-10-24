@@ -4226,7 +4226,7 @@ int __fastcall NPCMENU_OnScrollComplete(void * dwParam, int32_t nParam, int32_t 
     int32_t nMenuIndex;
     bool bIsInteractableSideNpc;
     uint32_t dwNextMsgId = NPCMENU_FindNextUnhandledMessage(gnNpcMenuRepairCostGold);
-    gnNpcMenuTradeActionGold = (uint16_t)dwNextMsgId;
+    gnNpcMenuTradeActionGold = (int16_t)dwNextMsgId;
     if (gnNpcMenuRepairCostGold == 0x251) {
       Sound::SOUND_PlaySound(SOUND_WEAPON_PUNCH_4, nullptr, 0, 0, 0);
     }
@@ -4235,7 +4235,7 @@ int __fastcall NPCMENU_OnScrollComplete(void * dwParam, int32_t nParam, int32_t 
     }
     if (gnNpcMenuActiveMode == '\x01') {
       D2UnitStrc* pNpcUnit;
-      if (gnNpcMenuTradeActionGold != 0xffff && _Interaction::bInteractingWithNpc) {
+      if (gnNpcMenuTradeActionGold != -1 && _Interaction::bInteractingWithNpc) {
         pNpcUnit = UNIT::Player::UNITS_FindClientSideUnit(_Interaction::nCurrentInteractedNpcGUID, UNIT_MONSTER);
         if (pNpcUnit) {
           gnNpcMenuScrollCompleteMode = gnNpcMenuTradeActionGold;
@@ -4255,7 +4255,7 @@ int __fastcall NPCMENU_OnScrollComplete(void * dwParam, int32_t nParam, int32_t 
           gnNpcMenuRepairCostGold = gnNpcMenuScrollCompleteMode;
           GAME::Msg::NET_D2GS_CLIENT_Send_INT_INT(0x31, _Interaction::nCurrentInteractedNpcGUID, (uint32_t)gnNpcMenuScrollCompleteMode);
           dwNextMsgId = NPCMENU_FindNextUnhandledMessage(gnNpcMenuScrollCompleteMode);
-          gnNpcMenuTradeActionGold = (short int)dwNextMsgId;
+          gnNpcMenuTradeActionGold = (int16_t)dwNextMsgId;
           return 1;
         }
       }

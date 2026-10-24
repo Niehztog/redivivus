@@ -37,15 +37,15 @@ void __stdcall CLIENT_QuestEvent_NihlathakTransformation();
 void __stdcall CLIENT_QuestEvent_WorldstoneShake();
 void __fastcall CLIENT_SpawnAncientDeathMissile(struct D2UnitStrc * pUnit);
 void __fastcall HandleIncoming0x89(int32_t nEventId);
-void __stdcall CLIENT_BossDeath_BloodRaven();
+void __fastcall CLIENT_BossDeath_BloodRaven(struct D2UnitStrc * pUnit);
 void __fastcall CLIENT_SpawnTowerMistEffect(struct D2UnitStrc * pUnit);
 void __fastcall CLIENT_SpawnOrbMistEffect(struct D2UnitStrc * pUnit);
-void __stdcall CLIENT_BossDeath_Mephisto();
-void __stdcall CLIENT_BossDeath_Andariel();
+void __fastcall CLIENT_BossDeath_Mephisto(struct D2UnitStrc * pUnit);
+void __fastcall CLIENT_BossDeath_Andariel(struct D2UnitStrc * pUnit);
 void __fastcall CLIENT_BossDeath_Radament(struct D2UnitStrc * pBossUnit);
 void __fastcall CLIENT_BossDeath_SandMaggotQueen(struct D2UnitStrc * pBossUnit);
 void __fastcall CLIENT_BossDeath_Duriel(struct D2UnitStrc * pBossUnit);
-void __stdcall CLIENT_BossDeath_Izual();
+void __fastcall CLIENT_BossDeath_Izual(struct D2UnitStrc * pUnit);
 void __fastcall CLIENT_StoreUnitGuidForQuestTracking(int32_t pUnit);
 void __stdcall CLIENT_BossDeath_Baal();
 int __stdcall CLIENT_GetDenOfEvilLightIntensity(uint8_t * pRed, uint8_t * pGreen, uint8_t * pBlue);
@@ -75,7 +75,7 @@ struct D2UnitStrc * __stdcall CLIENT_FindClosestTrackedUnit(struct D2UnitStrc * 
 void __stdcall CLIENT_SendMonsterMoveToUnitMessage(int32_t nSenderId, int32_t nSkillLvl, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 uint32_t __stdcall MONSTER_TryMoveTowardTarget(struct D2UnitStrc * pUnit, uint8_t bMoveStep, int32_t nSenderId, int32_t dwAnimMode, struct D2UnitStrc * pTarget);
 void __stdcall CLIENT_SendMonsterMoveToRandomNearbyPosMessage(uint32_t nOffsetRange, int32_t nSenderId, int32_t nSkillLvl, struct D2UnitStrc * pUnit);
-void __stdcall CLIENT_SendMonsterMoveToTargetMessage(int32_t nSenderId, int32_t nSkillLvl, struct D2UnitStrc * pUnit);
+void __stdcall CLIENT_SendMonsterMoveToTargetMessage(int32_t nTargetX, int32_t nTargetY, int32_t nSenderId, int32_t nSkillLvl, struct D2UnitStrc * pUnit);
 void CLIENT_SendMonsterAttackMessage(struct D2UnitStrc * pUnit);
 void CLIENT_SendMonsterWanderMessage(struct D2UnitStrc * pUnit);
 // Parameter 2 was typed D2MonsterAiStrc - a struct passed by value in EAX. It is a scalar. The body

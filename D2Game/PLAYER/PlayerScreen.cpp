@@ -3,7 +3,6 @@
 #include "D2Game/PLAYER/PlayerScreen.h"
 #include "D2Client/D2ClientStrc.h"
 #include "D2Client/GAME/Game/SGAMEDATA.h"
-#include "D2Client/GAME/SCmd.h"
 #include "D2Common/D2InventoryStrc.h"
 #include "D2Common/D2RoomExStrc.h"
 #include "D2Common/D2RoomStrc.h"
@@ -21,6 +20,7 @@
 #include "D2Game/GAME/SCmd.h"
 #include "D2Game/GAME/Targets.h"
 #include "D2Game/PLAYER/Player.h"
+#include "D2Game/PLAYER/PlayerMsg.h"
 #include "D2Game/PLAYER/PlayerTrade.h"
 #include "D2Game/UNIT/Party.h"
 #include "D2Game/UNIT/PlayerList.h"
@@ -34,7 +34,6 @@
 #include "globals/globals.h"
 #include "D2Game/Monster/AI/AI.h"
 #include "D2Game/Objects/ObjectsRgn.h"
-#include "D2Game/PLAYER/PlayerMsg.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 

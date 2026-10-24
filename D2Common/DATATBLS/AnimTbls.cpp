@@ -23,6 +23,24 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2AnimDataStrc) == 0x4a4, "D2_NEW(D2AnimDataStrc): the 32-bit layout must be the 0x4a4 bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Common::DATATBLS::AnimTbls {
 
@@ -30,7 +48,7 @@ namespace D2Common::DATATBLS::AnimTbls {
 D2AnimDataStrc * __fastcall TXT_AllocTxt_AnimTbls(D2PoolManagerStrc * pMemory) {
     char szFilePath[260];
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    D2AnimDataStrc* pAnimTbls = (D2AnimDataStrc*)Fog::Memory::AllocServerMemory(nullptr, 0x4a4, ".\\DATATBLS\\AnimTbls.cpp", 0x83, 0);
+    D2AnimDataStrc* pAnimTbls = D2_NEW_POOL(nullptr, D2AnimDataStrc);
     memset(pAnimTbls, 0, 0x4a4);
     /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szFilePath, "%s\\AnimData.d2", "DATA\\GLOBAL");
     D2AnimDataBucketStrc* pArchive = (D2AnimDataBucketStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMemory, szFilePath, nullptr, ".\\DATATBLS\\AnimTbls.cpp", 0x8a);
@@ -59,8 +77,8 @@ void __fastcall ANIMDATA_FreeAnimDataRecord(void * * pParam) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(*pParam, ".\\DATATBLS\\AnimTbls.cpp", 0xbe, 0);
-    Fog::Memory::FreeServerMemory(nullptr, pParam, ".\\DATATBLS\\AnimTbls.cpp", 0xbf, 0);
+    D2_FREE(*pParam);
+    D2_FREE_POOL(nullptr, pParam);
 }
 
 // pdwName1 in EDI, pdwName2 in ESI: TRUE when both 8-byte names match as two dwords. Halts (AnimTbls.cpp lines 217/218, StringLength((LPCTSTR)pdwName2) <= 8) on a name longer than 8.

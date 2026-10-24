@@ -34,6 +34,22 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2RendererCoreStrc) == 0x18, "D2_NEW(D2RendererCoreStrc): the 32-bit layout must be the 0x18 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2ddDebugFont) == 0x3000, "D2_NEW(D2ddDebugFont): the 32-bit layout must be the 0x3000 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fnBinkFrameCallback
 #define RECON_FPTD_fnBinkFrameCallback
@@ -1345,7 +1361,7 @@ void Release() {
     }
     if (RENDERER_SelectedRendererCore) {
       /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&RENDERER_SelectedRendererCore->sLock);
-      Fog::Memory::FreeClientMemory(RENDERER_SelectedRendererCore, ".\\Src\\ddCore.cpp", 0x125, 0);
+      D2_FREE(RENDERER_SelectedRendererCore);
       RENDERER_SelectedRendererCore = 0;
     }
 
@@ -1403,7 +1419,7 @@ BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc
 
     atexit(DirectDraw::thunk_Release);
     gnDDrawSurfaceHeight = 1;
-    RENDERER_SelectedRendererCore = (D2RendererCoreStrc*)Fog::Memory::AllocClientMemory(0x18, ".\\Src\\ddCore.cpp", 0xf6, 0);
+    RENDERER_SelectedRendererCore = D2_NEW(D2RendererCoreStrc);
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ InitializeCriticalSection(&RENDERER_SelectedRendererCore->sLock);
     return 1;
 }
@@ -1723,7 +1739,7 @@ void __stdcall D2ddDebugFont_Alloc() {
     /* COLORREF color for SetBkColor */ /* HDC hdc for SetBkColor */ SetBkColor(hdc, gnD2ddDebugFontBkColor);
     /* int mode for SetBkMode */ /* HDC hdc for SetBkMode */ SetBkMode(hdc, 2);
     /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&rcCharRect, 0, 0, 8, 0x10);
-    D2ddDebugFont* pDVar1 = (D2ddDebugFont*)Fog::Memory::AllocClientMemory(0x3000, ".\\Src\\ddDebugFont.cpp", 0x3a, 0);
+    D2ddDebugFont* pDVar1 = D2_NEW(D2ddDebugFont);
     int nFontDataOffset = 0;
     int nCharCode = 0x20;
     uint32_t* pCharOffsetEntry = gaD2ddDebugFontCharOffsets;
@@ -1768,7 +1784,7 @@ void __stdcall D2ddDebugFont_Free() {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(gpD2ddDebugFont, ".\\Src\\ddDebugFont.cpp", 0x5d, 0);
+    D2_FREE(gpD2ddDebugFont);
     gpD2ddDebugFont = 0;
 }
 
@@ -2501,7 +2517,7 @@ BOOL __fastcall DrawGroundTile(D2TileLibraryEntryStrc * pTile, D2GfxLightExStrc 
 // @sourcefile .\Src\ddSmack.cpp
 void __fastcall CloseSmacker(D2SmackerContextStrc * pContext) {
     if (*(uint32_t*)((char*)&gaSmackerPaletteRemap + 256)) {
-      Fog::Memory::FreeClientMemory((void*)*(uint32_t*)((char*)&gaSmackerPaletteRemap + 256), ".\\Src\\ddSmack.cpp", 0xf0, 0);
+      D2_FREE((void*)*(uint32_t*)((char*)&gaSmackerPaletteRemap + 256));
       memset(gaSmackerPaletteRemap + 256, 0, 4 * sizeof(gaSmackerPaletteRemap[0]));
     }
     if (!(pContext->eMode == 's' && pContext->hSmack)) {
@@ -2551,7 +2567,7 @@ void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, 
     DWORD nFileSize;
     pBuffer->eMode = (char)nVersion;
     if ((char)nVersion == 'p') {
-      *(uint32_t*)((char*)&gaSmackerPaletteRemap + 256) = (uint32_t)(uintptr_t)Fog::Memory::AllocClientMemory(0x6db0, ".\\Src\\ddSmack.cpp", 0x53, 0);
+      *(uint32_t*)((char*)&gaSmackerPaletteRemap + 256) = (uint32_t)(uintptr_t)D2_ALLOC(0x6db0);
       memset((void*)*(uint32_t*)((char*)&gaSmackerPaletteRemap + 256), 0, 0x6db0);
       nVersion = 0;
       nFileSize = 0;
@@ -2582,7 +2598,7 @@ void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, 
       nResult = (void*)SmackOpen(szSmacker, 0xfe000, -1);
       pBuffer->hSmack = nResult;
       if (nResult) {
-        pImageBuffer = Fog::Memory::AllocClientMemory(*(int*)((int)nResult + 4) * *(int*)((int)nResult + 8), ".\\Src\\ddSmack.cpp", 0x42, 0);
+        pImageBuffer = D2_ALLOC(*(int*)((int)nResult + 4) * *(int*)((int)nResult + 8));
         *(uint32_t*)((char*)&gaSmackerPaletteRemap + 256) = (uint32_t)(uintptr_t)pImageBuffer;
         memset(pImageBuffer, 0, *(int*)((int)nResult + 4) * *(int*)((int)nResult + 8));
         SmackToBuffer(pBuffer->hSmack, 0, 0, *(uint32_t*)((int)nResult + 4), *(uint32_t*)((int)nResult + 8), pImageBuffer, 0);
@@ -2591,7 +2607,7 @@ void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, 
       }
     }
     if (*(uint32_t*)((char*)&gaSmackerPaletteRemap + 256)) {
-      Fog::Memory::FreeClientMemory((void*)*(uint32_t*)((char*)&gaSmackerPaletteRemap + 256), ".\\Src\\ddSmack.cpp", 0xf0, 0);
+      D2_FREE((void*)*(uint32_t*)((char*)&gaSmackerPaletteRemap + 256));
       memset(gaSmackerPaletteRemap + 256, 0, 4 * sizeof(gaSmackerPaletteRemap[0]));
     }
     if (!(pBuffer->eMode == 's' && pBuffer->hSmack)) {

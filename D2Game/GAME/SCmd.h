@@ -12,6 +12,7 @@
 struct D2BitBufferStrc;
 struct D2ClientStrc;
 struct D2GSPacketClt0x89;
+struct D2GSPacketSrv0x26;
 struct D2GSPacketSrv0x27;
 struct D2GSPacketSrv0x4E;
 struct D2GSPacketSrv0x53;
@@ -50,6 +51,18 @@ struct __attribute__((packed)) D2GSPacketSrv0x3F {
 struct D2GSPacketSrv0x5E {
     /* 0x00 */ uint8_t nPacketId;
     /* 0x01 */ bool nAvailableQuest[37];
+};
+
+struct D2GSPacketSrv0x7B {
+    D2GSPacketSrv0x7B() = default;
+    D2GSPacketSrv0x7B(uint64_t v) { *reinterpret_cast<uint64_t*>(this) = v; }
+    operator uint64_t() const { return *reinterpret_cast<const uint64_t*>(this); }
+    D2GSPacketSrv0x7B(uint8_t a0, uint8_t a1, uint16_t a2, uint32_t a3) : nPacketId(a0), nHotkeySlot(a1), wSkillId(a2), dwHotkeyArg(a3) {}
+
+    /* 0x00 */ uint8_t nPacketId; // 0x7B
+    /* 0x01 */ uint8_t nHotkeySlot;
+    /* 0x02 */ uint16_t wSkillId; // skill id in the low 12 bits, 0x8000 = left-hand skill
+    /* 0x04 */ uint32_t dwHotkeyArg;
 };
 
 struct __attribute__((packed)) D2GSPacketSrv0x8C {
@@ -163,7 +176,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x23_SetSkill(struct D2ClientStrc * pClient
 void __fastcall NET_D2GS_SERVER_Send_0x94_SETALLSKILLS(struct D2ClientStrc * pClient, struct D2UnitStrc * pUnit);
 // Builds and sends S2C packet 0x93 (8 bytes) to adjust skill level bonuses filtered by element type and skill tree page. Used for item mods like "+1 to Fire Skills" or "+2 to [class] Skill Tab". If bAllPages is 0, nSkillPage is overridden to 4 (all pages). Appears to be dead code in 1.14d — zero callers, superseded by packet 0x94 bulk skill sync.
 void __fastcall NET_D2GS_SERVER_SendSkillTabBonusDelta(struct D2ClientStrc * pClient, uint32_t dwPlayerGUID, int8_t nBonusDelta, uint8_t neSkillEType, int32_t bAllPages, uint8_t nSkillPage);
-void __fastcall NET_D2GS_SERVER_Send_0x26_CHATSTART(struct D2ClientStrc * pClient, char * szText);
+void __fastcall NET_D2GS_SERVER_Send_0x26_CHATSTART(struct D2ClientStrc * pClient, struct D2GSPacketSrv0x26 * pPacket);
 void __fastcall NET_D2GS_SERVER_Send_0x5A_SYSTEMMSG(struct D2ClientStrc * pClient, struct D2Packet0x5aEventStructure * pEventPacket);
 void __fastcall NET_D2GS_SERVER_Send_0x27_NpcInfo(struct D2ClientStrc * pClient, struct D2GSPacketSrv0x27 * pPacket);
 void __fastcall NET_D2GS_SERVER_Send_0x53_ACTTIMEOFDAY(struct D2ClientStrc * pClient, struct D2GSPacketSrv0x53 * pPacketData);
@@ -250,7 +263,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x73_MissileData(struct D2ClientStrc * pCli
 void __fastcall NET_D2GS_SERVER_Send_0x74_SYNCHDEADBODY(struct D2ClientStrc * pClient, struct D2UnitStrc * pOwnerUnit, struct D2UnitStrc * pCorpseUnit, uint8_t byCorpseFlagArg);
 // @sourcefile .\GAME\SCmd.cpp
 void __fastcall NET_D2GS_SERVER_Send_0x75_UPDATEROSTER(struct D2UnitStrc * pUnit, struct D2UnitStrc * pTargetUnit);
-void __fastcall NET_D2GS_SERVER_Send_0x7B_SYNCHOTKEYS(struct D2ClientStrc * pClient, uint32_t bySkillFlagsLo, uint32_t wHotkeySlot, int32_t nSkillId, uint32_t dwSkillIdArg);
+void __fastcall NET_D2GS_SERVER_Send_0x7B_SYNCHOTKEYS(struct D2ClientStrc * pClient, uint8_t nHotkeySlot, int32_t nSkillId, int32_t bIsLeftSkill, uint32_t dwHotkeyArg);
 void __fastcall NET_D2GS_SERVER_Send_0x7E_LoadMonsterCof(struct D2ClientStrc * pClient);
 void __fastcall NET_D2GS_SERVER_Send_0x82_PortalOwnership(::SGAMEDATA * pGame, struct D2ClientStrc * pClient, uint32_t dwPortalObjGUID, uint32_t dwPortalGUIDArg);
 void __fastcall NET_D2GS_SERVER_Send_0x83_Unused(struct D2ClientStrc * pClient, char * szText, uint16_t wDataLen, uint16_t wExtraFlag, uint16_t wParam, void * pData);

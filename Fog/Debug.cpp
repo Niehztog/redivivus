@@ -25,6 +25,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2FogModuleNodeStrc) == 0x210, "D2_NEW(D2FogModuleNodeStrc): the 32-bit layout must be the 0x210 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_pfnEnumerateLoadedModules64
 #define RECON_FPTD_pfnEnumerateLoadedModules64
@@ -1146,7 +1160,7 @@ void __fastcall FOG_FreeModuleList(D2FogModuleNodeStrc * pModuleList) {
     while (pModuleList) {
       D2FogModuleNodeStrc* pNextException;
       pNextException = pModuleList->pNext;
-      Memory::FreeClientMemory(pModuleList, ".\\Src\\Exceptions.cpp", 0x1f7, 0);
+      D2_FREE(pModuleList);
       pModuleList = pNextException;
     }
 }
@@ -1211,7 +1225,7 @@ D2FogModuleNodeStrc * __stdcall EnumerateModulesToolhelp32(uint32_t dwProcessId)
         return pDVar1;
       }
 
-      pModuleNode = (D2FogModuleNodeStrc*)Memory::AllocClientMemory(0x210, ".\\Src\\Exceptions.cpp", 0x253, 0);
+      pModuleNode = D2_NEW(D2FogModuleNodeStrc);
       memset(pModuleNode, 0, 0x210);
       pszCopySrc = tModuleEntry.szExePath;
       bHasMore = (int)pModuleNode - (int)pszCopySrc;
@@ -1342,7 +1356,7 @@ D2FogModuleNodeStrc * __stdcall EnumerateModulesPsapi(HANDLE hProcess) {
               goto error;
             }
 
-            pModuleNode = (D2FogModuleNodeStrc*)Memory::AllocClientMemory(0x210, ".\\Src\\Exceptions.cpp", 0x2d3, 0);
+            pModuleNode = D2_NEW(D2FogModuleNodeStrc);
             memset(pModuleNode, 0, 0x210);
             pszCopySrc = szModulePath;
             nCopyOffset = (int)pModuleNode - (int)pszCopySrc;
@@ -5913,7 +5927,7 @@ int __stdcall InitializeSymbolsWithRefcount() {
         pModuleNode = LoadSymbolsForAllModules(hProcess, dwProcessId);
         while (pModuleNode) {
           pNextModule = pModuleNode->pNext;
-          Memory::FreeClientMemory(pModuleNode, ".\\Src\\Exceptions.cpp", 0x1f7, 0);
+          D2_FREE(pModuleNode);
           pModuleNode = pNextModule;
         }
       }
@@ -6414,7 +6428,7 @@ BOOL __fastcall LoadPreviousCrashDump(uint8_t * pOutBuffer, int * pnBufferSize) 
       if (!iVar2) {
         nFileSize = ftell(pFile);
         fseek(pFile, 0, 0);
-        pRecordCur = (D2CharSelCompStrc*)Memory::AllocClientMemory(nFileSize, ".\\Src\\Exceptions.cpp", 0x75b, 0);
+        pRecordCur = (D2CharSelCompStrc*)D2_ALLOC(nFileSize);
         fread(pRecordCur, 1, nFileSize, pFile);
         fclose(pFile);
         /* LPCSTR lpFileName for DeleteFileA */ DeleteFileA(szDumpPath);

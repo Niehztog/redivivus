@@ -11,6 +11,24 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2TileLibraryHashStrc) == 0x200, "D2_NEW(D2TileLibraryHashStrc): the 32-bit layout must be the 0x200 bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2TileLibraryHashRefStrc) == 0x8, "D2_NEW(D2TileLibraryHashRefStrc): the 32-bit layout must be the 0x8 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2TileLibraryHashNodeStrc) == 0x14, "D2_NEW(D2TileLibraryHashNodeStrc): the 32-bit layout must be the 0x14 bytes 1.14d allocates");
+
 
 namespace D2CMP::SRC::FindTiles {
 
@@ -27,7 +45,7 @@ int __fastcall FINDTILE_ComputeHash(char cParam1, char cParam2, char cTileSubTyp
 }
 
 D2TileLibraryHashStrc * __stdcall FINDTILE_AllocHashTable() {
-    D2TileLibraryHashStrc* pHashTable = (D2TileLibraryHashStrc*)Fog::Memory::AllocClientMemory(0x200, ".\\SRC\\FindTiles.cpp", 0x2a, 0);
+    D2TileLibraryHashStrc* pHashTable = D2_NEW(D2TileLibraryHashStrc);
     if (!pHashTable) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2b);
       exit(-1);
@@ -54,12 +72,12 @@ void __fastcall FINDTILE_FreeHashTable(D2TileLibraryHashStrc * pHashTable) {
         pMemoryToFree_00 = pMemoryToFree->pRef;
         while (pMemoryToFree_00) {
           pNextChainNode = pMemoryToFree_00->pNext;
-          Fog::Memory::FreeClientMemory(pMemoryToFree_00, ".\\SRC\\FindTiles.cpp", 0x4c, 0);
+          D2_FREE(pMemoryToFree_00);
           pMemoryToFree_00 = pNextChainNode;
         }
 
         pMemoryToFree->pRef = 0;
-        Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\SRC\\FindTiles.cpp", 0x50, 0);
+        D2_FREE(pMemoryToFree);
         pMemoryToFree = pNextEntry;
       }
 
@@ -67,7 +85,7 @@ void __fastcall FINDTILE_FreeHashTable(D2TileLibraryHashStrc * pHashTable) {
       iBucket++;
     } while (iBucket < 0x80);
 
-    Fog::Memory::FreeClientMemory(pHashTable, ".\\SRC\\FindTiles.cpp", 0x57, 0);
+    D2_FREE(pHashTable);
 }
 
 // Adds pTileData to the hash node's tile-ref chain unless it is already there: walks pHashNode->pRef by pNext, otherwise allocates an 8-byte D2TileLibraryHashRefStrc (FindTiles.cpp line 0x6e, halts on line 0x6f if the allocation fails) and links it in front of the old head.
@@ -80,7 +98,7 @@ void FINDTILE_AddTileToChain(D2TileLibraryHashNodeStrc * pHashNode, D2TileLibrar
       }
     }
 
-    D2TileLibraryHashRefStrc* pNewEntry = (D2TileLibraryHashRefStrc*)Fog::Memory::AllocClientMemory(8, ".\\SRC\\FindTiles.cpp", 0x6e, 0);
+    D2TileLibraryHashRefStrc* pNewEntry = D2_NEW(D2TileLibraryHashRefStrc);
     if (pNewEntry) {
       pNewEntry->pNext = 0;
       pNewEntry->pTile = pTileData;
@@ -96,7 +114,7 @@ void FINDTILE_AddTileToChain(D2TileLibraryHashNodeStrc * pHashNode, D2TileLibrar
 // Allocates a 0x14-byte D2TileLibraryHashNodeStrc for pTileData's (nIndex, nSubIndex, nOrientation) key, links it in front of the bucket head *ppHashSlot, and gives it a one-entry tile-ref chain holding pTileData. Halts on line 0x83 or 0x8f if an allocation fails.
 // Provenance: 1.14d asm 0060cf00..0060cf90 (FindTiles.cpp lines 0x82..0x8f).
 void FINDTILE_AllocHashEntry(D2TileLibraryEntryStrc * pTileData, D2TileLibraryHashNodeStrc * * ppHashSlot) {
-    D2TileLibraryHashNodeStrc* pHashEntry = (D2TileLibraryHashNodeStrc*)Fog::Memory::AllocClientMemory(0x14, ".\\SRC\\FindTiles.cpp", 0x82, 0);
+    D2TileLibraryHashNodeStrc* pHashEntry = D2_NEW(D2TileLibraryHashNodeStrc);
     if (!pHashEntry) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x83);
       exit(-1);
@@ -112,7 +130,7 @@ void FINDTILE_AllocHashEntry(D2TileLibraryEntryStrc * pTileData, D2TileLibraryHa
       pHashEntry->nOrientation = pTileData->nOrientation;
       pHashEntry->pNext = *ppHashSlot;
       *ppHashSlot = pHashEntry;
-      pChainEntry = (D2TileLibraryHashRefStrc*)Fog::Memory::AllocClientMemory(8, ".\\SRC\\FindTiles.cpp", 0x8e, 0);
+      pChainEntry = D2_NEW(D2TileLibraryHashRefStrc);
       if (pChainEntry) {
         pChainEntry->pNext = 0;
         pChainEntry->pTile = pTileData;

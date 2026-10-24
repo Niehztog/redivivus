@@ -27,6 +27,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2RendererCoreStrc) == 0x18, "D2_NEW(D2RendererCoreStrc): the 32-bit layout must be the 0x18 bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Gdi::Renderer::Windowed {
 
@@ -34,7 +48,7 @@ namespace D2Gdi::Renderer::Windowed {
 BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc * pHelpers) {
     pD2GFXRenderedDataStrc = pSettings;
     D2GfxRendereInitFunctionsStrc = pHelpers;
-    RENDERER_SelectedRendererCore = (D2RendererCoreStrc*)Fog::Memory::AllocClientMemory(0x18, ".\\Src\\gdiCore.cpp", 0x4b, 0);
+    RENDERER_SelectedRendererCore = D2_NEW(D2RendererCoreStrc);
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ InitializeCriticalSection(&RENDERER_SelectedRendererCore->sLock);
     return 1;
 }
@@ -46,7 +60,7 @@ BOOL Release() {
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&RENDERER_SelectedRendererCore->sLock);
-    Fog::Memory::FreeClientMemory(RENDERER_SelectedRendererCore, ".\\Src\\gdiCore.cpp", 0x59, 0);
+    D2_FREE(RENDERER_SelectedRendererCore);
     RENDERER_SelectedRendererCore = 0;
     return 1;
 }
@@ -91,14 +105,14 @@ void __stdcall RENDERER_WINDOWED_AllocateDIBSection(int nResolutionMode) {
 }
 
 BOOL __fastcall CreateWindow(HWND hWnd, int nResolutionMode) {
-    LOGPALETTE sLogPalette[128];
+    D2LogPalette256Strc sLogPalette;
     gnGlideWindowHandle = (int)hWnd;
     RENDERER_WINDOWED_AllocateDIBSection(nResolutionMode);
     memset(gaDirectDrawDitherPaletteRemap, 0, 0x400);
-    sLogPalette[0].palVersion = 0x300;
-    sLogPalette[0].palNumEntries = 0x100;
-    memset(sLogPalette[0].palPalEntry, 0, 0x400);
-    /* LOGPALETTE * plpal for CreatePalette */ RENDERER_WINDOWED_hPalette = CreatePalette(sLogPalette);
+    sLogPalette.palVersion = 0x300;
+    sLogPalette.palNumEntries = 0x100;
+    memset(sLogPalette.palPalEntry, 0, 0x400);
+    /* LOGPALETTE * plpal for CreatePalette */ RENDERER_WINDOWED_hPalette = CreatePalette((LOGPALETTE*)&sLogPalette);
     RENDERER_WINDOWED_CreateDebugFont();
     RENDERER_WINDOWED_UpdateScaleFactor(nResolutionMode);
     return 1;
@@ -1366,7 +1380,7 @@ BOOL __fastcall DrawGroundTile(D2TileLibraryEntryStrc * pTile, D2GfxLightExStrc 
 // @sourcefile .\Src\gdiSmack.cpp
 void __fastcall CloseSmacker(D2SmackerContextStrc * pContext) {
     if (gnSmackerGlideYOffset.pFrameBuffer) {
-      Fog::Memory::FreeClientMemory(gnSmackerGlideYOffset.pFrameBuffer, ".\\Src\\gdiSmack.cpp", 0xf0, 0);
+      D2_FREE(gnSmackerGlideYOffset.pFrameBuffer);
       gnSmackerGlideYOffset.pFrameBuffer = 0;
     }
     if (pContext->eMode == 's' && pContext->hSmack) {
@@ -1411,7 +1425,7 @@ void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, 
     DWORD nFileSize;
     pBuffer->eMode = (char)nVersion;
     if ((char)nVersion == 'p') {
-      gnSmackerGlideYOffset.pFrameBuffer = Fog::Memory::AllocClientMemory(0x6db0, ".\\Src\\gdiSmack.cpp", 0x51, 0);
+      gnSmackerGlideYOffset.pFrameBuffer = D2_ALLOC(0x6db0);
       memset(gnSmackerGlideYOffset.pFrameBuffer, 0, 0x6db0);
       nVersion = 0;
       nFileSize = 0;
@@ -1442,7 +1456,7 @@ void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, 
       nResult = (void*)SmackOpen(szSmacker, 0xfe000, -1);
       pBuffer->hSmack = nResult;
       if (nResult) {
-        _Dst = Fog::Memory::AllocClientMemory(*(int*)((int)nResult + 4) * *(int*)((int)nResult + 8), ".\\Src\\gdiSmack.cpp", 0x43, 0);
+        _Dst = D2_ALLOC(*(int*)((int)nResult + 4) * *(int*)((int)nResult + 8));
         gnSmackerGlideYOffset.pFrameBuffer = _Dst;
         memset(_Dst, 0, *(int*)((int)nResult + 4) * *(int*)((int)nResult + 8));
         SmackToBuffer(pBuffer->hSmack, 0, 0, *(uint32_t*)((int)nResult + 4), *(uint32_t*)((int)nResult + 8), _Dst, 0);
@@ -1451,7 +1465,7 @@ void __fastcall DecodeSmacker(char * szSmacker, D2SmackerContextStrc * pBuffer, 
       }
     }
     if (gnSmackerGlideYOffset.pFrameBuffer) {
-      Fog::Memory::FreeClientMemory(gnSmackerGlideYOffset.pFrameBuffer, ".\\Src\\gdiSmack.cpp", 0xf0, 0);
+      D2_FREE(gnSmackerGlideYOffset.pFrameBuffer);
       gnSmackerGlideYOffset.pFrameBuffer = 0;
     }
     if (pBuffer->eMode == 's' && pBuffer->hSmack) {

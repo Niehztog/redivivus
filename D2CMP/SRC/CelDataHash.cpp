@@ -9,6 +9,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2CMP::SRC::CelDataHash {
 
@@ -18,7 +26,7 @@ void __fastcall CELDATAHASH_UnlinkEntry(int32_t nParam, int * pnParam, D2PoolMan
       *(int*)(nParam + 0x800 + *pnParam * 4) = pnParam[0xb];
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pnParam, ".\\SRC\\CelDataHash.cpp", 0x3a, 0);
+    D2_FREE_POOL(pMemory, pnParam);
 }
 
 void __fastcall CELDATAHASH_InitHashTable(void * pParam) {
@@ -38,7 +46,7 @@ void __fastcall GFX_FreeAllCacheEntries(D2PoolManagerStrc * pMemory, int32_t nPa
           *(int**)(nParam + 0x800 + *pCurEntry * 4) = (int*)pNextEntry;
         }
 
-        Fog::Memory::FreeServerMemory(pMemory, pCurEntry, ".\\SRC\\CelDataHash.cpp", 0x3a, 0);
+        D2_FREE_POOL(pMemory, pCurEntry);
         pCurEntry = pNextEntry;
       }
 
@@ -81,7 +89,7 @@ int32_t __fastcall CELDATAHASH_FindByFilename(void * pHashTable, char * szFileNa
 // @sourcefile .\SRC\CelDataHash.cpp
 uint32_t * __fastcall CELDATAHASH_AllocEntry(D2PoolManagerStrc * pPoolManager, void * pHashTable, uint32_t nRefCount, char * szFileName) {
     char byChar;
-    uint32_t* pNewEntry = (uint32_t*)Fog::Memory::AllocServerMemory(pPoolManager, 0x30, ".\\SRC\\CelDataHash.cpp", 0x88, 0);
+    uint32_t* pNewEntry = (uint32_t*)D2_ALLOC_POOL(pPoolManager, 0x30);
     pNewEntry[9] = nRefCount;
     uint32_t nRawHash = Storm::Source::SSTR::SStrHash(szFileName, 1, 0);
     uint32_t nBucketIdx = ((nRawHash >> 8 ^ nRawHash) >> 0x10 ^ nRawHash >> 8 ^ nRawHash) & 0x1ff;
@@ -120,7 +128,7 @@ void __fastcall GFX_RemoveCacheEntry(D2PoolManagerStrc * pMemory, void * pHashTa
       *(int*)((int)pHashTable + *pEntry * 4 + 0x800) = pEntry[0xb];
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pEntry, ".\\SRC\\CelDataHash.cpp", 0x3a, 0);
+    D2_FREE_POOL(pMemory, pEntry);
 }
 
 } // namespace D2CMP::SRC::CelDataHash

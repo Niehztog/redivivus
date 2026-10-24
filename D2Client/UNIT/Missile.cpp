@@ -2105,10 +2105,42 @@ void __fastcall MISSILE_CreatePatternAtUnitPos(D2UnitStrc * pUnit, int32_t nRadi
 // Spawns a full 360-degree burst of missiles around pUnit using precomputed spread tables (gaRadialBurstMissileSpreadY/X). Iterates 0x40 entries stepping by nStep for the primary ring (velocity from MissileTxt.Param1) and, if nSecondaryCount > 0, a secondary ring of 0x3C entries stepping by nSecondaryCount (velocity from Param2). Copies skill ID and level from the source missile. No-ops for MISSILE_Arrow.
 void __fastcall MISSILE_CreateRadialBurst(D2UnitStrc * pUnit, eMissilesId nMissileId, int32_t nSecondaryCount, int32_t nStep, int32_t nSubLoopMult) {
     // Static local variables (originally global data)
-    static uint32_t gaRadialBurstMissileSpreadConst2 = 0x2;
-    static uint32_t gaRadialBurstMissileSpreadConst1 = 0x2;
-    static uint32_t gaRadialBurstMissileSpreadY = 0x0;
-    static uint32_t gaRadialBurstMissileSpreadX = 0x1;
+    static int gaRadialBurstMissileSpreadConst2[16] = {
+    0x2,
+    0x2,
+    0x2,
+    0x1,
+    0x0,
+    -0x1,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x1,
+    0x0,
+    0x1,
+    0x2,
+    0x2
+};
+    static int gaRadialBurstMissileSpreadY[16] = {
+    0x0,
+    0x1,
+    0x2,
+    0x2,
+    0x2,
+    0x2,
+    0x2,
+    0x1,
+    0x0,
+    -0x1,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x1
+};
 
     D2MissilesTxt* pMissileTxt;
     D2SkillArgStrc sSkillArg;
@@ -2158,8 +2190,8 @@ void __fastcall MISSILE_CreateRadialBurst(D2UnitStrc * pUnit, eMissilesId nMissi
 
     int iSpreadIdx = 0;
     do {
-      sSkillArg.nUnitX = *(int*)((uintptr_t)&gaRadialBurstMissileSpreadY + iSpreadIdx);
-      sSkillArg.nUnitY = *(int*)((uintptr_t)&gaRadialBurstMissileSpreadConst2 + iSpreadIdx);
+      sSkillArg.nUnitX = *(int*)((int)gaRadialBurstMissileSpreadY + iSpreadIdx);
+      sSkillArg.nUnitY = *(int*)((int)gaRadialBurstMissileSpreadConst2 + iSpreadIdx);
       Missile::MakeMissile(&sSkillArg);
       iSpreadIdx += nStep * 4;
     } while (iSpreadIdx < 0x40);
@@ -2171,8 +2203,8 @@ void __fastcall MISSILE_CreateRadialBurst(D2UnitStrc * pUnit, eMissilesId nMissi
     sSkillArg.nVelocityOverride = pMissileTxt->Param2 << 7;
     iSpreadIdx = 0;
     do {
-      sSkillArg.nUnitX = *(int*)((uintptr_t)&gaRadialBurstMissileSpreadX + iSpreadIdx);
-      sSkillArg.nUnitY = *(int*)((uintptr_t)&gaRadialBurstMissileSpreadConst1 + iSpreadIdx);
+      sSkillArg.nUnitX = *(int*)((int)gaRadialBurstMissileSpreadY + iSpreadIdx + 4);
+      sSkillArg.nUnitY = *(int*)((int)gaRadialBurstMissileSpreadConst2 + iSpreadIdx + 4);
       Missile::MakeMissile(&sSkillArg);
       iSpreadIdx += nSecondaryCount * 4;
     } while (iSpreadIdx < 0x3c);
@@ -2181,8 +2213,8 @@ void __fastcall MISSILE_CreateRadialBurst(D2UnitStrc * pUnit, eMissilesId nMissi
 // Client-side hit function for missile type 064 (spread sub-missile fan). On valid owner/missile/CltHitSubMissile1, spawns up to 8 sub-missiles using fixed offset tables (gaSubMissileOffsets_Clt064 / gaSubMissileSpread_Clt064), stepping by HitPar1*4 bytes per iteration. Sets TargetX/TargetY on each spawned missile to the corresponding spread vector. Always returns 1.
 int32_t __fastcall MISSILE_CltHitFn64_Unused(D2UnitStrc * pUnit, D2UnitStrc * pTarget) {
     // Static local variables (originally global data)
-    static uint32_t gaSubMissileSpread_Clt064 = 0x0;
-    static uint32_t gaSubMissileOffsets_Clt064 = 0x10;
+    static int gaSubMissileSpread_Clt064[8] = { 0x0, 0x10, 0x10, 0x10, 0x0, -0x10, -0x10, -0x10 };
+    static int gaSubMissileOffsets_Clt064[8] = { 0x10, 0x10, 0x0, -0x10, -0x10, -0x10, 0x0, 0x10 };
 
     D2SkillArgStrc sSkillArg;
     sSkillArg.pOwner = Player::MISSILE_GetOwnerUnit(pUnit);
@@ -2213,12 +2245,12 @@ int32_t __fastcall MISSILE_CltHitFn64_Unused(D2UnitStrc * pUnit, D2UnitStrc * pT
     int iSpreadIdx = 0;
     do {
       D2UnitStrc* pSubMissile;
-      sSkillArg.nUnitX = *(int*)((uintptr_t)&gaSubMissileOffsets_Clt064 + iSpreadIdx);
-      sSkillArg.nUnitY = *(int*)((uintptr_t)&gaSubMissileSpread_Clt064 + iSpreadIdx);
+      sSkillArg.nUnitX = *(int*)((int)gaSubMissileOffsets_Clt064 + iSpreadIdx);
+      sSkillArg.nUnitY = *(int*)((int)gaSubMissileSpread_Clt064 + iSpreadIdx);
       pSubMissile = Missile::MakeMissile(&sSkillArg);
       if (pSubMissile) {
-        D2Common::Units::Missile::SetTargetX(pSubMissile, *(int32_t*)((uintptr_t)&gaSubMissileOffsets_Clt064 + iSpreadIdx));
-        D2Common::Units::Missile::SetTargetY(pSubMissile, *(int32_t*)((uintptr_t)&gaSubMissileSpread_Clt064 + iSpreadIdx));
+        D2Common::Units::Missile::SetTargetX(pSubMissile, *(int32_t*)((int)gaSubMissileOffsets_Clt064 + iSpreadIdx));
+        D2Common::Units::Missile::SetTargetY(pSubMissile, *(int32_t*)((int)gaSubMissileSpread_Clt064 + iSpreadIdx));
       }
 
       iSpreadIdx += nClassId * 4;
@@ -3041,8 +3073,8 @@ int32_t __fastcall MISSILE_CltHitFn26_FistOfHeavensDelay(D2UnitStrc * pUnit, D2U
 // Spawns 8 (or fewer, step-controlled) directional missiles of type nMissileId from pUnit2's position, owned by pUnit. Iterates ga8DirectionalMissileSpreadX/Y offset tables stepping by nStep*4 bytes (up to 8 entries = 0x20 bytes). Sets velocity override from MissilesTxt[nMissileId].Param1<<7 and nSubLoopMult=level-1. Returns 1 on success, 0 if nMissileId is out of range.
 uint32_t __fastcall MISSILE_Create8DirectionalClient(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, eMissilesId nMissileId, eD2Skills eSkill, int32_t nSkillLevel, int32_t nStep) {
     // Static local variables (originally global data)
-    static uint32_t ga8DirectionalMissileSpreadY = 0x0;
-    static uint32_t ga8DirectionalMissileSpreadX = 0x2;
+    static int ga8DirectionalMissileSpreadY[8] = { 0x0, 0x2, 0x2, 0x2, 0x0, -0x2, -0x2, -0x2 };
+    static int ga8DirectionalMissileSpreadX[8] = { 0x2, 0x2, 0x0, -0x2, -0x2, -0x2, 0x0, 0x2 };
 
     D2SkillArgStrc sSkillArg;
     if (!(-1 < (int)nMissileId && (int)nMissileId < sgptDataTable->nTxtMissilesSize)) {
@@ -3083,8 +3115,8 @@ uint32_t __fastcall MISSILE_Create8DirectionalClient(D2UnitStrc * pUnit, D2UnitS
     sSkillArg.eSkillNo = eSkill;
     int iSpreadIdx = 0;
     do {
-      sSkillArg.nUnitY = *(int*)((uintptr_t)&ga8DirectionalMissileSpreadX + iSpreadIdx);
-      sSkillArg.nUnitX = *(int*)((uintptr_t)&ga8DirectionalMissileSpreadY + iSpreadIdx);
+      sSkillArg.nUnitY = *(int*)((int)ga8DirectionalMissileSpreadX + iSpreadIdx);
+      sSkillArg.nUnitX = *(int*)((int)ga8DirectionalMissileSpreadY + iSpreadIdx);
       Missile::MakeMissile(&sSkillArg);
       iSpreadIdx += nStep * 4;
     } while (iSpreadIdx < 0x20);

@@ -407,7 +407,7 @@ void SHA1_Transform(uint32_t * blockWords, uint32_t * stateWords) {
     stateWords[4] += stateA;
 }
 
-void __fastcall SHA1_Init(uint32_t * pState) {
+void SHA1_Init(uint32_t * pState) {
     *pState = 0x67452301;
     pState[1] = 0xefcdab89;
     pState[2] = 0x98badcfe;
@@ -496,9 +496,7 @@ void __fastcall SHA1_Final(uint8_t * pHashOut, uint32_t * pShaCtx) {
 // @sourcefile .\SHA.cpp
 int32_t __fastcall SHA1_HashWideString(uint8_t * pHashOut, char * pWideStr, int32_t nLength) {
     uint32_t i;
-    uint32_t* shaCtxEven;
     char* pOddSrcByte;
-    uint32_t* shaCtxOdd;
     uint8_t* pDstByte;
     uint32_t shaCtx[23];
     uint8_t aHashBuf[20];
@@ -529,7 +527,7 @@ int32_t __fastcall SHA1_HashWideString(uint8_t * pHashOut, char * pWideStr, int3
       }
 
       SHA1_Init(shaCtx);
-      SHA1_Update(shaCtxEven, pTmpBuf, nHalfLen);
+      SHA1_Update(shaCtx, pTmpBuf, nHalfLen);
       SHA1_Final(aHashBuf, shaCtx);
       i = 0;
       do {
@@ -548,7 +546,7 @@ int32_t __fastcall SHA1_HashWideString(uint8_t * pHashOut, char * pWideStr, int3
       }
 
       SHA1_Init(shaCtx);
-      SHA1_Update(shaCtxOdd, pTmpBuf, nHalfLen);
+      SHA1_Update(shaCtx, pTmpBuf, nHalfLen);
       SHA1_Final(aHashBuf, shaCtx);
       i = 0;
       pDstByte = pHashOut + 1;

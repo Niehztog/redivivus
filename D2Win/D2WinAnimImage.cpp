@@ -18,6 +18,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinAnimImage) == 0x60, "D2_NEW(D2WinAnimImage): the 32-bit layout must be the 0x60 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_OnPress
 #define RECON_FPTD_OnPress
@@ -322,7 +332,7 @@ BOOL __stdcall D2WINANIMIMAGE_SetAnimate(::D2WinAnimImage * pAnimImage, BOOL bAn
 // @sourcefile .\D2WinAnimImage.cpp
 ::D2WinAnimImage * __fastcall D2WinAnimImage(int32_t nPosX, int32_t nPosY, int32_t nSizeX, int32_t nSizeY, DC6 * pDC6, int32_t nStaticFrameDelay, OnPress pfnOnPress, FORMS_AnimFrameStrc * pAnimFrames, DRAWMODE eDrawMode, fpD2WinAnimImageNotify pfnOnStateChange) {
     DWORD dwTick;
-    ::D2WinAnimImage* pNewAnimImage = (::D2WinAnimImage*)Fog::Memory::AllocClientMemory(0x60, ".\\D2WinAnimImage.cpp", 0x1c, 0);
+    ::D2WinAnimImage* pNewAnimImage = D2_NEW(::D2WinAnimImage);
     memset(pNewAnimImage, 0, 0x60);
     pNewAnimImage->sControl.neD2FormType = FORM_Image;
     int* pStateField = &pNewAnimImage->sControl.dwState;

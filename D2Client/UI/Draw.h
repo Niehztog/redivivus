@@ -33,6 +33,12 @@ struct D2DrawWallStrc {
     /* 0x2C */ uint32_t nFadeDeadlineTick; // GetTickCount() deadline for fade animation completion
 };
 
+struct __attribute__((packed)) D2QuestAreaIntroStrc {
+    /* 0x00 */ int nLevelId;
+    /* 0x04 */ int nQuestId;
+    /* 0x08 */ char szDC6Name[5];
+};
+
 namespace D2Client::UI::Draw {
 
 // Function declarations

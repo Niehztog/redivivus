@@ -13,6 +13,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Client::Core::Archive {
 
@@ -112,7 +116,7 @@ void __fastcall DC6_FreeAndDelete(DC6 * pDC6) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(pDC6, ".\\CORE\\ARCHIVE.CPP", 0x7a, 0);
+    D2_FREE(pDC6);
 }
 
 } // namespace D2Client::Core::Archive

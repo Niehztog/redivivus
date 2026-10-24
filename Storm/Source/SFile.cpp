@@ -5427,7 +5427,6 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
     __frame0_t __frame0;
     D2ArchiveStrc* pNewArchive;
     D2MPQHeaderStrc* pHeaderBuf;
-    D2MPQFileStrc* pMpqFileThis;
     D2ArchiveStrc* pArchive;
     D2MPQFileStrc* pOpenedFile;
     __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
@@ -5440,9 +5439,10 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_00779068);
+    D2MPQFileStrc* pMPQFile = __frame0.pBlockInfo;
     SFILE_CheckFileHandle(__frame0.pBlockInfo, &pOpenedFile);
     if (pOpenedFile->hFile != (HANDLE)-1) {
-      SFileCloseFile(pMpqFileThis);
+      SFileCloseFile(pMPQFile);
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
       nSearchFlags = SFILE_GetOpenFlags();
       SFILE_FindFileOnDisk((uint8_t)nSearchFlags, __frame0.szResolvedPath, szFileName);
@@ -5477,7 +5477,7 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
       return;
     }
 
-    SFileCloseFile(pMpqFileThis);
+    SFileCloseFile(pMPQFile);
     SErr::SErrSetLastError(0x3ee);
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
     Fog::Debug::GuardStack();

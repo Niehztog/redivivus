@@ -9,6 +9,11 @@ extern "C" void D2Trace(const char* pszWhere);
 // user32, needs no CRT state, and so still works while the error handler is
 // unwinding. Only the %-specifiers wsprintfA supports are safe here.
 extern "C" void D2TraceFmt(const char* pszFormat, ...);
+
+// Write a crash report for a Fog halt (support/d2_crash.cpp): the line, the
+// call-site address and the halting thread's stack. Declared here because the
+// generated ErrorManager.cpp already includes this header.
+extern "C" void D2CRASH_ReportHalt(int nLine, unsigned nAddress);
 extern "C" int D2ProbeReadTileClipYMin(void);
 extern "C" void D2ProbeArmClipGuard(void);
 extern "C" void D2ProbeArmClipHwbpSelf(void);

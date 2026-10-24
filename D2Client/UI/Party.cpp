@@ -46,6 +46,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UiPartyStrc) == 0xd1, "D2_NEW(D2UiPartyStrc): the 32-bit layout must be the 0xd1 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fnSendChatCommand
 #define RECON_FPTD_fnSendChatCommand
@@ -104,7 +118,7 @@ void __stdcall FreeAllUiParty() {
     while (pMemoryToFree) {
       D2UiPartyStrc* pDVar1;
       pDVar1 = pMemoryToFree->pNext;
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\UI\\Party.cpp", 0x108, 0);
+      D2_FREE(pMemoryToFree);
       pMemoryToFree = pDVar1;
     }
 
@@ -171,7 +185,7 @@ void AllocUiPartyFromRoster(D2RosterStrc * pRoster, int32_t nPositionY) {
     D2UiPartyStrc* pUiParty;
     char cChar;
     D2UiPartyStrc* pUiPartyGlobal = Party::pUiParty;
-    pUiParty = (D2UiPartyStrc*)Fog::Memory::AllocClientMemory(0xd1, ".\\UI\\Party.cpp", 0x14d, 0);
+    pUiParty = D2_NEW(D2UiPartyStrc);
     memset(pUiParty, 0, 0xd1);
     SetupPartyButtons(pRoster, pUiParty, nPositionY);
     char* pRosterName = GAME::Roster::GetRosterName(pRoster);
@@ -389,11 +403,11 @@ void __stdcall UI_DrawPlayerNameInParty() {
       D2Win::Src::D2WinFont::SetAndReturnLastFont(nLen);
     }
 
-    uint16_t* wszMessage = (uint16_t*)Fog::Memory::AllocClientMemory(nLenPlus1 * 2, ".\\UI\\Party.cpp", 0x211, 0);
+    uint16_t* wszMessage = (uint16_t*)D2_ALLOC(nLenPlus1 * 2);
     D2Lang::UTF8_ConvertToWideChar(wszMessage, pszName, nLenPlus1);
     ui::UI_DrawTextCentered(gnPanelOffsetX + 0x14, 0x1f - gnPanelOffsetY, gnPanelOffsetX + 0xbe, wszMessage, 0);
     D2Win::Src::D2WinFont::SetAndReturnLastFont(0);
-    Fog::Memory::FreeClientMemory(wszMessage, ".\\UI\\Party.cpp", 0x21a, 0);
+    D2_FREE(wszMessage);
 }
 
 int32_t __stdcall ResetPartyUi() {

@@ -54,6 +54,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Client::Engine::GfxUtil {
 
@@ -184,7 +192,7 @@ void __stdcall GFXUTIL_SetMissileCelFile(D2GfxDataStrc * pGfxData, D2UnitStrc * 
 
 // @sourcefile .\ENGINE\GfxUtil.cpp
 void __fastcall AllocGfxUtil(void * * pParam, uint32_t dwParam, uint32_t dwValue1, uint32_t dwValue2, int * pnParam1, int * pnParam2) {
-    uint32_t* pNode = (uint32_t*)Fog::Memory::AllocClientMemory(0x10, ".\\ENGINE\\GfxUtil.cpp", 0x80, 0);
+    uint32_t* pNode = (uint32_t*)D2_ALLOC(0x10);
     if (!pNode) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x81);
       exit(-1);
@@ -221,7 +229,7 @@ void __fastcall GFXUTIL_FreeGfxNodeList(void * * pParam, int * pnParam) {
     while (pMemoryToFree) {
       void* pNextNode;
       pNextNode = *(void**)((int)pMemoryToFree + 0xc);
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\GfxUtil.cpp", 0xa8, 0);
+      D2_FREE(pMemoryToFree);
       *pnParam += -0x10;
       pMemoryToFree = pNextNode;
     }

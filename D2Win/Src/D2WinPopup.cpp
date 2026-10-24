@@ -14,6 +14,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinPopup) == 0x468, "D2_NEW(D2WinPopup): the 32-bit layout must be the 0x468 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_pfnVoidNoArgCallback
 #define RECON_FPTD_pfnVoidNoArgCallback
@@ -185,7 +195,7 @@ void __stdcall D2WinPopup() {
       gpD2WinPopupControl = 0;
     }
 
-    ::D2WinPopup* pNewPopup = (::D2WinPopup*)Fog::Memory::AllocClientMemory(0x468, ".\\Src\\D2WinPopup.cpp", 0x29, 0);
+    ::D2WinPopup* pNewPopup = D2_NEW(::D2WinPopup);
     memset(pNewPopup, 0, 0x468);
     pNewPopup->sControl.neD2FormType = FORM_Popup;
     int* pStateField = &pNewPopup->sControl.dwState;

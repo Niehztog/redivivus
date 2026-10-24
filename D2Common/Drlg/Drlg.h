@@ -273,6 +273,24 @@ struct __attribute__((packed)) D2DrlgPresetTypeTablesStrc {
     /* 0x1C0 */ D2DrlgPresetTypeStrc aTypes[34];
 };
 
+struct __attribute__((packed)) D2DrlgAStarContextStrc {
+    /* 0x00000 */ struct D2DrlgRoomAStarNodeStrc * pOpenListHead; // lowest-cost node, starts at aNodes[0]
+    /* 0x00004 */ D2DrlgRoomAStarNodeStrc aNodes[900]; // node pool; nNodeCount stops at 900 (0x384)
+    /* 0x06274 */ int32_t nNodeCount;
+    /* 0x06278 */ uint16_t nMinX;
+    /* 0x0627A */ uint16_t nMinY;
+    /* 0x0627C */ uint16_t nMaxX;
+    /* 0x0627E */ uint16_t nMaxY;
+    /* 0x06280 */ uint16_t nWidth;
+    /* 0x06282 */ uint16_t nHeight;
+    /* 0x06284 */ int32_t nGridStride; // nWidth + 6
+    /* 0x06288 */ int32_t nGridOffsetX; // 3 - nMinX
+    /* 0x0628C */ int32_t nGridOffsetY; // 3 - nMinY
+    /* 0x06290 */ int32_t aGridCells[50000]; // best cost per cell, (nWidth+6)*(nHeight+6) used, nWidth*nHeight <= 50000 asserted
+    /* 0x36FD0 */ BOOL bRandomizeDirection;
+    /* 0x36FD4 */ struct D2SeedStrc * pSeed;
+};
+
 namespace D2Common::Drlg {
 
 // Function declarations
@@ -453,7 +471,7 @@ int32_t __fastcall PATH_FindPathForceMove(struct D2PathTypeArg * pPathTypeArg);
 // Pathfinding callback that computes a knockback destination for a unit. Derives displacement from source to target using the dominant-axis normalisation scaled by half the path's nDist, then raycasts (Bresenham) the resulting endpoint back through collision geometry. Writes the final reachable point into pDynamicPath->PathPoints[0] and sets dwPathPoints=1. Returns 1 if the unit actually moved, 0 if blocked at source.
 int32_t __fastcall PATH_FindPathKnockback(struct D2PathTypeArg * pPathTypeArg);
 // A*/IDA* pathfinding expansion step over the DRLG room path grid. Walks the open chain from the current node toward the target coords; for each node it tests the 8 directional neighbors, skips out-of-bounds and collision-blocked cells (Collision::CheckCollision_BlockPlayer_Type with the unit width and collision pattern), computes G (2 straight / 3 diagonal), Manhattan-style H and F costs, and links/allocates child nodes (capacity 0x384) from the path memory pool, deriving each child's facing direction (DRLGPATH_GetPathDirectionPacked with optional seeded RNG). Returns a pointer to the reached/best node's nFCost field, or NULL if no path (target unreached, cost over nMaxCost, pool exhausted, or >10000 iterations). Uses ppPathMemory (EDI) as both the node arena and the path-state header.
-short * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, struct D2PathTypeArg * pPathTypeArg, short * * ppPathMemory);
+struct D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, struct D2PathTypeArg * pPathTypeArg, struct D2DrlgAStarContextStrc * pAStarCtx);
 // Wrapper that computes the bounding box for A* search by merging the current room and (optionally) the next room extents, padding 10 tiles on any axis that didn't change, then delegates to DRLGPATH_FindPathAStar. nIdaStarVariable is doubled on entry (IDA* depth scaling). Returns the path length from the inner call.
 int32_t __fastcall PATH_FindPathAStar(struct D2PathTypeArg * pPathTypeArg);
 // Fallback A* used when the greedy directional search does not reach the destination and the squared distance is under 0x145. The whole search state is ONE 0x32EC-byte frame object whose base is handed to every helper, which then reach the rest by byte offset: DRLGPATH_AllocPathNode takes the pool count at base+0x2FC4 and node n at base+0x404+n*0x38; DRLGPATH_InsertNodeSorted and PopBestNodeFromOpenList use the closed buckets at base+0x200 and the sorted head at base+0x400; DRLGPATH_PropagateNodeCosts uses the queue at base+0x2FC8 and its count at base+0x32E8. Split into separate locals the helpers wrote nodes over unrelated stack and read the list head out of garbage, which faulted on every player move long enough to need the A* fallback and on NPC paths.
@@ -467,7 +485,7 @@ void __fastcall DRLGROOMEX_InitializeMazeRoom(struct D2RoomExStrc * pRoomEx);
 // Returns nonzero if outdoor border flag (0x80) is set in room data.
 uint32_t __fastcall DRLGOUTROOM_HasOutdoorBorderFlag(struct D2RoomExStrc * pRoomEx);
 // NOTE: Callee-saved register params inferred (medium confidence): pint (ESI): int*
-int32_t __stdcall DRLGOUTROOM_SetupRoomCoordsFromTable(int * pSrcCoords, int dwParam2);
+int32_t __stdcall DRLGOUTROOM_SetupRoomCoordsFromTable(int * pOutCoords, int32_t nDirection, int * pSrcCoords, int32_t nTableRow);
 BOOL __fastcall DRLGPLACE_OrientedFixedOffset(struct D2DrlgLevelPlacementStrc * pLevelUnknown);
 BOOL __fastcall DRLGPLACE_OrientedAbsolutePos(struct D2DrlgLevelPlacementStrc * pLevelUnknown);
 // Chooses a binary orientation (0=vertical 0x40×0xA0, 1=horizontal 0xA0×0x40) for the current placement node, cycling through both on successive calls (returns FALSE when both tried). Positions the node relative to its predecessor using a 4-entry offset table indexed by (curDir*2 + prevDir), from gnDrlgLevelGenerationState/Flags globals.

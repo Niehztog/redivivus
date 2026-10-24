@@ -10,6 +10,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2HoverTextStrc) == 0x110, "D2_NEW(D2HoverTextStrc): the 32-bit layout must be the 0x110 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Common::Chat {
 
@@ -28,7 +42,7 @@ D2HoverTextStrc * __stdcall Alloc(D2PoolManagerStrc * pMemory, char * szMessage,
       nClampedLen = nMsgLen;
     }
 
-    D2HoverTextStrc* pHover = (D2HoverTextStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x110, ".\\Chat\\Chat.cpp", 0x32, 0);
+    D2HoverTextStrc* pHover = D2_NEW_POOL(pMemory, D2HoverTextStrc);
     nMsgLen = nClampedLen * 8 + 0x7d;
     pHover->nStartFrame = nMsgLen;
     pHover->nExpireFrame = nMsgLen + nDuration;
@@ -46,7 +60,7 @@ void __stdcall Free(D2PoolManagerStrc * pMemory, D2HoverTextStrc * pHoverText) {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pHoverText, ".\\Chat\\Chat.cpp", 0x44, 0);
+    D2_FREE_POOL(pMemory, pHoverText);
 }
 
 uint32_t __stdcall CHAT_GetChatField(uint32_t * pdwParam) {

@@ -17,6 +17,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Lang::Unicode::UNISYS {
 
@@ -1090,7 +1094,7 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
     char* pFileData = (char*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMemory, szFilename, nullptr, ".\\Unicode\\UNISYS.CPP", 0x61);
     int nOffset = strncmp(pFileData, "KAMAP\n", 5);
     if (nOffset) {
-      Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0x65, 0);
+      D2_FREE(pFileData);
       Fog::Debug::GuardStack();
       return;
     }
@@ -1104,7 +1108,7 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
         nOffset++;
       }
       if (0x27 < nOffset) {
-        Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0x79, 0);
+        D2_FREE(pFileData);
         Fog::Debug::GuardStack();
         return;
       }
@@ -1121,7 +1125,7 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
 
     g_pUnicodeKamapTable = Storm::SMem::SMemAlloc((uint32_t)(uint8_t)*pGroupCount * 2, "new[]", -1, 0);
     if (!g_pUnicodeKamapTable) {
-      Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0x91, 0);
+      D2_FREE(pFileData);
       Fog::Debug::GuardStack();
       return;
     }
@@ -1135,7 +1139,7 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
     void* pAllocBuf = Storm::SMem::SMemAlloc((uint32_t)*pFilePtr * 4, "new[]", -1, 0);
     gpUnicodeKamapToCodeTable = pAllocBuf;
     if (!pAllocBuf) {
-      Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0x9e, 0);
+      D2_FREE(pFileData);
       Fog::Debug::GuardStack();
       return;
     }
@@ -1156,7 +1160,7 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
     uint16_t* pwCodeToMapTable = (uint16_t*)Storm::SMem::SMemAlloc((uint32_t)*pFilePtr * 2, "new[]", -1, 0);
     gpUnicodeCodeToMapTable = pwCodeToMapTable;
     if (!pwCodeToMapTable) {
-      Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0xb0, 0);
+      D2_FREE(pFileData);
       Fog::Debug::GuardStack();
       return;
     }
@@ -1179,7 +1183,7 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
       nOffset++;
     } while (cTmp);
 
-    Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0xbe, 0);
+    D2_FREE(pFileData);
     Fog::Debug::GuardStack();
 }
 

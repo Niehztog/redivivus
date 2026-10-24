@@ -85,7 +85,6 @@
 #include "D2Common/Drlg/Drlg.h"
 #include "D2Common/ITEMS/ItemMods.h"
 #include "D2Common/Units/Missile.h"
-#include "D2Game/D2Game.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 #include "D2Game/Quests/QUESTS/Quest40.h"
 #include "D2Game/SKILLS/SkillAss.h"
@@ -158,7 +157,7 @@ uint16_t __fastcall GetNameSeed(D2UnitStrc * pUnit) {
 }
 
 // 2022.01.09 - dzik
-uint32_t __fastcall CheckMonsterType(D2UnitStrc * pUnit, uint16_t eMonsterType) {
+uint32_t CheckMonsterType(D2UnitStrc * pUnit, uint16_t eMonsterType) {
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && pUnit->pUnitData.pUnitDataMonster)) {
       return 0;
     }
@@ -430,7 +429,7 @@ int32_t MONSTER_SelectChampionMod(D2UnitStrc * pUnit, ::SGAMEDATA * pGame) {
 }
 
 // Randomly selects one unique/champion modifier index from pTxtMonUmod for pUnit. Filters candidates by difficulty-tier cpick weight, champion flag, MONSTER_CanApplyUniqueModifier eligibility, and whether the slot in pD2MonUModTxt is already occupied. Performs a weighted random draw using the unit's seed; returns the selected modifier index (0-based) or 0 on failure.
-int32_t __stdcall MONUMOD_RollRandomModifier(D2UnitStrc * pUnit, D2MonUModTxt * pD2MonUModTxt, ::SGAMEDATA * pGame) {
+int32_t __stdcall MONUMOD_RollRandomModifier(D2UnitStrc * pUnit, uint8_t * pUsedUModFlags, ::SGAMEDATA * pGame) {
     bool _nExpansion;
     bool _bCanApply;
     bool bCanApply;
@@ -471,7 +470,7 @@ int32_t __stdcall MONUMOD_RollRandomModifier(D2UnitStrc * pUnit, D2MonUModTxt * 
         if (0 < (short int)wCpick && pUmodEntry->champion == '\0') {
           _bCanApply = MONSTER_CanApplyUniqueModifier(pUmodEntry, _nExpansion, pUnit);
           nPickIdx = nTxtSizeSaved;
-          if (_bCanApply && *(char*)((int)pD2MonUModTxt->cpick + nUmodIdx - 0xe) == '\0') {
+          if (_bCanApply && pUsedUModFlags[nUmodIdx] == '\0') {
             nTotalWeight += (int)(short int)nCpickWeight;
             aCandidateTable[nCandidates * 2] = nUmodIdx;
             aCandidateTable[nCandidates * 2 + 1] = (int)(short int)nCpickWeight;
@@ -522,7 +521,6 @@ int32_t __stdcall MONUMOD_RollRandomModifier(D2UnitStrc * pUnit, D2MonUModTxt * 
 // Rolls and assigns unique-modifier (UMod) enchantments to a newly spawned monster. If bResult is set, first rolls against the champion threshold (MonUMod.txt constants row 0) to potentially make the monster a champion instead; if champion, calls MONSTER_SelectChampionMod and returns. Otherwise rolls 1+difficulty extra UMod slots, calls MONUMOD_RollRandomModifier up to that count (avoiding already-assigned mods via a local dedup table), and appends each selected UMod ID to pUnitDataMonster->MonUModList. Guards against stack overflow via security cookie.
 // [override: patch]
 void MONSTER_RollAndAssignUMods(void * pThis, ::SGAMEDATA * pGame, BOOL bResult) {
-    D2SeedStrc* pSeed;
     int32_t nActiveUMods;
     uint32_t nRoll;
     int nSlotIdx;
@@ -531,11 +529,11 @@ void MONSTER_RollAndAssignUMods(void * pThis, ::SGAMEDATA * pGame, BOOL bResult)
     uint8_t* pUModList;
     int nRolledUmodId;
     int nConstantsThreshold;
-    D2MonUModTxt aUsedUmodTable[8];
+    uint8_t aUsedUmodTable[256];
     uint16_t* pMonType;
     uint8_t* pUModWritePtr;
-    uint32_t dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (pGame && pGame->nDifficulty < 3 && pThis && *(int*)pThis == 1 && *(int*)((int)pThis + 0x14)) {
+      D2SeedStrc* pSeed;
       pUModList = (uint8_t*)(*(int*)((int)pThis + 0x14) + 0x1c);
       if (pUModList) {
         nActiveUMods = CountActiveUMods(pUModList);
@@ -574,7 +572,7 @@ void MONSTER_RollAndAssignUMods(void * pThis, ::SGAMEDATA * pGame, BOOL bResult)
               do {
                 pUModWritePtr = pUModList + nSlotIdx;
                 nSlotIdx++;
-                *(uint8_t*)((int)aUsedUmodTable[0].cpick + (*pUModWritePtr - 0xe)) = 1;
+                aUsedUmodTable[*pUModWritePtr] = '\x01';
               } while (nSlotIdx < nActiveUMods);
             }
 
@@ -592,7 +590,7 @@ void MONSTER_RollAndAssignUMods(void * pThis, ::SGAMEDATA * pGame, BOOL bResult)
               *pUModList = (uint8_t)nActiveUMods;
               nNumRolls--;
               pUModList++;
-              *(uint8_t*)((int)aUsedUmodTable[0].cpick + nActiveUMods - 0xe) = 1;
+              aUsedUmodTable[nActiveUMods] = '\x01';
             }
           }
         }
@@ -1972,6 +1970,15 @@ void __fastcall MONSTER_SelfResurrect(::SGAMEDATA * pGame, D2UnitStrc * pUnit, u
     GAME::Event::SetEvent(pGame, pUnit, 2, pGame->dwGameFrame + 0x33, 0, 0);
 }
 
+// MonUMod handler, only reached through g_MonsterUModHandlerTable row 35. On death (or no unit) sets STATE_shatter.
+void __fastcall FUN_005a3a80(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwParam1, int32_t nParam2) {
+    if (!(!pUnit || pUnit->eAnimMode.ePlayerMode == Death)) {
+      return;
+    }
+
+    D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_shatter, 1);
+}
+
 void __fastcall MONSTER_HandleMinionDeath(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwUnused1, uint32_t dwUnused2) {
     bool _bIsDead;
     bool bIsDead;
@@ -2323,268 +2330,29 @@ void __fastcall MONSTER_SuicideExplosion(::SGAMEDATA * pGame, D2UnitStrc * pUnit
     UNIT::SUnitDmg::DAMAGE_ApplyAreaOfEffectDamage(pGameSaved, pUnit_00, nClassId, nMissileSpawnY, (int)pMonStatsTxt->aip[3][pGameSaved->nDifficulty], &sDamage.dwHitFlags, 0, 0, nullptr, 0x581);
 }
 
+// MonUMod handler, only reached through g_MonsterUModHandlerTable row 40. On death (or no unit) spawns monster 0x227 and sets STATE_corpse_nodraw.
+void __fastcall FUN_005a4200(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwParam1, int32_t nParam2) {
+    if (!(!pUnit || pUnit->eAnimMode.ePlayerMode == Death)) {
+      return;
+    }
+
+    Monster::Create::SpawnMonsterBase(pGame, pUnit, 0x227, eD2MonsterAnimMode_ns::Neutral, 1, 0);
+    D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_corpse_nodraw, 1);
+}
+
+// MonUMod handler, only reached through g_MonsterUModHandlerTable row 41. While alive: MONSTERAI_TriggerMageThink, then event 7 in 75 frames.
+void __fastcall FUN_005a4230(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwParam1, int32_t nParam2) {
+    BOOL BVar1 = UNIT::SUnit::CheckForModeZeroDeath(pUnit);
+    if (BVar1) {
+      return;
+    }
+
+    Monster::MONSTERAI_TriggerMageThink(pGame, pUnit);
+    GAME::Event::SetEvent(pGame, pUnit, 7, pGame->dwGameFrame + 0x4b, 0, 0);
+}
+
 // Dispatches an event to all of a unique/champion monster's unique-modifier (MonUMod) handlers. Reads the monster's MonUModList (up to 9 mod slots) and, for each active mod, looks up g_MonsterUModHandlerTable[modId] and calls the handler for the requested event: nParam==5 invokes the per-mod init handler (pfnHandlerInit), otherwise invokes pfnHandlerN indexed by nParam (the event/phase). Passes the mod id and a champion flag (derived from the monster's quest-record byte) to each handler. No-op for non-monster units or units with no mod list. Drives unique-monster modifier behavior (e.g. extra-strong, fire-enchanted) at various lifecycle points.
 void __stdcall MONSTER_DispatchUniqueModifiers(::SGAMEDATA * pGame, D2UnitStrc * dwParam, int32_t nParam, D2UnitStrc * pUnit) {
-    // Static local variables (originally global data)
-    static D2MonsterUModHandlerRowStrc g_MonsterUModHandlerTable[32] = {
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ &D2Game::Monsters::MONSTER_OnDeathAmplifyDamageAura,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ &D2Game::Monsters::MONSTER_OnDeathScheduleDelayed,
-        /* .pfnHandler2 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_CorpseExplode,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_ScheduleDeathEvent,
-        /* .pfnHandler2 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_DeathPoisonCloud,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ (fpMonsterUModHandler)&D2Game::Monsters::UMOD_SetLevelAndAttackRating,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_OnDeathKillOwnerAndMinions,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ &D2Game::Monsters::MONSTER_ScheduleEventIfRunning,
-        /* .pfnHandler2 = */ &D2Game::Monsters::MONSTER_LightningUniqueDeathBolts,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ &D2Game::Monsters::MONSTER_LightningDeathIfNotRunning,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_ScheduleDeathEvent,
-        /* .pfnHandler2 = */ &D2Game::Monsters::MONSTER_DeathMissileRing,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ (fpMonsterUModHandler)&D2Game::Monsters::UMOD_AddBaseDamageBonus,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_ScaleMissileDamageByOwner
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ &D2Game::MONSTER_ScheduleDeathIfRunningOrDead,
-        /* .pfnHandler2 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_BugLightningDeathBolts,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_HandleMinionDeath,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_DispatchSpecialDeath,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_QueenPoisonCloudDeath,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ &D2Game::Monsters::MONSTER_StealPotionFromBelt,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ (fpMonsterUModHandler)&D2Game::Monsters::UMOD_SetRandomElementalDamage,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ (fpMonsterUModHandler)&D2Game::Monsters::UMOD_SetRandomElementalForMissile
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_MissileSplitOnHit
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ nullptr,
-        /* .pfnHandler2 = */ nullptr,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    },
-    {
-        /* .pfnHandler0 = */ nullptr,
-        /* .pfnHandler1 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_ScheduleDeathEvent,
-        /* .pfnHandler2 = */ (fpMonsterUModHandler)&D2Game::Monsters::MONSTER_CorpseExplodeFixed,
-        /* .pfnHandler3 = */ nullptr,
-        /* .pfnHandler4 = */ nullptr,
-        /* .pfnHandlerInit = */ nullptr
-    }
-};
-
     uint32_t nSecurityCookie;
     int nUModSlot = 0;
     if (!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataPlayer) {
@@ -2930,7 +2698,7 @@ D2UnitStrc * __fastcall SPAWN_UniqueMonster(::SGAMEDATA * pGame, D2RoomStrc * pR
     int* pModEntry;
     D2AiGeneralStrc* pMonsterAiGeneral;
     int nDiffUModCount;
-    D2MonUModTxt sUModPickList;
+    uint8_t abUsedUMods[256];
     bool bHasAuraEnchant;
     eD2QuestsInternal eQuestId;
     uint16_t* puVar1;
@@ -2968,7 +2736,7 @@ D2UnitStrc * __fastcall SPAWN_UniqueMonster(::SGAMEDATA * pGame, D2RoomStrc * pR
     }
 
     MONSTER_SetMonsterDataField0x26(pUnit, (int16_t)nClassId);
-    memset(&sUModPickList, 0, sgptDataTable->nTxtMonUmodSize);
+    memset(abUsedUMods, 0, sgptDataTable->nTxtMonUmodSize);
     bHasAuraEnchant = false;
     nUModCount = CountActiveUMods(pUModList);
     if (4 < nUModCount) {
@@ -2987,11 +2755,11 @@ D2UnitStrc * __fastcall SPAWN_UniqueMonster(::SGAMEDATA * pGame, D2RoomStrc * pR
       if (nUModIdx == 0x1e) {
         bHasAuraEnchant = true;
         *pUModList = (uint8_t)nUModIdx;
-        *(uint8_t*)((int)sUModPickList.cpick + nUModIdx - 0xe) = 1;
+        abUsedUMods[nUModIdx] = '\x01';
         pUModList++;
       } else if (nUModIdx != 0x18) {
         *pUModList = (uint8_t)nUModIdx;
-        *(uint8_t*)((int)sUModPickList.cpick + nUModIdx - 0xe) = 1;
+        abUsedUMods[nUModIdx] = '\x01';
         pUModList++;
       }
 
@@ -3003,14 +2771,14 @@ D2UnitStrc * __fastcall SPAWN_UniqueMonster(::SGAMEDATA * pGame, D2RoomStrc * pR
     if (pGame->nDifficulty) {
       uint8_t byDifficulty;
       do {
-        nUModCount = MONUMOD_RollRandomModifier(pUnit, &sUModPickList, pGame);
+        nUModCount = MONUMOD_RollRandomModifier(pUnit, abUsedUMods, pGame);
         if (!nUModCount) {
           break;
         }
 
         *pUModList = (uint8_t)nUModCount;
         byDifficulty = pGame->nDifficulty;
-        *(uint8_t*)((int)sUModPickList.cpick + nUModCount - 0xe) = 1;
+        abUsedUMods[nUModCount] = '\x01';
         nDiffUModCount++;
         pUModList++;
       } while (nDiffUModCount < (int)(uint32_t)byDifficulty);

@@ -21,6 +21,22 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinListEntry) == 0x224, "D2_NEW(D2WinListEntry): the 32-bit layout must be the 0x224 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinList) == 0x6c, "D2_NEW(D2WinList): the 32-bit layout must be the 0x6c bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpListEntryCallback
 #define RECON_FPTD_fpListEntryCallback
@@ -47,7 +63,7 @@ void __fastcall FORMS_DestroyD2WinList(::D2WinList * pList) {
     D2WinListEntry* pEntry = pList->sEntriesControl.pFirstEntry;
     while (pEntry) {
       pNextEntry = pEntry->pNext;
-      Fog::Memory::FreeClientMemory(pEntry, ".\\Src\\D2WinList.cpp", 0x85, 0);
+      D2_FREE(pEntry);
       pEntry = pNextEntry;
     }
 
@@ -65,7 +81,7 @@ void __fastcall D2WINLIST_AddListItem(::D2WinList * pList, uint16_t * wszText, f
     if (pList->sControl.neD2FormType == FORM_List) {
       D2WinListEntry* pNewEntry;
       D2WinFont::SetAndReturnLastFont(pList->sEntriesControl.nFontId);
-      pNewEntry = (D2WinListEntry*)Fog::Memory::AllocClientMemory(0x224, ".\\Src\\D2WinList.cpp", 0xa5, 0);
+      pNewEntry = D2_NEW(D2WinListEntry);
       nLine = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszText);
       if (nLine < 0x100) {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(pNewEntry->wszText, wszText);
@@ -478,7 +494,7 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
     int32_t nStrLen;
     int eFontType;
     D2WinListEntry* pTailEntry;
-    ::D2WinList* pList = (::D2WinList*)Fog::Memory::AllocClientMemory(0x6c, ".\\Src\\D2WinList.cpp", 0x2e, 0);
+    ::D2WinList* pList = D2_NEW(::D2WinList);
     memset(pList, 0, 0x6c);
     pList->sControl.neD2FormType = FORM_List;
     int* pItemCountPtr = &pList->sControl.dwState;
@@ -513,7 +529,7 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
       D2WinListEntry* pDVar1;
       nSizeX = pnItemArray + 1;
       do {
-        pNewEntry = (D2WinListEntry*)Fog::Memory::AllocClientMemory(0x224, ".\\Src\\D2WinList.cpp", 0x56, 0);
+        pNewEntry = D2_NEW(D2WinListEntry);
         wszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(*(uint16_t*)(nSizeX - 1));
         nStrLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszLocaleStr);
         if (0xff < nStrLen) {

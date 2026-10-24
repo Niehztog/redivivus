@@ -20,6 +20,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fpRequiredUserAction
 #define RECON_FPTD_fpRequiredUserAction
@@ -118,7 +122,7 @@ void __fastcall IMAGE_FreeImage(DC6 * pDC6) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(pDC6, ".\\Src\\D2WinArchive.cpp", 0x5c, 0);
+    D2_FREE(pDC6);
 }
 
 BOOL MessageBoxA_InsertExpansionDisc() {

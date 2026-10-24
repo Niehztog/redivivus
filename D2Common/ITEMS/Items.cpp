@@ -69,6 +69,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitDataItemStrc) == 0x74, "D2_NEW(D2UnitDataItemStrc): the 32-bit layout must be the 0x74 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnItemTransactionCb
 #define RECON_FPTD_pfnItemTransactionCb
@@ -123,7 +137,7 @@ void __stdcall STRUCT_CreateDataItem(D2PoolManagerStrc * pMemory, D2UnitStrc * p
       return;
     }
 
-    D2UnitDataItemStrc* pUnitDataItem = (D2UnitDataItemStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x74, ".\\ITEMS\\Items.cpp", 0xd2, 0);
+    D2UnitDataItemStrc* pUnitDataItem = D2_NEW_POOL(pMemory, D2UnitDataItemStrc);
     if (!pUnitDataItem) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd5);
       exit(-1);
@@ -145,7 +159,7 @@ void __stdcall ITEMDATA_Free(D2PoolManagerStrc * pMemory, D2UnitStrc * pUnit) {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pUnit->pUnitData.pUnitDataPlayer, ".\\ITEMS\\Items.cpp", 0x10a, 0);
+    D2_FREE_POOL(pMemory, pUnit->pUnitData.pUnitDataPlayer);
 }
 
 eD2BodyLoc __stdcall GetBodyLocation(D2UnitStrc * pUnit) {
@@ -263,7 +277,7 @@ void __stdcall SetAutoMagic(D2UnitStrc * pUnit, int16_t wAutoMagic) {
 }
 
 // Returns magic suffix ID at nIndex (offset 0x3E + nIndex*2) from D2UnitDataItemStrc. Returns 0 if unit is null, not an item, or has no item data.
-int __stdcall GetMagicSuffix(D2UnitStrc * pUnit, int nIndex) {
+int GetMagicSuffix(D2UnitStrc * pUnit, int nIndex) {
     if (!(pUnit && pUnit->eUnitType == UNIT_ITEM)) {
       return (uint32_t)pUnit & -65536;
     }
@@ -317,7 +331,7 @@ void __stdcall SetRareSuffix(D2UnitStrc * pUnit, int16_t wRareSuffix) {
     pUnit->pUnitData.pUnitDataItem->wRareSuffix = wRareSuffix;
 }
 
-BOOL __stdcall CheckItemFlag(D2UnitStrc * pUnit, eD2ItemFlag neD2ItemFlag, int32_t nParam, char * szText) {
+BOOL CheckItemFlag(D2UnitStrc * pUnit, eD2ItemFlag neD2ItemFlag, int32_t nParam, char * szText) {
     if (!(pUnit && pUnit->eUnitType == UNIT_ITEM && pUnit->pUnitData.pUnitDataItem)) {
       return 0;
     }
@@ -402,7 +416,7 @@ eD2ItemCmd __stdcall ITEM_GetItemData_eD2ItemCmd(D2UnitStrc * pUnit) {
     return pUnit->pUnitData.pUnitDataItem->eItemCmd;
 }
 
-int32_t __stdcall ITEM_GetItemData_nItemLevel(D2UnitStrc * pUnit) {
+int32_t ITEM_GetItemData_nItemLevel(D2UnitStrc * pUnit) {
     if (!(pUnit && pUnit->eUnitType == UNIT_ITEM)) {
       return 1;
     }
@@ -737,7 +751,7 @@ int __stdcall ITEMS_nullsub(int nMaxLvlReq, D2MagicAffixTxt * pAffixTxt, D2UnitS
     if (!pAffixTxt) {
       return nMaxLvlReq;
     }
-    if (pAffixTxt->class_ == 0xff || !pPlayer || (uint32_t)(uint8_t)pAffixTxt->class_ != pPlayer->nClassId) {
+    if (pAffixTxt->class_ == 0xff || !pPlayer || (uint32_t)pAffixTxt->class_ != pPlayer->nClassId) {
       bVar1 = pAffixTxt->levelreq;
     } else {
       bVar1 = pAffixTxt->classlevelreq;
@@ -1001,51 +1015,41 @@ int32_t __stdcall IsQuestItem(D2UnitStrc * pUnit) {
 
 // Computes the repair-price premium for all charged-skill stats (stat 0xCC) on an item. For each charged stat, if charges are not full, adds (maxCharges-curCharges)/maxCharges * (skillLevelCost * multiplier + costmult/costadd from Skills.txt) to the total. Returns total modifier to be added to item sell/repair price.
 int32_t __fastcall ITEMS_CalcChargedSkillPriceModifier(D2UnitStrc * pUnit, int32_t nMultiplier) {
-    // Frame -540..-28 is ONE Ghidra variable the decompiler printed as 2 locals.
-    // Separate locals let the compiler reorder them, so the pieces are one struct.
-    struct __frame0_t {
-      uint16_t aStatValues[2];
-      uint32_t auStack_218[127];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 512, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     D2SkillsTxt* pSkillsTxt;
     int nCostTmp;
     int nMaxCharges;
-    uint32_t nCurCharges;
-    int nBaseCostMult = nMultiplier;
-    int32_t nStatCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, 0xcc, (int*)__frame0.aStatValues, 0x40);
+    uint32_t uVar2;
+    D2StatStrc aStatValues[64];
+    int32_t iVar1 = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, 0xcc, aStatValues, 0x40);
     int nStatIdx = 0;
     int nTotalModifier = 0;
-    if (nStatCount < 1) {
+    if (iVar1 < 1) {
       return 0;
     }
 
-    int nSkillLvlShift = sgptDataTable->nChargedSkillLevelBits;
-    uint32_t nStatMask = sgptDataTable->dwChargedSkillLevelMask;
     do {
       int nSkillLevel;
-      nSkillLevel = (int)(uint32_t)__frame0.aStatValues[nStatIdx * 4] >> ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
-      nCurCharges = __frame0.auStack_218[nStatIdx * 2] & 0xff;
-      nMaxCharges = (int)__frame0.auStack_218[nStatIdx * 2] >> 8;
-      if ((int)nCurCharges < nMaxCharges && -1 < nSkillLevel && nSkillLevel < sgptDataTable->nTxtSkillsCount) {
+      nSkillLevel = (int)(uint32_t)(uint16_t)aStatValues[nStatIdx].wSubIndex >> ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
+      uVar2 = aStatValues[nStatIdx].nStatValue & 0xff;
+      nMaxCharges = aStatValues[nStatIdx].nStatValue >> 8;
+      if ((int)uVar2 < nMaxCharges && -1 < nSkillLevel && nSkillLevel < sgptDataTable->nTxtSkillsCount) {
         pSkillsTxt = sgptDataTable->pTxtSkills + nSkillLevel;
         if (pSkillsTxt) {
-          nSkillLevel = (sgptDataTable->dwChargedSkillLevelMask & (uint32_t)__frame0.aStatValues[nStatIdx * 4]) + 2 + (int)pSkillsTxt->reqlevel / 6 * 2;
-          nCostTmp = nSkillLevel * nBaseCostMult;
+          nSkillLevel = (sgptDataTable->dwChargedSkillLevelMask & (uint32_t)(uint16_t)aStatValues[nStatIdx].wSubIndex) + 2 + (int)pSkillsTxt->reqlevel / 6 * 2;
+          nCostTmp = nSkillLevel * nMultiplier;
           if (nCostTmp < 0x10000 || !pSkillsTxt->costmult) {
-            nSkillLevel = pSkillsTxt->costmult * nSkillLevel * nBaseCostMult;
+            nSkillLevel = pSkillsTxt->costmult * nSkillLevel * nMultiplier;
             nSkillLevel = (int)((nSkillLevel >> 0x1f & 0x3ffU) + nSkillLevel) >> 10;
           } else {
             nSkillLevel = ((int)((nCostTmp >> 0x1f & 0x3ffU) + nCostTmp) >> 10) * pSkillsTxt->costmult;
           }
 
-          nTotalModifier += (int)((nMaxCharges - nCurCharges) * (nSkillLevel + pSkillsTxt->costadd)) / nMaxCharges;
+          nTotalModifier += (int)((nMaxCharges - uVar2) * (nSkillLevel + pSkillsTxt->costadd)) / nMaxCharges;
         }
       }
 
       nStatIdx++;
-    } while (nStatIdx < nStatCount);
+    } while (nStatIdx < iVar1);
 
     return nTotalModifier;
 }
@@ -2047,8 +2051,6 @@ uint32_t __stdcall ITEMS_GetEquippedSetItemsMask(D2UnitStrc * pUnit, D2UnitStrc 
     D2UnitStrc* pCarriedItem;
     BOOL bItemNotDisabledOrBroken;
     D2SetItemsTxt* pCurSetItemsTxt;
-    D2UnitStrc* pCarriedItemCheck2;
-    D2UnitStrc* pCarriedItemCheck3;
     if (!pUnit || !pItem || pItem->eUnitType != UNIT_ITEM || !pItem->pUnitData.pUnitDataMonster || pItem->pUnitData.pUnitDataMonster->pMonStatsTxt != (D2MonStatsTxt*)0x5) {
       return 0;
     }
@@ -2080,9 +2082,9 @@ uint32_t __stdcall ITEMS_GetEquippedSetItemsMask(D2UnitStrc * pUnit, D2UnitStrc 
           if (nFileIndex == 5) {
             bItemNotDisabledOrBroken = CheckItemFlag(pCarriedItem, ITEMFLAG_DISABLED, 0x144e, ".\\ITEMS\\Items.cpp");
             if (!bItemNotDisabledOrBroken) {
-              bItemNotDisabledOrBroken = CheckItemFlag(pCarriedItemCheck2, ITEMFLAG_BROKEN, 0x144f, ".\\ITEMS\\Items.cpp");
+              bItemNotDisabledOrBroken = CheckItemFlag(pCarriedItem, ITEMFLAG_BROKEN, 0x144f, ".\\ITEMS\\Items.cpp");
               if (!bItemNotDisabledOrBroken) {
-                nFileIndex = ITEM_GetItemData_nFileIndex(pCarriedItemCheck3);
+                nFileIndex = ITEM_GetItemData_nFileIndex(pCarriedItem);
                 pCurSetItemsTxt = D2Client::DataTbls::GetSetItemsLine(nFileIndex);
                 if (pCurSetItemsTxt && pCurSetItemsTxt->set == pSetItemsTxt->set) {
                   nSetMask |= 1 << ((uint8_t)pCurSetItemsTxt->setIndex & 0x1f);
@@ -2302,18 +2304,11 @@ int __stdcall ITEM_CalcWeaponAttackSpeed(D2UnitStrc * pUnit, D2UnitStrc * pItem)
 
 // Checks whether all charged-skill stats (stat 0xCC) on pItem are at full charges. Returns true if the item has at least one charged stat and all are fully charged. Optionally writes a 4-byte result struct to pOutFullyCharged: byte[0]=hasChargedSkills, byte[1..3]=false if any charge is depleted.
 BOOL __stdcall ITEMS_CheckChargedSkillFullyCharged(D2UnitStrc * pItem, bool * pOutFullyCharged) {
-    // Frame slots -516..-4 are ONE object: &nChargeStatBonusCount is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
-      int nChargeStatBonusCount;
-      uint32_t aChargeStatBuf[127];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 512, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bResult;
     bool _bHasCharged;
     bool bHasCharged;
     bool bResult;
+    D2StatStrc aChargeStatBuf[64];
     if (pOutFullyCharged) {
       pOutFullyCharged[0] = true;
       pOutFullyCharged[1] = false;
@@ -2321,7 +2316,7 @@ BOOL __stdcall ITEMS_CheckChargedSkillFullyCharged(D2UnitStrc * pItem, bool * pO
       pOutFullyCharged[3] = false;
     }
 
-    int32_t nStatCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pItem, 0xcc, &__frame0.nChargeStatBonusCount, 0x40);
+    int32_t nStatCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pItem, 0xcc, aChargeStatBuf, 0x40);
     if (nStatCount < 1) {
       _bResult = 0;
     } else {
@@ -2333,7 +2328,7 @@ BOOL __stdcall ITEMS_CheckChargedSkillFullyCharged(D2UnitStrc * pItem, bool * pO
         _bResult = _bHasCharged;
         if (0 < nStatCount) {
           do {
-            if ((int)(__frame0.aChargeStatBuf[nStatIdx * 2] & 0xff) < (int)__frame0.aChargeStatBuf[nStatIdx * 2] >> 8) {
+            if ((int)(aChargeStatBuf[nStatIdx].nStatValue & 0xffU) < aChargeStatBuf[nStatIdx].nStatValue >> 8) {
               pOutFullyCharged[0] = false;
               pOutFullyCharged[1] = false;
               pOutFullyCharged[2] = false;
@@ -2352,7 +2347,7 @@ BOOL __stdcall ITEMS_CheckChargedSkillFullyCharged(D2UnitStrc * pItem, bool * pO
     return _bResult;
 }
 
-uint32_t __stdcall ITEM_GetItemData_eD2ItemFlag_IsEthereal(D2UnitStrc * pUnit) {
+uint32_t ITEM_GetItemData_eD2ItemFlag_IsEthereal(D2UnitStrc * pUnit) {
     if (!(pUnit && pUnit->eUnitType == UNIT_ITEM && pUnit->pUnitData.pUnitDataItem)) {
       return 0;
     }
@@ -3048,12 +3043,10 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
     uint32_t uAffixIdx;
     int nCandidateLvlReq;
     int nIdx;
-    D2UnitStrc* pItemOrig;
-    uint16_t anSkillOnItemBuf[256];
+    D2StatStrc anSkillOnItemBuf[64];
     int nAffixByteOffset;
     uint8_t bLvlReq;
     char cCharClass;
-    D2UnitStrc* pPlayerSaved;
     if (!pUnit || pUnit->eUnitType != UNIT_ITEM || !pUnit->pUnitData.pUnitDataItem) {
       uAffix = QUALITY_NORMAL;
     } else {
@@ -3062,10 +3055,6 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
 
     int nMaxLvlReq;
     nMaxLvlReq = 0;
-    D2UnitStrc* pItem;
-    pItem = pUnit;
-    D2UnitStrc* pPlayer;
-    pPlayer = pUnit2;
     switch (uAffix) {
       case QUALITY_MAGIC:
         wPrefix = GetMagicPrefix(pUnit, 0);
@@ -3074,10 +3063,9 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
       pSuffixTxt = DATATBLS::ItemTbls::TXT_magicaffixes_GetLine(uAffixIdx & 0xffff);
       uAffixIdx = GetAutoMagic(pUnit);
       pAffixTxt = DATATBLS::ItemTbls::TXT_magicaffixes_GetLine(uAffixIdx & 0xffff);
-      nIdx = ITEMS_nullsub(0, pPrefixTxt, pPlayer);
-      pItemOrig = pPlayer;
-      nIdx = ITEMS_nullsub(nIdx, pSuffixTxt, pPlayer);
-      nMaxLvlReqTmp = ITEMS_nullsub(nIdx, pAffixTxt, pItemOrig);
+      nIdx = ITEMS_nullsub(0, pPrefixTxt, pUnit2);
+      nIdx = ITEMS_nullsub(nIdx, pSuffixTxt, pUnit2);
+      nMaxLvlReqTmp = ITEMS_nullsub(nIdx, pAffixTxt, pUnit2);
       break;
       case QUALITY_SET:
         nIdx = ITEM_GetItemData_nFileIndex(pUnit);
@@ -3106,19 +3094,17 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
 
         pSuffixTxt = DATATBLS::ItemTbls::TXT_magicaffixes_GetLine(uAffixIdx);
         if (pPrefixTxt) {
-          if (pPrefixTxt->class_ == 0xff || !pPlayer || (uint32_t)(uint8_t)pPrefixTxt->class_ != pPlayer->nClassId) {
+          if (pPrefixTxt->class_ == 0xff || !pUnit2 || (uint32_t)pPrefixTxt->class_ != pUnit2->nClassId) {
             bLvlReq = pPrefixTxt->levelreq;
           } else {
             bLvlReq = pPrefixTxt->classlevelreq;
           }
-
-          pUnit = pItem;
           if ((uint32_t)nMaxLvlReq <= (uint32_t)bLvlReq) {
             nMaxLvlReq = (uint32_t)bLvlReq;
           }
         }
         if (pSuffixTxt) {
-          if (pSuffixTxt->class_ == 0xff || !pPlayer || (uint32_t)(uint8_t)pSuffixTxt->class_ != pPlayer->nClassId) {
+          if (pSuffixTxt->class_ == 0xff || !pUnit2 || (uint32_t)pSuffixTxt->class_ != pUnit2->nClassId) {
             bLvlReq = pSuffixTxt->levelreq;
           } else {
             bLvlReq = pSuffixTxt->classlevelreq;
@@ -3141,7 +3127,7 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
       if (!pPrefixTxt) {
         goto apply_common_requirements;
       }
-      if (pPrefixTxt->class_ == 0xff || !pPlayer || (uint32_t)(uint8_t)pPrefixTxt->class_ != pPlayer->nClassId) {
+      if (pPrefixTxt->class_ == 0xff || !pUnit2 || (uint32_t)pPrefixTxt->class_ != pUnit2->nClassId) {
         bLvlReq = pPrefixTxt->levelreq;
       } else {
         bLvlReq = pPrefixTxt->classlevelreq;
@@ -3164,10 +3150,10 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
       if (!pUniqueTxt) {
         goto apply_common_requirements;
       }
-      if (!pPlayer) {
+      if (!pUnit2) {
         nMaxLvlReqTmp = (uint32_t)pUniqueTxt->lvlReq;
       } else {
-        nClassId = D2Client::UNIT::Player::CheckFlagWithMask(pPlayer, 0x2000000);
+        nClassId = D2Client::UNIT::Player::CheckFlagWithMask(pUnit2, 0x2000000);
         if (!nClassId) {
           wItemVersion = ITEM_GetItemData_wItemVersion(pUnit);
           if (!wItemVersion) {
@@ -3187,22 +3173,22 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
         nAffixByteOffset = 10;
       nIdx = 0x3e;
       do {
-        if (!pItem || pItem->eUnitType != UNIT_ITEM || !pItem->pUnitData.pUnitDataItem) {
+        if (!pUnit || pUnit->eUnitType != UNIT_ITEM || !pUnit->pUnitData.pUnitDataItem) {
           uAffixIdx = 0;
         } else {
-          uAffixIdx = (uint32_t)*(uint16_t*)((int)pItem->pUnitData.pUnitDataItem->wMagicPrefix + nIdx - 0x3e);
+          uAffixIdx = (uint32_t)*(uint16_t*)((int)pUnit->pUnitData.pUnitDataItem->wMagicPrefix + nIdx - 0x3e);
         }
 
         pPrefixTxt = DATATBLS::ItemTbls::TXT_magicaffixes_GetLine(uAffixIdx);
-        if (!pItem || pItem->eUnitType != UNIT_ITEM || !pItem->pUnitData.pUnitDataItem) {
+        if (!pUnit || pUnit->eUnitType != UNIT_ITEM || !pUnit->pUnitData.pUnitDataItem) {
           uAffixIdx = 0;
         } else {
-          uAffixIdx = (uint32_t)*(uint16_t*)((int)pItem->pUnitData.pUnitDataItem->wMagicPrefix + nIdx - 0x38);
+          uAffixIdx = (uint32_t)*(uint16_t*)((int)pUnit->pUnitData.pUnitDataItem->wMagicPrefix + nIdx - 0x38);
         }
 
         pSuffixTxt = DATATBLS::ItemTbls::TXT_magicaffixes_GetLine(uAffixIdx);
         if (pPrefixTxt) {
-          if (pPrefixTxt->class_ == 0xff || !pPlayer || (uint32_t)(uint8_t)pPrefixTxt->class_ != pPlayer->nClassId) {
+          if (pPrefixTxt->class_ == 0xff || !pUnit2 || (uint32_t)pPrefixTxt->class_ != pUnit2->nClassId) {
             bLvlReq = pPrefixTxt->levelreq;
           } else {
             bLvlReq = pPrefixTxt->classlevelreq;
@@ -3212,7 +3198,7 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
           }
         }
         if (pSuffixTxt) {
-          if (pSuffixTxt->class_ == 0xff || !pPlayer || (uint32_t)(uint8_t)pSuffixTxt->class_ != pPlayer->nClassId) {
+          if (pSuffixTxt->class_ == 0xff || !pUnit2 || (uint32_t)pSuffixTxt->class_ != pUnit2->nClassId) {
             bLvlReq = pSuffixTxt->levelreq;
           } else {
             bLvlReq = pSuffixTxt->classlevelreq;
@@ -3245,48 +3231,43 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
 
     nMaxLvlReq = nMaxLvlReqTmp;
     apply_common_requirements:
-    pItemOrig = pItem;
-    if (!pItem) {
+    if (!pUnit) {
       nClassId = -1;
     } else {
-      nClassId = pItem->nClassId;
+      nClassId = pUnit->nClassId;
     }
-
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nClassId);
     if (pItemsTxt && nMaxLvlReq < (int)(uint32_t)(uint8_t)pItemsTxt->bLevelReq) {
       nMaxLvlReq = (uint32_t)(uint8_t)pItemsTxt->bLevelReq;
     }
-    if (pItemOrig->pInventory) {
+    if (pUnit->pInventory) {
       D2UnitStrc* pUnit_00;
-      pUnit_00 = INVENTORY::Inventory::INVENTORY_GetFirstItem(pItemOrig->pInventory);
-      pPlayerSaved = pPlayer;
+      pUnit_00 = INVENTORY::Inventory::INVENTORY_GetFirstItem(pUnit->pInventory);
       while (true) {
         if (!pUnit_00) {
           break;
         }
 
         pUnit_01 = INVENTORY::Inventory::GetCarriedItem(pUnit_00);
-        pItemOrig = pItem;
         if (!pUnit_01) {
           break;
         }
 
-        nLvlReq = ITEM_CalcRequiredLevel(pUnit_01, pPlayerSaved);
+        nLvlReq = ITEM_CalcRequiredLevel(pUnit_01, pUnit2);
         if (nMaxLvlReq <= (int)nLvlReq) {
           nMaxLvlReq = nLvlReq;
         }
 
         pUnit_00 = INVENTORY::Inventory::INVENTORY_GetNextItem(pUnit_00);
-        pItemOrig = pItem;
       }
     }
 
-    nSkillOnItemCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pItemOrig, 0x6b, (int*)anSkillOnItemBuf, 0x40);
+    nSkillOnItemCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, 0x6b, anSkillOnItemBuf, 0x40);
     nIdx = 0;
     if (0 < nSkillOnItemCount) {
       do {
-        if ((int)(uint32_t)anSkillOnItemBuf[nIdx * 4] < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + anSkillOnItemBuf[nIdx * 4]) {
-          nCandidateLvlReq = (int)sgptDataTable->pTxtSkills[anSkillOnItemBuf[nIdx * 4]].reqlevel;
+        if ((int)(uint32_t)(uint16_t)anSkillOnItemBuf[nIdx].wSubIndex < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + (uint16_t)anSkillOnItemBuf[nIdx].wSubIndex) {
+          nCandidateLvlReq = (int)sgptDataTable->pTxtSkills[(uint16_t)anSkillOnItemBuf[nIdx].wSubIndex].reqlevel;
           if (nMaxLvlReq < nCandidateLvlReq) {
             nMaxLvlReq = nCandidateLvlReq;
           }
@@ -3296,14 +3277,14 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
       } while (nIdx < nSkillOnItemCount);
     }
 
-    int32_t nSkillTabOnItemCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pItemOrig, 0x61, (int*)anSkillOnItemBuf, 0x40);
+    nSkillOnItemCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, 0x61, anSkillOnItemBuf, 0x40);
     nAffixByteOffset = 0;
-    if (0 < nSkillTabOnItemCount) {
+    if (0 < nSkillOnItemCount) {
       do {
-        if ((int)(uint32_t)anSkillOnItemBuf[nAffixByteOffset * 4] < sgptDataTable->nTxtSkillsCount) {
-          pSkillTxt = sgptDataTable->pTxtSkills + anSkillOnItemBuf[nAffixByteOffset * 4];
+        if ((int)(uint32_t)(uint16_t)anSkillOnItemBuf[nAffixByteOffset].wSubIndex < sgptDataTable->nTxtSkillsCount) {
+          pSkillTxt = sgptDataTable->pTxtSkills + (uint16_t)anSkillOnItemBuf[nAffixByteOffset].wSubIndex;
           if (pSkillTxt) {
-            if (!pPlayer || (eUnitType = D2Client::Units::GetType(pPlayer) , eUnitType != UNIT_PLAYER) || (cCharClass = pSkillTxt->charclass , cCharClass < '\0' || '\x06' < cCharClass || (uAffixIdx = D2Client::UNIT::GetClassId(pPlayer) , (uAffixIdx & 0xff) != (int)cCharClass))) {
+            if (!pUnit2 || (eUnitType = D2Client::Units::GetType(pUnit2) , eUnitType != UNIT_PLAYER) || (cCharClass = pSkillTxt->charclass , cCharClass < '\0' || '\x06' < cCharClass || (uAffixIdx = D2Client::UNIT::GetClassId(pUnit2) , (uAffixIdx & 0xff) != (int)cCharClass))) {
               nClassId = (int)pSkillTxt->reqlevel + 6;
             } else {
               nClassId = (uint32_t)pSkillTxt->reqlevel;
@@ -3315,10 +3296,10 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
         }
 
         nAffixByteOffset++;
-      } while (nAffixByteOffset < nSkillTabOnItemCount);
+      } while (nAffixByteOffset < nSkillOnItemCount);
     }
 
-    nIdx = Stats::StatsEx::STATSEX_GetCurrentStat(pItem, UNITSTAT_item_levelreq, 0);
+    nIdx = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_levelreq, 0);
     return nMaxLvlReq + nIdx < 1 ? 0 : nMaxLvlReq + nIdx;
 }
 
@@ -3411,6 +3392,7 @@ int32_t __stdcall ITEM_GetTxtItemTypes_staffmods(D2UnitStrc * pUnit) {
 }
 
 char __stdcall ITEM_GetMaxSockCount(D2UnitStrc * pUnit) {
+    uint8_t bVar1;
     int nLvlMaxSock;
     uint32_t nAbsMaxSockets;
     if (!pUnit || pUnit->eUnitType != UNIT_ITEM) {
@@ -3427,7 +3409,13 @@ char __stdcall ITEM_GetMaxSockCount(D2UnitStrc * pUnit) {
       return '\0';
     }
 
-    DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+    D2ItemsTxt* pDVar2 = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+    if (!pDVar2) {
+      bVar1 = 0;
+    } else {
+      bVar1 = pDVar2->bGemSockets;
+    }
+
     int32_t nLevel = ITEM_GetItemData_nItemLevel(pUnit);
     if (nLevel < 26) {
       nLvlMaxSock = (int)(uint8_t)pItemTypesTxt->maxsock1;
@@ -3436,14 +3424,12 @@ char __stdcall ITEM_GetMaxSockCount(D2UnitStrc * pUnit) {
     } else {
       nLvlMaxSock = (int)(uint8_t)pItemTypesTxt->maxsock40;
     }
-
-    uint32_t nFinalMaxSockets = nAbsMaxSockets;
-    if (nLvlMaxSock > (int)nAbsMaxSockets) {
-      return (char)nFinalMaxSockets;
+    if ((uint32_t)nLvlMaxSock > (uint32_t)bVar1) {
+      return bVar1;
     }
 
-    nFinalMaxSockets = nLvlMaxSock;
-    return (char)nFinalMaxSockets;
+    bVar1 = (uint8_t)nLvlMaxSock;
+    return bVar1;
 }
 
 // Determines and assigns the socket count for an item unit during socketing. Computes the maximum allowed sockets from the item's grid area (width*height, capped at 6), then clamps further by item quality (magic=4, rare=2, crafted/tampered=3, set/unique use existing stat or force 1). Calls ITEM_GetMaxSockCount for a hard cap, rolls the final count, sets ITEMFLAG_SOCKETED, and writes UNITSTAT_item_numsockets via STATLIST_SetUnitStat.
@@ -4125,7 +4111,7 @@ BOOL __stdcall ITEM_CheckIfItemCanHaveSockets(D2UnitStrc * pUnit) {
     return (uint32_t)((char)nErrOrSocketCount == '\0');
 }
 
-// Tests whether two item units are "identical enough" to be socketed/stacked together. Returns TRUE only if both items match on: class id, item quality (defaulting to 2 if not an item or no item data), file index (variant), stackable flag (must be stackable), ethereal flag, both qualities can-have-sockets, all damage stats (min/max, secondary min/max, throw min/max), and both have zero sockets. Returns FALSE on any mismatch. Pure comparison predicate, no side effects. NOTE: bIsEthereal (first item) is read uninitialized in the decompile (the first ITEM_GetItemData_eD2ItemFlag_IsEthereal result is discarded) - likely a decompiler artifact / shared-struct issue.
+// Tests whether two item units are "identical enough" to be socketed/stacked together. Returns TRUE only if both items match on: class id, item quality (defaulting to 2 if not an item or no item data), file index (variant), stackable flag (must be stackable), ethereal flag, both qualities can-have-sockets, all damage stats (min/max, secondary min/max, throw min/max), and both have zero sockets. Returns FALSE on any mismatch. Pure comparison predicate, no side effects.
 BOOL __stdcall IsItemSocketable(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     int nClassId2;
     D2UnitDataItemStrc* pItemData2;
@@ -4170,9 +4156,9 @@ BOOL __stdcall IsItemSocketable(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
       return 0;
     }
 
-    ITEM_GetItemData_eD2ItemFlag_IsEthereal(pUnit);
+    uint32_t uVar1 = ITEM_GetItemData_eD2ItemFlag_IsEthereal(pUnit);
     uint32_t bIsEthereal2 = ITEM_GetItemData_eD2ItemFlag_IsEthereal(pUnit2);
-    if (bIsEthereal != bIsEthereal2) {
+    if (uVar1 != bIsEthereal2) {
       return 0;
     }
 
@@ -6010,8 +5996,7 @@ int32_t __stdcall ITEMS_CheckBodyLocationFit(D2UnitStrc * pItem, uint32_t eBodyL
 // Adjusts buy/sell/repair prices in-place for items whose type has a staffmods class restriction. Iterates the item's skill-bonus stat list (stat 0x6b), and for each qualifying skill entry scales the price deltas using the skill's costmult/costadd fields and the skill level (2*lvl-1). The accumulated deltas are divided by nDivisor before being added to *pBuy, *pSell, and *pRepair. No-ops if pItem is null, not an item unit, or the item type has no staffmods class.
 void __stdcall ITEMS_CalcStaffModsPriceModifier(int * pBuy, int * pSell, int * pRepair, uint32_t nDivisor, D2UnitStrc * pItem) {
     int nCostMult;
-    uint16_t aSkillBonusBuf[2];
-    int anSkillLevelBuf[127];
+    D2StatStrc aSkillBonusBuf[64];
     int nCostAdd;
     int nSkillCostMult;
     int nSkillLvlMult;
@@ -6027,15 +6012,15 @@ void __stdcall ITEMS_CalcStaffModsPriceModifier(int * pBuy, int * pSell, int * p
     uint32_t nBuyDelta = 0;
     uint32_t nSellDeltaAccum = 0;
     uint32_t nRepairDeltaAccum = 0;
-    int32_t nSkillStatCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pItem, 0x6b, (int*)aSkillBonusBuf, 0x40);
+    int32_t iVar1 = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pItem, 0x6b, aSkillBonusBuf, 0x40);
     int i = 0;
-    if (0 < nSkillStatCount) {
+    if (0 < iVar1) {
       D2SkillsTxt* pSkillTxt;
       do {
-        if ((int)(uint32_t)aSkillBonusBuf[i * 4] < sgptDataTable->nTxtSkillsCount) {
-          pSkillTxt = sgptDataTable->pTxtSkills + aSkillBonusBuf[i * 4];
+        if ((int)(uint32_t)(uint16_t)aSkillBonusBuf[i].wSubIndex < sgptDataTable->nTxtSkillsCount) {
+          pSkillTxt = sgptDataTable->pTxtSkills + (uint16_t)aSkillBonusBuf[i].wSubIndex;
           if (pSkillTxt) {
-            nSkillLvlMult = anSkillLevelBuf[i * 2] * 2 - 1;
+            nSkillLvlMult = aSkillBonusBuf[i].nStatValue * 2 - 1;
             if (*pBuy < 0x10000 || !pSkillTxt->costmult) {
               nSkillCostMult = pSkillTxt->costmult;
               nCostAdd = pSkillTxt->costadd;
@@ -6055,7 +6040,7 @@ void __stdcall ITEMS_CalcStaffModsPriceModifier(int * pBuy, int * pSell, int * p
         }
 
         i++;
-      } while (i < nSkillStatCount);
+      } while (i < iVar1);
     }
 
     *pBuy += nBuyDelta / nDivisor;
@@ -7076,14 +7061,14 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
       break;
       case 4:
         if (pStatListEx || (eItemFlagsInner = ITEM_GetItemData_eD2ItemFlag(pItemUnit) , (eItemFlagsInner & ITEMFLAG_IDENTIFIED) != ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD))) {
-          GetMagicPrefix(pItemUnit, 0);
+          wAutoMagic = GetMagicPrefix(pItemUnit, 0);
+          nClampedValue = (uint32_t)wAutoMagic;
           nBitValue = GetMagicSuffix(pItemUnit, 0);
-          bIsOfType = nPrefixId;
-          if ((int)uTmpBits < (int)(nPrefixId & 0xffff)) {
-            bIsOfType = nPrefixId - uTmpBits;
+          if ((int)uTmpBits < (int)nClampedValue) {
+            nClampedValue -= uTmpBits;
           }
 
-          nClampedValue = (bIsOfType & 0xffff ? bIsOfType : 0) & 0xffff;
+          nClampedValue = (nClampedValue & 0xffff ? nClampedValue : 0) & 0xffff;
           if (0x7fe < nClampedValue) {
             nClampedValue = 0x7ff;
           }

@@ -76,6 +76,24 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgActWarpsInfoStrc) == 0x48, "D2_NEW(D2DrlgActWarpsInfoStrc): the 32-bit layout must be the 0x48 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgLevelStrc) == 0x230, "D2_NEW(D2DrlgLevelStrc): the 32-bit layout must be the 0x230 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgStrc) == 0x48c, "D2_NEW(D2DrlgStrc): the 32-bit layout must be the 0x48c bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fAutoMap
 #define RECON_FPTD_fAutoMap
@@ -139,14 +157,14 @@ void __stdcall DRLGLEVEL_FreeLevelSubStructs(D2PoolManagerStrc * pMemory, BOOL b
     int nStateOffset = 0;
     if (!bFreeSubStructs) {
       if (pLevel->pRoomExStateFlags) {
-        Fog::Memory::FreeServerMemory(pMemory, pLevel->pRoomExStateFlags, ".\\DRLG\\Drlg.cpp", 0x84, 0);
+        D2_FREE_POOL(pMemory, pLevel->pRoomExStateFlags);
         pLevel->pRoomExStateFlags = 0;
       }
     } else if (!pLevel->pRoomExStateFlags) {
       if (!pLevel->nRoomExCount) {
         pLevel->nRoomExCount = 0;
       } else {
-        pStateFlags = (int*)Fog::Memory::AllocServerMemory(pMemory, pLevel->nRoomExCount * 4, ".\\DRLG\\Drlg.cpp", 0x7c, 0);
+        pStateFlags = (int*)D2_ALLOC_POOL(pMemory, pLevel->nRoomExCount * 4);
         pLevel->pRoomExStateFlags = pStateFlags;
       }
 
@@ -198,7 +216,7 @@ void __stdcall DRLGLEVEL_FreeLevelSubStructs(D2PoolManagerStrc * pMemory, BOOL b
     pLevel->nSpawnPointCount = 0;
     memset(&pLevel->sWarpCoordinates, 0, 0x4c);
     if (!bFreeSubStructs && pLevel->pAutomapEx) {
-      Fog::Memory::FreeServerMemory(pMemory, pLevel->pAutomapEx, ".\\DRLG\\Drlg.cpp", 0xb7, 0);
+      D2_FREE_POOL(pMemory, pLevel->pAutomapEx);
       pLevel->pAutomapEx = 0;
     }
 
@@ -209,7 +227,7 @@ void __stdcall DRLGLEVEL_FreeLevelSubStructs(D2PoolManagerStrc * pMemory, BOOL b
 
     do {
       pNextLinkNode = pMemoryToFree->pNext;
-      Fog::Memory::FreeServerMemory(pMemory, pMemoryToFree, ".\\DRLG\\Drlg.cpp", 0xc5, 0);
+      D2_FREE_POOL(pMemory, pMemoryToFree);
       pMemoryToFree = pNextLinkNode;
     } while (pNextLinkNode);
 
@@ -224,7 +242,7 @@ void __fastcall DRLGACT_FreeDrlgActMisc(D2DrlgStrc * pDrlg) {
       do {
         pNextLevel = pLevel->pLevelNext;
         DRLGLEVEL_FreeLevelSubStructs(pDrlg->pMemoryPool, 0, pLevel);
-        Fog::Memory::FreeServerMemory(pDrlg->pMemoryPool, pLevel, ".\\DRLG\\Drlg.cpp", 0xdd, 0);
+        D2_FREE_POOL(pDrlg->pMemoryPool, pLevel);
         pLevel = pNextLevel;
       } while (pNextLevel);
 
@@ -235,14 +253,14 @@ void __fastcall DRLGACT_FreeDrlgActMisc(D2DrlgStrc * pDrlg) {
     if (pDrlg->pWarpsInfo) {
       do {
         pNextWarpsInfo = pWarpsInfo->pNext;
-        Fog::Memory::FreeServerMemory(pDrlg->pMemoryPool, pWarpsInfo, ".\\DRLG\\Drlg.cpp", 0xec, 0);
+        D2_FREE_POOL(pDrlg->pMemoryPool, pWarpsInfo);
         pWarpsInfo = pNextWarpsInfo;
       } while (pNextWarpsInfo);
 
       pDrlg->pWarpsInfo = 0;
     }
 
-    Fog::Memory::FreeServerMemory(pDrlg->pMemoryPool, pDrlg, ".\\DRLG\\Drlg.cpp", 0xf2, 0);
+    D2_FREE_POOL(pDrlg->pMemoryPool, pDrlg);
 }
 
 eD2LevelId __fastcall GetHoradricStaffTombLevelId(D2DrlgStrc * pDrlg) {
@@ -594,7 +612,7 @@ D2DrlgActWarpsInfoStrc * __fastcall DRLGACT_AllocWarpsInfo(D2DrlgStrc * pDrlg, e
     while (true) {
       if (!pExistingWarpsInfo) {
         pLevelDefs = DATATBLS::LvlTbls::TXT_LevelDefs_GetLine(eLevel);
-        pWarpsInfo = (D2DrlgActWarpsInfoStrc*)Fog::Memory::AllocServerMemory(pDrlg->pMemoryPool, 0x48, ".\\DRLG\\Drlg.cpp", 0x3e0, 0);
+        pWarpsInfo = D2_NEW_POOL(pDrlg->pMemoryPool, D2DrlgActWarpsInfoStrc);
         pWarpsInfo->nLevelId = eLevel;
         pWarpsInfo->nTargetArea[0] = pLevelDefs->Vis[0];
         pWarpsInfo->nWarpId[0] = pLevelDefs->Warp[0];
@@ -732,7 +750,7 @@ D2DrlgLevelStrc * __fastcall DRLGACTMISC_AllocDrlgLevel(D2DrlgStrc * pDrlg, eD2L
                (unsigned)(uintptr_t)__builtin_return_address(0),
                (unsigned)(uintptr_t)__builtin_return_address(1),
                (unsigned)(uintptr_t)__builtin_return_address(2));
-    D2DrlgLevelStrc* pLevel = (D2DrlgLevelStrc*)Fog::Memory::AllocServerMemory(pDrlg->pMemoryPool, 0x230, ".\\DRLG\\Drlg.cpp", 0x1a8, 0);
+    D2DrlgLevelStrc* pLevel = D2_NEW_POOL(pDrlg->pMemoryPool, D2DrlgLevelStrc);
     memset(pLevel, 0, 0x230);
     pLevel->pDrlg = pDrlg;
     pLevel->eD2LevelId = eLevel;
@@ -901,7 +919,7 @@ D2DrlgStrc * __fastcall DRLG_AllocDrlgActMisc(D2DrlgActStrc * pAct, eAct nActNo,
     D2PoolManagerStrc* pMemory;
     pMemory = DUNGEON::Dungeon::GetMemPoolFromAct(pAct);
     D2DrlgStrc* pDrlgActMisc;
-    pDrlgActMisc = (D2DrlgStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x48c, ".\\DRLG\\Drlg.cpp", 0x3a, 0);
+    pDrlgActMisc = D2_NEW_POOL(pMemory, D2DrlgStrc);
     memset(pDrlgActMisc, 0, 0x48c);
     pDrlgActMisc->pDS1MemPool = pDS1MemPool;
     pDrlgActMisc->pMemoryPool = pMemory;
@@ -1094,7 +1112,7 @@ BOOL __stdcall DRLG_FreeAdjacentLevelRoomData(D2DrlgLevelStrc * pLevel) {
             if (pRoomEx->eRoomExFlags & dwNeighborFlags) {
               DrlgRoom::DRLGROOMEX_FreeDrlgRoomTile(pMemory, pRoomEx);
               if (pRoomEx->ppDrlgRoomsExNear) {
-                Fog::Memory::FreeServerMemory(pMemory, pRoomEx->ppDrlgRoomsExNear, ".\\DRLG\\Drlg.cpp", 0x16f, 0);
+                D2_FREE_POOL(pMemory, pRoomEx->ppDrlgRoomsExNear);
                 pRoomEx->ppDrlgRoomsExNear = 0;
                 pRoomEx->nDrlgRoomsExNearCount = 0;
               }
@@ -4288,7 +4306,7 @@ int32_t __fastcall PATH_FindPathKnockback(D2PathTypeArg * pPathTypeArg) {
 }
 
 // A*/IDA* pathfinding expansion step over the DRLG room path grid. Walks the open chain from the current node toward the target coords; for each node it tests the 8 directional neighbors, skips out-of-bounds and collision-blocked cells (Collision::CheckCollision_BlockPlayer_Type with the unit width and collision pattern), computes G (2 straight / 3 diagonal), Manhattan-style H and F costs, and links/allocates child nodes (capacity 0x384) from the path memory pool, deriving each child's facing direction (DRLGPATH_GetPathDirectionPacked with optional seeded RNG). Returns a pointer to the reached/best node's nFCost field, or NULL if no path (target unreached, cost over nMaxCost, pool exhausted, or >10000 iterations). Uses ppPathMemory (EDI) as both the node arena and the path-state header.
-short * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D2PathTypeArg * pPathTypeArg, short * * ppPathMemory) {
+D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D2PathTypeArg * pPathTypeArg, D2DrlgAStarContextStrc * pAStarCtx) {
     uint16_t nNeighborY;
     int32_t iVar1;
     int nHashIdx;
@@ -4310,17 +4328,17 @@ short * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D2PathTypeArg * pPa
     short int nHCost;
     uint16_t nParam2Packed;
     uint32_t nTargetPacked;
-    short int** ppHashSlot;
+    int32_t* ppHashSlot;
     *(uint16_t*)(char*)&nTargetPacked = pPathTypeArg->pCoords.nOffsetY;
     *(uint16_t*)((char*)&nTargetPacked + 2) = pPathTypeArg->pCoords.nPosY;
     D2DrlgRoomAStarNodeStrc* pCurNode;
-    pCurNode = (D2DrlgRoomAStarNodeStrc*)*ppPathMemory;
+    pCurNode = pAStarCtx->pOpenListHead;
     int nIterCount;
     nIterCount = 0;
     do {
       while (true) {
         if (pCurNode->nX == (uint16_t)nTargetPacked && pCurNode->nY == *(uint16_t*)((char*)&nTargetPacked + 2)) {
-          return &pCurNode->nFCost;
+          return pCurNode;
         }
 
         nIterCount++;
@@ -4330,27 +4348,27 @@ short * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D2PathTypeArg * pPa
 
         nDirDelta = pCurNode->nX;
         nParam2Packed = pCurNode->nY;
-        if ((uint16_t)nDirDelta < *(uint16_t*)(ppPathMemory + 0x189e)) {
-          return &pCurNode->nFCost;
+        if ((uint16_t)nDirDelta < pAStarCtx->nMinX) {
+          return pCurNode;
         }
-        if (*(uint16_t*)(ppPathMemory + 0x189f) < (uint16_t)nDirDelta) {
-          return &pCurNode->nFCost;
+        if (pAStarCtx->nMaxX < (uint16_t)nDirDelta) {
+          return pCurNode;
         }
-        if ((uint16_t)nParam2Packed < *(uint16_t*)((int)ppPathMemory + 0x627a)) {
-          return &pCurNode->nFCost;
+        if ((uint16_t)nParam2Packed < pAStarCtx->nMinY) {
+          return pCurNode;
         }
-        if (*(uint16_t*)((int)ppPathMemory + 0x627e) < (uint16_t)nParam2Packed) {
-          return &pCurNode->nFCost;
+        if (pAStarCtx->nMaxY < (uint16_t)nParam2Packed) {
+          return pCurNode;
         }
 
         nNeighborY = (short int)gnDrlgMemoryMax[pCurNode->nDirection * 2 + 0x21] + pCurNode->nY;
         nNeighborXw = (short int)gnDrlgMemoryMax[pCurNode->nDirection * 2 + 0x20] + pCurNode->nX;
         nNeighborXu = (uint32_t)nNeighborXw;
         nNeighborX = (uint32_t)nNeighborY;
-        nHashIdx = nNeighborXu + ((int)ppPathMemory[0x18a3] + nNeighborX) * (int)ppPathMemory[0x18a1];
-        ppHashSlot = ppPathMemory + (int)ppPathMemory[0x18a2] + nHashIdx + 0x18a4;
+        nHashIdx = (pAStarCtx->nGridOffsetY + nNeighborX) * pAStarCtx->nGridStride + pAStarCtx->nGridOffsetX + nNeighborXu;
+        ppHashSlot = pAStarCtx->aGridCells + nHashIdx;
         nPackedNeighbor = (uint32_t)((uint32_t)(uint16_t)nNeighborY << 16 | (uint32_t)(uint16_t)nNeighborXw);
-        if (ppPathMemory[(int)ppPathMemory[0x18a2] + nHashIdx + 0x18a4]) {
+        if (pAStarCtx->aGridCells[nHashIdx]) {
           break;
         }
 
@@ -4359,9 +4377,9 @@ short * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D2PathTypeArg * pPa
           break;
         }
 
-        *ppHashSlot = (short int*)0x1;
+        *ppHashSlot = 1;
         skip_neighbor:
-        pCurNode = (D2DrlgRoomAStarNodeStrc*)Path::DRLGPATH_AdvancePathNodeChain((::SGAMEDATA*)ppPathMemory, (int32_t)pCurNode);
+        pCurNode = Path::DRLGPATH_AdvancePathNodeChain(pAStarCtx, pCurNode);
         if (!pCurNode) {
           return nullptr;
         }
@@ -4372,11 +4390,11 @@ short * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D2PathTypeArg * pPa
       }
 
       nGCost = pCurNode->nGCost + nGCost;
-      if (*ppHashSlot && *ppHashSlot < (short int*)(int)nGCost) {
+      if (*ppHashSlot && (uint32_t)*ppHashSlot < (uint32_t)(int)nGCost) {
         goto skip_neighbor;
       }
 
-      *ppHashSlot = (short int*)(int)nGCost;
+      *ppHashSlot = (int)nGCost;
       nHashIdx = (nTargetPacked & 0xffff) - nNeighborXu;
       if (nHashIdx < 0) {
         nHashIdx = -nHashIdx;
@@ -4401,12 +4419,12 @@ short * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D2PathTypeArg * pPa
         goto skip_neighbor;
       }
       if (!pCurNode->pNext) {
-        pNewNode = (D2DrlgRoomAStarNodeStrc*)ppPathMemory[0x189d];
+        pNewNode = (D2DrlgRoomAStarNodeStrc*)pAStarCtx->nNodeCount;
         if (pNewNode == (D2DrlgRoomAStarNodeStrc*)0x384) {
           ppGridCell = 0;
         } else {
-          ppGridCell = (D2DrlgRoomAStarNodeStrc*)(ppPathMemory + (int)pNewNode * 7 + 1);
-          ppPathMemory[0x189d] = (short int*)((uintptr_t)&pNewNode->nFCost + 1);
+          ppGridCell = pAStarCtx->aNodes + (int)pNewNode;
+          pAStarCtx->nNodeCount = (int32_t)((uintptr_t)&pNewNode->nFCost + 1);
           ppGridCell->nFCost = 0;
           ppGridCell->nHCost = 0;
           ppGridCell->nGCost = 0;
@@ -4435,10 +4453,10 @@ short * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D2PathTypeArg * pPa
       nDirIndex = Path::DRLGPATH_GetPathDirectionPacked(nPackedNeighbor, nTargetPacked);
       nHashIdx = *(int*)((int)pCurNode->pParent + 0x10);
       pCurNode->pSeedPtr = gnDrlgLevelSeed + (nDirIndex - nHashIdx & 7U) * 8;
-      if (!ppPathMemory[0xdbf4]) {
+      if (!pAStarCtx->bRandomizeDirection) {
         pCurNode->nDirection = *(int*)((int)pCurNode->pParent + 0x10) + gnDrlgLevelSeed[(nDirIndex - nHashIdx & 7U) * 8] & 7;
       } else {
-        pChildSlotBase = ppPathMemory[0xdbf5];
+        pChildSlotBase = (short int*)pAStarCtx->pSeed;
         lSeedNext = (uint64_t)*(uint32_t*)pChildSlotBase * 0x6ac690c5 + (uint64_t)*(uint32_t*)(pChildSlotBase + 2);
         *(int64_t*)pChildSlotBase = lSeedNext;
         pCurNode->nDirection = gnDrlgMemoryMax[(uint32_t)lSeedNext & 0x1f] + *(int*)((int)pCurNode->pParent + 0x10) + *(int*)pCurNode->pSeedPtr & 7;
@@ -4447,7 +4465,7 @@ short * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D2PathTypeArg * pPa
       pCurNode->nX = nNeighborXw;
       pCurNode->nY = nNeighborY;
       if (pCurNode->nHCost < (short int)(uint16_t)pPathTypeArg->nIdaStarVariable) {
-        return &pCurNode->nFCost;
+        return pCurNode;
       }
     } while (true);
 }
@@ -4798,9 +4816,7 @@ uint32_t __fastcall DRLGOUTROOM_HasOutdoorBorderFlag(D2RoomExStrc * pRoomEx) {
 }
 
 // NOTE: Callee-saved register params inferred (medium confidence): pint (ESI): int*
-int32_t __stdcall DRLGOUTROOM_SetupRoomCoordsFromTable(int * pSrcCoords, int dwParam2) {
-    int* pOutCoords;
-    int nDirection;
+int32_t __stdcall DRLGOUTROOM_SetupRoomCoordsFromTable(int * pOutCoords, int32_t nDirection, int * pSrcCoords, int32_t nTableRow) {
     if (!nDirection) {
       pOutCoords[2] = 0x40;
       pOutCoords[3] = 0xa0;
@@ -4809,7 +4825,7 @@ int32_t __stdcall DRLGOUTROOM_SetupRoomCoordsFromTable(int * pSrcCoords, int dwP
       pOutCoords[3] = 0x40;
     }
 
-    int nTableOffset = nDirection + dwParam2 * 2;
+    int nTableOffset = nDirection + nTableRow * 2;
     *pOutCoords = gnDrlgLevelGenerationState[nTableOffset * 2] + *pSrcCoords;
     nTableOffset = gnDrlgLevelGenerationState[nTableOffset * 2 + 1];
     int nResult = pSrcCoords[1];

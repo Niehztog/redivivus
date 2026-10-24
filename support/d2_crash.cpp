@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <cxxabi.h>
 
 #include "thirdparty/libbacktrace/backtrace.h"
 
@@ -148,11 +147,17 @@ void CollectFrames(const CONTEXT* pCtx) {
     // A call through a null or wild pointer, a fault inside a frame-pointer-less
     // system DLL, or a broken EBP chain: the chain above says too little, so read
     // the stack itself for return addresses into our code.
+    //
+    // The whole committed stack is read, not a window above ESP. The halt path
+    // alone (FOG_ErrorHandler, CRASH_FillupCrashTxt, the error dialog) keeps over
+    // 16 KB of message buffers in its frames, and a system DLL called from there
+    // adds its own, so a fault in user32 during a halt had its nearest return
+    // address into our code beyond the old 0x4000 window - the frames came back
+    // empty, bOursOnStack was false and the fault went unreported.
     bool bEipOurs = pCtx->Eip >= g_dwExeLo && pCtx->Eip < g_dwExeHi;
     if (!bEipOurs || !bEbpGood) {
         int nFound = 0;
         for (DWORD dwSlot = dwLo; dwSlot + 4 <= dwBase && nFound < 24; dwSlot += 4) {
-            if (dwSlot - dwLo > 0x4000) break;
             DWORD dwVal = *(const DWORD*)(UINT_PTR)dwSlot;
             if (!LooksLikeReturnAddress(dwVal)) continue;
             AddFrame(dwVal, dwSlot - pCtx->Esp, FRAME_SCAN);
@@ -251,17 +256,60 @@ void SymAppend(const char* pszFormat, ...) {
     if (n > 0) g_nSym += (size_t)n < sizeof(g_szSym) - g_nSym ? (size_t)n : sizeof(g_szSym) - g_nSym - 1;
 }
 
-// Demangled into a static buffer, or the name as given.
+// A symbol as the PE symbol table spells it, back to a readable C++ name.
+//
+// libbacktrace's syminfo hands back the COFF name with one leading underscore
+// already removed, so a __stdcall function arrives as "_ZN...E...@12" and a
+// __fastcall one as "@_ZN...@4": the Itanium mangling wrapped in the i386 call
+// decoration. Strip the "@" prefix and the "@<bytes>" suffix, then demangle.
+//
+// This runs inside a crash, where the heap may be what broke, so it never calls
+// __cxa_demangle (which mallocs its result). libstdc++'s callback demangler
+// works on the stack and streams the name out in pieces; they are collected into
+// a static buffer. Only the symbolisation worker calls this, one thread at a time.
+extern "C" int __gcclibcxx_demangle_callback(const char* pszMangled,
+                                             void (*pfnSink)(const char*, size_t, void*),
+                                             void* pOpaque);
+
+struct DemangleSink {
+    char* pszOut;
+    size_t nCap;
+    size_t nLen;
+    bool bTruncated;
+};
+
+void DemangleAppend(const char* p, size_t n, void* pOpaque) {
+    DemangleSink* pSink = (DemangleSink*)pOpaque;
+    if (pSink->nLen + n >= pSink->nCap) {
+        n = pSink->nCap - 1 - pSink->nLen;
+        pSink->bTruncated = true;
+    }
+    memcpy(pSink->pszOut + pSink->nLen, p, n);
+    pSink->nLen += n;
+    pSink->pszOut[pSink->nLen] = 0;
+}
+
 const char* Demangle(const char* pszName) {
-    static char* s_pszDemangled = 0;
+    static char s_szMangled[2048];
+    static char s_szDemangled[4096];
     if (!pszName) return "?";
-    if (pszName[0] != '_' || pszName[1] != 'Z') return pszName;
-    int nStatus = 0;
-    char* p = abi::__cxa_demangle(pszName, 0, 0, &nStatus);
-    if (nStatus != 0 || !p) return pszName;
-    free(s_pszDemangled);
-    s_pszDemangled = p;
-    return p;
+    const char* p = pszName;
+    if (*p == '@') ++p;                         // __fastcall prefix
+    if (p[0] == '_' && p[1] == '_' && p[2] == 'Z') ++p;   // undecorated a second time
+    if (p[0] != '_' || p[1] != 'Z') return pszName;
+    size_t n = strlen(p);
+    if (n >= sizeof(s_szMangled)) return pszName;
+    // "@<digits>" at the end is the __stdcall/__fastcall argument byte count.
+    size_t nEnd = n;
+    while (nEnd > 0 && p[nEnd - 1] >= '0' && p[nEnd - 1] <= '9') --nEnd;
+    if (nEnd < n && nEnd > 0 && p[nEnd - 1] == '@') n = nEnd - 1;
+    memcpy(s_szMangled, p, n);
+    s_szMangled[n] = 0;
+    DemangleSink sink = { s_szDemangled, sizeof(s_szDemangled), 0, false };
+    s_szDemangled[0] = 0;
+    if (__gcclibcxx_demangle_callback(s_szMangled, DemangleAppend, &sink) != 0 || !sink.nLen)
+        return pszName;
+    return s_szDemangled;
 }
 
 struct PcInfo {
@@ -335,7 +383,16 @@ void WriteModules() {
     CloseHandle(hSnap);
 }
 
-void WriteReport(EXCEPTION_POINTERS* pExc, bool bForeign, DWORD dwThreadId) {
+// A Fog halt is not an exception: the engine decides to stop and calls
+// ERROR_UnrecoverableInternalError_Halt. It is reported with the line the engine
+// passes and the call-site address GetInstructionPointer produced.
+struct HaltInfo {
+    int nLine;
+    DWORD dwAddr;
+};
+
+void WriteReport(EXCEPTION_POINTERS* pExc, bool bForeign, DWORD dwThreadId,
+                 const HaltInfo* pHalt = 0) {
     SYSTEMTIME st;
     GetLocalTime(&st);
     if (!OpenReport(st)) return;
@@ -366,10 +423,17 @@ void WriteReport(EXCEPTION_POINTERS* pExc, bool bForeign, DWORD dwThreadId) {
 
     char szWhere[MAX_PATH + 40];
     ModuleOffset((DWORD)(UINT_PTR)pRec->ExceptionAddress, szWhere);
-    Out("\r\nException: %08lX %s\r\n", (unsigned long)pRec->ExceptionCode,
-        FatalName(pRec->ExceptionCode));
-    Out("At:        %s  (%08lX)\r\n", szWhere, (unsigned long)(UINT_PTR)pRec->ExceptionAddress);
-    if ((pRec->ExceptionCode == 0xC0000005 || pRec->ExceptionCode == 0xC0000006) &&
+    if (pHalt) {
+        Out("\r\nHALT line=%d (0x%x) at %s  (%08lX)\r\n", pHalt->nLine, pHalt->nLine, szWhere,
+            (unsigned long)pHalt->dwAddr);
+        Out("Note:      Fog's unrecoverable-error halt; the game exits or shows its error "
+            "dialog after this.\r\n");
+    } else {
+        Out("\r\nException: %08lX %s\r\n", (unsigned long)pRec->ExceptionCode,
+            FatalName(pRec->ExceptionCode));
+        Out("At:        %s  (%08lX)\r\n", szWhere, (unsigned long)(UINT_PTR)pRec->ExceptionAddress);
+    }
+    if (!pHalt && (pRec->ExceptionCode == 0xC0000005 || pRec->ExceptionCode == 0xC0000006) &&
         pRec->NumberParameters >= 2) {
         ULONG_PTR uOp = pRec->ExceptionInformation[0];
         const char* pszOp = uOp == 0 ? "read of" : uOp == 1 ? "write to" : uOp == 8 ? "execute at" : "access to";
@@ -386,7 +450,8 @@ void WriteReport(EXCEPTION_POINTERS* pExc, bool bForeign, DWORD dwThreadId) {
         (unsigned long)pCtx->Edi, (unsigned long)pCtx->Ebp, (unsigned long)pCtx->Esp);
     Out("  EIP=%08lX EFL=%08lX\r\n", (unsigned long)pCtx->Eip, (unsigned long)pCtx->EFlags);
 
-    Out("\r\nStack (fault, then the EBP chain; \"scan\" = return address found on the stack):\r\n");
+    Out(pHalt ? "\r\nStack (the halting thread; \"fault\" = the halt call site):\r\n"
+              : "\r\nStack (fault, then the EBP chain; \"scan\" = return address found on the stack):\r\n");
     // Flush what is known so far: the worker can hang on a lock the crash left held.
     FlushFileBuffers(g_hFile);
     g_nSym = 0;
@@ -480,6 +545,32 @@ LONG CALLBACK CrashVectoredHandler(EXCEPTION_POINTERS* pExc) {
     // The game's own handling (Fog's crash dialog) still runs.
     return EXCEPTION_CONTINUE_SEARCH;
 }
+
+}  // namespace
+
+// Called from ERROR_UnrecoverableInternalError_Halt before it hands over to
+// FOG_ErrorHandler, on the halting thread. The context is captured here, so the
+// stack starts at this function, then the halt, then the code that halted.
+// Writing the report takes the "own" slot: the fall-off-the-end ud2 that follows
+// a halt in a non-void caller is the same failure, and is not reported again.
+extern "C" __attribute__((noinline)) void D2CRASH_ReportHalt(int nLine, unsigned nAddress) {
+    if (InterlockedCompareExchange(&g_nBusy, 1, 0) != 0) return;
+    if (InterlockedExchange(&g_nOwnReported, 1) == 0) {
+        static CONTEXT s_ctx;
+        static EXCEPTION_RECORD s_rec;
+        memset(&s_ctx, 0, sizeof(s_ctx));
+        memset(&s_rec, 0, sizeof(s_rec));
+        RtlCaptureContext(&s_ctx);
+        s_rec.ExceptionAddress = (PVOID)(UINT_PTR)nAddress;
+        EXCEPTION_POINTERS exc = { &s_rec, &s_ctx };
+        CollectFrames(&s_ctx);
+        HaltInfo halt = { nLine, (DWORD)nAddress };
+        WriteReport(&exc, false, GetCurrentThreadId(), &halt);
+    }
+    InterlockedExchange(&g_nBusy, 0);
+}
+
+namespace {
 
 // Priority 140: ahead of the static-init runner at 200 and the trace handler at
 // 150, so a fault in one of the game's own constructors is reported.

@@ -34,6 +34,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Common::PATH::Path {
 
@@ -311,7 +315,7 @@ uint32_t PATH_CanMonsterPathInArea(D2UnitStrc * pUnit, uint16_t * pPathData) {
 }
 
 void __stdcall STRUCT_FreePath(D2PoolManagerStrc * pMemory, void * pPath) {
-    Fog::Memory::FreeServerMemory(pMemory, pPath, ".\\PATH\\Path.cpp", 0x3d9, 0);
+    D2_FREE_POOL(pMemory, pPath);
 }
 
 uint32_t __stdcall PATH_CalculateDistance(uint32_t nFromXfp, uint32_t nFromYfp, uint32_t nToXfp, uint32_t nToYfp) {

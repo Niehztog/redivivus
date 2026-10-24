@@ -49,6 +49,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA3Q1Strc) == 0xa0, "D2_NEW(D2QuestDataA3Q1Strc): the 32-bit layout must be the 0xa0 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpExecuteOnUnitFunction
 #define RECON_FPTD_fpExecuteOnUnitFunction
@@ -801,7 +811,7 @@ void __fastcall Q18_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->fpActiveFilter = Q18_ActiveFilter;
     pQuestData->fpSequenceFilter = (QUESTSEQ)Q18_SequenceFilter;
     pQuestData->nSequenceQuestId = QUEST_BladeOfTheOldReligion;
-    D2QuestDataA3Q1Strc* pQuestSpecificData = (D2QuestDataA3Q1Strc*)Fog::Memory::AllocServerMemory(pQuestData->pGame->pMemoryPool, 0xa0, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q1.cpp", 0x3ad, 0);
+    D2QuestDataA3Q1Strc* pQuestSpecificData = D2_NEW_POOL(pQuestData->pGame->pMemoryPool, D2QuestDataA3Q1Strc);
     pQuestData->pQuestSpecificData.pA3Q1 = pQuestSpecificData;
     pQuestData->sStateFunctions.fpQuestStateHandler[4] = Q18_Callback04_ItemPickedUp;
     pQuestData->sStateFunctions.fpQuestStateHandler[5] = Q18_Callback05_ItemDropped;

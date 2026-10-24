@@ -19,6 +19,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace Fog::Src::QServer::QServerNT {
 
@@ -151,7 +159,7 @@ BOOL __stdcall BeginAsyncReadForClient(D2QServerStrc * pQServer, D2QServerClient
 }
 
 D2QServerClientPacketStrc * __stdcall NET_QServerClientPacket_CreateStructAndCopyBytesThere(D2QServerClientConnectionStrc * pQServerClient, size_t nSize, char * pBytes) {
-    D2QServerClientPacketStrc* pNewPacket = (D2QServerClientPacketStrc*)Memory::AllocClientMemory(nSize + 8, ".\\Src\\QServer\\QServerNT.cpp", 0x440, 0);
+    D2QServerClientPacketStrc* pNewPacket = (D2QServerClientPacketStrc*)D2_ALLOC(nSize + 8);
     memcpy(&pNewPacket->pBytes, pBytes, nSize);
     pNewPacket->nPacketSize = nSize;
     pNewPacket->pQServerClientPacketNext = 0;
@@ -330,7 +338,7 @@ int __stdcall PopAndFreeCompletedSendPacket(D2QServerClientConnectionStrc * pCli
       return 1;
     }
 
-    Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\QServer\\QServerNT.cpp", 0x578, 0);
+    D2_FREE(pMemoryToFree);
     return 1;
 }
 
@@ -351,7 +359,7 @@ DWORD __stdcall AcceptThreadMain(void * lpThreadParam) {
     pQServer = *(D2QServerStrc**)lpThreadParam;
     int nWorkerIndex;
     nWorkerIndex = *(int*)((int)lpThreadParam + 4);
-    Memory::FreeClientMemory(lpThreadParam, ".\\Src\\QServer\\QServerNT.cpp", 0x10d, 0);
+    D2_FREE(lpThreadParam);
     DWORD dwSleepMs;
     dwSleepMs = GetTickCount();
     int nStopFlag;
@@ -571,7 +579,7 @@ int __fastcall PumpIoCompletionQueueForWorker(D2QServerStrc * pQServer, int nWor
           pClient->dwWriteFlags &= ~QSRV_WRITEFLAG_PENDING_IO;
           /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(pClientLock);
           if (pMemoryToFree) {
-            Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\QServer\\QServerNT.cpp", 0x578, 0);
+            D2_FREE(pMemoryToFree);
           }
 
           /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(pClientLock);
@@ -631,7 +639,7 @@ int __fastcall PumpIoCompletionQueueForWorker(D2QServerStrc * pQServer, int nWor
 DWORD __stdcall IoWorkerThreadMain(void * lpThreadParam) {
     D2QServerStrc* pQServer = *(D2QServerStrc**)lpThreadParam;
     int nWorkerIndex = *(int*)((int)lpThreadParam + 4);
-    Memory::FreeClientMemory(lpThreadParam, ".\\Src\\QServer\\QServerNT.cpp", 0x2ae, 0);
+    D2_FREE(lpThreadParam);
     if (pQServer->bUseDedicatedIoWorkers) {
       int iVar1;
       iVar1 = pQServer->aIoWorkerStopFlags[nWorkerIndex];
@@ -731,14 +739,14 @@ SOCKET __fastcall StartListening(D2QServerStrc * pQServer, uint32_t nPort) {
         pQServer->aListenPorts[nResult] = (u_short)nPortLocal;
         pQServer->aListenSockets[nResult] = hListenSocket;
         pQServer->aWorkerSlotValues[nResult] = 1;
-        pThreadArgs = (uint32_t*)Memory::AllocClientMemory(8, ".\\Src\\QServer\\QServerNT.cpp", 0xa2, 0);
+        pThreadArgs = (uint32_t*)D2_ALLOC(8);
         /* LPDWORD lpThreadId for CreateThread */ /* DWORD dwCreationFlags for CreateThread */ /* LPVOID lpParameter for CreateThread */ /* LPTHREAD_START_ROUTINE lpStartAddress for CreateThread */ /* SIZE_T dwStackSize for CreateThread */ /* LPSECURITY_ATTRIBUTES lpThreadAttributes for CreateThread */ *pThreadArgs = (uint32_t)(uintptr_t)pQServer;
         pThreadArgs[1] = nResult;
         hThread = CreateThread((LPSECURITY_ATTRIBUTES)0x0, 0, (LPTHREAD_START_ROUTINE)AcceptThreadMain, pThreadArgs, 0, (LPDWORD)(pQServer->aAcceptThreadIds + nResult));
         pQServer->aAcceptThreadHandles[nResult] = hThread;
         ErrorManager::StubHook1();
         if (pQServer->bUseDedicatedIoWorkers) {
-          pThreadArgs = (uint32_t*)Memory::AllocClientMemory(8, ".\\Src\\QServer\\QServerNT.cpp", 0xb5, 0);
+          pThreadArgs = (uint32_t*)D2_ALLOC(8);
           pIocp = (int32_t)(pQServer->aIoWorkerThreadIds + nResult);
           /* LPDWORD lpThreadId for CreateThread */ /* DWORD dwCreationFlags for CreateThread */ /* LPVOID lpParameter for CreateThread */ /* LPTHREAD_START_ROUTINE lpStartAddress for CreateThread */ /* SIZE_T dwStackSize for CreateThread */ /* LPSECURITY_ATTRIBUTES lpThreadAttributes for CreateThread */ *pThreadArgs = (uint32_t)(uintptr_t)pQServer;
           pThreadArgs[1] = nResult;

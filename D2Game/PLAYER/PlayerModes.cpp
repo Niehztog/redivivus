@@ -619,7 +619,7 @@ uint32_t __stdcall PLRMODES_IsCorpseOwnedByPlayer(::SGAMEDATA * pGame, D2UnitStr
       exit(-1);
     } else {
       if (pUnit->eUnitType == UNIT_PLAYER) {
-        nPartyFlags = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID((D2UnitStrc*)pCorpseUnitRaw->pInventory);
+        nPartyFlags = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID(pCorpseUnitRaw->pInventory);
         if (pUnit->nUnitGUID == nPartyFlags) {
           return 1;
         }
@@ -653,7 +653,7 @@ void __fastcall PLRMODES_PickupCorpse(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D
       return;
     }
 
-    int32_t nCorpseOwnerGUID = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID((D2UnitStrc*)pCorpseUnit->pInventory);
+    int32_t nCorpseOwnerGUID = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID(pCorpseUnit->pInventory);
     if (!pUnit) {
       nCorpseExp = -1;
     } else {

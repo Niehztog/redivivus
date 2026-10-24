@@ -107,8 +107,7 @@ void __fastcall MONUMOD_ApplyHpBonus(D2UnitStrc * pUnit, int32_t nIndex, BOOL bU
     if (!nUmodConst) {
       nUmodConstIdx = byDifficulty + 7;
     } else {
-      int nChampionConstOffset;
-      nUmodConstIdx = (uint32_t)byDifficulty + nChampionConstOffset;
+      nUmodConstIdx = byDifficulty + 4;
     }
 
     nUmodConst = GetUmodConstant(nUmodConstIdx);

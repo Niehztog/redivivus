@@ -23,6 +23,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinEditBox) == 0x284, "D2_NEW(D2WinEditBox): the 32-bit layout must be the 0x284 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpD2WinEditBoxFilter
 #define RECON_FPTD_fpD2WinEditBoxFilter
@@ -2725,7 +2735,7 @@ BOOL __fastcall DrawFlag0x8(::D2WinEditBox * pEditBox) {
 ::D2WinEditBox * __fastcall D2WinEditBox(int32_t nPosX, int32_t nPosY, int32_t nSizeX, int32_t nSizeY, int32_t nInsetX, int32_t nInsetY, DC6 * pDC6, fpD2WinEditBoxSubmit pfnSubmit, OnPress pfnOnPress, uint32_t nFlags, uint32_t * pFontIds) {
     ::Push pfnPush;
     ::Draw pfnDraw;
-    ::D2WinEditBox* pNewEditBox = (::D2WinEditBox*)Fog::Memory::AllocClientMemory(0x284, ".\\Src\\D2WinEditBox.cpp", 0x39, 0);
+    ::D2WinEditBox* pNewEditBox = D2_NEW(::D2WinEditBox);
     memset(pNewEditBox, 0, 0x284);
     pNewEditBox->sControl.neD2FormType = FORM_EditBox;
     int* pStateField = &pNewEditBox->sControl.dwState;

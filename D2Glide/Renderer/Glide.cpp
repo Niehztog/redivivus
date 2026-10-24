@@ -33,6 +33,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2RendererCoreStrc) == 0x18, "D2_NEW(D2RendererCoreStrc): the 32-bit layout must be the 0x18 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fnBinkFrameCallback
 #define RECON_FPTD_fnBinkFrameCallback
@@ -703,7 +717,7 @@ void Release() {
     }
     if (RENDERER_SelectedRendererCore) {
       /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&RENDERER_SelectedRendererCore->sLock);
-      Fog::Memory::FreeClientMemory(RENDERER_SelectedRendererCore, ".\\Src\\glCore.cpp", 0x30d, 0);
+      D2_FREE(RENDERER_SelectedRendererCore);
       RENDERER_SelectedRendererCore = 0;
     }
     if (!lpGLIDE3x_dll) {
@@ -811,7 +825,7 @@ BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc
     RENDERER_GLIDE_InitPerspectiveTables();
     RENDERER_GLIDE_InitGroundTileVertices();
     GLSMACK_AllocBuffers();
-    RENDERER_SelectedRendererCore = (D2RendererCoreStrc*)Fog::Memory::AllocClientMemory(0x18, ".\\Src\\glCore.cpp", 0x2d5, 0);
+    RENDERER_SelectedRendererCore = D2_NEW(D2RendererCoreStrc);
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ InitializeCriticalSection(&RENDERER_SelectedRendererCore->sLock);
     return 1;
 }
@@ -819,14 +833,14 @@ BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc
 // @sourcefile .\Src\glSprite.cpp
 void __stdcall RENDERER_GLIDE_FreeSpriteBuffers() {
     if (gpGlideSpriteBuffer) {
-      Fog::Memory::FreeClientMemory(gpGlideSpriteBuffer, ".\\Src\\glSprite.cpp", 0x74, 0);
+      D2_FREE(gpGlideSpriteBuffer);
       gpGlideSpriteBuffer = 0;
     }
     if (!gpGlideSpritePixelBuffer) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(gpGlideSpritePixelBuffer, ".\\Src\\glSprite.cpp", 0x7a, 0);
+    D2_FREE(gpGlideSpritePixelBuffer);
     gpGlideSpritePixelBuffer = 0;
 }
 
@@ -1714,8 +1728,8 @@ void __stdcall RENDERER_GLIDE_InitSpriteCache() {
     if (!gpGlideSpriteBuffer) {
       BOOL bIsPerspective;
       if (!gpGlideSpritePixelBuffer) {
-        gpGlideSpriteBuffer = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\glSprite.cpp", 0x4c, 0);
-        gpGlideSpritePixelBuffer = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\glSprite.cpp", 0x4d, 0);
+        gpGlideSpriteBuffer = D2_ALLOC(0x10000);
+        gpGlideSpritePixelBuffer = D2_ALLOC(0x10000);
         D2CMP::SRC::CelCmp::CELCMP_SetPixelDataFreeCallback(GLIDE_PixelDataFreeCallback_ClearCacheNodes);
         gnGlideTMUIndex = (uint32_t)(1 < gnGlideTextureMemoryUsed);
         gnGlideSpriteSecondaryTMUEnabled = 0;
@@ -1769,7 +1783,7 @@ int32_t __fastcall RENDERER_GLIDE_InitDebugFont(FxU32 nParam2, int32_t nParam) {
       nParam2 = (nSizeMask | nParam2) + 1;
     }
 
-    uint32_t* pTexBuf = (uint32_t*)Fog::Memory::AllocClientMemory(0x80, ".\\Src\\glDebugFont.cpp", 0x62, 0);
+    uint32_t* pTexBuf = (uint32_t*)D2_ALLOC(0x80);
     int nGlyphOffset = 0;
     uint32_t* pTexStartAddr = gaGlideDebugFontTexStartAddrs;
     gTexInfoDebugFontGlide.data = pTexBuf;
@@ -1793,7 +1807,7 @@ int32_t __fastcall RENDERER_GLIDE_InitDebugFont(FxU32 nParam2, int32_t nParam) {
       pTexStartAddr++;
     } while ((int)pTexStartAddr < (uintptr_t)((char*)&gaGlideDebugFontTexStartAddrs + sizeof(gaGlideDebugFontTexStartAddrs)));
 
-    Fog::Memory::FreeClientMemory(pTexBuf, ".\\Src\\glDebugFont.cpp", 0x70, 0);
+    D2_FREE(pTexBuf);
     gfGlideDebugFontVertex0X = 0.0;
     gfGlideDebugFontVertex0Y = 0.0;
     gfGlideDebugFontVertex0OOW = 1.0;
@@ -1848,7 +1862,7 @@ void __stdcall RENDERER_GLIDE_GenerateDebugFont() {
       exit(-1);
     }
 
-    gpGlideDebugFontTexture = Fog::Memory::AllocClientMemory(0x3000, ".\\Src\\glDebugFont.cpp", 0x99, 0);
+    gpGlideDebugFontTexture = D2_ALLOC(0x3000);
     int nGlyphIndex = 0;
     int nTexOffset = 0;
     do {
@@ -1888,7 +1902,7 @@ void __stdcall RENDERER_GLIDE_FreeDebugFont() {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(gpGlideDebugFontTexture, ".\\Src\\glDebugFont.cpp", 0xfb, 0);
+    D2_FREE(gpGlideDebugFontTexture);
     gpGlideDebugFontTexture = 0;
 }
 
@@ -2848,7 +2862,7 @@ BOOL __fastcall RENDERER_GLIDE_DrawWallTileSimple(int32_t nScreenPanels, D2TileL
 
 // Draw wall tile with perspective projection in Glide renderer. Calculates 4 corner positions, tests screen bounds, applies color averaging and texturing. Returns 1 if tile was drawn, 0 otherwise.
 int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, D2TileLibraryEntryStrc * pTile, int nScreenX, int nScreenY, int pColorTable) {
-    // Frame slots -100..-32 are ONE object: &nBoundsXMin is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -100..-4 are ONE object: &nBoundsXMin is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       int nBoundsXMin;
@@ -2865,8 +2879,15 @@ int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, 
       int32_t nZMid;
       int nSubtileCount;
       int nScreenXOffset;
+      D2FloatIntUnion fScreenMinX;
+      uint8_t __pad72[4];
+      int nLeftFixedX;
+      int nLeftFixedY;
+      int nRightFixedZ;
+      int nAdjY;
+      int nAdjX;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 68, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 96, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     D2FloatIntUnion DVar1;
     short int* psVar2;
@@ -2874,12 +2895,6 @@ int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, 
     D2GlideVertexStrc* pfVertexSlot;
     int nWorldYFixed;
     D2GlideVertexStrc* pfColorVertex;
-    D2FloatIntUnion fScreenMinX;
-    int nLeftFixedX;
-    int nLeftFixedY;
-    int nRightFixedZ;
-    int nAdjY;
-    int nAdjX;
     uint32_t dwColorMid;
     __frame0.nZMid = 0;
     __frame0.nScreenXOffset = 0;
@@ -2898,7 +2913,7 @@ int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, 
     do {
       int nCornerFixedX;
       psVar2 = &pTile->pSubTiles[__frame0.nSubtileCount].nOffsetX;
-      fScreenMinX = d2_bits_as<D2FloatIntUnion>((int)psVar2[1]);
+      __frame0.fScreenMinX = d2_bits_as<D2FloatIntUnion>((int)psVar2[1]);
       __frame0.fSubtileIndex = (float)((int)*psVar2 >> 5);
       if (4 < (uint32_t)__frame0.fSubtileIndex) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1bc);
@@ -2907,56 +2922,56 @@ int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, 
 
       nCornerFixedY = (int)__frame0.fSubtileIndex + __frame0.dwTileType * 6;
       nWorldYFixed = gaGlideWallCornerTable[nCornerFixedY].nY + nScreenY * 0x2000;
-      nCornerFixedX = gaGlideWallCornerTable[nCornerFixedY].nZ - (int)d2_bits_of(fScreenMinX);
-      nLeftFixedX = gaGlideWallCornerTable[nCornerFixedY + 1].nX + nScreenX * 0x2000;
-      nRightFixedZ = gaGlideWallCornerTable[nCornerFixedY + 1].nZ - (int)d2_bits_of(fScreenMinX);
-      nLeftFixedY = gaGlideWallCornerTable[nCornerFixedY + 1].nY + nScreenY * 0x2000;
+      nCornerFixedX = gaGlideWallCornerTable[nCornerFixedY].nZ - (int)d2_bits_of(__frame0.fScreenMinX);
+      __frame0.nLeftFixedX = gaGlideWallCornerTable[nCornerFixedY + 1].nX + nScreenX * 0x2000;
+      __frame0.nRightFixedZ = gaGlideWallCornerTable[nCornerFixedY + 1].nZ - (int)d2_bits_of(__frame0.fScreenMinX);
+      __frame0.nLeftFixedY = gaGlideWallCornerTable[nCornerFixedY + 1].nY + nScreenY * 0x2000;
       nCornerFixedY = gaGlideWallCornerTable[nCornerFixedY].nX + nScreenX * 0x2000;
       __frame0.nScreenXMax = nCornerFixedY;
       __frame0.nScreenYMin = nWorldYFixed;
       __frame0.nScreenYMax = nCornerFixedX;
-      Glide::AdjustPerspectivePosition(nCornerFixedY, nWorldYFixed, nCornerFixedX, &nAdjX, &nAdjY);
-      gaGlidePerspectiveVertices[0].fX = (float)nAdjX;
-      gaGlidePerspectiveVertices[0].fY = (float)nAdjY;
-      Glide::AdjustPerspectivePosition(nCornerFixedY, nWorldYFixed, nCornerFixedX - 0x20, &nAdjX, &nAdjY);
-      gaGlidePerspectiveVertices[0xc].fX = (float)nAdjX;
-      gaGlidePerspectiveVertices[0xc].fY = (float)nAdjY;
-      Glide::AdjustPerspectivePosition(nLeftFixedX, nLeftFixedY, nRightFixedZ - 0x20, &nAdjX, &nAdjY);
-      gaGlidePerspectiveVertices[0xe].fX = (float)nAdjX;
-      gaGlidePerspectiveVertices[0xe].fY = (float)nAdjY;
-      Glide::AdjustPerspectivePosition(nLeftFixedX, nLeftFixedY, nRightFixedZ, &nAdjX, &nAdjY);
-      gaGlidePerspectiveVertices[2].fX = (float)nAdjX;
-      gaGlidePerspectiveVertices[2].fY = (float)nAdjY;
-      fScreenMinX.fValue = (float)__frame0.nBoundsXMin;
-      if (fScreenMinX.fValue < gaGlidePerspectiveVertices[0].fX != (fScreenMinX.fValue == gaGlidePerspectiveVertices[0].fX) && gaGlidePerspectiveVertices[0].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[0].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[0].fY) && gaGlidePerspectiveVertices[0].fY < (float)__frame0.nXMid || fScreenMinX.fValue <= gaGlidePerspectiveVertices[0xc].fX && gaGlidePerspectiveVertices[0xc].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[0xc].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[0xc].fY) && gaGlidePerspectiveVertices[0xc].fY < (float)__frame0.nXMid || fScreenMinX.fValue <= gaGlidePerspectiveVertices[0xe].fX && gaGlidePerspectiveVertices[0xe].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[0xe].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[0xe].fY) && gaGlidePerspectiveVertices[0xe].fY < (float)__frame0.nXMid || fScreenMinX.fValue <= gaGlidePerspectiveVertices[2].fX && gaGlidePerspectiveVertices[2].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[2].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[2].fY) && gaGlidePerspectiveVertices[2].fY < (float)__frame0.nXMid) {
+      Glide::AdjustPerspectivePosition(nCornerFixedY, nWorldYFixed, nCornerFixedX, &__frame0.nAdjX, &__frame0.nAdjY);
+      gaGlidePerspectiveVertices[0].fX = (float)__frame0.nAdjX;
+      gaGlidePerspectiveVertices[0].fY = (float)__frame0.nAdjY;
+      Glide::AdjustPerspectivePosition(nCornerFixedY, nWorldYFixed, nCornerFixedX - 0x20, &__frame0.nAdjX, &__frame0.nAdjY);
+      gaGlidePerspectiveVertices[0xc].fX = (float)__frame0.nAdjX;
+      gaGlidePerspectiveVertices[0xc].fY = (float)__frame0.nAdjY;
+      Glide::AdjustPerspectivePosition(__frame0.nLeftFixedX, __frame0.nLeftFixedY, __frame0.nRightFixedZ - 0x20, &__frame0.nAdjX, &__frame0.nAdjY);
+      gaGlidePerspectiveVertices[0xe].fX = (float)__frame0.nAdjX;
+      gaGlidePerspectiveVertices[0xe].fY = (float)__frame0.nAdjY;
+      Glide::AdjustPerspectivePosition(__frame0.nLeftFixedX, __frame0.nLeftFixedY, __frame0.nRightFixedZ, &__frame0.nAdjX, &__frame0.nAdjY);
+      gaGlidePerspectiveVertices[2].fX = (float)__frame0.nAdjX;
+      gaGlidePerspectiveVertices[2].fY = (float)__frame0.nAdjY;
+      __frame0.fScreenMinX.fValue = (float)__frame0.nBoundsXMin;
+      if (__frame0.fScreenMinX.fValue < gaGlidePerspectiveVertices[0].fX != (__frame0.fScreenMinX.fValue == gaGlidePerspectiveVertices[0].fX) && gaGlidePerspectiveVertices[0].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[0].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[0].fY) && gaGlidePerspectiveVertices[0].fY < (float)__frame0.nXMid || __frame0.fScreenMinX.fValue <= gaGlidePerspectiveVertices[0xc].fX && gaGlidePerspectiveVertices[0xc].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[0xc].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[0xc].fY) && gaGlidePerspectiveVertices[0xc].fY < (float)__frame0.nXMid || __frame0.fScreenMinX.fValue <= gaGlidePerspectiveVertices[0xe].fX && gaGlidePerspectiveVertices[0xe].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[0xe].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[0xe].fY) && gaGlidePerspectiveVertices[0xe].fY < (float)__frame0.nXMid || __frame0.fScreenMinX.fValue <= gaGlidePerspectiveVertices[2].fX && gaGlidePerspectiveVertices[2].fX < (float)__frame0.nScreenXMin && (float)__frame0.nBoundsYMin < gaGlidePerspectiveVertices[2].fY != ((float)__frame0.nBoundsYMin == gaGlidePerspectiveVertices[2].fY) && gaGlidePerspectiveVertices[2].fY < (float)__frame0.nXMid) {
         __frame0.adwColors[0] = *(uint32_t*)(pColorTable + (int)__frame0.fSubtileIndex * 4);
         __frame0.adwColors[2] = *(uint32_t*)(pColorTable + 4 + (int)__frame0.fSubtileIndex * 4);
-        __frame0.nZMid = nCornerFixedX + nRightFixedZ >> 1;
-        __frame0.adwColors[3] = nCornerFixedY + nLeftFixedX >> 1;
+        __frame0.nZMid = nCornerFixedX + __frame0.nRightFixedZ >> 1;
+        __frame0.adwColors[3] = nCornerFixedY + __frame0.nLeftFixedX >> 1;
         __frame0.adwColors[1] = ((((int)((__frame0.adwColors[2] >> 0x18) + (__frame0.adwColors[0] >> 0x18)) >> 1) * 0x100 + ((int)((__frame0.adwColors[2] >> 0x10 & 0xff) + (__frame0.adwColors[0] >> 0x10 & 0xff)) >> 1)) * 0x100 + ((int)((__frame0.adwColors[2] >> 8 & 0xff) + (__frame0.adwColors[0] >> 8 & 0xff)) >> 1)) * 0x100 + ((int)((__frame0.adwColors[0] & 0xff) + (__frame0.adwColors[2] & 0xff)) >> 1);
-        __frame0.nYMid = nWorldYFixed + nLeftFixedY >> 1;
+        __frame0.nYMid = nWorldYFixed + __frame0.nLeftFixedY >> 1;
         __frame0.fSubtileIndex = (float)__frame0.adwColors[2];
         glBlocks::GLBLOCKS_LoadWallSubtileTexture(&pTile->pSubTiles[__frame0.nSubtileCount]);
         __frame0.fSubtileIndex = (float)__frame0.nScreenXOffset;
-        fScreenMinX.fValue = 0.0;
+        __frame0.fScreenMinX.fValue = 0.0;
         pfVertexSlot = gaGlidePerspectiveVertices + 2;
         do {
-          DVar1 = fScreenMinX;
-          if (fScreenMinX.nValue && fScreenMinX.nValue != 4) {
-            nCornerFixedY = fScreenMinX.nValue * -8;
-            Glide::AdjustPerspectivePosition(__frame0.nScreenXMax, __frame0.nScreenYMin, nCornerFixedY + __frame0.nScreenYMax, &nAdjX, &nAdjY);
-            pfVertexSlot[-2].fX = (float)nAdjX;
-            pfVertexSlot[-2].fY = (float)nAdjY;
-            Glide::AdjustPerspectivePosition(nLeftFixedX, nLeftFixedY, nCornerFixedY + nRightFixedZ, &nAdjX, &nAdjY);
-            pfVertexSlot->fX = (float)nAdjX;
-            pfVertexSlot->fY = (float)nAdjY;
+          DVar1 = __frame0.fScreenMinX;
+          if (__frame0.fScreenMinX.nValue && __frame0.fScreenMinX.nValue != 4) {
+            nCornerFixedY = __frame0.fScreenMinX.nValue * -8;
+            Glide::AdjustPerspectivePosition(__frame0.nScreenXMax, __frame0.nScreenYMin, nCornerFixedY + __frame0.nScreenYMax, &__frame0.nAdjX, &__frame0.nAdjY);
+            pfVertexSlot[-2].fX = (float)__frame0.nAdjX;
+            pfVertexSlot[-2].fY = (float)__frame0.nAdjY;
+            Glide::AdjustPerspectivePosition(__frame0.nLeftFixedX, __frame0.nLeftFixedY, nCornerFixedY + __frame0.nRightFixedZ, &__frame0.nAdjX, &__frame0.nAdjY);
+            pfVertexSlot->fX = (float)__frame0.nAdjX;
+            pfVertexSlot->fY = (float)__frame0.nAdjY;
           }
 
-          Glide::AdjustPerspectivePosition(__frame0.adwColors[3], __frame0.nYMid, __frame0.nZMid + DVar1.nValue * -8, &nAdjX, &nAdjY);
+          Glide::AdjustPerspectivePosition(__frame0.adwColors[3], __frame0.nYMid, __frame0.nZMid + DVar1.nValue * -8, &__frame0.nAdjX, &__frame0.nAdjY);
           nCornerFixedY = 0;
           pfColorVertex = pfVertexSlot - 2;
-          pfVertexSlot[-1].fX = (float)nAdjX;
-          pfVertexSlot[-1].fY = (float)nAdjY;
+          pfVertexSlot[-1].fX = (float)__frame0.nAdjX;
+          pfVertexSlot[-1].fY = (float)__frame0.nAdjY;
           do {
             dwColorMid = __frame0.adwColors[nCornerFixedY];
             pfColorVertex->fX = __frame0.fSubtileIndex + pfColorVertex->fX;
@@ -2965,7 +2980,7 @@ int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, 
             pfColorVertex++;
           } while (nCornerFixedY < 3);
 
-          fScreenMinX.nValue++;
+          __frame0.fScreenMinX.nValue++;
           pfVertexSlot += 3;
         } while ((int)pfVertexSlot < (uintptr_t)&gaGlidePerspectiveVertices + 476);
 
@@ -3198,7 +3213,7 @@ BOOL __fastcall DrawGroundTile(D2TileLibraryEntryStrc * pTile, D2GfxLightExStrc 
 }
 
 void __stdcall RENDERER_GLIDE_AllocLightingTable() {
-    gpGlideLightingTable = (uint8_t*)Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\glVertex.cpp", 0x17, 0);
+    gpGlideLightingTable = (uint8_t*)D2_ALLOC(0x10000);
 }
 
 void __stdcall RENDERER_GLIDE_FreeLightingTable() {
@@ -3206,7 +3221,7 @@ void __stdcall RENDERER_GLIDE_FreeLightingTable() {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(gpGlideLightingTable, ".\\Src\\glVertex.cpp", 0x1e, 0);
+    D2_FREE(gpGlideLightingTable);
     gpGlideLightingTable = 0;
 }
 
@@ -3245,7 +3260,7 @@ void __fastcall RENDERER_GLIDE_ApplyColorLighting(uint32_t * pVertexColor, uint3
 
 // @sourcefile .\Src\glPerspective.cpp
 void __stdcall RENDERER_GLIDE_AllocPerspectiveLUT() {
-    gpPerspectiveLookupTable = Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glPerspective.cpp", 0x38, 0);
+    gpPerspectiveLookupTable = D2_ALLOC(0x8000);
 }
 
 // @sourcefile .\Src\glPerspective.cpp
@@ -3254,7 +3269,7 @@ void __stdcall RENDERER_GLIDE_FreePerspectiveLUT() {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(gpPerspectiveLookupTable, ".\\Src\\glPerspective.cpp", 0x3f, 0);
+    D2_FREE(gpPerspectiveLookupTable);
     gpPerspectiveLookupTable = 0;
 }
 
@@ -3340,26 +3355,26 @@ void __stdcall GLSMACK_AllocBuffers() {
     gfGlideSmackerVertex1Oow = -1;
     gfGlideSmackerVertex2Oow = -1;
     gfGlideSmackerVertex3Oow = -1;
-    gpGlideSmackerTexBuf0 = (D2Row_uint8_t_32768*)Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glSmack.cpp", 0x47, 0);
-    gpGlideSmackerTexBuf1 = (D2Row_uint8_t_32768*)Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glSmack.cpp", 0x48, 0);
-    gpGlideSmackerTexBuf2 = (D2Row_uint8_t_32768*)Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glSmack.cpp", 0x49, 0);
+    gpGlideSmackerTexBuf0 = (D2Row_uint8_t_32768*)D2_ALLOC(0x8000);
+    gpGlideSmackerTexBuf1 = (D2Row_uint8_t_32768*)D2_ALLOC(0x8000);
+    gpGlideSmackerTexBuf2 = (D2Row_uint8_t_32768*)D2_ALLOC(0x8000);
 }
 
 // @sourcefile .\Src\glSmack.cpp
 void __stdcall GLSMACK_FreeBuffers() {
     if (gpGlideSmackerTexBuf0) {
-      Fog::Memory::FreeClientMemory(gpGlideSmackerTexBuf0, ".\\Src\\glSmack.cpp", 0x56, 0);
+      D2_FREE(gpGlideSmackerTexBuf0);
       gpGlideSmackerTexBuf0 = 0;
     }
     if (gpGlideSmackerTexBuf1) {
-      Fog::Memory::FreeClientMemory(gpGlideSmackerTexBuf1, ".\\Src\\glSmack.cpp", 0x5b, 0);
+      D2_FREE(gpGlideSmackerTexBuf1);
       gpGlideSmackerTexBuf1 = 0;
     }
     if (!gpGlideSmackerTexBuf2) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(gpGlideSmackerTexBuf2, ".\\Src\\glSmack.cpp", 0x60, 0);
+    D2_FREE(gpGlideSmackerTexBuf2);
     gpGlideSmackerTexBuf2 = 0;
 }
 

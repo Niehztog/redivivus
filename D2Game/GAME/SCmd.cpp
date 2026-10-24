@@ -14,7 +14,6 @@
 #include "D2Client/D2LightMapStrc.h"
 #include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/GAME/RosterPets.h"
-#include "D2Client/GAME/SCmd.h"
 #include "D2Client/SKILLS/SkillsPal.h"
 #include "D2Client/UI/SkillDesc.h"
 #include "D2Client/UNIT/MonUnique.h"
@@ -59,6 +58,7 @@
 #include "D2Game/Monster/Monsters.h"
 #include "D2Game/Objects/Objects.h"
 #include "D2Game/PLAYER/Player.h"
+#include "D2Game/PLAYER/PlayerMsg.h"
 #include "D2Game/PLAYER/PlayerPets.h"
 #include "D2Game/PLAYER/PlayerTrade.h"
 #include "D2Game/Quests/QUESTS.h"
@@ -84,6 +84,22 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2PacketListStrc) == 0x208, "D2_NEW(D2PacketListStrc): the 32-bit layout must be the 0x208 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2PartyDataStrc) == 0x14, "D2_NEW(D2PartyDataStrc): the 32-bit layout must be the 0x14 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpSUnitIterateCallback
 #define RECON_FPTD_fpSUnitIterateCallback
@@ -107,7 +123,7 @@ void __stdcall SCMD_QueuePacketForClient(uint8_t * pBytes, size_t nSize, D2Clien
       pPacket = pClient->pEmpty;
       nOffset = 0;
       if (!pPacket) {
-        pPacket = (D2PacketListStrc*)Fog::Memory::AllocServerMemory(nullptr, 0x208, ".\\GAME\\SCmd.cpp", 0xa0, 0);
+        pPacket = D2_NEW_POOL(nullptr, D2PacketListStrc);
       } else {
         pClient->pEmpty = pPacket->pNext;
       }
@@ -995,7 +1011,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x94_SETALLSKILLS(D2ClientStrc * pClient, D
 
         pGame = Clients::CLIENT_GetGame(pClient);
         nAllocSize = nSkillCountIter * 3 + 6;
-        pPktBuf = (uint8_t*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, nAllocSize, ".\\GAME\\SCmd.cpp", 0x568, 0);
+        pPktBuf = (uint8_t*)D2_ALLOC_POOL(pGame->pMemoryPool, nAllocSize);
         pSkillEntryBuf = pPktBuf + 6;
         *pPktBuf = 0x94;
         if (nSkillCountIter < 0x100) {
@@ -1012,7 +1028,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x94_SETALLSKILLS(D2ClientStrc * pClient, D
           }
 
           SCMD_QueuePacketForClient(pPktBuf, nAllocSize, pClient);
-          Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pPktBuf, ".\\GAME\\SCmd.cpp", 0x57e, 0);
+          D2_FREE_POOL(pGame->pMemoryPool, pPktBuf);
           return;
         }
 
@@ -1040,17 +1056,17 @@ void __fastcall NET_D2GS_SERVER_SendSkillTabBonusDelta(D2ClientStrc * pClient, u
     SCMD_QueuePacketForClient(aPacket, 8, pClient);
 }
 
-void __fastcall NET_D2GS_SERVER_Send_0x26_CHATSTART(D2ClientStrc * pClient, char * szText) {
+void __fastcall NET_D2GS_SERVER_Send_0x26_CHATSTART(D2ClientStrc * pClient, D2GSPacketSrv0x26 * pPacket) {
     // Frame slots -292..-4 are ONE object: &pktBuf0 is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       uint8_t pktBuf0;
-      char pktBuf1;
-      char pktBuf2;
-      char pktBuf3;
+      uint8_t pktBuf1;
+      uint8_t pktBuf2;
+      uint8_t pktBuf3;
       uint32_t pktBuf4;
-      char pktBuf8;
-      char pktBuf9;
+      uint8_t pktBuf8;
+      uint8_t pktBuf9;
       char szPlayerName;
       char szMessage[273];
       uint32_t dwSecurityCookie;
@@ -1059,25 +1075,25 @@ void __fastcall NET_D2GS_SERVER_Send_0x26_CHATSTART(D2ClientStrc * pClient, char
     __frame0_t __frame0;
     char cCur;
     __frame0.dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    char* pSrcScan = szText + 0x1a;
+    char* pSrcScan = pPacket->szMessage;
     pSrcScan = pSrcScan + strlen(pSrcScan) + 1;
-    if (0xff < (uint32_t)((int)pSrcScan - (int)(szText + 0x1b))) {
+    if (0xff < (uint32_t)((int)pSrcScan - (int)(pPacket->szMessage + 1))) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5ba);
       exit(-1);
     }
-    if (szText[0x119] != '\0') {
-      szText[0x119] = '\0';
+    if (pPacket->szMessage[0xff] != '\0') {
+      pPacket->szMessage[0xff] = '\0';
     }
 
-    __frame0.pktBuf0 = *szText;
-    __frame0.pktBuf1 = szText[1];
-    __frame0.pktBuf2 = szText[2];
-    __frame0.pktBuf3 = szText[3];
-    __frame0.pktBuf4 = *(uint32_t*)(szText + 4);
-    __frame0.pktBuf8 = szText[8];
-    __frame0.pktBuf9 = szText[9];
-    uint32_t uVar1 = Storm::Source::SSTR::SStrCopy(&__frame0.szPlayerName, szText + 10, 0x10);
-    uint32_t nMsgLen = Storm::Source::SSTR::SStrCopy(__frame0.szMessage + uVar1, szText + 0x1a, 0x100);
+    __frame0.pktBuf0 = pPacket->nPacketId;
+    __frame0.pktBuf1 = pPacket->nMessageType;
+    __frame0.pktBuf2 = pPacket->nLanguage;
+    __frame0.pktBuf3 = pPacket->nMsgSubType;
+    __frame0.pktBuf4 = pPacket->nUnitGUID;
+    __frame0.pktBuf8 = pPacket->nMessageColor;
+    __frame0.pktBuf9 = pPacket->nColor;
+    uint32_t uVar1 = Storm::Source::SSTR::SStrCopy(&__frame0.szPlayerName, pPacket->szName, 0x10);
+    uint32_t nMsgLen = Storm::Source::SSTR::SStrCopy(__frame0.szMessage + uVar1, pPacket->szMessage, 0x100);
     SCMD_QueuePacketForClient(&__frame0.pktBuf0, (size_t)(__frame0.szMessage + uVar1 + (nMsgLen + 1 - (uintptr_t)&__frame0.pktBuf0)), pClient);
     Fog::Debug::GuardStack();
 }
@@ -1337,7 +1353,7 @@ BOOL __stdcall PLAYERDATA_AllocPartyData(D2UnitStrc * pUnit, int32_t nUnitLife, 
       }
     }
 
-    pPartyData = (D2PartyDataStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x14, ".\\GAME\\SCmd.cpp", 0x6fa, 0);
+    pPartyData = D2_NEW_POOL(pGame->pMemoryPool, D2PartyDataStrc);
     if (!pPartyData) {
       return 0;
     }
@@ -2028,16 +2044,17 @@ void __fastcall NET_D2GS_SERVER_Send_0x75_UPDATEROSTER(D2UnitStrc * pUnit, D2Uni
     SCMD_QueuePacketForClient(aPacket, 0xd, pClient);
 }
 
-void __fastcall NET_D2GS_SERVER_Send_0x7B_SYNCHOTKEYS(D2ClientStrc * pClient, uint32_t bySkillFlagsLo, uint32_t wHotkeySlot, int32_t nSkillId, uint32_t dwSkillIdArg) {
-    uint8_t aPacketBuf[8];
-    *(uint16_t*)((char*)&aPacketBuf + 2) = (uint16_t)bySkillFlagsLo & 0xfff;
-    aPacketBuf[0] = '{';
-    *(uint32_t*)((char*)&aPacketBuf + 4) = nSkillId;
-    if (wHotkeySlot) {
-      *(uint16_t*)((char*)&aPacketBuf + 2) |= 0x8000;
+void __fastcall NET_D2GS_SERVER_Send_0x7B_SYNCHOTKEYS(D2ClientStrc * pClient, uint8_t nHotkeySlot, int32_t nSkillId, int32_t bIsLeftSkill, uint32_t dwHotkeyArg) {
+    D2GSPacketSrv0x7B sPacket;
+    sPacket.wSkillId = (uint16_t)nSkillId & 0xfff;
+    sPacket.nPacketId = '{';
+    sPacket.dwHotkeyArg = dwHotkeyArg;
+    if (bIsLeftSkill) {
+      sPacket.wSkillId |= 0x8000;
     }
 
-    SCMD_QueuePacketForClient(aPacketBuf, 8, pClient);
+    sPacket.nHotkeySlot = nHotkeySlot;
+    SCMD_QueuePacketForClient(&sPacket.nPacketId, 8, pClient);
 }
 
 void __fastcall NET_D2GS_SERVER_Send_0x7E_LoadMonsterCof(D2ClientStrc * pClient) {

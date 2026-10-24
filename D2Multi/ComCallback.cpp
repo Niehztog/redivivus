@@ -36,6 +36,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2ChannelUserStrc) == 0xb4, "D2_NEW(D2ChannelUserStrc): the 32-bit layout must be the 0xb4 bytes 1.14d allocates");
+
 
 namespace D2Multi::ComCallback {
 
@@ -344,8 +358,8 @@ void COMCALLBACK_HandleBannerAdFile(uint32_t * pBannerAdData) {
     }
 
     ghBannerAdProcess = *pBannerAdData;
-    Fog::Memory::FreeClientMemory((void*)pBannerAdData[2], ".\\Src\\ComCallback.cpp", 0x386, 0);
-    Fog::Memory::FreeClientMemory((void*)pBannerAdData[3], ".\\Src\\ComCallback.cpp", 0x387, 0);
+    D2_FREE((void*)pBannerAdData[2]);
+    D2_FREE((void*)pBannerAdData[3]);
 }
 
 // Returns gszCurrentChannelName, the name of the chat channel last joined (copied there by the "You have joined channel: %s" handler COMCALLBACK_HandleChannelError).
@@ -751,11 +765,11 @@ void __fastcall COMCALLBACK_AddOrUpdateChannelUser(char * szUsername, uint8_t * 
     void* pNewNode = gpChannelUserLinkedListHead;
     if (0x3ff < (int)gnChannelUserTotalCount) {
       gpChannelUserLinkedListHead = *(void**)((int)gpChannelUserLinkedListHead + 0x44);
-      Fog::Memory::FreeClientMemory(pNewNode, ".\\Src\\ComCallback.cpp", 0x936, 0);
+      D2_FREE(pNewNode);
       gnChannelUserTotalCount--;
     }
 
-    pNewNode = Fog::Memory::AllocClientMemory(0x48, ".\\Src\\ComCallback.cpp", 0x93a, 0);
+    pNewNode = D2_ALLOC(0x48);
     nCmpResult = (int)pNewNode - (int)szUsername;
     do {
       cCopied = *szUsername;
@@ -2068,7 +2082,7 @@ D2ChannelUserStrc * __stdcall COMCALLBACK_CreateChannelUserEntry(char * szUserna
     do {
       char* pStar;
       if (!pUser) {
-        pNewUser = (D2ChannelUserStrc*)Fog::Memory::AllocClientMemory(0xb4, ".\\Src\\ComCallback.cpp", 0x6d4, 0);
+        pNewUser = D2_NEW(D2ChannelUserStrc);
         memset(pNewUser, 0, 0xb4);
         nResult = 4 - (int)szUsername;
         pUser = pUserRegEntry;
@@ -2271,7 +2285,7 @@ void __stdcall COMCALLBACK_RemoveChannelUser(char * szUsername) {
 
           D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)pMemoryToFree->pComposite, 1);
           pMemoryToFree->pComposite = 0;
-          Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\ComCallback.cpp", 0x7fe, 0);
+          D2_FREE(pMemoryToFree);
         }
 
         break;
@@ -2307,7 +2321,7 @@ void __stdcall COMCALLBACK_ClearAllChannelUsers() {
       pNextUser = pMemoryToFree->pNext;
       D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)pMemoryToFree->pComposite, 1);
       pMemoryToFree->pComposite = 0;
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\ComCallback.cpp", 0x822, 0);
+      D2_FREE(pMemoryToFree);
       pMemoryToFree = pNextUser;
     }
 
@@ -2316,7 +2330,7 @@ void __stdcall COMCALLBACK_ClearAllChannelUsers() {
     while (pLinkedNode) {
       void* pNextLinkedNode;
       pNextLinkedNode = *(void**)((int)pLinkedNode + 0x44);
-      Fog::Memory::FreeClientMemory(pLinkedNode, ".\\Src\\ComCallback.cpp", 0x82a, 0);
+      D2_FREE(pLinkedNode);
       pLinkedNode = pNextLinkedNode;
     }
 

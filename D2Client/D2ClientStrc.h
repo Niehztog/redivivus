@@ -67,9 +67,9 @@ struct D2SaveHotKeyStrc {
     D2SaveHotKeyStrc() = default;
     D2SaveHotKeyStrc(uint32_t v) { *reinterpret_cast<uint32_t*>(this) = v; }
     operator uint32_t() const { return *reinterpret_cast<const uint32_t*>(this); }
-    D2SaveHotKeyStrc(short a0, short a1) : nSkillIdAndHand(a0), nItemIndex(a1) {}
+    D2SaveHotKeyStrc(uint16_t a0, short a1) : nSkillIdAndHand(a0), nItemIndex(a1) {}
 
-    /* 0x00 */ short nSkillIdAndHand;
+    /* 0x00 */ uint16_t nSkillIdAndHand;
     /* 0x02 */ short nItemIndex;
 };
 

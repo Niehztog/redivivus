@@ -31,6 +31,26 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_REALLOC_POOL
+#define D2_REALLOC_POOL(pPool, p, size) Fog::Memory::ReAllocServerMemory((pPool), (p), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgTileLinkStrc) == 0xc, "D2_NEW(D2DrlgTileLinkStrc): the 32-bit layout must be the 0xc bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgTileGridStrc) == 0x2c, "D2_NEW(D2DrlgTileGridStrc): the 32-bit layout must be the 0x2c bytes 1.14d allocates");
+
 
 namespace D2Common::Drlg::RoomTile {
 
@@ -47,7 +67,7 @@ void __fastcall DRLGROOMTILE_CompactTileDataArray(D2RoomExStrc * pRoomEx) {
         return;
       }
 
-      pReallocated = (D2DrlgTileDataStrc*)Fog::Memory::ReAllocServerMemory(pMemory, pTileGrid->pRoofTiles, nRoofCount * 0x30, ".\\DRLG\\RoomTile.cpp", 0x25f, 0);
+      pReallocated = (D2DrlgTileDataStrc*)D2_REALLOC_POOL(pMemory, pTileGrid->pRoofTiles, nRoofCount * 0x30);
       pTileGrid->pRoofTiles = pReallocated;
       nRoofCount = 0;
       if (pTileGrid->nShadows != 1 && -1 < pTileGrid->nShadows - 1) {
@@ -64,7 +84,7 @@ void __fastcall DRLGROOMTILE_CompactTileDataArray(D2RoomExStrc * pRoomEx) {
       return;
     }
     if (pTileGrid->pRoofTiles) {
-      Fog::Memory::FreeServerMemory(pMemory, pTileGrid->pRoofTiles, ".\\DRLG\\RoomTile.cpp", 599, 0);
+      D2_FREE_POOL(pMemory, pTileGrid->pRoofTiles);
     }
 
     pTileGrid->pRoofTiles = 0;
@@ -319,7 +339,7 @@ D2DrlgTileDataStrc * __stdcall DRLGROOMTILE_FindTileInNearRooms(int nFlags, D2Ro
 // Allocates a new D2DrlgTileLinkStrc (12 bytes), initializes it, and prepends it to the room's tile link list at pRoomEx->pRoomTiles->pMapLinks.
 // @sourcefile .\DRLG\RoomTile.cpp
 D2DrlgTileLinkStrc * __stdcall DRLGROOMTILE_AllocTileLink(D2PoolManagerStrc * pPoolManager, D2RoomExStrc * pRoomEx, int nTileId) {
-    D2DrlgTileLinkStrc* pTileLink = (D2DrlgTileLinkStrc*)Fog::Memory::AllocServerMemory(pPoolManager, 0xc, ".\\DRLG\\RoomTile.cpp", 0x37b, 0);
+    D2DrlgTileLinkStrc* pTileLink = D2_NEW_POOL(pPoolManager, D2DrlgTileLinkStrc);
     *(int*)pTileLink = nTileId;
     pTileLink->pTileData = 0;
     pTileLink->pNext = pRoomEx->pRoomTiles->pMapLinks;
@@ -353,7 +373,7 @@ D2DrlgTileDataStrc * __stdcall DRLGROOMTILE_AddTileData(D2RoomExStrc * pRoomEx, 
       }
     }
 
-    pTileLink = (D2DrlgTileLinkStrc*)Fog::Memory::AllocServerMemory(pPoolManager, 0xc, ".\\DRLG\\RoomTile.cpp", 0x37b, 0);
+    pTileLink = D2_NEW_POOL(pPoolManager, D2DrlgTileLinkStrc);
     *(uint32_t*)pTileLink = nIsFloorLink;
     pTileLink->pTileData = 0;
     pTileLink->pNext = pRoomEx->pRoomTiles->pMapLinks;
@@ -504,7 +524,7 @@ void __stdcall DRLGROOMTILE_UpdateTileType(D2DrlgTileDataStrc * pTileData, D2Roo
         }
       }
 
-      pTileLink = (D2DrlgTileLinkStrc*)Fog::Memory::AllocServerMemory(pPoolManager, 0xc, ".\\DRLG\\RoomTile.cpp", 0x37b, 0);
+      pTileLink = D2_NEW_POOL(pPoolManager, D2DrlgTileLinkStrc);
       *(int*)pTileLink = 0;
       pTileLink->pTileData = 0;
       pTileLink->pNext = pRoomExStrc->pRoomTiles->pMapLinks;
@@ -790,7 +810,7 @@ void __fastcall DRLGROOMTILE_AllocRoomTileGrid(D2RoomExStrc * pRoomEx) {
       return;
     }
 
-    D2DrlgTileGridStrc* pTileGrid = (D2DrlgTileGridStrc*)Fog::Memory::AllocServerMemory(pRoomEx->pLevel->pDrlg->pMemoryPool, 0x2c, ".\\DRLG\\RoomTile.cpp", 0x533, 0);
+    D2DrlgTileGridStrc* pTileGrid = D2_NEW_POOL(pRoomEx->pLevel->pDrlg->pMemoryPool, D2DrlgTileGridStrc);
     pRoomEx->pRoomTiles = pTileGrid;
     memset(pTileGrid, 0, 0x2c);
 }
@@ -803,12 +823,12 @@ void __fastcall DRLGROOMTILE_AllocTileDataArrays(D2RoomExStrc * pRoomEx) {
     D2PoolManagerStrc* pMemory = pRoomEx->pLevel->pDrlg->pMemoryPool;
     if (pTileGrid->nFloorTilesMax) {
       D2DrlgTileDataStrc* pFloorTiles;
-      pFloorTiles = (D2DrlgTileDataStrc*)Fog::Memory::AllocServerMemory(pMemory, pTileGrid->nFloorTilesMax * 0x30, ".\\DRLG\\RoomTile.cpp", 0x545, 0);
+      pFloorTiles = (D2DrlgTileDataStrc*)D2_ALLOC_POOL(pMemory, pTileGrid->nFloorTilesMax * 0x30);
       pTileGrid->pFloorTiles = pFloorTiles;
       memset(pFloorTiles, 0, pTileGrid->nFloorTilesMax * 0x30);
     }
     if (pTileGrid->nWallTilesMax) {
-      pWallTiles = (D2DrlgTileDataStrc*)Fog::Memory::AllocServerMemory(pMemory, pTileGrid->nWallTilesMax * 0x30, ".\\DRLG\\RoomTile.cpp", 0x54b, 0);
+      pWallTiles = (D2DrlgTileDataStrc*)D2_ALLOC_POOL(pMemory, pTileGrid->nWallTilesMax * 0x30);
       pTileGrid->pWallTiles = pWallTiles;
       memset(pWallTiles, 0, pTileGrid->nWallTilesMax * 0x30);
     }
@@ -816,7 +836,7 @@ void __fastcall DRLGROOMTILE_AllocTileDataArrays(D2RoomExStrc * pRoomEx) {
       return;
     }
 
-    D2DrlgTileDataStrc* pRoofTiles = (D2DrlgTileDataStrc*)Fog::Memory::AllocServerMemory(pMemory, pTileGrid->nRoofTilesMax * 0x30, ".\\DRLG\\RoomTile.cpp", 0x551, 0);
+    D2DrlgTileDataStrc* pRoofTiles = (D2DrlgTileDataStrc*)D2_ALLOC_POOL(pMemory, pTileGrid->nRoofTilesMax * 0x30);
     pTileGrid->pRoofTiles = pRoofTiles;
     memset(pRoofTiles, 0, pTileGrid->nRoofTilesMax * 0x30);
 }
@@ -828,7 +848,7 @@ void __fastcall DRLGROOMTILE_GrowTileDataArray(D2PoolManagerStrc * pMemory, D2Dr
       return;
     }
 
-    D2DrlgTileDataStrc* pReallocated = (D2DrlgTileDataStrc*)Fog::Memory::ReAllocServerMemory(pMemory, pTileGrid->pRoofTiles, (pTileGrid->nRoofTilesMax + nAdditionalTiles) * 0x30, ".\\DRLG\\RoomTile.cpp", 0x561, 0);
+    D2DrlgTileDataStrc* pReallocated = (D2DrlgTileDataStrc*)D2_REALLOC_POOL(pMemory, pTileGrid->pRoofTiles, (pTileGrid->nRoofTilesMax + nAdditionalTiles) * 0x30);
     pTileGrid->pRoofTiles = pReallocated;
     int nIndex = 0;
     if (pTileGrid->nShadows != 1 && -1 < pTileGrid->nShadows - 1) {
@@ -855,16 +875,16 @@ void DRLGROOMTILE_FreeTileArrays(D2RoomExStrc * pLevelCtx, D2PoolManagerStrc * p
 
     D2DrlgTileDataStrc* pFloorTiles = pTileGrid->pWallTiles;
     if (pFloorTiles) {
-      Fog::Memory::FreeServerMemory(pPoolManagerStrc, pFloorTiles, ".\\DRLG\\RoomTile.cpp", 0x592, 0);
+      D2_FREE_POOL(pPoolManagerStrc, pFloorTiles);
     }
     if (pTileGrid->pFloorTiles) {
-      Fog::Memory::FreeServerMemory(pPoolManagerStrc, pTileGrid->pFloorTiles, ".\\DRLG\\RoomTile.cpp", 0x593, 0);
+      D2_FREE_POOL(pPoolManagerStrc, pTileGrid->pFloorTiles);
     }
     if (!pTileGrid->pRoofTiles) {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(pPoolManagerStrc, pTileGrid->pRoofTiles, ".\\DRLG\\RoomTile.cpp", 0x594, 0);
+    D2_FREE_POOL(pPoolManagerStrc, pTileGrid->pRoofTiles);
 }
 
 // @sourcefile .\DRLG\RoomTile.cpp
@@ -881,7 +901,7 @@ void __fastcall DRLGROOMTILE_FreeRoomTilesAll(D2RoomExStrc * pRoomEx) {
     while (pTileLink) {
       D2DrlgTileLinkStrc* pNextTileLink;
       pNextTileLink = pTileLink->pNext;
-      Fog::Memory::FreeServerMemory(pMemory, pTileLink, ".\\DRLG\\RoomTile.cpp", 0x5ad, 0);
+      D2_FREE_POOL(pMemory, pTileLink);
       pTileLink = pNextTileLink;
     }
 
@@ -889,12 +909,12 @@ void __fastcall DRLGROOMTILE_FreeRoomTilesAll(D2RoomExStrc * pRoomEx) {
     D2DrlgAnimTileGridStrc* pMemoryToFree = pTileGrid->pAnimTiles;
     while (pMemoryToFree) {
       pNextAnimGrid = pMemoryToFree->pNext;
-      Fog::Memory::FreeServerMemory(pMemory, pMemoryToFree->ppTileData, ".\\DRLG\\RoomTile.cpp", 0x5b9, 0);
-      Fog::Memory::FreeServerMemory(pMemory, pMemoryToFree, ".\\DRLG\\RoomTile.cpp", 0x5ba, 0);
+      D2_FREE_POOL(pMemory, pMemoryToFree->ppTileData);
+      D2_FREE_POOL(pMemory, pMemoryToFree);
       pMemoryToFree = pNextAnimGrid;
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pTileGrid, ".\\DRLG\\RoomTile.cpp", 0x5bd, 0);
+    D2_FREE_POOL(pMemory, pTileGrid);
     pRoomEx->pRoomTiles = 0;
 }
 

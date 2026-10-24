@@ -387,9 +387,13 @@ int32_t __fastcall MONREGION_RollRandomMonsterType(::SGAMEDATA * pGame, D2Monste
     return nRarityBucket;
 }
 
-void __fastcall RollRoomSeed(D2RoomStrc * pRoom) {
+int * __fastcall RollRoomSeed(D2RoomStrc * pRoom) {
+    // Static local variables (originally global data)
+    static void* gapSkillDispatchTableBase = (void*)&gaSkillLevelCaps;
+
     D2SeedStrc* pSeed = !pRoom ? 0 : &pRoom->sSeed;
     *pSeed = D2_SEED_NEXT(*pSeed);
+    return (int*)gapSkillDispatchTableBase;
 }
 
 // Determines how many unique/boss monsters to spawn for pMonterRegion in pRoom. If current unique count is below nBossMin and the room density roll (spawned/total rooms) passes, returns 0 (skip). If below nBossMax and a 6% roll passes, returns 0. Otherwise returns 1 (spawn normal) or 2 (spawn extra) based on a 35% random threshold using the room seed.

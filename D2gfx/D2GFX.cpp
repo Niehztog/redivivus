@@ -548,21 +548,21 @@ BOOL __stdcall D2GFX_ResizeWindow(int32_t nResolution, BOOL bForceResize) {
 }
 
 BOOL __stdcall D2GFX_UpdateWindowSize(int32_t nResolutionMode) {
-    // Frame slots -40..-24 are ONE object: &nWorkAreaLeft is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -40..-8 are ONE object: &nWorkAreaLeft is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       int nWorkAreaLeft;
       int nWorkAreaTop;
       int nWorkAreaRight;
       int nWorkAreaBottom;
+      tagRECT rcNewWindow;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     int nWorkAreaHeight;
     int nWindowX;
     tagRECT rcWindowPos;
     tagRECT rcCurrentClient;
-    tagRECT rcNewWindow;
     HWND hWndLocal;
     HWND hWnd = hwndD2GFX_Window;
     if (RENDERER_CurrentRenderedFunctions) {
@@ -594,16 +594,16 @@ BOOL __stdcall D2GFX_UpdateWindowSize(int32_t nResolutionMode) {
       rcWindowPos.right = 0;
       rcWindowPos.bottom = 0;
       GetWindowRect(hWnd, &rcWindowPos);
-      rcNewWindow.top = 0;
-      rcNewWindow.right = 0;
-      rcNewWindow.bottom = 0;
-      rcNewWindow.left = 0;
-      D2GFX_GetWindowSizeByResolutionMode(nResolutionMode, (int*)&rcNewWindow.right, (int*)&rcNewWindow.bottom);
-      /* DWORD dwExStyle for AdjustWindowRectEx */ /* BOOL bMenu for AdjustWindowRectEx */ /* DWORD dwStyle for AdjustWindowRectEx */ /* LPRECT lpRect for AdjustWindowRectEx */ nWindowSizeY = rcNewWindow.bottom;
-      AdjustWindowRectEx(&rcNewWindow, 0xcb0000, 0, 0x40000);
-      cy = rcNewWindow.bottom - rcNewWindow.top;
+      __frame0.rcNewWindow.top = 0;
+      __frame0.rcNewWindow.right = 0;
+      __frame0.rcNewWindow.bottom = 0;
+      __frame0.rcNewWindow.left = 0;
+      D2GFX_GetWindowSizeByResolutionMode(nResolutionMode, (int*)&__frame0.rcNewWindow.right, (int*)&__frame0.rcNewWindow.bottom);
+      /* DWORD dwExStyle for AdjustWindowRectEx */ /* BOOL bMenu for AdjustWindowRectEx */ /* DWORD dwStyle for AdjustWindowRectEx */ /* LPRECT lpRect for AdjustWindowRectEx */ nWindowSizeY = __frame0.rcNewWindow.bottom;
+      AdjustWindowRectEx(&__frame0.rcNewWindow, 0xcb0000, 0, 0x40000);
+      cy = __frame0.rcNewWindow.bottom - __frame0.rcNewWindow.top;
       nWindowSizeY = cy - nWindowSizeY;
-      nWindowX = (nWindowX - (rcNewWindow.right - rcNewWindow.left)) / 2 + __frame0.nWorkAreaLeft;
+      nWindowX = (nWindowX - (__frame0.rcNewWindow.right - __frame0.rcNewWindow.left)) / 2 + __frame0.nWorkAreaLeft;
       if (nWindowX < 0) {
         nWindowX = 0;
       }
@@ -613,7 +613,7 @@ BOOL __stdcall D2GFX_UpdateWindowSize(int32_t nResolutionMode) {
         nWorkAreaHeight = 0;
       }
 
-      /* UINT uFlags for SetWindowPos */ /* int cy for SetWindowPos */ /* int cx for SetWindowPos */ /* int Y for SetWindowPos */ /* int X for SetWindowPos */ /* HWND hWndInsertAfter for SetWindowPos */ /* HWND hWnd for SetWindowPos */ SetWindowPos(hwndD2GFX_Window, HWND_NOTOPMOST, nWindowX, nWorkAreaHeight, rcNewWindow.right - rcNewWindow.left, cy, 0x14);
+      /* UINT uFlags for SetWindowPos */ /* int cy for SetWindowPos */ /* int cx for SetWindowPos */ /* int Y for SetWindowPos */ /* int X for SetWindowPos */ /* HWND hWndInsertAfter for SetWindowPos */ /* HWND hWnd for SetWindowPos */ SetWindowPos(hwndD2GFX_Window, HWND_NOTOPMOST, nWindowX, nWorkAreaHeight, __frame0.rcNewWindow.right - __frame0.rcNewWindow.left, cy, 0x14);
       D2GFX_GetWindowSizeByResolutionMode(nResolutionMode, (int*)&rInitialWindowRect.right, (int*)&rInitialWindowRect.bottom);
       /* LPRECT lpRect for GetWindowRect */ /* HWND hWnd for GetWindowRect */ GetWindowRect(hWndLocal, &rInitialWindowRect);
       return 1;

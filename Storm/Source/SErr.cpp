@@ -583,14 +583,21 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
     // Static local variables (originally global data)
     static uint32_t gbSSystemErrorDialogActive;
 
-    // Frame slots -2396..-2384 are ONE object: &nMsgBoxFlags is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -2396..-4 are ONE object: &nMsgBoxFlags is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       uint32_t nMsgBoxFlags;
       char* pCustomMsgPtr;
       uint32_t* pStackTracePtr;
+      _WIN32_FIND_DATAA findData;
+      uint32_t aDemangledSymbol[64];
+      char szFullMessage[1024];
+      char szModuleFile[260];
+      char szModuleName[260];
+      char szErrorText[256];
+      uint32_t dwSecurityCookie;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 2392, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     LPSTR* ppFormat;
     uint32_t nLen;
@@ -601,18 +608,11 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
     StormSErrHandlerNode* pCallbackNode;
     int32_t nErrStringIndex;
     int iVar1;
-    _WIN32_FIND_DATAA findData;
-    uint32_t aDemangledSymbol[64];
-    char szFullMessage[1024];
-    char szModuleFile[260];
-    char szModuleName[260];
-    char szErrorText[256];
     LPDWORD lpExitCode;
     uint32_t nErrorCodeArg;
     int32_t nMaxCopyLen;
     uint32_t* pStackTraceArg;
-    uint32_t dwSecurityCookie;
-    dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    __frame0.dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     __frame0.pStackTracePtr = pStackTrace;
     __frame0.pCustomMsgPtr = (char*)pCustomMsg;
     if (gbSSystemShutdownInProgress || gbSSystemErrorDialogActive) {
@@ -622,31 +622,31 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
 
     gbSSystemErrorDialogActive = 1;
     SERR_InternalEnterCriticalSection();
-    /* DWORD nSize for GetModuleFileNameA */ /* LPSTR lpFilename for GetModuleFileNameA */ /* HMODULE hModule for GetModuleFileNameA */ szModuleFile[0] = '\0';
-    szModuleName[0] = '\0';
-    GetModuleFileNameA((HMODULE)0x0, szModuleFile, 0x104);
-    SSystem::SMemZero(&findData, 0x140);
+    /* DWORD nSize for GetModuleFileNameA */ /* LPSTR lpFilename for GetModuleFileNameA */ /* HMODULE hModule for GetModuleFileNameA */ __frame0.szModuleFile[0] = '\0';
+    __frame0.szModuleName[0] = '\0';
+    GetModuleFileNameA((HMODULE)0x0, __frame0.szModuleFile, 0x104);
+    SSystem::SMemZero(&__frame0.findData, 0x140);
     HANDLE hFindHandle;
-    hFindHandle = FindFirstFileA(szModuleFile, &findData);
+    hFindHandle = FindFirstFileA(__frame0.szModuleFile, &__frame0.findData);
     if (hFindHandle) {
       /* HANDLE hFindFile for FindClose */ FindClose(hFindHandle);
     }
 
-    SSTR::SStrCopy(szModuleName, findData.cFileName, 0x104);
+    SSTR::SStrCopy(__frame0.szModuleName, __frame0.findData.cFileName, 0x104);
     char* pCustomMsgArg;
-    pCustomMsgArg = SSTR::SStrChrR(szModuleName, '.');
+    pCustomMsgArg = SSTR::SStrChrR(__frame0.szModuleName, '.');
     if (pCustomMsgArg) {
-      pCustomMsgArg = SSTR::SStrChrR(szModuleName, '.');
+      pCustomMsgArg = SSTR::SStrChrR(__frame0.szModuleName, '.');
       *pCustomMsgArg = '\0';
     }
 
-    szErrorText[0] = '\0';
-    SErrGetErrorStr(nErrorCode, szErrorText, 0x100);
-    if (szErrorText[0] == '\0') {
+    __frame0.szErrorText[0] = '\0';
+    SErrGetErrorStr(nErrorCode, __frame0.szErrorText, 0x100);
+    if (__frame0.szErrorText[0] == '\0') {
       nCallbackNode = nErrorCode & 0xffff;
       nErrorCodeArg = nErrorCode;
       ppFormat = SERR_GetString(0);
-      /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szErrorText, (LPCSTR)ppFormat, nCallbackNode, nErrorCodeArg);
+      /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(__frame0.szErrorText, (LPCSTR)ppFormat, nCallbackNode, nErrorCodeArg);
       pStackTrace = __frame0.pStackTracePtr;
     }
 
@@ -655,17 +655,17 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
       __frame0.pStackTracePtr = pStackTrace;
       if ((char)*pStackTrace != '\0' && (nTraceFlags == -2 || (__frame0.pStackTracePtr = pStackTrace , nTraceFlags == -3))) {
         __frame0.pStackTracePtr = pStackTrace;
-        bIsWindow = SERR_UndecorateObjectName((char*)pStackTrace, 0x100, (char*)aDemangledSymbol);
+        bIsWindow = SERR_UndecorateObjectName((char*)pStackTrace, 0x100, (char*)__frame0.aDemangledSymbol);
         if (bIsWindow) {
-          __frame0.pStackTracePtr = aDemangledSymbol;
+          __frame0.pStackTracePtr = __frame0.aDemangledSymbol;
         }
       }
     }
 
-    pCustomMsgArg = szFullMessage;
+    pCustomMsgArg = __frame0.szFullMessage;
     if (__frame0.pStackTracePtr) {
       nErrorCodeArg = SSTR::SStrCopy(pCustomMsgArg, (char*)__frame0.pStackTracePtr, 0x7fffffff);
-      pCustomMsgArg = szFullMessage + nErrorCodeArg;
+      pCustomMsgArg = __frame0.szFullMessage + nErrorCodeArg;
     }
     if (0 < nTraceFlags) {
       /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(pCustomMsgArg, "(%u)", nTraceFlags);
@@ -675,16 +675,16 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
 
     /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(pCustomMsgArg, " : error %u: ", nErrorCode & 0xffff);
     nErrorCodeArg = SSTR::SStrLen(pCustomMsgArg);
-    SSTR::SStrCopy(pCustomMsgArg + nErrorCodeArg, szErrorText, 0x7fffffff);
-    /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA(szFullMessage);
+    SSTR::SStrCopy(pCustomMsgArg + nErrorCodeArg, __frame0.szErrorText, 0x7fffffff);
+    /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA(__frame0.szFullMessage);
     char* pStringArg;
-    pStringArg = szErrorText;
+    pStringArg = __frame0.szErrorText;
     ppFormat = SERR_GetString(1);
-    /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szFullMessage, (LPCSTR)ppFormat, pStringArg);
-    nErrorCodeArg = SSTR::SStrLen(szFullMessage);
-    pStringArg = szModuleFile;
+    /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(__frame0.szFullMessage, (LPCSTR)ppFormat, pStringArg);
+    nErrorCodeArg = SSTR::SStrLen(__frame0.szFullMessage);
+    pStringArg = __frame0.szModuleFile;
     LPSTR pWriteMsg;
-    pWriteMsg = szFullMessage + nErrorCodeArg;
+    pWriteMsg = __frame0.szFullMessage + nErrorCodeArg;
     ppFormat = SERR_GetString(2);
     /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(pWriteMsg, (LPCSTR)ppFormat, pStringArg);
     nErrorCodeArg = SSTR::SStrLen(pWriteMsg);
@@ -754,8 +754,8 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
         pCustomMsgArg = "";
       }
 
-      SSTR::SStrPrintf(findData.cFileName + 0x10, 0x104, "%s %s:%i", szErrorText, pCustomMsgArg, nTraceFlags);
-      (*pfnBlizzardErrorCallback)(findData.cFileName + 0x10, szFullMessage, nullptr, 0, nTraceFlags, false);
+      SSTR::SStrPrintf(__frame0.findData.cFileName + 0x10, 0x104, "%s %s:%i", __frame0.szErrorText, pCustomMsgArg, nTraceFlags);
+      (*pfnBlizzardErrorCallback)(__frame0.findData.cFileName + 0x10, __frame0.szFullMessage, nullptr, 0, nTraceFlags, false);
     }
 
     iVar1 = 7;
@@ -766,7 +766,7 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
         pCustomMsgArg = "";
       }
 
-      bIsWindow = pCallbackNode->pfnHandler(nErrorCode, szErrorText, __frame0.pStackTracePtr, nTraceFlags, pCustomMsgArg);
+      bIsWindow = pCallbackNode->pfnHandler(nErrorCode, __frame0.szErrorText, __frame0.pStackTracePtr, nTraceFlags, pCustomMsgArg);
       if (!bIsWindow) {
         goto continue_or_terminate;
       }
@@ -779,7 +779,7 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
         hWnd = (HWND)0x0;
       }
 
-      /* UINT uType for MessageBoxA */ /* LPCSTR lpCaption for MessageBoxA */ /* LPCSTR lpText for MessageBoxA */ /* HWND hWnd for MessageBoxA */ iVar1 = MessageBoxA(hWnd, szFullMessage, szModuleName, __frame0.nMsgBoxFlags);
+      /* UINT uType for MessageBoxA */ /* LPCSTR lpCaption for MessageBoxA */ /* LPCSTR lpText for MessageBoxA */ /* HWND hWnd for MessageBoxA */ iVar1 = MessageBoxA(hWnd, __frame0.szFullMessage, __frame0.szModuleName, __frame0.nMsgBoxFlags);
     }
 
     continue_or_terminate:

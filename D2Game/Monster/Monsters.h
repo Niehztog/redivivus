@@ -62,7 +62,7 @@ int32_t __fastcall GetMonUModList(struct D2UnitStrc * pUnit);
 // 2022.01.09 - dzik
 uint16_t __fastcall GetNameSeed(struct D2UnitStrc * pUnit);
 // 2022.01.09 - dzik
-uint32_t __fastcall CheckMonsterType(struct D2UnitStrc * pUnit, uint16_t eMonsterType);
+uint32_t CheckMonsterType(struct D2UnitStrc * pUnit, uint16_t eMonsterType);
 void __fastcall MONSTER_SetMonsterDataFlags(int * pUnit, uint16_t nFlagMask, int32_t nFlagValue);
 // 2022.01.09 - dzik
 int16_t __fastcall GetBossNo(struct D2UnitStrc * pUnit);
@@ -78,7 +78,7 @@ BOOL __stdcall MONSTER_CanApplyUniqueModifier(struct D2MonUModTxt * pD2MonUModTx
 // Selects a champion unique-modifier (UMod) index for a monster using weighted random selection. Iterates the MonUMod txt table, filters entries by applicability to this unit and difficulty, accumulates weights into a candidate list (max 256), then rolls via UNIT_GetModuloFromSeed. Returns the chosen UMod index, or 0 if none qualify.
 int32_t MONSTER_SelectChampionMod(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame);
 // Randomly selects one unique/champion modifier index from pTxtMonUmod for pUnit. Filters candidates by difficulty-tier cpick weight, champion flag, MONSTER_CanApplyUniqueModifier eligibility, and whether the slot in pD2MonUModTxt is already occupied. Performs a weighted random draw using the unit's seed; returns the selected modifier index (0-based) or 0 on failure.
-int32_t __stdcall MONUMOD_RollRandomModifier(struct D2UnitStrc * pUnit, struct D2MonUModTxt * pD2MonUModTxt, ::SGAMEDATA * pGame);
+int32_t __stdcall MONUMOD_RollRandomModifier(struct D2UnitStrc * pUnit, uint8_t * pUsedUModFlags, ::SGAMEDATA * pGame);
 // Rolls and assigns unique-modifier (UMod) enchantments to a newly spawned monster. If bResult is set, first rolls against the champion threshold (MonUMod.txt constants row 0) to potentially make the monster a champion instead; if champion, calls MONSTER_SelectChampionMod and returns. Otherwise rolls 1+difficulty extra UMod slots, calls MONUMOD_RollRandomModifier up to that count (avoiding already-assigned mods via a local dedup table), and appends each selected UMod ID to pUnitDataMonster->MonUModList. Guards against stack overflow via security cookie.
 void MONSTER_RollAndAssignUMods(void * pThis, ::SGAMEDATA * pGame, BOOL bResult);
 // Copies transferable MonUMod enchantments from pSrcUnit to pDstUnit's MonUModList. If bAppend is false, finds the first empty slot in the destination list; if true, starts at slot 0. Only copies entries where the MonUModTxt xfer flag is set. Silently exits if either unit is not a valid monster with unit data. Used when spawning minions to inherit boss enchantments.
@@ -128,6 +128,8 @@ void __fastcall MONSTER_ScheduleDeathEvent(::SGAMEDATA * pGame, struct D2UnitStr
 void __fastcall MONSTER_OnDeathTryScheduleRevive(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t dwUnused1, uint32_t dwUnused2);
 // AI callback that resurrects a monster that has just died via SKILL_SelfResurrect. Validates that the monster is dead, lacks a passive-state lock, is not a quest-flagged boss, is not Champion-aligned, and that its current tile is unblocked; if all checks pass, casts self-resurrection, clears the NOXP/NOTC flags, increments AI argument 1, and schedules the next think event.
 void __fastcall MONSTER_SelfResurrect(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t dwUnused1, uint32_t dwUnused2);
+// MonUMod handler, only reached through g_MonsterUModHandlerTable row 35. On death (or no unit) sets STATE_shatter.
+void __fastcall FUN_005a3a80(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t dwParam1, int32_t nParam2);
 void __fastcall MONSTER_HandleMinionDeath(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t dwUnused1, uint32_t dwUnused2);
 // Initialises level and attack-rating stats for a monster unit spawned via a UMOD (unit-modifier) entry. Derives monster level from the room's level record and the game difficulty/expansion flags stored in the pUModEntry struct, clamped to minimum 1. Sets UNITSTAT_level and UNITSTAT_tohit (capped at 90). For specific monster class IDs 0x146-0x171 (elemental enchanted types), also adds elemental damage stats (fire, lightning, poison) scaled from the computed level. Halts with an internal error if pUnit is not a monster.
 void __fastcall UMOD_SetLevelAndAttackRating(int32_t pUModEntry, struct D2UnitStrc * pUnit, uint32_t dwUnused1, uint32_t dwUnused2);
@@ -136,6 +138,10 @@ void __fastcall MONSTER_AoEPhysicalDamage(::SGAMEDATA * pGame, struct D2UnitStrc
 void __fastcall MONSTER_HandleModeTransition(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t dwUnused1, uint32_t dwUnused2);
 // Trigger suicide monster explosion. Loads MonStats treasure class, rolls damage, chooses missile based on TC result (fire/corpse/ice), spawns missile at unit location and applies area damage.
 void __fastcall MONSTER_SuicideExplosion(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t nUnused1, uint32_t nUnused2);
+// MonUMod handler, only reached through g_MonsterUModHandlerTable row 40. On death (or no unit) spawns monster 0x227 and sets STATE_corpse_nodraw.
+void __fastcall FUN_005a4200(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t dwParam1, int32_t nParam2);
+// MonUMod handler, only reached through g_MonsterUModHandlerTable row 41. While alive: MONSTERAI_TriggerMageThink, then event 7 in 75 frames.
+void __fastcall FUN_005a4230(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t dwParam1, int32_t nParam2);
 // Dispatches an event to all of a unique/champion monster's unique-modifier (MonUMod) handlers. Reads the monster's MonUModList (up to 9 mod slots) and, for each active mod, looks up g_MonsterUModHandlerTable[modId] and calls the handler for the requested event: nParam==5 invokes the per-mod init handler (pfnHandlerInit), otherwise invokes pfnHandlerN indexed by nParam (the event/phase). Passes the mod id and a champion flag (derived from the monster's quest-record byte) to each handler. No-op for non-monster units or units with no mod list. Drives unique-monster modifier behavior (e.g. extra-strong, fire-enchanted) at various lifecycle points.
 void __stdcall MONSTER_DispatchUniqueModifiers(::SGAMEDATA * pGame, struct D2UnitStrc * dwParam, int32_t nParam, struct D2UnitStrc * pUnit);
 void __fastcall MONSTER_DispatchUModOnSpawn(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);

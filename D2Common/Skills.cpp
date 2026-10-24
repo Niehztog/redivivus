@@ -29,6 +29,7 @@
 #include "D2Common/D2RoomStrc.h"
 #include "D2Common/D2SkillStrc.h"
 #include "D2Common/D2SkillsTxt.h"
+#include "D2Common/D2StatInfoStrc.h"
 #include "D2Common/D2StatListExStrc.h"
 #include "D2Common/DATATBLS/DataTbls.h"
 #include "D2Common/DATATBLS/ItemStats.h"
@@ -66,6 +67,22 @@
 #include "D2Game/SKILLS/SkillAss.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2SkillListStrc) == 0x18, "D2_NEW(D2SkillListStrc): the 32-bit layout must be the 0x18 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2SkillStrc) == 0x40, "D2_NEW(D2SkillStrc): the 32-bit layout must be the 0x40 bytes 1.14d allocates");
 
 
 #ifndef RECON_FPTD_fnSkillCalcMethod
@@ -243,7 +260,7 @@ int32_t __stdcall SKILLS_GetSkillsTxtField0x14(int * pnParam) {
 
 // @sourcefile .\SKILLS\Skills.cpp
 D2SkillListStrc * __stdcall STRUCT_CreateSkillsList(D2PoolManagerStrc * pMemory) {
-    D2SkillListStrc* pPlayerSkills = (D2SkillListStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x18, ".\\SKILLS\\Skills.cpp", 0x37f, 0);
+    D2SkillListStrc* pPlayerSkills = D2_NEW_POOL(pMemory, D2SkillListStrc);
     pPlayerSkills->pFirstSkill = 0;
     pPlayerSkills->pLeftSkill = 0;
     pPlayerSkills->pRightSkill = 0;
@@ -346,12 +363,12 @@ D2LightMapStrc * __stdcall SwapLightMap(D2UnitStrc * pUnit, D2LightMapStrc * pLi
     return pOldLight;
 }
 
-uint32_t __stdcall SKILLS_GetUnitField0xa8_0x14(D2SkillStrc * pSkill) {
-    if (!(pSkill && pSkill[2].nLevel)) {
+uint32_t __stdcall SKILLS_GetUnitField0xa8_0x14(D2UnitStrc * pUnit) {
+    if (!(pUnit && pUnit->pSkillsList)) {
       return 0;
     }
 
-    return *(uint32_t*)(pSkill[2].nLevel + 0x14);
+    return (uint32_t)(uintptr_t)pUnit->pSkillsList->pLight;
 }
 
 // Frees the entire skill list on a unit. Iterates through pFirstSkill linked list, freeing each D2SkillStrc, then frees the D2SkillListStrc itself. Sets pUnit->pSkillsList to NULL. Called by FreeUnit.
@@ -382,7 +399,7 @@ void __stdcall SKILLS_FreeSkillList(D2UnitStrc * pUnit) {
       pMemoryToFree_00 = pNextSkill;
     }
 
-    Fog::Memory::FreeServerMemory(pUnit->pMemory, pMemoryToFree, ".\\SKILLS\\Skills.cpp", 0x508, 0);
+    D2_FREE_POOL(pUnit->pMemory, pMemoryToFree);
     pUnit->pSkillsList = 0;
 }
 
@@ -1928,16 +1945,9 @@ int __stdcall SKILLS_IsSelectableCorpse3(D2UnitStrc * pUnit) {
 
 // Returns the best matching thrown-weapon bonus value for a unit's equipped throwable item and the given skill. Queries stats 0x159/0x15A/0x15B (min/max/bonus depending on nParam 0/1/2) via STATLIST_GetItemStatBonusValues, then iterates entries to find the highest value whose item type matches pUnit1. Returns 0 if the item is not throwable, the skill has no applicable range-2 throwable type, or nParam is out of range.
 int32_t __stdcall SKILL_GetThrownWeaponBonus(D2UnitStrc * pUnit, D2UnitStrc * pUnit1, D2SkillStrc * pSkill, int32_t nParam, D2UnitStrc * pUnit2) {
-    // Frame -260..-4 is ONE Ghidra variable the decompiler printed as 2 locals.
-    // Separate locals let the compiler reorder them, so the pieces are one struct.
-    struct __frame0_t {
-      uint16_t aBonusEntries[2];
-      int aiStack_100[63];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 256, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     bool _bIsThrowable;
     bool bIsThrowable;
+    D2StatStrc aBonusEntries[32];
     if (pUnit2) {
       pUnit2->eUnitType = UNIT_PLAYER;
     }
@@ -1974,14 +1984,14 @@ int32_t __stdcall SKILL_GetThrownWeaponBonus(D2UnitStrc * pUnit, D2UnitStrc * pU
       uStatOrResult = 0x15b;
     }
 
-    _bIsThrowable = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, uStatOrResult, (int*)__frame0.aBonusEntries, 0x20);
+    _bIsThrowable = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, uStatOrResult, aBonusEntries, 0x20);
     int nBestThrowBonus = 0;
-    int nIdx = 0;
     if (0 < _bIsThrowable) {
+      int nIdx = 0;
       do {
-        uStatOrResult = ITEMS::Items::ITEMS_IsA(pUnit1, (eD2ItemTypes)__frame0.aBonusEntries[nIdx * 4]);
-        if (uStatOrResult && nBestThrowBonus < __frame0.aiStack_100[nIdx * 2]) {
-          nBestThrowBonus = __frame0.aiStack_100[nIdx * 2];
+        uStatOrResult = ITEMS::Items::ITEMS_IsA(pUnit1, (eD2ItemTypes)(uint16_t)aBonusEntries[nIdx].wSubIndex);
+        if (uStatOrResult && nBestThrowBonus < aBonusEntries[nIdx].nStatValue) {
+          nBestThrowBonus = aBonusEntries[nIdx].nStatValue;
         }
 
         nIdx++;
@@ -1997,15 +2007,8 @@ int32_t __stdcall SKILL_GetThrownWeaponBonus(D2UnitStrc * pUnit, D2UnitStrc * pU
 
 // Returns the highest item-type-specific bonus damage for the caster's active skill against a target item. Checks for a thrown weapon bonus first via SKILL_GetThrownWeaponBonus; if none, queries stat 0x156/0x157/0x158 (min/max/elemental bonus per item type) from the caster's stat list and finds the best matching entry where the item passes IsOfType. nDamageType selects min(0)/max(1)/elemental(2).
 int32_t __stdcall SKILLS_GetItemBonusDamage(D2UnitStrc * pUnit, D2UnitStrc * pItem, D2SkillStrc * pSkill, int32_t nDamageType) {
-    // Frame -260..-4 is ONE Ghidra variable the decompiler printed as 2 locals.
-    // Separate locals let the compiler reorder them, so the pieces are one struct.
-    struct __frame0_t {
-      uint16_t aBonusEntries[2];
-      int aiStack_100[63];
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 256, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
     uint32_t uStatId;
+    D2StatStrc aBonusEntries[32];
     D2UnitStrc* pThrownWeaponTypeUnit = pItem;
     D2UnitStrc* pCaster = pUnit;
     if (!pUnit || !pItem) {
@@ -2035,7 +2038,7 @@ int32_t __stdcall SKILLS_GetItemBonusDamage(D2UnitStrc * pUnit, D2UnitStrc * pIt
       uStatId = 0x158;
     }
 
-    nBonusCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pCaster, uStatId, (int*)__frame0.aBonusEntries, 0x20);
+    nBonusCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pCaster, uStatId, aBonusEntries, 0x20);
     int nBestBonus = 0;
     int nIdx = 0;
     if (0 >= nBonusCount) {
@@ -2043,9 +2046,9 @@ int32_t __stdcall SKILLS_GetItemBonusDamage(D2UnitStrc * pUnit, D2UnitStrc * pIt
     }
 
     do {
-      uStatId = ITEMS::Items::ITEMS_IsA(pItem, (eD2ItemTypes)__frame0.aBonusEntries[nIdx * 4]);
-      if (uStatId && nBestBonus < __frame0.aiStack_100[nIdx * 2]) {
-        nBestBonus = __frame0.aiStack_100[nIdx * 2];
+      uStatId = ITEMS::Items::ITEMS_IsA(pItem, (eD2ItemTypes)(uint16_t)aBonusEntries[nIdx].wSubIndex);
+      if (uStatId && nBestBonus < aBonusEntries[nIdx].nStatValue) {
+        nBestBonus = aBonusEntries[nIdx].nStatValue;
       }
 
       nIdx++;
@@ -3168,7 +3171,7 @@ void __stdcall SKILLS_RemoveSkill(D2UnitStrc * pUnitStrc, eD2Skills dwParam2, in
         pSlotSkill->pNext = pSkillToRemove->pNext;
       }
 
-      Fog::Memory::FreeServerMemory(pUnitStrc->pMemory, pSkillToRemove, ".\\SKILLS\\Skills.cpp", 0x4ac, 0);
+      D2_FREE_POOL(pUnitStrc->pMemory, pSkillToRemove);
       eSkillId = dwParam2;
     }
 
@@ -3220,7 +3223,7 @@ D2SkillStrc * __stdcall AllocSkill(D2UnitStrc * pUnit, eD2Skills eSkill) {
       return nullptr;
     }
 
-    D2SkillStrc* pNewSkill = (D2SkillStrc*)Fog::Memory::AllocServerMemory(pSkillsList->pMemory, 0x40, ".\\SKILLS\\Skills.cpp", 0x539, 0);
+    D2SkillStrc* pNewSkill = D2_NEW_POOL(pSkillsList->pMemory, D2SkillStrc);
     memset(pNewSkill, 0, 0x40);
     pNewSkill->pRecord = pSkillListStrc;
     if (pUnit->eUnitType == UNIT_MONSTER) {
@@ -3352,7 +3355,7 @@ void __stdcall SKILLS_AddOrRemoveItemSkill(D2UnitStrc * pUnit, int32_t nOwnerGUI
         pCurSkill->pNext = pNewSkill->pNext;
       }
 
-      Fog::Memory::FreeServerMemory(pUnit->pMemory, pNewSkill, ".\\SKILLS\\Skills.cpp", 0x5e7, 0);
+      D2_FREE_POOL(pUnit->pMemory, pNewSkill);
       return;
     }
 
@@ -3375,7 +3378,7 @@ void __stdcall SKILLS_AddOrRemoveItemSkill(D2UnitStrc * pUnit, int32_t nOwnerGUI
       pIterSkill = (D2UnitStrc*)pPrevSkill->nClassId;
     }
 
-    pNewSkill = (D2SkillStrc*)Fog::Memory::AllocServerMemory(pSkillsList->pMemory, 0x40, ".\\SKILLS\\Skills.cpp", 0x5fe, 0);
+    pNewSkill = D2_NEW_POOL(pSkillsList->pMemory, D2SkillStrc);
     memset(pNewSkill, 0, 0x40);
     pNewSkill->pRecord = pSkillTxt;
     switch ((int)pSkillTxt->anim) {

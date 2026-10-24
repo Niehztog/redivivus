@@ -27,6 +27,7 @@
 #include "D2Common/D2SkillArgStrc.h"
 #include "D2Common/D2SkillStrc.h"
 #include "D2Common/D2SkillsTxt.h"
+#include "D2Common/D2StatInfoStrc.h"
 #include "D2Common/D2StatListExStrc.h"
 #include "D2Common/DATATBLS/ItemStats.h"
 #include "D2Common/DATATBLS/ItemTbls.h"
@@ -150,8 +151,7 @@ void __stdcall MISSILE_SetDamage(D2UnitStrc * pUnit, D2UnitStrc * pTarget, D2Dam
     int nPhysDamage;
     uint32_t dwTmp;
     int iVar2;
-    uint16_t auStack_404[2];
-    int aStatBonusValues[255];
+    D2StatStrc aStatBonusValues[128];
     int16_t nMonType;
     D2DamageStrc* pDamageOut = pDamage;
     memset(pDamage, 0, 0x70);
@@ -225,13 +225,13 @@ void __stdcall MISSILE_SetDamage(D2UnitStrc * pUnit, D2UnitStrc * pTarget, D2Dam
         if (-1 < nStatValue && nStatValue < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nStatValue) {
           nMonType = sgptDataTable->pTxtMonStats[nStatValue].MonType;
           if (0 < nMonType) {
-            nElemDamage = D2Common::Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, 0xb4, (int*)auStack_404, 0x80);
+            nElemDamage = D2Common::Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, 0xb4, aStatBonusValues, 0x80);
             nStatValue = 0;
             if (0 < nElemDamage) {
               do {
-                dwTmp = UNIT::SUnitDmg::DAMAGE_CheckMonsterTypeVsMonsterType((uint32_t)auStack_404[nStatValue * 4], (int)nMonType);
+                dwTmp = UNIT::SUnitDmg::DAMAGE_CheckMonsterTypeVsMonsterType((uint32_t)(uint16_t)aStatBonusValues[nStatValue].wSubIndex, (int)nMonType);
                 if (dwTmp) {
-                  pDamage = (D2DamageStrc*)(pDamage->nReserved66 + aStatBonusValues[nStatValue * 2] - 0x66);
+                  pDamage = (D2DamageStrc*)(pDamage->nReserved66 + aStatBonusValues[nStatValue].nStatValue - 0x66);
                 }
 
                 nStatValue++;
@@ -594,10 +594,42 @@ void __fastcall MISSILES_AddElementalDamageBonus(::SGAMEDATA * pGame, D2UnitStrc
 // Spawns a radial burst of missiles from pUnit aimed at pTarget's position. Fires up to 16/nParam3 primary missiles using direction vectors from gnSubMissileCount_RadialPattern1/2 tables (velocity from MissileTxt.Param1&lt;&lt;7), then optionally a second ring of up to 15/nParam2 missiles using gaMissileOffsets_RadialPattern tables (velocity from Param2&lt;&lt;7). nParam4 non-zero sets nSubLoopMult in the skill arg. Returns 1 on success, 0 if missile table lookup fails or either unit is null.
 void __fastcall MISSILES_SpawnRadialPattern(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pTarget, eMissilesId nMissileId, eD2Skills eSkill, int32_t nParam1, int32_t nParam2, int32_t nParam3, int32_t nParam4) {
     // Static local variables (originally global data)
-    static uint32_t gnSubMissileCount_RadialPattern2 = 0x2;
-    static uint32_t gaMissileOffsets_RadialPattern2 = 0x2;
-    static uint32_t gnSubMissileCount_RadialPattern1 = 0x0;
-    static uint32_t gaMissileOffsets_RadialPattern = 0x1;
+    static int gnSubMissileCount_RadialPattern2[16] = {
+    0x2,
+    0x2,
+    0x2,
+    0x1,
+    0x0,
+    -0x1,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x1,
+    0x0,
+    0x1,
+    0x2,
+    0x2
+};
+    static int gnSubMissileCount_RadialPattern1[16] = {
+    0x0,
+    0x1,
+    0x2,
+    0x2,
+    0x2,
+    0x2,
+    0x2,
+    0x1,
+    0x0,
+    -0x1,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x2,
+    -0x1
+};
 
     D2SkillArgStrc sSkillArg;
     if (!(-1 < (int)nMissileId && (int)nMissileId < sgptDataTable->nTxtMissilesSize)) {
@@ -633,8 +665,8 @@ void __fastcall MISSILES_SpawnRadialPattern(::SGAMEDATA * pGame, D2UnitStrc * pU
 
     int nTableOffset = 0;
     do {
-      sSkillArg.nUnitX = *(int*)((uintptr_t)&gnSubMissileCount_RadialPattern1 + nTableOffset);
-      sSkillArg.nUnitY = *(int*)((uintptr_t)&gnSubMissileCount_RadialPattern2 + nTableOffset);
+      sSkillArg.nUnitX = *(int*)((int)gnSubMissileCount_RadialPattern1 + nTableOffset);
+      sSkillArg.nUnitY = *(int*)((int)gnSubMissileCount_RadialPattern2 + nTableOffset);
       Missiles::CreatingMissile(pGame, &sSkillArg);
       nTableOffset += nParam3 * 4;
     } while (nTableOffset < 0x40);
@@ -646,8 +678,8 @@ void __fastcall MISSILES_SpawnRadialPattern(::SGAMEDATA * pGame, D2UnitStrc * pU
     sSkillArg.nVelocityOverride = pMissileTxt->Param2 << 7;
     nTableOffset = 0;
     do {
-      sSkillArg.nUnitX = *(int*)((uintptr_t)&gaMissileOffsets_RadialPattern + nTableOffset);
-      sSkillArg.nUnitY = *(int*)((uintptr_t)&gaMissileOffsets_RadialPattern2 + nTableOffset);
+      sSkillArg.nUnitX = *(int*)((int)gnSubMissileCount_RadialPattern1 + nTableOffset + 4);
+      sSkillArg.nUnitY = *(int*)((int)gnSubMissileCount_RadialPattern2 + nTableOffset + 4);
       Missiles::CreatingMissile(pGame, &sSkillArg);
       nTableOffset += nParam2 * 4;
     } while (nTableOffset < 0x3c);
@@ -1708,8 +1740,46 @@ BOOL __fastcall Missiles_SrvHitFunc_AreaDamageWithDurationMod(::SGAMEDATA * pGam
 // Spawns up to 18 child missiles in a fixed radial pattern around the parent missile's current position. Iterates the gaMissileOffsets_RadialPattern18 table in steps of nParam2*4 (stride to skip entries), each offset applied to the unit's X/Y center. nParam1 sets fixed lifetime (flag 0x8000). Inherits owner/skill/level from parent.
 void __stdcall MISSILES_SpawnRadialPattern18(::SGAMEDATA * pGame, eMissilesId pParam, int32_t nParam1, int32_t nParam2, D2UnitStrc * pUnit) {
     // Static local variables (originally global data)
-    static uint32_t gnSubMissileCount_RadialPattern18 = 0x2;
-    static uint32_t gaMissileOffsets_RadialPattern18 = -0x2;
+    static int gnSubMissileCount_RadialPattern18[18] = {
+    0x2,
+    -0x2,
+    0x0,
+    0x0,
+    -0x3,
+    0x0,
+    0x3,
+    -0x1,
+    0x1,
+    -0x1,
+    0x2,
+    -0x4,
+    -0x3,
+    -0x1,
+    0x0,
+    0x1,
+    0x3,
+    0x4
+};
+    static int gaMissileOffsets_RadialPattern18[18] = {
+    -0x2,
+    -0x2,
+    0x2,
+    0x5,
+    0x3,
+    0x3,
+    0x3,
+    0x2,
+    0x1,
+    -0x1,
+    -0x1,
+    -0x2,
+    -0x2,
+    -0x3,
+    -0x4,
+    -0x3,
+    -0x3,
+    -0x2
+};
 
     D2SkillArgStrc sSkillArg;
     int nCenterY;
@@ -1756,8 +1826,8 @@ void __stdcall MISSILES_SpawnRadialPattern18(::SGAMEDATA * pGame, eMissilesId pP
     sSkillArg.eSkillNo = eSkill;
     sSkillArg.nSkillLevel = nSkillLvl;
     do {
-      sSkillArg.nY = *(int*)((uintptr_t)&gaMissileOffsets_RadialPattern18 + nPatternOffset) + nCenterY;
-      sSkillArg.nX = *(int*)((uintptr_t)&gnSubMissileCount_RadialPattern18 + nPatternOffset) + nCenterX;
+      sSkillArg.nY = *(int*)((int)gaMissileOffsets_RadialPattern18 + nPatternOffset) + nCenterY;
+      sSkillArg.nX = *(int*)((int)gnSubMissileCount_RadialPattern18 + nPatternOffset) + nCenterX;
       Missiles::CreatingMissile(pGame, &sSkillArg);
       nPatternOffset += nParam2 * 4;
     } while (nPatternOffset < 0x48);
@@ -2228,8 +2298,8 @@ uint32_t __fastcall MISSMODE_CreateSubMissileInvertFrame(D2SkillCallbackContextS
 // Spawns a burst of directional sub-missiles aimed at a target unit's position. Iterates gaMissileSpreadOffsets_DirectionalMissiles in steps of nParam2*4, producing up to 8 spread missiles (table size 0x20). Velocity is overridden from Missiles.txt Param1 (shifted left 7). Returns 1 on success, 0 if missile ID is out of range.
 void __fastcall MISSMODE_CreateDirectionalMissiles(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pTargetUnit, eMissilesId eMissileId, eD2Skills eSkill, int32_t nParam1, int32_t nParam2) {
     // Static local variables (originally global data)
-    static uint32_t gnSubMissileCount_DirectionalMissiles = 0x2;
-    static uint32_t gaMissileSpreadOffsets_DirectionalMissiles = 0x0;
+    static int gnSubMissileCount_DirectionalMissiles[8] = { 0x2, 0x2, 0x0, -0x2, -0x2, -0x2, 0x0, 0x2 };
+    static int gaMissileSpreadOffsets_DirectionalMissiles[8] = { 0x0, 0x2, 0x2, 0x2, 0x0, -0x2, -0x2, -0x2 };
 
     D2SkillArgStrc sSkillArg;
     if (!(-1 < (int)eMissileId && (int)eMissileId < sgptDataTable->nTxtMissilesSize)) {
@@ -2270,8 +2340,8 @@ void __fastcall MISSMODE_CreateDirectionalMissiles(::SGAMEDATA * pGame, D2UnitSt
     sSkillArg.nVelocityOverride = pMissileTxt[eMissileId].Param1 << 7;
     int nLoopOffset = 0;
     do {
-      sSkillArg.nUnitX = *(int*)((uintptr_t)&gaMissileSpreadOffsets_DirectionalMissiles + nLoopOffset);
-      sSkillArg.nUnitY = *(int*)((uintptr_t)&gnSubMissileCount_DirectionalMissiles + nLoopOffset);
+      sSkillArg.nUnitX = *(int*)((int)gaMissileSpreadOffsets_DirectionalMissiles + nLoopOffset);
+      sSkillArg.nUnitY = *(int*)((int)gnSubMissileCount_DirectionalMissiles + nLoopOffset);
       Missiles::CreatingMissile(pGame, &sSkillArg);
       nLoopOffset += nParam2 * 4;
     } while (nLoopOffset < 0x20);
@@ -4099,8 +4169,8 @@ BOOL __fastcall Missiles_SrvHitFunc_SpawnUpToThreeSubMissiles(::SGAMEDATA * pGam
 // On-hit handler that spawns HitSubMissile1 in up to 8 cardinal/diagonal directions using the precomputed gnMissileSrvSpread8DirTableX/Y tables. Step through the table is controlled by missiles.txt sHitPar1 (minimum 1). Sets each spawned missile's target to its own direction vector. Always returns TRUE.
 BOOL __fastcall Missiles_SrvHitFunc_SpawnEightDirectionSubMissiles(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pTarget) {
     // Static local variables (originally global data)
-    static uint32_t gnMissileSrvSpread8DirTableY = 0x0;
-    static uint32_t gnMissileSrvSpread8DirTableX = 0x10;
+    static int gnMissileSrvSpread8DirTableY[8] = { 0x0, 0x10, 0x10, 0x10, 0x0, -0x10, -0x10, -0x10 };
+    static int gnMissileSrvSpread8DirTableX[8] = { 0x10, 0x10, 0x0, -0x10, -0x10, -0x10, 0x0, 0x10 };
 
     D2SkillArgStrc sSkillArg;
     if (!pUnit) {
@@ -4135,12 +4205,12 @@ BOOL __fastcall Missiles_SrvHitFunc_SpawnEightDirectionSubMissiles(::SGAMEDATA *
     int nLoopOffset = 0;
     do {
       D2UnitStrc* pUnit_00;
-      sSkillArg.nUnitX = *(int*)((uintptr_t)&gnMissileSrvSpread8DirTableX + nLoopOffset);
-      sSkillArg.nUnitY = *(int*)((uintptr_t)&gnMissileSrvSpread8DirTableY + nLoopOffset);
+      sSkillArg.nUnitX = *(int*)((int)gnMissileSrvSpread8DirTableX + nLoopOffset);
+      sSkillArg.nUnitY = *(int*)((int)gnMissileSrvSpread8DirTableY + nLoopOffset);
       pUnit_00 = Missiles::CreatingMissile(pGame, &sSkillArg);
       if (pUnit_00) {
-        D2Common::Units::Missile::SetTargetX(pUnit_00, *(int32_t*)((uintptr_t)&gnMissileSrvSpread8DirTableX + nLoopOffset));
-        D2Common::Units::Missile::SetTargetY(pUnit_00, *(int32_t*)((uintptr_t)&gnMissileSrvSpread8DirTableY + nLoopOffset));
+        D2Common::Units::Missile::SetTargetX(pUnit_00, *(int32_t*)((int)gnMissileSrvSpread8DirTableX + nLoopOffset));
+        D2Common::Units::Missile::SetTargetY(pUnit_00, *(int32_t*)((int)gnMissileSrvSpread8DirTableY + nLoopOffset));
       }
 
       nLoopOffset += nClassId * 4;
@@ -6096,7 +6166,7 @@ int __fastcall MISSILESMODE_SrvDoFn13_BoneWallMaker(::SGAMEDATA * pGame, D2UnitS
     pSummonedMinion = (D2SkillsTxt*)UNIT::SUnit::FindUnitFromTable(pGame, UNIT_MONSTER, nDirFlags);
     if (pSummonedMinion) {
       D2UnitStrc* pSummonOwner = pOwner;
-      sMonsterCastPet.classId = (uint32_t)(uintptr_t)sMonsterCastPet.pSkillTxt;
+      sMonsterCastPet.classId = (int32_t)sMonsterCastPet.pSkillTxt;
       sMonsterCastPet.nX = 0;
       sMonsterCastPet.nY2 = 0;
       sMonsterCastPet.nType = 0;

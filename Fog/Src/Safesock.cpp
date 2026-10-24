@@ -15,6 +15,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2NetDataStrc) == 0x78, "D2_NEW(D2NetDataStrc): the 32-bit layout must be the 0x78 bytes 1.14d allocates");
+
 
 namespace Fog::Src::Safesock {
 
@@ -52,7 +66,7 @@ D2NetDataStrc * __fastcall Create(char * szHostName, u_short nPort, LPTHREAD_STA
     LPVOID pThreadParamLocal = pThreadParam;
     LPTHREAD_START_ROUTINE pThreadProcLocal = pThreadProc;
     char* szHostNameOrSockLen = szHostName;
-    D2NetDataStrc* pSafesockStrc = (D2NetDataStrc*)Memory::AllocClientMemory(0x78, ".\\Src\\Safesock.cpp", 0xcc, 0);
+    D2NetDataStrc* pSafesockStrc = D2_NEW(D2NetDataStrc);
     memset(pSafesockStrc, 0, 0x78);
     if (!szConnectionAlias) {
       szConnectionAlias = "UNKNOWN";
@@ -65,7 +79,7 @@ D2NetDataStrc * __fastcall Create(char * szHostName, u_short nPort, LPTHREAD_STA
       /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ pSafesockStrc->nWSALastError = nResult;
       pSafesockStrc->nError = 1;
       DeleteCriticalSection(&pSafesockStrc->pSync);
-      Memory::FreeClientMemory(pSafesockStrc, ".\\Src\\Safesock.cpp", 0xdf, 0);
+      D2_FREE(pSafesockStrc);
       Debug::GuardStack();
       return nullptr;
     }
@@ -77,7 +91,7 @@ D2NetDataStrc * __fastcall Create(char * szHostName, u_short nPort, LPTHREAD_STA
       pSafesockStrc->nWSALastError = nResult;
       /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ pSafesockStrc->nError = 2;
       DeleteCriticalSection(&pSafesockStrc->pSync);
-      Memory::FreeClientMemory(pSafesockStrc, ".\\Src\\Safesock.cpp", 0xf3, 0);
+      D2_FREE(pSafesockStrc);
       Debug::GuardStack();
       return nullptr;
     }
@@ -118,7 +132,7 @@ D2NetDataStrc * __fastcall Create(char * szHostName, u_short nPort, LPTHREAD_STA
         pSafesockStrc->nWSALastError = nResult;
         /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ pSafesockStrc->nError = 3;
         DeleteCriticalSection(&pSafesockStrc->pSync);
-        Memory::FreeClientMemory(pSafesockStrc, ".\\Src\\Safesock.cpp", 0x123, 0);
+        D2_FREE(pSafesockStrc);
         Debug::GuardStack();
         return nullptr;
       }
@@ -179,7 +193,7 @@ void __fastcall Free(D2NetDataStrc * pNetData) {
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(lpCriticalSection);
-    Memory::FreeClientMemory(pNetData, ".\\Src\\Safesock.cpp", 0x183, 0);
+    D2_FREE(pNetData);
 }
 
 int32_t __fastcall WSASocket2_Read(D2NetDataStrc * pNetData, char * pBuffer, size_t nSize) {

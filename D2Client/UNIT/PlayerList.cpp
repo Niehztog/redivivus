@@ -9,13 +9,29 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2PlayerListStrc) == 0x4, "D2_NEW(D2PlayerListStrc): the 32-bit layout must be the 0x4 bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2PlayerListSubStrc) == 0xc, "D2_NEW(D2PlayerListSubStrc): the 32-bit layout must be the 0xc bytes 1.14d allocates");
+
 
 namespace D2Client::UNIT::PlayerList {
 
 // Allocates and zero-initialises a D2PlayerListStrc from client memory (PlayerList.cpp heap). Sets pEntry to NULL. Halts with an unrecoverable error if allocation fails. Returns the new list head.
 // @sourcefile .\UNIT\PlayerList.cpp
 D2PlayerListStrc * __stdcall AllocPlayerList() {
-    D2PlayerListStrc* pPlayerList = (D2PlayerListStrc*)Fog::Memory::AllocClientMemory(4, ".\\UNIT\\PlayerList.cpp", 0x25, 0);
+    D2PlayerListStrc* pPlayerList = D2_NEW(D2PlayerListStrc);
     if (!pPlayerList) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x27);
       exit(-1);
@@ -35,11 +51,11 @@ void __fastcall FreePlayerList(D2PlayerListStrc * pPlayerList) {
     while (pMemoryToFree) {
       D2PlayerListSubStrc* pvVar1;
       pvVar1 = pMemoryToFree->pNext;
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\UNIT\\PlayerList.cpp", 0x3c, 0);
+      D2_FREE(pMemoryToFree);
       pMemoryToFree = pvVar1;
     }
 
-    Fog::Memory::FreeClientMemory(pPlayerList, ".\\UNIT\\PlayerList.cpp", 0x40, 0);
+    D2_FREE(pPlayerList);
 }
 
 // @sourcefile .\UNIT\PlayerList.cpp
@@ -59,7 +75,7 @@ void __fastcall AllocPlayerListSub(int32_t nUnitGUID, int32_t nRosterGUID) {
       }
     }
 
-    pNewEntry = (D2PlayerListSubStrc*)Fog::Memory::AllocClientMemory(0xc, ".\\UNIT\\PlayerList.cpp", 0x74, 0);
+    pNewEntry = D2_NEW(D2PlayerListSubStrc);
     pNewEntry->nFlags = 0;
     pNewEntry->pNext = 0;
     pNewEntry->nRosterGUID = nRosterGUID;
@@ -96,12 +112,12 @@ void __fastcall FreePlayerListSub(int32_t nUnitGUID, int32_t nRosterGUID) {
 
     if (pCurEntry) {
       pCurEntry->pNext = pMemoryToFree->pNext;
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\UNIT\\PlayerList.cpp", 0x97, 0);
+      D2_FREE(pMemoryToFree);
       return;
     }
 
     pPlayerList->pEntry = pMemoryToFree->pNext;
-    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\UNIT\\PlayerList.cpp", 0x97, 0);
+    D2_FREE(pMemoryToFree);
 }
 
 void __fastcall SetUnsetFlags(int32_t nUnitGUID, int32_t nRosterGUID, uint32_t nFlag, BOOL bSetUnset) {

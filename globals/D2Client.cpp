@@ -43778,7 +43778,7 @@ D2UIFlagInitStrc gsUIDialogFlagInit[14] = {
     {
         /* .eEventType = */ 0x3,
         /* .nMessageOrKeyCode = */ 0xd,
-        /* .pfHandler = */ (fnD2InitUIFlagFunction)&D2Client::UI::Dialog::INPUT_DialogEnterKey
+        /* .pfHandler = */ &D2Client::UI::Dialog::INPUT_DialogEnterKey
     },
     {
         /* .eEventType = */ 0x3,
@@ -43788,7 +43788,7 @@ D2UIFlagInitStrc gsUIDialogFlagInit[14] = {
     {
         /* .eEventType = */ 0x0,
         /* .nMessageOrKeyCode = */ 0x102,
-        /* .pfHandler = */ (fnD2InitUIFlagFunction)&D2Client::UI::Dialog::INPUT_DialogKeyHandler
+        /* .pfHandler = */ &D2Client::UI::Dialog::INPUT_DialogKeyHandler
     },
     {
         /* .eEventType = */ 0x0,
@@ -110743,7 +110743,7 @@ uint8_t gnNpcMenuActiveMode = 0;
 uint8_t gbNpcMenuRandomDialogSeed = 0;
 int PLAYER_CurrentGold = 0;
 uint16_t gnNpcMenuRepairCostGold = 0;
-uint16_t gnNpcMenuTradeActionGold = 0;
+int16_t gnNpcMenuTradeActionGold = 0;
 uint16_t gnNpcMenuScrollCompleteMode = 0;
 // also labelled: g_nNpcTradeMenuState
 D2NPCSpeechStrc * gpNpcCurrentSpeech = 0;
@@ -111795,7 +111795,7 @@ namespace D2Client::UNIT::UnitSnd {
 // Initialized data (arrays, structs, tables)
 // =============================================================================
 
-eD2Sounds * gaUnitSoundTableByClassIdExtra[572] = {
+eD2Sounds * gaUnitSoundTableByClassIdExtra[573] = {
     nullptr,
     eD2Sounds_ARRAY_007283c8,
     eD2Sounds_ARRAY_00728cf8,
@@ -112363,6 +112363,7 @@ eD2Sounds * gaUnitSoundTableByClassIdExtra[572] = {
     eD2Sounds_ARRAY_007294a8,
     eD2Sounds_ARRAY_00729208,
     eD2Sounds_ARRAY_00729208,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,

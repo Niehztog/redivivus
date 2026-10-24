@@ -189,7 +189,23 @@ BOOL __fastcall SKILLBAR_SrvStFn33_TargetRevivableCorpse(::SGAMEDATA * pGame, D2
 uint32_t __stdcall SKILLAMZ_CreateLightningFuryBolts(int32_t nParam1, int32_t nParam2, D2UnitStrc * pUnit) {
     // Static local variables (originally global data)
     static uint32_t gnLightningFuryBoltCount = 0xf;
-    static uint8_t gaAmzLightningFuryBoltTable = 0x68;
+    static uint32_t gaAmzLightningFuryBoltTable[15][3] = {
+    { 0x20327068, 0x2032706d, 0x20737672 },
+    { 0x20337068, 0x2033706d, 0x20737672 },
+    { 0x20337068, 0x2033706d, 0x20737672 },
+    { 0x20347068, 0x2034706d, 0x206c7672 },
+    { 0x20347068, 0x2034706d, 0x206c7672 },
+    { 0x20347068, 0x2034706d, 0x206c7672 },
+    { 0x20347068, 0x2035706d, 0x206c7672 },
+    { 0x20357068, 0x2035706d, 0x206c7672 },
+    { 0x20357068, 0x2035706d, 0x206c7672 },
+    { 0x20357068, 0x2035706d, 0x206c7672 },
+    { 0x20357068, 0x2035706d, 0x206c7672 },
+    { 0x20357068, 0x2035706d, 0x206c7672 },
+    { 0x20357068, 0x2035706d, 0x206c7672 },
+    { 0x20357068, 0x2035706d, 0x206c7672 },
+    { 0x20357068, 0x2035706d, 0x206c7672 }
+};
 
     int nBoltCountOffset;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
@@ -198,12 +214,12 @@ uint32_t __stdcall SKILLAMZ_CreateLightningFuryBolts(int32_t nParam1, int32_t nP
     }
 
     eD2LevelId eLevel = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-    eAct eVar1 = D2Common::Drlg::GetActNoFromLevelNumber(eLevel);
-    if (eVar1 >= 5) {
+    eAct eVar2 = D2Common::Drlg::GetActNoFromLevelNumber(eLevel);
+    if (eVar2 >= 5) {
       return 0;
     }
 
-    int nBoltTableIdx = (uint32_t)eVar1 + (uint32_t)*(uint8_t*)(nParam1 + 0x6d) * 5;
+    int iVar1 = (uint32_t)eVar2 + (uint32_t)*(uint8_t*)(nParam1 + 0x6d) * 5;
     D2SeedStrc sNewSeed = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = sNewSeed;
     int nRoll = sNewSeed.nSeedLow + (int)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) / 100) * -100;
@@ -218,11 +234,11 @@ uint32_t __stdcall SKILLAMZ_CreateLightningFuryBolts(int32_t nParam1, int32_t nP
         nBoltCountOffset = 0;
       }
     }
-    if (nBoltTableIdx > gnLightningFuryBoltCount) {
+    if (iVar1 > gnLightningFuryBoltCount) {
       return 0;
     }
 
-    return *(uint32_t*)(&gaAmzLightningFuryBoltTable + nBoltCountOffset * 4 + nBoltTableIdx * 0xc);
+    return gaAmzLightningFuryBoltTable[iVar1][nBoltCountOffset];
 }
 
 // Find Potion SrvDoFunc. Gets the target corpse, validates it is revive-eligible and not already flagged STATE_corpse_noselect, marks it no-select, rolls the unit seed mod 100 against calc[0] drop chance, and on success resolves a potion item code via SKILLAMZ_CreateLightningFuryBolts then drops it via SKILLS_DropItemByCode. Returns 1 if the corpse was processed.

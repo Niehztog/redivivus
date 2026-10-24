@@ -129,6 +129,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fpRequiredUserAction
 #define RECON_FPTD_fpRequiredUserAction
@@ -150,12 +158,12 @@ static eD2PlayerClassID eD2PlayerClassID_00712f00 = CLASS_SORCERESS;
 // @sourcefile .\CORE\WINMAIN.CPP
 BOOL __stdcall WINMAIN_TestMemoryAccess(CMDPARAMS * pParams, char * szCmdLine) {
     uint8_t* pPage;
-    uint8_t* pMemory = (uint8_t*)Fog::Memory::AllocClientMemory(0x6000000, ".\\CORE\\WINMAIN.CPP", 0x121, 0);
+    uint8_t* pMemory = (uint8_t*)D2_ALLOC(0x6000000);
     for (pPage = pMemory; pPage < pMemory + 0x6000000; pPage += 0x1000) {
       *pPage = 0;
     }
 
-    Fog::Memory::FreeClientMemory(pMemory, ".\\CORE\\WINMAIN.CPP", 0x124, 0);
+    D2_FREE(pMemory);
     return 1;
 }
 
@@ -1253,8 +1261,7 @@ void __fastcall ExitGamePlayCutScene(int32_t nCutsceneId) {
     int32_t nExitCodeEcx3;
     nExitCodeEcx3 = nCutsceneId;
     int bMpqLoaded;
-    char szInstallPath[10];
-    char szScratchBuffer[250];
+    char szInstallPath[260];
     uint32_t szSoundPath[65];
     char szVideoPath[260];
     int bVideoLoaded;
@@ -1491,7 +1498,7 @@ void __fastcall MONUNIQUE_DispatchDeathEffect(D2UnitStrc * pUnit, int32_t nUMod,
     if (uVar1 < 0x101) {
       if (uVar1 == 0x100) {
         if (pUnit->eAnimMode.ePlayerMode == Death) {
-          Source::ClientEngine::CLIENT_BossDeath_Izual();
+          Source::ClientEngine::CLIENT_BossDeath_Izual(pUnit);
           return;
         }
       } else {
@@ -1504,7 +1511,7 @@ void __fastcall MONUNIQUE_DispatchDeathEffect(D2UnitStrc * pUnit, int32_t nUMod,
           break;
           case 0x9c:
             if (pUnit->eAnimMode.ePlayerMode == Death) {
-              Source::ClientEngine::CLIENT_BossDeath_Andariel();
+              Source::ClientEngine::CLIENT_BossDeath_Andariel(pUnit);
               return;
             }
           break;
@@ -1522,7 +1529,7 @@ void __fastcall MONUNIQUE_DispatchDeathEffect(D2UnitStrc * pUnit, int32_t nUMod,
           break;
           case 0xf2:
             if (pUnit->eAnimMode.ePlayerMode == Death) {
-              Source::ClientEngine::CLIENT_BossDeath_Mephisto();
+              Source::ClientEngine::CLIENT_BossDeath_Mephisto(pUnit);
               return;
             }
           break;
@@ -1541,7 +1548,7 @@ void __fastcall MONUNIQUE_DispatchDeathEffect(D2UnitStrc * pUnit, int32_t nUMod,
         }
       } else if (uVar1 == 0x10b) {
         if (pUnit->eAnimMode.ePlayerMode == Death) {
-          Source::ClientEngine::CLIENT_BossDeath_BloodRaven();
+          Source::ClientEngine::CLIENT_BossDeath_BloodRaven(pUnit);
           return;
         }
       } else if (uVar1 == 0x11c) {
@@ -1579,7 +1586,7 @@ void __fastcall MONSTER_FreeMonsterPath(int * pThis) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(*(void**)(iVar1 + 0x2c), ".\\UNIT\\Monster.cpp", 0x66, 0);
+    D2_FREE(*(void**)(iVar1 + 0x2c));
     *(uint32_t*)(iVar1 + 0x2c) = 0;
 }
 

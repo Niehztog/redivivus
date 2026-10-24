@@ -15,6 +15,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Common::DATATBLS::TokTbls {
 
@@ -42,7 +50,7 @@ void __fastcall TXT_AllocTxt_plrmode_plrtype(D2PoolManagerStrc * pMemory) {
     D2PlrTypeModeTxt* pTxtPlrType = (D2PlrTypeModeTxt*)DataTbls::CompileTxt(pMemory, "plrtype", plr, &nTxtPlrTypeSize, 0x34);
     D2PlrTypeModeTxt* pTxtPlrMode = (D2PlrTypeModeTxt*)DataTbls::CompileTxt(pMemory, "plrmode", plr, &nTxtPlrModeSize, 0x34);
     int nTotalSize = nTxtPlrModeSize + nTxtPlrTypeSize;
-    D2PlrTypeModeTxt* pTxtPlrTypeMode = (D2PlrTypeModeTxt*)Fog::Memory::AllocServerMemory(nullptr, nTotalSize * 0x34, ".\\DATATBLS\\TokTbls.cpp", 0x37, 0);
+    D2PlrTypeModeTxt* pTxtPlrTypeMode = (D2PlrTypeModeTxt*)D2_ALLOC_POOL(nullptr, nTotalSize * 0x34);
     if (!pTxtPlrTypeMode) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x38);
       exit(-1);
@@ -187,7 +195,7 @@ void __fastcall TXT_AllocTxt_objtype_objmode(D2PoolManagerStrc * pMemory) {
     D2ObjTypeTxt* pTxtObjType_lcl = (D2ObjTypeTxt*)DataTbls::CompileTxt(pMemory, "objtype", obj, &nObjTypeSize, 0x34);
     D2ObjModeTxt* pTxtObjMode_lcl = (D2ObjModeTxt*)DataTbls::CompileTxt(pMemory, "objmode", obj, &nObjModeSize, 0x34);
     int nTotalSize = nObjModeSize + nObjTypeSize;
-    D2ObjTypeTxt* pTxtObjType2 = (D2ObjTypeTxt*)Fog::Memory::AllocServerMemory(nullptr, nTotalSize * 0x34, ".\\DATATBLS\\TokTbls.cpp", 0x94, 0);
+    D2ObjTypeTxt* pTxtObjType2 = (D2ObjTypeTxt*)D2_ALLOC_POOL(nullptr, nTotalSize * 0x34);
     if (!pTxtObjType2) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x95);
       exit(-1);
@@ -246,7 +254,7 @@ void __fastcall TXT_AllocTxt_armtype(D2PoolManagerStrc * pMemory) {
 // @sourcefile .\DATATBLS\TokTbls.cpp
 void __stdcall FreeTokenTables() {
     if (pTxtPlrTypeMode1) {
-      Fog::Memory::FreeServerMemory(nullptr, pTxtPlrTypeMode1, ".\\DATATBLS\\TokTbls.cpp", 0xd6, 0);
+      D2_FREE_POOL(nullptr, pTxtPlrTypeMode1);
     }
 
     pTxtPlrTypeMode1 = 0;
@@ -256,7 +264,7 @@ void __stdcall FreeTokenTables() {
 
     pTxtMonMode1 = 0;
     if (pTxtObjTypeMode) {
-      Fog::Memory::FreeServerMemory(nullptr, pTxtObjTypeMode, ".\\DATATBLS\\TokTbls.cpp", 0xe2, 0);
+      D2_FREE_POOL(nullptr, pTxtObjTypeMode);
     }
 
     pTxtObjTypeMode = 0;

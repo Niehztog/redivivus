@@ -9,6 +9,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::BnMessQueue) == 0x12c, "D2_NEW(BnMessQueue): the 32-bit layout must be the 0x12c bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace Bnclient {
 
@@ -31,7 +45,7 @@ void __stdcall BNMESSQUEUE_Shutdown() {
 }
 
 void __fastcall BNMESSQUEUE_EnqueueBytes(int32_t nEventType, char * pBytes, size_t nSize) {
-    ::BnMessQueue* pNewMessage = (::BnMessQueue*)Fog::Memory::AllocClientMemory(300, ".\\BnMessQueue.cpp", 0x37, 0);
+    ::BnMessQueue* pNewMessage = D2_NEW(::BnMessQueue);
     if (nSize < 0x121) {
       if (!nSize) {
         pNewMessage->bBuffer[0] = '\0';
@@ -67,7 +81,7 @@ void __fastcall BNMESSQUEUE_EnqueueBytes(int32_t nEventType, char * pBytes, size
 
 uint32_t __fastcall BNMESSQUEUE_EnqueueString(int32_t nEventType, char * szMessage) {
     char cCurrentChar;
-    ::BnMessQueue* pNewMessage = (::BnMessQueue*)Fog::Memory::AllocClientMemory(300, ".\\BnMessQueue.cpp", 0x5c, 0);
+    ::BnMessQueue* pNewMessage = D2_NEW(::BnMessQueue);
     char* pDestBuffer = pNewMessage->bBuffer;
     Storm::Source::SSTR::SStrCopy(pDestBuffer, szMessage, 0x120);
     pDestBuffer = pDestBuffer + strlen(pDestBuffer) + 1;
@@ -103,7 +117,7 @@ size_t __fastcall BNMESSQUEUE_DequeueMessage(int * pMessageTypeOut, void * pBuff
       *pMessageTypeOut = pBVar2->nZero;
       sVar1 = pBVar2->nDataSize;
       pBVar2 = pBVar2->pNext;
-      Fog::Memory::FreeClientMemory(nLobbyChatCurrentMessage, ".\\BnMessQueue.cpp", 0x86, 0);
+      D2_FREE(nLobbyChatCurrentMessage);
       nLobbyChatCurrentMessage = pBVar2;
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00882004);
       return sVar1;
@@ -118,7 +132,7 @@ void __stdcall BNMESSQUEUE_ClearAll() {
     while (nLobbyChatCurrentMessage) {
       ::BnMessQueue* pBVar1;
       pBVar1 = nLobbyChatCurrentMessage->pNext;
-      Fog::Memory::FreeClientMemory(nLobbyChatCurrentMessage, ".\\BnMessQueue.cpp", 0x9f, 0);
+      D2_FREE(nLobbyChatCurrentMessage);
       nLobbyChatCurrentMessage = pBVar1;
     }
 

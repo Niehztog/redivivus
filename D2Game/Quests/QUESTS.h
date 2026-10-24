@@ -171,7 +171,7 @@ void __fastcall QUEST_OnMonsterKilled(::SGAMEDATA * pGame, struct D2UnitStrc * p
 void __stdcall QUEST_OnPlayerEnteredArea(::SGAMEDATA * pGame, int32_t ePreviousLevelId, int32_t eEnteredLevelId, struct D2UnitStrc * pUnit);
 // Quest system hook called when a player disconnects. Iterates all items in the player's inventory looking for carried quest items (pItemTxt-&gt;bQuest != 0); for each found quest item fires fpQuestStateHandler[9] (the disconnect event handler) of the matching quest data node, validating the callback pointer with IsBadCodePtr first (halts on bad ptr). After the item loop, broadcasts quest event 10 (QUEST_EVENT_DISCONNECT_POST) to all quests via QUEST_DispatchBroadcast.
 void __fastcall QUEST_OnPlayerDisconnect(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer);
-void __stdcall QUEST_OnUnitInteraction_Unused(struct D2UnitStrc * pUnit);
+void __fastcall QUEST_OnUnitInteraction_Unused(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pUnit);
 // NOTE: Register param types inferred (medium confidence): pClient (ECX): D2ClientStrc *, pUnitStrc (EDX): D2UnitStrc *
 void __fastcall QUEST_OnNpcInteraction(struct D2ClientStrc * pClient, struct D2UnitStrc * pUnitStrc, struct D2UnitStrc * pUnit, struct D2GSPacketSrv0x27_TextStrc * pGSPacketSrv0x27_Text);
 // Takes THREE arguments and the entire 0x1c-byte frame (SUB ESP,0x1c) is ONE D2QuestArgStrc, which is also 28 bytes. The body fills it and hands it to QUEST_DispatchBroadcast in EDI:
@@ -181,9 +181,9 @@ void __fastcall QUEST_OnNpcInteraction(struct D2ClientStrc * pClient, struct D2U
 //   MOV [EBP-0x10],EDX  -> questArg.pPlayer (EDX)
 // Declaring only the stack argument left pGame and pPlayer as uninitialised locals and split the struct into loose dwTmp slots, so the broadcast received a garbage game pointer and a garbage player.
 void __stdcall QUEST_OnNpcDeactivate(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pTarget);
-void __stdcall QUEST_OnItemPickedUp(struct D2UnitStrc * pUnit);
-void __stdcall QUEST_OnItemDropped(struct D2UnitStrc * pUnit);
-void __stdcall QUEST_OnItemEvent_Unused();
+void __fastcall QUEST_OnItemPickedUp(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pUnit);
+void __fastcall QUEST_OnItemDropped(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pUnit);
+void __fastcall QUEST_OnItemEvent_Unused(::SGAMEDATA * pGame, struct D2UnitStrc * pTarget);
 // Advances the quest tick counter and fires/reschedules/frees expired quest timers in pQuestControl->pTimer.
 // @sourcefile .\QUESTS\QUESTS.CPP
 void __fastcall QUEST_ProcessQuestTimers(::SGAMEDATA * pGame);

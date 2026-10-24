@@ -8,6 +8,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Glide::glSubtileCache {
 
@@ -20,7 +28,7 @@ int __fastcall GLSUBTILE_Initialize(GlSubtileCacheStrc * pCache, int nVramStart,
     pCache->dwEntrySize = dwSubtileSize;
     size_t nAllocSize = nEntryCount * 0x14;
     pCache->nMaxEntries = nEntryCount;
-    uint8_t* pNodeArray = (uint8_t*)Fog::Memory::AllocClientMemory(nAllocSize, ".\\Src\\glSubtileCache.cpp", 0x29, 0);
+    uint8_t* pNodeArray = (uint8_t*)D2_ALLOC(nAllocSize);
     pCache->pNodes = (GlSubtileCacheNodeStrc*)pNodeArray;
     if (!pNodeArray) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2a);
@@ -288,7 +296,7 @@ void __fastcall GLSUBTILE_Destroy(uint32_t * pCacheData, GlSubtileCacheStrc * pC
       }
     }
     if ((void*)pCacheData[7]) {
-      Fog::Memory::FreeClientMemory((void*)pCacheData[7], ".\\Src\\glSubtileCache.cpp", 0x74, 0);
+      D2_FREE((void*)pCacheData[7]);
       pCacheData[7] = 0;
     }
 

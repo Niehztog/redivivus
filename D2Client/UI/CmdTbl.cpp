@@ -37,6 +37,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2CmdTbl_Line0x50f) == 0x47a, "D2_NEW(D2CmdTbl_Line0x50f): the 32-bit layout must be the 0x47a bytes 1.14d allocates");
+
 
 namespace D2Client::UI::CmdTbl {
 
@@ -321,7 +335,7 @@ void __stdcall CMD_LoadDefaultKeyBindings(DWORD dwParam) {
         Fog::Source::SFile::thunk_ReadFile(hFile, aKeyBindFileBuf, 0x47a, &dwParam, (LPOVERLAPPED)0x0);
         Fog::Source::SFile::SFILE_Win32CloseHandle(hFile);
         if (dwParam == 0x47a) {
-          pKeyData = (D2CmdTbl_Line0x50f*)Fog::Memory::AllocServerMemory(nullptr, 0x47a, ".\\UI\\CmdTbl.cpp", 0x50f, 0);
+          pKeyData = D2_NEW_POOL(nullptr, D2CmdTbl_Line0x50f);
           pFileBufCursor = aKeyBindFileBuf;
           pDst = pKeyData;
           for (nCount = 0x11e; nCount; nCount--) {
@@ -356,11 +370,11 @@ void __stdcall CMD_LoadDefaultKeyBindings(DWORD dwParam) {
           pDstDefault++;
         }
 
-        Fog::Memory::FreeClientMemory(pKeyData, ".\\UI\\CmdTbl.cpp", 0x52c, 0);
+        D2_FREE(pKeyData);
         return;
       }
 
-      Fog::Memory::FreeClientMemory(pKeyData, ".\\UI\\CmdTbl.cpp", 0x531, 0);
+      D2_FREE(pKeyData);
     }
 }
 

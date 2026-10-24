@@ -65,6 +65,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2SUnitMsgStrc) == 0x28, "D2_NEW(D2SUnitMsgStrc): the 32-bit layout must be the 0x28 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpSUnitIterateCallback
 #define RECON_FPTD_fpSUnitIterateCallback
@@ -724,39 +734,33 @@ void __fastcall SendRemoveObject(D2UnitStrc * pItem, D2ClientStrc * pClient) {
 
 // Sends a unit's hover-text (name tag) to a specific client. If the unit has a D2HoverTextStrc, checks whether the viewing player has hostile/party relationship flags; if allowed, formats a 0x26 chat packet with language code and copies the hover message string. If the unit has no hover text, falls back to sending a 0x76 unit-type/GUID packet to clear the hover display.
 void __fastcall PLAYER_SendHoverTextToClient(D2UnitStrc * pUnit, D2ClientStrc * pClient) {
-    D2UnitStrc* pUnit_00;
     uint32_t nLangCodeOrFlags;
     uint32_t uVar1;
     int32_t nGUIDFallback;
     uint8_t byUnitTypeFallback;
-    char aChatPktHdr[3];
-    uint8_t bySenderUnitType;
-    int nSenderGUID;
-    uint8_t byMsgFlag;
-    uint8_t szHoverMsg[258];
+    D2GSPacketSrv0x26 sPacket;
     D2HoverTextStrc* pHoverText;
-    uint32_t nStackCookie;
-    nStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (!pUnit) {
       nGUIDFallback = -1;
       byUnitTypeFallback = 6;
     } else {
+      D2UnitStrc* pUnit_00;
       pHoverText = pUnit->pHoverText;
       if (pHoverText) {
         GAME::Clients::CLIENT_GetGame(pClient);
         pUnit_00 = GAME::Clients::CLIENTS_GetControlUnit(pClient, 0);
         if (!pUnit_00 || pUnit->eUnitType != UNIT_PLAYER) {
           send_hover_text:
-          nSenderGUID = pUnit->nUnitGUID;
-          aChatPktHdr[0] = '&';
-          bySenderUnitType = (uint8_t)pUnit->eUnitType;
-          byMsgFlag = 0;
-          aChatPktHdr[1] = 5;
+          sPacket.nUnitGUID = pUnit->nUnitGUID;
+          sPacket.nPacketId = '&';
+          sPacket.nMsgSubType = (uint8_t)pUnit->eUnitType;
+          sPacket.szName[0] = '\0';
+          sPacket.nMessageType = '\x05';
           uVar1 = D2Common::Chat::GetLanguageCode(pHoverText);
-          aChatPktHdr[2] = (char)uVar1;
-          memset(szHoverMsg, 0, 0x100);
-          D2Common::Chat::TEXT_CopyHoverMessageString(pHoverText, (int32_t)szHoverMsg);
-          GAME::SCmd::NET_D2GS_SERVER_Send_0x26_CHATSTART(pClient, aChatPktHdr);
+          sPacket.nLanguage = (uint8_t)uVar1;
+          memset(sPacket.szMessage, 0, 0x100);
+          D2Common::Chat::TEXT_CopyHoverMessageString(pHoverText, (int32_t)sPacket.szMessage);
+          GAME::SCmd::NET_D2GS_SERVER_Send_0x26_CHATSTART(pClient, &sPacket);
           Fog::Debug::GuardStack();
           return;
         }
@@ -817,7 +821,7 @@ void __fastcall UnitQueuePacket0x99(D2UnitStrc * pUnit, uint16_t wParam, uint8_t
       pSyncPool = pUnit->pMemory;
     }
 
-    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)Fog::Memory::AllocServerMemory(pSyncPool, 0x14, ".\\UNIT\\SUnitMsg.cpp", 0x284, 0);
+    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)D2_ALLOC_POOL(pSyncPool, 0x14);
     pMsg->uArgs.s99.field_0x2 = byArg1;
     pMsg->uArgs.s99.field_0x3 = byArg2;
     pMsg->nOpcode = 0x99;
@@ -845,7 +849,7 @@ void __fastcall UnitQueuePacket0x9A(D2UnitStrc * pUnit, uint16_t wParam1, uint8_
       pAllocPool = pUnit->pMemory;
     }
 
-    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)Fog::Memory::AllocServerMemory(pAllocPool, 0x14, ".\\UNIT\\SUnitMsg.cpp", 0x29b, 0);
+    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)D2_ALLOC_POOL(pAllocPool, 0x14);
     pMsg->uArgs.s9A.field_0x2 = byArg1;
     pMsg->uArgs.s9A.field_0x4 = wArg2;
     pMsg->nOpcode = 0x9a;
@@ -881,7 +885,7 @@ void __fastcall UnitQueuePacket0x9E(D2UnitStrc * pUnit, eD2UnitStat eUnitStat, u
       pMemory = pUnit->pMemory;
     }
 
-    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x14, ".\\UNIT\\SUnitMsg.cpp", 0x2af, 0);
+    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)D2_ALLOC_POOL(pMemory, 0x14);
     pMsg->nOpcode = 0x9e;
     pMsg->pNext = 0;
     if (!pUnit) {
@@ -922,7 +926,7 @@ void __fastcall UnitQueuePacket0xA1(D2UnitStrc * pUnit, uint16_t nParam, int32_t
       pMemory = pUnit->pMemory;
     }
 
-    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x18, ".\\UNIT\\SUnitMsg.cpp", 0x2c5, 0);
+    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)D2_ALLOC_POOL(pMemory, 0x18);
     pMsg->nOpcode = 0xa1;
     pMsg->pNext = 0;
     if (!pUnit) {
@@ -954,7 +958,7 @@ void __fastcall UnitQueuePacket0xAB(D2UnitStrc * pUnit, uint8_t bParam) {
       pAllocPool = pUnit->pMemory;
     }
 
-    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)Fog::Memory::AllocServerMemory(pAllocPool, 0x14, ".\\UNIT\\SUnitMsg.cpp", 0x2d9, 0);
+    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)D2_ALLOC_POOL(pAllocPool, 0x14);
     pMsg->pNext = 0;
     pMsg->nOpcode = '\0';
     pMsg->pad_0x5[0] = '\0';
@@ -998,7 +1002,7 @@ void __fastcall SERVER_SendUnitMessagePacket(D2UnitStrc * pUnit, D2UnitStrc * pT
       pMemPool = pUnit->pMemory;
     }
 
-    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)Fog::Memory::AllocServerMemory(pMemPool, 0x28, ".\\UNIT\\SUnitMsg.cpp", 0x2ea, 0);
+    D2SUnitMsgStrc* pMsg = D2_NEW_POOL(pMemPool, D2SUnitMsgStrc);
     pMsg->nOpcode = '\0';
     pMsg->pad_0x5[0] = '\0';
     pMsg->pad_0x5[1] = '\0';
@@ -1062,7 +1066,7 @@ void __fastcall UnitQueuePacket0xA5(D2UnitStrc * pUnit, uint16_t wParam) {
       pMemory = pUnit->pMemory;
     }
 
-    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x14, ".\\UNIT\\SUnitMsg.cpp", 0x30f, 0);
+    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)D2_ALLOC_POOL(pMemory, 0x14);
     pMsg->nOpcode = '\0';
     pMsg->pad_0x5[0] = '\0';
     pMsg->pad_0x5[1] = '\0';
@@ -1104,7 +1108,7 @@ void __fastcall SERVER_UnitQueuePacket0xA4(D2UnitStrc * pUnit, int16_t nClassId)
       pMemory = pUnit->pMemory;
     }
 
-    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)Fog::Memory::AllocServerMemory(pMemory, 0xc, ".\\UNIT\\SUnitMsg.cpp", 0x322, 0);
+    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)D2_ALLOC_POOL(pMemory, 0xc);
     pMsg->nOpcode = 0xa4;
     pMsg->pNext = 0;
     pMsg->uArgs.sA4.nClassId = nClassId;
@@ -1126,7 +1130,7 @@ void __fastcall SERVER_SendPacket0x23(D2UnitStrc * pMemory, uint8_t byTypeId, ui
       pAllocPool = pMemory->pMemory;
     }
 
-    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)Fog::Memory::AllocServerMemory(pAllocPool, 0x10, ".\\UNIT\\SUnitMsg.cpp", 0x332, 0);
+    D2SUnitMsgStrc* pMsg = (D2SUnitMsgStrc*)D2_ALLOC_POOL(pAllocPool, 0x10);
     pMsg->nOpcode = '#';
     pMsg->pNext = 0;
     pMsg->uArgs.s23.field_0x6 = byTypeId;
@@ -1368,7 +1372,7 @@ void __fastcall SERVER_SendInitUnitPacket(::SGAMEDATA * pGame, D2UnitStrc * pUni
       if (!BVar1 || (eDeathState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_playerbody) , eDeathState == STATE_none)) {
         PLAYER::Player::PLAYER_SendAllItemsToClient(pUnit, pClientSaved);
       } else {
-        dwTargetGUID = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID((D2UnitStrc*)pUnit->pInventory);
+        dwTargetGUID = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID(pUnit->pInventory);
         pPlayerUnit_lcl = SUnit::FindUnitFromTable(pGameSaved, UNIT_PLAYER, dwTargetGUID);
         if (!pPlayerUnit_lcl) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb8);

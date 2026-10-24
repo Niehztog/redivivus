@@ -15,6 +15,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinImageEx) == 0x54, "D2_NEW(D2WinImageEx): the 32-bit layout must be the 0x54 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_Draw
 #define RECON_FPTD_Draw
@@ -81,7 +91,7 @@ BOOL __fastcall Draw(::D2WinImageEx * pImageEx) {
 
 // @sourcefile .\Src\D2WinImage.cpp
 ::D2WinImageEx * __fastcall D2WinImageEx(int32_t nPosX, int32_t nPosY, int32_t nSizeX, int32_t nSizeY, DC6 * pDC6, int32_t nBorderX, int32_t nBorderY) {
-    ::D2WinImageEx* pNewImageEx = (::D2WinImageEx*)Fog::Memory::AllocClientMemory(0x54, ".\\Src\\D2WinImage.cpp", 0x3b, 0);
+    ::D2WinImageEx* pNewImageEx = D2_NEW(::D2WinImageEx);
     memset(pNewImageEx, 0, 0x54);
     pNewImageEx->sImage.sControl.neD2FormType = FORM_Image;
     int* pDwState = &pNewImageEx->sImage.sControl.dwState;

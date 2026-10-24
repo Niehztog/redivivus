@@ -26,6 +26,24 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2MissileStreamStrc) == 0x8, "D2_NEW(D2MissileStreamStrc): the 32-bit layout must be the 0x8 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_REALLOC_POOL
+#define D2_REALLOC_POOL(pPool, p, size) Fog::Memory::ReAllocServerMemory((pPool), (p), (size), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fpHit
 #define RECON_FPTD_fpHit
@@ -58,7 +76,7 @@ void __stdcall AllocMissileStream(D2UnitStrc * pUnit) {
       pMemory = pUnit->pMemory;
     }
 
-    pStream = (D2MissileStreamStrc*)Fog::Memory::AllocServerMemory(pMemory, 8, ".\\UNITS\\MisStream.cpp", 0x2e, 0);
+    pStream = D2_NEW_POOL(pMemory, D2MissileStreamStrc);
     pStream->pStream = 0;
     pStream->nStreamSize = 0;
     Missile::SetStream(pUnit, pStream);
@@ -77,7 +95,7 @@ void __stdcall FreeMissileStream(D2UnitStrc * pUnit) {
         pMemoryPool = pUnit->pMemory;
       }
 
-      Fog::Memory::FreeServerMemory(pMemoryPool, pMemoryToFree->pStream, ".\\UNITS\\MisStream.cpp", 0x3b, 0);
+      D2_FREE_POOL(pMemoryPool, pMemoryToFree->pStream);
     }
     if (!pUnit) {
       pMemoryPool = 0;
@@ -85,7 +103,7 @@ void __stdcall FreeMissileStream(D2UnitStrc * pUnit) {
       pMemoryPool = pUnit->pMemory;
     }
 
-    Fog::Memory::FreeServerMemory(pMemoryPool, pMemoryToFree, ".\\UNITS\\MisStream.cpp", 0x3c, 0);
+    D2_FREE_POOL(pMemoryPool, pMemoryToFree);
 }
 
 int32_t __fastcall Return1(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
@@ -177,12 +195,12 @@ void __stdcall Update(D2UnitStrc * pUnit, D2UnitStrc * pMissile, int32_t nParam1
       nSegmentCount = nExtraPerSegment;
       if (!pStream->nStreamSize) {
         pStream->nStreamSize = nPathIdx;
-        pStreamArray = (int*)Fog::Memory::AllocServerMemory(pMissile->pMemory, nPathIdx * 4, ".\\UNITS\\MisStream.cpp", 0x97, 0);
+        pStreamArray = (int*)D2_ALLOC_POOL(pMissile->pMemory, nPathIdx * 4);
         pStream->pStream = pStreamArray;
         memset(pStreamArray, 0, nPathIdx * 4);
         nExtraPerSegment = nSegmentCount;
       } else if (pStream->nStreamSize < nPathIdx) {
-        pStreamArray = (int*)Fog::Memory::ReAllocServerMemory(pMissile->pMemory, pStream->pStream, nPathIdx * 4, ".\\UNITS\\MisStream.cpp", 0x9a, 0);
+        pStreamArray = (int*)D2_REALLOC_POOL(pMissile->pMemory, pStream->pStream, nPathIdx * 4);
         pStream->pStream = pStreamArray;
       }
 

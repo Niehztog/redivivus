@@ -908,7 +908,19 @@ coff_add (struct backtrace_state *state, int descriptor,
       if (sdata == NULL)
 	goto fail;
 
-      if (!coff_initialize_syminfo (state, image_base, is_64,
+      /* Redivivus local change: the symbol table holds section-relative
+	 values, which upstream rebases onto the PREFERRED image base. A
+	 relocated image (ASLR, or any base collision) then puts every
+	 symbol at the wrong address, so syminfo finds nothing below the
+	 load address and the wrong function above it.  Rebase onto where
+	 the loader actually put the module, as the DWARF path below does. */
+      struct libbacktrace_base_address sym_base = image_base;
+#ifdef HAVE_WINDOWS_H
+      if (module_handle != 0)
+	sym_base.m = module_handle;
+#endif
+
+      if (!coff_initialize_syminfo (state, sym_base, is_64,
 				    sects, sects_num,
 				    syms_view.data, syms_size,
 				    str_view.data, str_size,

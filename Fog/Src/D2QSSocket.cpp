@@ -18,6 +18,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QSSocketStrc) == 0x194, "D2_NEW(D2QSSocketStrc): the 32-bit layout must be the 0x194 bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace Fog::Src::D2QSSocket {
 
@@ -326,7 +340,7 @@ D2QSSocketStrc * __stdcall STRUCT_D2QSSocket_Init(char * szIpAddress, int nPort,
       pszScan = szIpAddress;
       pszScan = pszScan + strlen(pszScan) + 1;
       if ((uint32_t)((int)pszScan - (int)(szIpAddress + 1)) < 0x103) {
-        pD2QSSocket = (D2QSSocketStrc*)Memory::AllocClientMemory(0x194, ".\\Src\\D2QSSocket.cpp", 0x245, 0);
+        pD2QSSocket = D2_NEW(D2QSSocketStrc);
         if (!pD2QSSocket) {
           return pD2QSSocket;
         }
@@ -367,7 +381,7 @@ void __stdcall FreeD2QSSocket(D2QSSocketStrc * pSocket) {
       pSocket->pSafesock = 0;
     }
 
-    Memory::FreeClientMemory(pSocket, ".\\Src\\D2QSSocket.cpp", 0x27c, 0);
+    D2_FREE(pSocket);
 }
 
 void __stdcall QSSOCKET_WaitForEvent(D2QSSocketStrc * pQSSocket, DWORD dwTimeout) {

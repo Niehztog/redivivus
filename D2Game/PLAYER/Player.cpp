@@ -76,6 +76,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fpStatListExChangeCb
 #define RECON_FPTD_fpStatListExChangeCb
@@ -113,7 +117,7 @@ void FreePartyData(::SGAMEDATA * pGame, D2UnitDataPlayerStrc * pPlayerData) {
     while (pMemoryToFree) {
       D2PartyDataStrc* pPrevPartyData;
       pPrevPartyData = pMemoryToFree->pPrev;
-      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\PLAYER\\Player.cpp", 0x2b, 0);
+      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
       pMemoryToFree = pPrevPartyData;
     }
 
@@ -664,7 +668,7 @@ void __fastcall PLAYER_PlaceCorpse(::SGAMEDATA * pGame, D2RoomStrc * pRoom, DWOR
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_STATREGEN, 0);
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_TRAP, 0);
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_FREEHOVER, 0);
-    nAddress = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID((D2UnitStrc*)pUnit->pInventory);
+    nAddress = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID(pUnit->pInventory);
     if (nAddress == -1) {
       return;
     }
@@ -1030,10 +1034,9 @@ void __stdcall PLAYER_ApplyGoldPenaltyOnDeath(::SGAMEDATA * pGame, D2UnitStrc * 
 // @sourcefile .\PLAYER\Player.cpp
 void __stdcall EXP_ApplyDeathExpPenalty(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     eD2PlayerClassID _eClassId;
-    DWORD* pDifficultyData;
     eD2PlayerClassID eClassId;
     uint32_t nExpForLevel;
-    DWORD* pDiffLevelTxt = (DWORD*)D2Common::DATATBLS::DataTbls::GetDifficultyLevels((uint32_t)*(uint8_t*)((int)pDifficultyData + 0x6d));
+    DWORD* pDiffLevelTxt = (DWORD*)D2Common::DATATBLS::DataTbls::GetDifficultyLevels((uint32_t)pGame->nDifficulty);
     if (!pUnit) {
       _eClassId = -1;
     } else {

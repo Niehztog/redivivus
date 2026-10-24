@@ -39,6 +39,7 @@
 #include "D2Client/UI/Automap.h"
 #include "D2Client/UI/Chat.h"
 #include "D2Client/UI/CmdTbl.h"
+#include "D2Client/UI/Draw.h"
 #include "D2Client/UI/EscMenu.h"
 #include "D2Client/UI/Inv.h"
 #include "D2Client/UI/MiniPanel.h"
@@ -230,6 +231,7 @@ struct D2GridScreenCoordinates;
 struct D2GroundItemLabelStrc;
 struct D2HighResTimestampStrc;
 struct D2HireDescTxt;
+struct D2HirelingStatLabelStrc;
 struct D2HirelingTxt;
 struct D2HitClassTxt;
 struct D2IniConfigStrc;
@@ -347,6 +349,7 @@ struct D2PropertiesTxt;
 struct D2QSSocketStrc;
 struct D2QServerStrc;
 struct D2QualityItemsTxt;
+struct D2QuestAreaIntroStrc;
 struct D2QuestDataStrc;
 struct D2QuestInitDataExtended;
 struct D2QuestLogInfoStrc;
@@ -828,6 +831,13 @@ struct D2HashSeedPairStrc {
 
     /* 0x00 */ uint32_t dwHashLow; // Low 32 bits of hash seed for nibble
     /* 0x04 */ int nHashHigh; // High 32 bits of hash seed for nibble
+};
+
+struct __attribute__((packed)) D2HirelingStatLabelStrc {
+    /* 0x00 */ int nX;
+    /* 0x04 */ int nCenterWidth;
+    /* 0x08 */ int nY;
+    /* 0x0C */ uint16_t wStrId;
 };
 
 struct __attribute__((packed)) D2IniConfigValuesStrc {
@@ -1508,8 +1518,9 @@ extern int gnPathSearchMax[128];
 extern int gnPathNodeMax[128];
 extern uint32_t gaPathDirectionLookupTable[6];
 extern int gnDrlgLevelGenerationState[8];
-extern uint32_t gaAct5SceneryPresetTable_0;
-extern uint32_t gnAct5SceneryPresetOffsetByOrientation;
+extern int gnAct5OuterWallGridOffsetByType[24];
+extern int gaAct5SceneryPresetTable_0[15][7];
+extern int gaAct5SceneryPresetTable_0_0__1_[15][7];
 extern D2TombCanyonPresetRegionStrc gaTombCanyonPresetOffsets;
 extern uint8_t gaWallNeighborOrientTable[256];
 extern uint8_t gaOutRoomPathDirectionDelta[24];
@@ -2131,6 +2142,7 @@ extern char gaQ33_Hell_BarbarianAxeCodes[5][4];
 extern char gaQ33_Hell_DruidHelmCodes[5][4];
 extern char gaQ33_Hell_AssassinClawCodes[7][4];
 extern uint8_t gbQuestA5Q2Unknown;
+extern D2MonsterUModHandlerRowStrc g_MonsterUModHandlerTable[43];
 extern D2MissileSrvDoFuncData gaMissileSrvDoFuncTable[9];
 extern int MISSILESSRVHITFUNCS_SIZE;
 extern D2MissileSrvHitFunc MISSILESSRVHITFUNCS[71];
@@ -2944,13 +2956,13 @@ extern DC6 * gpDC6DeathInstructionImage;
 extern D2UIFlagDescStrc gaUIFlagDescsClient[3];
 extern uint32_t gnGoldDialogTransactionMode;
 extern uint32_t gnLoadScreenAnimFrame;
-extern uint16_t gU16ImmunityStringBuffer2;
+extern uint16_t gU16ImmunityStringBuffer2[256];
 extern uint32_t gnImmunityText2Color;
 extern uint16_t UNICODE_007a2c80[80];
 extern uint32_t gnTooltipScreenX;
 extern uint32_t gnTooltipScreenY;
 extern int gnTooltipHpBarValue;
-extern uint16_t gU16ImmunityStringBuffer1;
+extern uint16_t gU16ImmunityStringBuffer1[256];
 extern uint32_t gnImmunityText1Color;
 extern uint16_t gnMonsterHealthBarValue;
 extern uint32_t gnAutoMapCellPriority[2048];
@@ -3397,7 +3409,7 @@ extern uint8_t gnNpcMenuActiveMode;
 extern uint8_t gbNpcMenuRandomDialogSeed;
 extern int PLAYER_CurrentGold;
 extern uint16_t gnNpcMenuRepairCostGold;
-extern uint16_t gnNpcMenuTradeActionGold;
+extern int16_t gnNpcMenuTradeActionGold;
 extern uint16_t gnNpcMenuScrollCompleteMode;
 // Global pointer to current NPC speech/trade menu state. Points to D2NPCSpeechStrc entries in the global D2NPCSpeech array. Contains dialog bank, count, gossip index, and flags for NPC interactions. Reassigned when entering/exiting trade/gamble menus.
 extern D2NPCSpeechStrc * gpNpcCurrentSpeech;
@@ -4742,7 +4754,7 @@ extern struct D2NpcMenuOptions D2NpcMenuOptions[48];
 
 namespace D2Client::UNIT::UnitSnd {
 
-extern eD2Sounds * gaUnitSoundTableByClassIdExtra[572];
+extern eD2Sounds * gaUnitSoundTableByClassIdExtra[573];
 
 } // namespace D2Client::UNIT::UnitSnd
 

@@ -94,6 +94,7 @@
 #include "D2Game/D2CreateMonsterUnitStrc.h"
 #include "D2Game/D2ParsedTreasureClassStrc.h"
 #include "D2Game/GAME/Event.h"
+#include "D2Game/PLAYER/PlayerMsg.h"
 #include "D2Game/UNIT/SUnit.h"
 #include "D2Game/UNIT/SUnitDmg.h"
 #include "D2Game/UNIT/SUnitMsg.h"
@@ -117,6 +118,20 @@
 #include "D2Game/SKILLS/SkillAss.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2ServerCmdStrc) == 0x10, "D2_NEW(D2ServerCmdStrc): the 32-bit layout must be the 0x10 bytes 1.14d allocates");
 
 
 #ifndef RECON_FPTD_D2NET_CLIENT_D2GStoCLT_Unit
@@ -214,12 +229,12 @@ void DownloadSave(char * pBytes) {
         goto append_chunk;
       }
 
-      Fog::Memory::FreeClientMemory(D2Game::Save::pRawSaveBuffer, ".\\GAME\\SCmd.cpp", 0x5b, 0);
+      D2_FREE(D2Game::Save::pRawSaveBuffer);
       D2Game::Save::pRawSaveBuffer = 0;
       D2Game::Save::nRawSaveBufferSize = 0;
     }
 
-    D2Game::Save::pRawSaveBuffer = (uint8_t*)Fog::Memory::AllocClientMemory(*(size_t*)(pBytes + 3), ".\\GAME\\SCmd.cpp", 0x62, 0);
+    D2Game::Save::pRawSaveBuffer = (uint8_t*)D2_ALLOC(*(size_t*)(pBytes + 3));
     append_chunk:
     pDst = D2Game::Save::pRawSaveBuffer + D2Game::Save::nRawSaveBufferSize;
     int i = 0;
@@ -239,7 +254,7 @@ void DownloadSave(char * pBytes) {
     }
 
     SaveCharacter();
-    Fog::Memory::FreeClientMemory(D2Game::Save::pRawSaveBuffer, ".\\GAME\\SCmd.cpp", 0x71, 0);
+    D2_FREE(D2Game::Save::pRawSaveBuffer);
     D2Game::Save::pRawSaveBuffer = 0;
     D2Game::Save::nRawSaveBufferSize = 0;
 }
@@ -2702,7 +2717,7 @@ D2ServerCmdStrc * STRUCT_CreateAndPreprareServerCmd(D2UnitStrc * pUnit) {
 
     D2ServerCmdStrc* pServerCmd = UNIT::CUnit::GetServerCmd(pUnit);
     if (!pServerCmd) {
-      pServerCmd = (D2ServerCmdStrc*)Fog::Memory::AllocClientMemory(0x10, ".\\GAME\\SCmd.cpp", 0x1266, 0);
+      pServerCmd = D2_NEW(D2ServerCmdStrc);
       pServerCmd->nBufferArraySize = 0;
       pServerCmd->nUsedBuffersCount = 0;
       pServerCmd->field2_0x8 = 0;
@@ -2711,11 +2726,11 @@ D2ServerCmdStrc * STRUCT_CreateAndPreprareServerCmd(D2UnitStrc * pUnit) {
     }
 
     nMaxPacketSize = pServerCmd->nBufferArraySize + 5;
-    char* pNewBuffers = (char*)Fog::Memory::AllocClientMemory(nD2PacketsClientBufferSize * nMaxPacketSize, ".\\GAME\\SCmd.cpp", 0x126b, 0);
+    char* pNewBuffers = (char*)D2_ALLOC(nD2PacketsClientBufferSize * nMaxPacketSize);
     memset(pNewBuffers, 0, nD2PacketsClientBufferSize * nMaxPacketSize);
     if (pServerCmd->aBuffers) {
       memcpy(pNewBuffers, pServerCmd->aBuffers, pServerCmd->nBufferArraySize * nD2PacketsClientBufferSize);
-      Fog::Memory::FreeClientMemory(pServerCmd->aBuffers, ".\\GAME\\SCmd.cpp", 0x126f, 0);
+      D2_FREE(pServerCmd->aBuffers);
     }
 
     pServerCmd->nBufferArraySize = nMaxPacketSize;
@@ -2868,8 +2883,8 @@ void __fastcall FreeServerCmd(D2UnitStrc * pUnit) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(pMemoryToFree->aBuffers, ".\\GAME\\SCmd.cpp", 0x1516, 0);
-    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\GAME\\SCmd.cpp", 0x1517, 0);
+    D2_FREE(pMemoryToFree->aBuffers);
+    D2_FREE(pMemoryToFree);
     UNIT::CUnit::SetServerCmd(pUnit, nullptr);
 }
 

@@ -18,3 +18,6 @@ Local changes, all in pecoff.c and marked "Redivivus local change":
     to the upstream file read when a section is not mapped and readable.
   - dll_notification(): upstream assigns the callback's data pointer to
     error_callback; it now takes context->error_callback.
+  - coff_add(): the COFF symbol table is rebased onto the loaded module
+    address instead of the preferred image base, so syminfo names the right
+    function in a relocated image.

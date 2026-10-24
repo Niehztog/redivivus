@@ -47,7 +47,7 @@ void __stdcall SetFlags(struct D2UnitStrc * pUnit, int32_t dwFlags);
 void __stdcall SetLevel(struct D2UnitStrc * pUnit, int16_t nLevel);
 int32_t __stdcall GetLevel(struct D2UnitStrc * pUnit);
 void __stdcall SetSkill(struct D2UnitStrc * pUnit, eD2Skills eSkill);
-eD2Skills __stdcall GetSkillId(struct D2UnitStrc * pUnit);
+eD2Skills GetSkillId(struct D2UnitStrc * pUnit);
 void __stdcall SetTotalFrames(struct D2UnitStrc * pUnit, int32_t nTotalFrames);
 int32_t __stdcall GetTotalFrames(struct D2UnitStrc * pUnit);
 void __stdcall SetCurrentFrame(struct D2UnitStrc * pUnit, int32_t nCurrentFrame);

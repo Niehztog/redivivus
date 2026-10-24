@@ -48,6 +48,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA2Q2Strc) == 0x30, "D2_NEW(D2QuestDataA2Q2Strc): the 32-bit layout must be the 0x30 bytes 1.14d allocates");
+
 
 namespace D2Game::Quests::QUESTS::A2Q2 {
 
@@ -1046,7 +1056,7 @@ void __fastcall Q10_InitData(D2QuestDataStrc * pQuestData) {
     memset(&pQuestData->sStateFunctions, 0, 0x3c);
     pQuestData->pNpcMessages = &A2Q2::aNpcGossipData;
     pQuestData->bIsActive = true;
-    D2QuestDataA2Q2Strc* pQuestSpecificData = (D2QuestDataA2Q2Strc*)Fog::Memory::AllocServerMemory(pQuestData->pGame->pMemoryPool, 0x30, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q2.cpp", 0x3ed, 0);
+    D2QuestDataA2Q2Strc* pQuestSpecificData = D2_NEW_POOL(pQuestData->pGame->pMemoryPool, D2QuestDataA2Q2Strc);
     pQuestData->pQuestSpecificData.pA2Q2 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_TheHoradricStaff;
     pQuestData->fpStatusFilter = Q10_StatusFilter;

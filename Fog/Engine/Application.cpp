@@ -30,6 +30,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnEnumProcessModules
 #define RECON_FPTD_pfnEnumProcessModules
@@ -1251,7 +1259,7 @@ void __stdcall CLIENT_CheckIfApplicationModeIsInCommandLineAndSetItToArgument(eD
     char* pszModeStr;
     char* pszCmdToken = szText;
     pszCmdToken = pszCmdToken + strlen(pszCmdToken) + 1;
-    char* szCmdLineCopy = (char*)Memory::AllocClientMemory((size_t)(pszCmdToken + (1 - (int)(szText + 1))), ".\\DUNGEON\\Dungeon.cpp", 0x1ba, 0);
+    char* szCmdLineCopy = (char*)D2_ALLOC((size_t)(pszCmdToken + (1 - (int)(szText + 1))));
     Storm::Source::SSTR::SStrCopy(szCmdLineCopy, szText, (int32_t)(pszCmdToken + (1 - (int)(szText + 1))));
     pszCmdToken = strtok(szCmdLineCopy, "-");
     while (pszCmdToken) {
@@ -1272,7 +1280,7 @@ void __stdcall CLIENT_CheckIfApplicationModeIsInCommandLineAndSetItToArgument(eD
       pszCmdToken = strtok(nullptr, "-");
     }
 
-    Memory::FreeClientMemory(szCmdLineCopy, ".\\DUNGEON\\Dungeon.cpp", 0x1e0, 0);
+    D2_FREE(szCmdLineCopy);
 }
 
 // lpHandlerProc parameter of RegisterServiceCtrlHandlerA

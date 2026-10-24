@@ -25,6 +25,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace Bnclient {
 
@@ -452,7 +456,7 @@ void __stdcall CACHE_DeleteFile() {
 // @sourcefile .\BnSend.cpp
 void BNSEND_FreeRealmQueryData() {
     if (gpRealmQueryData) {
-      Fog::Memory::FreeClientMemory(gpRealmQueryData, ".\\BnSend.cpp", 0x19a, 0);
+      D2_FREE(gpRealmQueryData);
     }
 
     gpRealmQueryData = 0;
@@ -461,7 +465,7 @@ void BNSEND_FreeRealmQueryData() {
 // @sourcefile .\BnSend.cpp
 void BNSEND_FreeUserProfileData() {
     if (gpBNetWriteUserData) {
-      Fog::Memory::FreeClientMemory(gpBNetWriteUserData, ".\\BnSend.cpp", 0x3b2, 0);
+      D2_FREE(gpBNetWriteUserData);
     }
 
     gpBNetWriteUserData = 0;

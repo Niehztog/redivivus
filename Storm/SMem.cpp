@@ -8,7 +8,6 @@
 #include "Storm/Source/SReg.h"
 #include "Storm/Source/SSTR.h"
 #include "Storm/Source/SSystem.h"
-#include "Storm/_unnamespaced.h"
 #include "globals/globals.h"
 #include "D2Game/Objects/ObjectsRgn.h"
 
@@ -797,9 +796,9 @@ int32_t __stdcall SMemFindNextBlock(uint16_t * * nHeapId, int32_t pPrevBlock, ui
     return 1;
 }
 
-int32_t __stdcall SMemFindNextHeap(uint32_t nCurHeapId, int * pnNextHeapId, LPCRITICAL_SECTION pCriticalSection) {
-    LPCRITICAL_SECTION pOutInfo;
-    pOutInfo = pCriticalSection;
+int32_t __stdcall SMemFindNextHeap(uint32_t nCurHeapId, int * pnNextHeapId, SMemHeapDetailsStrc * pHeapDetails) {
+    SMemHeapDetailsStrc* pOutInfo;
+    pOutInfo = pHeapDetails;
     if (!g_SMemInitialized) {
       SMemInitialize();
       if (!g_SMemInitialized) {
@@ -807,12 +806,12 @@ int32_t __stdcall SMemFindNextHeap(uint32_t nCurHeapId, int * pnNextHeapId, LPCR
         return 0;
       }
     }
-    if (!(pnNextHeapId && pCriticalSection ? (pCriticalSection->DebugInfo != (PRTL_CRITICAL_SECTION_DEBUG)0x128) - 1 : 0)) {
+    if (!(pnNextHeapId && pHeapDetails ? (pHeapDetails->dwSize != 0x128) - 1 : 0)) {
       Source::SErr::SErrSetLastError(0x57);
       return 0;
     }
 
-    Source::SSystem::SMemZero(&pCriticalSection->LockCount, (size_t)&pCriticalSection->DebugInfo[-1].CreatorBackTraceIndexHigh);
+    Source::SSystem::SMemZero(&pHeapDetails->hHeap, pHeapDetails->dwSize - 4);
     uint32_t nBucketIndex;
     nBucketIndex = 0;
     if (nCurHeapId) {
@@ -823,9 +822,9 @@ int32_t __stdcall SMemFindNextHeap(uint32_t nCurHeapId, int * pnNextHeapId, LPCR
     nPrevHeapId = 0;
     if (nBucketIndex < 0x100) {
       uint32_t* pHeap;
-      pCriticalSection = DebugMemoryCriticalSection + nBucketIndex;
+      pHeapDetails = (SMemHeapDetailsStrc*)(DebugMemoryCriticalSection + nBucketIndex);
       do {
-        /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(pCriticalSection);
+        /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection((LPCRITICAL_SECTION)pHeapDetails);
         for (pHeap = (uint32_t*)g_SMemHeapBuckets[nBucketIndex]; pHeap; pHeap = (uint32_t*)*pHeap) {
           if (pHeap[4]) {
             if (nPrevHeapId == nCurHeapId && pHeap[1] != nCurHeapId) {
@@ -836,24 +835,24 @@ int32_t __stdcall SMemFindNextHeap(uint32_t nCurHeapId, int * pnNextHeapId, LPCR
           }
         }
 
-        /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(pCriticalSection);
-        pCriticalSection++;
+        /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection((LPCRITICAL_SECTION)pHeapDetails);
+        pHeapDetails = (SMemHeapDetailsStrc*)(pHeapDetails->szFilename + 0x10);
         nBucketIndex++;
       } while (nBucketIndex < 0x100);
 
       if (false) {
         found_next_heap:
         *pnNextHeapId = pHeap[1];
-        pOutInfo->LockCount = pHeap[1];
-        pOutInfo[0xb].LockCount = pHeap[0x17];
-        pOutInfo[0xb].SpinCount = 0x7fffffff;
-        Source::SSTR::SStrCopy((char*)&pOutInfo->RecursionCount, (char*)(pHeap + 0x18), 0x104);
+        pOutInfo->hHeap = pHeap[1];
+        pOutInfo->nLineNumber = pHeap[0x17];
+        pOutInfo->dwMaximumSize = 0x7fffffff;
+        Source::SSTR::SStrCopy(pOutInfo->szFilename, (char*)(pHeap + 0x18), 0x104);
         do {
           if (pHeap[1] == *pnNextHeapId) {
-            pOutInfo[0xb].OwningThread = (HANDLE)((int)pOutInfo[0xb].OwningThread + pHeap[0xb] + pHeap[0xd]);
-            pOutInfo[0xb].LockSemaphore = (HANDLE)((int)pOutInfo[0xb].LockSemaphore + pHeap[0xc] + pHeap[0xd]);
-            pOutInfo[0xc].DebugInfo = (PRTL_CRITICAL_SECTION_DEBUG)((uintptr_t)&pOutInfo[0xc].DebugInfo->Type + pHeap[5]);
-            pOutInfo[0xc].LockCount += pHeap[6];
+            pOutInfo->dwCommittedBytes = pOutInfo->dwCommittedBytes + pHeap[0xb] + pHeap[0xd];
+            pOutInfo->dwReservedBytes = pOutInfo->dwReservedBytes + pHeap[0xc] + pHeap[0xd];
+            pOutInfo->nAllocatedBlocks += pHeap[5];
+            pOutInfo->dwUnknown124 += pHeap[6];
           }
 
           pHeap = (uint32_t*)*pHeap;
@@ -1422,12 +1421,7 @@ void * __stdcall SMemAlloc(uint32_t nSize, char * szFile, uint32_t nLine, uint32
 }
 
 void __stdcall SMemDumpState(pfnSMemDumpCallback pfnCallback, uint32_t dwCallbackArg) {
-    _RTL_CRITICAL_SECTION heapStats[11];
-    uint32_t nStatField1;
-    int nBytesField2;
-    int nBytesField3;
-    uint32_t nStatField2;
-    int nBytesField1;
+    SMemHeapDetailsStrc heapStats;
     char szLineBuffer[256];
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (!g_SMemInitialized) {
@@ -1444,13 +1438,13 @@ void __stdcall SMemDumpState(pfnSMemDumpCallback pfnCallback, uint32_t dwCallbac
       return;
     }
 
-    heapStats[0].DebugInfo = (PRTL_CRITICAL_SECTION_DEBUG)0x128;
+    heapStats.dwSize = 0x128;
     uint32_t nHeapIndex = 0;
-    int bHasNextHeap = SMemFindNextHeap(0, (int*)&nHeapIndex, heapStats);
+    int bHasNextHeap = SMemFindNextHeap(0, (int*)&nHeapIndex, &heapStats);
     while (bHasNextHeap) {
-      /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szLineBuffer, "%s:%d  blocks=%u  %uk/%uk/%uk", &heapStats[0].RecursionCount, nStatField1, nStatField2, nBytesField1 + 0x200U >> 10, nBytesField2 + 0x200U >> 10, nBytesField3 + 0x200U >> 10);
+      /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szLineBuffer, "%s:%d  blocks=%u  %uk/%uk/%uk", heapStats.szFilename, heapStats.nLineNumber, heapStats.nAllocatedBlocks, heapStats.dwUnknown124 + 0x200 >> 10, heapStats.dwCommittedBytes + 0x200 >> 10, heapStats.dwReservedBytes + 0x200 >> 10);
       (*pfnCallback)(dwCallbackArg, szLineBuffer);
-      bHasNextHeap = SMemFindNextHeap(nHeapIndex, (int*)&nHeapIndex, heapStats);
+      bHasNextHeap = SMemFindNextHeap(nHeapIndex, (int*)&nHeapIndex, &heapStats);
     }
 
     Fog::Debug::GuardStack();

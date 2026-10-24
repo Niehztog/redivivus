@@ -2080,7 +2080,7 @@ D2UnitStrc * __stdcall SKILLNEC_CreateSummonAtPosition(::SGAMEDATA * pGame, int3
     }
 
     sSummonParams.nType = (uint32_t)byPetTypeIdx;
-    sSummonParams.classId = (uint32_t)(uintptr_t)sSummonParams.pSkillTxt;
+    sSummonParams.classId = (int32_t)sSummonParams.pSkillTxt;
     sSummonParams.nMode = sSummonParams.nPetType;
     sSummonParams.nFlags = 9;
     sSummonParams.nX = nSpawnX;
@@ -2102,8 +2102,34 @@ D2UnitStrc * __stdcall SKILLNEC_CreateSummonAtPosition(::SGAMEDATA * pGame, int3
 // srvdofunc 62: spawns 12 bone-structure segments using gaMissileOffsets_BoneStructure offsets. Skills.txt mapping suggests Bone Prison, but body shares the BoneStructure offset table with Bone Wall. Cannot distinguish wall vs prison from body alone — keep current name until Skills.txt confirms.
 BOOL __fastcall Skills_SrvDoFunc_062_BonePrison(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
     // Static local variables (originally global data)
-    static uint32_t gaMissileOffsets_BoneStructure = -0x1;
-    static uint32_t gnSkillMissileSubCount_BoneStructure = -0x4;
+    static int gaMissileOffsets_BoneStructure[12] = {
+    -0x1,
+    0x1,
+    0x3,
+    0x4,
+    0x4,
+    0x3,
+    -0x1,
+    0x1,
+    -0x3,
+    -0x4,
+    -0x4,
+    -0x3
+};
+    static int gnSkillMissileSubCount_BoneStructure[12] = {
+    -0x4,
+    -0x4,
+    -0x3,
+    -0x1,
+    0x1,
+    0x3,
+    0x4,
+    0x4,
+    0x3,
+    -0x1,
+    0x1,
+    -0x3
+};
 
     eD2UnitType eOwnerType;
     int32_t nOwnerGUID;
@@ -2126,7 +2152,7 @@ BOOL __fastcall Skills_SrvDoFunc_062_BonePrison(::SGAMEDATA * pGame, D2UnitStrc 
     int nOffsetIdx = 0;
     do {
       D2UnitStrc* pUnit_00;
-      pUnit_00 = SKILLNEC_CreateSummonAtPosition(pGame, *(int*)((uintptr_t)&gaMissileOffsets_BoneStructure + nOffsetIdx) + nCursorX, *(int*)((uintptr_t)&gnSkillMissileSubCount_BoneStructure + nOffsetIdx) + nCursorY, nSkillLvl, eSkill, pUnit);
+      pUnit_00 = SKILLNEC_CreateSummonAtPosition(pGame, gaMissileOffsets_BoneStructure[nOffsetIdx] + nCursorX, gnSkillMissileSubCount_BoneStructure[nOffsetIdx] + nCursorY, nSkillLvl, eSkill, pUnit);
       pUnit_01 = pOwnerUnit;
       pPrevFirstMinion = pFirstMinion;
       if (pUnit_00) {
@@ -2165,9 +2191,9 @@ BOOL __fastcall Skills_SrvDoFunc_062_BonePrison(::SGAMEDATA * pGame, D2UnitStrc 
         D2Common::PATH::DynamicPath::SetDirectionAndNewDirection(pUnit_00->pPath.pDynamicPath, (uint8_t)nDir);
       }
 
-      nOffsetIdx += 4;
+      nOffsetIdx++;
       pUnit = pOwnerUnit;
-    } while (nOffsetIdx < 0x30);
+    } while (nOffsetIdx < 12);
 
     return 1;
 }

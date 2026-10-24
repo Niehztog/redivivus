@@ -235,13 +235,13 @@ void __stdcall DRAW_MonsterUnderCursorImmunites() {
 
     uint32_t nFontHeight = D2Win::Src::D2WinFont::D2WINFONT_GetCurrentFontHeight();
     int32_t nY = nFontHeight + 0x27;
-    DRAW_CenteredText(6, nY, gnImmunityText1Color, (uint16_t*)&gU16ImmunityStringBuffer1);
-    if (gU16ImmunityStringBuffer1 || gnMonsterHealthBarValue) {
+    DRAW_CenteredText(6, nY, gnImmunityText1Color, (uint16_t*)gU16ImmunityStringBuffer1);
+    if (gU16ImmunityStringBuffer1[0] || gnMonsterHealthBarValue) {
       nFontHeight = D2Win::Src::D2WinFont::D2WINFONT_GetCurrentFontHeight();
       nY += nFontHeight;
     }
 
-    DRAW_CenteredText(6, nY, gnImmunityText2Color, (uint16_t*)&gU16ImmunityStringBuffer2);
+    DRAW_CenteredText(6, nY, gnImmunityText2Color, (uint16_t*)gU16ImmunityStringBuffer2);
 }
 
 void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
@@ -530,8 +530,8 @@ void __fastcall DRAW_UnitUnderMouse(D2UnitStrc * pUnit) {
       if (nClassId == 0x1a1 || nClassId == 0x1a2) {
         pMonStats = DataTbls::MonsterTbls::TXT_MonStats_GetLine(nClassId);
         if (!pMonStats) {
-          gU16ImmunityStringBuffer2 = 0;
-          gU16ImmunityStringBuffer1 = 0;
+          gU16ImmunityStringBuffer2[0] = 0;
+          gU16ImmunityStringBuffer1[0] = 0;
           gnMonsterHealthBarValue = 0;
           return;
         }
@@ -562,8 +562,8 @@ void __fastcall DRAW_UnitUnderMouse(D2UnitStrc * pUnit) {
       }
 
       ui::UI_ShowMonsterNameBar(0, pUnit);
-      gU16ImmunityStringBuffer1 = 0;
-      gU16ImmunityStringBuffer2 = 0;
+      gU16ImmunityStringBuffer1[0] = 0;
+      gU16ImmunityStringBuffer2[0] = 0;
       gnMonsterHealthBarValue = 0;
       return;
       case UNIT_OBJECT:
@@ -695,8 +695,18 @@ void __stdcall DRAW_UnitUModsUnderCursor() {
 
 void __stdcall DRAW_Overlay_EnteringAreaX() {
     // Static local variables (originally global data)
-    static uint32_t gnQuestAreaIntroTextureCount = 0x1;
-    static uint8_t gaQuestAreaDC6Names = 0x41;
+    static D2QuestAreaIntroStrc gnQuestAreaIntroLevelId_0[2] = {
+    {
+        /* .nLevelId = */ 0x8,
+        /* .nQuestId = */ 0x1,
+        /* .szDC6Name = */ { 'A', '1', 'Q', '1', '\x00' }
+    },
+    {
+        /* .nLevelId = */ 0x14,
+        /* .nQuestId = */ 0x5,
+        /* .szDC6Name = */ { 'A', '1', 'Q', '5', '\x00' }
+    }
+};
     static int gnQuestAreaIntroCount = 0x2;
     static uint32_t gnAreaNameCurrentLevelId;
     static int32_t gnAreaNameOverlay;
@@ -707,7 +717,7 @@ void __stdcall DRAW_Overlay_EnteringAreaX() {
     uint32_t uResult;
     D2LevelsTxt* pLevelTxt;
     int nQuestIdx;
-    int32_t* pnQuestEntry;
+    int* pnQuestEntry;
     char szDC6Path[260];
     char szActDir[32];
     char szLangAbbrev[4];
@@ -758,18 +768,18 @@ void __stdcall DRAW_Overlay_EnteringAreaX() {
         sprintf(szDC6Path, "%s\\UI\\%s\\%s\\%s", "DATA\\LOCAL", szLangAbbrev, szActDir, pLevelTxt->EntryFile);
         nQuestIdx = 0;
         if (0 < gnQuestAreaIntroCount) {
-          pnQuestEntry = (int32_t*)&gnQuestAreaIntroTextureCount;
+          pnQuestEntry = &gnQuestAreaIntroLevelId_0[0].nQuestId;
           do {
-            if (eRoomLevel == pnQuestEntry[-1]) {
+            if (eRoomLevel == ((D2QuestAreaIntroStrc*)(pnQuestEntry - 1))->nLevelId) {
               uResult = GetQuestAvailabilityByIndex(0, *pnQuestEntry);
               if (uResult) {
-                /* Den Of Evil and Forgotten Tower */ sprintf(szDC6Path, "%s\\UI\\%s\\ACT1\\%s", "DATA\\LOCAL", szLangAbbrev, &gaQuestAreaDC6Names + nQuestIdx * 0xd);
+                /* Den Of Evil and Forgotten Tower */ sprintf(szDC6Path, "%s\\UI\\%s\\ACT1\\%s", "DATA\\LOCAL", szLangAbbrev, gnQuestAreaIntroLevelId_0[nQuestIdx].szDC6Name);
                 break;
               }
             }
 
             nQuestIdx++;
-            pnQuestEntry = (int32_t*)((int)pnQuestEntry + 0xd);
+            pnQuestEntry = (int*)((int)pnQuestEntry + 0xd);
           } while (nQuestIdx < gnQuestAreaIntroCount);
         }
         if (!DC6_EnteredAreaName) {
@@ -2047,8 +2057,8 @@ void DRAW_UI(D2GameViewStrc * pGameView, short * pnNpcParam) {
     }
 
     D2Win::Src::D2WinFont::TEXT_TooltipSetAttributes(nullptr, 0, 0, 0, 0);
-    /* Render ingame ESC menu */ gU16ImmunityStringBuffer1 = 0;
-    gU16ImmunityStringBuffer2 = 0;
+    /* Render ingame ESC menu */ gU16ImmunityStringBuffer1[0] = 0;
+    gU16ImmunityStringBuffer2[0] = 0;
     if (GFX_bShowUIFlag.EscMenu) {
       EscMenu::DRAW_EscMenu();
     }

@@ -95,6 +95,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitDataObjectStrc) == 0x38, "D2_NEW(D2UnitDataObjectStrc): the 32-bit layout must be the 0x38 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fpSUnitIterateCallback
 #define RECON_FPTD_fpSUnitIterateCallback
@@ -2069,7 +2083,7 @@ D2UnitStrc * __fastcall CreateUnit(eD2UnitType eUnitType, int32_t nClassId, int3
                          @sourcefile .\UNIT\SUnit.cpp
                          @sourcefile-basis Blizzard __FILE__ literal referenced from inside self
                          function's body (1 site: 005553b4). First-party 1.14d evidence, not inferred
-                         and not from D2R. */ pObjectData = (D2UnitDataObjectStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x38, ".\\UNIT\\SUnit.cpp", 0x264, 0);
+                         and not from D2R. */ pObjectData = D2_NEW_POOL(pGame->pMemoryPool, D2UnitDataObjectStrc);
         pAllocUnit->pUnitData.pUnitDataObject = pObjectData;
         memset(pObjectData, 0, 0x38);
         pDVar1 = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(nClassId);
@@ -2232,7 +2246,7 @@ void __fastcall FreeServerUnit(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
           case UNIT_OBJECT:
             Objects::OBJECT_FreeObjectData(pGame, pUnit);
           D2Common::Units::FreeStaticPath(pUnit);
-          Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pUnit->pUnitData.pUnitDataPlayer, ".\\UNIT\\SUnit.cpp", 0xa4, 0);
+          D2_FREE_POOL(pGame->pMemoryPool, pUnit->pUnitData.pUnitDataPlayer);
           break;
           case UNIT_MISSILE:
             if (pUnit->pPath.pStaticPath) {

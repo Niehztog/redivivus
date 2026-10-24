@@ -19,6 +19,15 @@ struct SGAMEDATA;
 typedef int eD2Skills;
 
 // Data types
+struct D2MercSaveDataStrc {
+    /* 0x00 */ uint32_t dwFlags;
+    /* 0x04 */ uint32_t dwSeed;
+    /* 0x08 */ uint16_t wNameIndex;
+    /* 0x0A */ uint16_t wHirelingId;
+    /* 0x0C */ uint32_t dwExperience;
+    /* 0x10 */ uint32_t adwUnknown10[4];
+};
+
 struct __attribute__((packed)) D2SaveFileNpcStrc {
     /* 0x00 */ short szMagic;
     /* 0x02 */ short nSize;
@@ -109,7 +118,7 @@ int __fastcall PLRSAVE_LoadItemsFromBuffer(::SGAMEDATA * pGame, struct D2UnitStr
 // @sourcefile .\PLAYER\PlrSave2.cpp
 int __fastcall PLRSAVE_LoadCorpseFromBuffer(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * * ppCorpseList, struct D2UnitStrc * pOwnerUnit, uint32_t nParam, int * pnParam);
 // Deserializes a mercenary from save data and recreates it as a live unit. Reads 8 dwords of merc save data (type, GUID, name index, experience), looks up the hireling text entry, creates the merc unit via CreateMerc, links it to the player via PETS_UpdatePetData, clamps experience to the minimum for its level, applies level stats, and ensures an inventory is allocated. Returns the new D2UnitStrc or null if the save data is empty or creation fails.
-struct D2UnitStrc * __fastcall LoadMerc(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t * pMercSaveData, uint32_t dwParam);
+struct D2UnitStrc * __fastcall LoadMerc(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2MercSaveDataStrc * pMercSaveData, uint32_t dwParam);
 // Loads a mercenary's equipped items from the save buffer into the given merc unit (expansion-only, magic 0x666a). Calls PLRSAVE_LoadItemsFromBuffer, then recalculates the merc's inventory stats and sets HP to max if the merc is alive. Skipped entirely in classic (non-expansion) games.
 int LoadMerc2(void * pThis, struct D2UnitStrc * pUnit, struct D2UnitStrc * * ppUnit, struct D2UnitStrc * pUnit2, uint32_t nParam, int * pnParam);
 // Deserializes the Iron Golem item (and its socketed items) from the save stream. Reads the golem's base item via ITEM_CreateFromSaveData, then iterates usedSockets to read and socket each child item via PutItemInItem. Validates the runeword flag on completion. Returns 1 on success, 0 on any parse/create failure; advances *ppReadPos and writes *ppGolemItem.

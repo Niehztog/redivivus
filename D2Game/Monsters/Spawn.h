@@ -32,7 +32,7 @@ BOOL __stdcall SPAWN_SpawnMonsterGroupAtRandom(::SGAMEDATA * pGame, struct D2Roo
 // Spawns a monster of nClassId at a random valid position in pRoom/pCoordList, then spawns a random number of minions around it (count drawn from [bParam1-1, bParam2-1]). Also places an object (0x232) near the boss if it has the ObjCol flag and ValidateClassId returns 0x210. Returns the spawned boss unit, or NULL if no position found or params are invalid.
 struct D2UnitStrc * __stdcall SPAWN_SpawnMonsterWithMinions(::SGAMEDATA * pGame, struct D2RoomStrc * pRoom, struct D2RoomCoordListStrc * pCoordList, uint8_t bParam1, uint8_t bParam2, uint32_t nClassId);
 struct D2UnitStrc * __stdcall MONSTER_SpawnMonsterGroup(::SGAMEDATA * pGame, struct D2RoomStrc * pRoom, int32_t nClassId, int32_t nX, int32_t nY);
-void __stdcall SPAWN_SpawnMonsterFormation(::SGAMEDATA * pGame, int32_t nClassId, struct D2RoomStrc * pRoom, int32_t pGroupOffsetTable);
+void __stdcall SPAWN_SpawnMonsterFormation(::SGAMEDATA * pGame, int32_t nClassId, struct D2RoomStrc * pRoom, int * pGroupOffsetTable);
 struct D2UnitStrc * __stdcall MONSTER_SetMinionsForBoss(struct D2RoomCoordListStrc * pRoomCoordList, int32_t nMinionClassId, ::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 uint32_t __stdcall MONSTER_SpawnUniquePackInRoom(struct D2RoomStrc * pRoom, ::SGAMEDATA * pGame, struct D2RoomCoordListStrc * pCoordList, uint32_t nClassId);
 // Resolves the effective monster class ID for spawning in a given level, handling variant substitution. For Fallen (baseId=0x13) and Zombie (baseId=0x3a), remaps to level-appropriate variants based on eLevelId (BlackMarsh, TamoeHighland, PitLevel1/2). Returns the original nClassId unchanged if no substitution applies or if out of MonStats bounds.

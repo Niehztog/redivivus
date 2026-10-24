@@ -27,7 +27,7 @@ namespace D2Game::SKILLS::SkillItem {
 void __stdcall SEED_RollChampionPack(struct D2SeedStrc * pSeed, struct D2MonsterRegionFieldStrc * pMonData, int32_t nNumChampions);
 // Selects a random monster type from a D2MonsterRegionStrc using weighted random selection on the region's rarity table. On Normal difficulty with nParam!=0, picks from the level's unique-monster (umon) list instead. Handles spawn-replacement: if the chosen monster has a spawn entry and placespawn!=0, probabilistically substitutes the spawn variant. Writes the chosen D2MonStatsTxt pointer to ppMonStatLine and returns the class index, or returns 0/NULL if the region is empty.
 int32_t __fastcall MONREGION_RollRandomMonsterType(::SGAMEDATA * pGame, struct D2MonsterRegionStrc * pMonsterRegion, struct D2RoomStrc * pRoom, struct D2MonStatsTxt * * ppMonStatLine, uint8_t bParam, int32_t nParam);
-void __fastcall RollRoomSeed(struct D2RoomStrc * pRoom);
+int * __fastcall RollRoomSeed(struct D2RoomStrc * pRoom);
 // Determines how many unique/boss monsters to spawn for pMonterRegion in pRoom. If current unique count is below nBossMin and the room density roll (spawned/total rooms) passes, returns 0 (skip). If below nBossMax and a 6% roll passes, returns 0. Otherwise returns 1 (spawn normal) or 2 (spawn extra) based on a 35% random threshold using the room seed.
 int32_t __fastcall MONSTERREGION_CheckSpawnDensity(struct D2MonsterRegionStrc * pMonterRegion, struct D2RoomStrc * pRoom);
 // @sourcefile .\SKILLS\SkillItem.cpp

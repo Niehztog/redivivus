@@ -2,7 +2,6 @@
 
 #include "D2Common/Drlg/Path.h"
 #include "D2Client/D2ClientStrc.h"
-#include "D2Client/GAME/Game/SGAMEDATA.h"
 #include "D2Client/UI/Path.h"
 #include "D2Client/UNIT/Player.h"
 #include "D2Common/Collision.h"
@@ -10,6 +9,7 @@
 #include "D2Common/D2InventoryStrc.h"
 #include "D2Common/D2RoomExStrc.h"
 #include "D2Common/D2RoomStrc.h"
+#include "D2Common/D2SeedStrc.h"
 #include "D2Common/D2StatListExStrc.h"
 #include "D2Common/DUNGEON/Dungeon.h"
 #include "D2Common/Drlg/D2DrlgActStrc.h"
@@ -23,9 +23,7 @@
 #include "D2Common/Units.h"
 #include "D2Game/D2PathTypeArg.h"
 #include "D2Game/GAME/Event.h"
-#include "D2Game/GAME/Targets.h"
 #include "D2Game/UNIT/SUnit.h"
-#include "D2Game/UNIT/SUnitInactive.h"
 #include "D2Game/UNIT/SUnitMsg.h"
 #include "Fog/D2PoolManagerStrc.h"
 #include "Fog/Fog.h"
@@ -1856,7 +1854,7 @@ BOOL DRLGPATH_CheckTargetReachable(uint32_t * pnParam, D2DynamicPathStrc * pDyna
 
 // Smooths a path by iterating through waypoints, choosing the best non-blocked direction at each step using direction triplets and collision checks. Builds a refined path with fewer unnecessary turns. Returns the waypoint count, which it also stores into pDynamicPath->dwPathPoints - the tail is MOV [ECX+0x28],EAX at 00679c71, so the count is live in EAX at the RET. PATH_FindPathToward tail-returns it for the nDirOffset case; typing this void made that caller return an uninitialised local, which reached PATH_CalculatePath as a waypoint count of ~2e9 and indexed PathPoints[] off the end.
 int32_t __fastcall DRLGPATH_SmoothPathPoints(D2PathTypeArg * pPathTypeArg) {
-    // Frame slots -56..-8 are ONE object: &nDirPrimary is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -56..-4 are ONE object: &nDirPrimary is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       uint32_t nDirPrimary;
@@ -1872,19 +1870,19 @@ int32_t __fastcall DRLGPATH_SmoothPathPoints(D2PathTypeArg * pPathTypeArg) {
       uint8_t __pad37[3];
       uint32_t nPackedDst;
       int nWaypointCount;
+      D2PathPointStrc nPackedSrc;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 48, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 52, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     bool _bWaypointAdded;
     bool _bFoundDir;
     bool bFoundDir;
     D2PathPointStrc nPackedCur;
-    D2PathPointStrc nPackedSrc;
     __frame0.pPathStrc = pPathTypeArg->pDynamicPath;
     __frame0.nMaxWaypoints = pPathTypeArg->nDistMax;
     __frame0.nWaypointCount = __frame0.pPathStrc->dwPathPoints;
-    nPackedSrc.nX = pPathTypeArg->pCoords.nOffsetX;
-    nPackedSrc.nY = pPathTypeArg->pCoords.nPosX;
+    __frame0.nPackedSrc.nX = pPathTypeArg->pCoords.nOffsetX;
+    __frame0.nPackedSrc.nY = pPathTypeArg->pCoords.nPosX;
     int nDirOffset;
     nDirOffset = __frame0.pPathStrc->nDirOffset;
     *(uint16_t*)(char*)&__frame0.nPackedDst = pPathTypeArg->pCoords.nOffsetY;
@@ -1895,13 +1893,13 @@ int32_t __fastcall DRLGPATH_SmoothPathPoints(D2PathTypeArg * pPathTypeArg) {
     if (0 < __frame0.nMaxWaypoints) {
       __frame0.pWaypointOut = __frame0.pPathStrc->PathPoints + __frame0.nWaypointCount;
       do {
-        nPackedCur = nPackedSrc;
-        if (nPackedSrc.nX == (short int)__frame0.nPackedDst && nPackedSrc.nY == *(uint16_t*)((char*)&__frame0.nPackedDst + 2)) {
+        nPackedCur = __frame0.nPackedSrc;
+        if (__frame0.nPackedSrc.nX == (short int)__frame0.nPackedDst && __frame0.nPackedSrc.nY == *(uint16_t*)((char*)&__frame0.nPackedDst + 2)) {
           goto finish_walk;
         }
 
         _bWaypointAdded = 0;
-        DRLGPATH_GetPathDirectionTripletPacked((uint32_t)d2_bits_of(nPackedSrc), __frame0.nPackedDst, (int*)&__frame0.nDirPrimary);
+        DRLGPATH_GetPathDirectionTripletPacked((uint32_t)d2_bits_of(__frame0.nPackedSrc), __frame0.nPackedDst, (int*)&__frame0.nDirPrimary);
         __frame0.nDirPrimary = __frame0.nDirPrimary + nDirOffset & 7;
         __frame0.nDirAlt1 = __frame0.nDirAlt1 + nDirOffset & 7;
         __frame0.nDirAlt2 = __frame0.nDirAlt2 + nDirOffset & 7;
@@ -1910,8 +1908,8 @@ int32_t __fastcall DRLGPATH_SmoothPathPoints(D2PathTypeArg * pPathTypeArg) {
           goto append_end_point;
         }
 
-        nPackedSrc.nY += (short int)gPathDirectionOffsetsX[__frame0.nChosenDir * 2 + 1];
-        nPackedSrc.nX += (short int)gPathDirectionOffsetsX[__frame0.nChosenDir * 2];
+        __frame0.nPackedSrc.nY += (short int)gPathDirectionOffsetsX[__frame0.nChosenDir * 2 + 1];
+        __frame0.nPackedSrc.nX += (short int)gPathDirectionOffsetsX[__frame0.nChosenDir * 2];
         if (__frame0.nChosenDir != __frame0.nPrevDir) {
           __frame0.nWaypointCount++;
           *__frame0.pWaypointOut = nPackedCur;
@@ -1931,7 +1929,7 @@ int32_t __fastcall DRLGPATH_SmoothPathPoints(D2PathTypeArg * pPathTypeArg) {
       __frame0.pPathStrc->dwPathPoints = __frame0.nWaypointCount;
       return __frame0.nWaypointCount;
       finish_walk:
-      nPackedCur = nPackedSrc;
+      nPackedCur = __frame0.nPackedSrc;
       if (!_bWaypointAdded) {
         append_end_point:
         if (__frame0.nIterCount) {
@@ -2202,60 +2200,55 @@ uint32_t __fastcall DRLGPATH_IsPositionInBounds(int32_t pThis, uint32_t nPackedP
 }
 
 // Advances a path node's direction by stepping through its direction delta table. Optionally applies a random perturbation from the seed. Used during A* node expansion.
-void DRLGPATH_AdvanceNodeDirection(int32_t nParam1, int32_t nParam2) {
-    uint32_t* pSeedState;
-    if (*(int*)(nParam2 + 0x36fd0)) {
-      int64_t lSeedNext;
-      pSeedState = *(uint32_t**)(nParam2 + 0x36fd4);
-      lSeedNext = (uint64_t)*pSeedState * 0x6ac690c5 + (uint64_t)pSeedState[1];
-      *(int64_t*)pSeedState = lSeedNext;
-      *(uint32_t*)(nParam1 + 0x10) = gnDrlgMemoryMax[(uint32_t)lSeedNext & 0x1f] + **(int**)(nParam1 + 0xc) + *(int*)(nParam1 + 0x10) & 7;
+void DRLGPATH_AdvanceNodeDirection(D2DrlgRoomAStarNodeStrc * pNode, D2DrlgAStarContextStrc * pAStarCtx) {
+    D2SeedStrc lSeedNext;
+    if (pAStarCtx->bRandomizeDirection) {
+      D2SeedStrc* pDVar1;
+      pDVar1 = pAStarCtx->pSeed;
+      lSeedNext = D2_SEED_NEXT(*pDVar1);
+      *pDVar1 = lSeedNext;
+      pNode->nDirection = gnDrlgMemoryMax[lSeedNext.nSeedLow & 0x1f] + *(int*)pNode->pSeedPtr + pNode->nDirection & 7;
       return;
     }
 
-    *(uint32_t*)(nParam1 + 0x10) = **(int**)(nParam1 + 0xc) + *(int*)(nParam1 + 0x10) & 7;
+    pNode->nDirection = *(int*)pNode->pSeedPtr + pNode->nDirection & 7;
 }
 
 // Advances through a chain of path nodes, incrementing their visit count and updating their direction. When a node reaches visit count 5, moves to its parent. Returns the current node or 0 when the root is reached.
-int32_t __stdcall DRLGPATH_AdvancePathNodeChain(::SGAMEDATA * pnParam, int32_t nParam) {
-    int64_t lSeedNext;
-    D2MonsterRegionStrc* pSeedRng;
-    uint32_t uSeedWord;
-    if (*(short int*)(nParam + 6) < 4) {
-      *(int*)(nParam + 0xc) += 4;
-      DRLGPATH_AdvanceNodeDirection(nParam, (int32_t)pnParam);
+D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AdvancePathNodeChain(D2DrlgAStarContextStrc * pAStarCtx, D2DrlgRoomAStarNodeStrc * pNode) {
+    D2SeedStrc* pDVar1;
+    D2SeedStrc lSeedNext;
+    if (pNode->nFlags < 4) {
+      pNode->pSeedPtr = (void*)((int)pNode->pSeedPtr + 4);
+      DRLGPATH_AdvanceNodeDirection(pNode, pAStarCtx);
     }
 
-    (*(short int*)(nParam + 6))++;
-    short int nVisitCountW = *(short int*)(nParam + 6);
+    pNode->nFlags++;
+    short int nVisitCountW = pNode->nFlags;
     while (true) {
       if (nVisitCountW != 5) {
-        return nParam;
+        return pNode;
       }
-      if (nParam == pnParam->m_hashval) {
+      if (pNode == pAStarCtx->pOpenListHead) {
         break;
       }
 
-      nParam = *(uint32_t*)(nParam + 0x14);
-      *(int*)(nParam + 0xcU) += 4;
-      if (!pnParam[0x1d].pMonsterRegion[0x28f]) {
-        *(uint32_t*)(nParam + 0x10) = *(int*)(nParam + 0x10) + **(int**)(nParam + 0xc) & 7;
+      pNode = (D2DrlgRoomAStarNodeStrc*)pNode->pParent;
+      pNode->pSeedPtr = (void*)((int)pNode->pSeedPtr + 4);
+      if (!pAStarCtx->bRandomizeDirection) {
+        pNode->nDirection = pNode->nDirection + *(int*)pNode->pSeedPtr & 7;
       } else {
-        pSeedRng = pnParam[0x1d].pMonsterRegion[0x290];
-        *(uint8_t*)(char*)&uSeedWord = pSeedRng->nAct;
-        *(uint8_t*)((char*)&uSeedWord + 1) = pSeedRng->pad_0x1[0];
-        *(uint8_t*)((char*)&uSeedWord + 2) = pSeedRng->pad_0x1[1];
-        *(uint8_t*)((char*)&uSeedWord + 3) = pSeedRng->pad_0x1[2];
-        lSeedNext = (uint64_t)uSeedWord * 0x6ac690c5 + (uint64_t)(uint32_t)pSeedRng->nRoomsCount;
-        *(int64_t*)pSeedRng = lSeedNext;
-        *(uint32_t*)(nParam + 0x10) = gnDrlgMemoryMax[(uint32_t)lSeedNext & 0x1f] + **(int**)(nParam + 0xc) + *(int*)(nParam + 0x10) & 7;
+        pDVar1 = pAStarCtx->pSeed;
+        lSeedNext = D2_SEED_NEXT(*pDVar1);
+        *pDVar1 = lSeedNext;
+        pNode->nDirection = gnDrlgMemoryMax[lSeedNext.nSeedLow & 0x1f] + *(int*)pNode->pSeedPtr + pNode->nDirection & 7;
       }
 
-      (*(short int*)(nParam + 6U))++;
-      nVisitCountW = *(short int*)(nParam + 6);
+      pNode->nFlags++;
+      nVisitCountW = pNode->nFlags;
     }
 
-    return 0;
+    return nullptr;
 }
 
 // Extracts a path from an A* search result by walking parent pointers from the destination node back to the source. Stores the packed coordinates as waypoints (up to 77). Returns the number of waypoints.
@@ -2324,26 +2317,16 @@ int32_t __fastcall DRLGPATH_FindPathAStar(D2DrlgRoomCoordsStrc * pRoomCoords, D2
     int32_t nErrorAddr;
     uint32_t nCostLimit;
     uint32_t nInitCostClamped;
-    short int* pExpandResult;
-    short int aNodePool[12600];
-    int nExpandResult;
-    uint8_t aGridCells[200008];
+    D2DrlgRoomAStarNodeStrc* pFoundNode;
+    D2DrlgAStarContextStrc* pDVar1;
+    D2DrlgAStarContextStrc sAStarCtx;
     __frame0.nCostMax = 0x67aaad;
     if (50000 < pRoomCoords->dwXSize * pRoomCoords->dwYSize) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x171);
       exit(-1);
     }
 
-    memset(aGridCells, 0, (pRoomCoords->dwXSize + 6) * (pRoomCoords->dwYSize + 6) * 4);
-    uint16_t nGridYStart = (uint16_t)pRoomCoords->dwYStart;
-    uint16_t nGridXStartOrig = (uint16_t)pRoomCoords->dwXStart;
-    uint16_t nGridXEnd = (uint16_t)pRoomCoords->dwXSize;
-    short int nGridHeight = (short int)pRoomCoords->dwYSize;
-    short int nGridXStart = nGridXEnd + nGridXStartOrig;
-    int nGridWidth = nGridXEnd + 6;
-    int nGridOffsetX = 3 - (uint32_t)nGridXStartOrig;
-    short int nGridYEnd = nGridHeight + nGridYStart;
-    int nGridOffsetY = 3 - (uint32_t)nGridYStart;
+    memset(sAStarCtx.aGridCells, 0, (pRoomCoords->dwXSize + 6) * (pRoomCoords->dwYSize + 6) * 4);
     *(uint16_t*)(char*)&__frame0.nPackedSrc = pPathTypeArg->pCoords.nOffsetX;
     *(uint16_t*)((char*)&__frame0.nPackedSrc + 2) = pPathTypeArg->pCoords.nPosX;
     *(uint16_t*)(char*)&nCostLimit = pPathTypeArg->pCoords.nOffsetY;
@@ -2371,8 +2354,6 @@ int32_t __fastcall DRLGPATH_FindPathAStar(D2DrlgRoomCoordsStrc * pRoomCoords, D2
     __frame0.nInitialDir = nCostLimit & 7;
     __frame0.nNodePoolCount = 0;
     __frame0.nOpenListCount = 0;
-    memset(aNodePool, 0, 14 * sizeof(aNodePool[0]));
-    short int* pOpenListHead = aNodePool;
     nCostLimit = (uint32_t)(short int)wInitialHCost;
     __frame0.pSeedRef = gnDrlgLevelSeed;
     __frame0.nCostMax = nCostLimit;
@@ -2395,25 +2376,25 @@ int32_t __fastcall DRLGPATH_FindPathAStar(D2DrlgRoomCoordsStrc * pRoomCoords, D2
 
     do {
       uint16_t* pNodeInitSrc;
-      nExpandResult = 1;
       pNodeInitSrc = &__frame0.nHCostThreshold;
-      pExpandResult = pOpenListHead;
-      for (nPathLength = 7; nPathLength; nPathLength--) {
-        *(uint32_t*)pExpandResult = *(uint32_t*)pNodeInitSrc;
+      pDVar1 = &sAStarCtx;
+      for (nPathLength = 7; pDVar1 = (D2DrlgAStarContextStrc*)pDVar1->aNodes , nPathLength != 0; nPathLength--) {
+        wInitialHCost = pNodeInitSrc[1];
+        ((D2DrlgRoomAStarNodeStrc*)pDVar1)->nFCost = pNodeInitSrc[0];
+        ((D2DrlgRoomAStarNodeStrc*)pDVar1)->nHCost = wInitialHCost;
         pNodeInitSrc += 2;
-        pExpandResult += 2;
       }
 
-      pExpandResult = DRLGPATH_AStarExpandNode(nCostLimit, pPathTypeArg, &pOpenListHead);
+      pFoundNode = DRLGPATH_AStarExpandNode(nCostLimit, pPathTypeArg, &sAStarCtx);
       nCostLimit += 5;
-    } while ((pExpandResult || nExpandResult != 900) && (nExpandResult = 1 , !pExpandResult) && (int)nCostLimit < (int)__frame0.nCostMax);
+    } while ((pFoundNode || true) && !pFoundNode && (int)nCostLimit < (int)__frame0.nCostMax);
 
     nErrorAddr = 0;
-    if (!pExpandResult) {
+    if (!pFoundNode) {
       return nErrorAddr;
     }
 
-    nErrorAddr = DRLGPATH_ExtractPathFromResult((int32_t)pPathTypeArg, (int32_t)pExpandResult);
+    nErrorAddr = DRLGPATH_ExtractPathFromResult((int32_t)pPathTypeArg, (int32_t)pFoundNode);
     if (0x4d >= nErrorAddr) {
       return nErrorAddr;
     }

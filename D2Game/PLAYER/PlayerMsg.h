@@ -603,6 +603,16 @@ struct __attribute__((packed)) D2GSPacketSrv0x26 {
     /* 0x1A */ char szMessage[256];
 };
 
+struct __attribute__((packed)) D2Packet0x5aEventStructure {
+    /* 0x00 */ uint8_t nPacketId;
+    /* 0x01 */ uint8_t nMessageType;
+    /* 0x02 */ uint8_t nColor;
+    /* 0x03 */ uint32_t nArg;
+    /* 0x07 */ uint8_t nArgTypes;
+    /* 0x08 */ char szName1[16];
+    /* 0x18 */ char szName2[16];
+};
+
 struct D2WarpChanceStrc {
     D2WarpChanceStrc() = default;
     D2WarpChanceStrc(uint64_t v) { *reinterpret_cast<uint64_t*>(this) = v; }
@@ -621,7 +631,7 @@ void __fastcall UpgradeLifeAndHitClass(struct D2UnitStrc * pUnit, struct D2Clien
 void __fastcall SendReassignPlayer(struct D2UnitStrc * pUnitStrc, struct D2ClientStrc * pClient, uint8_t bParam);
 // Broadcasts the player's current skill cast to nearby clients. If the skill has a valid target unit visible to the client, sends packet 0x4C (target-entity cast). Otherwise sends packet 0x4D (XY cast) using the caster's SP1 path coordinates. Skips if the skill has flag bit 2 set and the caster is the client's own player unit.
 // @sourcefile .\PLAYER\PlrMsg.cpp
-void __fastcall SendUnitCast0x4d(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2ClientStrc * pClient, ::SGAMEDATA * pGameParam, int32_t nCastParam);
+void __fastcall SendUnitCast0x4d(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2ClientStrc * pClient, ::SGAMEDATA * pGameParam);
 // Sends the appropriate movement packet to pClient for pUnit's current move-mode (index nModeIndex into gaPlayerModeNetMsgTable). If pUnit has a target entity visible to the client, sends 0x10 (CharToObj); otherwise sends 0x0F (PlayerMove) with the unit's current tile position and path sub-step target coordinates. Skips self-movement (pUnit == client's own player).
 void __fastcall SendPlayerMoveOrObject(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2ClientStrc * pClient, int32_t nModeIndex);
 void __fastcall SendPlayerMove(::SGAMEDATA * pGame, struct D2UnitStrc * pUnitRaw, struct D2ClientStrc * pClient, int32_t nModeIndex);
@@ -762,7 +772,7 @@ BOOL __stdcall CHAT_IsInteractingWithOtherPlayer(struct D2UnitStrc * pUnit, ::SG
 void __fastcall CHAT_BroadcastToClient(struct D2ClientStrc * pClient, char * * pContext);
 // ForEachClient callback for whisper delivery. Compares each client's character name to the target name. If matched and not squelched, delivers whisper via 0x26 packet and sets g_bWhisperDelivered=1. If matched but squelched, sets g_bWhisperSquelched=1.
 void __fastcall CHAT_DeliverWhisper(struct D2ClientStrc * pClient, char * * pContext);
-void __fastcall NET_D2GS_SERVER_Send_0x26_Chat(struct D2ClientStrc * pClient, char * szText);
+void __fastcall NET_D2GS_SERVER_Send_0x26_Chat(struct D2ClientStrc * pClient, struct D2GSPacketSrv0x26 * pPacket);
 // C->S 0x15 Chat/Whisper (variable size)
 // [op:1][msgId:1][msgType:1][locale:1][msg:str][target:str]
 // Parses into D2ChatMessage, routes by target name presence:

@@ -114,7 +114,7 @@ int __stdcall OOG_PollMCPCharLogonPump(int nFrameIndex) {
 
 // Opens a URL in the default system browser by querying registry for .html file association. Reads "SOFTWARE\\Classes\\.html" to get file type, then reads "SOFTWARE\\Classes\\{type}\\shell\\open\\command" to get the command line. Appends the URL to the command string, creates a process via CreateProcessA with NORMAL_PRIORITY_CLASS flag, and closes process handles. Shows error dialog (locale 5340) if registry lookup fails. Uses 1024-byte buffers for registry paths and 1025-byte buffer for final command line construction.
 int __stdcall OOGUTIL_OpenBrowserWithURL(D2ControlMsg * pControlMsg) {
-    // Frame slots -5216..-96 are ONE object: &szFileType is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -5216..-12 are ONE object: &szFileType is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       uint8_t szFileType;
@@ -122,15 +122,15 @@ int __stdcall OOGUTIL_OpenBrowserWithURL(D2ControlMsg * pControlMsg) {
       char szRegistryCommandPath[1024];
       char szRegistryKeyPath[1023];
       char szCommandLineBuffer[1025];
+      _STARTUPINFOA sStartupInfo;
+      _PROCESS_INFORMATION sProcessInfo;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 5120, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 5204, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     uint32_t nCopyCount;
     char* pcCopySrc;
     char* pcScan;
     char* pcCopyDst;
-    _STARTUPINFOA sStartupInfo;
-    _PROCESS_INFORMATION sProcessInfo;
     LPDWORD dwBytesRead;
     char cChar;
     int local_8;
@@ -186,12 +186,12 @@ int __stdcall OOGUTIL_OpenBrowserWithURL(D2ControlMsg * pControlMsg) {
           pcCopyDst++;
         }
 
-        Storm::Source::SSystem::SMemZero(&sStartupInfo, 0x44);
-        /* LPPROCESS_INFORMATION lpProcessInformation for CreateProcessA */ /* LPSTARTUPINFOA lpStartupInfo for CreateProcessA */ /* LPCSTR lpCurrentDirectory for CreateProcessA */ /* LPVOID lpEnvironment for CreateProcessA */ /* DWORD dwCreationFlags for CreateProcessA */ /* BOOL bInheritHandles for CreateProcessA */ /* LPSECURITY_ATTRIBUTES lpThreadAttributes for CreateProcessA */ /* LPSECURITY_ATTRIBUTES lpProcessAttributes for CreateProcessA */ /* LPSTR lpCommandLine for CreateProcessA */ /* LPCSTR lpApplicationName for CreateProcessA */ sStartupInfo.cb = 0x44;
-        bCreated = CreateProcessA((LPCSTR)0x0, __frame0.szCommandLineBuffer + 1, (LPSECURITY_ATTRIBUTES)0x0, (LPSECURITY_ATTRIBUTES)0x0, 0, 0x20, (LPVOID)0x0, (LPCSTR)0x0, &sStartupInfo, &sProcessInfo);
+        Storm::Source::SSystem::SMemZero(&__frame0.sStartupInfo, 0x44);
+        /* LPPROCESS_INFORMATION lpProcessInformation for CreateProcessA */ /* LPSTARTUPINFOA lpStartupInfo for CreateProcessA */ /* LPCSTR lpCurrentDirectory for CreateProcessA */ /* LPVOID lpEnvironment for CreateProcessA */ /* DWORD dwCreationFlags for CreateProcessA */ /* BOOL bInheritHandles for CreateProcessA */ /* LPSECURITY_ATTRIBUTES lpThreadAttributes for CreateProcessA */ /* LPSECURITY_ATTRIBUTES lpProcessAttributes for CreateProcessA */ /* LPSTR lpCommandLine for CreateProcessA */ /* LPCSTR lpApplicationName for CreateProcessA */ __frame0.sStartupInfo.cb = 0x44;
+        bCreated = CreateProcessA((LPCSTR)0x0, __frame0.szCommandLineBuffer + 1, (LPSECURITY_ATTRIBUTES)0x0, (LPSECURITY_ATTRIBUTES)0x0, 0, 0x20, (LPVOID)0x0, (LPCSTR)0x0, &__frame0.sStartupInfo, &__frame0.sProcessInfo);
         if (bCreated) {
-          /* HANDLE hObject for CloseHandle */ CloseHandle(sProcessInfo.hThread);
-          /* HANDLE hObject for CloseHandle */ CloseHandle(sProcessInfo.hProcess);
+          /* HANDLE hObject for CloseHandle */ CloseHandle(__frame0.sProcessInfo.hThread);
+          /* HANDLE hObject for CloseHandle */ CloseHandle(__frame0.sProcessInfo.hProcess);
           local_8 = 1;
           goto report_click_result;
         }
@@ -996,6 +996,7 @@ uint32_t OOGUTIL_HandleReplyCommand(char * szText1, char * szText2) {
 }
 
 void __fastcall OOGUTIL_HandleChatCommands(char * szText) {
+    char* pcVar1;
     bool bCmdResult;
     ::IgnoreList* ppIgnoreListThis;
     uint16_t* pwszMsg;
@@ -1005,9 +1006,7 @@ void __fastcall OOGUTIL_HandleChatCommands(char * szText) {
     uint16_t wszFormatBuffer[520];
     char szArgBuffer[260];
     uint16_t wszNameWide[34];
-    char szChannelName[12];
-    char szTargetPlayerName;
-    char acStack_17[19];
+    char szChannelName[32];
     IgnoreListVtable* pvVar1;
     ChatDlg::CHATDLG_AppendChatToHistory(szText);
     uint32_t nHandled;
@@ -1054,15 +1053,16 @@ void __fastcall OOGUTIL_HandleChatCommands(char * szText) {
       Fog::File::CONTAINER_InitializeBuffer(wszFormatBuffer, 2, 0x208, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
       Fog::File::CONTAINER_InitializeBuffer(wszOutputBuffer, 2, 0x208, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
       Fog::File::CONTAINER_InitializeBuffer(wszNameWide, 2, 0x22, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
-      ChatDlg::CHATDLG_ParseCommandArgument(0x11, szText, &szTargetPlayerName);
-      nCmdMatch = Storm::Source::SSTR::SStrCmpI(acStack_17, D2IniData_multiplayer->szLastBnetAccount, 0x7fffffff);
+      pcVar1 = szChannelName + 0xc;
+      ChatDlg::CHATDLG_ParseCommandArgument(0x11, szText, pcVar1);
+      nCmdMatch = Storm::Source::SSTR::SStrCmpI(szChannelName + 0xd, D2IniData_multiplayer->szLastBnetAccount, 0x7fffffff);
       if (!nCmdMatch) {
         return;
       }
 
-      D2Lang::UTF8_ConvertToWideChar(wszNameWide, &szTargetPlayerName, 0x22);
+      D2Lang::UTF8_ConvertToWideChar(wszNameWide, pcVar1, 0x22);
       ppIgnoreListThis = D2Common::Chat::Ignorelist::MISC_GetIgnorelist();
-      nCmdMatch = ppIgnoreListThis->_vfptr->AddByPattern(ppIgnoreListThis, &szTargetPlayerName);
+      nCmdMatch = ppIgnoreListThis->_vfptr->AddByPattern(ppIgnoreListThis, pcVar1);
       if (nCmdMatch) {
         pwszMsg = wszNameWide;
         pwszFmtTemplate = D2Lang::StrTable::strtable::GetLocaleString(0x2ba3);
@@ -1140,10 +1140,11 @@ void __fastcall OOGUTIL_HandleChatCommands(char * szText) {
       Fog::File::CONTAINER_InitializeBuffer(wszFormatBuffer, 2, 0x208, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
       Fog::File::CONTAINER_InitializeBuffer(wszOutputBuffer, 2, 0x208, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
       Fog::File::CONTAINER_InitializeBuffer(wszNameWide, 2, 0x22, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
-      ChatDlg::CHATDLG_ParseCommandArgument(0x11, szText, &szTargetPlayerName);
-      D2Lang::UTF8_ConvertToWideChar(wszNameWide, &szTargetPlayerName, 0x22);
+      pcVar1 = szChannelName + 0xc;
+      ChatDlg::CHATDLG_ParseCommandArgument(0x11, szText, pcVar1);
+      D2Lang::UTF8_ConvertToWideChar(wszNameWide, pcVar1, 0x22);
       ppIgnoreListThis = D2Common::Chat::Ignorelist::MISC_GetIgnorelist();
-      nCmdMatch = ppIgnoreListThis->_vfptr->RemoveByPattern(ppIgnoreListThis, &szTargetPlayerName);
+      nCmdMatch = ppIgnoreListThis->_vfptr->RemoveByPattern(ppIgnoreListThis, pcVar1);
       if (nCmdMatch) {
         pwszMsg = wszNameWide;
         pwszFmtTemplate = D2Lang::StrTable::strtable::GetLocaleString(0x2ba5);

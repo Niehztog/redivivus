@@ -62,6 +62,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA4Q3Strc) == 0x20, "D2_NEW(D2QuestDataA4Q3Strc): the 32-bit layout must be the 0x20 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpExecuteOnUnitFunction
 #define RECON_FPTD_fpExecuteOnUnitFunction
@@ -860,7 +870,7 @@ void __fastcall Q28_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->sStateFunctions.fpQuestStateHandler[9] = Q28_DecrementHellforgeWeaponCount;
     pQuestData->sStateFunctions.fpQuestStateHandler[8] = Q28_Callback08_MonsterKilled;
     pQuestData->sStateFunctions.fpQuestStateHandler[4] = Q28_Callback04_ItemPickedUp;
-    D2QuestDataA4Q3Strc* pQuestSpecificData = (D2QuestDataA4Q3Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x20, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a4q3.cpp", 0x358, 0);
+    D2QuestDataA4Q3Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA4Q3Strc);
     pQuestData->pQuestSpecificData.pA4Q3 = pQuestSpecificData;
     pQuestSpecificData->nForgeStage = 0;
     pQuestSpecificData->field_0x01 = 0;

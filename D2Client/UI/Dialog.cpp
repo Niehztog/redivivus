@@ -28,6 +28,22 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DialogSubStrc) == 0x8, "D2_NEW(D2DialogSubStrc): the 32-bit layout must be the 0x8 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DialogStrc) == 0xb10, "D2_NEW(D2DialogStrc): the 32-bit layout must be the 0xb10 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpDialogFunc
 #define RECON_FPTD_fpDialogFunc
@@ -455,7 +471,7 @@ void __stdcall INPUT_DialogPageDown(D2UIMouseMsgStrc * pMsg) {
     }
 }
 
-int DIALOG_HandleEnterKeyEvent(void * pDialog, uint32_t nKeyCode, uint32_t nParam, void * pDialogStack) {
+int DIALOG_HandleEnterKeyEvent(void * pDialog, uint32_t nKeyCode) {
     uint16_t uVar1;
     if (*(int*)((int)pDialog + 0x20)) {
       return 0;
@@ -482,7 +498,7 @@ int DIALOG_HandleEnterKeyEvent(void * pDialog, uint32_t nKeyCode, uint32_t nPara
     return 1;
 }
 
-void __stdcall INPUT_DialogEnterKey(D2UIMouseMsgStrc * pMsg, void * pDialogCtx, uint32_t nKeyCode) {
+void __stdcall INPUT_DialogEnterKey(D2UIMouseMsgStrc * pMsg) {
     int32_t* pCallbackParam;
     fpDialogFunc pfnCallback;
     pMsg->bHandled = 1;
@@ -497,7 +513,7 @@ void __stdcall INPUT_DialogEnterKey(D2UIMouseMsgStrc * pMsg, void * pDialogCtx, 
       return;
     }
 
-    int iSelectedLine = DIALOG_HandleEnterKeyEvent(gpDialogActual, 0xd, (uint32_t)pDialogCtx, (void*)nKeyCode);
+    int iSelectedLine = DIALOG_HandleEnterKeyEvent(gpDialogActual, 0xd);
     if (iSelectedLine) {
       return;
     }
@@ -529,7 +545,7 @@ void __stdcall INPUT_DialogEnterKey(D2UIMouseMsgStrc * pMsg, void * pDialogCtx, 
     }
 }
 
-void __stdcall INPUT_DialogKeyHandler(D2UIMouseMsgStrc * pMsg, void * pDialogCtx, uint32_t nKeyCode) {
+void __stdcall INPUT_DialogKeyHandler(D2UIMouseMsgStrc * pMsg) {
     int iResult;
     D2DialogSubStrc* pDialogSub;
     D2DialogStrc* pDialog = gpDialogActual;
@@ -549,13 +565,12 @@ void __stdcall INPUT_DialogKeyHandler(D2UIMouseMsgStrc * pMsg, void * pDialogCtx
       }
     }
 
-    void* pKeyTarget = (void*)pMsg->nWParam;
-    iResult = DIALOG_HandleEnterKeyEvent(pDialog, (uint32_t)pKeyTarget, nKeyCode, pDialogCtx);
+    iResult = DIALOG_HandleEnterKeyEvent(pDialog, pMsg->nWParam);
     if (iResult) {
       return;
     }
     if (pMsg->nWParam == 0xd) {
-      INPUT_DialogEnterKey(pMsg, pKeyTarget, (uint32_t)pMsg);
+      INPUT_DialogEnterKey(pMsg);
       return;
     }
     if (pMsg->nWParam == 0x1b) {
@@ -593,7 +608,7 @@ void __stdcall DIALOG_CleanupSystem() {
 
     while (pDialogNode) {
       pNextDialog = pDialogNode->pPrev;
-      Fog::Memory::FreeClientMemory(pDialogNode, ".\\UI\\dialog.cpp", 0x333, 0);
+      D2_FREE(pDialogNode);
       pDialogNode = pNextDialog;
     }
 
@@ -607,7 +622,7 @@ void __fastcall AllocDialogSub(D2DialogStrc * pDialog, void * pVtable, int32_t n
     }
 
     D2DialogSubStrc* pPrevSub = pDialog->pDialogSub;
-    D2DialogSubStrc* pNewSub = (D2DialogSubStrc*)Fog::Memory::AllocClientMemory(8, ".\\UI\\dialog.cpp", 0x359, 0);
+    D2DialogSubStrc* pNewSub = D2_NEW(D2DialogSubStrc);
     pDialog->pDialogSub = pNewSub;
     pNewSub->pNext = pPrevSub;
     pDialog->pDialogSub->pWidget = (UIWidget*)pVtable;
@@ -653,7 +668,7 @@ D2DialogStrc * __fastcall AllocDialogStrcWithBackground(int32_t nX, int32_t nY, 
     }
 
     gnDialogCounter_b++;
-    D2DialogStrc* pDialog = (D2DialogStrc*)Fog::Memory::AllocClientMemory(0xb10, ".\\UI\\dialog.cpp", 0x396, 0);
+    D2DialogStrc* pDialog = D2_NEW(D2DialogStrc);
     memset(pDialog, 0, 0xb10);
     pDialog->pPrev = gpDialogActual;
     gpDialogActual = pDialog;
@@ -728,7 +743,7 @@ D2DialogStrc * __fastcall AllocDialogStrc(int32_t nX, int32_t nY, fpDialogFunc f
     }
 
     gnDialogCounter_b++;
-    D2DialogStrc* pDialog = (D2DialogStrc*)Fog::Memory::AllocClientMemory(0xb10, ".\\UI\\dialog.cpp", 999, 0);
+    D2DialogStrc* pDialog = D2_NEW(D2DialogStrc);
     memset(pDialog, 0, 0xb10);
     pDialog->pPrev = gpDialogActual;
     gpDialogActual = pDialog;
@@ -800,7 +815,7 @@ void __stdcall FreeDialogStrc() {
       pSubNode = gpDialogActual->pDialogSub;
       while (pSubNode) {
         pNextSub = pSubNode->pNext;
-        Fog::Memory::FreeClientMemory(pSubNode, ".\\UI\\dialog.cpp", 0x425, 0);
+        D2_FREE(pSubNode);
         pSubNode = pNextSub;
       }
 
@@ -809,7 +824,7 @@ void __stdcall FreeDialogStrc() {
       }
 
       pPrevDialogNode = pCurrentDialog->pPrev;
-      Fog::Memory::FreeClientMemory(pCurrentDialog, ".\\UI\\dialog.cpp", 0x430, 0);
+      D2_FREE(pCurrentDialog);
       gpDialogActual = pPrevDialogNode;
       return;
     }

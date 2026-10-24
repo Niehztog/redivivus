@@ -66,8 +66,15 @@ int32_t __stdcall SKILLITEMS_GetDispatchTableRange(int32_t pDispatchTable, int32
     return 0;
 }
 
-void __stdcall SKILLITEMS_NoOp(int32_t nParam) {
+// Returns max(nValue * nPercent / 100, nMinimum): nValue in EAX, nMinimum in ESI, nPercent on the stack (RET 4); the throw-damage scaling of the crude-quality item mods. Was named SKILLITEMS_NoOp.
+int32_t __stdcall SKILLITEMS_ApplyPercentWithMinimum(int32_t nValue, int32_t nMinimum, int32_t nPercent) {
+    int iVar1 = nValue * nPercent / 100;
+    if (iVar1 >= nMinimum) {
+      return iVar1;
+    }
 
+    iVar1 = nMinimum;
+    return iVar1;
 }
 
 // Rolls 1-3 staff mod skills. Classic: tier-based (5 skills per tier). Expansion: type-restricted (skill.itypea1 must match item). Skill level: [1, 3]. Applies via STATLIST_AddStatValue(UNITSTAT_item_singleskill).
@@ -1787,8 +1794,7 @@ BOOL __fastcall ITEMMOD_ApplyCrudeQuality(D2UnitStrc * pUnit) {
     uint32_t nClassId;
     int32_t nStatValue;
     int nScaledStat;
-    int32_t nScaledValue;
-    uint32_t nDurabilityThird;
+    int32_t iVar1;
     BOOL bResult;
     eD2UnitStat eUnitStat;
     uint32_t* pnLowQualCount = (uint32_t*)D2Common::DATATBLS::ItemTbls::TXT_LowQualityItems_GetTableInfo();
@@ -1808,6 +1814,7 @@ BOOL __fastcall ITEMMOD_ApplyCrudeQuality(D2UnitStrc * pUnit) {
     D2Common::ITEMS::Items::ITEM_SetItemData_nFileIndex(pUnit, nClassId);
     nClassId = D2Common::ITEMS::Items::ITEM_CheckIfItemHasDurability(pUnit);
     if (nClassId) {
+      uint32_t nDurabilityThird;
       if (!pUnit) {
         nClassId = -1;
       } else {
@@ -1847,7 +1854,6 @@ BOOL __fastcall ITEMMOD_ApplyCrudeQuality(D2UnitStrc * pUnit) {
 
       eUnitStat = UNITSTAT_armorclass;
     } else {
-      int32_t nValue;
       nStatValue = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_maxdamage, 0);
       nScaledStat = nStatValue * 0x4b / 100;
       if (nScaledStat < 2) {
@@ -1881,15 +1887,14 @@ BOOL __fastcall ITEMMOD_ApplyCrudeQuality(D2UnitStrc * pUnit) {
         return 1;
       }
 
-      nStatValue = 0x4b;
-      D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_throw_mindamage, 0);
-      SKILLITEMS_NoOp(nStatValue);
-      D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_item_throw_mindamage, nValue, 0);
-      nStatValue = 0x4b;
-      D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_throw_maxdamage, 0);
-      SKILLITEMS_NoOp(nStatValue);
+      iVar1 = 0x4b;
+      nStatValue = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_throw_mindamage, 0);
+      nStatValue = SKILLITEMS_ApplyPercentWithMinimum(nStatValue, 2, iVar1);
+      D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_item_throw_mindamage, nStatValue, 0);
+      iVar1 = 0x4b;
+      nStatValue = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_throw_maxdamage, 0);
+      nScaledStat = SKILLITEMS_ApplyPercentWithMinimum(nStatValue, 1, iVar1);
       eUnitStat = UNITSTAT_item_throw_maxdamage;
-      nScaledStat = nScaledValue;
     }
 
     D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, eUnitStat, nScaledStat, 0);
@@ -1901,8 +1906,7 @@ BOOL __fastcall ITEMMOD_ApplyCrudeQualityClassic(D2UnitStrc * pUnit, D2ItemGenCo
     uint32_t nClassId;
     int32_t nStatValue;
     int nScaledStat;
-    int32_t nScaledValue;
-    uint32_t nDurabilityThird;
+    int32_t iVar1;
     eD2UnitStat eUnitStat;
     uint32_t* pnLowQualCount;
     pnLowQualCount = (uint32_t*)D2Common::DATATBLS::ItemTbls::TXT_LowQualityItems_GetTableInfo();
@@ -1926,6 +1930,7 @@ BOOL __fastcall ITEMMOD_ApplyCrudeQualityClassic(D2UnitStrc * pUnit, D2ItemGenCo
     bResult = 0;
     nClassId = D2Common::ITEMS::Items::ITEM_CheckIfItemHasDurability(pUnit);
     if (nClassId) {
+      uint32_t nDurabilityThird;
       if (!pUnit) {
         nClassId = -1;
       } else {
@@ -1966,7 +1971,6 @@ BOOL __fastcall ITEMMOD_ApplyCrudeQualityClassic(D2UnitStrc * pUnit, D2ItemGenCo
       eUnitStat = UNITSTAT_armorclass;
       D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, eUnitStat, nScaledStat, 0);
     } else {
-      int32_t nValue;
       nStatValue = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_maxdamage, 0);
       nScaledStat = nStatValue * 0x4b / 100;
       if (nScaledStat < 2) {
@@ -1997,15 +2001,14 @@ BOOL __fastcall ITEMMOD_ApplyCrudeQualityClassic(D2UnitStrc * pUnit, D2ItemGenCo
       D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_secondary_mindamage, nScaledStat, 0);
       nStatValue = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_throwable(pUnit);
       if (nStatValue) {
-        nStatValue = 0x4b;
-        D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_throw_mindamage, 0);
-        SKILLITEMS_NoOp(nStatValue);
-        D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_item_throw_mindamage, nValue, 0);
-        nStatValue = 0x4b;
-        D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_throw_maxdamage, 0);
-        SKILLITEMS_NoOp(nStatValue);
+        iVar1 = 0x4b;
+        nStatValue = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_throw_mindamage, 0);
+        nStatValue = SKILLITEMS_ApplyPercentWithMinimum(nStatValue, 2, iVar1);
+        D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_item_throw_mindamage, nStatValue, 0);
+        iVar1 = 0x4b;
+        nStatValue = D2Common::Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_throw_maxdamage, 0);
+        nScaledStat = SKILLITEMS_ApplyPercentWithMinimum(nStatValue, 1, iVar1);
         eUnitStat = UNITSTAT_item_throw_maxdamage;
-        nScaledStat = nScaledValue;
         D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, eUnitStat, nScaledStat, 0);
       }
     }

@@ -22,6 +22,24 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2TaskQueueSlotStrc) == 0x18, "D2_NEW(D2TaskQueueSlotStrc): the 32-bit layout must be the 0x18 bytes 1.14d allocates");
+
 
 namespace D2Game::GAME::Task {
 
@@ -375,7 +393,7 @@ void __stdcall TASK_GameTickCallback(uint32_t nParam, D2TaskNodeStrc * pTaskNode
 
       TASK_UnlinkTaskFromList(pSlotLink);
       TASK_LinkTaskToList(&gsTaskQueueListHead, pSlotLink);
-      Fog::Memory::FreeClientMemory(pTaskNode, ".\\GAME\\Task.cpp", 0x309, 0);
+      D2_FREE(pTaskNode);
     }
 
     gnTaskQueueTailIndex--;
@@ -401,7 +419,7 @@ void __stdcall TASK_FreeAllSlots() {
 
         pSlotLink->pNext->pPrev = pSlot->sSlotLink.pPrev;
         pSlot->sSlotLink.pPrev->pNext = pSlotLink->pNext;
-        Fog::Memory::FreeServerMemory(nullptr, (void*)gaTaskQueueHeadArray[nSlotOffset], ".\\GAME\\Task.cpp", 0x330, 0);
+        D2_FREE_POOL(nullptr, (void*)gaTaskQueueHeadArray[nSlotOffset]);
         *(uint32_t*)&gaTaskQueueHeadArray[nSlotOffset] = 0;
       }
 
@@ -429,7 +447,7 @@ uint32_t __stdcall TASK_AllocateTaskQueue() {
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(aTaskQueueCriticalSections + nSlotIndex);
     if (!gaTaskQueueHeadArray[nSlotIndex]) {
       D2LinkNodeStrc* pDVar1;
-      pNewSlot = (D2TaskQueueSlotStrc*)Fog::Memory::AllocServerMemory(nullptr, 0x18, ".\\GAME\\Task.cpp", 0x3fb, 0);
+      pNewSlot = D2_NEW_POOL(nullptr, D2TaskQueueSlotStrc);
       pNewSlot->nSlotIndex = nSlotIndex;
       pNewSlot->nTaskCount = 0;
       pDVar1 = &pNewSlot->sTaskList;

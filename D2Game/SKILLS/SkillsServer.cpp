@@ -97,6 +97,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitFindDataStrc) == 0x2c, "D2_NEW(D2UnitFindDataStrc): the 32-bit layout must be the 0x2c bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnSkillNoTargetCb
 #define RECON_FPTD_pfnSkillNoTargetCb
@@ -830,7 +844,7 @@ uint32_t __fastcall SKILL_CheckManaForCast(D2UnitStrc * pUnit) {
 // @sourcefile .\SKILLS\Skills.cpp
 D2UnitFindDataStrc * __fastcall SKILLS_FindUnitsInRange(int32_t nParam1, D2UnitStrc * pUnit, int32_t nRange, int32_t nX, int32_t nY) {
     D2UnitFindArgStrc sUnitFindArg;
-    D2UnitFindDataStrc* pUnitFindData = (D2UnitFindDataStrc*)Fog::Memory::AllocServerMemory(*(D2PoolManagerStrc**)(nParam1 + 0x1c), 0x2c, ".\\SKILLS\\Skills.cpp", 1099, 0);
+    D2UnitFindDataStrc* pUnitFindData = D2_NEW_POOL(*(D2PoolManagerStrc**)(nParam1 + 0x1c), D2UnitFindDataStrc);
     memset(&sUnitFindArg, 0, 0x38);
     sUnitFindArg.nFlags = 1411;
     sUnitFindArg.nX = nX;
@@ -846,7 +860,7 @@ D2UnitFindDataStrc * __fastcall SKILLS_FindUnitsInRange(int32_t nParam1, D2UnitS
 // @sourcefile .\SKILLS\Skills.cpp
 void __fastcall SKILLS_FreeUnitFindData(int32_t nGame, D2UnitFindDataStrc * pUnitFindData) {
     D2Common::Units::UnitFinds::FreeUnitFindData(pUnitFindData);
-    Fog::Memory::FreeServerMemory(*(D2PoolManagerStrc**)(nGame + 0x1c), pUnitFindData, ".\\SKILLS\\Skills.cpp", 0x465, 0);
+    D2_FREE_POOL(*(D2PoolManagerStrc**)(nGame + 0x1c), pUnitFindData);
 }
 
 BOOL __fastcall SKILLS_SetSrvDoFuncAndAttackTarget(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwUnused) {

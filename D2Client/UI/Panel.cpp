@@ -1046,7 +1046,13 @@ void __stdcall DRAW_EquipmentNeedArrows() {
     // Static local variables (originally global data)
     static uint32_t gaInventoryWarningBodyLocs[2] = { 0x4, 0x5 };
     static unsigned int gnInventoryWarningSlotCount = 0x2;
-    static uint32_t gaInventoryWarningItems = 0xa;
+    static int gaInventoryWarningItems_nWarningKind_col[5][5] = {
+    { 0x1, 0x0, 0x32, 0x19, 0xa },
+    { 0x2, 0x3, 0xf, 0xa, 0x5 },
+    { 0x3, 0x6, 0x5, 0x4, 0x2 },
+    { 0x4, 0x9, 0xf, 0xa, 0x5 },
+    { 0x5, 0xc, 0x5, 0x4, 0x2 }
+};
     static unsigned int gnInventoryWarningItemCount = 0x5;
 
     bool bVar1;
@@ -1060,7 +1066,7 @@ void __stdcall DRAW_EquipmentNeedArrows() {
     D2ItemsTxt* pOtherItemsTxt;
     int nStackQuantity;
     uint32_t nSlotIndex;
-    uint32_t* pWarningEntry;
+    int* pWarningEntry;
     uint32_t nWarningItemIndex;
     memset(gaPanelBeltArrowsNeeded, 0, 6 * sizeof(gaPanelBeltArrowsNeeded[0]));
     D2UnitStrc* pItem;
@@ -1104,9 +1110,9 @@ void __stdcall DRAW_EquipmentNeedArrows() {
         if (bVar1) {
           nWarningItemIndex = 0;
           if (gnInventoryWarningItemCount) {
-            pWarningEntry = &gaInventoryWarningItems;
+            pWarningEntry = gaInventoryWarningItems_nWarningKind_col[0] + 4;
             do {
-              if (pWarningEntry[-4] == 1) {
+              if ((*(int (*)[5])(pWarningEntry - 4))[0] == 1) {
                 nItemClassId = UNIT::GetClassId(pItem);
                 pItemsTxt = D2Common::DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
                 nTotalQuantity = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pItem, UNITSTAT_quantity, 0);
@@ -1132,9 +1138,9 @@ void __stdcall DRAW_EquipmentNeedArrows() {
                     }
                   }
                 }
-                if (*pWarningEntry < nTotalQuantity) {
-                  if (pWarningEntry[-1] < nTotalQuantity) {
-                    if (pWarningEntry[-2] < nTotalQuantity) {
+                if ((uint32_t)*pWarningEntry < nTotalQuantity) {
+                  if ((uint32_t)pWarningEntry[-1] < nTotalQuantity) {
+                    if ((uint32_t)pWarningEntry[-2] < nTotalQuantity) {
                       goto next_warning_entry;
                     }
 

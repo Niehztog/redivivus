@@ -19,6 +19,9 @@ as function and `file:line`, and every loaded module (wrappers such as cnc-ddraw
 overlay show up there). The names come from the DWARF in your own `d2.exe`, read with the vendored
 libbacktrace (`thirdparty/libbacktrace`), so the report is readable without your exe - keep the
 build unstripped. One report is written per crash; the game's own error handling runs after it.
+A Fog halt (`ERROR_UnrecoverableInternalError_Halt`, the engine's assert) writes the same report,
+headed `HALT line=<n> at <addr>`, with the halting thread's stack; it is called from the halt's
+body in `Fog/Src/ErrorManager.cpp`, the one generated-file line this feature needs.
 
 `d2_crt_support.cpp` is compiled by the ad-hoc measure build (which globs `*.cpp`) and is listed
 explicitly in the hand-owned `CMakeLists.txt`.

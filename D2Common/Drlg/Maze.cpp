@@ -42,6 +42,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgLevelLinkNodeStrc) == 0x10, "D2_NEW(D2DrlgLevelLinkNodeStrc): the 32-bit layout must be the 0x10 bytes 1.14d allocates");
+
 
 namespace D2Common::Drlg::Maze {
 
@@ -584,7 +598,7 @@ void __stdcall DRLGMAZE_ExpandRoomsWithPresets(D2DrlgLevelStrc * pLevel, uint32_
     D2LvlMazeTxt* pLvlMazeTxt;
     D2DrlgPresetRoomStrc* pRoomExData;
     D2PoolManagerStrc* pMemPool = pLevel->pDrlg->pMemoryPool;
-    D2RoomExStrc** pRoomPtrArray = (D2RoomExStrc**)Fog::Memory::AllocServerMemory(pMemPool, pLevel->nRoomExCount * 4, ".\\DRLG\\Maze.cpp", 0x271, 0);
+    D2RoomExStrc** pRoomPtrArray = (D2RoomExStrc**)D2_ALLOC_POOL(pMemPool, pLevel->nRoomExCount * 4);
     D2RoomExStrc* pRoomIter = pLevel->pRoomExFirst;
     int nRoomCount = pLevel->nRoomExCount;
     int nRoomIdx = 0;
@@ -629,7 +643,7 @@ void __stdcall DRLGMAZE_ExpandRoomsWithPresets(D2DrlgLevelStrc * pLevel, uint32_
       }
     }
 
-    Fog::Memory::FreeServerMemory(pMemPool, pRoomPtrArray, ".\\DRLG\\Maze.cpp", 0x288, 0);
+    D2_FREE_POOL(pMemPool, pRoomPtrArray);
 }
 
 // Initialises the Throne of Destruction (Baal's chamber) level layout. Advances the first room's seed to pick a random direction (0-3), looks up two preset IDs from the gaBaalChamberPresets table for that direction, allocates and assigns them via DRLGMAZE_AllocRoomExAndPickPreset, then expands surrounding rooms with presets.
@@ -1082,7 +1096,7 @@ int __stdcall DRLGMAZE_SelectRandomPresetFile(int nPresetFile, D2DrlgLevelStrc *
       }
     }
 
-    pNode = (D2DrlgLevelLinkNodeStrc*)Fog::Memory::AllocServerMemory(pLevel->pDrlg->pMemoryPool, 0x10, ".\\DRLG\\Maze.cpp", 0x780, 0);
+    pNode = D2_NEW_POOL(pLevel->pDrlg->pMemoryPool, D2DrlgLevelLinkNodeStrc);
     pNode->dwData2 = 0;
     pNode->pNext = 0;
     pNode->dwData0 = nFirstFile;

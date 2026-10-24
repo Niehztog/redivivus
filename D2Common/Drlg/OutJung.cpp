@@ -18,14 +18,24 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Common::Drlg::OutJung {
 
 // Populates jungle-area outdoor levels (Spider Forest 0x4C, Flayer Jungle 0x4D, Great Marsh 0x4E) by iterating preset-grid cells from pLevel->pAutomapEx. Applies per-difficulty SizeX/SizeY from LevelDefs.txt, spawns special presets at row/column boundaries using a seed-derived random offset, and calls SpawnOutdoorLevelPresetEx for each non-zero preset id. Halts on invalid preset count (>2 specials) or null automap pointer.
 void __fastcall BuildJungle(D2DrlgLevelStrc * pLevel) {
     // Static local variables (originally global data)
-    static uint8_t gnOutJungPresetOffsetByLevel = -0x1;
-    static uint8_t gaOutJungSpecialPresetRandOffsets = 0x0;
+    static int gaOutJungSpecialPresetRandOffsets[6][3] = {
+    { 0x0, 0x1, 0x2 },
+    { 0x1, 0x0, 0x2 },
+    { 0x0, 0x2, 0x1 },
+    { 0x1, 0x2, 0x0 },
+    { 0x2, 0x0, 0x1 },
+    { 0x2, 0x1, 0x0 }
+};
 
     int nLevelPrestId;
     int nRand;
@@ -71,8 +81,14 @@ void __fastcall BuildJungle(D2DrlgLevelStrc * pLevel) {
                 exit(-1);
               }
 
-              nLevelPrestId += *(int*)(&gnOutJungPresetOffsetByLevel + pLevel->eD2LevelId * 4);
-              nRand = *(int*)(&gaOutJungSpecialPresetRandOffsets + nSpecialPresetCount * 4 + nSeedModulo * 0xc);
+              // 0067ea64 is ADD EAX,[EDX*0x4 + 0x6f2240] with EDX the level id (76..78): the
+              // base folds 76*4 out of the real table, {0, 10, 20} at 0x6f2370, so the decompiler
+              // rebases it onto row 11 of gaAct5SceneryPresetTable_0 and reads past that array
+              // once relinked. Ghidra cannot express a folded base; retire with the generator's
+              // interior-address pass, as in Outdoors/Act4.cpp.
+              static const int aOutJungPresetOffsetByLevel[3] = {0, 10, 20};
+              nLevelPrestId += aOutJungPresetOffsetByLevel[(int)pLevel->eD2LevelId - 0x4c];
+              nRand = gaOutJungSpecialPresetRandOffsets[nSeedModulo][nSpecialPresetCount];
               nSpecialPresetCount++;
             }
             if (nLevelPrestId) {
@@ -120,7 +136,7 @@ void __fastcall SpawnRandomPreset(D2DrlgLevelStrc * pLevel, int32_t nLevelPrestI
     }
 
     void* pMemoryToFree;
-    pMemoryToFree = Fog::Memory::AllocServerMemory(pMemory, nTotalCells * 8, ".\\DRLG\\OutJung.cpp", 0xcb, 0);
+    pMemoryToFree = D2_ALLOC_POOL(pMemory, nTotalCells * 8);
     nLevelPrestId2 = 0;
     if (0 < (int)nTotalCells) {
       do {

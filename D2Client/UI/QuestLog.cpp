@@ -57,6 +57,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Client::UI::QuestLog {
 
@@ -1760,8 +1764,8 @@ void __stdcall DRAW_UI_Quest() {
                   do {
                     D2Win::Src::D2WinFont::DRAW_text(pWordWrapList->wszLine, gnPanelOffsetX + gQuestUIDescInitD, nQuestSlot - gnPanelOffsetY + gQuestUIDescInitE, 0, 0);
                     pNextWrappedLine = pWordWrapList->pNext;
-                    Fog::Memory::FreeClientMemory(pWordWrapList->wszLine, ".\\UI\\QuestLog.cpp", 0x8d1, 0);
-                    Fog::Memory::FreeClientMemory(pWordWrapList, ".\\UI\\QuestLog.cpp", 0x8d2, 0);
+                    D2_FREE(pWordWrapList->wszLine);
+                    D2_FREE(pWordWrapList);
                     nQuestSlot += 0x14;
                     pWordWrapList = pNextWrappedLine;
                   } while (pNextWrappedLine);

@@ -15,6 +15,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Common::Drlg::DrlgGrid {
 
@@ -505,7 +513,7 @@ void __fastcall DRLGGRID_InitGridCells(D2PoolManagerStrc * pMemory, D2DrlgGridSt
     pDrlgGrid->nWidth = nWidth;
     size_t nAllocSize = (nWidth + 1) * nHeight * 4;
     pDrlgGrid->nHeight = nHeight;
-    int* pRowOffsets = (int*)Fog::Memory::AllocServerMemory(pMemory, nAllocSize, ".\\DRLG\\DrlgGrid.cpp", 0x197, 0);
+    int* pRowOffsets = (int*)D2_ALLOC_POOL(pMemory, nAllocSize);
     pDrlgGrid->pCellsRowOffsets = pRowOffsets;
     memset(pRowOffsets, 0, nAllocSize);
     pDrlgGrid->pCellsFlags = (eD2GridCellFlags*)(pDrlgGrid->pCellsRowOffsets + nHeight);
@@ -550,7 +558,7 @@ void __fastcall DRLGGRID_AllocGrid(D2PoolManagerStrc * pMemory, D2DrlgGridStrc *
     pDrlgGrid->nWidth = nWidth;
     pDrlgGrid->nHeight = nHeight;
     pDrlgGrid->pCellsFlags = pCellsFlags;
-    int* pRowOffsets = (int*)Fog::Memory::AllocServerMemory(pMemory, nHeight * 4, ".\\DRLG\\DrlgGrid.cpp", 0x1d0, 0);
+    int* pRowOffsets = (int*)D2_ALLOC_POOL(pMemory, nHeight * 4);
     pDrlgGrid->pCellsRowOffsets = pRowOffsets;
     int nRow = 0;
     if (0 < nHeight) {
@@ -571,7 +579,7 @@ void __fastcall DRLGGRID_InitGridFromTileData(D2PoolManagerStrc * pMemory, D2Drl
     pGrid->nWidth = pTileData->nWidth;
     pGrid->nHeight = pTileData->nHeight;
     pGrid->pCellsFlags = pParentCells + pTileData->nPosY * nParentRowStride + pTileData->nPosX;
-    int* pRowOffsets = (int*)Fog::Memory::AllocServerMemory(pMemory, pTileData->nHeight * 4, ".\\DRLG\\DrlgGrid.cpp", 0x1ec, 0);
+    int* pRowOffsets = (int*)D2_ALLOC_POOL(pMemory, pTileData->nHeight * 4);
     pGrid->pCellsRowOffsets = pRowOffsets;
     int nOffset = 0;
     if (0 < pTileData->nHeight) {
@@ -608,7 +616,7 @@ void __fastcall FillExternalCellFlags(D2DrlgGridStrc * pDrlgGrid, D2DrlgMapStrc 
 // @sourcefile .\DRLG\DrlgGrid.cpp
 void __fastcall DRLGGRID_FreeGrid(D2PoolManagerStrc * pMemory, D2DrlgGridStrc * pGrid) {
     if (pGrid->pCellsRowOffsets) {
-      Fog::Memory::FreeServerMemory(pMemory, pGrid->pCellsRowOffsets, ".\\DRLG\\DrlgGrid.cpp", 0x218, 0);
+      D2_FREE_POOL(pMemory, pGrid->pCellsRowOffsets);
     }
 
     pGrid->pCellsRowOffsets = 0;

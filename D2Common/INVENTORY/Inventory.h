@@ -256,7 +256,7 @@ void __stdcall INVENTORY_SwapPrimaryWeaponOnRemoval(struct D2InventoryStrc * pIn
 // Determines the equipped-weapon handedness for a unit. Returns -1 (no weapon), 1 (dual-wield / Barbarian dual-handed), or 2 (two-handed weapon). Reads the left-arm (slot 5) and right-arm (slot 4) body-location cells from the equipment grid, checks IsTwoHanded and BARBARIAN_CheckItemData for each combination.
 int __stdcall INVENTORY_GetWeaponHandedness(struct D2UnitStrc * pUnit, struct D2InventoryStrc * pInventory);
 void __stdcall INVENTORY_SetOwnerGUID(struct D2InventoryStrc * pInventory, int32_t nUnitGUID);
-int32_t __stdcall INVENTORY_GetCursorItemGUID(struct D2UnitStrc * pUnit);
+int32_t __stdcall INVENTORY_GetCursorItemGUID(struct D2InventoryStrc * pInventory);
 // @sourcefile .\INVENTORY\Inventory.cpp
 // Appends a D2CorpseStrc {eUnitType, nUnitGUID, dwFlags, pNext} to pInventory->pCorpse/pCorpseLast and counts non-player corpses. The first arg carries the 0x1020304 inventory signature.
 void __stdcall INVENTORY_AddCorpse(struct D2InventoryStrc * pInventory, int32_t nUnitGUID, uint32_t dwFlags, eD2UnitType eUnitType);

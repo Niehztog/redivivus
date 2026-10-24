@@ -23,6 +23,7 @@
 #include "D2Common/D2SeedStrc.h"
 #include "D2Common/D2SkillStrc.h"
 #include "D2Common/D2SkillsTxt.h"
+#include "D2Common/D2StatInfoStrc.h"
 #include "D2Common/D2StatListExStrc.h"
 #include "D2Common/D2WaypointStrc.h"
 #include "D2Common/DATATBLS/BeltsTbls.h"
@@ -1430,7 +1431,7 @@ void __fastcall SERVER_PickToCursor(::SGAMEDATA * pGame, D2UnitStrc * pUnit, DWO
           D2Common::Units::RefreshInventory(pUnit, 1);
           pItem->eUnitFlags &= ~UNITFLAG_ISRESURRECT;
           D2Common::INVENTORY::Inventory::UpsertToUpdateList(pInventory, pItem);
-          Quests::QUESTS::QUEST_OnItemPickedUp(pItem);
+          Quests::QUESTS::QUEST_OnItemPickedUp(pGame, pUnit, pItem);
         }
 
         UNIT::SUnit::SetupUpdateEvent_AttachEventSound(pUnit, UNITEVENTCALLBACK_ENDANIM, pUnit);
@@ -3859,8 +3860,8 @@ void __fastcall ITEMMODE_IsItemOnCursor(int32_t nParam, D2UnitStrc * pUnit, D2Un
 void __fastcall ITEMMODE_HandleCursorItem(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pItem) {
     int nLevel;
     uint32_t nSkillId;
-    uint16_t auStack_214[2];
-    uint32_t aStatBonusData[127];
+    D2StatStrc aStatBonusData[64];
+    int32_t bRechargedAny;
     if (!(pGame && pItem && pItem->eUnitType == UNIT_ITEM)) {
       return;
     }
@@ -3870,28 +3871,26 @@ void __fastcall ITEMMODE_HandleCursorItem(::SGAMEDATA * pGame, D2UnitStrc * pUni
       pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\ITEMS\\ItemMode.cpp", 0x1a99);
     }
 
-    int32_t nChargedStatCount = D2Common::Stats::StatsEx::STATLIST_GetItemStatBonusValues(pItem, 0xcc, (int*)auStack_214, 0x40);
-    int32_t bRechargedAny = 0;
+    int32_t iVar1 = D2Common::Stats::StatsEx::STATLIST_GetItemStatBonusValues(pItem, 0xcc, aStatBonusData, 0x40);
     int nChargedStatIdx = 0;
-    if (0 >= nChargedStatCount) {
+    if (0 >= iVar1) {
       return;
     }
 
     do {
       uint32_t nMaxCharges;
-      nSkillId = sgptDataTable->dwChargedSkillLevelMask & (uint32_t)auStack_214[nChargedStatIdx * 4];
-      nMaxCharges = (int)aStatBonusData[nChargedStatIdx * 2] >> 8;
-      nLevel = (int)(uint32_t)auStack_214[nChargedStatIdx * 4] >> ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
-      if ((int)(aStatBonusData[nChargedStatIdx * 2] & 0xff) < (int)nMaxCharges) {
+      nSkillId = sgptDataTable->dwChargedSkillLevelMask & (uint32_t)(uint16_t)aStatBonusData[nChargedStatIdx].wSubIndex;
+      nMaxCharges = aStatBonusData[nChargedStatIdx].nStatValue >> 8;
+      nLevel = (int)(uint32_t)(uint16_t)aStatBonusData[nChargedStatIdx].wSubIndex >> ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
+      if ((int)(aStatBonusData[nChargedStatIdx].nStatValue & 0xffU) < (int)nMaxCharges) {
         D2Common::ITEMS::ItemMods::ITEMMOD_SetChargedSkillCharges(pItem, nLevel, nSkillId, nMaxCharges);
-        bRechargedAny = 1;
         if (pClient) {
           GAME::SCmd::NET_D2GS_SERVER_Send_0x3E_UpdateItemStats(pClient, pItem, '\x01', 0xcc, (nMaxCharges & 0xff) + nMaxCharges * 0x100, (short int)(nLevel << ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f)) + ((uint16_t)sgptDataTable->dwChargedSkillLevelMask & (uint16_t)nSkillId));
         }
       }
 
       nChargedStatIdx++;
-    } while (nChargedStatIdx < nChargedStatCount);
+    } while (nChargedStatIdx < iVar1);
 }
 
 BOOL ITEMMODE_ValidateInventorySlot(D2UnitStrc * pUnit, ::SGAMEDATA * pGame, int32_t pScrollItem) {
@@ -4012,7 +4011,7 @@ BOOL __stdcall ITEMMODE_PlaceItemInInventoryPage(::SGAMEDATA * pGame, int32_t bR
           }
 
           D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pUnit2, (eInventoryPage)nInvPage);
-          Quests::QUESTS::QUEST_OnItemPickedUp(pUnit2);
+          Quests::QUESTS::QUEST_OnItemPickedUp(pGame, pUnit, pUnit2);
           uVar1 = D2Common::ITEMS::Items::ITEM_IsActiveCharm(pUnit2, pUnit);
           if (!uVar1) {
             return 1;
@@ -6241,7 +6240,7 @@ int32_t __fastcall ITEMMODE_EquipCorpseItems(::SGAMEDATA * pGame, D2UnitStrc * p
                     ITEMMODE_ValidateWeaponSkills(pUnit);
                   }
 
-                  Quests::QUESTS::QUEST_OnItemPickedUp(pCorpseItem);
+                  Quests::QUESTS::QUEST_OnItemPickedUp(pGameForDrop, pUnit, pCorpseItem);
                   Items::Drop::RefreshDurability(pGameForDrop, pCorpseItem);
                   Items::Drop::RefreshQuantity(pGameForDrop, pCorpseItem);
                   dwParam = iBodyLoc;
@@ -6583,7 +6582,7 @@ void __fastcall SERVER_PickToInventory(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
           return;
         }
 
-        Quests::QUESTS::QUEST_OnItemPickedUp(pItem);
+        Quests::QUESTS::QUEST_OnItemPickedUp(pGame, pUnit, pItem);
         return;
       }
     }

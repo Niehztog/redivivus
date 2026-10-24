@@ -90,6 +90,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnItemTransactionCb
 #define RECON_FPTD_pfnItemTransactionCb
@@ -120,7 +128,7 @@ void __fastcall SUNITNPC_InitNpcInventory(::SGAMEDATA * pGame, int32_t nParam, u
       return;
     }
 
-    void* pNpcDataBlock = Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x450, ".\\UNIT\\SUNITNPC.CPP", 0x6e, 0);
+    void* pNpcDataBlock = D2_ALLOC_POOL(pGame->pMemoryPool, 0x450);
     *(void**)(nHirelingCount + 0x10) = (void*)pNpcDataBlock;
     memset(pNpcDataBlock, 0, 0x450);
     D2SeedStrc* pNpcControl = (D2SeedStrc*)sunitproxy::SUNITPROXY_GetNpcControl(pGame);
@@ -943,7 +951,7 @@ void __fastcall ResetNpcHireListIfEmpty(::SGAMEDATA * pGame, int32_t nNpcClassId
           }
         }
 
-        Fog::Memory::FreeServerMemory(pGame->pMemoryPool, *(void**)(pNpcData + 0x10), ".\\UNIT\\SUNITNPC.CPP", 0x63d, 0);
+        D2_FREE_POOL(pGame->pMemoryPool, *(void**)(pNpcData + 0x10));
         *(uint32_t*)(pNpcData + 0x10) = 0;
         *(uint8_t*)(pNpcData + 0x21) = 0;
         SUNITNPC_InitNpcInventory(pGame, nNpcClassId, pNpcData);
@@ -2163,7 +2171,7 @@ void __fastcall GAMBLE_GenerateGambleInventory(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     uint32_t* pGambleEntry;
-    pGambleEntry = (uint32_t*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0xc, ".\\UNIT\\SUNITNPC.CPP", 0xd94, 0);
+    pGambleEntry = (uint32_t*)D2_ALLOC_POOL(pGame->pMemoryPool, 0xc);
     if (!pGambleEntry) {
       return;
     }
@@ -3259,14 +3267,18 @@ void __fastcall SUNITNPC_HandleSellAction(::SGAMEDATA * pGame, D2UnitStrc * pUni
 // Server-side NPC "use/talk" dispatcher: given the interacted NPC monster GUID and quest-state selector, performs the right NPC menu action and replies with a 0x58 OpenUI packet. Validates the monster (monstats interact flag, UNIT_MONSTER, has AI) then branches: trade-reward states route to NpcState_MoveState1To2 + SUNITNPC_HandleTradeAction for the appropriate vendor set; mercenary state sends the for-hire list. Handles act-specific quest actions by NPC class: Charsi imbue (A1Q3 ToolsOfTheTrade), Akara respec/skill-clear (A1Q1 Respec), Larzuk socketing (A5Q1), Anya personalize (A5Q4), and travel NPCs (Warriv/Meshif/Tyrael/Cain) loading the destination act level and enabling its waypoint. The imbue/socket/personalize branches create the reward item, place it in inventory or drop it at FindBestSpotToSpawnItem, and send OpenUI menu code 6 (success) or 7 (fail/drop). __fastcall: pGame(ECX), pUnit(EDX); pQState, item GUID, target-item GUID on stack.
 // @sourcefile .\UNIT\SUNITNPC.CPP
 int __fastcall UseMenu(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2QuestState pQState, DWORD guid, DWORD nGuid) {
-    // Frame slots -248..-240 are ONE object: &pClient is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -248..-4 are ONE object: &pClient is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       D2ClientStrc* pClient;
       uint8_t byGuidHigh;
       uint8_t byMenuType;
+      uint8_t __pad6[2];
+      D2ItemGenContextStrc sItemGenCtx;
+      char szPlayerName[100];
+      uint32_t dwStackCookie;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 244, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     bool bVar1;
     D2MonsterAiStrc* pMonsterAI;
@@ -3290,15 +3302,12 @@ int __fastcall UseMenu(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2QuestState pQ
     int16_t awWaypointId[3];
     POINT PStack_108;
     POINT sUseMenuPkt;
-    D2ItemGenContextStrc sItemGenCtx;
-    char szPlayerName[100];
     char cVar1;
     eD2ItemFlag eD2ItemFlag2;
     eD2LevelId eLevel;
     eD2Quests eQuestId;
     eD2QuestState eQuestState;
-    uint32_t dwStackCookie;
-    dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     D2UnitStrc* pClonedItem;
     pClonedItem = SUnit::FindUnitFromTable(pGame, UNIT_MONSTER, guid);
     if (!pClonedItem || !pUnit || (sUseMenuPkt.y = pClonedItem->nClassId , sUseMenuPkt.y < 0) || sgptDataTable->nTxtMonStatsSize <= sUseMenuPkt.y || !(sgptDataTable->pTxtMonStats + sUseMenuPkt.y) || !sgptDataTable->pTxtMonStats[sUseMenuPkt.y].interact || pClonedItem->eUnitType != UNIT_MONSTER || !pClonedItem->pUnitData.pUnitDataMonster || (pMonsterAI = pClonedItem->pUnitData.pUnitDataMonster->pMonsterAi , !pMonsterAI)) {
@@ -3429,18 +3438,18 @@ int __fastcall UseMenu(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2QuestState pQ
           return 0;
         }
 
-        /* Imbuming item */ ITEMS::Items::Drop::ITEMS_FillItemGenerationData(pGame, &sItemGenCtx, pItem);
+        /* Imbuming item */ ITEMS::Items::Drop::ITEMS_FillItemGenerationData(pGame, &__frame0.sItemGenCtx, pItem);
         nSockOrEtherFlag = D2Common::ITEMS::Items::ITEM_GetItemData_eD2ItemFlag_IsEthereal(pItem);
-        sItemGenCtx.wItemFormat = pGame->wItemFormat;
+        __frame0.sItemGenCtx.wItemFormat = pGame->wItemFormat;
         eD2ItemFlag2 = ITEMFLAG_PLAYERNAME;
-        sItemGenCtx.nFlags = sItemGenCtx.nFlags | (nSockOrEtherFlag ? 2 : 0) + ITEMFLAG_BOUGHT | ITEMFLAG_REMOVED;
+        __frame0.sItemGenCtx.nFlags = __frame0.sItemGenCtx.nFlags | (nSockOrEtherFlag ? 2 : 0) + ITEMFLAG_BOUGHT | ITEMFLAG_REMOVED;
         bVar1 = false;
         eItemFlags = D2Common::ITEMS::Items::ITEM_GetItemData_eD2ItemFlag(pItem);
         nSockOrEtherFlag = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(eItemFlags, eD2ItemFlag2);
         if (nSockOrEtherFlag) {
           bVar1 = true;
           pSrcName = D2Common::ITEMS::Items::ITEM_GetItemData_szPlayerName(pItem);
-          pDstName = szPlayerName;
+          pDstName = __frame0.szPlayerName;
           do {
             cVar1 = *pSrcName;
             *pDstName = cVar1;
@@ -3451,13 +3460,13 @@ int __fastcall UseMenu(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2QuestState pQ
 
         bQuestState = ITEMS::ItemMode::ToCursorItem(pGame, pUnit, pItem);
         if (bQuestState) {
-          sItemGenCtx.eQuality = QUALITY_RARE;
-          sItemGenCtx.nItemLevel = ITEMS::Items::Drop::GetLevel(pUnit, LEVEL_None);
-          if (5 < sItemGenCtx.nItemLevel) {
-            sItemGenCtx.nItemLevel += 4;
+          __frame0.sItemGenCtx.eQuality = QUALITY_RARE;
+          __frame0.sItemGenCtx.nItemLevel = ITEMS::Items::Drop::GetLevel(pUnit, LEVEL_None);
+          if (5 < __frame0.sItemGenCtx.nItemLevel) {
+            __frame0.sItemGenCtx.nItemLevel += 4;
           }
 
-          pClonedItem = ITEMS::Items::Drop::ITEM_CreateItemInstance(pGame, &sItemGenCtx, 0);
+          pClonedItem = ITEMS::Items::Drop::ITEM_CreateItemInstance(pGame, &__frame0.sItemGenCtx, 0);
           if (!pClonedItem) {
             __frame0.byMenuType = 7;
             GAME::SCmd::NET_D2GS_SERVER_Send_0x58_ITEMACCEPT((D2ClientStrc*)sUseMenuPkt.y, (uint32_t*)&__frame0.pClient);
@@ -3467,7 +3476,7 @@ int __fastcall UseMenu(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2QuestState pQ
             D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pClonedItem, INVPAGE_INVENTORY);
             if (bVar1) {
               D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pClonedItem, ITEMFLAG_PLAYERNAME, 1);
-              D2Common::ITEMS::Items::ITEM_GetPlayerNameAkaNamedString(pClonedItem, szPlayerName);
+              D2Common::ITEMS::Items::ITEM_GetPlayerNameAkaNamedString(pClonedItem, __frame0.szPlayerName);
             }
 
             eVar14 = ITEMS::ItemMode::SERVER_ItemToInventory(".\\UNIT\\SUNITNPC.CPP", 0xba9, pGame, pUnit, pClonedItem->nUnitGUID, 0, 0, 1, 1, nullptr);

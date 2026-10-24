@@ -63,6 +63,28 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgActStrc) == 0x60, "D2_NEW(D2DrlgActStrc): the 32-bit layout must be the 0x60 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2RoomStrc) == 0x80, "D2_NEW(D2RoomStrc): the 32-bit layout must be the 0x80 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgDeleteStrc) == 0xc, "D2_NEW(D2DrlgDeleteStrc): the 32-bit layout must be the 0xc bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_REALLOC_POOL
+#define D2_REALLOC_POOL(pPool, p, size) Fog::Memory::ReAllocServerMemory((pPool), (p), (size), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fAutoMap
 #define RECON_FPTD_fAutoMap
@@ -83,7 +105,7 @@ namespace D2Common::DUNGEON::Dungeon {
 // @sourcefile .\DUNGEON\Dungeon.cpp
 D2DrlgActStrc * __stdcall AllocAct(BYTE nActNo, int32_t dwInitSeed, BOOL bClientSide, ::SGAMEDATA * pGame, BYTE nDifficulty, D2PoolManagerStrc * pMemory, eD2LevelId eLevel, fAutoMap pfAutoMap, fTownAutoMap pfTownAutoMap) {
     D2DrlgStrc* pDrlg;
-    D2DrlgActStrc* pAct = (D2DrlgActStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x60, ".\\DUNGEON\\Dungeon.cpp", 0x19, 0);
+    D2DrlgActStrc* pAct = D2_NEW_POOL(pMemory, D2DrlgActStrc);
     memset(pAct, 0, 0x60);
     pAct->dwInitSeed = dwInitSeed;
     pAct->bClientSide = bClientSide;
@@ -222,7 +244,7 @@ void __stdcall DRLGROOM_GetAdjacentRoomsList(D2RoomStrc * pRoom, D2RoomStrc * * 
 // Allocates and zero-initializes a D2RoomStrc (0x80 bytes) from the server memory pool.
 // @sourcefile .\DUNGEON\Dungeon.cpp
 D2RoomStrc * __fastcall DRLGROOM_AllocRoomStrc(D2PoolManagerStrc * pMemory) {
-    D2RoomStrc* pNewRoom = (D2RoomStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x80, ".\\DUNGEON\\Dungeon.cpp", 0xf5, 0);
+    D2RoomStrc* pNewRoom = D2_NEW_POOL(pMemory, D2RoomStrc);
     memset(pNewRoom, 0, 0x80);
     return pNewRoom;
 }
@@ -230,7 +252,7 @@ D2RoomStrc * __fastcall DRLGROOM_AllocRoomStrc(D2PoolManagerStrc * pMemory) {
 // @sourcefile .\DUNGEON\Dungeon.cpp
 void __stdcall DRLGROOM_UpdateRoomsNearAndCount(D2PoolManagerStrc * pMemory, D2RoomStrc * pRoom) {
     int32_t nNearCount = Drlg::DrlgRoom::GetRoomsNearCount(pRoom->pRoomEx);
-    D2RoomStrc** ppRoomList = (D2RoomStrc**)Fog::Memory::AllocServerMemory(pMemory, nNearCount * 4, ".\\DUNGEON\\Dungeon.cpp", 0x100, 0);
+    D2RoomStrc** ppRoomList = (D2RoomStrc**)D2_ALLOC_POOL(pMemory, nNearCount * 4);
     pRoom->ppRoomList = ppRoomList;
     uint32_t uRealCount = Drlg::DrlgRoom::GetRealRoomsNearCount(pRoom->pRoomEx, ppRoomList);
     uint32_t i = 0;
@@ -264,7 +286,7 @@ D2RoomStrc * __fastcall AllocRoom(D2DrlgActStrc * pDrlgAct, D2RoomExStrc * pRoom
       exit(-1);
     }
 
-    D2RoomStrc* pDrlgRoom = (D2RoomStrc*)Fog::Memory::AllocServerMemory(pDrlgAct->pMemory, 0x80, ".\\DUNGEON\\Dungeon.cpp", 0xf5, 0);
+    D2RoomStrc* pDrlgRoom = D2_NEW_POOL(pDrlgAct->pMemory, D2RoomStrc);
     memset(pDrlgRoom, 0, 0x80);
     pDrlgRoom->eFlags = eFlags;
     pDrlgRoom->sSeed.nSeedLow = nInitSeed;
@@ -774,7 +796,7 @@ void __stdcall AllocDrlgDelete(D2RoomStrc * pRoom, eD2UnitType eUnitType, int32_
       return;
     }
 
-    D2DrlgDeleteStrc* pDrlgDelete = (D2DrlgDeleteStrc*)Fog::Memory::AllocServerMemory(pRoom->pDrlgAct->pMemory, 0xc, ".\\DUNGEON\\Dungeon.cpp", 900, 0);
+    D2DrlgDeleteStrc* pDrlgDelete = D2_NEW_POOL(pRoom->pDrlgAct->pMemory, D2DrlgDeleteStrc);
     pDrlgDelete->eUnitType = eUnitType;
     pDrlgDelete->nUnitGUID = nUnitGUID;
     pDrlgDelete->pNext = pRoom->pDrlgDelete;
@@ -796,7 +818,7 @@ void __stdcall DRLGROOM_FreeDrlgDelete(D2RoomStrc * pRoom) {
 
       do {
         pNext = pCurrent->pNext;
-        Fog::Memory::FreeServerMemory(pMemory, pCurrent, ".\\DUNGEON\\Dungeon.cpp", 0x39c, 0);
+        D2_FREE_POOL(pMemory, pCurrent);
         pCurrent = pNext;
       } while (pNext);
 
@@ -1032,7 +1054,7 @@ void __stdcall DRLGROOM_AddClientToRoom(D2RoomStrc * pRoom, int32_t nClientId) {
         if ((uint32_t)pRoom->nClientsCount <= nClientsMaxSnapshot) {
           if (pRoom->nClientsCount == nClientsMaxSnapshot) {
             pRoom->nClientsMax = nClientsMaxSnapshot + 4;
-            pNewClients = (D2ClientStrc**)Fog::Memory::ReAllocServerMemory(pRoom->pDrlgAct->pMemory, pRoom->pClients, (nClientsMaxSnapshot + 4) * 4, ".\\DUNGEON\\Dungeon.cpp", 0x47b, 0);
+            pNewClients = (D2ClientStrc**)D2_REALLOC_POOL(pRoom->pDrlgAct->pMemory, pRoom->pClients, (nClientsMaxSnapshot + 4) * 4);
             pRoom->pClients = pNewClients;
           }
 
@@ -1154,11 +1176,11 @@ void __fastcall FreeRoom(D2PoolManagerStrc * pMemory, D2RoomStrc * pRoom) {
     Collision::FreeRoomCollisionGrid(pMemory, pRoom);
     DRLGROOM_FreeDrlgDelete(pRoom);
     if (pRoom->pClients) {
-      Fog::Memory::FreeServerMemory(pRoom->pDrlgAct->pMemory, pRoom->pClients, ".\\DUNGEON\\Dungeon.cpp", 0x4e2, 0);
+      D2_FREE_POOL(pRoom->pDrlgAct->pMemory, pRoom->pClients);
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pRoom->ppRoomList, ".\\DUNGEON\\Dungeon.cpp", 0x4e4, 0);
-    Fog::Memory::FreeServerMemory(pMemory, pRoom, ".\\DUNGEON\\Dungeon.cpp", 0x4e5, 0);
+    D2_FREE_POOL(pMemory, pRoom->ppRoomList);
+    D2_FREE_POOL(pMemory, pRoom);
 }
 
 // Sets pRoom->pRoomTiles to NULL; halts (Dungeon.cpp line 1260) on NULL.
@@ -1447,7 +1469,7 @@ void __stdcall GetPortalLevelArrayFromPortalFlags(D2PoolManagerStrc * pMemory, i
       } while (nBitIdx < nTotalLevels);
 
       if (nMatchCount) {
-        pAllocatedLevels = (int*)Fog::Memory::AllocServerMemory(pMemory, nMatchCount * 4, ".\\DUNGEON\\Dungeon.cpp", 0x614, 0);
+        pAllocatedLevels = (int*)D2_ALLOC_POOL(pMemory, nMatchCount * 4);
         *ppLevels = pAllocatedLevels;
         memcpy(pAllocatedLevels, anMatchedLevels, nMatchCount * 4);
         *pnLevels = nMatchCount;
@@ -1578,7 +1600,7 @@ void __stdcall FreeAct(D2DrlgActStrc * pDrlgAct) {
       pDrlgAct->pEnvironment = 0;
     }
 
-    /* Finally frees D2DrlgAct it self */ Fog::Memory::FreeServerMemory(pDrlgAct->pMemory, pDrlgAct, ".\\DUNGEON\\Dungeon.cpp", 0x52, 0);
+    /* Finally frees D2DrlgAct it self */ D2_FREE_POOL(pDrlgAct->pMemory, pDrlgAct);
 }
 
 D2RoomStrc * __stdcall SpawnUnit(D2DrlgActStrc * pDrlgAct, eD2LevelId eLevel, int32_t nParam, int * pnParam1, int * pnParam2, uint32_t nParam2) {

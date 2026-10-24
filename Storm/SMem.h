@@ -64,6 +64,19 @@ struct D2FogHeapDescStrc {
     /* 0x60 */ char szName[64]; // heap name string (variable length, 64 is minimum alloc)
 };
 
+struct SMemHeapDetailsStrc {
+    /* 0x000 */ uint32_t dwSize; // set to sizeof by the caller (0x128)
+    /* 0x004 */ uint32_t hHeap;
+    /* 0x008 */ char szFilename[260];
+    /* 0x10C */ int32_t nLineNumber;
+    /* 0x110 */ uint32_t nRegions;
+    /* 0x114 */ uint32_t dwCommittedBytes;
+    /* 0x118 */ uint32_t dwReservedBytes;
+    /* 0x11C */ uint32_t dwMaximumSize;
+    /* 0x120 */ uint32_t nAllocatedBlocks;
+    /* 0x124 */ uint32_t dwUnknown124; // summed per region like the fields before it
+};
+
 namespace Storm::SMem {
 
 // Function declarations
@@ -109,7 +122,7 @@ void __stdcall SMemShrinkBlock(void * pBlock, int32_t nOldSize, uint32_t nNewSiz
 // @blizzard SMemDestroy (SMEM.CPP)
 uint32_t __stdcall SMemDestroy();
 int32_t __stdcall SMemFindNextBlock(uint16_t * * nHeapId, int32_t pPrevBlock, uint16_t * * ppOutBlock, int * pnInfo);
-int32_t __stdcall SMemFindNextHeap(uint32_t nCurHeapId, int * pnNextHeapId, LPCRITICAL_SECTION pCriticalSection);
+int32_t __stdcall SMemFindNextHeap(uint32_t nCurHeapId, int * pnNextHeapId, struct SMemHeapDetailsStrc * pHeapDetails);
 int32_t __stdcall SMemFree(void * pObject, char * szFile, int32_t nLine, DWORD dwParam);
 uint32_t __stdcall SMemGetHeapByCaller(int * pszName, uint32_t nFlags);
 uint32_t __stdcall SMemGetHeapByPtr(int32_t pObject);

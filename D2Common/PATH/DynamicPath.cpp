@@ -45,6 +45,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DynamicPathStrc) == 0x200, "D2_NEW(D2DynamicPathStrc): the 32-bit layout must be the 0x200 bytes 1.14d allocates");
+
 
 namespace D2Common::PATH::DynamicPath {
 
@@ -1445,7 +1455,7 @@ void __stdcall PATH_UpdateCollisionWidth(D2UnitStrc * pUnit) {
 // Allocates and initializes the dynamic path structure for a unit. Allocates a 0x200-byte D2DynamicPathStrc from the server memory pool, zeroes it, links it to pUnit->pPath.pDynamicPath and sets pOwner, unit size/interact width, sub-tile world coords (centered at +0x8000) for (nX,nY), velocity 0x800 and the seed SaveCoords entry. Configures collision flags/pattern, path type and search params per eUnitType (PLAYER, MONSTER, MISSILE); monster branch derives the collision pattern from MonStats and halts via ErrorManager on invalid pet-path states. If pRoom is set, adds the unit's collision and registers it to the room; computes the screen position via DRLG_MapWorldToScreenCoords; sets flag 0x10 when nParam!=0.
 void __stdcall AllocDynamicPath(D2PoolManagerStrc * pMemory, D2RoomStrc * pRoom, int32_t nX, int32_t nY, D2UnitStrc * pUnit, int32_t nParam) {
     D2DynamicPathStrc* pDynamicPath;
-    pDynamicPath = (D2DynamicPathStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x200, ".\\PATH\\Path.cpp", 0x453, 0);
+    pDynamicPath = D2_NEW_POOL(pMemory, D2DynamicPathStrc);
     memset(pDynamicPath, 0, 0x200);
     D2UnitStrc* pUnit_00;
     pUnit_00 = pUnit;

@@ -22,7 +22,7 @@ typedef int eD2UnitStat;
 struct D2MonsterCastPetStrc {
     /* 0x00 */ uint32_t nFlags;
     /* 0x04 */ struct D2UnitStrc * pPlayer;
-    /* 0x08 */ uint32_t classId;
+    /* 0x08 */ int32_t classId;
     /* 0x0C */ int32_t nFunctionId; // value: the summon skills store 0/ids here
     /* 0x10 */ uint32_t nMode;
     /* 0x14 */ uint32_t nX;

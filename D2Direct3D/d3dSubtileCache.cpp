@@ -22,6 +22,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Direct3D::d3dSubtileCache {
 
@@ -34,7 +42,7 @@ int __fastcall D3DSUBTILE_Initialize(D3DSubtileCacheStrc * pCache, int nBaseMemo
     }
 
     pCache->nMaxNodes = uNodeCountCandidate;
-    D3DSubtileCacheNodeStrc* pNodeBuffer = (D3DSubtileCacheNodeStrc*)Fog::Memory::AllocClientMemory(uNodeCountCandidate * 0x18, ".\\Src\\d3dSubtileCache.cpp", 0x2d, 0);
+    D3DSubtileCacheNodeStrc* pNodeBuffer = (D3DSubtileCacheNodeStrc*)D2_ALLOC(uNodeCountCandidate * 0x18);
     pCache->pNodeBuffer = pNodeBuffer;
     if (!pNodeBuffer) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2e);
@@ -322,7 +330,7 @@ void __fastcall D3DSUBTILE_Free(D3DSubtileCacheStrc * pCache, BOOL bInvalidateAl
         }
       }
       if (pCache->pNodeBuffer) {
-        Fog::Memory::FreeClientMemory(pCache->pNodeBuffer, ".\\Src\\d3dSubtileCache.cpp", 0x82, 0);
+        D2_FREE(pCache->pNodeBuffer);
         pCache->pNodeBuffer = 0;
       }
 

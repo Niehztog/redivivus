@@ -122,9 +122,9 @@ void __stdcall SetSkillId(struct D2StatListExStrc * pStatsEx, eD2Skills eSkill);
 eD2Skills __stdcall GetSkillId(struct D2StatListExStrc * pStatList);
 void __stdcall SetSkillLevel(struct D2StatListExStrc * pStatsEx, int32_t nSkillLevel);
 int __stdcall GetSkillLevel(struct D2StatListExStrc * pStatListEx);
-int __stdcall STATLIST_CopyStatPairsByStatIndex(int * pOutStatPairs, uint32_t nParam, int32_t nParam2, struct D2StatListExStrc * pStatList);
+int __stdcall STATLIST_CopyStatPairsByStatIndex(struct D2StatStrc * pOutStatPairs, uint32_t nParam, int32_t nParam2, struct D2StatListExStrc * pStatList);
 int32_t __stdcall STATSEX_CopyStatPairsFromStatList(int32_t nStatListPtr, uint32_t nParam, int * pOutStatPairs, int32_t nParam2);
-int32_t __stdcall STATLIST_GetItemStatBonusValues(struct D2UnitStrc * pItem, uint32_t nParam, int * pnParam, int32_t nParam2);
+int32_t __stdcall STATLIST_GetItemStatBonusValues(struct D2UnitStrc * pItem, uint32_t nParam, struct D2StatStrc * pOutStatPairs, int32_t nParam2);
 // Calculates the combined value of a stat for a D2StatListExStrc, including all ItemStatCost formula operations (op types 1-13). Reads base value from CalcFullStatFromChildren, then applies complex stat formulas involving other stats, character class bonuses, and time-of-day modifiers.
 int32_t __fastcall STATLIST_CalcCombinedStatValue(struct D2StatListExStrc * pStatList, int32_t nStatShifted);
 // Recursively computes and stores an item-stat-cost stat value that has dependent/related stats (op formula). pStatList=stat list, nParam=stat id packed in high word, pItemStatCostStat=pointer into the ItemStatCost record for this stat, pUnitOwner=owner. First computes the combined base value; if the stat has no related-stats flag (offset+0x51==0) it just stores and returns. Otherwise it recurses over up to 3 related stats, and per the itemstatcost.txt "op" column (byte at +0x2a, enum eD2ItemStatOp) decides whether the owner/attached unit qualifies; if all related contributions are zero it then propagates the value to a secondary list of up to 0x40 stats. Returns the stat value. Mutates stat-list entries via STATLIST_SetFullStatValue.

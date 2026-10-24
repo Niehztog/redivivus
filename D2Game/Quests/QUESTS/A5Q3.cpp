@@ -72,6 +72,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA5Q3Strc) == 0x114, "D2_NEW(D2QuestDataA5Q3Strc): the 32-bit layout must be the 0x114 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpExecuteOnUnitFunction
 #define RECON_FPTD_fpExecuteOnUnitFunction
@@ -1335,7 +1345,7 @@ void __fastcall Q33_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A5Q3::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA5Q3Strc* pQuestSpecificData = (D2QuestDataA5Q3Strc*)Fog::Memory::AllocServerMemory(pGameTmp->pMemoryPool, 0x114, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a5q3.cpp", 0x5ca, 0);
+    D2QuestDataA5Q3Strc* pQuestSpecificData = D2_NEW_POOL(pGameTmp->pMemoryPool, D2QuestDataA5Q3Strc);
     pQuestData->pQuestSpecificData.pA5Q3 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_PrisonOfIce;
     pQuestData->fpStatusFilter = Q33_StatusFilter;

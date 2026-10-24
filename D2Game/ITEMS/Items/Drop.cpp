@@ -2537,7 +2537,7 @@ void __fastcall DropItem(::SGAMEDATA * pGame, int32_t nParam, D2UnitStrc * pUnit
       return;
     }
 
-    Quests::QUESTS::QUEST_OnItemDropped(pUnit);
+    Quests::QUESTS::QUEST_OnItemDropped(pGame, (D2UnitStrc*)nParam, pUnit);
 }
 
 // Scans all rooms in an act and despawns expired ground items. For each UNIT_ITEM whose despawn frame (stored in nLinkedPortalY) has passed, removes it from collision, detaches it from any owner inventory via unit iteration, and frees the server unit.

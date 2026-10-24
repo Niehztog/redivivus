@@ -1654,21 +1654,28 @@ uint32_t __fastcall LAUNCHER_LoadCharacterAppearanceFromD2s(char * szCharacterNa
 }
 
 BOOL __fastcall UpdateSaveFileToExpansion(char * szCharname) {
+    // Frame -9732..-1540 is ONE object: a call writes 8192 literal bytes starting at &sSaveHeader.
+    // Separate locals let the compiler reorder them, and the write would run off the frame.
+    struct __frame0_t {
+      D2SaveFileHeaderStrc sSaveHeader;
+      uint8_t __pad335[7857];
+    };
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8192, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
     // Frame slots -16..-4 are ONE object: &dwExpansionFlag is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame0_t {
+    struct __frame1_t {
       uint32_t dwExpansionFlag;
       DWORD dwBytesWritten;
       DWORD dwBytesRead;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 12, "frame group __frame1_t must reproduce the Ghidra frame layout");
+    __frame1_t __frame1;
     D2SaveFileHeaderStrc* lpBuffer;
-    D2SaveFileHeaderStrc sSaveHeader;
     char szSavePathBuffer[1024];
     char szFilePath[500];
     DWORD nNumberOfBytesToWrite;
-    __frame0.dwBytesRead = 0x43caad;
+    __frame1.dwBytesRead = 0x43caad;
     Fog::Source::SFile::GetAndCreateSavePath(szSavePathBuffer, 0x400);
     sprintf(szFilePath, "%s%s.d2s", szSavePathBuffer, szCharname);
     HANDLE hFile = Fog::Source::SFile::thunk_CreateFileA(szFilePath, 0xc0000000, 0, (LPSECURITY_ATTRIBUTES)0x0, 3, 0x8000000, (HANDLE)0x0);
@@ -1676,33 +1683,33 @@ BOOL __fastcall UpdateSaveFileToExpansion(char * szCharname) {
       return 0;
     }
 
-    Fog::Source::SFile::thunk_ReadFile(hFile, &sSaveHeader, 0x2000, &__frame0.dwBytesRead, (LPOVERLAPPED)0x0);
-    if (!(7 < __frame0.dwBytesRead && sSaveHeader.dwHeader == 0xaa55aa55)) {
+    Fog::Source::SFile::thunk_ReadFile(hFile, &__frame0.sSaveHeader, 0x2000, &__frame1.dwBytesRead, (LPOVERLAPPED)0x0);
+    if (!(7 < __frame1.dwBytesRead && __frame0.sSaveHeader.dwHeader == 0xaa55aa55)) {
       return 0;
     }
-    if (sSaveHeader.dwFileVersion < 0x5c) {
-      if (__frame0.dwBytesRead < 0x82) {
+    if (__frame0.sSaveHeader.dwFileVersion < 0x5c) {
+      if (__frame1.dwBytesRead < 0x82) {
         return 0;
       }
 
-      __frame0.dwExpansionFlag = *(uint32_t*)((char*)&sSaveHeader.szCharacterName + 4) | 0x20;
+      __frame1.dwExpansionFlag = *(uint32_t*)((char*)&__frame0.sSaveHeader.szCharacterName + 4) | 0x20;
       Fog::Source::SFile::SFILE_Win32SetFilePointer(hFile, 0x18, (PLONG)0x0, 0);
-      lpBuffer = (D2SaveFileHeaderStrc*)&__frame0.dwExpansionFlag;
+      lpBuffer = (D2SaveFileHeaderStrc*)&__frame1.dwExpansionFlag;
       nNumberOfBytesToWrite = 4;
     } else {
-      if (__frame0.dwBytesRead < 0x14f) {
+      if (__frame1.dwBytesRead < 0x14f) {
         return 0;
       }
 
-      sSaveHeader.dwCharacterStatus |= 0x20;
-      sSaveHeader.dwChecksum = 0;
-      sSaveHeader.dwChecksum = Fog::Save::CalculateChecksum((uint8_t*)&sSaveHeader, __frame0.dwBytesRead);
+      __frame0.sSaveHeader.dwCharacterStatus |= 0x20;
+      __frame0.sSaveHeader.dwChecksum = 0;
+      __frame0.sSaveHeader.dwChecksum = Fog::Save::CalculateChecksum((uint8_t*)&__frame0.sSaveHeader, __frame1.dwBytesRead);
       Fog::Source::SFile::SFILE_Win32SetFilePointer(hFile, 0, (PLONG)0x0, 0);
-      lpBuffer = &sSaveHeader;
-      nNumberOfBytesToWrite = __frame0.dwBytesRead;
+      lpBuffer = &__frame0.sSaveHeader;
+      nNumberOfBytesToWrite = __frame1.dwBytesRead;
     }
 
-    BOOL bWriteSuccess = Fog::Source::SFile::thunk_WriteFile(hFile, (LPCVOID)lpBuffer, nNumberOfBytesToWrite, &__frame0.dwBytesWritten, (LPOVERLAPPED)0x0);
+    BOOL bWriteSuccess = Fog::Source::SFile::thunk_WriteFile(hFile, (LPCVOID)lpBuffer, nNumberOfBytesToWrite, &__frame1.dwBytesWritten, (LPOVERLAPPED)0x0);
     Fog::Source::SFile::SFILE_Win32CloseHandle(hFile);
     return bWriteSuccess;
 }

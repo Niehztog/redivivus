@@ -14,6 +14,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinSmack) == 0x150, "D2_NEW(D2WinSmack): the 32-bit layout must be the 0x150 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_OnPress
 #define RECON_FPTD_OnPress
@@ -163,7 +173,7 @@ BOOL __stdcall Push(D2ControlMsg * pControlMsg) {
 
 // @sourcefile .\Src\D2WinSmack.cpp
 ::D2WinSmack * __fastcall D2WinSmack(int32_t nParam1, int32_t nParam2, int32_t nWidth, int32_t nHeight, OnPress pfnOnPress) {
-    ::D2WinSmack* pSmack = (::D2WinSmack*)Fog::Memory::AllocClientMemory(0x150, ".\\Src\\D2WinSmack.cpp", 0x23, 0);
+    ::D2WinSmack* pSmack = D2_NEW(::D2WinSmack);
     memset(pSmack, 0, 0x150);
     pSmack->sControl.neD2FormType = FORM_Smack;
     int* pState = &pSmack->sControl.dwState;

@@ -29,6 +29,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA2Q0Strc) == 0x84, "D2_NEW(D2QuestDataA2Q0Strc): the 32-bit layout must be the 0x84 bytes 1.14d allocates");
+
 
 namespace D2Game::Quests::QUESTS::A2Q0 {
 
@@ -158,7 +168,7 @@ void __fastcall Q08_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->nQuestIdReal = QUEST_SpokeToJerhyn;
     pQuestData->fpStatusFilter = Q08_StatusFilter;
     pQuestData->fpActiveFilter = Q08_ActiveFilter;
-    D2QuestDataA2Q0Strc* pQuestSpecificData = (D2QuestDataA2Q0Strc*)Fog::Memory::AllocServerMemory(pSVar1->pMemoryPool, 0x84, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q0.cpp", 0xac, 0);
+    D2QuestDataA2Q0Strc* pQuestSpecificData = D2_NEW_POOL(pSVar1->pMemoryPool, D2QuestDataA2Q0Strc);
     pQuestData->pQuestSpecificData.pA2Q0 = pQuestSpecificData;
     QUESTGUID_SetPlayerCountToZero(&pQuestSpecificData->sQuestGUID);
 }

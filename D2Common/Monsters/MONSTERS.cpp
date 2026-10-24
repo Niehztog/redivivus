@@ -53,6 +53,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnMonsterSpawnClassIdCb
 #define RECON_FPTD_pfnMonsterSpawnClassIdCb
@@ -358,7 +362,7 @@ void __fastcall SetSuperUniqueName(D2UnitStrc * pUnit, uint16_t * wszText) {
     }
 
     int32_t nStrLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszText);
-    uint16_t* pNameBuf = (uint16_t*)Fog::Memory::AllocClientMemory(nStrLen * 2 + 2, ".\\Monsters\\MONSTERS.CPP", 0xc3, 0);
+    uint16_t* pNameBuf = (uint16_t*)D2_ALLOC(nStrLen * 2 + 2);
     pUnit->pUnitData.pUnitDataPlayer->nPortalFlags = (int32_t)pNameBuf;
     D2Lang::Unicode::UNISYS::STRING_CopyWideString((uint16_t*)pUnit->pUnitData.pUnitDataPlayer->nPortalFlags, wszText);
 }
@@ -714,11 +718,15 @@ uint32_t __stdcall MONSTER_GetMercType(D2UnitStrc * pUnit) {
 // Scales a non-champion (Align != 1) monster's core combat stats (up to 3 entries from gaDifficultyScalingTable_MonsterApply) by a difficulty-specific percent/divisor pair selected by bParam (1 = first difficulty tier, else second). Also raises the monster's level by bParam*25. Only acts when nParam==0 and bParam!=0.
 void __stdcall MONSTER_ApplyDifficultyScaling(D2UnitStrc * pUnit, int32_t nParam, uint8_t bParam) {
     // Static local variables (originally global data)
-    static uint32_t gaDifficultyScalingTable_MonsterApply = 0x2;
+    static int gMonLvl_U_UniqueMonsterLevelChance2[3][5] = {
+    { 0x7, 0x1, 0x2, 0x1, 0x2 },
+    { 0x1f, 0xa, 0xc, 0xa, 0xc },
+    { 0xd, 0xa, 0x11, 0xa, 0x1a }
+};
 
     uint32_t nDivisor;
     int32_t nValue;
-    uint32_t nPercent;
+    int nPercent;
     int32_t nStatLayer;
     if (!(!nParam && bParam && pUnit && pUnit->eUnitType == UNIT_MONSTER)) {
       return;
@@ -729,11 +737,11 @@ void __stdcall MONSTER_ApplyDifficultyScaling(D2UnitStrc * pUnit, int32_t nParam
       return;
     }
 
-    uint32_t* pScalingEntry = &gaDifficultyScalingTable_MonsterApply;
+    int* pScalingEntry = gMonLvl_U_UniqueMonsterLevelChance2[0] + 2;
     int nEntriesLeft = 3;
     do {
       int nCurrentStatVal;
-      nCurrentStatVal = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, pScalingEntry[-2], 0);
+      nCurrentStatVal = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, (*(int (*)[5])(pScalingEntry - 2))[0], 0);
       if (bParam == 1) {
         nPercent = pScalingEntry[-1];
         nDivisor = *pScalingEntry;
@@ -744,7 +752,7 @@ void __stdcall MONSTER_ApplyDifficultyScaling(D2UnitStrc * pUnit, int32_t nParam
 
       nStatLayer = 0;
       nValue = D2Client::Stats::D2ApplyPercent(nCurrentStatVal, nPercent, nDivisor);
-      Stats::StatsEx::STATLIST_SetUnitStat(pUnit, pScalingEntry[-2], nValue, nStatLayer);
+      Stats::StatsEx::STATLIST_SetUnitStat(pUnit, (*(int (*)[5])(pScalingEntry - 2))[0], nValue, nStatLayer);
       pScalingEntry += 5;
       nEntriesLeft--;
     } while (nEntriesLeft);

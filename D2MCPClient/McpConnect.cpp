@@ -25,6 +25,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2MCPClient::McpConnect {
 
@@ -240,14 +248,14 @@ void __stdcall CopyCharListToGlobal(char * pBytes, size_t nSize) {
     uint32_t nCharCount;
     char byChar;
     if (D2Client::MCP::CharListPacket) {
-      Fog::Memory::FreeClientMemory(D2Client::MCP::CharListPacket, ".\\Src\\McpConnect.cpp", 0x21e, 0);
+      D2_FREE(D2Client::MCP::CharListPacket);
       D2Client::MCP::CharListPacket = 0;
     }
     if (!nSize) {
       return;
     }
 
-    D2Client::MCP::CharListPacket = Fog::Memory::AllocClientMemory(nSize, ".\\Src\\McpConnect.cpp", 0x227, 0);
+    D2Client::MCP::CharListPacket = D2_ALLOC(nSize);
     memcpy(D2Client::MCP::CharListPacket, pBytes, nSize);
     if (*pBytes == '\x17') {
       if (*(uint16_t*)((int)D2Client::MCP::CharListPacket + 1) < 0x100) {

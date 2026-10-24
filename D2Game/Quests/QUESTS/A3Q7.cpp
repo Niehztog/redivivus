@@ -43,6 +43,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA3Q7Strc) == 0x14, "D2_NEW(D2QuestDataA3Q7Strc): the 32-bit layout must be the 0x14 bytes 1.14d allocates");
+
 
 namespace D2Game::Quests::QUESTS::A3Q7 {
 
@@ -288,7 +298,7 @@ void __fastcall Q24_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
     pQuestData->nStateFlagPrev = 0;
-    D2QuestDataA3Q7Strc* pQuestSpecificData = (D2QuestDataA3Q7Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x14, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q7.cpp", 0xb9, 0);
+    D2QuestDataA3Q7Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA3Q7Strc);
     pQuestData->pQuestSpecificData.pA3Q7 = pQuestSpecificData;
     /* memset should be used here */ pQuestSpecificData->bHasSpawnCoords = false;
     pQuestSpecificData->bQuestCompleted = false;

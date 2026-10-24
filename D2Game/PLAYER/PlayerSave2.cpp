@@ -905,8 +905,8 @@ void __fastcall SetHotkey(D2SaveHotKeyStrc * pSaveHotKey, uint32_t * pnParam, ui
       return;
     }
 
-    *pnParam = (uint16_t)pSaveHotKey->nSkillIdAndHand & 0xfff;
-    *pnHand = (uint32_t)((uint16_t)pSaveHotKey->nSkillIdAndHand >> 0xf);
+    *pnParam = pSaveHotKey->nSkillIdAndHand & 0xfff;
+    *pnHand = (uint32_t)(pSaveHotKey->nSkillIdAndHand >> 0xf);
     uint16_t nRawItemIndex = pSaveHotKey->nItemIndex;
     *nItemIndex = (uint32_t)nRawItemIndex;
     if (nRawItemIndex) {
@@ -1438,18 +1438,10 @@ int __fastcall PLRSAVE_LoadCorpseFromBuffer(::SGAMEDATA * pGame, D2UnitStrc * pU
 }
 
 // Deserializes a mercenary from save data and recreates it as a live unit. Reads 8 dwords of merc save data (type, GUID, name index, experience), looks up the hireling text entry, creates the merc unit via CreateMerc, links it to the player via PETS_UpdatePetData, clamps experience to the minimum for its level, applies level stats, and ensures an inventory is allocated. Returns the new D2UnitStrc or null if the save data is empty or creation fails.
-D2UnitStrc * __fastcall LoadMerc(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t * pMercSaveData, uint32_t dwParam) {
-    // Frame -60..-52 is ONE Ghidra variable the decompiler printed as 2 locals.
-    // Separate locals let the compiler reorder them, so the pieces are one struct.
-    struct __frame0_t {
-      uint32_t saveBuf;
-      uint32_t uStack_38;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
+D2UnitStrc * __fastcall LoadMerc(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2MercSaveDataStrc * pMercSaveData, uint32_t dwParam) {
     // Frame slots -28..-4 are ONE object: &nMercGUID is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
+    struct __frame0_t {
       uint32_t nMercGUID;
       uint32_t nNameId;
       uint32_t nMercLevel;
@@ -1457,66 +1449,63 @@ D2UnitStrc * __fastcall LoadMerc(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32
       int pExpTbl;
       D2UnitStrc* pPlayerUnit_lcl;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 24, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
     D2UnitStrc* pMerc;
     uint32_t exp;
     uint32_t nMinExp;
     int nCopyCount;
-    uint16_t wNameIdx;
-    uint16_t wMercType;
-    uint16_t wMinExpHigh;
-    uint16_t wMinExpLow;
-    if (!pMercSaveData[3] && !pMercSaveData[1] && !(short int)pMercSaveData[2]) {
+    D2MercSaveDataStrc sMercSave;
+    if (!pMercSaveData->dwExperience && !pMercSaveData->dwSeed && !pMercSaveData->wNameIndex) {
       return nullptr;
     }
 
-    uint32_t* pSaveCopyDst = &__frame0.saveBuf;
-    __frame1.pPlayerUnit_lcl = pUnit;
+    D2MercSaveDataStrc* pSaveCopyDst = &sMercSave;
+    __frame0.pPlayerUnit_lcl = pUnit;
     for (nCopyCount = 8; nCopyCount; nCopyCount--) {
-      *pSaveCopyDst = *pMercSaveData;
-      pMercSaveData++;
-      pSaveCopyDst++;
+      pSaveCopyDst->dwFlags = pMercSaveData->dwFlags;
+      pMercSaveData = (D2MercSaveDataStrc*)&pMercSaveData->dwSeed;
+      pSaveCopyDst = (D2MercSaveDataStrc*)&pSaveCopyDst->dwSeed;
     }
 
-    D2HirelingTxt* pHirelingTxt = D2Common::DATATBLS::MonsterTbls::GetHirelingText(pGame->bExpansion, (uint32_t)wMercType, 1);
-    D2UnitStrc* pPlayerUnitSaved = __frame1.pPlayerUnit_lcl;
+    D2HirelingTxt* pHirelingTxt = D2Common::DATATBLS::MonsterTbls::GetHirelingText(pGame->bExpansion, (uint32_t)sMercSave.wHirelingId, 1);
+    D2UnitStrc* pPlayerUnitSaved = __frame0.pPlayerUnit_lcl;
     if (!pHirelingTxt) {
       return nullptr;
     }
 
-    wNameIdx += pHirelingTxt->nNameFirst;
-    if ((uint16_t)pHirelingTxt->nNameLast < wNameIdx) {
-      wNameIdx = pHirelingTxt->nNameFirst;
+    sMercSave.wNameIndex += pHirelingTxt->nNameFirst;
+    if ((uint16_t)pHirelingTxt->nNameLast < sMercSave.wNameIndex) {
+      sMercSave.wNameIndex = pHirelingTxt->nNameFirst;
     }
 
-    __frame1.dwGuildFlags = __frame0.saveBuf & 0x10000;
-    pMerc = UNIT::SUNITNPC::CreateMerc(pGame, __frame1.pPlayerUnit_lcl, wNameIdx, __frame0.uStack_38, wMercType, pHirelingTxt->classId, __frame1.dwGuildFlags);
+    __frame0.dwGuildFlags = sMercSave.dwFlags & 0x10000;
+    pMerc = UNIT::SUNITNPC::CreateMerc(pGame, __frame0.pPlayerUnit_lcl, sMercSave.wNameIndex, sMercSave.dwSeed, sMercSave.wHirelingId, pHirelingTxt->classId, __frame0.dwGuildFlags);
     if (!pMerc) {
       return nullptr;
     }
 
-    __frame1.nNameId = (uint32_t)wNameIdx;
-    __frame1.nMercLevel = (uint32_t)wMercType;
-    __frame1.nMercGUID = __frame0.uStack_38;
-    PlayerPets::PETS_UpdatePetData(pPlayerUnitSaved, 7, pMerc->nUnitGUID, (int*)&__frame1.nMercGUID);
+    __frame0.nNameId = (uint32_t)sMercSave.wNameIndex;
+    __frame0.nMercLevel = (uint32_t)sMercSave.wHirelingId;
+    __frame0.nMercGUID = sMercSave.dwSeed;
+    PlayerPets::PETS_UpdatePetData(pPlayerUnitSaved, 7, pMerc->nUnitGUID, (int*)&__frame0.nMercGUID);
     D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pPlayerUnitSaved, UNITSTAT_level, 0);
-    __frame1.pExpTbl = D2Common::DATATBLS::DataTbls::TXT_Experience_GetMaxLevel(0);
-    pMercSaveData = (uint32_t*)0x1;
+    __frame0.pExpTbl = D2Common::DATATBLS::DataTbls::TXT_Experience_GetMaxLevel(0);
+    pMercSaveData = (D2MercSaveDataStrc*)0x1;
     exp = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pMerc, UNITSTAT_experience, 0);
-    nMinExp = (uint32_t)(uint32_t)(uint16_t)wMinExpHigh;
+    nMinExp = (uint32_t)((uint32_t)(uint16_t)*(uint16_t*)((char*)&sMercSave.dwExperience + 2) << 16 | (uint32_t)(uint16_t)sMercSave.dwExperience);
     if (exp < nMinExp) {
       D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pMerc, UNITSTAT_experience, nMinExp, 0);
     }
 
     UNIT::SUnitMsg::UnitQueuePacket0x9E(pMerc, UNITSTAT_experience, nMinExp);
-    pHirelingTxt = D2Common::DATATBLS::MonsterTbls::GetHirelingText(pGame->bExpansion, (uint32_t)wMercType, 1);
+    pHirelingTxt = D2Common::DATATBLS::MonsterTbls::GetHirelingText(pGame->bExpansion, (uint32_t)sMercSave.wHirelingId, 1);
     while (pHirelingTxt) {
-      pSaveCopyDst = (uint32_t*)((int)pMercSaveData + 1);
-      if (__frame1.pExpTbl < (int)pSaveCopyDst || (nMinExp = D2Common::Merc::GetBaseExperience((int32_t)pSaveCopyDst, pHirelingTxt->expPerLvl) , (uint32_t)(uint32_t)(uint16_t)wMinExpHigh < nMinExp)) {
-        pPlayerUnitSaved = __frame1.pPlayerUnit_lcl;
-        Monster::MonsterAI::MERC_ApplyLevelStats(pGame, __frame1.pPlayerUnit_lcl, pMerc, (int32_t)pMercSaveData);
-        if (__frame1.dwGuildFlags) {
+      pSaveCopyDst = (D2MercSaveDataStrc*)((uintptr_t)&pMercSaveData->dwFlags + 1);
+      if (__frame0.pExpTbl < (int)pSaveCopyDst || (nMinExp = D2Common::Merc::GetBaseExperience((int32_t)pSaveCopyDst, pHirelingTxt->expPerLvl) , (uint32_t)((uint32_t)(uint16_t)*(uint16_t*)((char*)&sMercSave.dwExperience + 2) << 16 | (uint32_t)(uint16_t)sMercSave.dwExperience) < nMinExp)) {
+        pPlayerUnitSaved = __frame0.pPlayerUnit_lcl;
+        Monster::MonsterAI::MERC_ApplyLevelStats(pGame, __frame0.pPlayerUnit_lcl, pMerc, (int32_t)pMercSaveData);
+        if (__frame0.dwGuildFlags) {
           PlayerPets::SERVERUNIT_RemovePetFromUnit(pGame, pPlayerUnitSaved, pMerc);
           pMerc->eUnitFlags |= UNITFLAG_ISDEAD;
           UNIT::SUnit::FreeCombatAndChangeAnimMode(pGame, pMerc, 0xc);
@@ -1530,7 +1519,7 @@ D2UnitStrc * __fastcall LoadMerc(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32
         return pMerc;
       }
 
-      pHirelingTxt = D2Common::DATATBLS::MonsterTbls::GetHirelingText(pGame->bExpansion, (uint32_t)wMercType, (int32_t)pSaveCopyDst);
+      pHirelingTxt = D2Common::DATATBLS::MonsterTbls::GetHirelingText(pGame->bExpansion, (uint32_t)sMercSave.wHirelingId, (int32_t)pSaveCopyDst);
       pMercSaveData = pSaveCopyDst;
     }
 
@@ -1944,7 +1933,7 @@ int32_t __fastcall PLAYERSAVE_LoadModernFormat(::SGAMEDATA * pGame, D2ClientStrc
                   nLoadError = PLRSAVE_LoadCorpseFromBuffer(pGame, pUnit, (D2UnitStrc**)&pReadPos, (D2UnitStrc*)pBufEnd, dwParam, &nSubError);
                   bIsFatalError = nLoadError < 0;
                   if (!nLoadError) {
-                    pMerc = LoadMerc(pGame, pUnit, (uint32_t*)&pSaveHeader->nMercFlags, dwParam);
+                    pMerc = LoadMerc(pGame, pUnit, (D2MercSaveDataStrc*)&pSaveHeader->nMercFlags, dwParam);
                     nLoadError = LoadMerc2(pGame, pMerc, (D2UnitStrc**)&pReadPos, (D2UnitStrc*)pBufEnd, dwParam, &nSubError);
                     bIsFatalError = nLoadError < 0;
                     if (!nLoadError) {

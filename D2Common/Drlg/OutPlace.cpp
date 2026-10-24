@@ -34,6 +34,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Common::Drlg::OutPlace {
 
@@ -654,10 +662,10 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
             iVar3 = ((int)(uVar6 + ((int)uVar6 >> 0x1f & 0x1fU)) >> 5) + 2;
             iVar5 = ((int)(nConnFlags + ((int)nConnFlags >> 0x1f & 0x1fU)) >> 5) + 2;
             nSize = iVar3 * iVar5 * 4;
-            pSubLevelMap = (int32_t*)Fog::Memory::AllocServerMemory(pPoolManagerStrc, nSize, ".\\DRLG\\OutPlace.cpp", 0x658, 0);
-            pDistWorkMap = (int32_t*)Fog::Memory::AllocServerMemory(pPoolManagerStrc, nSize, ".\\DRLG\\OutPlace.cpp", 0x659, 0);
-            pDistMap = (int32_t*)Fog::Memory::AllocServerMemory(pPoolManagerStrc, nSize, ".\\DRLG\\OutPlace.cpp", 0x65a, 0);
-            pSubLevelDistMap = (int32_t*)Fog::Memory::AllocServerMemory(pPoolManagerStrc, nSize, ".\\DRLG\\OutPlace.cpp", 0x65b, 0);
+            pSubLevelMap = (int32_t*)D2_ALLOC_POOL(pPoolManagerStrc, nSize);
+            pDistWorkMap = (int32_t*)D2_ALLOC_POOL(pPoolManagerStrc, nSize);
+            pDistMap = (int32_t*)D2_ALLOC_POOL(pPoolManagerStrc, nSize);
+            pSubLevelDistMap = (int32_t*)D2_ALLOC_POOL(pPoolManagerStrc, nSize);
             build_grids:
             memset(pSubLevelMap, 0, nSize);
             memset(pDistWorkMap, 0, nSize);
@@ -670,7 +678,7 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
               bNoOverlap = nGridX + 1;
               aSubLevelRecords[nSubIdx * 0xe + 10] = nGridY;
               aSubLevelRecords[nSubIdx * 0xe + 0xb] = bNoOverlap;
-              pSubGridData = Fog::Memory::AllocServerMemory(pPoolManagerStrc, iVar2 * iVar1 * 4, ".\\DRLG\\OutPlace.cpp", 0x66f, 0);
+              pSubGridData = D2_ALLOC_POOL(pPoolManagerStrc, iVar2 * iVar1 * 4);
               aSubLevelRecords[nSubIdx * 0xe + 0xc] = (int)pSubGridData;
               if (!nSubIdx) {
                 sNewSeed = D2_SEED_NEXT(pDrlg->nSeed);
@@ -1287,10 +1295,10 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
               pSubLevel->sCoordinatesAndSize.WorldSize.y = *pSubLevelSizeYSrc;
             } while (iVar3 < 3);
 
-            Fog::Memory::FreeServerMemory(pPoolManagerStrc, pSubLevelMap, ".\\DRLG\\OutPlace.cpp", 0x7d2, 0);
-            Fog::Memory::FreeServerMemory(pPoolManagerStrc, pDistWorkMap, ".\\DRLG\\OutPlace.cpp", 0x7d3, 0);
-            Fog::Memory::FreeServerMemory(pPoolManagerStrc, pDistMap, ".\\DRLG\\OutPlace.cpp", 0x7d4, 0);
-            Fog::Memory::FreeServerMemory(pPoolManagerStrc, pSubLevelDistMap, ".\\DRLG\\OutPlace.cpp", 0x7d5, 0);
+            D2_FREE_POOL(pPoolManagerStrc, pSubLevelMap);
+            D2_FREE_POOL(pPoolManagerStrc, pDistWorkMap);
+            D2_FREE_POOL(pPoolManagerStrc, pDistMap);
+            D2_FREE_POOL(pPoolManagerStrc, pSubLevelDistMap);
             return pSubLevel;
           }
 

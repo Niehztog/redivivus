@@ -1322,35 +1322,42 @@ void __stdcall NET_SID_CLIENT_FreeSRP() {
 // - Country name (null-terminated string): From GetLocaleInfo(LOCALE_SENGCOUNTRY)
 // Server responds with SID_AUTH_INFO containing version check challenge.
 void __stdcall NET_SID_CLIENT_Send_0x50_AuthInfo() {
+    // Frame slots -388..-8 are ONE object: &nSockAddrLen is passed out and the callee reaches the rest by byte offset.
+    // Separate locals let the compiler reorder them, so the run is one struct.
+    struct __frame0_t {
+      int nSockAddrLen;
+      SID_C2S_AuthInfo sAuthInfoPacket;
+      uint8_t __pad300[16];
+      uint32_t szCountryAbbrevBuf[16];
+    };
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 380, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
     uint32_t uVar1;
     _SYSTEMTIME stLocalTime;
     _SYSTEMTIME stUtcTime;
     _FILETIME ftUtc;
     _FILETIME ftLocal;
-    SID_C2S_AuthInfo sAuthInfoPacket;
     sockaddr_in nsockaddr;
-    uint32_t szCountryAbbrevBuf[16];
-    memset(&sAuthInfoPacket, 0, 0x128);
-    sAuthInfoPacket.dwProtocolId = 0;
-    memcpy(sAuthInfoPacket.szPlatform, "68XI", 4);
+    memset(&__frame0.sAuthInfoPacket, 0, 0x128);
+    __frame0.sAuthInfoPacket.dwProtocolId = 0;
+    memcpy(__frame0.sAuthInfoPacket.szPlatform, "68XI", 4);
     BOOL bIsExpansion;
     bIsExpansion = BnSend::D2CheckExpansionGame();
-    sAuthInfoPacket.dwProductId = bIsExpansion ? 0x44325850 : 0x44324456;
-    sAuthInfoPacket.dwVersion = 0xe;
-    D2Lang::StrTable::strtable::TABLES_GetLangAbbreviation(sAuthInfoPacket.szLangAbbrev, 3);
-    int nSockAddrLen;
-    nSockAddrLen = 0x10;
+    __frame0.sAuthInfoPacket.dwProductId = bIsExpansion ? 0x44325850 : 0x44324456;
+    __frame0.sAuthInfoPacket.dwVersion = 0xe;
+    D2Lang::StrTable::strtable::TABLES_GetLangAbbreviation(__frame0.sAuthInfoPacket.szLangAbbrev, 3);
+    __frame0.nSockAddrLen = 0x10;
     uint32_t bGotLocalIp;
-    bGotLocalIp = BnSend::BNSEND_GetSocketAddress((sockaddr*)&nsockaddr, &nSockAddrLen);
-    sAuthInfoPacket.dwLocalIp = bGotLocalIp ? nsockaddr.sin_addr : 0;
+    bGotLocalIp = BnSend::BNSEND_GetSocketAddress((sockaddr*)&nsockaddr, &__frame0.nSockAddrLen);
+    __frame0.sAuthInfoPacket.dwLocalIp = bGotLocalIp ? nsockaddr.sin_addr : 0;
     /* LPSYSTEMTIME lpSystemTime for GetSystemTime */ GetSystemTime(&stUtcTime);
     /* LPSYSTEMTIME lpSystemTime for GetLocalTime */ GetLocalTime(&stLocalTime);
     /* LPFILETIME lpFileTime for SystemTimeToFileTime */ /* SYSTEMTIME * lpSystemTime for SystemTimeToFileTime */ SystemTimeToFileTime(&stUtcTime, &ftUtc);
     /* LPFILETIME lpFileTime for SystemTimeToFileTime */ /* SYSTEMTIME * lpSystemTime for SystemTimeToFileTime */ SystemTimeToFileTime(&stLocalTime, &ftLocal);
     int64_t llTimeDiff;
     llTimeDiff = __alldiv(ftUtc.dwLowDateTime - ftLocal.dwLowDateTime, ftUtc.dwHighDateTime - ftLocal.dwHighDateTime - (uint32_t)(ftUtc.dwLowDateTime < ftLocal.dwLowDateTime), 600000000, 0);
-    sAuthInfoPacket.nTzBias = (int)llTimeDiff;
-    sAuthInfoPacket.dwLocaleId = GetUserDefaultLCID();
+    __frame0.sAuthInfoPacket.nTzBias = (int)llTimeDiff;
+    __frame0.sAuthInfoPacket.dwLocaleId = GetUserDefaultLCID();
     HMODULE hKernel32;
     hKernel32 = LoadLibraryA("kernel32.dll");
     if (hKernel32) {
@@ -1358,7 +1365,7 @@ void __stdcall NET_SID_CLIENT_Send_0x50_AuthInfo() {
       /* LPCSTR lpProcName for GetProcAddress */ /* HMODULE hModule for GetProcAddress */ pfnGetSystemDefaultUILanguage = GetProcAddress(hKernel32, "GetSystemDefaultUILanguage");
       if (pfnGetSystemDefaultUILanguage) {
         uVar1 = (*pfnGetSystemDefaultUILanguage)();
-        /* HMODULE hLibModule for FreeLibrary */ sAuthInfoPacket.dwLanguageId = uVar1 & 0xffff;
+        /* HMODULE hLibModule for FreeLibrary */ __frame0.sAuthInfoPacket.dwLanguageId = uVar1 & 0xffff;
         FreeLibrary(hKernel32);
         goto add_country_and_send;
       }
@@ -1368,14 +1375,14 @@ void __stdcall NET_SID_CLIENT_Send_0x50_AuthInfo() {
 
     LANGID wLangId;
     wLangId = GetSystemDefaultLangID();
-    sAuthInfoPacket.dwLanguageId = (uint32_t)wLangId;
+    __frame0.sAuthInfoPacket.dwLanguageId = (uint32_t)wLangId;
     add_country_and_send:
-    /* int cchData for GetLocaleInfoA */ /* LPSTR lpLCData for GetLocaleInfoA */ /* LCTYPE LCType for GetLocaleInfoA */ /* LCID Locale for GetLocaleInfoA */ GetLocaleInfoA(0x400, 7, (LPSTR)szCountryAbbrevBuf, 0x40);
-    /* int cchData for GetLocaleInfoA */ /* LPSTR lpLCData for GetLocaleInfoA */ szCountryAbbrevBuf[0] &= 0xffffff;
-    /* LCTYPE LCType for GetLocaleInfoA */ /* LCID Locale for GetLocaleInfoA */ sAuthInfoPacket.dwCountryAbbrev = szCountryAbbrevBuf[0];
-    GetLocaleInfoA(0x400, 0x1002, sAuthInfoPacket.szCountryName, 0x100);
-    bGotLocalIp = Storm::Source::SSTR::SStrLen(sAuthInfoPacket.szCountryName);
-    BnSend::NET_SID_CLIENT_Send(0x50, (char*)&sAuthInfoPacket, bGotLocalIp + 0x29);
+    /* int cchData for GetLocaleInfoA */ /* LPSTR lpLCData for GetLocaleInfoA */ /* LCTYPE LCType for GetLocaleInfoA */ /* LCID Locale for GetLocaleInfoA */ GetLocaleInfoA(0x400, 7, (LPSTR)__frame0.szCountryAbbrevBuf, 0x40);
+    /* int cchData for GetLocaleInfoA */ /* LPSTR lpLCData for GetLocaleInfoA */ __frame0.szCountryAbbrevBuf[0] &= 0xffffff;
+    /* LCTYPE LCType for GetLocaleInfoA */ /* LCID Locale for GetLocaleInfoA */ __frame0.sAuthInfoPacket.dwCountryAbbrev = __frame0.szCountryAbbrevBuf[0];
+    GetLocaleInfoA(0x400, 0x1002, __frame0.sAuthInfoPacket.szCountryName, 0x100);
+    bGotLocalIp = Storm::Source::SSTR::SStrLen(__frame0.sAuthInfoPacket.szCountryName);
+    BnSend::NET_SID_CLIENT_Send(0x50, (char*)&__frame0.sAuthInfoPacket, bGotLocalIp + 0x29);
     Fog::Debug::GuardStack();
 }
 
@@ -1586,22 +1593,30 @@ BOOL __fastcall NET_SID_CLIENT_Send_0x57_AuthAccountUpgrade(int32_t bIncrementFl
 }
 
 void __stdcall NET_SID_CLIENT_Send_0x58_AuthAccountUpgradeProof() {
-    D2SHA1 shaOldPasswordHash;
-    uint8_t abSrpSaltCopy[64];
-    DWORD abUpgradeProofInput[2];
-    D2SHA1 shaUsernameHash;
-    char szUsernameLower[256];
-    uint32_t dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    abUpgradeProofInput[0] = GetTickCount();
-    uint32_t nLen = Storm::Source::SSTR::SStrCopy(szUsernameLower, g_srpCredentials.szPassword, 0x100);
-    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(szUsernameLower, nLen);
-    uint32_t nInputSize = Storm::Source::SSTR::SStrLen(szUsernameLower);
-    SHA1(&shaUsernameHash, szUsernameLower, nInputSize);
-    DWORD dwClientToken = abUpgradeProofInput[0];
-    SHA1(&shaOldPasswordHash, (char*)abUpgradeProofInput, 0x1c);
-    Storm::Source::SSystem::SMemCopy(abSrpSaltCopy, &g_srpSaltVerifier, 0x40);
+    // Frame slots -380..-4 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
+    // Separate locals let the compiler reorder them, so the run is one struct.
+    struct __frame0_t {
+      DWORD dwClientToken;
+      D2SHA1 shaOldPasswordHash;
+      uint8_t abSrpSaltCopy[64];
+      DWORD abUpgradeProofInput[2];
+      D2SHA1 shaUsernameHash;
+      char szUsernameLower[256];
+      uint32_t dwSecurityCookie;
+    };
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 376, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
+    __frame0.dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
+    __frame0.abUpgradeProofInput[0] = GetTickCount();
+    uint32_t nLen = Storm::Source::SSTR::SStrCopy(__frame0.szUsernameLower, g_srpCredentials.szPassword, 0x100);
+    /* DWORD cchLength for CharLowerBuffA */ /* LPSTR lpsz for CharLowerBuffA */ CharLowerBuffA(__frame0.szUsernameLower, nLen);
+    uint32_t nInputSize = Storm::Source::SSTR::SStrLen(__frame0.szUsernameLower);
+    SHA1(&__frame0.shaUsernameHash, __frame0.szUsernameLower, nInputSize);
+    __frame0.dwClientToken = __frame0.abUpgradeProofInput[0];
+    SHA1(&__frame0.shaOldPasswordHash, (char*)__frame0.abUpgradeProofInput, 0x1c);
+    Storm::Source::SSystem::SMemCopy(__frame0.abSrpSaltCopy, &g_srpSaltVerifier, 0x40);
     Storm::Source::SSystem::SMemZero(&g_srpSaltVerifier, 0x40);
-    BnSend::NET_SID_CLIENT_Send(0x58, (char*)&dwClientToken, 0x58);
+    BnSend::NET_SID_CLIENT_Send(0x58, (char*)&__frame0.dwClientToken, 0x58);
     Fog::Debug::GuardStack();
 }
 

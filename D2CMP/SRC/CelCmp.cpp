@@ -25,6 +25,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnTilecmpPixelCallback
 #define RECON_FPTD_pfnTilecmpPixelCallback
@@ -1224,7 +1232,7 @@ uint32_t __stdcall CELCMP_AllocateDecodedCelFile(int32_t nParam, uint32_t * pdwP
       exit(-1);
     }
 
-    DC6* pDecodedBlock = (DC6*)Fog::Memory::AllocClientMemory(*(int*)(nParam + 0x10) * *(int*)(nParam + 0x14) * 4 + 0x18, ".\\SRC\\CelCmp.cpp", 0x2b1, 0);
+    DC6* pDecodedBlock = (DC6*)D2_ALLOC(*(int*)(nParam + 0x10) * *(int*)(nParam + 0x14) * 4 + 0x18);
     pDecodedBlock->nVersion = 6;
     pDecodedBlock->nFlags = *(uint32_t*)(nParam + 4) & -8;
     pDecodedBlock->nDirections = *(int*)(nParam + 0x10);
@@ -1287,7 +1295,7 @@ void __stdcall CELCMP_FixupOffsetsAndSerialize(int * pnParam, uint32_t * pdwPara
         }
 
         pnParam = pSerializedEnd;
-        pSerializedBlock = (uint32_t*)Fog::Memory::AllocClientMemory((size_t)pnParam, ".\\SRC\\CelCmp.cpp", 0x2e3, 0);
+        pSerializedBlock = (uint32_t*)D2_ALLOC((size_t)pnParam);
         *pSerializedBlock = 6;
         pSerializedBlock[1] = *(uint8_t*)(pSrcParam + 1) & 4 | 1;
         pSerializedBlock[2] = 0;
@@ -1388,7 +1396,7 @@ uint32_t __stdcall CELCMP_SerializeCelFileToMemory(uint32_t * pDCCSrc, uint32_t 
       } while (iFrame);
     }
 
-    uint32_t* pWriteCursor = (uint32_t*)Fog::Memory::AllocClientMemory(nTotalSize, ".\\SRC\\CelCmp.cpp", 0x345, 0);
+    uint32_t* pWriteCursor = (uint32_t*)D2_ALLOC(nTotalSize);
     uint32_t* pDstFrameCursor = pDCCSrc;
     uint32_t* pOutputBlock = pWriteCursor;
     for (pSrcFrameRef = (D2InventoryGridStrc*)0x7; pSrcFrameRef; pSrcFrameRef = (D2InventoryGridStrc*)((uintptr_t)&pSrcFrameRef[-1].pSwappedLeftArmItem + 3)) {
@@ -1422,7 +1430,7 @@ uint32_t __stdcall CELCMP_SerializeCelFileToMemory(uint32_t * pDCCSrc, uint32_t 
       } while (iNextFrame < nFrameCount);
 
       if (pColorShiftFreeSrc) {
-        Fog::Memory::FreeClientMemory(pColorShiftFreeSrc, ".\\SRC\\CelCmp.cpp", 0x375, 0);
+        D2_FREE(pColorShiftFreeSrc);
       }
     }
 
@@ -1456,7 +1464,7 @@ void __stdcall CELCMP_FixupPointersAndPrepare(DC6 * pDC6, DC6 * * ppDC6Out, char
 
     size_t nAllocSize = pDC6->nDirections * pDC6->nFrames * 0x2c;
     pDC6->nFlags = nFrameIndex | 2;
-    void* pBlockPool = Fog::Memory::AllocClientMemory(nAllocSize, ".\\SRC\\CelCmp.cpp", 0x3a6, 0);
+    void* pBlockPool = D2_ALLOC(nAllocSize);
     memset(pBlockPool, 0, nAllocSize);
     if (pDC6->nDirections * pDC6->nFrames) {
       DC6* pFrameIter;
@@ -1480,7 +1488,7 @@ void __stdcall CELCMP_FreeCelFileMemory(void * pCelFile) {
       exit(-1);
     }
 
-    Fog::Memory::FreeClientMemory(pCelFile, ".\\SRC\\CelCmp.cpp", 0x40e, 0);
+    D2_FREE(pCelFile);
 }
 
 void __stdcall CELCMP_InvokeFormatSpecificCleanup(int32_t nParam, BYTE * dwParam) {
@@ -1824,7 +1832,7 @@ void __stdcall DeleteCellFile(DC6 * pDC6) {
           } while (nFrameIndex < (uint32_t)(pDC6->nFrames * pDC6->nDirections));
         }
 
-        Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\SRC\\CelCmp.cpp", 0x61d, 0);
+        D2_FREE(pMemoryToFree);
         return;
       }
 
@@ -1866,7 +1874,7 @@ void __stdcall CELCMP_FreeCelFileAndData(DC6 * pDC6) {
       DeleteCellFile(pDC6);
     }
 
-    Fog::Memory::FreeClientMemory(pDC6, ".\\SRC\\CelCmp.cpp", 0x422, 0);
+    D2_FREE(pDC6);
 }
 
 void __stdcall CELCMP_AddCelFrameToCache(uint32_t nParam1, uint32_t * pdwParam, uint32_t nParam2, uint32_t nParam3, uint32_t nParam4, uint32_t nParam5, uint32_t nParam6, uint32_t nParam7) {
@@ -1933,7 +1941,7 @@ void __stdcall CELCMP_AddCelFrameToCache(uint32_t nParam1, uint32_t * pdwParam, 
           uRowPitch = nParam4;
         }
 
-        pPixelBuf = (D2CharSelCompStrc*)Fog::Memory::AllocClientMemory(uRowPitch * nParam3, ".\\SRC\\CelCmp.cpp", 0x239, 0);
+        pPixelBuf = (D2CharSelCompStrc*)D2_ALLOC(uRowPitch * nParam3);
         pCacheEntry[4].m_prevlink = (TSLink<::TCELENTRY>*)pPixelBuf;
         D2MEM_CopyRows(pPixelBuf, pdwParam, uRowPitch, nParam2, nParam3, uRowPitch);
         if (!bCriticalLocked) {
@@ -1960,7 +1968,7 @@ void __stdcall CELCMP_FreeCachedCelFrame(uint32_t nParam) {
 
     uint32_t uFrameNode = pHashEntry->m_frames.m_terminator.m_next;
     for (uFrameNode = (int)uFrameNode < 1 ? 0 : uFrameNode; 0 < (int)uFrameNode; uFrameNode = *(uint32_t*)(uFrameNode + 4)) {
-      Fog::Memory::FreeClientMemory(*(void**)(uFrameNode + 0x20), ".\\SRC\\CelCmp.cpp", 0x24c, 0);
+      D2_FREE(*(void**)(uFrameNode + 0x20));
     }
 
     pHashEntry->m_frames.Clear();
@@ -1994,7 +2002,7 @@ uint32_t __stdcall CELCMP_CreateCelFileFromCache(uint32_t nParam, uint32_t * pdw
       return 0x85200002;
     }
 
-    DC6* pCelFile = (DC6*)Fog::Memory::AllocClientMemory(uFrameCount * 4 + 0x18, ".\\SRC\\CelCmp.cpp", 0x267, 0);
+    DC6* pCelFile = (DC6*)D2_ALLOC(uFrameCount * 4 + 0x18);
     pCelFile->nVersion = 6;
     pCelFile->nFlags = pHashEntry->dwFlags;
     pCelFile->nFormat = pHashEntry->nFormat;

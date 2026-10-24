@@ -21,6 +21,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WaypointStrc) == 0x10, "D2_NEW(D2WaypointStrc): the 32-bit layout must be the 0x10 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Common::Waypoints {
 
@@ -108,7 +122,7 @@ void __stdcall EnableWaypoint(D2WaypointStrc * pWaypoint, uint16_t nWaypointId) 
 
 // @sourcefile .\WayPoint\Waypoint.cpp
 D2WaypointStrc * __stdcall Alloc(D2PoolManagerStrc * pMemory) {
-    D2WaypointStrc* pWaypoint = (D2WaypointStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x10, ".\\WayPoint\\Waypoint.cpp", 0xfc, 0);
+    D2WaypointStrc* pWaypoint = D2_NEW_POOL(pMemory, D2WaypointStrc);
     pWaypoint->nSignature = 0;
     memset(pWaypoint->aWaypointBits, 0, 7 * sizeof(pWaypoint->aWaypointBits[0]));
     pWaypoint->nSignature = 0x102;
@@ -144,7 +158,7 @@ void __stdcall Free(D2PoolManagerStrc * pMemory, D2WaypointStrc * pWaypoint) {
       pWaypoint->nSignature = 0x102;
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pWaypoint, ".\\WayPoint\\Waypoint.cpp", 0x121, 0);
+    D2_FREE_POOL(pMemory, pWaypoint);
 }
 
 void __stdcall CopyWaypointBits(D2WaypointStrc * pWaypoint, uint8_t * nWaypointBits) {

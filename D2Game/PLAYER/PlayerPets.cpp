@@ -60,6 +60,22 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitDataPlayerPetsStrc) == 0x4, "D2_NEW(D2UnitDataPlayerPetsStrc): the 32-bit layout must be the 0x4 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2PetStrc) == 0x18, "D2_NEW(D2PetStrc): the 32-bit layout must be the 0x18 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpSUnitIterateCallback
 #define RECON_FPTD_fpSUnitIterateCallback
@@ -147,7 +163,7 @@ void __stdcall PETS_FreeOrKillPetList(D2UnitStrc * pUnit, D2PetListStrc * pPetLi
         KillHandlerPet(pPetStrc->nPetGUID, pGame);
         pPetList->nPets2--;
         pPetList->nMax--;
-        Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pPetStrc, ".\\PLAYER\\PlayerPets.cpp", 0xe8, 0);
+        D2_FREE_POOL(pGame->pMemoryPool, pPetStrc);
       } else {
         pPetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_MONSTER, pPetStrc->nPetGUID);
         if (pPetUnit) {
@@ -163,7 +179,7 @@ void __stdcall PETS_FreeOrKillPetList(D2UnitStrc * pUnit, D2PetListStrc * pPetLi
             UNIT::SUnit::FreeServerUnit(pGame, pPetUnit);
             pPetList->nPets2--;
             pPetList->nMax--;
-            Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pPetStrc, ".\\PLAYER\\PlayerPets.cpp", 0xe8, 0);
+            D2_FREE_POOL(pGame->pMemoryPool, pPetStrc);
             continue;
           }
           if (!(*(uint32_t*)pPetStrc & 1)) {
@@ -184,7 +200,7 @@ void __stdcall PETS_FreeOrKillPetList(D2UnitStrc * pUnit, D2PetListStrc * pPetLi
         if (!nParam2) {
           pPetList->nPets2--;
           pPetList->nMax--;
-          Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pPetStrc, ".\\PLAYER\\PlayerPets.cpp", 0xe8, 0);
+          D2_FREE_POOL(pGame->pMemoryPool, pPetStrc);
         }
       }
     }
@@ -220,8 +236,8 @@ void __fastcall FreePets(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
         } while (nPetTypeIndex < nTxtPetTypeSize);
       }
 
-      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree->pPetList, ".\\PLAYER\\PlayerPets.cpp", 0x161, 0);
-      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\PLAYER\\PlayerPets.cpp", 0x162, 0);
+      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree->pPetList);
+      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
       pPlayerData->pPets = 0;
       return;
     }
@@ -291,7 +307,7 @@ void __stdcall KillingPets(uint32_t nTargetGUID, D2PetListStrc * pPetList, int32
       }
     }
 
-    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\PLAYER\\PlayerPets.cpp", 0x25c, 0);
+    D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
     int* pnPetCount = &pPetList->nPets2;
     (*pnPetCount)--;
     if (-1 < *pnPetCount) {
@@ -514,7 +530,7 @@ void __stdcall PLAYERPETS_FreeAllPetsInList(D2PetListStrc * pParam, ::SGAMEDATA 
       D2PetStrc* pNextPet;
       pNextPet = pMemoryToFree->pNext;
       KillHandlerPet(pMemoryToFree->nPetGUID, pGame);
-      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\PLAYER\\PlayerPets.cpp", 0x4a5, 0);
+      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
       pMemoryToFree = pNextPet;
     }
 
@@ -1286,10 +1302,10 @@ void __fastcall AllocPets(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
       FreePets(pGame, pUnit);
     }
 
-    D2UnitDataPlayerPetsStrc* pNewPets = (D2UnitDataPlayerPetsStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 4, ".\\PLAYER\\PlayerPets.cpp", 0xa2, 0);
+    D2UnitDataPlayerPetsStrc* pNewPets = D2_NEW_POOL(pGame->pMemoryPool, D2UnitDataPlayerPetsStrc);
     pNewPets->pPetList = 0;
     pPlayerData->pPets = pNewPets;
-    D2PetListStrc* pPet = (D2PetListStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sgptDataTable->nTxtPetTypeSize * 0xc, ".\\PLAYER\\PlayerPets.cpp", 0xa6, 0);
+    D2PetListStrc* pPet = (D2PetListStrc*)D2_ALLOC_POOL(pGame->pMemoryPool, sgptDataTable->nTxtPetTypeSize * 0xc);
     pNewPets->pPetList = pPet;
     memset(pPet, 0, sgptDataTable->nTxtPetTypeSize * 0xc);
     PETS_ResetAllPetLimitsToBase(pGame, pUnit);
@@ -1372,7 +1388,7 @@ BOOL __stdcall KillPetOnRecast(D2UnitStrc * pUnit, D2UnitStrc * pMinion, D2PetAr
       }
     }
 
-    pNewPetNode = (D2PetStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x18, ".\\PLAYER\\PlayerPets.cpp", 0x322, 0);
+    pNewPetNode = D2_NEW_POOL(pGame->pMemoryPool, D2PetStrc);
     *(uint32_t*)pNewPetNode = 0;
     pNewPetNode->nPetGUID = 0;
     pNewPetNode->pPetData.nSeed = 0;

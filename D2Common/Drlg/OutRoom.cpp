@@ -18,6 +18,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgRoomExDataMazeStrc) == 0x70, "D2_NEW(D2DrlgRoomExDataMazeStrc): the 32-bit layout must be the 0x70 bytes 1.14d allocates");
+
 
 namespace D2Common::Drlg::OutRoom {
 
@@ -34,7 +48,7 @@ void __fastcall DRLGOUTROOM_FreeDrlgOutdoorRoomData(D2RoomExStrc * pRoomEx) {
     DrlgGrid::DRLGGRID_FreeGrid(pMemory, &pGrid->pFloorGrid);
     DrlgGrid::DRLGGRID_FreeGrid(pMemory, &pGrid->pCellGrid);
     DrlgVer::DRLGVER_FreeVertices(pMemory, (D2DrlgVertexStrc**)&pGrid->pVertex);
-    Fog::Memory::FreeServerMemory(pMemory, pGrid, ".\\DRLG\\OutRoom.cpp", 0xad, 0);
+    D2_FREE_POOL(pMemory, pGrid);
     pRoomEx->pRoomExData.pRoomExDataMazeRoom = 0;
 }
 
@@ -54,7 +68,7 @@ void __fastcall DRLGOUTROOM_FreeOutRoomEx(D2RoomExStrc * pRoomEx) {
 
 // @sourcefile .\DRLG\OutRoom.cpp
 void __fastcall DRLGOUTROOM_AllocOutdoorRoomData(D2RoomExStrc * pRoomEx) {
-    D2DrlgRoomExDataMazeStrc* pRoomExDataOutRoom = (D2DrlgRoomExDataMazeStrc*)Fog::Memory::AllocServerMemory(pRoomEx->pLevel->pDrlg->pMemoryPool, 0x70, ".\\DRLG\\OutRoom.cpp", 0xc5, 0);
+    D2DrlgRoomExDataMazeStrc* pRoomExDataOutRoom = D2_NEW_POOL(pRoomEx->pLevel->pDrlg->pMemoryPool, D2DrlgRoomExDataMazeStrc);
     memset(pRoomExDataOutRoom, 0, 0x70);
     pRoomEx->pRoomExData.pRoomExDataMazeRoom = pRoomExDataOutRoom;
 }

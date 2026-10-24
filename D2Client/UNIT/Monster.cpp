@@ -87,6 +87,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fnRoomUnitScanCallback
 #define RECON_FPTD_fnRoomUnitScanCallback
@@ -1112,7 +1116,7 @@ void __fastcall FreeMonster(D2UnitStrc * pUnit) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(pMonData->pPathParamOrName.wszMonsterName, ".\\UNIT\\Monster.cpp", 0x66, 0);
+    D2_FREE(pMonData->pPathParamOrName.wszMonsterName);
     pMonData->pPathParamOrName.wszMonsterName = 0;
 }
 
@@ -1166,7 +1170,7 @@ void __fastcall MONSTER_TransformToClassId(D2UnitStrc * pUnit, int32_t nClassId)
     if (pUnit->eUnitType == UNIT_MONSTER) {
       pMonData = pUnit->pUnitData.pUnitDataMonster;
       if (pMonData && pMonData->pPathParamOrName.wszMonsterName) {
-        Fog::Memory::FreeClientMemory(pMonData->pPathParamOrName.wszMonsterName, ".\\UNIT\\Monster.cpp", 0x66, 0);
+        D2_FREE(pMonData->pPathParamOrName.wszMonsterName);
         pMonData->pPathParamOrName.wszMonsterName = 0;
       }
     }

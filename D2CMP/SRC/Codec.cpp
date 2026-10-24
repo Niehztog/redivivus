@@ -23,6 +23,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2CMP::SRC::Codec {
 
@@ -4098,15 +4102,18 @@ void * __fastcall CODEC_DecompressAllFrames(uint32_t * pnParam, D2PoolManagerStr
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 60, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    // Frame slots -1028..-1012 are ONE object: &local_404 is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -1028..-976 are ONE object: &local_404 is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame1_t {
       uint32_t local_404;
       uint32_t local_400;
       uint32_t local_3fc;
       int nComponentCount;
+      uint8_t __pad16[4];
+      D2CodecBitStateStrc local_3f0;
+      D2CodecBitStateStrc local_3e0;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 16, "frame group __frame1_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 52, "frame group __frame1_t must reproduce the Ghidra frame layout");
     __frame1_t __frame1;
     // Frame slots -848..-808 are ONE object: &pRemapOutputBuf is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
@@ -4143,8 +4150,6 @@ void * __fastcall CODEC_DecompressAllFrames(uint32_t * pnParam, D2PoolManagerStr
     uint32_t* puVar8;
     uint32_t* puVar13;
     D2CodecFrameBoundsStrc sFrameBounds;
-    D2CodecBitStateStrc local_3f0;
-    D2CodecBitStateStrc local_3e0;
     D2CodecBitStateStrc local_3d0;
     D2CodecBitStateStrc local_3c0;
     D2CodecBitStateStrc local_3b0;
@@ -4186,7 +4191,7 @@ void * __fastcall CODEC_DecompressAllFrames(uint32_t * pnParam, D2PoolManagerStr
 
     local_328.nReserved00 = (uint32_t)(uintptr_t)pnParam;
     local_328.pCurWord = pnParam;
-    void* pvVar2 = Fog::Memory::AllocServerMemory(__frame2.local_330, *pnSize, ".\\SRC\\Codec.cpp", 0x561, 0);
+    void* pvVar2 = D2_ALLOC_POOL(__frame2.local_330, *pnSize);
     __frame2.local_338 = (size_t*)nStartFrame;
     __frame2.local_334 = (uint32_t)pvVar2;
     if (nStartFrame < __frame2.local_344) {
@@ -4474,34 +4479,34 @@ void * __fastcall CODEC_DecompressAllFrames(uint32_t * pnParam, D2PoolManagerStr
         local_3d0.pCurWord = puVar13 + ((int)(local_3d0.nBitOffset + (local_3d0.nBitOffset >> 0x1f & 0x1fU)) >> 5);
         local_3d0.nBitOffset &= 0x1f;
         uVar10 = (int)__frame2.local_330->pPools + (local_3d0.nBitOffset - 0x20U);
-        local_3e0.nBitOffset = uVar10 & 0x1f;
-        local_3e0.pCurWord = local_3d0.pCurWord + ((int)(uVar10 + ((int)uVar10 >> 0x1f & 0x1fU)) >> 5);
-        uVar10 = local_314 + local_3e0.nBitOffset;
+        __frame1.local_3e0.nBitOffset = uVar10 & 0x1f;
+        __frame1.local_3e0.pCurWord = local_3d0.pCurWord + ((int)(uVar10 + ((int)uVar10 >> 0x1f & 0x1fU)) >> 5);
+        uVar10 = local_314 + __frame1.local_3e0.nBitOffset;
         local_3c0.nBitOffset = uVar10 & 0x1f;
         local_3d0.nReserved00 = local_328.nReserved00;
-        local_3e0.nReserved00 = local_328.nReserved00;
+        __frame1.local_3e0.nReserved00 = local_328.nReserved00;
         local_3c0.nReserved00 = local_328.nReserved00;
         pbVar9 = local_318 + local_3c0.nBitOffset;
-        local_3c0.pCurWord = local_3e0.pCurWord + ((int)(uVar10 + ((int)uVar10 >> 0x1f & 0x1fU)) >> 5);
+        local_3c0.pCurWord = __frame1.local_3e0.pCurWord + ((int)(uVar10 + ((int)uVar10 >> 0x1f & 0x1fU)) >> 5);
         local_3b0.pCurWord = local_3c0.pCurWord + ((int)(pbVar9 + ((int)pbVar9 >> 0x1f & 0x1f)) >> 5);
         local_360.nReserved08 = local_328.nReserved08;
         local_3d0.nReserved08 = local_328.nReserved08;
-        local_3e0.nReserved08 = local_328.nReserved08;
+        __frame1.local_3e0.nReserved08 = local_328.nReserved08;
         local_3c0.nReserved08 = local_328.nReserved08;
         local_3b0.nReserved00 = local_328.nReserved00;
         local_3b0.nReserved08 = local_328.nReserved08;
-        local_3f0.nReserved00 = local_328.nReserved00;
+        __frame1.local_3f0.nReserved00 = local_328.nReserved00;
         local_318 = 0;
         __frame2.pRemapOutputBuf = gaCodecFrameWorkBuffer2;
         __frame2.nRemapByteCount = 0;
-        local_3f0.nReserved08 = local_328.nReserved08;
-        local_3f0.pCurWord = puVar13;
-        local_3f0.nBitOffset = iVar2;
+        __frame1.local_3f0.nReserved08 = local_328.nReserved08;
+        __frame1.local_3f0.pCurWord = puVar13;
+        __frame1.local_3f0.nBitOffset = iVar2;
         local_3b0.nBitOffset = (uint32_t)pbVar9 & 0x1f;
         local_360.pCurWord = puVar13;
         local_360.nBitOffset = iVar2;
         local_328.pCurWord = local_3b0.pCurWord;
-        CODEC_DecompressFrameData((uintptr_t)&sFrameBounds, (D2CodecBitStateStrc*)gaCodecFrameDecodeBuffer, __frame2.local_32c ? (D2CodecBitStateStrc*)&local_3f0 : nullptr, &local_3d0, local_314 ? (D2CodecBitStateStrc*)&local_3e0 : nullptr, pbVar8 ? (D2CodecBitStateStrc*)&local_3c0 : nullptr, (int*)&local_3b0, &__frame2.pRemapOutputBuf, (int*)&local_318);
+        CODEC_DecompressFrameData((uintptr_t)&sFrameBounds, (D2CodecBitStateStrc*)gaCodecFrameDecodeBuffer, __frame2.local_32c ? (D2CodecBitStateStrc*)&__frame1.local_3f0 : nullptr, &local_3d0, local_314 ? (D2CodecBitStateStrc*)&__frame1.local_3e0 : nullptr, pbVar8 ? (D2CodecBitStateStrc*)&local_3c0 : nullptr, (int*)&local_3b0, &__frame2.pRemapOutputBuf, (int*)&local_318);
         local_318 += (uint32_t)pbVar9 & 0x1f;
         local_328.pCurWord += (int)(local_318 + ((int)local_318 >> 0x1f & 0x1f)) >> 5;
         uVar10 = (uint32_t)local_318 & 0x1f;

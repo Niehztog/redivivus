@@ -13,6 +13,34 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2AsyncDataStrc) == 0x3000, "D2_NEW(D2AsyncDataStrc): the 32-bit layout must be the 0x3000 bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2AsyncData_Line0x128) == 0x54, "D2_NEW(D2AsyncData_Line0x128): the 32-bit layout must be the 0x54 bytes 1.14d allocates");
+
 
 namespace Fog::Src::AsyncData {
 
@@ -29,7 +57,7 @@ void __fastcall STRUCT_AllocAsyncData(int32_t nEnable) {
       return;
     }
 
-    pD2AsyncDataStrc = (D2AsyncDataStrc*)Memory::AllocClientMemory(0x3000, ".\\Src\\AsyncData.cpp", 0x88, 0);
+    pD2AsyncDataStrc = D2_NEW(D2AsyncDataStrc);
     if (!pD2AsyncDataStrc) {
       pD2AsyncDataStrc = 0;
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x89);
@@ -72,7 +100,7 @@ void __stdcall STRUCT_FreeAsyncData() {
         } while (nIndex < gnAsyncDataHandleBufferSize);
       }
 
-      Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\AsyncData.cpp", 0xae, 0);
+      D2_FREE(pMemoryToFree);
       pD2AsyncDataStrc = 0;
       gnAsyncDataHandleBufferSize = 0;
     }
@@ -103,7 +131,7 @@ void __fastcall ASYNCDATA_CancelAndCleanup(D2AsyncData_Line0x128 * pAsyncData) {
       return;
     }
 
-    Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0xd7, 0);
+    D2_FREE_POOL(pAsyncData->pMemory, pAsyncData->pReadBuffer);
     sVar2 = pAsyncData->tCallback.nResultSize;
     pAsyncData->pReadBuffer = pAsyncData->tCallback.pResultBuffer;
     pAsyncData->nReadSize = sVar2;
@@ -168,7 +196,7 @@ D2AsyncData_Line0x128 * __fastcall STRUCT_AllocAsyncData_Line0x128(D2PoolManager
     int i;
     D2AsyncDataCallbackStrc* pCallbackTable;
     D2AsyncDataCallbackStrc* pCallbackDst;
-    D2AsyncData_Line0x128* pAsyncData = (D2AsyncData_Line0x128*)Memory::AllocServerMemory(pMemory, 0x54, ".\\Src\\AsyncData.cpp", 0x128, 0);
+    D2AsyncData_Line0x128* pAsyncData = D2_NEW_POOL(pMemory, D2AsyncData_Line0x128);
     memset(pAsyncData, 0, 0x54);
     pAsyncData->nFlags = 0x41737960;
     int32_t nErrorLine = Source::SFile::ARCHIVE_OpenD2FileWrap(szText1, &pAsyncData->pFile);
@@ -233,7 +261,7 @@ D2AsyncData_Line0x128 * __fastcall STRUCT_AllocAsyncData_Line0x128(D2PoolManager
         pAsyncData->pFile = 0;
       }
       if (pAsyncData->nFlags & 2) {
-        Memory::FreeServerMemory(pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x184, 0);
+        D2_FREE_POOL(pMemory, pAsyncData->pReadBuffer);
       }
 
       nErrorLine = 0x186;
@@ -417,7 +445,7 @@ void __fastcall ASYNCDATA_SetResult(D2AsyncData_Line0x128 * pAsyncData, void * p
       exit(-1);
     } else if ((pAsyncData->nFlags & 0xfffffff0U) == 0x41737960) {
       if (pAsyncData->nFlags & 1U) {
-        Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x284, 0);
+        D2_FREE_POOL(pAsyncData->pMemory, pAsyncData->pReadBuffer);
         pAsyncData->pReadBuffer = pNewBuffer;
         pAsyncData->nReadSize = nNewSize;
         return;
@@ -463,12 +491,12 @@ void __fastcall ASYNCDATA_Free(D2AsyncData_Line0x128 * pAsyncData) {
             exit(-1);
           }
 
-          Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x2c6, 0);
+          D2_FREE_POOL(pAsyncData->pMemory, pAsyncData->pReadBuffer);
           pAsyncData->nFlags &= 0xf;
           pAsyncData->pReadBuffer = 0;
         }
 
-        Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData, ".\\Src\\AsyncData.cpp", 0x2cd, 0);
+        D2_FREE_POOL(pAsyncData->pMemory, pAsyncData);
         return;
       }
 

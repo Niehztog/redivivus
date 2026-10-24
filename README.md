@@ -19,6 +19,23 @@ The code is machine-generated from a reverse-engineered database and then correc
 hand where needed. It is not the original source: the names, types and structure are
 reconstructions, and some functions read like a decompiler wrote them, because one did.
 
+## The same idea as Devilution
+
+[Devilution](https://github.com/diasurgical/devilution) did this for the first Diablo: it
+reconstructed the shipped `Diablo.exe` as source code that builds, and
+[DevilutionX](https://github.com/diasurgical/DevilutionX) grew from it into the port many
+people play Diablo with today. Redivivus is the same concept for Diablo II.
+
+Two things differ:
+
+- **The evidence.** Devilution could lean on debug symbols left on a PlayStation release
+  for many of its names and types. No such symbols exist for 1.14d, so every name, type
+  and structure here was reverse-engineered, cross-checked where possible against the
+  game's own assert messages and against the Mac build.
+- **The target.** Devilution worked toward a binary that matches the original byte for
+  byte. Redivivus aims first for one that behaves like the original; byte-matching
+  individual functions comes after.
+
 ## How it was made
 
 This project started in 2021, well before large language models were any use for this kind of
@@ -92,9 +109,9 @@ d2.exe -w
 
 - **It crashes.** Not constantly, but a session of any length will probably hit one. Every
   crash so far has been a single wrong type or a lost value somewhere in the
-  reconstruction, and each one fixed takes a class of others with it. A crash writes the
-  faulting address and a stack trace to `d2trace.log`; please attach it to an issue.
-- **Your character's name shows up garbled** in the message when you enter a game.
+  reconstruction, and each one fixed takes a class of others with it. A crash writes a
+  report with a symbolised stack trace to `d2crash-<date>-<time>.txt` next to the
+  executable; please attach it to an [issue](https://github.com/jaenster/redivivus/issues).
 - **Battle.net does not work.** Logging in crashes in the version check. Single player
   is what works today.
 

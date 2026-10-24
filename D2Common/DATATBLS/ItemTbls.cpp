@@ -35,6 +35,18 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_REALLOC_POOL
+#define D2_REALLOC_POOL(pPool, p, size) Fog::Memory::ReAllocServerMemory((pPool), (p), (size), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_CalcGetLinkerIndex_t
 #define RECON_FPTD_CalcGetLinkerIndex_t
@@ -1086,7 +1098,7 @@ void __fastcall TXT_AllocTxt_items(D2PoolManagerStrc * pMemory) {
     D2ItemsTxt* pTxtArmorTmp = (D2ItemsTxt*)DataTbls::CompileTxt(pMemory, "armor", items, &gsItemsTable.nArmorSize, 0x1a8);
     D2ItemsTxt* pTxtMiscTmp = (D2ItemsTxt*)DataTbls::CompileTxt(pMemory, "misc", items, &gsItemsTable.nMiscSize, 0x1a8);
     gsItemsTable.nSize = gsItemsTable.nMiscSize + gsItemsTable.nArmorSize + gsItemsTable.nWeaponsSize;
-    D2ItemsTxt* pTxtItemsMerged = (D2ItemsTxt*)Fog::Memory::AllocServerMemory(nullptr, gsItemsTable.nSize * 0x1a8, ".\\DATATBLS\\ItemTbls.cpp", 399, 0);
+    D2ItemsTxt* pTxtItemsMerged = (D2ItemsTxt*)D2_ALLOC_POOL(nullptr, gsItemsTable.nSize * 0x1a8);
     gsItemsTable.pItems = pTxtItemsMerged;
     gsItemsTable.pWeapons = pTxtItemsMerged;
     memcpy(pTxtItemsMerged, pTxtWeaponsTmp, gsItemsTable.nWeaponsSize * 0x1a8);
@@ -1111,7 +1123,7 @@ void __fastcall TXT_AllocTxt_items(D2PoolManagerStrc * pMemory) {
       }
     }
 
-    pTxtItemsVersion = (short*)Fog::Memory::AllocServerMemory(nullptr, gsItemsTable.nSize * 2, ".\\DATATBLS\\ItemTbls.cpp", 0x1af, 0);
+    pTxtItemsVersion = (short*)D2_ALLOC_POOL(nullptr, gsItemsTable.nSize * 2);
     memset(pTxtItemsVersion, 0, gsItemsTable.nSize * 2);
     i = 0;
     if (0 >= gsItemsTable.nSize) {
@@ -1135,10 +1147,10 @@ void __fastcall TXT_AllocTxt_items(D2PoolManagerStrc * pMemory) {
 void __stdcall TXT_FreeTxt_Items() {
     Fog::Src::Excel::STRUCT_FreeTxtLink(sgtDataTable.sTxtItemsLink);
     if (gsItemsTable.pItems) {
-      Fog::Memory::FreeServerMemory(nullptr, gsItemsTable.pItems, ".\\DATATBLS\\ItemTbls.cpp", 0x1c8, 0);
+      D2_FREE_POOL(nullptr, gsItemsTable.pItems);
     }
     if (pTxtItemsVersion) {
-      Fog::Memory::FreeServerMemory(nullptr, pTxtItemsVersion, ".\\DATATBLS\\ItemTbls.cpp", 0x1cb, 0);
+      D2_FREE_POOL(nullptr, pTxtItemsVersion);
     }
 
     gsItemsTable.pItems = 0;
@@ -1460,7 +1472,7 @@ void __fastcall TXT_AllocTxt_MagicAffixes(D2PoolManagerStrc * pMemory) {
     __frame0.pTxtMagicPrefixTmp = DataTbls::CompileTxt(pMemory, "magicprefix", affixes, &__frame0.nTxtMagicPrefixSize, 0x90);
     void* pTxtAutoMagicTmp = DataTbls::CompileTxt(pMemory, "automagic", affixes, &__frame0.nTxtAutoMagicSize, 0x90);
     gsMagicAffixTable.nSize = __frame0.nTxtMagicPrefixSize + __frame0.nTxtAutoMagicSize + __frame0.nTxtMagicSuffixSize;
-    gsMagicAffixTable.pTable = (D2MagicAffixTxt*)Fog::Memory::AllocServerMemory(nullptr, gsMagicAffixTable.nSize * 0x90, ".\\DATATBLS\\ItemTbls.cpp", 0x297, 0);
+    gsMagicAffixTable.pTable = (D2MagicAffixTxt*)D2_ALLOC_POOL(nullptr, gsMagicAffixTable.nSize * 0x90);
     gsMagicAffixTable.pSuffixStart = gsMagicAffixTable.pTable;
     memcpy(gsMagicAffixTable.pTable, pTxtMagicSuffixTmp, __frame0.nTxtMagicSuffixSize * 0x90);
     gsMagicAffixTable.pPrefixStart = gsMagicAffixTable.pSuffixStart + __frame0.nTxtMagicSuffixSize;
@@ -1488,7 +1500,7 @@ void __fastcall TXT_AllocTxt_MagicAffixes(D2PoolManagerStrc * pMemory) {
 // @sourcefile .\DATATBLS\ItemTbls.cpp
 void __stdcall ITEMTBLS_FreeMagicAffixes() {
     if (gsMagicAffixTable.pTable) {
-      Fog::Memory::FreeServerMemory(nullptr, gsMagicAffixTable.pTable, ".\\DATATBLS\\ItemTbls.cpp", 0x2b7, 0);
+      D2_FREE_POOL(nullptr, gsMagicAffixTable.pTable);
     }
 
     gsMagicAffixTable.pTable = 0;
@@ -1598,7 +1610,7 @@ void __fastcall TXT_AllocTxt_RareAffixes(D2PoolManagerStrc * pMemory) {
     void* pTxtRareSuffixTmp = DataTbls::CompileTxt(pMemory, "raresuffix", rareaffixes, &__frame0.nTxtRareSuffixSize, 0x48);
     void* pTxtRarePrefixTmp = DataTbls::CompileTxt(pMemory, "rareprefix", rareaffixes, &__frame0.nTxtRarePrefixSize, 0x48);
     gsRareAffixTable.nSize = __frame0.nTxtRarePrefixSize + __frame0.nTxtRareSuffixSize;
-    gsRareAffixTable.pTable = (D2RareAffixTxt*)Fog::Memory::AllocServerMemory(nullptr, gsRareAffixTable.nSize * 0x48, ".\\DATATBLS\\ItemTbls.cpp", 0x2f4, 0);
+    gsRareAffixTable.pTable = (D2RareAffixTxt*)D2_ALLOC_POOL(nullptr, gsRareAffixTable.nSize * 0x48);
     gsRareAffixTable.pSuffixStart = gsRareAffixTable.pTable;
     memcpy(gsRareAffixTable.pTable, pTxtRareSuffixTmp, __frame0.nTxtRareSuffixSize * 0x48);
     gsRareAffixTable.pPrefixStart = gsRareAffixTable.pSuffixStart + __frame0.nTxtRareSuffixSize;
@@ -1622,7 +1634,7 @@ void __fastcall TXT_AllocTxt_RareAffixes(D2PoolManagerStrc * pMemory) {
 // @sourcefile .\DATATBLS\ItemTbls.cpp
 void __stdcall ITEMTBLS_FreeRareAffixes() {
     if (gsRareAffixTable.pTable) {
-      Fog::Memory::FreeServerMemory(nullptr, gsRareAffixTable.pTable, ".\\DATATBLS\\ItemTbls.cpp", 0x30b, 0);
+      D2_FREE_POOL(nullptr, gsRareAffixTable.pTable);
     }
 
     gsRareAffixTable.pTable = 0;
@@ -4138,7 +4150,7 @@ void __fastcall TXT_AllocTxt_itemstatcost(D2PoolManagerStrc * pMemory) {
     }
 
     qsort(aDescPrioritySort, nDescPriorityCount, 4, SORT_ItemDescPriority);
-    sgtDataTable.pItemStatCostDescPriority = (short*)Fog::Memory::AllocServerMemory(nullptr, sgtDataTable.nItemStatCostDescPrioritySize * 2, ".\\DATATBLS\\ItemTbls.cpp", 0x748, 0);
+    sgtDataTable.pItemStatCostDescPriority = (short*)D2_ALLOC_POOL(nullptr, sgtDataTable.nItemStatCostDescPrioritySize * 2);
     if (0 >= sgtDataTable.nItemStatCostDescPrioritySize) {
       return;
     }
@@ -4163,7 +4175,7 @@ void __stdcall ITEMTBLS_FreeItemStatCost() {
     sgtDataTable.pTxtItemStatCostLink = 0;
     sgtDataTable.nTxtItemStatCostSize = 0;
     if (sgtDataTable.pItemStatCostDescPriority) {
-      Fog::Memory::FreeServerMemory(nullptr, sgtDataTable.pItemStatCostDescPriority, ".\\DATATBLS\\ItemTbls.cpp", 0x763, 0);
+      D2_FREE_POOL(nullptr, sgtDataTable.pItemStatCostDescPriority);
     }
 
     sgtDataTable.nItemStatCostDescPrioritySize = 0;
@@ -4465,7 +4477,7 @@ void __fastcall TXT_AllocTxt_gamble(D2PoolManagerStrc * pMemory) {
     if (!nTxtGambleSize) {
       GambleTable = 0;
     } else {
-      GambleTable = Fog::Memory::AllocServerMemory(nullptr, nTxtGambleSize * 4, ".\\DATATBLS\\ItemTbls.cpp", 0x7db, 0);
+      GambleTable = D2_ALLOC_POOL(nullptr, nTxtGambleSize * 4);
       nIdx = 0;
       if (0 < nTxtGambleSize) {
         pGambleEntry = &pTxtGamble->nItemClassId;
@@ -4529,7 +4541,7 @@ void __stdcall FreeGambleTable() {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(nullptr, GambleTable, ".\\DATATBLS\\ItemTbls.cpp", 0x80d, 0);
+    D2_FREE_POOL(nullptr, GambleTable);
     GambleTable = 0;
     nTxtGambleSize = 0;
 }
@@ -4787,7 +4799,7 @@ void __fastcall TXT_AllocTxt_itemtypes(D2PoolManagerStrc * pMemory) {
 
     sgtDataTable.nItemTypesEquivRowDwords = (int)(sgtDataTable.nTxtItemTypesSize + 0x1f + (sgtDataTable.nTxtItemTypesSize + 0x1f >> 0x1f & 0x1fU)) >> 5;
     size_t nAllocSize = sgtDataTable.nItemTypesEquivRowDwords * sgtDataTable.nTxtItemTypesSize * 4;
-    sgtDataTable.pTxtItemTypesUnknown = Fog::Memory::AllocServerMemory(nullptr, nAllocSize, ".\\DATATBLS\\ItemTbls.cpp", 0x893, 0);
+    sgtDataTable.pTxtItemTypesUnknown = D2_ALLOC_POOL(nullptr, nAllocSize);
     memset(sgtDataTable.pTxtItemTypesUnknown, 0, nAllocSize);
     int nTypeIdx = 0;
     nTypeCount = sgtDataTable.nTxtItemTypesSize;
@@ -4818,7 +4830,7 @@ void __fastcall TXT_AllocTxt_itemtypes(D2PoolManagerStrc * pMemory) {
 
 // @sourcefile .\DATATBLS\ItemTbls.cpp
 void __stdcall ITEMTBLS_FreeItemTypes() {
-    Fog::Memory::FreeServerMemory(nullptr, sgtDataTable.pTxtItemTypesUnknown, ".\\DATATBLS\\ItemTbls.cpp", 0x8a7, 0);
+    D2_FREE_POOL(nullptr, sgtDataTable.pTxtItemTypesUnknown);
     DataTbls::UnloadBin(sgtDataTable.pTxtItemTypes);
     Fog::Src::Excel::STRUCT_FreeTxtLink(sgtDataTable.pTxtItemTypesLink);
 }
@@ -5145,7 +5157,7 @@ void __stdcall ITEMTBLS_CopyRunewordRecord(int32_t nRunewordId, char * pSourceRe
         nNewAllocSize += 4;
       }
 
-      pTxtRunes = (int*)Fog::Memory::ReAllocServerMemory(nullptr, pDstRecord, nNewAllocSize, ".\\DATATBLS\\ItemTbls.cpp", 0x95b, 0);
+      pTxtRunes = (int*)D2_REALLOC_POOL(nullptr, pDstRecord, nNewAllocSize);
       if (gpaMiscTxtTables) {
         *pTxtRunes = nRunewordId + 1;
         pTxtRunes++;

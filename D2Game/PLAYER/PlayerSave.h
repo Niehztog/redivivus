@@ -155,7 +155,7 @@ int32_t __fastcall SERVER_LoadPlayerFromSaveFile(::SGAMEDATA * pGame, struct D2C
 int32_t __fastcall CLIENT_ReadAndLoadSaveFile(struct D2ClientStrc * pClient, struct D2RoomStrc * dwParam, struct D2UnitStrc * * ppUnit, ::SGAMEDATA * pGame, char * charName, uint32_t nX, uint32_t nY);
 // Offline save load. The game arrives in EDI; modelled as a local, the reconstruction loaded the character through an uninitialised game pointer.
 int32_t __fastcall CLIENT_LoadPlayerFromDisk(::SGAMEDATA * pGame, uint32_t dwParam1, char * szText, struct D2ClientStrc * pClient, struct D2UnitStrc * pOutUnitHolder, uint32_t dwParam2, uint32_t nX, uint32_t nY);
-int32_t __stdcall CLIENT_LoadPlayerFromNetworkSave(::SGAMEDATA * pGame, uint32_t dwParam1, uint32_t dwParam2, uint32_t dwParam3);
+int32_t __stdcall CLIENT_LoadPlayerFromNetworkSave(::SGAMEDATA * pGame, struct D2ClientStrc * pClient, struct D2UnitStrc * * ppUnit, uint32_t dwParam1, uint32_t dwParam2, uint32_t dwParam3);
 // Loads player from save or creates new character. Dispatches to disk loader (SP/LAN), network loader (BNet), or fresh character creator based on game type and bLoadFromSave. After unit creation, updates passive skills and returns status. Called during join flow before placing unit in world.
 BOOL __fastcall CLIENT_LoadOrCreatePlayerUnit(::SGAMEDATA * pGame, struct D2ClientStrc * pClient, struct D2ClientStrc * pClientCharName, BOOL bLoadFromSave, struct D2UnitStrc * ppUnitOut, uint32_t pRoomOrNull, uint32_t nX, uint32_t nY);
 void __stdcall WapperSaveGameAllGameTypes(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, char * szText);

@@ -17,6 +17,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnCelPixelDataFree
 #define RECON_FPTD_pfnCelPixelDataFree
@@ -69,7 +77,7 @@ void __fastcall GFXHASH_UnlinkCacheEntry(int32_t pHashTable, D2PoolManagerStrc *
           } while (nFrameIdx < (uint32_t)pCacheBlock->tDecode.nFramesPerDir * (uint32_t)pCacheBlock->tDecode.nDirCount);
         }
         if (pMemoryToFree) {
-          Fog::Memory::FreeServerMemory(pMemory, pMemoryToFree, ".\\SRC\\GfxHash.cpp", 0x82, 0);
+          D2_FREE_POOL(pMemory, pMemoryToFree);
         }
       }
 
@@ -77,7 +85,7 @@ void __fastcall GFXHASH_UnlinkCacheEntry(int32_t pHashTable, D2PoolManagerStrc *
       pCacheBlock->tDecode.pAsyncData = 0;
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pEntry, ".\\SRC\\GfxHash.cpp", 0x8e, 0);
+    D2_FREE_POOL(pMemory, pEntry);
 }
 
 void __fastcall GFXHASH_InitHashTable(void * pParam) {
@@ -229,7 +237,7 @@ int32_t __fastcall GFXHASH_FindEntryByGfxData(void * pHashTable, D2GfxDataStrc *
 
 // @sourcefile .\SRC\GfxHash.cpp
 uint32_t * __fastcall GFX_AllocCacheEntry(D2PoolManagerStrc * pMemory, void * pHashTable, uint32_t nDirIdxOut, D2GfxDataStrc * pGfxData, D2CelFileCacheEntryStrc * pCelEntry) {
-    uint32_t* pNewEntry = (uint32_t*)Fog::Memory::AllocServerMemory(pMemory, 0x30, ".\\SRC\\GfxHash.cpp", 0xef, 0);
+    uint32_t* pNewEntry = (uint32_t*)D2_ALLOC_POOL(pMemory, 0x30);
     D2GfxDataStrc* nGfxDataSaved = pGfxData;
     pNewEntry[8] = nDirIdxOut;
     nDirIdxOut = 0;

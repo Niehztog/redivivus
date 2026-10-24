@@ -80,7 +80,7 @@ int16_t __fastcall CheckCollision_BoundingBox(struct D2RoomStrc * pRoom, struct 
 int32_t __fastcall CheckCollision_BlockPlayer_BoundingBox(struct D2RoomStrc * pRoom, struct D2BoundingBoxStrc * pBoundingBox, int32_t eCollisionFlag);
 void __fastcall RemoveCollision_BoundingBox(struct D2RoomStrc * pRoom, struct D2BoundingBoxStrc * pBoundingBox, int32_t eCollisionFlag);
 void __fastcall AddCollision_BoundingBox(struct D2RoomStrc * pRoom, struct D2BoundingBoxStrc * pBoundingBox, int32_t eCollisionFlag);
-struct D2BoundingBoxStrc * __fastcall BoundingBox(int32_t nX, uint32_t nVectorY, int32_t nY, uint32_t nVectorX);
+struct D2BoundingBoxStrc * __fastcall BoundingBox(struct D2BoundingBoxStrc * pBox, int32_t nX, uint32_t nVectorY, int32_t nY, uint32_t nVectorX);
 // ORs the collision flags of the center cell plus its four cardinal neighbours (N/S/E/W) at (nX,nY) in the room collision grid, masked by eCollisionFlag. Handles edge/boundary cases by fetching adjacent-room flags via CheckCollision_BlockPlayerMissile_Internal1 when any neighbour lies outside the current room grid. Returns the combined masked flags, or eCollisionFlag if the room/grid is missing.
 eCollisionFlags __stdcall CheckCollision_Cross(struct D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t eCollisionFlag);
 // Both early-outs share the epilogue at 0064d48f (MOV EAX,0x27 / POP ESI / POP EBP / RET 4); the success path reaches 0064d488 (MOVZX EAX,AX). The return really is EAX:4, and 0x27 is COLLISION_INVALID - the "no room, no collision grid" answer. Without explicit return storage the decompiler dropped the constant and fabricated a never-assigned local for both early exits.

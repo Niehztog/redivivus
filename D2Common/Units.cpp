@@ -80,6 +80,26 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitDataMonsterStrc) == 0x60, "D2_NEW(D2UnitDataMonsterStrc): the 32-bit layout must be the 0x60 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitStrc) == 0xf4, "D2_NEW(D2UnitStrc): the 32-bit layout must be the 0xf4 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitDataPlayerStrc) == 0x16c, "D2_NEW(D2UnitDataPlayerStrc): the 32-bit layout must be the 0x16c bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2StaticPathStrc) == 0x20, "D2_NEW(D2StaticPathStrc): the 32-bit layout must be the 0x20 bytes 1.14d allocates");
+
 
 namespace D2Common::Units {
 
@@ -147,7 +167,7 @@ D2SkillStrc * __stdcall GetCurrentSkill(D2UnitStrc * pUnit) {
 
 // @sourcefile .\UNITS\Units.cpp
 D2UnitStrc * __stdcall AllocUnit(D2PoolManagerStrc * pMemory, eD2UnitType eUnitType) {
-    D2UnitStrc* pUnit = (D2UnitStrc*)Fog::Memory::AllocServerMemory(pMemory, 0xf4, ".\\UNITS\\Units.cpp", 0x66e, 0);
+    D2UnitStrc* pUnit = D2_NEW_POOL(pMemory, D2UnitStrc);
     memset(pUnit, 0, 0xf4);
     pUnit->eUnitType = eUnitType;
     pUnit->pMemory = pMemory;
@@ -155,7 +175,7 @@ D2UnitStrc * __stdcall AllocUnit(D2PoolManagerStrc * pMemory, eD2UnitType eUnitT
       return pUnit;
     }
 
-    D2UnitDataMonsterStrc* local_EAX_79 = (D2UnitDataMonsterStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x60, ".\\UNITS\\Units.cpp", 0x67b, 0);
+    D2UnitDataMonsterStrc* local_EAX_79 = D2_NEW_POOL(pMemory, D2UnitDataMonsterStrc);
     pUnit->pUnitData.pUnitDataMonster = local_EAX_79;
     memset(local_EAX_79, 0, 0x60);
     return pUnit;
@@ -170,12 +190,12 @@ void __stdcall Free(D2UnitStrc * pUnit) {
     Stats::StatsEx::STATLIST_FreeStatListMemory(pUnit);
     Skills::SKILLS_FreeSkillList(pUnit);
     if (pUnit->eUnitType == UNIT_MONSTER) {
-      Fog::Memory::FreeServerMemory(pUnit->pMemory, pUnit->pUnitData.pUnitDataPlayer, ".\\UNITS\\Units.cpp", 0x69a, 0);
+      D2_FREE_POOL(pUnit->pMemory, pUnit->pUnitData.pUnitDataPlayer);
     }
 
     pUnit->eUnitType = UNIT_COUNT;
     pUnit->nUnitGUID = -1;
-    Fog::Memory::FreeServerMemory(pUnit->pMemory, pUnit, ".\\UNITS\\Units.cpp", 0x6a4, 0);
+    D2_FREE_POOL(pUnit->pMemory, pUnit);
 }
 
 void __fastcall UNITS_SetWarpStaticPathCoords(D2UnitStrc * pUnit, int32_t nPosX, int32_t nPosY, int32_t nUnkX, int32_t nUnkY) {
@@ -1611,7 +1631,7 @@ void __stdcall AllocPlayerData(D2UnitStrc * pUnit) {
     } else {
       D2UnitDataPlayerStrc* pUnitDataPlayer;
       if (!pUnit->pUnitData.pUnitDataPlayer) {
-        pUnitDataPlayer = (D2UnitDataPlayerStrc*)Fog::Memory::AllocServerMemory(pUnit->pMemory, 0x16c, ".\\UNITS\\Units.cpp", 0xf52, 0);
+        pUnitDataPlayer = D2_NEW_POOL(pUnit->pMemory, D2UnitDataPlayerStrc);
         pUnit->pUnitData.pUnitDataPlayer = pUnitDataPlayer;
         memset(pUnitDataPlayer, 0, 0x16c);
         pUnit->pUnitData.pUnitDataPlayer->szCharName[0] = '\0';
@@ -1654,7 +1674,7 @@ void __stdcall FreePlayerData(D2PoolManagerStrc * pMemory, D2UnitStrc * pUnit) {
         } while (iActIdx < 0x28);
 
         Txt::Cube::FIELDTBLS_FreePlayerData_STUB();
-        Fog::Memory::FreeServerMemory(pMemory, pUnit->pUnitData.pUnitDataPlayer, ".\\UNITS\\Units.cpp", 0xf76, 0);
+        D2_FREE_POOL(pMemory, pUnit->pUnitData.pUnitDataPlayer);
         pUnit->pUnitData.pUnitDataPlayer = 0;
         return;
       }
@@ -2650,7 +2670,7 @@ void __stdcall AllocStaticPath(D2UnitStrc * pUnit) {
       return;
     }
 
-    D2StaticPathStrc* pPathStrc = (D2StaticPathStrc*)Fog::Memory::AllocServerMemory(pUnit->pMemory, 0x20, ".\\UNITS\\Units.cpp", 0x151e, 0);
+    D2StaticPathStrc* pPathStrc = D2_NEW_POOL(pUnit->pMemory, D2StaticPathStrc);
     pUnit->pPath.pStaticPath = pPathStrc;
     pPathStrc->pRoom = 0;
     pPathStrc->nScreenX = 0;
@@ -2671,7 +2691,7 @@ void __stdcall FreeStaticPath(D2UnitStrc * pUnit) {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(pUnit->pMemory, pUnit->pPath.pStaticPath, ".\\UNITS\\Units.cpp", 0x152b, 0);
+    D2_FREE_POOL(pUnit->pMemory, pUnit->pPath.pStaticPath);
 }
 
 BOOL __stdcall CanDualWield(D2UnitStrc * pUnit) {

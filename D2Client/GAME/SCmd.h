@@ -53,16 +53,6 @@ struct D2NET_CLIENT_D2GS_ServerToClient {
     /* 0x08 */ void (__fastcall *fpIncomingHandlerUnit)(struct D2UnitStrc *, char *);
 };
 
-struct __attribute__((packed)) D2Packet0x5aEventStructure {
-    /* 0x00 */ uint8_t nPacketId;
-    /* 0x01 */ uint8_t nMessageType;
-    /* 0x02 */ uint8_t nColor;
-    /* 0x03 */ uint32_t nArg;
-    /* 0x07 */ uint8_t nArgTypes;
-    /* 0x08 */ char szName1[16];
-    /* 0x18 */ char szName2[16];
-};
-
 struct D2RosterMercArg {
     /* 0x00 */ int nSeed;
     /* 0x04 */ int nInitSeed;

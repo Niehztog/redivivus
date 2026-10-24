@@ -46,6 +46,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Client::Sound::SoundHdr {
 
@@ -410,7 +418,7 @@ void __stdcall TXT_AllocTxt_sounds_soundenviron() {
         pD2File = (D2ArchiveStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMpq, szPath, pFileSize, szSourceFile, nLine);
         pBinExcel = Fog::Src::Excel::STRUCT_CreateBinFieldExcelAndFillData(pD2File, nFileSize);
         nTxtSoundsSize = Fog::Src::Excel::TXT_GetLinesCountFromBinFieldExcel(pBinExcel);
-        pSounds = (D2SoundsTxt*)Fog::Memory::AllocClientMemory(nTxtSoundsSize * 0x8e, ".\\Sound\\SoundHdr.cpp", 0x106, 0);
+        pSounds = (D2SoundsTxt*)D2_ALLOC(nTxtSoundsSize * 0x8e);
         pTxtSounds = pSounds;
         memset(pSounds, 0, nTxtSoundsSize * 0x8e);
         Fog::Src::Excel::TXT_ParseDataAndPutIntoStructure(pBinExcel, sounds, pSounds->Filename, nTxtSoundsSize, 0x8e);
@@ -423,7 +431,7 @@ void __stdcall TXT_AllocTxt_sounds_soundenviron() {
         pD2File = (D2ArchiveStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMpq, szPath, pFileSize, szSourceFile, nLine);
         pBinExcel = Fog::Src::Excel::STRUCT_CreateBinFieldExcelAndFillData(pD2File, nFileSize);
         nTxtSoundEnvironSize = Fog::Src::Excel::TXT_GetLinesCountFromBinFieldExcel(pBinExcel);
-        pSoundEnviron = (D2SoundEnvironTxt*)Fog::Memory::AllocClientMemory(nTxtSoundEnvironSize * 0x58, ".\\Sound\\SoundHdr.cpp", 0x112, 0);
+        pSoundEnviron = (D2SoundEnvironTxt*)D2_ALLOC(nTxtSoundEnvironSize * 0x58);
         pTxtSoundEnviron = pSoundEnviron;
         memset(pSoundEnviron, 0, nTxtSoundEnvironSize * 0x58);
         Fog::Src::Excel::TXT_ParseDataAndPutIntoStructure(pBinExcel, soundenviron, (char*)pSoundEnviron, nTxtSoundEnvironSize, 0x58);
@@ -487,7 +495,7 @@ void __stdcall TXT_AllocTxt_sounds_soundenviron() {
         }
 
         nMaxSong = (gnSoundIdRangeMax - gpSoundHdrGlobal + 1) * 4;
-        pSoundChannelDataArray = Fog::Memory::AllocClientMemory(nMaxSong, ".\\Sound\\SoundHdr.cpp", 0x147, 0);
+        pSoundChannelDataArray = D2_ALLOC(nMaxSong);
         memset(pSoundChannelDataArray, 0, nMaxSong);
         return;
       }
@@ -608,7 +616,7 @@ void __fastcall SOUNDHDR_FreeSoundBuffer(int32_t nSoundId) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(pSound->pSoundDataBuffer, ".\\Sound\\SoundHdr.cpp", 0x272, 0);
+    D2_FREE(pSound->pSoundDataBuffer);
     pSound->pSoundDataBuffer = 0;
     pSound->nLoadState = 0;
 }
@@ -839,7 +847,7 @@ void __fastcall SOUNDHDR_UpdateLRUTimestamp(int32_t nSoundId) {
 // @sourcefile .\Sound\SoundHdr.cpp
 void __stdcall SOUNDHDR_Shutdown() {
     if (pTxtSoundEnviron) {
-      Fog::Memory::FreeClientMemory(pTxtSoundEnviron, ".\\Sound\\SoundHdr.cpp", 0x181, 0);
+      D2_FREE(pTxtSoundEnviron);
       pTxtSoundEnviron = 0;
       nTxtSoundEnvironSize = 0;
     }
@@ -853,7 +861,7 @@ void __stdcall SOUNDHDR_Shutdown() {
         } while (nSoundId < nTxtSoundsSize);
       }
 
-      Fog::Memory::FreeClientMemory(pTxtSounds, ".\\Sound\\SoundHdr.cpp", 0x18e, 0);
+      D2_FREE(pTxtSounds);
       pTxtSounds = 0;
       nTxtSoundsSize = 0;
     }

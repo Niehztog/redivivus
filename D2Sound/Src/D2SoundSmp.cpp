@@ -19,6 +19,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2SoundSmpStrc) == 0x60, "D2_NEW(D2SoundSmpStrc): the 32-bit layout must be the 0x60 bytes 1.14d allocates");
+
 
 namespace D2Sound::Src::D2SoundSmp {
 
@@ -40,7 +54,7 @@ D2SoundSmpStrc * __fastcall CallSounds(uint32_t nSoundFlags, uint32_t dwSamplePa
       return nullptr;
     }
 
-    D2SoundSmpStrc* pSoundSmp = (D2SoundSmpStrc*)Fog::Memory::AllocClientMemory(0x60, ".\\Src\\D2SoundSmp.cpp", 0x1d9, 0);
+    D2SoundSmpStrc* pSoundSmp = D2_NEW(D2SoundSmpStrc);
     memset(pSoundSmp, 0, 0x60);
     BOOL bCreated = SOUNDSMP_CreateSoundBuffer(nSoundFlags, pSoundSmp);
     if (bCreated) {
@@ -50,7 +64,7 @@ D2SoundSmpStrc * __fastcall CallSounds(uint32_t nSoundFlags, uint32_t dwSamplePa
       return pSoundSmp;
     }
 
-    Fog::Memory::FreeClientMemory(pSoundSmp, ".\\Src\\D2SoundSmp.cpp", 0x1e0, 0);
+    D2_FREE(pSoundSmp);
     return nullptr;
 }
 
@@ -516,7 +530,7 @@ void __fastcall SOUNDSMP_Destroy(D2SoundSmpStrc * pSoundSmp) {
     SOUNDSMP_ReleaseInterfaces(pSoundSmp);
     D2SoundUntil::SOUND_sD2SoundSmp_Free(&gpSoundSampleList, (int32_t)pSoundSmp);
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&gSoundSmpCs);
-    Fog::Memory::FreeClientMemory(pSoundSmp, ".\\Src\\D2SoundSmp.cpp", 0x21d, 0);
+    D2_FREE(pSoundSmp);
 }
 
 void __fastcall SOUNDSMP_Reset(D2SoundSmpStrc * pSoundSmp) {

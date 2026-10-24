@@ -39,6 +39,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA4Q1Strc) == 0x1c, "D2_NEW(D2QuestDataA4Q1Strc): the 32-bit layout must be the 0x1c bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_QUESTSEQ
 #define RECON_FPTD_QUESTSEQ
@@ -534,7 +544,7 @@ void __fastcall Q26_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->nInitNo = 4;
     pQuestData->fpStatusFilter = 0;
     pQuestData->fpActiveFilter = Q26_ActiveFilter;
-    D2QuestDataA4Q1Strc* pQuestSpecificData = (D2QuestDataA4Q1Strc*)Fog::Memory::AllocServerMemory(pSVar1->pMemoryPool, 0x1c, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a4q1.cpp", 0x2a0, 0);
+    D2QuestDataA4Q1Strc* pQuestSpecificData = D2_NEW_POOL(pSVar1->pMemoryPool, D2QuestDataA4Q1Strc);
     pQuestData->pQuestSpecificData.pA4Q1 = pQuestSpecificData;
     pQuestData->fpSequenceFilter = (QUESTSEQ)Q26_SequenceFilter;
     pQuestData->nSequenceQuestId = QUEST_SpokeToTyrael;

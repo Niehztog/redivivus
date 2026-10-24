@@ -39,6 +39,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2LightMapStrc) == 0x34, "D2_NEW(D2LightMapStrc): the 32-bit layout must be the 0x34 bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Client::Draw::LightMap {
 
@@ -58,7 +72,7 @@ D2LightMapStrc * __fastcall AllocLightMap(D2UnitStrc * pUnit, int32_t nLightType
     }
 
     nLightMapSize++;
-    D2LightMapStrc* pLightMap = (D2LightMapStrc*)Fog::Memory::AllocClientMemory(0x34, ".\\DRAW\\dLightMap.cpp", 0xff, 0);
+    D2LightMapStrc* pLightMap = D2_NEW(D2LightMapStrc);
     eD2UnitType eUnitType = UNIT_COUNT;
     if (pUnit) {
       eUnitType = pUnit->eUnitType;
@@ -96,7 +110,7 @@ D2LightMapStrc * __fastcall AllocLightMap(D2UnitStrc * pUnit, int32_t nLightType
     if (nLightType == 2) {
       int nPixelMapDim;
       nPixelMapDim = nDiameter * 2 + 1;
-      pPixelMap = (int*)Fog::Memory::AllocClientMemory(nPixelMapDim * nPixelMapDim * 4, ".\\DRAW\\dLightMap.cpp", 0x116, 0);
+      pPixelMap = (int*)D2_ALLOC(nPixelMapDim * nPixelMapDim * 4);
       pLightMap->pPixelMap = pPixelMap;
       gpLightMap = pLightMap;
       return pLightMap;
@@ -145,7 +159,7 @@ void __fastcall LIGHTMAP_SetRadius(D2LightMapStrc * pLightMap, int32_t nParam) {
 
     pLightMap->bPixelMapReady = 0;
     if (pLightMap->pPixelMap) {
-      Fog::Memory::FreeClientMemory(pLightMap->pPixelMap, ".\\DRAW\\dLightMap.cpp", 0x14a, 0);
+      D2_FREE(pLightMap->pPixelMap);
     }
 
     pLightMap->pPixelMap = 0;
@@ -195,10 +209,10 @@ void __fastcall FreeLightMap(D2LightMapStrc * pLightMap) {
             pPrevLightMap->pPrev = pDVar1->pPrev;
           }
           if (pLightMap->pPixelMap) {
-            Fog::Memory::FreeClientMemory(pLightMap->pPixelMap, ".\\DRAW\\dLightMap.cpp", 0x181, 0);
+            D2_FREE(pLightMap->pPixelMap);
           }
 
-          Fog::Memory::FreeClientMemory(pLightMap, ".\\DRAW\\dLightMap.cpp", 0x183, 0);
+          D2_FREE(pLightMap);
           nFreedLightMapsCounter++;
           return;
         }
@@ -1053,7 +1067,7 @@ void __stdcall LIGHTMAP_UpdateSingleLight(int nQuality, D2LightMapStrc * pLightM
       if (pLightMap->nLightType == 2) {
         pLightMap->bPixelMapReady = 0;
         if (pLightMap->pPixelMap) {
-          Fog::Memory::FreeClientMemory(pLightMap->pPixelMap, ".\\DRAW\\dLightMap.cpp", 0x4cc, 0);
+          D2_FREE(pLightMap->pPixelMap);
         }
 
         pLightMap->pPixelMap = 0;
@@ -1086,7 +1100,7 @@ void __stdcall LIGHTMAP_UpdateSingleLight(int nQuality, D2LightMapStrc * pLightM
     if (!pLightMap->bPixelMapReady) {
       if (!pLightMap->pPixelMap) {
         nRadius = (pLightMap->nRadiusX >> 3) * 2 + 1;
-        pPixelMap = (int*)Fog::Memory::AllocClientMemory(nRadius * nRadius * 4, ".\\DRAW\\dLightMap.cpp", 0x4f1, 0);
+        pPixelMap = (int*)D2_ALLOC(nRadius * nRadius * 4);
         pLightMap->pPixelMap = pPixelMap;
       }
 
@@ -1242,10 +1256,10 @@ void __stdcall LIGHTMAP_FreeAll() {
       D2LightMapStrc* pNextNode;
       pNextNode = pMemoryToFree->pPrev;
       if (pMemoryToFree->pPixelMap) {
-        Fog::Memory::FreeClientMemory(pMemoryToFree->pPixelMap, ".\\DRAW\\dLightMap.cpp", 0x57d, 0);
+        D2_FREE(pMemoryToFree->pPixelMap);
       }
 
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\DRAW\\dLightMap.cpp", 0x57f, 0);
+      D2_FREE(pMemoryToFree);
       pMemoryToFree = pNextNode;
     }
 

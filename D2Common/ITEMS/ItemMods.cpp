@@ -3625,8 +3625,8 @@ void __stdcall ITEMMOD_ApplyPropertyToUnitStats(uint32_t dwParam1, D2UnitStrc * 
 // Applies socketed-item / affix property modifiers onto a unit's stat list, dispatched by dwParam1 (property source: 0/2/5=3 props, 1=2 props from a magic affix via ITEMMOD_GetPropertyFromAffix; 3=unique item's 12 sEntry props; 4=set item's sEntry props plus the 10 partial-set bonus entries from sEntryEx keyed by item version). For affix cases it loops over the affix's property list, stopping at a negative fcode, calling ITEMMOD_ApplyPropertyToUnitStats for each. pUnit is the item being applied; pUnit2 the affected owner unit. No return value.
 void __stdcall ApplyRuneAndGemStats(uint32_t dwParam1, D2UnitStrc * pUnit2, D2UnitStrc * pUnit, D2MagicAffixTxt * pMagicAffixLine, uint32_t nParam, uint32_t dwParam2) {
     // Static local variables (originally global data)
-    static int gnPropertyFunctionIndexByCode[6] = { 0x0, 0x0, 0xa5, 0xa6, 0xa7, 0xa8 };
-    static uint32_t gdwPropertyFunctionCountByVersion[6] = { 0x40, 0x40, 0x2040, 0x2040, 0x2040, 0x2040 };
+    static int gnPropertyFunctionIndexByCode[7] = { 0x0, 0x0, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9 };
+    static uint32_t gdwPropertyFunctionCountByVersion[7] = { 0x40, 0x40, 0x2040, 0x2040, 0x2040, 0x2040, 0x2040 };
 
     int16_t wItemVersion;
     D2UniqueItemsTxt* pUniqueLine;

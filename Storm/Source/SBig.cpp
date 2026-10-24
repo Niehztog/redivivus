@@ -3402,7 +3402,7 @@ void __stdcall BigBuffer_Pow(BigBuffer * pnResult, BigBuffer * pnBase, uint32_t 
 void __stdcall BigBuffer_Rand(BigBuffer * pnResult, BigBuffer * pnModulus, BigBuffer * pnInput, BigStack * pStack) {
     // Static local variables (originally global data)
     static uint8_t gbSBigMontgomeryConstant2[8] = { 0x50, 0x46, 0x0, 0x0, 0x69, 0x90, 0x0, 0x0 };
-    static uint8_t gbSBigMontgomeryConstant1 = -0x4b;
+    static uint8_t gbSBigMontgomeryConstant1[8] = { 0xb5, 0x3b, 0x12, 0x1f, 0xe5, 0x55, 0x9a, 0x15 };
 
     uint32_t uBitIter;
     uint32_t uAlignedCap;
@@ -3448,7 +3448,7 @@ void __stdcall BigBuffer_Rand(BigBuffer * pnResult, BigBuffer * pnModulus, BigBu
       do {
         SBIG_GrowToIndex(0, pnWork);
         iVar1 = uNeededCount + pnWork->nStartWord * 4;
-        pWorkData = &gbSBigMontgomeryConstant1 + uNeededCount;
+        pWorkData = gbSBigMontgomeryConstant1 + uNeededCount;
         uNeededCount++;
         *(uint8_t*)(iVar1 + (int)pnWork->pData) = *pWorkData;
       } while (uNeededCount < 8);

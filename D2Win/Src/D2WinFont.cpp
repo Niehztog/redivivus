@@ -24,6 +24,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2TextLineStrc) == 0x8, "D2_NEW(D2TextLineStrc): the 32-bit layout must be the 0x8 bytes 1.14d allocates");
+
 
 namespace D2Win::Src::D2WinFont {
 
@@ -77,7 +91,7 @@ void InitFontCache(int32_t nFontIndex) {
     char szFontTablePath[80];
     GetFontTablePath(0x4f, nFontIndex, szFontTablePath);
     if (gaFontCache[nFontIndex].pFontTable) {
-      Fog::Memory::FreeClientMemory(gaFontCache[nFontIndex].pFontTable, ".\\Src\\D2WinFont.cpp", 0xb3, 0);
+      D2_FREE(gaFontCache[nFontIndex].pFontTable);
     }
 
     int32_t nAllocLine = 0xb5;
@@ -99,7 +113,7 @@ void __stdcall D2WINFONT_FreeFontCache() {
         ((D2FontCacheEntryStrc*)(ppFontTable - 1))->pFontDC6 = 0;
       }
       if (*ppFontTable) {
-        Fog::Memory::FreeClientMemory(*ppFontTable, ".\\Src\\D2WinFont.cpp", 0x135, 0);
+        D2_FREE(*ppFontTable);
         *ppFontTable = 0;
       }
 
@@ -1018,15 +1032,15 @@ void __fastcall D2WINFONT_FreeWordWrapList(void * * ppNodeList) {
     while (ppNodeList) {
       void** ppvVar1;
       ppvVar1 = (void**)ppNodeList[1];
-      Fog::Memory::FreeClientMemory(*ppNodeList, ".\\Src\\D2WinFont.cpp", 0x579, 0);
-      Fog::Memory::FreeClientMemory(ppNodeList, ".\\Src\\D2WinFont.cpp", 0x57a, 0);
+      D2_FREE(*ppNodeList);
+      D2_FREE(ppNodeList);
       ppNodeList = ppvVar1;
     }
 }
 
 // @sourcefile .\Src\D2WinFont.cpp
 D2TextLineStrc * __stdcall D2WINFONT_AllocWordWrapNode(uint16_t * pwszText, size_t nSize, int32_t bTrimLeadingSpace) {
-    D2TextLineStrc* pNode = (D2TextLineStrc*)Fog::Memory::AllocClientMemory(8, ".\\Src\\D2WinFont.cpp", 0x588, 0);
+    D2TextLineStrc* pNode = D2_NEW(D2TextLineStrc);
     if (bTrimLeadingSpace && (uint16_t)*pwszText < 0x100) {
       int bIsSpace;
       bIsSpace = isspace((uint32_t)(uint16_t)*pwszText);
@@ -1036,7 +1050,7 @@ D2TextLineStrc * __stdcall D2WINFONT_AllocWordWrapNode(uint16_t * pwszText, size
       }
     }
 
-    uint16_t* pNodeText = (uint16_t*)Fog::Memory::AllocClientMemory(nSize * 2 + 2, ".\\Src\\D2WinFont.cpp", 0x591, 0);
+    uint16_t* pNodeText = (uint16_t*)D2_ALLOC(nSize * 2 + 2);
     pNode->wszLine = pNodeText;
     pNode->pNext = 0;
     D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pNodeText, pwszText, nSize);
@@ -1066,9 +1080,9 @@ D2TextLineStrc * __fastcall D2WINFONT_WordWrapString(uint16_t * wszText, int * p
     nTextPixelWidth = D2WINFONT_GetStringPixelWidthN((uint16_t*)wszText, nStrLen);
     if (nTextPixelWidth <= nMaxWidth) {
       *pnLineCount = 1;
-      pNode = (D2TextLineStrc*)Fog::Memory::AllocClientMemory(8, ".\\Src\\D2WinFont.cpp", 0x588, 0);
+      pNode = D2_NEW(D2TextLineStrc);
       nSegLen = nStrLen + 1;
-      pNodeText = (uint16_t*)Fog::Memory::AllocClientMemory(nStrLen + 3 + nSegLen, ".\\Src\\D2WinFont.cpp", 0x591, 0);
+      pNodeText = (uint16_t*)D2_ALLOC(nStrLen + 3 + nSegLen);
       pNode->wszLine = pNodeText;
       pNode->pNext = 0;
       D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pNodeText, wszText, nSegLen);
@@ -1129,7 +1143,7 @@ D2TextLineStrc * __fastcall D2WINFONT_WordWrapString(uint16_t * wszText, int * p
           } while (nSegStart < nSegEnd);
         }
 
-        pNode = (D2TextLineStrc*)Fog::Memory::AllocClientMemory(8, ".\\Src\\D2WinFont.cpp", 0x588, 0);
+        pNode = D2_NEW(D2TextLineStrc);
         pNodeText = wszText + nSegStart;
         nSegLen = nSegEnd - nSegStart + 1;
         if ((uint16_t)*pNodeText < 0x100) {
@@ -1140,7 +1154,7 @@ D2TextLineStrc * __fastcall D2WINFONT_WordWrapString(uint16_t * wszText, int * p
           }
         }
 
-        pDestination = (uint16_t*)Fog::Memory::AllocClientMemory(nSegLen * 2 + 2, ".\\Src\\D2WinFont.cpp", 0x591, 0);
+        pDestination = (uint16_t*)D2_ALLOC(nSegLen * 2 + 2);
         pNode->wszLine = pDestination;
         pNode->pNext = 0;
         D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pDestination, pNodeText, nSegLen);

@@ -20,6 +20,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_PFN_GetCurrentThread
 #define RECON_FPTD_PFN_GetCurrentThread
@@ -1013,7 +1017,7 @@ D2CharSelCompStrc * __fastcall ReadLogFileRange(uint8_t * szFileName, int32_t nS
     _SYSTEMTIME localTime;
     size_t nAllocSize = nEndOffset - nStartOffset + 1;
     int32_t nSavedStart = nStartOffset;
-    D2CharSelCompStrc* pBuffer = (D2CharSelCompStrc*)Memory::AllocClientMemory(nAllocSize, ".\\Src\\LogManager.cpp", 0x10a, 0);
+    D2CharSelCompStrc* pBuffer = (D2CharSelCompStrc*)D2_ALLOC(nAllocSize);
     memset(pBuffer, 0, nAllocSize);
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&gLogFileCS);
     CloseLogFileByName(szFileName);

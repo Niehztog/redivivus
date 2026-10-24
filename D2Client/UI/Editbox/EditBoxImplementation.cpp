@@ -26,6 +26,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fpUIWidgetCharFilter
 #define RECON_FPTD_fpUIWidgetCharFilter
@@ -58,11 +66,11 @@ void Destructor(::EditBoxImplementation * pThis) {
     pThis->pVtable = (EditBoxImplementationVtable*)(void*)EditBoxImplementation::vftable;
     __frame0.dwExcState = 0;
     if (pThis->wszString) {
-      Fog::Memory::FreeClientMemory(pThis->wszString, ".\\UI\\editbox.cpp", 0x8e, 0);
+      D2_FREE(pThis->wszString);
       pThis->wszString = 0;
     }
     if (pThis->wszScratch) {
-      Fog::Memory::FreeClientMemory(pThis->wszScratch, ".\\UI\\editbox.cpp", 0x93, 0);
+      D2_FREE(pThis->wszScratch);
       pThis->wszScratch = 0;
     }
 
@@ -209,8 +217,8 @@ void Draw(::EditBoxImplementation * pThis) {
             D2Win::Src::D2WinFont::DRAW_text(szCursorWchar, nX, nCursorPos, nScrollCharOff, bShadow);
           }
 
-          Fog::Memory::FreeClientMemory(pWrapNode->wszLine, ".\\UI\\editbox.cpp", 0x103, 0);
-          Fog::Memory::FreeClientMemory(pWrapNode, ".\\UI\\editbox.cpp", 0x104, 0);
+          D2_FREE(pWrapNode->wszLine);
+          D2_FREE(pWrapNode);
           pWrapNode = pNextWrapNode;
         } while (pNextWrapNode);
 
@@ -422,8 +430,8 @@ int OnChar(::EditBoxImplementation * pThis, D2UIMouseMsgStrc * pMsg) {
           pMemoryToFree = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(pThis->wszString, &nLineCount, pThis->nWidth);
           while (pMemoryToFree) {
             pNextWordWrapNode = pMemoryToFree->pNext;
-            Fog::Memory::FreeClientMemory(pMemoryToFree->wszLine, ".\\UI\\editbox.cpp", 0x203, 0);
-            Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\UI\\editbox.cpp", 0x204, 0);
+            D2_FREE(pMemoryToFree->wszLine);
+            D2_FREE(pMemoryToFree);
             pMemoryToFree = pNextWordWrapNode;
           }
 
@@ -525,9 +533,9 @@ int OnLeftArrow(::EditBoxImplementation * pThis, D2UIMouseMsgStrc * pMsg) {
     pThis->nPosY = nPosY;
     pThis->bHasFocus = 0;
     pThis->nBlinkTick = 0;
-    uint16_t* pAllocBuf = (uint16_t*)Fog::Memory::AllocClientMemory(nAllocSize, ".\\UI\\editbox.cpp", 0x5d, 0);
+    uint16_t* pAllocBuf = (uint16_t*)D2_ALLOC(nAllocSize);
     pThis->wszString = pAllocBuf;
-    pAllocBuf = (uint16_t*)Fog::Memory::AllocClientMemory(nAllocSize, ".\\UI\\editbox.cpp", 0x5e, 0);
+    pAllocBuf = (uint16_t*)D2_ALLOC(nAllocSize);
     pThis->wszScratch = pAllocBuf;
     memset(pThis->wszString, 0, nAllocSize);
     memset(pThis->wszScratch, 0, nAllocSize);

@@ -52,6 +52,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA3Q3Strc) == 0x30, "D2_NEW(D2QuestDataA3Q3Strc): the 32-bit layout must be the 0x30 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpExecuteOnUnitFunction
 #define RECON_FPTD_fpExecuteOnUnitFunction
@@ -841,7 +851,7 @@ void __fastcall Q20_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->sStateFunctions.fpQuestStateHandler[0xd] = Q20_Callback13_PlayerStartedGame;
     pQuestData->sStateFunctions.fpQuestStateHandler[0xe] = Q20_Callback14_PlayerJoinedGame;
     pQuestData->sStateFunctions.fpQuestStateHandler[9] = Q20_Callback09_PlayerDroppedWithQuestItem;
-    D2QuestDataA3Q3Strc* pQuestSpecificData = (D2QuestDataA3Q3Strc*)Fog::Memory::AllocServerMemory(pSVar1->pMemoryPool, 0x30, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q3.cpp", 0x394, 0);
+    D2QuestDataA3Q3Strc* pQuestSpecificData = D2_NEW_POOL(pSVar1->pMemoryPool, D2QuestDataA3Q3Strc);
     pQuestData->pQuestSpecificData.pA3Q3 = pQuestSpecificData;
     memset(pQuestSpecificData, 0, 0x30);
     pQuestSpecificData->nQuestStage = 0;

@@ -46,6 +46,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA2Q6Strc) == 0x68, "D2_NEW(D2QuestDataA2Q6Strc): the 32-bit layout must be the 0x68 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpExecuteOnUnitFunction
 #define RECON_FPTD_fpExecuteOnUnitFunction
@@ -1081,7 +1091,7 @@ void __fastcall Q14_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A2Q6::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA2Q6Strc* pQuestSpecificData = (D2QuestDataA2Q6Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x68, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q6.cpp", 0x442, 0);
+    D2QuestDataA2Q6Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA2Q6Strc);
     pQuestData->pQuestSpecificData.pA2Q6 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_TheSevenTombs;
     pQuestData->fpStatusFilter = Q14_StatusFilter;

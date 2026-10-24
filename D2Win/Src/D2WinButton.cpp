@@ -21,6 +21,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinButton) == 0x274, "D2_NEW(D2WinButton): the 32-bit layout must be the 0x274 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_OnPress
 #define RECON_FPTD_OnPress
@@ -532,7 +542,7 @@ BOOL __stdcall D2WINBUTTON_HandleHotkey(D2ControlMsg * pControlMsg) {
 // @sourcefile .\Src\D2WinButton.cpp
 ::D2WinButton * __fastcall D2WinButton(int32_t nPosX, int32_t nPosY, int32_t nSizeX, int32_t nSizeY, DC6 * pDC6, OnPress pfnOnPress, int32_t nHotkeyVK, int32_t nInitialImageIndex, int32_t nButtonFlags, int32_t wLabelStringId, ::Mouse pMouse) {
     int nTileFrames;
-    ::D2WinButton* pNewButton = (::D2WinButton*)Fog::Memory::AllocClientMemory(0x274, ".\\Src\\D2WinButton.cpp", 0x24, 0);
+    ::D2WinButton* pNewButton = D2_NEW(::D2WinButton);
     memset(pNewButton, 0, 0x274);
     pNewButton->sControl.neD2FormType = FORM_Button;
     int* pDwState = &pNewButton->sControl.dwState;

@@ -82,6 +82,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2TimerArgStrc) == 0x8, "D2_NEW(D2TimerArgStrc): the 32-bit layout must be the 0x8 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnObjectPlaceTestCallback
 #define RECON_FPTD_pfnObjectPlaceTestCallback
@@ -316,10 +330,10 @@ D2UnitStrc * __fastcall SERVER_InitUnitObject(::SGAMEDATA * pGame, D2RoomStrc * 
 
 // @sourcefile .\OBJECTS\Objects.cpp
 D2TimerArgStrc * __fastcall AllocTimer(::SGAMEDATA * pGame) {
-    D2TimerArgStrc* pTimerNode = (D2TimerArgStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 8, ".\\OBJECTS\\Objects.cpp", 0x1b8, 0);
+    D2TimerArgStrc* pTimerNode = D2_NEW_POOL(pGame->pMemoryPool, D2TimerArgStrc);
     pTimerNode->pTimerList = 0;
     pTimerNode->nUnitGUID = -1;
-    uint32_t* pTimerSentinel = (uint32_t*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 8, ".\\OBJECTS\\Objects.cpp", 0x1bc, 0);
+    uint32_t* pTimerSentinel = (uint32_t*)D2_ALLOC_POOL(pGame->pMemoryPool, 8);
     *pTimerSentinel = -1;
     pTimerSentinel[1] = 0;
     pTimerNode->pTimerList = pTimerSentinel;
@@ -332,11 +346,11 @@ void __fastcall FrreeTimer(::SGAMEDATA * pGame, void * * pParam) {
     while (pMemoryToFree) {
       void* pNext;
       pNext = *(void**)((int)pMemoryToFree + 4);
-      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\OBJECTS\\Objects.cpp", 0x1ce, 0);
+      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
       pMemoryToFree = pNext;
     }
 
-    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pParam, ".\\OBJECTS\\Objects.cpp", 0x1d1, 0);
+    D2_FREE_POOL(pGame->pMemoryPool, pParam);
 }
 
 // Server-side initializer for a freshly created object unit. Looks up the unit's ObjectsTxt record, assigns its GUID, clears the sparkly-chest flag, and sets/clears CANBEATTACKED and TARGETABLE unit flags from the txt (IsAttackable / Selectable[animMode]). Validates class id < 0x23d and anim mode < 8 (halts via ErrorManager otherwise). Clears the unit's timer list, then dispatches to the per-object init function in the OBJECTSINITFN table (index = ObjectsTxt.InitFn, bounds-checked < 0x50, IsBadCodePtr-guarded) passing a D2ObjectInitFnArg with game/room/x/y/seed/txt. Rolls a 1-in-0xe seed chance to flag a PreOperate object for update, and allocates+attaches a timer arg. Inputs: pGame, pUnit, nAnimModeOrGUID (used as GUID), pRoom, nX, nY.

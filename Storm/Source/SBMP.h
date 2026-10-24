@@ -16,6 +16,28 @@ struct D2UnitDataItemDetailsStrc;
 typedef void * (__stdcall *pfnSBmpAllocCallback)(uint32_t nSize);
 #endif
 
+// Data types
+struct D2PcxHeaderStrc {
+    /* 0x00 */ uint8_t byManufacturer;
+    /* 0x01 */ uint8_t byVersion;
+    /* 0x02 */ uint8_t byEncoding;
+    /* 0x03 */ uint8_t byBitsPerPixel;
+    /* 0x04 */ uint16_t wXMin;
+    /* 0x06 */ uint16_t wYMin;
+    /* 0x08 */ uint16_t wXMax;
+    /* 0x0A */ uint16_t wYMax;
+    /* 0x0C */ uint16_t wHDpi;
+    /* 0x0E */ uint16_t wVDpi;
+    /* 0x10 */ uint8_t abColorMap[48];
+    /* 0x40 */ uint8_t byReserved;
+    /* 0x41 */ uint8_t byPlanes;
+    /* 0x42 */ uint16_t wBytesPerLine;
+    /* 0x44 */ uint16_t wPaletteInfo;
+    /* 0x46 */ uint16_t wHScreenSize;
+    /* 0x48 */ uint16_t wVScreenSize;
+    /* 0x4A */ uint8_t abFiller[54];
+};
+
 namespace Storm::Source::SBMP {
 
 // Function declarations

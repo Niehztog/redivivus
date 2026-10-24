@@ -33,6 +33,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2GamePalShiftGreenBloodStrc) == 0x100, "D2_NEW(D2GamePalShiftGreenBloodStrc): the 32-bit layout must be the 0x100 bytes 1.14d allocates");
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Client::GAME::PalShift {
 
@@ -46,7 +60,7 @@ void __stdcall AllocPalShift_GreenBlood() {
       return;
     }
 
-    D2GamePalShiftGreenBloodStrc* pGreenBlood = (D2GamePalShiftGreenBloodStrc*)Fog::Memory::AllocClientMemory(0x100, ".\\GAME\\PalShift.cpp", 0x52, 0);
+    D2GamePalShiftGreenBloodStrc* pGreenBlood = D2_NEW(D2GamePalShiftGreenBloodStrc);
     PalShift_GreenBlood = pGreenBlood;
     memset(pGreenBlood, 0, 0x100);
     D2FILE_ReadFile(nullptr, pFileHandle, pGreenBlood, 0x100);
@@ -58,7 +72,7 @@ void __stdcall InitPal() {
     D2MPQFileStrc* pGreenBloodFile;
     D2MPQFileStrc* pRandTransformFile;
     size_t nAllocSize = sgptDataTable->nTxtMonStatsSize * 8;
-    void* pPalShiftList = Fog::Memory::AllocClientMemory(nAllocSize, ".\\GAME\\PalShift.cpp", 99, 0);
+    void* pPalShiftList = D2_ALLOC(nAllocSize);
     gpMonsterPalShiftList = pPalShiftList;
     memset(pPalShiftList, 0, nAllocSize);
     int nMonStatsCount = sgptDataTable->nTxtMonStatsSize;
@@ -83,7 +97,7 @@ void __stdcall InitPal() {
       return;
     }
 
-    D2GamePalShiftGreenBloodStrc* pGreenBlood = (D2GamePalShiftGreenBloodStrc*)Fog::Memory::AllocClientMemory(0x100, ".\\GAME\\PalShift.cpp", 0x52, 0);
+    D2GamePalShiftGreenBloodStrc* pGreenBlood = D2_NEW(D2GamePalShiftGreenBloodStrc);
     PalShift_GreenBlood = pGreenBlood;
     memset(pGreenBlood, 0, 0x100);
     D2FILE_ReadFile(nullptr, pGreenBloodFile, pGreenBlood, 0x100);
@@ -96,21 +110,21 @@ void __stdcall FreeGamePalShift() {
       void* pNextEntry;
       do {
         pNextEntry = *(void**)((int)gpPalShiftEntryListHead + 0x1004);
-        Fog::Memory::FreeClientMemory(gpPalShiftEntryListHead, ".\\GAME\\PalShift.cpp", 0x84, 0);
+        D2_FREE(gpPalShiftEntryListHead);
         gpPalShiftEntryListHead = pNextEntry;
       } while (pNextEntry);
 
       gpPalShiftEntryListHead = 0;
     }
     if (gpMonsterPalShiftList) {
-      Fog::Memory::FreeClientMemory(gpMonsterPalShiftList, ".\\GAME\\PalShift.cpp", 0x8a, 0);
+      D2_FREE(gpMonsterPalShiftList);
       gpMonsterPalShiftList = 0;
     }
     if (!PalShift_GreenBlood) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(PalShift_GreenBlood, ".\\GAME\\PalShift.cpp", 0x90, 0);
+    D2_FREE(PalShift_GreenBlood);
     PalShift_GreenBlood = 0;
 }
 
@@ -222,7 +236,7 @@ void __fastcall PALSHIFT_LoadMonsterPalShift(int32_t nMonsterId) {
       return;
     }
 
-    int* pPalShiftEntry = (int*)Fog::Memory::AllocClientMemory(0x1008, ".\\GAME\\PalShift.cpp", 0xf4, 0);
+    int* pPalShiftEntry = (int*)D2_ALLOC(0x1008);
     memset(pPalShiftEntry, 0, 0x1008);
     D2FILE_ReadFile(nullptr, pFileHandle, pPalShiftEntry + 1, 0x800);
     D2FILE_CloseFile(nullptr, pFileHandle);
@@ -250,13 +264,13 @@ void __stdcall PALSHIFT_InitPalShiftTable() {
     void* pPalShiftList;
     while (gpPalShiftEntryListHead) {
       pPalShiftList = *(void**)((int)gpPalShiftEntryListHead + 0x1004);
-      Fog::Memory::FreeClientMemory(gpPalShiftEntryListHead, ".\\GAME\\PalShift.cpp", 0x117, 0);
+      D2_FREE(gpPalShiftEntryListHead);
       gpPalShiftEntryListHead = pPalShiftList;
     }
 
     int nTxtMonStatsCount = sgptDataTable->nTxtMonStatsSize;
     if (!gpMonsterPalShiftList) {
-      gpMonsterPalShiftList = Fog::Memory::AllocClientMemory(nTxtMonStatsCount * 8, ".\\GAME\\PalShift.cpp", 0x11f, 0);
+      gpMonsterPalShiftList = D2_ALLOC(nTxtMonStatsCount * 8);
     }
 
     pPalShiftList = gpMonsterPalShiftList;

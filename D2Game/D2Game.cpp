@@ -409,7 +409,6 @@ void __fastcall SUNITDMG_StatExpireCallback_ResumeAI(D2UnitStrc * pUnit, eD2Stat
 
 // @sourcefile .\PLAYER\PlrModes.cpp
 D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nX, int32_t nY, D2UnitStrc * pRoom) {
-    eD2BodyLoc _nBodyLocIndex;
     D2RoomStrc* pSpawnRoom;
     D2UnitStrc* pUnit_00;
     D2ClientStrc* pClient;
@@ -419,8 +418,8 @@ D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc 
     BOOL BVar2;
     uint32_t dwParam;
     uint32_t uVar3;
-    int nExpQuotient;
     int iVar4;
+    int nExpQuotient;
     int64_t lExpTimes75;
     POINT* pNewPosition;
     uint8_t nMaxSearchRadius;
@@ -428,7 +427,7 @@ D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc 
     POINT sUnitCoords;
     POINT sDropCoords;
     D2UnitStrc* pSavedBodyUnit;
-    eD2BodyLoc nBodyLocIndex;
+    int32_t nBodyLocIndex;
     D2InventoryStrc* pCorpseInventory;
     D2UnitStrc* pSlotItem;
     pSlotItem = pRoom;
@@ -494,16 +493,16 @@ D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc 
           pCorpseInventory = pUnit_00->pInventory;
           if (pUnit_00->nUnitGUID != pUnit->nUnitGUID) {
             D2Common::INVENTORY::Inventory::INVENTORY_SetOwnerGUID(pCorpseInventory, pUnit->nUnitGUID);
-            _nBodyLocIndex = -1;
+            nBodyLocIndex = -1;
             do {
-              iVar4 = _nBodyLocIndex;
-              if (_nBodyLocIndex == -1) {
+              iVar5 = nBodyLocIndex;
+              if (nBodyLocIndex == -1) {
                 pSlotItem = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pPlayerInventory);
               } else {
-                pSlotItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pPlayerInventory, _nBodyLocIndex);
+                pSlotItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pPlayerInventory, nBodyLocIndex);
               }
               if (pSlotItem) {
-                if (iVar4 == -1) {
+                if (iVar5 == -1) {
                   PLAYER::PlayerModes::PLRMODES_ClearCursorAndDeleteItem(pUnit, pSlotItem);
                   pUnit = pOrigUnit;
                 } else {
@@ -512,14 +511,14 @@ D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc 
                     exit(-1);
                   }
 
-                  PLAYER::PlayerModes::PLRMODES_UnequipAndPrepareItemForDrop(pSavedGame, pUnit, pSlotItem, iVar4);
+                  PLAYER::PlayerModes::PLRMODES_UnequipAndPrepareItemForDrop(pSavedGame, pUnit, pSlotItem, iVar5);
                   pUnit_00 = pSavedBodyUnit;
                 }
 
                 pItemUnit = pSlotItem;
                 D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pSlotItem, INVPAGE_INVENTORY);
                 pItemUnit = ITEMS::Items::Drop::ITEM_CloneFromSerializedData(pSavedGame, pItemUnit, pUnit, 1);
-                if (_nBodyLocIndex == -1) {
+                if (nBodyLocIndex == -1) {
                   iVar5 = D2Common::Units::GetInventoryPage(pUnit_00, 0, pSavedGame->bExpansion);
                   pGridSlot = D2Common::INVENTORY::Inventory::INVENTORY_AutoPlaceItemInGrid(pCorpseInventory, pItemUnit, iVar5, 0, 0, ".\\PLAYER\\PlrModes.cpp", 0x349);
                   if (pGridSlot) {
@@ -539,16 +538,16 @@ D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc 
                     }
                   }
                 } else {
-                  BVar2 = D2Common::INVENTORY::Inventory::INVENTORY_GetItemAtBodyLoc(pCorpseInventory, pItemUnit, _nBodyLocIndex);
+                  BVar2 = D2Common::INVENTORY::Inventory::INVENTORY_GetItemAtBodyLoc(pCorpseInventory, pItemUnit, nBodyLocIndex);
                   if (BVar2) {
                     dwParam = 3;
-                    if (_nBodyLocIndex == 0xb || _nBodyLocIndex == 0xc) {
+                    if (nBodyLocIndex == 0xb || nBodyLocIndex == 0xc) {
                       dwParam = 4;
                     }
 
                     BVar2 = D2Common::INVENTORY::Inventory::PutItemInInventory(pCorpseInventory, pItemUnit, dwParam);
                     if (BVar2) {
-                      D2Common::ITEMS::Items::SetBodyLoc(pItemUnit, (eD2BodyLoc)_nBodyLocIndex);
+                      D2Common::ITEMS::Items::SetBodyLoc(pItemUnit, (eD2BodyLoc)nBodyLocIndex);
                       if (pItemUnit) {
                         pItemUnit->eUnitFlags &= ~UNITFLAG_TARGETABLE;
                       }
@@ -572,12 +571,12 @@ D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc 
                 pSpawnRoom = D2Common::Units::UNITS_GetRoom(pUnit);
                 pSpawnRoom = ITEMS::Items::Drop::FindBestSpotToSpawnItem(pSpawnRoom, &sUnitCoords, pNewPosition, uVar3, nMaxSearchRadius);
                 ITEMS::Items::Drop::DropItem(pSavedGame, (int32_t)pUnit, pItemUnit, pSpawnRoom, sDropCoords.x, sDropCoords.y);
-                iVar4 = _nBodyLocIndex;
+                iVar5 = nBodyLocIndex;
               }
 
               next_body_loc:
-              _nBodyLocIndex = iVar4 + 1;
-              if (0xc < _nBodyLocIndex) {
+              nBodyLocIndex = iVar5 + 1;
+              if (0xc < nBodyLocIndex) {
                 uVar3 = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
                 if (pUnit->eUnitType == UNIT_PLAYER) {
                   D2Common::Units::GetInventoryGoldLimit(pUnit);
@@ -593,8 +592,8 @@ D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc 
 
             D2Common::INVENTORY::Inventory::UpsertToUpdateList(pCorpseInventory, pItemUnit);
             D2Common::Units::RefreshInventory(pUnit_00, 1);
-            Quests::QUESTS::QUEST_OnItemPickedUp(pItemUnit);
-            iVar4 = _nBodyLocIndex;
+            Quests::QUESTS::QUEST_OnItemPickedUp(pSavedGame, pUnit_00, pItemUnit);
+            iVar5 = nBodyLocIndex;
             goto next_body_loc;
           }
 

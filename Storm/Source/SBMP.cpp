@@ -1204,75 +1204,61 @@ int SBMP_EncodeGif256File(int width, void * hFile, int palette, uint8_t * pixels
 
 // @blizzard DecodePcxFile (SBMP.CPP)
 int __fastcall SBMP_DecodePcxFile(D2PoolManagerStrc * hFile, uint8_t * pixels, int * pHeight, int palette, int nParam, uint32_t * pWidth, int * pBpp) {
-    DWORD dwCurPos;
+    bool bVar1;
     DWORD dwFileSize;
     uint8_t* src;
     uint8_t* pSrcPalEntry;
     uint8_t* pDstPalEntry;
     uint32_t nSize;
-    uint8_t byPalBuf;
-    uint8_t aGifPalette[767];
-    uint8_t aGifSig[3];
-    uint8_t byColorDepth;
-    uint16_t wLeft;
-    uint16_t wTop;
-    uint16_t wRight;
-    uint16_t wBottom;
-    uint8_t byBlockSize;
-    uint16_t wSubBlockLen;
-    uint32_t dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    int nPalette = palette;
-    int* pBppResult = pBpp;
-    uint8_t* pPixels = pixels;
-    int* bHasPalette = pHeight;
-    int iResult = SFile::SFileReadFile((D2MPQFileStrc*)hFile, aGifSig, 0x80, nullptr, 0);
+    uint8_t abPalette[768];
+    D2PcxHeaderStrc sPcxHeader;
+    int iResult = SFile::SFileReadFile((D2MPQFileStrc*)hFile, &sPcxHeader, 0x80, nullptr, 0);
     if (!iResult) {
       Fog::Debug::GuardStack();
       return 0;
     }
 
-    iResult = (uint32_t)byBlockSize * (uint32_t)byColorDepth;
-    uint32_t nWidth = (uint32_t)wRight - (uint32_t)wLeft + 1;
+    iResult = (uint32_t)sPcxHeader.byPlanes * (uint32_t)sPcxHeader.byBitsPerPixel;
+    uint32_t width = (uint32_t)sPcxHeader.wXMax - (uint32_t)sPcxHeader.wXMin + 1;
     if (pWidth) {
-      *pWidth = nWidth;
+      *pWidth = width;
     }
-    if (bHasPalette) {
-      *bHasPalette = (uint32_t)wBottom - (uint32_t)wTop + 1;
+    if (pHeight) {
+      *pHeight = (uint32_t)sPcxHeader.wYMax - (uint32_t)sPcxHeader.wYMin + 1;
     }
-    if (pBppResult) {
-      *pBppResult = iResult;
+    if (pBpp) {
+      *pBpp = iResult;
     }
-    if (!nPalette || (bHasPalette = (int*)0x1 , iResult != 8)) {
-      bHasPalette = 0;
+    if (!palette || (bVar1 = true , iResult != 8)) {
+      bVar1 = false;
     }
-
-    int nBpp = iResult;
-    if (!pPixels) {
-      if (!bHasPalette) {
+    if (!pixels) {
+      if (!bVar1) {
         Fog::Debug::GuardStack();
         return 1;
       }
 
       SFile::SFileSetFilePointer((D2MPQFileStrc*)hFile, -0x300, nullptr, 2);
     } else {
+      DWORD dwCurPos;
       dwCurPos = SFile::SFileGetFileSize((D2MPQFileStrc*)hFile, (LPDWORD)0x0);
       dwFileSize = SFile::SFileSetFilePointer((D2MPQFileStrc*)hFile, 0, nullptr, 1);
       nSize = dwCurPos - (iResult != 8 ? 0 : 0x300) - dwFileSize;
       src = (uint8_t*)SMem::SMemAlloc(nSize, ".\\SOURCE\\SBMP.CPP", 0x46b, 0);
       SFile::SFileReadFile((D2MPQFileStrc*)hFile, src, nSize, nullptr, 0);
-      SBMP_UncompressPcxImage(nParam, pPixels, nSize - (nBpp == 8), src, nWidth, (uint32_t)wSubBlockLen, (uint32_t)byBlockSize);
+      SBMP_UncompressPcxImage(nParam, pixels, nSize - (iResult == 8), src, width, (uint32_t)sPcxHeader.wBytesPerLine, (uint32_t)sPcxHeader.byPlanes);
       SMem::SMemFree(src, ".\\SOURCE\\SBMP.CPP", 0x474, 0);
     }
-    if (bHasPalette) {
-      SFile::SFileReadFile((D2MPQFileStrc*)hFile, &byPalBuf, 0x300, nullptr, 0);
-      pDstPalEntry = aGifPalette;
-      pSrcPalEntry = (uint8_t*)(nPalette + 2);
+    if (bVar1) {
+      SFile::SFileReadFile((D2MPQFileStrc*)hFile, abPalette, 0x300, nullptr, 0);
+      pDstPalEntry = abPalette + 1;
+      pSrcPalEntry = (uint8_t*)(palette + 2);
       iResult = 0x100;
       do {
         pSrcPalEntry[-2] = pDstPalEntry[-1];
         pSrcPalEntry[-1] = *pDstPalEntry;
         *pSrcPalEntry = pDstPalEntry[1];
-        pSrcPalEntry[1] = 0;
+        pSrcPalEntry[1] = '\0';
         pDstPalEntry += 3;
         pSrcPalEntry += 4;
         iResult--;

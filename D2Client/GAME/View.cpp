@@ -50,6 +50,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2GameViewStrc) == 0xeabc, "D2_NEW(D2GameViewStrc): the 32-bit layout must be the 0xeabc bytes 1.14d allocates");
+
 
 namespace D2Client::GAME::View {
 
@@ -381,7 +395,7 @@ void __stdcall VIEW_FreeLookupTables() {
 // @sourcefile .\GAME\View.cpp
 void __fastcall FreeGameView(D2GameViewStrc * pGameView) {
     Wall2::FreeWall2(pGameView);
-    Fog::Memory::FreeClientMemory(pGameView, ".\\GAME\\View.cpp", 0x141, 0);
+    D2_FREE(pGameView);
 }
 
 void __fastcall SetFlag0x1(D2GameViewStrc * pGameView) {
@@ -920,7 +934,7 @@ D2GameViewStrc * __stdcall AllocGameView() {
       exit(-1);
     } else {
       if (gpViewPalByteTable16x32) {
-        pGameView = (D2GameViewStrc*)Fog::Memory::AllocClientMemory(0xeabc, ".\\GAME\\View.cpp", 0x11d, 0);
+        pGameView = D2_NEW(D2GameViewStrc);
         /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&pGameView->pView, 0, 0, 0, 0);
         pPalByteTable16x32 = gpViewPalByteTable16x32;
         pPalByteTable32x16 = gpViewPalByteTable32x16;

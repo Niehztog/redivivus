@@ -692,6 +692,8 @@ void ERROR_UnrecoverableInternalError_Halt(char * szMessage, int32_t nAddress, i
                (unsigned)nAddress, (unsigned)(uintptr_t)__builtin_return_address(0));
     // ra as a module RVA: the absolute value is useless across runs because the image is
     // relocated, and every attempt to place a halt has started by guessing the load base.
+    // The crash report (support/d2_crash.cpp) records the halt and the halting stack.
+    D2CRASH_ReportHalt(nLine, (unsigned)nAddress);
     Safesock::WSACleanup();
     FOG_ErrorHandler(ERROR_Halt, "", nLine, "Unrecoverable internal error %08x", nAddress);
     LogManager::ExitOrCrashCleanUpJmp();

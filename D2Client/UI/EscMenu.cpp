@@ -152,24 +152,21 @@ void __fastcall UI_SLIDER_InitGamma(D2EscMenuItemStrc * pItem, D2UIMouseMsgStrc 
 }
 
 void __fastcall UI_SLIDER_ApplyContrast(D2EscMenuItemStrc * pItem, D2UIMouseMsgStrc * pMsg) {
-    int32_t dwTmpEcx;
     int nContrastPos = Chat::UI_SLIDER_GetPositionFromValue(0, pItem, 100);
-    Storm::Source::SReg::SRegSaveValue("Diablo II", "Contrast", dwTmpEcx, nContrastPos);
+    Storm::Source::SReg::SRegSaveValue("Diablo II", "Contrast", 0, nContrastPos);
     D2gfx::D2GFX::D2GFX_SetOption(0xb, pItem->nImageIndex);
     D2gfx::D2GFX::D2GFX_SetGamma(0);
 }
 
 void __fastcall UI_SLIDER_InitContrast(D2EscMenuItemStrc * pItem, D2UIMouseMsgStrc * pMsg) {
-    int32_t nUnusedEcx;
-    int nUnusedEdx;
     int32_t nContrastVal = (int32_t)pItem;
     eD2RendererMode eRendererMode_lcl = D2gfx::D2GFX::D2GFX_GetRendererMode();
     nContrastVal = eRendererMode_lcl != RENDERER_Glide ? 100 : 0;
     Storm::Source::SReg::SRegLoadValue("Diablo II", "Contrast", 0, &nContrastVal);
     int32_t nSliderValue = Chat::UI_SLIDER_GetValueFromPosition(100, 0, pItem, nContrastVal);
     pItem->nImageIndex = nSliderValue;
-    int nContrastPos = Chat::UI_SLIDER_GetPositionFromValue(0, pItem, nUnusedEdx + 100);
-    Storm::Source::SReg::SRegSaveValue("Diablo II", "Contrast", nUnusedEcx, nContrastPos);
+    int nContrastPos = Chat::UI_SLIDER_GetPositionFromValue(0, pItem, 100);
+    Storm::Source::SReg::SRegSaveValue("Diablo II", "Contrast", 0, nContrastPos);
     D2gfx::D2GFX::D2GFX_SetOption(0xb, pItem->nImageIndex);
     D2gfx::D2GFX::D2GFX_SetGamma(0);
 }

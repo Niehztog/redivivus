@@ -36,6 +36,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2SpriteCache) == 0x23000, "D2_NEW(D2SpriteCache): the 32-bit layout must be the 0x23000 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnLruFreeEntry
 #define RECON_FPTD_pfnLruFreeEntry
@@ -17243,7 +17257,7 @@ void __stdcall SPRITECACHE_LoadAndCacheDC6(D2CelFileCacheEntryStrc * pCelEntry, 
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (pGfxData && pCacheBlock && !(pCelEntry->dwCacheFlags & 1) && !pCacheBlock->tDecode.bFramesBuilt) {
       nAllocSize = (uint32_t)pCacheBlock->tDecode.nFramesPerDir * (uint32_t)pCacheBlock->tDecode.nDirCount * 0x2c;
-      pFrameSlot = Fog::Memory::AllocServerMemory(D2GfxMemoryStrc_0089db60.pMemory, nAllocSize, ".\\SRC\\SpriteCache.cpp", 0x517, 0);
+      pFrameSlot = D2_ALLOC_POOL(D2GfxMemoryStrc_0089db60.pMemory, nAllocSize);
       memset(pFrameSlot, 0, nAllocSize);
       pFrameDataBase = Fog::Src::AsyncData::ASYNCDATA_GetResult(pCacheBlock->tDecode.pAsyncData);
       if (pFrameDataBase) {
@@ -17304,7 +17318,7 @@ void __fastcall GFX_AllocSpriteCache(D2GfxMemoryStrc * pGfxMemory, D2PoolManager
     pGfxMemory->pfnReleaseEntry = pfnReleaseEntry;
     pGfxMemory->pMemory = pMemory;
     pGfxMemory->nUsedMemory = 0;
-    D2SpriteCache* pSpriteCache = (D2SpriteCache*)Fog::Memory::AllocServerMemory(pMemory, 0x23000, ".\\SRC\\SpriteCache.cpp", 0x8e1, 0);
+    D2SpriteCache* pSpriteCache = D2_NEW_POOL(pMemory, D2SpriteCache);
     pGfxMemory->pSpriteCache = pSpriteCache;
     memset(pSpriteCache, 0, 0x23000);
     int nOffset = 0x38;
@@ -17713,7 +17727,7 @@ D2SpriteCacheEntryStrc * __fastcall SPRITECACHE_EvictEntry(D2GfxMemoryStrc * pGf
           pCandidate->pOwner = 0;
         }
         if (pCandidate->pData) {
-          Fog::Memory::FreeServerMemory(pGfxMemory->pMemory, pCandidate->pData, ".\\SRC\\SpriteCache.cpp", 0x9e8, 0);
+          D2_FREE_POOL(pGfxMemory->pMemory, pCandidate->pData);
           pCandidate->pData = 0;
         }
         if (!pGfxMemory->pFreeTail) {
@@ -18042,7 +18056,7 @@ void __fastcall SPRITECACHE_ReleaseMemory(D2GfxMemoryStrc * pGfxMemory) {
     }
 
     if (pGfxMemory->pSpriteCache) {
-      Fog::Memory::FreeServerMemory(pGfxMemory->pMemory, pGfxMemory->pSpriteCache, ".\\SRC\\SpriteCache.cpp", 0x921, 0);
+      D2_FREE_POOL(pGfxMemory->pMemory, pGfxMemory->pSpriteCache);
       pGfxMemory->pSpriteCache = 0;
     }
 
@@ -18083,7 +18097,7 @@ void * * __fastcall SPRITECACHE_AllocEntry2(D2GfxMemoryStrc * pGfxMemory, void *
           ppAllocSlot[3] = (void*)((uint32_t)ppAllocSlot[3] | 1);
         }
 
-        pAllocBlock = Fog::Memory::AllocServerMemory(pGfxMemory->pMemory, (size_t)pParam, ".\\SRC\\SpriteCache.cpp", 0x96d, 0);
+        pAllocBlock = D2_ALLOC_POOL(pGfxMemory->pMemory, (size_t)pParam);
         *ppAllocSlot = pAllocBlock;
         ppAllocSlot[1] = pParam;
         ppAllocSlot[2] = pInitData;

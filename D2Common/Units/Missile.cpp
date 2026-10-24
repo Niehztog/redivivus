@@ -17,6 +17,7 @@
 #include "D2Common/D2SeedStrc.h"
 #include "D2Common/D2SkillStrc.h"
 #include "D2Common/D2SkillsTxt.h"
+#include "D2Common/D2StatInfoStrc.h"
 #include "D2Common/D2StatListExStrc.h"
 #include "D2Common/D2WaypointStrc.h"
 #include "D2Common/Drlg/D2DrlgActStrc.h"
@@ -52,6 +53,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2UnitDataMissileStrc) == 0x34, "D2_NEW(D2UnitDataMissileStrc): the 32-bit layout must be the 0x34 bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fnSkillCalcMethod
 #define RECON_FPTD_fnSkillCalcMethod
@@ -66,7 +81,7 @@ void __stdcall AllocMissileData(D2UnitStrc * pUnit) {
       return;
     }
 
-    D2UnitDataMissileStrc* pUnitDataMissile = (D2UnitDataMissileStrc*)Fog::Memory::AllocServerMemory(pUnit->pMemory, 0x34, ".\\UNITS\\Missile.cpp", 0x22, 0);
+    D2UnitDataMissileStrc* pUnitDataMissile = D2_NEW_POOL(pUnit->pMemory, D2UnitDataMissileStrc);
     memset(pUnitDataMissile, 0, 0x34);
     pUnitDataMissile->nOwnerGUID = -1;
     pUnit->pUnitData.pUnitDataMissile = pUnitDataMissile;
@@ -78,7 +93,7 @@ void __stdcall FreeMissileData(D2UnitStrc * pUnit) {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(pUnit->pMemory, pUnit->pUnitData.pUnitDataPlayer, ".\\UNITS\\Missile.cpp", 0x3e, 0);
+    D2_FREE_POOL(pUnit->pMemory, pUnit->pUnitData.pUnitDataPlayer);
     pUnit->pUnitData.pUnitDataPlayer = 0;
 }
 
@@ -127,7 +142,7 @@ void __stdcall SetSkill(D2UnitStrc * pUnit, eD2Skills eSkill) {
     pUnit->pUnitData.pUnitDataMissile->nSkillNo = (int16_t)eClampedSkill;
 }
 
-eD2Skills __stdcall GetSkillId(D2UnitStrc * pUnit) {
+eD2Skills GetSkillId(D2UnitStrc * pUnit) {
     if (!(pUnit && pUnit->eUnitType == UNIT_MISSILE && pUnit->pUnitData.pUnitDataMissile)) {
       return SKILL_Attack;
     }
@@ -603,7 +618,7 @@ int32_t CalculateMasteryBonus(D2UnitStrc * pUnit, eD2ElementalDamageTypeDWORD nE
 // Writes all damage stats from a D2MissileDamageDataStrc onto a missile unit via STATLIST_SetUnitStat. Covers physical, fire, lightning, magic, cold, poison, life/mana/stamina drain, stun, burning, demon/undead damage%, target-AC, and bypass flags. Also copies damage-vs-montype bonus layers from the caster (pUnit) to the missile if pUnit is non-null.
 void __stdcall SetDamageStats(D2UnitStrc * pUnit, D2UnitStrc * pMissile, D2MissileDamageDataStrc * pMissileDamageData, int32_t nLevel) {
     uint32_t dwMissileFlags;
-    uint16_t awBonusLayers[2];
+    D2StatStrc awBonusLayers[128];
     if (!(pMissile && pMissile->eUnitType == UNIT_MISSILE)) {
       return;
     }
@@ -669,15 +684,14 @@ void __stdcall SetDamageStats(D2UnitStrc * pUnit, D2UnitStrc * pMissile, D2Missi
       return;
     }
 
-    int32_t nBonusCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, 0xb4, (int*)awBonusLayers, 0x80);
+    int32_t nBonusCount = Stats::StatsEx::STATLIST_GetItemStatBonusValues(pUnit, 0xb4, awBonusLayers, 0x80);
     int iBonusLayer = 0;
     if (0 >= nBonusCount) {
       return;
     }
 
     do {
-      int32_t anBonusValues[255];
-      Stats::StatsEx::STATLIST_SetUnitStat(pMissile, UNITSTAT_damage_vs_montype, anBonusValues[iBonusLayer * 2], (uint32_t)awBonusLayers[iBonusLayer * 4]);
+      Stats::StatsEx::STATLIST_SetUnitStat(pMissile, UNITSTAT_damage_vs_montype, awBonusLayers[iBonusLayer].nStatValue, (uint32_t)(uint16_t)awBonusLayers[iBonusLayer].wSubIndex);
       iBonusLayer++;
     } while (iBonusLayer < nBonusCount);
 }
@@ -1119,14 +1133,13 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
     int nStatVal;
     uint32_t nMercType;
     uint32_t nMercTypeCheck;
-    D2UnitStrc* eSkillIdDefault;
     int nCalcMaxDmg;
     int nCalcMinDmg;
     eD2ElementalDamageTypeDWORD nElemType;
     uint32_t nSrcMissDmgPct;
     int32_t nElemLength;
     uint32_t nSourceDamage;
-    D2UnitStrc* nSkillId;
+    int32_t nSkillId;
     int nElemMaxDmg;
     eD2UnitStat eUnitStat;
     D2UnitStrc* pOwner = pUnit;
@@ -1144,7 +1157,9 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
     if (!pMissileTxt) {
       return;
     }
-    if (pMissileTxt->Skill < 1 && !pMissileTxt->MissileSkill) {
+
+    short int sVar1 = pMissileTxt->Skill;
+    if (sVar1 < 1 && !pMissileTxt->MissileSkill) {
       nSourceDamage = (uint32_t)(uint8_t)pMissileTxt->SrcDamage;
       nSrcMissDmgPct = (uint32_t)(uint8_t)pMissileTxt->SrcMissDmg;
       nCalcMinDmg = GetMinDamage(pMissile, pUnit, nMissileId, nParam);
@@ -1160,15 +1175,15 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
         nElemMinDmg = (D2UnitStrc*)(nElemMinDmg->unk0x19 + nMasteryElemMin - 0x19);
       }
     } else {
-      nSkillId = (D2UnitStrc*)(int)pMissileTxt->Skill;
+      nSkillId = (int)sVar1;
       if (pMissileTxt->MissileSkill) {
-        nSkillId = (D2UnitStrc*)Missile::GetSkillId(pMissile);
-        if ((int)nSkillId < 1) {
-          nSkillId = eSkillIdDefault;
+        nSkillId = Missile::GetSkillId(pMissile);
+        if (nSkillId < 1) {
+          nSkillId = (int)sVar1;
         }
       }
 
-      pSkillTxt = D2Client::GAME::SCmd::TXT_Skills_GetLine((eD2Skills)nSkillId);
+      pSkillTxt = D2Client::GAME::SCmd::TXT_Skills_GetLine(nSkillId);
       if (!pSkillTxt) {
         return;
       }
@@ -1179,12 +1194,12 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
         nSourceDamage = 0;
       }
 
-      nCalcMinDmg = Skills::SKILL_CalcMinDamage(pUnit, (int32_t)nSkillId, nParam, 0);
-      nCalcMaxDmg = Skills::SKILL_CalcMaxDamage(pUnit, (int32_t)nSkillId, nParam, 0);
+      nCalcMinDmg = Skills::SKILL_CalcMinDamage(pUnit, nSkillId, nParam, 0);
+      nCalcMaxDmg = Skills::SKILL_CalcMaxDamage(pUnit, nSkillId, nParam, 0);
       nElemType = (eD2ElementalDamageTypeDWORD)pSkillTxt->EType;
-      nElemMinDmg = (D2UnitStrc*)Skills::SERVER_MinDamage(pUnit, (int32_t)nSkillId, nParam, 1);
-      nElemMaxDmg = Skills::SERVER_MaxDamage(pUnit, (int32_t)nSkillId, nParam, 1);
-      nElemLength = Skills::SERVER_Synergy1(pUnit, (int32_t)nSkillId, nParam, 1);
+      nElemMinDmg = (D2UnitStrc*)Skills::SERVER_MinDamage(pUnit, nSkillId, nParam, 1);
+      nElemMaxDmg = Skills::SERVER_MaxDamage(pUnit, nSkillId, nParam, 1);
+      nElemLength = Skills::SERVER_Synergy1(pUnit, nSkillId, nParam, 1);
     }
 
     int nUnit = (int)nElemMinDmg;
@@ -1229,18 +1244,18 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
       int16_t nStrBonus;
       pMissileDamageData->nFlags |= 1;
       if (pOwner->eUnitType == UNIT_PLAYER) {
-        nSkillId = GetWeaponBySkill(pOwner, 1);
+        nSkillId = (int32_t)GetWeaponBySkill(pOwner, 1);
       } else if (pOwner->eUnitType == UNIT_MONSTER && pOwner->pInventory) {
-        nSkillId = GetEquippedWeapon(pOwner);
+        nSkillId = (int32_t)GetEquippedWeapon(pOwner);
       }
 
-      _bHasBonusStats = HasBonusStats(nSkillId, pOwner);
+      _bHasBonusStats = HasBonusStats((D2UnitStrc*)nSkillId, pOwner);
       if (_bHasBonusStats) {
         pMissileDamageData->nFlags |= 2;
       }
 
       nItemMinDmgBonus = 0;
-      if (!nSkillId || nSkillId->eUnitType != UNIT_ITEM) {
+      if (!nSkillId || *(int*)nSkillId != 4) {
         if (pOwner->eUnitType == UNIT_MONSTER) {
           nMercTypeCheck = Monsters::MONSTERS::MONSTER_GetMercType(pOwner);
           if (nMercTypeCheck) {
@@ -1254,26 +1269,26 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
         nParam = nStatVal << 8;
       } else {
         if (pMissileTxt->Half2HSrc) {
-          _bHasBonusStats = ITEMS::Items::IsTwoHanded(nSkillId);
+          _bHasBonusStats = ITEMS::Items::IsTwoHanded((D2UnitStrc*)nSkillId);
           if (_bHasBonusStats) {
             nSourceDamage /= 2;
           }
         }
 
-        nItemMinDmgBonus = Skills::SKILLS_GetItemBonusDamage(pOwner, nSkillId, nullptr, 1);
-        nStrBonus = ITEMS::Items::ITEM_GetItemsTxt_wStrBonus(nSkillId);
+        nItemMinDmgBonus = Skills::SKILLS_GetItemBonusDamage(pOwner, (D2UnitStrc*)nSkillId, nullptr, 1);
+        nStrBonus = ITEMS::Items::ITEM_GetItemsTxt_wStrBonus((D2UnitStrc*)nSkillId);
         if (nStrBonus) {
           nMissileId = Stats::StatsEx::STATSEX_GetCurrentStat(pOwner, UNITSTAT_strength, 0);
           nItemMinDmgBonus += nMissileId * nStrBonus / 100;
         }
 
-        nStrBonus = ITEMS::Items::ITEM_GetItemsTxt_wDexBonus(nSkillId);
+        nStrBonus = ITEMS::Items::ITEM_GetItemsTxt_wDexBonus((D2UnitStrc*)nSkillId);
         if (nStrBonus) {
           nMissileId = Stats::StatsEx::STATSEX_GetCurrentStat(pOwner, UNITSTAT_dexterity, 0);
           nItemMinDmgBonus += nMissileId * nStrBonus / 100;
         }
 
-        nMasteryElemMin = ITEMS::Items::ITEM_GetTxtItemTypes_throwable(nSkillId);
+        nMasteryElemMin = ITEMS::Items::ITEM_GetTxtItemTypes_throwable((D2UnitStrc*)nSkillId);
         if (!nMasteryElemMin) {
           if (!pOwner->pInventory || (nMissileId = INVENTORY::Inventory::INVENTORY_GetWeaponHandedness(pOwner, pOwner->pInventory) , nMissileId != 2)) {
             nMissileId = Stats::StatsEx::STATSEX_GetCurrentStat(pOwner, UNITSTAT_mindamage, 0);
@@ -1290,7 +1305,7 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
         nMissileId <<= 8;
         nStatVal = Stats::StatsEx::STATSEX_GetCurrentStat(pOwner, eUnitStat, 0);
         nParam = nStatVal << 8;
-        nMercType = ITEMS::Items::ITEMS_IsA(nSkillId, ITEMTYPE_Blunt);
+        nMercType = ITEMS::Items::ITEMS_IsA((D2UnitStrc*)nSkillId, ITEMTYPE_Blunt);
         if (nMercType) {
           pMissileDamageData->nUndeadDamagePercent += 0x32;
         }

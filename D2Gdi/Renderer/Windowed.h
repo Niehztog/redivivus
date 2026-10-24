@@ -23,11 +23,15 @@ struct DC6Block;
 
 typedef tagBITMAPINFOHEADER BITMAPINFOHEADER;
 
-typedef tagLOGPALETTE LOGPALETTE;
-
 typedef tagRGBQUAD RGBQUAD;
 
 #endif // _WIN32
+
+struct __attribute__((packed)) D2LogPalette256Strc {
+    /* 0x00 */ WORD palVersion;
+    /* 0x02 */ WORD palNumEntries;
+    /* 0x04 */ PALETTEENTRY palPalEntry[256];
+};
 
 struct __attribute__((packed)) BITMAPINFO256 {
     /* 0x00 */ BITMAPINFOHEADER bmiHeader;

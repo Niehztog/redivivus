@@ -18,6 +18,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2TileProjectStrc) == 0x110, "D2_NEW(D2TileProjectStrc): the 32-bit layout must be the 0x110 bytes 1.14d allocates");
+
 
 namespace D2CMP::SRC::TileProjects {
 
@@ -57,7 +71,7 @@ void __stdcall Free() {
       pMemoryToFree->pTileLibrary = 0;
       FindTiles::FINDTILE_FreeHashTable(pMemoryToFree->pHash);
       pMemoryToFree->pHash = 0;
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\SRC\\TileProjects.cpp", 0x2a, 0);
+      D2_FREE(pMemoryToFree);
       pMemoryToFree = pDVar1;
     }
 
@@ -107,7 +121,7 @@ D2TileLibraryHeaderStrc * __stdcall Alloc(D2TileLibraryHashStrc * * ppHash, char
     }
 
     size_t nFileSize = SpriteCache::SPRITECACHE_LoadFromFile(szFilename);
-    int* pTileBuffer = (int*)Fog::Memory::AllocClientMemory(nFileSize, ".\\SRC\\TileProjects.cpp", 0x6b, 0);
+    int* pTileBuffer = (int*)D2_ALLOC(nFileSize);
     if (!pTileBuffer) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6c);
       exit(-1);
@@ -119,7 +133,7 @@ D2TileLibraryHeaderStrc * __stdcall Alloc(D2TileLibraryHashStrc * * ppHash, char
       D2FILE_CloseFile(nullptr, pFile);
       Tilecmp::TILECMP_FixupMinimalPointers(pTileBuffer, (int**)&pTileData, szFilename);
       pNewHash = Tilecmp::TILECMP_RegisterTilesForLookup(pTileData);
-      pExistingNode = (D2TileProjectStrc*)Fog::Memory::AllocClientMemory(0x110, ".\\SRC\\TileProjects.cpp", 0x7b, 0);
+      pExistingNode = D2_NEW(D2TileProjectStrc);
       if (pExistingNode) {
         memset(pExistingNode, 0, 0x110);
         pExistingNode->pNext = gpTileProjectListHead;

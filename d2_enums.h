@@ -2524,12 +2524,14 @@ constexpr eAct ACT_II = 1;
 constexpr eAct ACT_III = 2;
 constexpr eAct ACT_IV = 3;
 constexpr eAct ACT_V = 4;
+constexpr eAct ACT_NONE = 255;
 }
 using eAct_ns::ACT_I;
 using eAct_ns::ACT_II;
 using eAct_ns::ACT_III;
 using eAct_ns::ACT_IV;
 using eAct_ns::ACT_V;
+using eAct_ns::ACT_NONE;
 
 typedef uint16_t eCollisionFlags;
 namespace eCollisionFlags_ns {

@@ -74,6 +74,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_ROOMCALLBACKFN
 #define RECON_FPTD_ROOMCALLBACKFN
@@ -594,11 +602,11 @@ void WALL2_AllocDrawList(D2GameViewStrc * pGameView) {
         goto store_grid_dims;
       }
       if (pPrevWall2) {
-        Fog::Memory::FreeClientMemory(pPrevWall2, ".\\GAME\\Wall2.cpp", 0x3a, 0);
+        D2_FREE(pPrevWall2);
       }
     }
 
-    pPrevWall2 = (D2Wall2CellStrc*)Fog::Memory::AllocClientMemory(nGridCellCount * 0x24, ".\\GAME\\Wall2.cpp", 0x3d, 0);
+    pPrevWall2 = (D2Wall2CellStrc*)D2_ALLOC(nGridCellCount * 0x24);
     pGameView->sWall2.pWall2 = pPrevWall2;
     pGameView->sWall2.nWall2CellCount = nGridCellCount;
     store_grid_dims:
@@ -618,7 +626,7 @@ void __fastcall ResetWall2Data(D2GameViewStrc * pGameView) {
 void __fastcall FreeWall2(D2GameViewStrc * pGameView) {
     D2Wall2CellStrc* pMemoryToFree = pGameView->sWall2.pWall2;
     if (pMemoryToFree) {
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\GAME\\Wall2.cpp", 0x55, 0);
+      D2_FREE(pMemoryToFree);
     }
 
     pGameView->sWall2.pWall2 = 0;

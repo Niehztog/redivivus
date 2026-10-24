@@ -69,61 +69,64 @@ void __fastcall CRASH_DumpThreadContext(DWORD dwThreadId, void * pContext, fnCra
 
 // Format stack trace for crash dump. Captures thread context if bIncludeThreadName set, iterates frames and calls callback for each formatted address line. If bIncludeStackInfo set, includes stack space usage info.
 void __fastcall CRASH_FormatStackTrace(DWORD dwThreadId, void * * aFrameAddrs, int32_t nNumFrames, fnCrashOutputLine pOutputCallback, ::Report * pReport, char bIncludeThreadName, char bIncludeStackInfo) {
+    // Frame slots -2012..-16 are ONE object: &dwStackBytesUsed is passed out and the callee reaches the rest by byte offset.
+    // Separate locals let the compiler reorder them, so the run is one struct.
+    struct __frame0_t {
+      uint32_t dwStackBytesUsed;
+      char szAddressInfo[840];
+      char szThreadName[128];
+      char szLineBuffer[1024];
+    };
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 1996, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
     int nWritten;
     int nChunkLen;
     char* pszScan;
     uint32_t nLineLen;
     void* pThreadStackBase;
     LPCVOID pThreadEsp;
-    uint32_t dwStackBytesUsed;
-    char acStack_7d8[19];
-    char bStackInfoCaptured;
-    void* pStackBase;
-    uint32_t nStackUsedHi;
-    char szThreadName[128];
-    char szLineBuffer[1024];
     if (bIncludeStackInfo != '\0') {
       char cTmp;
       if (dwCurrentThreadId == dwThreadId) {
-        _strncpy_s(szThreadName, 0x80, "Main Thread", -1);
+        _strncpy_s(__frame0.szThreadName, 0x80, "Main Thread", -1);
       } else {
-        szThreadName[0] = '\0';
+        __frame0.szThreadName[0] = '\0';
       }
 
-      cTmp = _3rdparty::crashy::SYSTEM_CaptureThreadContext((int*)&pThreadStackBase, dwThreadId, (int*)&dwStackBytesUsed, &pThreadEsp);
-      nWritten = __snprintf_s(szLineBuffer, 0x400, -1, "Thread 0x%08x", dwThreadId);
-      if (szThreadName[0] != '\0') {
-        nChunkLen = __snprintf_s(szLineBuffer + nWritten, 0x400 - nWritten, -1, " \"%s\"", szThreadName);
+      cTmp = _3rdparty::crashy::SYSTEM_CaptureThreadContext((int*)&pThreadStackBase, dwThreadId, (int*)&__frame0.dwStackBytesUsed, &pThreadEsp);
+      nWritten = __snprintf_s(__frame0.szLineBuffer, 0x400, -1, "Thread 0x%08x", dwThreadId);
+      if (__frame0.szThreadName[0] != '\0') {
+        nChunkLen = __snprintf_s(__frame0.szLineBuffer + nWritten, 0x400 - nWritten, -1, " \"%s\"", __frame0.szThreadName);
         nWritten += nChunkLen;
       }
       if (cTmp != '\0') {
-        nChunkLen = __snprintf_s(szLineBuffer + nWritten, 0x400 - nWritten, -1, " [Stack Base: 0x%p Used Space: %llu/%llu bytes]", pThreadStackBase, (int)pThreadStackBase - (int)pThreadEsp, 0, dwStackBytesUsed, 0);
+        nChunkLen = __snprintf_s(__frame0.szLineBuffer + nWritten, 0x400 - nWritten, -1, " [Stack Base: 0x%p Used Space: %llu/%llu bytes]", pThreadStackBase, (int)pThreadStackBase - (int)pThreadEsp, 0, __frame0.dwStackBytesUsed, 0);
         nWritten += nChunkLen;
       }
 
-      __snprintf_s(szLineBuffer + nWritten, 0x400 - nWritten, -1, "\n");
-      (*pOutputCallback)(pReport, szLineBuffer);
+      __snprintf_s(__frame0.szLineBuffer + nWritten, 0x400 - nWritten, -1, "\n");
+      (*pOutputCallback)(pReport, __frame0.szLineBuffer);
     }
 
     for (; nNumFrames; nNumFrames--) {
-      Engine::Application::DEBUG_FormatAddressInfo((uint32_t)*aFrameAddrs, acStack_7d8);
+      Engine::Application::DEBUG_FormatAddressInfo((uint32_t)*aFrameAddrs, __frame0.szAddressInfo);
       if (bIncludeThreadName == '\0') {
-        acStack_7d8[0] = '\0';
+        __frame0.szAddressInfo[0] = '\0';
       }
 
-      Debug::FormatAddressDebugString((uint32_t*)aFrameAddrs, acStack_7d8, szLineBuffer);
-      pszScan = szLineBuffer;
+      Debug::FormatAddressDebugString((uint32_t*)aFrameAddrs, __frame0.szAddressInfo, __frame0.szLineBuffer);
+      pszScan = __frame0.szLineBuffer;
       pszScan = pszScan + strlen(pszScan) + 1;
-      nLineLen = (int)pszScan - (int)(szLineBuffer + 1);
+      nLineLen = (int)pszScan - (int)(__frame0.szLineBuffer + 1);
       if (nLineLen < 0x3ff) {
-        szLineBuffer[nLineLen] = '\n';
-        szLineBuffer[nLineLen + 1] = '\0';
+        __frame0.szLineBuffer[nLineLen] = '\n';
+        __frame0.szLineBuffer[nLineLen + 1] = '\0';
       } else {
-        szLineBuffer[0x3fe] = '\n';
-        szLineBuffer[0x3ff] = '\0';
+        __frame0.szLineBuffer[0x3fe] = '\n';
+        __frame0.szLineBuffer[0x3ff] = '\0';
       }
 
-      (*pOutputCallback)(pReport, szLineBuffer);
+      (*pOutputCallback)(pReport, __frame0.szLineBuffer);
       aFrameAddrs += 9;
     }
 

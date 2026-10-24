@@ -38,6 +38,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2QuestDataA2Q1Strc) == 0x14, "D2_NEW(D2QuestDataA2Q1Strc): the 32-bit layout must be the 0x14 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpExecuteOnUnitFunction
 #define RECON_FPTD_fpExecuteOnUnitFunction
@@ -595,7 +605,7 @@ void __fastcall Q09_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->nSequenceQuestId = QUEST_TheSummoner;
     pQuestData->fpSequenceFilter = (QUESTSEQ)Q09_SequenceFilter;
     pQuestData->pNpcMessages = &A2Q1::aNpcGossipData;
-    D2QuestDataA2Q1Strc* pQuestSpecificData = (D2QuestDataA2Q1Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x14, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q1.cpp", 0x29e, 0);
+    D2QuestDataA2Q1Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA2Q1Strc);
     pQuestData->pQuestSpecificData.pA2Q1 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_RadamentsLair;
     pQuestData->fpStatusFilter = 0;

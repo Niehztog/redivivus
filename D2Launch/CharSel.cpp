@@ -43,6 +43,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2CharSelStrc) == 0x350, "D2_NEW(D2CharSelStrc): the 32-bit layout must be the 0x350 bytes 1.14d allocates");
+
 
 namespace D2Launch::CharSel {
 
@@ -262,7 +276,7 @@ void __stdcall CHARSEL_DestroySelectedChar() {
       D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, 1);
     }
 
-    Fog::Memory::FreeClientMemory(gpCharSelPendingEntry, ".\\Src\\CharSel.cpp", 0x2a1, 0);
+    D2_FREE(gpCharSelPendingEntry);
     gpCharSelPendingEntry = 0;
 }
 
@@ -717,7 +731,7 @@ BOOL __stdcall SAVEFILE_ParseSaveData(char * szRealmName, char * szCharacterName
     uint8_t* pbCur;
     char local_104[256];
     D2CharSelStrc* pNewCharSel;
-    pNewCharSel = (D2CharSelStrc*)Fog::Memory::AllocClientMemory(0x350, ".\\Src\\CharSel.cpp", 0x414, 0);
+    pNewCharSel = D2_NEW(D2CharSelStrc);
     pNewCharSel->ftLastWriteTimeLow = ftLastWriteTime.dwLowDateTime;
     pNewCharSel->ftLastWriteTimeHigh = ftLastWriteTime.dwHighDateTime;
     pNewCharSel->dwRealmParam = dwRealmParam;
@@ -915,7 +929,7 @@ void __stdcall CHARSEL_DestroyAllCharEntries() {
       D2CharSelStrc* pDVar1;
       pDVar1 = pMemoryToFree->pNext;
       D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)pMemoryToFree->pCharSelCompStrc, 1);
-      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\CharSel.cpp", 0x518, 0);
+      D2_FREE(pMemoryToFree);
       pMemoryToFree = pDVar1;
     }
 
@@ -930,7 +944,7 @@ void __stdcall CHARSEL_DestroyAllCharEntries() {
       D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, 1);
     }
 
-    Fog::Memory::FreeClientMemory(gpCharSelPendingEntry, ".\\Src\\CharSel.cpp", 0x2a1, 0);
+    D2_FREE(gpCharSelPendingEntry);
     gpCharSelPendingEntry = 0;
 }
 
@@ -1378,11 +1392,11 @@ BOOL __stdcall CHARSEL_UpdateSelectedCharDisplay() {
         D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, 1);
       }
 
-      Fog::Memory::FreeClientMemory(gpCharSelPendingEntry, ".\\Src\\CharSel.cpp", 0x5de, 0);
+      D2_FREE(gpCharSelPendingEntry);
       gpCharSelPendingEntry = 0;
     }
 
-    gpCharSelPendingEntry = (D2CharSelStrc*)Fog::Memory::AllocClientMemory(0x350, ".\\Src\\CharSel.cpp", 0x5e2, 0);
+    gpCharSelPendingEntry = D2_NEW(D2CharSelStrc);
     Storm::Source::SSystem::SMemCopy(gpCharSelPendingEntry, pSelectedChar, 0x350);
     D2CharSelStrc* pCharSelCopy = gpCharSelPendingEntry;
     gpCharSelPendingEntry->pNext = 0;
@@ -2042,7 +2056,7 @@ BOOL __stdcall CHARSEL_InitRealmSelection() {
 // @sourcefile .\Src\CharSel.cpp
 void __stdcall CHARSEL_CreateCharEntry(uint16_t * wszCharName, uint16_t * wszCommandString, int32_t nEntryType, bool ePlayerClass) {
     int nAnimMode;
-    D2CharSelStrc* pCharSel = (D2CharSelStrc*)Fog::Memory::AllocClientMemory(0x350, ".\\Src\\CharSel.cpp", 0xbaf, 0);
+    D2CharSelStrc* pCharSel = D2_NEW(D2CharSelStrc);
     D2Lang::WideCharToUTF8(pCharSel->szCharname, wszCharName, 0x100);
     D2Lang::Unicode::UNISYS::STRING_CopyWideString((uint16_t*)pCharSel->szCommandStringTable, wszCommandString);
     memset(pCharSel->abEquipSlot1, 0, 16 * sizeof(pCharSel->abEquipSlot1[0]));
@@ -2121,7 +2135,7 @@ void __stdcall CHARSEL_ClearCharDetailUI() {
         D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, 1);
       }
 
-      Fog::Memory::FreeClientMemory(gpCharSelPendingEntry, ".\\Src\\CharSel.cpp", 0x2a1, 0);
+      D2_FREE(gpCharSelPendingEntry);
       gpCharSelPendingEntry = 0;
     }
 

@@ -17,6 +17,16 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2WinScrollbar) == 0x60, "D2_NEW(D2WinScrollbar): the 32-bit layout must be the 0x60 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_fpD2WinScrollbarOnChange
 #define RECON_FPTD_fpD2WinScrollbarOnChange
@@ -354,7 +364,7 @@ BOOL __fastcall Draw(::D2WinScrollbar * pScrollbar) {
 }
 
 ::D2WinScrollbar * __fastcall D2WinScrollbar(int32_t nPosX, int32_t nPosY, int32_t nSizeX, int32_t nSizeY, DC6 * pDC6, OnPress pfnOnPress) {
-    ::D2WinScrollbar* pNewScrollbar = (::D2WinScrollbar*)Fog::Memory::AllocClientMemory(0x60, ".\\Src\\D2WinScrollbar.cpp", 0x1c, 0);
+    ::D2WinScrollbar* pNewScrollbar = D2_NEW(::D2WinScrollbar);
     memset(pNewScrollbar, 0, 0x60);
     pNewScrollbar->sControl.neD2FormType = FORM_Scrollbar;
     int* pStateField = &pNewScrollbar->sControl.dwState;

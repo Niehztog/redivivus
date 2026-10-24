@@ -8,6 +8,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_pfnLruFreeEntry
 #define RECON_FPTD_pfnLruFreeEntry
@@ -28,7 +36,7 @@ void __fastcall LRUCACHE_Init(D2LRUCacheStrc * pCache, D2PoolManagerStrc * pMemo
     pCache->nMaxCount = nMaxCount;
     pCache->pAllocator = pMemory;
     pCache->nBytesUsed = 0;
-    D2LRUCacheNodeStrc* pEntryArray = (D2LRUCacheNodeStrc*)Fog::Memory::AllocServerMemory(pMemory, nMaxCount * 0x14, ".\\SRC\\LRUCache.cpp", 0x30, 0);
+    D2LRUCacheNodeStrc* pEntryArray = (D2LRUCacheNodeStrc*)D2_ALLOC_POOL(pMemory, nMaxCount * 0x14);
     pCache->pNodeBuffer = pEntryArray;
     memset(pEntryArray, 0, nMaxCount * 0x14);
     uint32_t nEntryIdx = 0;
@@ -202,7 +210,7 @@ void __fastcall LRUCACHE_FreeEntry(D2LRUCacheStrc * pCache, D2LRUCacheNodeStrc *
         pCache->pfnFreeEntry(pNode);
       }
       if (pNode->pBuf) {
-        Fog::Memory::FreeServerMemory((D2PoolManagerStrc*)pCache->pAllocator, pNode->pBuf, ".\\SRC\\LRUCache.cpp", 200, 0);
+        D2_FREE_POOL((D2PoolManagerStrc*)pCache->pAllocator, pNode->pBuf);
         pNode->pBuf = 0;
         pNode->nBufSize = 0;
         pNode->pUserData = 0;
@@ -258,7 +266,7 @@ void __fastcall LRUCACHE_FreeAll(D2LRUCacheStrc * pCache) {
       return;
     }
 
-    Fog::Memory::FreeServerMemory((D2PoolManagerStrc*)pCache->pAllocator, pCache->pNodeBuffer, ".\\SRC\\LRUCache.cpp", 99, 0);
+    D2_FREE_POOL((D2PoolManagerStrc*)pCache->pAllocator, pCache->pNodeBuffer);
     pCache->pNodeBuffer = 0;
 }
 
@@ -275,7 +283,7 @@ D2LRUCacheNodeStrc * __fastcall LRUCACHE_GetOrAlloc(D2LRUCacheStrc * pCache, uin
         ppAllocEntry = LRUCACHE_AllocEntry(pCache, nEntrySize);
       }
 
-      pAllocBuf = Fog::Memory::AllocServerMemory((D2PoolManagerStrc*)pCache->pAllocator, nEntrySize, ".\\SRC\\LRUCache.cpp", 0x84, 0);
+      pAllocBuf = D2_ALLOC_POOL((D2PoolManagerStrc*)pCache->pAllocator, nEntrySize);
       ppAllocEntry->pBuf = pAllocBuf;
       if (pAllocBuf) {
         ppAllocEntry->nBufSize = nEntrySize;

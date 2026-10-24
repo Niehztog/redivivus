@@ -48,6 +48,30 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW_POOL
+#define D2_NEW_POOL(pPool, T) ((T*)D2_ALLOC_POOL((pPool), sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2RoomExStrc) == 0xec, "D2_NEW(D2RoomExStrc): the 32-bit layout must be the 0xec bytes 1.14d allocates");
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgOrthStrc) == 0x18, "D2_NEW(D2DrlgOrthStrc): the 32-bit layout must be the 0x18 bytes 1.14d allocates");
+
+#ifndef D2_REALLOC_POOL
+#define D2_REALLOC_POOL(pPool, p, size) Fog::Memory::ReAllocServerMemory((pPool), (p), (size), __FILE__, __LINE__, 0)
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgRoomExRoomTileNodeStrc) == 0x18, "D2_NEW(D2DrlgRoomExRoomTileNodeStrc): the 32-bit layout must be the 0x18 bytes 1.14d allocates");
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2PresetUnitStrc) == 0x20, "D2_NEW(D2PresetUnitStrc): the 32-bit layout must be the 0x20 bytes 1.14d allocates");
+
 
 namespace D2Common::Drlg::DrlgRoom {
 
@@ -610,7 +634,7 @@ D2RoomStrc * __fastcall DRLGSPAWN_FindSpawnLocationInLevel(D2DrlgStrc * pDrlg, e
 // Allocates and initializes a new D2RoomExStrc for the given level with the specified preset type.
 // @sourcefile .\DRLG\DrlgRoom.cpp
 D2RoomExStrc * __fastcall DRLGROOMEX_AllocRoomEx(D2DrlgLevelStrc * pLevel, int nPresetType) {
-    D2RoomExStrc* pRoomEx = (D2RoomExStrc*)Fog::Memory::AllocServerMemory(pLevel->pDrlg->pMemoryPool, 0xec, ".\\DRLG\\DrlgRoom.cpp", 0x20, 0);
+    D2RoomExStrc* pRoomEx = D2_NEW_POOL(pLevel->pDrlg->pMemoryPool, D2RoomExStrc);
     memset(pRoomEx, 0, 0xec);
     pRoomEx->nPresetType = nPresetType;
     pRoomEx->pLevel = pLevel;
@@ -653,7 +677,7 @@ void __fastcall DRLGROOMEX_FreeDrlgRoomTile(D2PoolManagerStrc * pMemory, D2RoomE
     while (pTileGrid) {
       D2DrlgRoomExRoomTileNodeStrc* pNextTileGrid;
       pNextTileGrid = pTileGrid->pRoomTileNext;
-      Fog::Memory::FreeServerMemory(pMemory, pTileGrid, ".\\DRLG\\DrlgRoom.cpp", 0x58, 0);
+      D2_FREE_POOL(pMemory, pTileGrid);
       pTileGrid = pNextTileGrid;
     }
 
@@ -665,7 +689,7 @@ void __fastcall FreeRoomData(D2PoolManagerStrc * pMemory, D2DrlgOrthStrc * pDrlg
     while (pDrlgRoomData) {
       D2DrlgOrthStrc* pNextRoomData;
       pNextRoomData = pDrlgRoomData->pNext;
-      Fog::Memory::FreeServerMemory(pMemory, pDrlgRoomData, ".\\DRLG\\DrlgRoom.cpp", 0xbd, 0);
+      D2_FREE_POOL(pMemory, pDrlgRoomData);
       pDrlgRoomData = pNextRoomData;
     }
 }
@@ -677,7 +701,7 @@ void __fastcall DRLGROOMEX_AllocNodesFromRoomExToRoomEx(D2RoomExStrc * pRoomEx, 
     D2DrlgOrthStrc* pOrthIter = pRoomEx->pOrth;
     while (true) {
       if (!pOrthIter) {
-        pNewOrth = (D2DrlgOrthStrc*)Fog::Memory::AllocServerMemory(pRoomEx->pLevel->pDrlg->pMemoryPool, 0x18, ".\\DRLG\\DrlgRoom.cpp", 0xd4, 0);
+        pNewOrth = D2_NEW_POOL(pRoomEx->pLevel->pDrlg->pMemoryPool, D2DrlgOrthStrc);
         pNewOrth->pLink.pRoomEx = 0;
         pNewOrth->neDrlgDirection = DIRECTION_SOUTHEAST;
         pNewOrth->bIsDrlgTypePresetArea = 0;
@@ -736,7 +760,7 @@ void __fastcall DRLGROOMEX_FindReplaceAndFreeSub00VsTargetRoomEx(D2PoolManagerSt
       pOrthPrev->pNext = pOrthCurrent->pNext;
     }
 
-    Fog::Memory::FreeServerMemory(pMemory, pOrthCurrent, ".\\DRLG\\DrlgRoom.cpp", 0x115, 0);
+    D2_FREE_POOL(pMemory, pOrthCurrent);
 }
 
 void __fastcall DRLGROOMEX_FindReplaceAndFreeSub00ForBothRoomEx(D2PoolManagerStrc * pMemory, D2RoomExStrc * pRoomEx, D2RoomExStrc * pDrlgRoomExB) {
@@ -817,7 +841,7 @@ void __stdcall DRLGROOMEX_ReplaceSub00(D2RoomExStrc * pRoomEx, D2DrlgOrthStrc * 
 // Allocates a D2DrlgOrthStrc (nType=0, level link) connecting pRoomEx to another level. The orth node stores pLevel pointer, direction, and a pointer to the level's sCoordinatesAndSize. Inserts into pRoomEx->pOrth sorted linked list via DRLGROOMEX_ReplaceSub00.
 // @sourcefile .\DRLG\DrlgRoom.cpp
 void __fastcall AllocDrlgOrth(D2RoomExStrc * pRoomEx, D2DrlgLevelStrc * pLevel, eDrlgDirection neDrlgDirection, BOOL bIsDrlgTypePresetArea) {
-    D2DrlgOrthStrc* pOrth = (D2DrlgOrthStrc*)Fog::Memory::AllocServerMemory(pLevel->pDrlg->pMemoryPool, 0x18, ".\\DRLG\\DrlgRoom.cpp", 0x15f, 0);
+    D2DrlgOrthStrc* pOrth = D2_NEW_POOL(pLevel->pDrlg->pMemoryPool, D2DrlgOrthStrc);
     pOrth->pNext = 0;
     pOrth->pLink.pLevel = pLevel;
     pOrth->neDrlgDirection = neDrlgDirection;
@@ -1135,7 +1159,7 @@ void __stdcall DefineRoomsNear(D2PoolManagerStrc * pMemory, D2RoomExStrc * pRoom
 
     nGapX = pRoomEx->nDrlgRoomsExNearCount;
     ReorderNearRoomList(nGapX, apNearRoomExList);
-    D2RoomExStrc** ppNearRooms = (D2RoomExStrc**)Fog::Memory::AllocServerMemory(pMemory, nGapX * 4, ".\\DRLG\\DrlgRoom.cpp", 0x2cb, 0);
+    D2RoomExStrc** ppNearRooms = (D2RoomExStrc**)D2_ALLOC_POOL(pMemory, nGapX * 4);
     pRoomEx->ppDrlgRoomsExNear = ppNearRooms;
     nGapX = 0;
     if (0 >= pRoomEx->nDrlgRoomsExNearCount) {
@@ -1212,7 +1236,7 @@ void DRLGROOM_FlagRoomExBorderingTown(D2RoomExStrc * pRoomEx) {
 // @sourcefile .\DRLG\DrlgRoom.cpp
 void __stdcall DRLGROOMEX_ResizeArrayAndAddNewNearRoom(D2RoomExStrc * pDrlgRoomEx, D2PoolManagerStrc * pMemory, D2RoomExStrc * pRoomExStrc, D2RoomExStrc * pRoom) {
     pDrlgRoomEx->nDrlgRoomsExNearCount++;
-    D2RoomExStrc** ppNewNearRooms = (D2RoomExStrc**)Fog::Memory::ReAllocServerMemory(pMemory, pDrlgRoomEx->ppDrlgRoomsExNear, pDrlgRoomEx->nDrlgRoomsExNearCount * 4, ".\\DRLG\\DrlgRoom.cpp", 0x314, 0);
+    D2RoomExStrc** ppNewNearRooms = (D2RoomExStrc**)D2_REALLOC_POOL(pMemory, pDrlgRoomEx->ppDrlgRoomsExNear, pDrlgRoomEx->nDrlgRoomsExNearCount * 4);
     pDrlgRoomEx->ppDrlgRoomsExNear = ppNewNearRooms;
     if (!ppNewNearRooms) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x315);
@@ -1226,7 +1250,7 @@ void __stdcall DRLGROOMEX_ResizeArrayAndAddNewNearRoom(D2RoomExStrc * pDrlgRoomE
 // Allocates a tile-grid link for pSrcRoomEx that points to pLinkedRoomEx. Stores warp id for visSlot via DRLGLEVEL_GetWarpsIdIfExistsAndSetup, then prepends the new tile grid entry.
 // @sourcefile .\DRLG\DrlgRoom.cpp
 void __stdcall DRLGROOMEX_AllocRoomTile(D2RoomExStrc * pLinkedRoomEx, uint8_t visSlot, D2RoomExStrc * pSrcRoomEx) {
-    D2DrlgRoomExRoomTileNodeStrc* pTileGrid = (D2DrlgRoomExRoomTileNodeStrc*)Fog::Memory::AllocServerMemory(pSrcRoomEx->pLevel->pDrlg->pMemoryPool, 0x18, ".\\DRLG\\DrlgRoom.cpp", 0x322, 0);
+    D2DrlgRoomExRoomTileNodeStrc* pTileGrid = D2_NEW_POOL(pSrcRoomEx->pLevel->pDrlg->pMemoryPool, D2DrlgRoomExRoomTileNodeStrc);
     pTileGrid->pRoomTileNext = 0;
     pTileGrid->bEnabled = 0;
     pTileGrid->pTileListSetOnSelect = 0;
@@ -1287,7 +1311,7 @@ BOOL __stdcall DRLGROOMEX_LinkNearRoomByDirection(uint8_t dstVisSlot, D2RoomExSt
 // Allocates a D2PresetUnitStrc, initializes fields, and optionally links it into pRoomEx->pPresetUnit list.
 // @sourcefile .\DRLG\DrlgRoom.cpp
 D2PresetUnitStrc * __fastcall AllocPresetUnit(D2RoomExStrc * pRoomEx, D2PoolManagerStrc * pMemory, eD2UnitType eUnitType, int32_t nMonStatsId, BOOL bUseMonStatsMaybe, int32_t nPosX, int32_t nPosY) {
-    D2PresetUnitStrc* pPresetUnit = (D2PresetUnitStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x20, ".\\DRLG\\DrlgRoom.cpp", 0x3b6, 0);
+    D2PresetUnitStrc* pPresetUnit = D2_NEW_POOL(pMemory, D2PresetUnitStrc);
     pPresetUnit->pPresetUnitNext = 0;
     pPresetUnit->pMapAI = 0;
     pPresetUnit->nFlags = 0;
@@ -1383,7 +1407,7 @@ void __fastcall DRLGROOMEX_FreeDrlgRoomEx(D2RoomExStrc * pRoomEx) {
     D2PoolManagerStrc* pMemory = pRoomEx->pLevel->pDrlg->pMemoryPool;
     DRLGROOMEX_FreeDrlgRoomTile(pMemory, pRoomEx);
     /* pRoomExNear */ if (pRoomEx->ppDrlgRoomsExNear) {
-      Fog::Memory::FreeServerMemory(pMemory, pRoomEx->ppDrlgRoomsExNear, ".\\DRLG\\DrlgRoom.cpp", 0x69, 0);
+      D2_FREE_POOL(pMemory, pRoomEx->ppDrlgRoomsExNear);
       pRoomEx->nDrlgRoomsExNearCount = 0;
       pRoomEx->ppDrlgRoomsExNear = 0;
     }
@@ -1439,7 +1463,7 @@ void __fastcall DRLGROOMEX_FreeDrlgRoomEx(D2RoomExStrc * pRoomEx) {
 
     RoomTile::DRLGROOMTILE_FreeRoomTilesAll(pRoomEx);
     DrlgLogic::FreeDrlgCoordList(pRoomEx);
-    Fog::Memory::FreeServerMemory(pMemory, pRoomEx, ".\\DRLG\\DrlgRoom.cpp", 0xae, 0);
+    D2_FREE_POOL(pMemory, pRoomEx);
 }
 
 } // namespace D2Common::Drlg::DrlgRoom

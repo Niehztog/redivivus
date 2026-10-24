@@ -620,7 +620,8 @@ BOOL __fastcall Skills_SrvDoFunc_130_SpawnSubMissiles(::SGAMEDATA * pGame, D2Uni
     return 1;
 }
 
-void __stdcall SKILLEMONST_ApplyAuraBuff(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nParam) {
+void __stdcall SKILLEMONST_ApplyAuraBuff(D2UnitStrc * pUnit, D2UnitStrc * pTarget, eD2Skills eSkill, int32_t nSkillLvl) {
+    D2StateExArgStrc sStateExArg;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return;
     }
@@ -630,14 +631,24 @@ void __stdcall SKILLEMONST_ApplyAuraBuff(D2UnitStrc * pUnit, eD2Skills eSkill, i
       return;
     }
 
-    D2UnitStrc* pUnitArg = pUnit;
-    D2Common::Skills::D2GetSkillCalc(pUnit, pSkillRecord->auralencalc, eSkill, nParam);
-    D2StatListExStrc* pStatList = SkillsServer::SetStateWithExpiryTime((D2StateExArgStrc*)&pUnitArg);
+    sStateExArg.nDurationInFrames = 0;
+    sStateExArg.eStat = UNITSTAT_strength;
+    sStateExArg.nSkillCalc = 0;
+    sStateExArg.eAuraState = STATE_none;
+    sStateExArg.pFunction = 0;
+    sStateExArg.pUnit = pUnit;
+    sStateExArg.pTarget = pTarget;
+    sStateExArg.eSkill = eSkill;
+    sStateExArg.nSkillLvl = nSkillLvl;
+    sStateExArg.nDurationInFrames = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillRecord->auralencalc, eSkill, nSkillLvl);
+    sStateExArg.eStat = ~UNITSTAT_strength;
+    sStateExArg.eAuraState = (eD2States)pSkillRecord->auratargetstate;
+    D2StatListExStrc* pStatList = SkillsServer::SetStateWithExpiryTime(&sStateExArg);
     if (!pStatList) {
       return;
     }
 
-    SkillDruid::D2SetAurastatsFromSkills(pUnit, pStatList, pSkillRecord, eSkill, nParam);
+    SkillDruid::D2SetAurastatsFromSkills(pUnit, pStatList, pSkillRecord, eSkill, nSkillLvl);
 }
 
 // Transforms a target monster into a new class derived from the skill's summon monster class (difficulty-scaled). Calls MONSTER_TransformMonsterClass, reattaches AI, fires lifecycle transition, applies STATE_changeclass, attaches a stat list (UNITSTAT_shortparam1 = new class id), and initialises sumumod umod slots on the target.
@@ -735,7 +746,7 @@ BOOL __fastcall Skills_SrvDoFunc_131_ConditionalTransformOrBuff(::SGAMEDATA * pG
       }
     }
 
-    SKILLEMONST_ApplyAuraBuff(pUnit, eSkill, nSkillLvl);
+    SKILLEMONST_ApplyAuraBuff(pUnit, pUnit_00, eSkill, nSkillLvl);
     return 1;
 }
 

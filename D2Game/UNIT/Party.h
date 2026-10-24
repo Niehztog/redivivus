@@ -36,7 +36,7 @@ void __fastcall ChangeGoldForPlayer(struct D2UnitStrc * pUnit, eD2UnitStat eUnit
 void __fastcall AllocPartyControl(::SGAMEDATA * pGame);
 // @sourcefile .\UNIT\Party.cpp
 void __fastcall FreePartyControl(::SGAMEDATA * pGame);
-void PARTY_UpdateNextPartyId(::SGAMEDATA * pGame);
+uint16_t PARTY_UpdateNextPartyId(::SGAMEDATA * pGame);
 // @sourcefile .\UNIT\Party.cpp
 int16_t __fastcall AllocPartyControlSub0x4(::SGAMEDATA * pGame);
 // @sourcefile .\UNIT\Party.cpp

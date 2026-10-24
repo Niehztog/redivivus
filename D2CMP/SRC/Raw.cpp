@@ -7,6 +7,10 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2CMP::SRC::Raw {
 
@@ -21,7 +25,7 @@ uint32_t __fastcall RAW_CreateCelFrames(int32_t pRawFile, int32_t pCelFile) {
     for (nDirCount = (int)pDirNode < 1 ? 0 : pDirNode; 0 < (int)nDirCount; nDirCount = *(uint32_t*)(nDirCount + 4)) {
       uint32_t* pNewFrame;
       nFrameDataSize = *(int*)(nDirCount + 0xc) * *(int*)(nDirCount + 0x10) * 3;
-      pNewFrame = (uint32_t*)Fog::Memory::AllocClientMemory(nFrameDataSize + 0x23, ".\\SRC\\Raw.cpp", 0x22, 0);
+      pNewFrame = (uint32_t*)D2_ALLOC(nFrameDataSize + 0x23);
       *pNewFrame = *(uint32_t*)(nDirCount + 8);
       pNewFrame[1] = *(uint32_t*)(nDirCount + 0xc);
       pNewFrame[2] = *(uint32_t*)(nDirCount + 0x10);

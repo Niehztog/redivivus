@@ -10,6 +10,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Glide::glFloorCache {
 
@@ -22,7 +30,7 @@ int __fastcall GLFLOOR_Initialize(GlFloorCacheStrc * pCache, int nVramStart, int
     pCache->dwEntrySize = dwFloorSize;
     size_t nAllocSize = nEntryCount * 0x14;
     pCache->nMaxEntries = nEntryCount;
-    GlFloorCacheNodeStrc* pNodes = (GlFloorCacheNodeStrc*)Fog::Memory::AllocClientMemory(nAllocSize, ".\\Src\\glFloorCache.cpp", 0x29, 0);
+    GlFloorCacheNodeStrc* pNodes = (GlFloorCacheNodeStrc*)D2_ALLOC(nAllocSize);
     pCache->pNodes = pNodes;
     if (!pNodes) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2a);
@@ -294,7 +302,7 @@ void __fastcall GLFLOOR_Destroy(uint32_t * pCacheData, GlFloorCacheStrc * pCache
       }
     }
     if ((void*)pCacheData[7]) {
-      Fog::Memory::FreeClientMemory((void*)pCacheData[7], ".\\Src\\glFloorCache.cpp", 0x74, 0);
+      D2_FREE((void*)pCacheData[7]);
       pCacheData[7] = 0;
     }
 

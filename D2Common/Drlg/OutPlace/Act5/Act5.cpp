@@ -86,7 +86,7 @@ void DRLGOUTROOM_PlaceAct5SpecialPresets(D2DrlgLevelStrc * pLevel) {
       }
 
       pTableEntry += 5;
-    } while ((int)pTableEntry < (uintptr_t)((char*)&gaAct5SpecialPresetTable_0 + sizeof(gaAct5SpecialPresetTable_0) + 16));
+    } while ((int)pTableEntry < (int)((char*)gaAct5SpecialPresetTable_0 + 76));
 }
 
 // Scans grid edges for 0x400 flag and spawns border connector presets (0x38B-0x38E).
@@ -247,9 +247,6 @@ void __stdcall DRLGOUTROOM_PlaceAct5RoadPath(D2DrlgLevelStrc * pLevel) {
 
 // Walks grid perimeter spawning cliff/wall border presets. Adds corner caps.
 void __stdcall DRLGOUTROOM_PlaceAct5OuterWalls(D2DrlgLevelStrc * pLevel) {
-    // Static local variables (originally global data)
-    static int gnAct5OuterWallGridOffsetByType[4] = { -0x1, 0x0, 0x0, -0x1 };
-
     int nPresetOffset;
     int nYCurrent;
     D2DrlgLevelDataWildernessLevel* pWildData = pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData;
@@ -299,12 +296,12 @@ void __stdcall DRLGOUTROOM_PlaceAct5SceneryPresets(D2DrlgLevelStrc * pLevel) {
     int32_t nPresetId;
     int nHeight;
     nHeight = pLevel->sCoordinatesAndSize.WorldSize.y;
-    int32_t* pTableEntry;
-    pTableEntry = (int32_t*)&gnAct5SceneryPresetOffsetByOrientation;
+    int* pTableEntry;
+    pTableEntry = gaAct5SceneryPresetTable_0[0] + 1;
     do {
       int nWidth;
       nWidth = pLevel->sCoordinatesAndSize.WorldSize.x;
-      if (pLevel->eD2LevelId == pTableEntry[-1]) {
+      if (pLevel->eD2LevelId == (*(int (*)[7])(pTableEntry - 1))[0]) {
         if (nWidth < nHeight) {
           nPresetId = *pTableEntry;
         } else {
@@ -331,7 +328,7 @@ void __stdcall DRLGOUTROOM_PlaceAct5SceneryPresets(D2DrlgLevelStrc * pLevel) {
 
       next_entry:
       pTableEntry += 7;
-      if ((uintptr_t)((char*)&Outdoors::aAct4OutdoorSceneryBaseByLevel + 3) < (int)pTableEntry) {
+      if ((uintptr_t)((char*)&gaAct5SceneryPresetTable_0 + sizeof(gaAct5SceneryPresetTable_0) + 3) < (int)pTableEntry) {
         return;
       }
     } while (true);

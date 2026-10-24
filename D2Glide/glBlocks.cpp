@@ -20,6 +20,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 #ifndef RECON_FPTD_fnBinkFrameCallback
 #define RECON_FPTD_fnBinkFrameCallback
@@ -30,8 +38,8 @@ namespace D2Glide::glBlocks {
 
 // @sourcefile .\Src\glBlocks.cpp
 void __stdcall GLBLOCKS_AllocBlockBuffers() {
-    gpGlBlocksWallBuffer = Fog::Memory::AllocClientMemory(0x400, ".\\Src\\glBlocks.cpp", 0x33, 0);
-    gpGlBlocksFloorBuffer = Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glBlocks.cpp", 0x34, 0);
+    gpGlBlocksWallBuffer = D2_ALLOC(0x400);
+    gpGlBlocksFloorBuffer = D2_ALLOC(0x8000);
     g_GrTexInfoGlBlocks.data = gpGlBlocksWallBuffer;
     gTexInfoGlideSurfaceBlocks.data = gpGlBlocksFloorBuffer;
 }
@@ -39,14 +47,14 @@ void __stdcall GLBLOCKS_AllocBlockBuffers() {
 // @sourcefile .\Src\glBlocks.cpp
 void __stdcall GLBLOCKS_FreeBlockBuffers() {
     if (gpGlBlocksWallBuffer) {
-      Fog::Memory::FreeClientMemory(gpGlBlocksWallBuffer, ".\\Src\\glBlocks.cpp", 0x3f, 0);
+      D2_FREE(gpGlBlocksWallBuffer);
       gpGlBlocksWallBuffer = 0;
     }
     if (!gpGlBlocksFloorBuffer) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(gpGlBlocksFloorBuffer, ".\\Src\\glBlocks.cpp", 0x45, 0);
+    D2_FREE(gpGlBlocksFloorBuffer);
     gpGlBlocksFloorBuffer = 0;
 }
 

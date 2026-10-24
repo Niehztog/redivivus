@@ -39,6 +39,20 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2RendererCoreStrc) == 0x18, "D2_NEW(D2RendererCoreStrc): the 32-bit layout must be the 0x18 bytes 1.14d allocates");
+
 
 #ifndef RECON_FPTD_pfnEHHandlerRoutine
 #define RECON_FPTD_pfnEHHandlerRoutine
@@ -2101,7 +2115,7 @@ void Release() {
     }
     if (RENDERER_SelectedRendererCore) {
       /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&RENDERER_SelectedRendererCore->sLock);
-      Fog::Memory::FreeClientMemory(RENDERER_SelectedRendererCore, ".\\Src\\d3dCore.cpp", 0x71d, 0);
+      D2_FREE(RENDERER_SelectedRendererCore);
       RENDERER_SelectedRendererCore = 0;
     }
 
@@ -2322,7 +2336,7 @@ BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc
     RENDERER_D3D_InitPerspectiveTransformTable();
     RENDERER_D3D_InitPerspectiveVertexBuffer();
     RENDERER_D3D_InitSmackerVertexBuffer();
-    RENDERER_SelectedRendererCore = (D2RendererCoreStrc*)Fog::Memory::AllocClientMemory(0x18, ".\\Src\\d3dCore.cpp", 0x6ea, 0);
+    RENDERER_SelectedRendererCore = D2_NEW(D2RendererCoreStrc);
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ InitializeCriticalSection(&RENDERER_SelectedRendererCore->sLock);
     return 1;
 }
@@ -2334,11 +2348,11 @@ void __stdcall RENDERER_D3D_ReleaseTexturePools() {
       g_pD3DSpriteQuadVB = 0;
     }
     if (gpD3DTextureSpritePoolMemory0) {
-      Fog::Memory::FreeClientMemory(gpD3DTextureSpritePoolMemory0, ".\\Src\\d3dSprite.cpp", 0x88, 0);
+      D2_FREE(gpD3DTextureSpritePoolMemory0);
       gpD3DTextureSpritePoolMemory0 = 0;
     }
     if (gpD3DTextureSpritePoolMemory1) {
-      Fog::Memory::FreeClientMemory(gpD3DTextureSpritePoolMemory1, ".\\Src\\d3dSprite.cpp", 0x8e, 0);
+      D2_FREE(gpD3DTextureSpritePoolMemory1);
       gpD3DTextureSpritePoolMemory1 = 0;
     }
 
@@ -3174,8 +3188,8 @@ void __stdcall RENDERER_D3D_InitializeTexturePools() {
     if (!gpD3DTextureSpritePoolMemory0) {
       DWORD dwParam;
       if (!gpD3DTextureSpritePoolMemory1) {
-        gpD3DTextureSpritePoolMemory0 = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\d3dSprite.cpp", 0x57, 0);
-        gpD3DTextureSpritePoolMemory1 = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\d3dSprite.cpp", 0x58, 0);
+        gpD3DTextureSpritePoolMemory0 = D2_ALLOC(0x10000);
+        gpD3DTextureSpritePoolMemory1 = D2_ALLOC(0x10000);
         nErrorLine = RENDERER_D3D_CreateSystemMemoryTexture(gpD3DSpriteSystemSurface0, gpD3DSpriteSystemTexture0, 0x100, 0x100);
         if (!nErrorLine) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5e);
@@ -4416,7 +4430,7 @@ void __stdcall RENDERER_D3D_InitGroundTileCache() {
     // Static local variables (originally global data)
     static unsigned short gaD3DGroundTileIndexBuffer;
 
-    // Frame slots -36..-16 are ONE object: &dwVBFlags is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -36..-4 are ONE object: &dwVBFlags is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       uint32_t dwVBFlags;
@@ -4424,24 +4438,18 @@ void __stdcall RENDERER_D3D_InitGroundTileCache() {
       uint32_t dwFVF;
       uint32_t dwVBSize;
       float fTexUScale;
-    };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
-    __frame0_t __frame0;
-    // Frame slots -12..-4 are ONE object: &pLockedVB is passed out and the callee reaches the rest by byte offset.
-    // Separate locals let the compiler reorder them, so the run is one struct.
-    struct __frame1_t {
+      D2FloatIntUnion fTexUStep;
       void* pLockedVB;
       float fTexVStep;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame1_t) == 8, "frame group __frame1_t must reproduce the Ghidra frame layout");
-    __frame1_t __frame1;
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
     short int* psIndexBuf;
     uint16_t* puDestIndex;
     int nDiagDiff;
     int nAdjY;
     int iRow;
     short int local_9c[60];
-    D2FloatIntUnion fTexUStep;
     float fTexV;
     int nAdjX;
     short int sRowBase;
@@ -4449,17 +4457,17 @@ void __stdcall RENDERER_D3D_InitGroundTileCache() {
     __frame0.dwVBType = 0x10800;
     __frame0.dwFVF = 0x1c4;
     __frame0.dwVBSize = 0x24;
-    fTexUStep.fValue = 160.0 / (float)(int)gnD3DTextureCacheBlockSize / 10.0;
-    __frame1.pLockedVB = (void*)d2_bits_of(80.0 / (float)gnD3DTextureCacheCount);
-    __frame1.fTexVStep = (float)d2_bits_to_float(__frame1.pLockedVB) / 10.0;
+    __frame0.fTexUStep.fValue = 160.0 / (float)(int)gnD3DTextureCacheBlockSize / 10.0;
+    __frame0.pLockedVB = (void*)d2_bits_of(80.0 / (float)gnD3DTextureCacheCount);
+    __frame0.fTexVStep = (float)d2_bits_to_float(__frame0.pLockedVB) / 10.0;
     DWORD dwHResult = g_pDirect3D7->lpVtbl->CreateVertexBuffer(g_pDirect3D7, &__frame0.dwVBFlags, &g_pD3DGroundTileVB, 4, nullptr);
     if (dwHResult) {
       RENDERER_DIRECT3D_ErrorLog("CreateVertexBuffer failed!", dwHResult);
       return;
     }
 
-    dwHResult = g_pD3DGroundTileVB->lpVtbl->Lock(g_pD3DGroundTileVB, 0x21, &__frame1.pLockedVB, nullptr);
-    D2FloatIntUnion fTexUStepSaved = fTexUStep;
+    dwHResult = g_pD3DGroundTileVB->lpVtbl->Lock(g_pD3DGroundTileVB, 0x21, &__frame0.pLockedVB, nullptr);
+    D2FloatIntUnion fTexUStepSaved = __frame0.fTexUStep;
     if (!dwHResult) {
       int iCol;
       iRow = 0;
@@ -4467,38 +4475,38 @@ void __stdcall RENDERER_D3D_InitGroundTileCache() {
         iCol = 0;
         do {
           nDiagDiff = 0;
-          fTexUStep.fValue = 0.0;
+          __frame0.fTexUStep.fValue = 0.0;
           if (!iCol) {
-            fTexUStep.nValue = 1;
+            __frame0.fTexUStep.nValue = 1;
             nDiagDiff = 1;
           } else if (iCol == 5) {
             nDiagDiff = -1;
-            fTexUStep.nValue = -1;
+            __frame0.fTexUStep.nValue = -1;
           }
           if (!iRow) {
             nDiagDiff--;
-            fTexUStep.nValue++;
+            __frame0.fTexUStep.nValue++;
           } else if (iRow == 5) {
             nDiagDiff++;
-            fTexUStep.nValue--;
+            __frame0.fTexUStep.nValue--;
           }
 
           nAdjY = iCol - iRow;
           nAdjX = iCol + iRow;
           iCol++;
           __frame0.fTexUScale = (float)nAdjY * fTexUStepSaved.fValue + (float)(nDiagDiff + 0x50) / (float)(int)gnD3DTextureCacheBlockSize;
-          fTexV = (float)nAdjX * __frame1.fTexVStep + (float)fTexUStep.nValue / (float)gnD3DTextureCacheCount;
-          *(uint32_t*)((int)__frame1.pLockedVB + 8) = 0x3f000000;
-          *(uint32_t*)((int)__frame1.pLockedVB + 0xc) = 0x3f800000;
-          *(float*)((int)__frame1.pLockedVB + 0x18) = __frame0.fTexUScale;
-          *(float*)((int)__frame1.pLockedVB + 0x1c) = fTexV;
-          __frame1.pLockedVB = (void*)((int)__frame1.pLockedVB + 0x20);
+          fTexV = (float)nAdjX * __frame0.fTexVStep + (float)__frame0.fTexUStep.nValue / (float)gnD3DTextureCacheCount;
+          *(uint32_t*)((int)__frame0.pLockedVB + 8) = 0x3f000000;
+          *(uint32_t*)((int)__frame0.pLockedVB + 0xc) = 0x3f800000;
+          *(float*)((int)__frame0.pLockedVB + 0x18) = __frame0.fTexUScale;
+          *(float*)((int)__frame0.pLockedVB + 0x1c) = fTexV;
+          __frame0.pLockedVB = (void*)((int)__frame0.pLockedVB + 0x20);
         } while (iCol < 6);
 
         iRow++;
       } while (iRow < 6);
 
-      __frame1.fTexVStep = fTexV;
+      __frame0.fTexVStep = fTexV;
       dwHResult = g_pD3DGroundTileVB->lpVtbl->Unlock(g_pD3DGroundTileVB);
       if (!dwHResult) {
         iRow = 0;
@@ -4798,7 +4806,7 @@ void __stdcall RENDERER_D3D_InitSmackerVertexBuffer() {
     gdwD3DSmackerVertex2Color = -1;
     gdwD3DSmackerVertex3Color = -1;
     gdwD3DSmackerVertex4Color = -1;
-    pSmackerDecodeBuffer = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\d3dSmack.cpp", 0x38, 0);
+    pSmackerDecodeBuffer = D2_ALLOC(0x10000);
     memset(pSmackerDecodeBuffer, 0, 0x10000);
 }
 
@@ -4842,7 +4850,7 @@ void __stdcall RENDERER_D3D_ReleaseSmackerBuffer() {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(pSmackerDecodeBuffer, ".\\Src\\d3dSmack.cpp", 0x5e, 0);
+    D2_FREE(pSmackerDecodeBuffer);
     pSmackerDecodeBuffer = 0;
 }
 
@@ -5191,7 +5199,7 @@ int __fastcall RENDERER_D3D_InitializeTextureCachePool(D3DTextureCacheStrc * pCa
     }
 
     pCache->nMaxNodes = nNodeIndex;
-    D3DTextureCacheNodeStrc* _Dst = (D3DTextureCacheNodeStrc*)Fog::Memory::AllocClientMemory(nNodeIndex << 5, ".\\Src\\d3dTextureCache.cpp", 0x37, 0);
+    D3DTextureCacheNodeStrc* _Dst = (D3DTextureCacheNodeStrc*)D2_ALLOC(nNodeIndex << 5);
     pCache->pNodeBuffer = _Dst;
     memset(_Dst, 0, nNodeIndex << 5);
     nNodeIndex = 0;

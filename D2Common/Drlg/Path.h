@@ -9,7 +9,9 @@
 #include "d2_platform.h"
 
 // Forward declarations
+struct D2DrlgAStarContextStrc;
 struct D2DrlgPathNodeStrc;
+struct D2DrlgRoomAStarNodeStrc;
 struct D2DrlgRoomCoordsStrc;
 struct D2DynamicPathStrc;
 struct D2PathPointStrc;
@@ -17,7 +19,6 @@ struct D2PathTypeArg;
 struct D2RoomStrc;
 struct D2StaticPathStrc;
 struct D2UnitStrc;
-struct SGAMEDATA;
 
 // Data types
 struct D2DrlgPathScannerStrc {
@@ -166,9 +167,9 @@ uint8_t * __stdcall DRLGPATH_GetDirectionDeltaTable(int32_t nParam1, int32_t nPa
 // Checks if a packed coordinate (X|Y) is within the bounding rectangle of the path search area. Returns 1 if inside bounds, 0 otherwise.
 uint32_t __fastcall DRLGPATH_IsPositionInBounds(int32_t pThis, uint32_t nPackedPos);
 // Advances a path node's direction by stepping through its direction delta table. Optionally applies a random perturbation from the seed. Used during A* node expansion.
-void DRLGPATH_AdvanceNodeDirection(int32_t nParam1, int32_t nParam2);
+void DRLGPATH_AdvanceNodeDirection(struct D2DrlgRoomAStarNodeStrc * pNode, struct D2DrlgAStarContextStrc * pAStarCtx);
 // Advances through a chain of path nodes, incrementing their visit count and updating their direction. When a node reaches visit count 5, moves to its parent. Returns the current node or 0 when the root is reached.
-int32_t __stdcall DRLGPATH_AdvancePathNodeChain(::SGAMEDATA * pnParam, int32_t nParam);
+struct D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AdvancePathNodeChain(struct D2DrlgAStarContextStrc * pAStarCtx, struct D2DrlgRoomAStarNodeStrc * pNode);
 // Extracts a path from an A* search result by walking parent pointers from the destination node back to the source. Stores the packed coordinates as waypoints (up to 77). Returns the number of waypoints.
 int32_t DRLGPATH_ExtractPathFromResult(int32_t nPathCtx, int32_t nCurNode);
 // Top-level A* pathfinding function for PathTypeFunc_00. Initializes the search grid, computes initial heuristic, then iteratively expands the search with increasing cost limits. Extracts and returns the found path length (0 if no path found).

@@ -41,6 +41,14 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
 
 namespace D2Client::UI::Chat {
 
@@ -53,16 +61,16 @@ void CHAT_HandleIMECandidateList(HIMC hImc) {
       return;
     }
     if (gpIMECandidateList) {
-      Fog::Memory::FreeClientMemory(gpIMECandidateList, ".\\UI\\chat.cpp", 0xeb, 0);
+      D2_FREE(gpIMECandidateList);
     }
 
-    gpIMECandidateList = (LPCANDIDATELIST)Fog::Memory::AllocClientMemory(nAllocSize, ".\\UI\\chat.cpp", 0xed, 0);
+    gpIMECandidateList = (LPCANDIDATELIST)D2_ALLOC(nAllocSize);
     /* DWORD dwBufLen for ImmGetCandidateListA */ /* LPCANDIDATELIST lpCandList for ImmGetCandidateListA */ /* DWORD deIndex for ImmGetCandidateListA */ /* HIMC param_1 for ImmGetCandidateListA */ ImmGetCandidateListA(hImc, 0, gpIMECandidateList, nAllocSize);
     if (!(gpIMECandidateList->dwStyle == 2 && gpIMECandidateList->dwCount == 1)) {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(gpIMECandidateList, ".\\UI\\chat.cpp", 0xf2, 0);
+    D2_FREE(gpIMECandidateList);
     gpIMECandidateList = (LPCANDIDATELIST)0x0;
 }
 
@@ -104,7 +112,7 @@ void __stdcall INPUT_HandleIMENotify(D2UIMouseMsgStrc * pMsg) {
           pMemoryToFree = gpIMECandidateList;
         if (gaIMECompositionBuffer == 9) {
           if (gpIMECandidateList) {
-            Fog::Memory::FreeClientMemory(gpIMECandidateList, ".\\UI\\chat.cpp", 0x160, 0);
+            D2_FREE(gpIMECandidateList);
             gpIMECandidateList = (LPCANDIDATELIST)0x0;
           }
 
@@ -116,7 +124,7 @@ void __stdcall INPUT_HandleIMENotify(D2UIMouseMsgStrc * pMsg) {
           goto cleanup;
         }
         if (pMemoryToFree) {
-          Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\UI\\chat.cpp", 0x16b, 0);
+          D2_FREE(pMemoryToFree);
           gpIMECandidateList = (LPCANDIDATELIST)0x0;
         }
 
@@ -387,7 +395,7 @@ void __stdcall CHAT_ShutdownIME() {
       return;
     }
 
-    Fog::Memory::FreeClientMemory(gpIMECandidateList, ".\\UI\\chat.cpp", 0x29d, 0);
+    D2_FREE(gpIMECandidateList);
     gpIMECandidateList = (LPCANDIDATELIST)0x0;
 }
 
@@ -912,8 +920,6 @@ void __stdcall CHAT_ClearInput() {
 
 // Routes incoming BNet chat packet by type - handles whispers, emotes, broadcasts, system messages
 void __stdcall CHAT_ProcessBattleNetMessage() {
-    uint8_t _bIgnored2;
-    uint8_t bIgnored2;
     uint8_t* pbyWhisperTarget;
     uint8_t* pbyPrefixScan;
     char* szWhisperTarget;
@@ -962,8 +968,9 @@ void __stdcall CHAT_ProcessBattleNetMessage() {
     }
 
     pIgnoreList = D2Common::Chat::Ignorelist::MISC_GetIgnorelist();
-    _bIgnored2 = pIgnoreList->_vfptr->CheckAccountNameIgnored(pIgnoreList, pszMessageText);
-    if (_bIgnored2) {
+    int bIgnored2;
+    bIgnored2 = pIgnoreList->_vfptr->CheckAccountNameIgnored(pIgnoreList, pszMessageText);
+    if (bIgnored2) {
       return;
     }
 
@@ -1036,12 +1043,12 @@ void __stdcall CHAT_ProcessBattleNetMessage() {
     D2Lang::Unicode::UNISYS::STRING_ConvertCharToWchar(wszMessageW, pszMessageText, 0x154);
     wszPrefixW[0x153] = L'\0';
     wszMessageW[0x153] = L'\0';
-    _bIgnored2 = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszMessageW);
+    int32_t nLenMessage = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszMessageW);
     int32_t nLenPrefix = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszPrefixW);
-    if (0x153 < _bIgnored2 + nLenPrefix) {
-      _bIgnored2 = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszPrefixW);
-      if (_bIgnored2 < 0x153) {
-        wszMessageW[0x153 - _bIgnored2] = L'\0';
+    if (0x153 < nLenMessage + nLenPrefix) {
+      nLenMessage = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszPrefixW);
+      if (nLenMessage < 0x153) {
+        wszMessageW[0x153 - nLenMessage] = L'\0';
       } else {
         wszMessageW[0] = L'\0';
       }
@@ -1263,8 +1270,7 @@ void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * pszInputBa
     uint16_t wszMsgBuffer4[260];
     char szParsedCmd[17];
     uint16_t wszAccountName[34];
-    char szExtractedAccount;
-    char acStack_17[19];
+    char szExtractedAccount[20];
     IgnoreListVtable* pIgnoreListVtable;
     memset(&__frame1.wszChatBody, 0, 0x100);
     char* pszInput;
@@ -1348,13 +1354,13 @@ void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * pszInputBa
         Fog::File::CONTAINER_InitializeBuffer(wszMsgBuffer3, 2, 0x208, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
         Fog::File::CONTAINER_InitializeBuffer(wszMsgBuffer1, 2, 0x208, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
         Fog::File::CONTAINER_InitializeBuffer(wszAccountName, 2, 0x22, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
-        CHAT_ExtractCommandParameter(0x11, pszInput, &szExtractedAccount);
-        nCmpResult = Storm::Source::SSTR::SStrCmpI(acStack_17, D2IniData_client->szLastBnetAccount, 0x7fffffff);
+        CHAT_ExtractCommandParameter(0x11, pszInput, szExtractedAccount);
+        nCmpResult = Storm::Source::SSTR::SStrCmpI(szExtractedAccount + 1, D2IniData_client->szLastBnetAccount, 0x7fffffff);
         if (nCmpResult) {
           D2Lang::UTF8_ConvertToWideChar(wszMsgBuffer1, "<BattleNet>: ", 0x208);
-          D2Lang::UTF8_ConvertToWideChar(wszAccountName, &szExtractedAccount, 0x22);
+          D2Lang::UTF8_ConvertToWideChar(wszAccountName, szExtractedAccount, 0x22);
           ppIgnoreList = D2Common::Chat::Ignorelist::MISC_GetIgnorelist();
-          nCmpResult = ppIgnoreList->_vfptr->AddByPattern(ppIgnoreList, &szExtractedAccount);
+          nCmpResult = ppIgnoreList->_vfptr->AddByPattern(ppIgnoreList, szExtractedAccount);
           if (!nCmpResult) {
             wStringId = 0x2ba4;
             goto format_ignore_error;
@@ -1453,11 +1459,11 @@ void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * pszInputBa
         Fog::File::CONTAINER_InitializeBuffer(wszMsgBuffer3, 2, 0x208, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
         Fog::File::CONTAINER_InitializeBuffer(wszMsgBuffer1, 2, 0x208, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
         Fog::File::CONTAINER_InitializeBuffer(wszAccountName, 2, 0x22, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
-        CHAT_ExtractCommandParameter(0x11, pszInput, &szExtractedAccount);
+        CHAT_ExtractCommandParameter(0x11, pszInput, szExtractedAccount);
         D2Lang::UTF8_ConvertToWideChar(wszMsgBuffer1, "<BattleNet>: ", 0x208);
-        D2Lang::UTF8_ConvertToWideChar(wszAccountName, &szExtractedAccount, 0x22);
+        D2Lang::UTF8_ConvertToWideChar(wszAccountName, szExtractedAccount, 0x22);
         ppIgnoreList = D2Common::Chat::Ignorelist::MISC_GetIgnorelist();
-        nCmpResult = ppIgnoreList->_vfptr->RemoveByPattern(ppIgnoreList, &szExtractedAccount);
+        nCmpResult = ppIgnoreList->_vfptr->RemoveByPattern(ppIgnoreList, szExtractedAccount);
         if (!nCmpResult) {
           wStringId = 0x2ba6;
           format_ignore_error:
@@ -1577,7 +1583,7 @@ void __stdcall INPUT_HandleChatCharInput(D2UIMouseMsgStrc * pMsg) {
     Storm::SMsgBreakHandlerChain(pMsg);
 }
 
-int __stdcall UI_SLIDER_GetValueFromPosition(int32_t nCurrentPos, int32_t nMinPos, D2EscMenuItemStrc * pSliderItem, int32_t nMaxPos) {
+int UI_SLIDER_GetValueFromPosition(int32_t nCurrentPos, int32_t nMinPos, D2EscMenuItemStrc * pSliderItem, int32_t nMaxPos) {
     int nStepCount = pSliderItem->nSubImageCount - 1;
     float fStepCount = (float)nStepCount;
     if (nStepCount < 0) {

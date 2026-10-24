@@ -159,7 +159,7 @@ void BNSEND_CalculateCDKeyChecksum(uint32_t unused, char * szCDKey, uint32_t * p
 int __fastcall BNSEND_DecodeCDKeyString(uint32_t * pOutProduct, uint32_t * pOutPublic, char * szCDKey, uint32_t * pOutPrivate);
 BOOL __fastcall BNNEWS_DecodeCDKey26Char(char * szCDKey, uint32_t * pOutValue1, uint32_t * pOutValue2, uint16_t * pOutValue3);
 // Prepares CD key hash structure for authentication. Supports both 16-char (classic) and 26-char (expansion) CD keys. Output structure contains: key length, public value, product value, and 20-byte SHA-1 hash.
-int32_t __stdcall BNSEND_PrepareCDKeyHash(uint32_t nToken, char * szCDKey, struct D2CDKeyHashStrc * pOutHash);
+int32_t __stdcall BNSEND_PrepareCDKeyHash(uint32_t nToken, uint32_t nServerToken, char * szCDKey, struct D2CDKeyHashStrc * pOutHash);
 void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3();
 void __stdcall BNNEWS_DecodeCDKeys();
 // High-level CD key hash helper. Gets server token, retrieves CD key by type (0=classic, 1=expansion), and prepares hash structure for SID_AUTH_CHECK.

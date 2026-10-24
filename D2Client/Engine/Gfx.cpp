@@ -82,6 +82,28 @@
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+#ifndef D2_ALLOC
+#define D2_ALLOC(size) Fog::Memory::AllocClientMemory((size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE
+#define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_ALLOC_POOL
+#define D2_ALLOC_POOL(pPool, size) Fog::Memory::AllocServerMemory((pPool), (size), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_FREE_POOL
+#define D2_FREE_POOL(pPool, p) Fog::Memory::FreeServerMemory((pPool), (p), __FILE__, __LINE__, 0)
+#endif
+
+#ifndef D2_NEW
+#define D2_NEW(T) ((T*)D2_ALLOC(sizeof(T)))
+#endif
+
+static_assert(sizeof(void*) != 4 || sizeof(::D2GfxUnknown_0xa8) == 0xa8, "D2_NEW(D2GfxUnknown_0xa8): the 32-bit layout must be the 0xa8 bytes 1.14d allocates");
+
 
 namespace D2Client::Engine::Gfx {
 
@@ -192,7 +214,7 @@ void * __stdcall GFX_LoadCofFile(void * pTextureCache, char * szPath) {
       return nullptr;
     }
 
-    uint32_t* pEntry = (uint32_t*)Fog::Memory::AllocClientMemory(0x1c, ".\\ENGINE\\Gfx.cpp", 0xdc, 0);
+    uint32_t* pEntry = (uint32_t*)D2_ALLOC(0x1c);
     *pEntry = 0;
     memset(pEntry + 1, 0, 6 * sizeof(pEntry[0]));
     pEntry[1] |= 1;
@@ -396,8 +418,8 @@ int32_t GFX_FreeUnusedCofEntries(void * pCacheTable) {
         pNextEntry = (uint32_t*)*pMemoryToFree;
         if (*(uint8_t*)(pMemoryToFree + 1) & 1) {
           gbCofCacheLRUEnabled += -0x1c - pMemoryToFree[2];
-          Fog::Memory::FreeClientMemory((void*)pMemoryToFree[5], ".\\ENGINE\\Gfx.cpp", 0xe3c, 0);
-          pCacheTable = (void*)Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0xe3d, 0);
+          D2_FREE((void*)pMemoryToFree[5]);
+          pCacheTable = (void*)D2_FREE(pMemoryToFree);
         }
       }
 
@@ -413,7 +435,7 @@ void __fastcall GFX_FreePlayerCofCache(int32_t nParam) {
     GFX_FreeUnusedCofEntries(&gPlayerCofCache);
     gbCofCacheLRUEnabled -= gPlayerCofCache.nCacheEntryCount;
     if (gPlayerCofCache.pCacheMemory) {
-      Fog::Memory::FreeClientMemory(gPlayerCofCache.pCacheMemory, ".\\ENGINE\\Gfx.cpp", 0xe50, 0);
+      D2_FREE(gPlayerCofCache.pCacheMemory);
     }
 
     memset(&gPlayerCofCache, 0, 0x80c);
@@ -425,7 +447,7 @@ int32_t GFX_FreeMonsterCofCache() {
     GFX_FreeUnusedCofEntries(&gMonsterCofCache);
     gbCofCacheLRUEnabled -= gMonsterCofCache.nCacheEntryCount;
     if (gMonsterCofCache.pCacheMemory) {
-      Fog::Memory::FreeClientMemory(gMonsterCofCache.pCacheMemory, ".\\ENGINE\\Gfx.cpp", 0xe61, 0);
+      D2_FREE(gMonsterCofCache.pCacheMemory);
     }
 
     pCleared = memset(&gMonsterCofCache, 0, 0x80c);
@@ -1092,7 +1114,7 @@ void __fastcall GFX_InitCofSystem(int nSystemFlags) {
     memset(&gMonsterCofCache, 0, 0x80c);
     memset(gaSpriteLoadStatusTable, 0, 0x460);
     size_t nMonSpriteTableSize = sgptDataTable->nTxtMonStatsSize * 0xa0;
-    g_pMonsterSpriteCofStatusTable = (D2MonsterCofStatusEntryStrc*)Fog::Memory::AllocServerMemory(nullptr, nMonSpriteTableSize, ".\\ENGINE\\Gfx.cpp", 0x7e1, 0);
+    g_pMonsterSpriteCofStatusTable = (D2MonsterCofStatusEntryStrc*)D2_ALLOC_POOL(nullptr, nMonSpriteTableSize);
     memset(g_pMonsterSpriteCofStatusTable, 0, nMonSpriteTableSize);
     gnGfxDirectionCountCache = D2Win::Src::D2WinArchive::D2WINARCHIVE_GetArchiveHandle();
     GfxUtil::InitializeModeTokens();
@@ -1103,14 +1125,14 @@ void GFX_ShutdownCofSystem() {
     GFX_FreeUnusedCofEntries(&gPlayerCofCache);
     gbCofCacheLRUEnabled -= gPlayerCofCache.nCacheEntryCount;
     if (gPlayerCofCache.pCacheMemory) {
-      Fog::Memory::FreeClientMemory(gPlayerCofCache.pCacheMemory, ".\\ENGINE\\Gfx.cpp", 0xe50, 0);
+      D2_FREE(gPlayerCofCache.pCacheMemory);
     }
 
     memset(&gPlayerCofCache, 0, 0x80c);
     GFX_FreeUnusedCofEntries(&gMonsterCofCache);
     gbCofCacheLRUEnabled -= gMonsterCofCache.nCacheEntryCount;
     if (gMonsterCofCache.pCacheMemory) {
-      Fog::Memory::FreeClientMemory(gMonsterCofCache.pCacheMemory, ".\\ENGINE\\Gfx.cpp", 0xe61, 0);
+      D2_FREE(gMonsterCofCache.pCacheMemory);
     }
 
     memset(&gMonsterCofCache, 0, 0x80c);
@@ -1118,7 +1140,7 @@ void GFX_ShutdownCofSystem() {
       return;
     }
 
-    Fog::Memory::FreeServerMemory(nullptr, g_pMonsterSpriteCofStatusTable, ".\\ENGINE\\Gfx.cpp", 0x7f9, 0);
+    D2_FREE_POOL(nullptr, g_pMonsterSpriteCofStatusTable);
     g_pMonsterSpriteCofStatusTable = 0;
 }
 
@@ -1189,7 +1211,7 @@ void __fastcall GFX_AddOverlayToUnit(D2UnitStrc * pUnit, eOverlayId eOverlay, in
       GfxInfo::GFX_RemoveOverlayById(eOverlay, pUnit);
     }
 
-    D2GfxUnknown_0xa8* pOverlay = (D2GfxUnknown_0xa8*)Fog::Memory::AllocClientMemory(0xa8, ".\\ENGINE\\Gfx.cpp", 0xc48, 0);
+    D2GfxUnknown_0xa8* pOverlay = D2_NEW(D2GfxUnknown_0xa8);
     if (!pOverlay) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc49);
       exit(-1);
@@ -1316,19 +1338,21 @@ void __fastcall GFX_LoadUnitModeCof(D2UnitStrc * pUnit) {
 
 // @sourcefile .\ENGINE\Gfx.cpp
 void __fastcall GFX_GetUnitSpriteOffset(D2UnitStrc * pUnit, uint8_t byComponent, int32_t * pOffsetX, int32_t * pOffsetY) {
-    // Frame slots -32..-24 are ONE object: &nFrameResult is passed out and the callee reaches the rest by byte offset.
+    // Frame slots -32..-16 are ONE object: &nFrameResult is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       int nFrameResult;
       int32_t nTransformGfx;
+      uint8_t __pad8[4];
+      D2PathUnion uPathUnion;
     };
-    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 16, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     BOOL nFrameShifted;
     D2UnitStrc* pOwnerUnit;
     D2InventoryStrc* pInventoryUsed;
     D2GfxDataStrc sSpriteParams;
-    D2PathUnion uPathUnion = pUnit->pPath;
+    __frame0.uPathUnion = pUnit->pPath;
     eD2UnitType eUnitType = pUnit->eUnitType;
     int nClassId = pUnit->nClassId;
     int32_t pSeqMode = D2Common::Units::GetAnimOrSeqMode(pUnit);
@@ -1374,7 +1398,7 @@ void __fastcall GFX_GetUnitSpriteOffset(D2UnitStrc * pUnit, uint8_t byComponent,
     pOwnerUnit = (D2UnitStrc*)-1;
     int* pResolvedAnimMode = &__frame0.nFrameResult;
     int nResultTmp = pUnit->nGfxCurrentFrame >> 8;
-    uint8_t nDirection = D2Common::PATH::DynamicPath::GetDirection(uPathUnion.pDynamicPath);
+    uint8_t nDirection = D2Common::PATH::DynamicPath::GetDirection(__frame0.uPathUnion.pDynamicPath);
     iVar1 = DC6_AssignParams(&sSpriteParams, pUnit, nullptr, (uint32_t)nDirection, nResultTmp, pResolvedAnimMode, byComponent, pOwnerUnit);
     if (!iVar1) {
       return;

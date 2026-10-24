@@ -939,21 +939,21 @@ void OBJMODE_SpawnMonsterFromObject(eD2MonsterAnimMode eMonsterAnimMode, int32_t
 }
 
 void __fastcall OBJMODE_SpawnRandomMonsters(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    D2ObjectModeArg objectModeArg;
+    D2ObjectOperateFnArg sOperation;
     D2Common::Units::UNITS_GetRoom(pUnit);
-    D2SeedStrc* pControlSeed = ObjectsRgn::GetObjectControlSeed(pGame);
-    D2SeedStrc seedNext = D2_SEED_NEXT(*pControlSeed);
-    *pControlSeed = seedNext;
+    sOperation.pSeed = ObjectsRgn::GetObjectControlSeed(pGame);
+    D2SeedStrc seedNext = D2_SEED_NEXT(*sOperation.pSeed);
+    *sOperation.pSeed = seedNext;
     int nSpawnCount = (seedNext.nSeedLow & 1) + 1;
-    objectModeArg.pGame = pGame;
-    objectModeArg.pVictim = pUnit;
-    int32_t nMonClassId = ObjectsRgn::OBJECT_HandleObjectMode(&objectModeArg);
+    sOperation.sArg.pGame = pGame;
+    sOperation.sArg.pVictim = pUnit;
+    int32_t nMonClassId = ObjectsRgn::OBJECT_HandleObjectMode(&sOperation.sArg);
     if (!(-1 < nMonClassId && nMonClassId < sgptDataTable->nTxtMonStatsSize)) {
       return;
     }
 
     for (; nSpawnCount; nSpawnCount--) {
-      OBJMODE_SpawnMonsterFromObject(eD2MonsterAnimMode_ns::Skill1, nMonClassId, &objectModeArg);
+      OBJMODE_SpawnMonsterFromObject(eD2MonsterAnimMode_ns::Skill1, nMonClassId, &sOperation.sArg);
     }
 }
 
@@ -2508,11 +2508,10 @@ BOOL __fastcall Objects_OperateFn46_PortalToAct4(D2ObjectOperateFnArg * pOperati
     bool _bQuestDone;
     bool bQuestDone;
     bool nWaypointFound;
-    int16_t nWaypointId;
-    *(D2ObjectOperateFnArg**)&nWaypointId = pOperation;
+    int32_t nWaypointId = (int32_t)pOperation;
+    D2UnitStrc* pVictim = pOperation->sArg.pVictim;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim);
     eD2LevelId eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-    D2UnitStrc* pVictim = pOperation->sArg.pVictim;
     if (!(pVictim && pVictim->eAnimMode.ePlayerMode != Death)) {
       return 0;
     }
@@ -2536,10 +2535,10 @@ BOOL __fastcall Objects_OperateFn46_PortalToAct4(D2ObjectOperateFnArg * pOperati
 
     pGame = pOperation->sArg.pGame;
     pPlayerData = D2Common::Units::GetPlayerData(pOperation->pAttacker);
-    _bQuestDone = D2Common::Waypoints::FindWaypointIdByLevelId(LEVEL_ThePandemoniumFortress, &nWaypointId);
+    _bQuestDone = D2Common::Waypoints::FindWaypointIdByLevelId(LEVEL_ThePandemoniumFortress, (int16_t*)&nWaypointId);
     if (_bQuestDone) {
       D2WaypointStrc* pWaypoint = pPlayerData->pWaypoint[pGame->nDifficulty];
-      D2Common::Waypoints::EnableWaypoint(pWaypoint, (uint16_t)*(uint16_t*)&nWaypointId);
+      D2Common::Waypoints::EnableWaypoint(pWaypoint, (uint16_t)nWaypointId);
     }
 
     GAME::Level::InitLevel(pOperation->sArg.pGame, pOperation->pAttacker, LEVEL_ThePandemoniumFortress, 0);

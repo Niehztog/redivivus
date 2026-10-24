@@ -60,7 +60,7 @@ struct __attribute__((packed)) D2MagicAffixTxt {
     /* 0x64 */ bool rare;
     /* 0x65 */ uint8_t levelreq;
     /* 0x66 */ char classspecific;
-    /* 0x67 */ char class_;
+    /* 0x67 */ uint8_t class_;
     /* 0x68 */ char classlevelreq;
     /* 0x69 */ uint8_t pad0x69; // alignment padding after classlevelreq
     /* 0x6A */ short include_type[7];
@@ -118,7 +118,8 @@ namespace D2Game::SKILLS::Items {
 // The return is the count: nCount arrives in EAX and 005c0d14 ADD EAX,0x1 falls into the RET.
 int32_t __stdcall SKILLITEMS_SetDispatchTableEntry(int32_t pCandidatePairs, int32_t pAffixTxt, int32_t nAffixIndex, int32_t nCount);
 int32_t __stdcall SKILLITEMS_GetDispatchTableRange(int32_t pDispatchTable, int32_t nParam1, int32_t nParam2);
-void __stdcall SKILLITEMS_NoOp(int32_t nParam);
+// Returns max(nValue * nPercent / 100, nMinimum): nValue in EAX, nMinimum in ESI, nPercent on the stack (RET 4); the throw-damage scaling of the crude-quality item mods. Was named SKILLITEMS_NoOp.
+int32_t __stdcall SKILLITEMS_ApplyPercentWithMinimum(int32_t nValue, int32_t nMinimum, int32_t nPercent);
 // Rolls 1-3 staff mod skills. Classic: tier-based (5 skills per tier). Expansion: type-restricted (skill.itypea1 must match item). Skill level: [1, 3]. Applies via STATLIST_AddStatValue(UNITSTAT_item_singleskill).
 eD2Skills __stdcall ITEMMOD_RollStaffModSkills(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillBaseId);
 // Expansion staff mod skill roller. Filters skills by itypea1/itypeb1/itypec1 matching item type. Counts valid, rolls RNG % count, walks to nth skill. Returns skill ID + level [1, 3].
