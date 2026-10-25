@@ -1,0 +1,10 @@
+// cstdint - <stdint.h> in namespace std, for Visual C++ 2005.
+#ifndef VC8_CSTDINT
+#define VC8_CSTDINT
+#include <stdint.h>
+namespace std {
+using ::int8_t;  using ::int16_t;  using ::int32_t;  using ::int64_t;
+using ::uint8_t; using ::uint16_t; using ::uint32_t; using ::uint64_t;
+using ::intptr_t; using ::uintptr_t; using ::intmax_t; using ::uintmax_t;
+}
+#endif

@@ -53,6 +53,9 @@ foreach(list D2_SOURCES D2_HEADERS)
     # Vendored C library, built as its own target below; its headers (config.h,
     # internal.h) must not land on the game's include path.
     list(FILTER ${list} EXCLUDE REGEX "^${CMAKE_SOURCE_DIR}/thirdparty/libbacktrace/")
+    # The VC8 oracle: its shim headers (<cstdint> for a 2005 compiler) and its
+    # translated mirror of the tree are for that compiler, never this build.
+    list(FILTER ${list} EXCLUDE REGEX "^${CMAKE_SOURCE_DIR}/asm_matching/")
 endforeach()
 list(SORT D2_SOURCES)
 

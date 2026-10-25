@@ -1,0 +1,5 @@
+libcmt.lib + libcpmt.lib functions: rtm 8558, sp1 8582
+original functions identical to a library function: 422
+  matched by rtm+sp1    398
+  matched by rtm          0
+  matched by sp1         24

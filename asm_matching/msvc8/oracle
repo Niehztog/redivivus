@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# oracle - the msvc8 ASM-matching oracle's single entry point.
+#
+#   oracle setup              fetch Game.exe 1.14d, build the VC8 toolchain (once)
+#   oracle build [-j N] [TU]  translate + compile, incremental (TU = path substring)
+#   oracle map                derive evidence/funcmap.tsv (our function -> address)
+#   oracle audit              byte-compare every mapped function: evidence/audit.tsv
+#   oracle diff <name|addr>   one function, ours beside the original
+#   oracle all                build, map, audit
+#   oracle fix [PATTERN]      run every fixer over the tree (scripts/fix_all.py), then build, audit
+#   oracle crt                re-derive evidence/crtmap.tsv (the linked CRT)
+#   oracle ref                re-carve the original into functions (cached; automatic)
+#   oracle rich <pe>          decode a PE's Rich header
+#   oracle compid <obj|lib>   the tool stamps inside objects / libraries
+#
+# Settings are environment variables (scripts/env.sh): ORACLE_VC (sp1|rtm),
+# ORACLE_CFLAGS, ORACLE_DRIVE, VC8_TOOLCHAIN. A non-default ORACLE_VC or
+# ORACLE_CFLAGS is an experiment: it builds in build/experiment-*/, and its
+# audit uses the baseline's evidence/funcmap.tsv (the same pairs, other code)
+# and writes beside its objects. Evidence/ only ever holds the baseline.
+set -euo pipefail
+. "$(dirname "$0")/scripts/env.sh"
+
+ensure_ref() {
+    [ -f "$REFERENCE_EXE" ] || "$SCRIPTS/fetch_reference.sh"
+    [ -f "$ORACLE_ROOT/build/ref/functions.tsv" ] || oracle_python "$SCRIPTS/refimage.py"
+}
+
+is_experiment() { [ "$ORACLE_VC" != sp1 ] || [ -n "${ORACLE_CFLAGS:-}" ]; }
+
+cmd="${1:-help}"; [ $# -gt 0 ] && shift
+case "$cmd" in
+    setup)  "$SCRIPTS/fetch_reference.sh"; "$SCRIPTS/setup_toolchain.sh" ;;
+    build)  oracle_python "$SCRIPTS/build.py" "$@" ;;
+    ref)    oracle_python "$SCRIPTS/refimage.py" "$@" ;;
+    crt)    ensure_ref; oracle_python "$SCRIPTS/crtmap.py" "$@" ;;
+    map)    ensure_ref
+            if is_experiment; then
+                echo "oracle map: not in an experiment - an A/B audit must use the baseline's map" >&2; exit 2
+            fi
+            oracle_python "$SCRIPTS/funcmap.py" "$@" ;;
+    audit)  ensure_ref
+            if is_experiment; then
+                # Same pairs as the baseline, this experiment's objects: a fair A/B.
+                echo "*** experiment: auditing $ORACLE_BUILD/obj -> $ORACLE_BUILD/audit.tsv" >&2
+                oracle_python "$SCRIPTS/audit.py" --out "$ORACLE_BUILD/audit.tsv" "$@"
+            else
+                oracle_python "$SCRIPTS/audit.py" "$@"
+            fi ;;
+    diff)   ensure_ref; oracle_python "$SCRIPTS/asmdiff.py" "$@" ;;
+    fix)    if is_experiment; then echo "oracle fix: not in an experiment - it edits the tree" >&2; exit 2; fi
+            ensure_ref; oracle_python "$SCRIPTS/fix_all.py" "$@" ;;
+    all)    "$0" build "$@"; "$0" map; "$0" audit ;;
+    rich)   oracle_python "$SCRIPTS/decode_rich_header.py" "${1:-$REFERENCE_EXE}" ;;
+    compid) oracle_python "$SCRIPTS/compid.py" "$@" ;;
+    *)      sed -n '2,/^set -euo/p' "$0" | sed '$d; s/^# \{0,1\}//' ;;
+esac

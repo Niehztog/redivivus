@@ -1,0 +1,3 @@
+# Blizzard binaries and anything derived from them never enter git.
+*
+!.gitignore

@@ -1,0 +1,20 @@
+# Per-module compiler flags, appended to the defaults (scripts/oracle_config.py).
+#
+# Before 1.14 every module was its own Visual Studio project with its own
+# settings, so the modules need not share flags. A row belongs here only with
+# evidence: an A/B experiment (README "Flags") showing the flag makes more of
+# that module's functions match. Longest prefix wins.
+#
+# prefix	extra flags	evidence
+D2Client/	/GS-	evidence/flags.md "/GS-"
+D2DDraw/	/GS-	evidence/flags.md "/GS-"
+D2Direct3D/	/GS-	evidence/flags.md "/GS-"
+D2Gdi/	/GS-	evidence/flags.md "/GS-"
+D2Glide/	/GS-	evidence/flags.md "/GS-"
+D2Launch/	/GS-	evidence/flags.md "/GS-"
+D2Launch/Engine/		evidence/flags.md "/GS-": Fog code filed under D2Launch (00405f00 has a stack cookie)
+D2MCPClient/	/GS-	evidence/flags.md "/GS-"
+D2Multi/	/GS-	evidence/flags.md "/GS-"
+D2Sound/	/GS-	evidence/flags.md "/GS-"
+D2Win/	/GS-	evidence/flags.md "/GS-"
+D2gfx/	/GS-	evidence/flags.md "/GS-"
