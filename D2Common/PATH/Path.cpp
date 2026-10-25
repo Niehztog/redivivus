@@ -431,8 +431,8 @@ static BOOL __stdcall PATH_TraceCollisionPath(int32_t nStartX, uint32_t nStartY,
     uint32_t currentPosXfp = pDynamicPath->Coords.tFixed.x;
     uint32_t currentPosYfp = pDynamicPath->Coords.tFixed.y;
     uint32_t targetPosYfp = currentPosYfp + nStartY;
-    uint32_t targetPosXfp = currentPosXfp + nStartX;
     uint32_t nCellPackedXY = (uint32_t)((uint32_t)(uint16_t)(short int)(currentPosYfp >> 0x10) << 16 | (uint32_t)(uint16_t)(short int)(currentPosXfp >> 0x10));
+    uint32_t targetPosXfp = currentPosXfp + nStartX;
     short int targetCellY = (short int)(targetPosYfp >> 0x10);
     uint16_t targetCellX = (uint16_t)(targetPosXfp >> 0x10);
     uint32_t bDistantFlag = pDynamicPath->nFlags & 0x20000;
@@ -670,24 +670,23 @@ void __stdcall PATH_SetPathTarget(D2UnitStrc * pUnit, D2UnitStrc * pTargetUnit) 
       exit(-1);
     } else {
       D2DynamicPathStrc* pSrcPath;
-      if (pTargetUnit) {
-        pSrcPath = pUnit->pPath.pDynamicPath;
-        pTargetPath = pTargetUnit->pPath.pDynamicPath;
-        if (pSrcPath->Coords.tSubtile.nPosX == pTargetPath->Coords.tSubtile.nPosX && pSrcPath->Coords.tSubtile.nPosY == pTargetPath->Coords.tSubtile.nPosY) {
-          pSrcPath->nFlags &= -9;
-        } else {
-          pSrcPath->nFlags |= 8;
-        }
-        if (pSrcPath->pRoom != pTargetPath->pRoom) {
-          pSrcPath->nFlags |= 1;
-        }
-
-        Drlg::Path::DRLGPATH_SetPathPosition(pTargetPath->Coords.tFixed.x, pTargetPath->Coords.tFixed.y, pTargetPath->pRoom, pSrcPath);
-        return;
+      if (!pTargetUnit) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x54f);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x54f);
-      exit(-1);
+      pSrcPath = pUnit->pPath.pDynamicPath;
+      pTargetPath = pTargetUnit->pPath.pDynamicPath;
+      if (pSrcPath->Coords.tSubtile.nPosX == pTargetPath->Coords.tSubtile.nPosX && pSrcPath->Coords.tSubtile.nPosY == pTargetPath->Coords.tSubtile.nPosY) {
+        pSrcPath->nFlags &= -9;
+      } else {
+        pSrcPath->nFlags |= 8;
+      }
+      if (pSrcPath->pRoom != pTargetPath->pRoom) {
+        pSrcPath->nFlags |= 1;
+      }
+      Drlg::Path::DRLGPATH_SetPathPosition(pTargetPath->Coords.tFixed.x, pTargetPath->Coords.tFixed.y, pTargetPath->pRoom, pSrcPath);
+      return;
     }
 }
 

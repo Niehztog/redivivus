@@ -136,7 +136,7 @@ BOOL __fastcall SKILLBAR_SrvStFn32_StrikeWithAuraState(::SGAMEDATA * pGame, D2Un
     }
 
     short int eAuraState = pSkillsTxt->aurastate;
-    if (!(-1 < eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
       return 1;
     }
 
@@ -591,9 +591,7 @@ BOOL __fastcall Skills_SrvDoFunc_074_DoubleThrow(::SGAMEDATA * pGame, D2UnitStrc
       return 1;
     }
 
-    int16_t nLayer = 0;
-    bIsPotion = D2Common::Skills::SKILLS_CalcToHit(pUnit, eSkill, nSkillLvl);
-    D2Common::Stats::StatsEx::STATLIST_AddUnitStat(pWeaponOrMissile, UNITSTAT_tohit, bIsPotion, nLayer);
+    D2Common::Stats::StatsEx::STATLIST_AddUnitStat(pWeaponOrMissile, UNITSTAT_tohit, D2Common::Skills::SKILLS_CalcToHit(pUnit, eSkill, nSkillLvl), 0);
     int32_t nValue = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxt[eSkill].calc[0], eSkill, nSkillLvl);
     D2Common::Stats::StatsEx::STATLIST_AddUnitStat(pWeaponOrMissile, UNITSTAT_damagepercent, nValue, 0);
     return 1;
@@ -676,7 +674,7 @@ BOOL __fastcall Skills_SrvDoFunc_075_GrimWard(::SGAMEDATA * pGame, D2UnitStrc * 
 }
 
 // Generic server-side melee attack handler used by multiple Barbarian skills. Sets the target unit, calculates to-hit via SKILLS_CalcToHit, resolves hit/miss via DAMAGE_CalculateHitCheck, applies elemental damage conversion (EType/ConvPct from skills.txt), builds a D2DamageStrc, then calls DAMAGE_CalculateAndApplyDamage and DAMAGE_ProcessCombatQueueEntry. Stores hit result (1=hit, 0=miss) in skill param1.
-static BOOL __fastcall SKILLBAR_SkillMeleeAttack(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * param_1, eD2Skills eSkill, int32_t nParam) {
+BOOL __fastcall SKILLBAR_SkillMeleeAttack(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * param_1, eD2Skills eSkill, int32_t nParam) {
     D2DamageStrc sDamage;
     if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
@@ -754,7 +752,7 @@ void __fastcall SKILLBAR_ApplyFrenzyStack(::SGAMEDATA * pGame, D2UnitStrc * pUni
     if (!nCalcResult) {
       return;
     }
-    if (!(-1 < pSkillsTxt->aurastate && (int)pSkillsTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= pSkillsTxt->aurastate && (int)pSkillsTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -824,8 +822,7 @@ BOOL __fastcall Skills_SrvDoFunc_009_FrenzyMeleeHit(::SGAMEDATA * pGame, D2UnitS
     PLAYER::PlayerModes::PLRMODES_CheckWeaponQuantityAndDurability(pGame, pUnit);
     PLAYER::PlayerModes::PLRMODES_BreakZeroDurabilityWeapons(pGame, pUnit);
     SKILLBAR_ApplyFrenzyStack(pGame, pUnit, eSkill, nSkillLvl);
-    nMeleeRange = SkillsServer::GetMeleeRangePlusFour(pUnit);
-    pTarget = SkillsServer::SKILLS_FindNextUnitInAreaByGUID(pGame, pUnit, 0, 0, nMeleeRange, 0x20003, pTarget->nUnitGUID, nullptr);
+    pTarget = SkillsServer::SKILLS_FindNextUnitInAreaByGUID(pGame, pUnit, 0, 0, SkillsServer::GetMeleeRangePlusFour(pUnit), 0x20003, pTarget->nUnitGUID, nullptr);
     bHitResult = SKILLBAR_SkillMeleeAttack(pGame, pUnit, pTarget, eSkill, nSkillLvl);
     return bHitResult;
 }
@@ -914,8 +911,8 @@ BOOL __fastcall SKILLBAR_SrvStFn38_Whirlwind(::SGAMEDATA * pGame, D2UnitStrc * p
 
     int32_t nLine = 0x3d9;
     char* pSkillAssTable = ".\\SKILLS\\SkillBar.cpp";
-    int32_t nCalcResult = SkillsServer::SKILLS_GetUnitWalkVelocity(pUnit);
-    D2Common::PATH::DynamicPath::SetVelocities(pDynPath, nCalcResult, pSkillAssTable, nLine);
+    int32_t nCalcResult;
+    D2Common::PATH::DynamicPath::SetVelocities(pDynPath, SkillsServer::SKILLS_GetUnitWalkVelocity(pUnit), pSkillAssTable, nLine);
     D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pDynPath, 0x401);
     nCalcResult = D2Common::PATH::DynamicPath::GetPathPoint(pDynPath, &pPathPoints);
     if (nCalcResult <= 0) {
@@ -930,8 +927,7 @@ BOOL __fastcall SKILLBAR_SrvStFn38_Whirlwind(::SGAMEDATA * pGame, D2UnitStrc * p
     eD2CollisionShapeType nType = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
     uint32_t nCollideX = nTargetX;
     uint32_t nCollideY = nTargetY;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2Common::Collision::AddCollision_Type(pRoom, nCollideX, nCollideY, nType, eCollisionFlag);
+    D2Common::Collision::AddCollision_Type(D2Common::Units::UNITS_GetRoom(pUnit), nCollideX, nCollideY, nType, eCollisionFlag);
     UNIT::SUnit::SetUninterruptableState(pUnit, 1);
     D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_skill_move, 1);
     D2SkillStrc* pSkill = pCurrentSkill;
@@ -941,7 +937,7 @@ BOOL __fastcall SKILLBAR_SrvStFn38_Whirlwind(::SGAMEDATA * pGame, D2UnitStrc * p
     D2Common::Skills::SKILL_SetParam3(pSkill, -1);
     D2Common::Skills::SKILL_SetParam4(pSkill, 0);
     short int eAuraState = pSkillsTxt->aurastate;
-    if (!(-1 < eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
       return 1;
     }
 
@@ -1086,9 +1082,7 @@ void __fastcall SKILL_DeactivateAndRestoreCollision(::SGAMEDATA * pGameStrc, D2U
     if (nCollideX && nCollideY) {
       eD2CollisionShapeType nUnitWidth;
       eCollisionFlag_00 = eCollisionFlag;
-      nUnitWidth = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      D2Common::Collision::RemoveCollision_Type(pRoom, nCollideX, nCollideY, nUnitWidth, eCollisionFlag_00);
+      D2Common::Collision::RemoveCollision_Type(D2Common::Units::UNITS_GetRoom(pUnit), nCollideX, nCollideY, D2Common::PATH::DynamicPath::GetUnitWidth(pUnit), eCollisionFlag_00);
     }
 
     D2Common::PATH::DynamicPath::PATH_ChangeCollisionType(pDynamicPath, eCollisionFlag);
@@ -1103,7 +1097,7 @@ void __fastcall SKILL_DeactivateAndRestoreCollision(::SGAMEDATA * pGameStrc, D2U
     }
 
     short int eAuraState = pSkillsTxt->aurastate;
-    if (!(-1 < eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -1274,7 +1268,7 @@ BOOL __fastcall SKILLBAR_SrvStFn39_Berserk(::SGAMEDATA * pGame, D2UnitStrc * pUn
     }
 
     UNIT::SUnitDmg::DAMAGE_CalculateAndApplyDamage(pGame, pUnit, pUnit2, &sDamage, (uint8_t)nExpireGameFrame);
-    if (!(-1 < pSkillsTxt->aurastate && (int)pSkillsTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= pSkillsTxt->aurastate && (int)pSkillsTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
       return 1;
     }
 
@@ -1401,8 +1395,7 @@ static BOOL __stdcall SKILLBAR_FindValidLeapTarget(D2UnitStrc * pUnit, int32_t n
       LVar1 = sCandidatePos.x;
       if (pRoom) {
         nRange = 0x1c09;
-        nRangeOrSize = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-        nRange = D2Common::Collision::CheckCollision_BlockPlayer_Type(pRoom, LVar1, nY, nRangeOrSize, nRange);
+        nRange = D2Common::Collision::CheckCollision_BlockPlayer_Type(pRoom, LVar1, nY, D2Common::PATH::DynamicPath::GetUnitWidth(pUnit), nRange);
         if (!nRange) {
           bHasLOS = D2Common::Skills::SKILLS_HasLineOfSight(nSrcX, nSrcY, LVar1, nY, pRoom, 0x804);
           if (bHasLOS) {
@@ -1632,7 +1625,7 @@ static BOOL __stdcall SKILL_InitTransportPath(D2SkillStrc * pSkill, D2UnitStrc *
 }
 
 // Computes the overshooting charge path for Barbarian Charge. Resolves the target unit from skill param3 (type) and param4 (GUID), sets skill flags to 1, forces sequence frame 0xC, snaps position to tile, then calculates an overshoot destination (3× caster origin − 2× target coords). Aborts if the overshoot lands in a town room. Sets path type 8, distance 5, and calls PATH_CalculatePath.
-void __stdcall SKILLBAR_CalculateChargePath(::SGAMEDATA * pGame, int32_t nParam1, int32_t nParam2, D2UnitStrc * pUnit, D2SkillStrc * pSkill) {
+static void __stdcall SKILLBAR_CalculateChargePath(::SGAMEDATA * pGame, int32_t nParam1, int32_t nParam2, D2UnitStrc * pUnit, D2SkillStrc * pSkill) {
     if (!pSkill) {
       return;
     }
@@ -1643,8 +1636,7 @@ void __stdcall SKILLBAR_CalculateChargePath(::SGAMEDATA * pGame, int32_t nParam1
     }
 
     uint32_t nTargetGUID = D2Common::Skills::SKILL_GetParam4(pSkill);
-    eD2UnitType eTargetUnitType = D2Common::Skills::SKILL_GetParam3(pSkill);
-    D2UnitStrc* pTarget = UNIT::SUnit::FindUnitFromTable(pGame, eTargetUnitType, nTargetGUID);
+    D2UnitStrc* pTarget = UNIT::SUnit::FindUnitFromTable(pGame, D2Common::Skills::SKILL_GetParam3(pSkill), nTargetGUID);
     if (!pTarget) {
       return;
     }

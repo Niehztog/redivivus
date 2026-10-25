@@ -138,7 +138,7 @@ static void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty
         } else {
           sRolledSeed = D2_SEED_NEXT(*pSeed);
           *pSeed = sRolledSeed;
-          nRandPick = (uint32_t)(((uint64_t)d2_bits_of(sRolledSeed) & 0xffffffff) % (uint64_t)nRandPick);
+          nRandPick = (uint32_t)(sRolledSeed.nSeedLow % nRandPick);
         }
 
         nMonClassId = aMonIdPool[nRandPick];
@@ -158,7 +158,7 @@ static void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty
             } else {
               sRolledSeed = (D2SeedStrc)(lSeedProduct + (uint64_t)pSeed->nSeedHigh);
               *pSeed = sRolledSeed;
-              nRandPick = (uint32_t)(((uint64_t)d2_bits_of(sRolledSeed) & 0xffffffff) % (uint64_t)nValidMonCount);
+              nRandPick = (uint32_t)(sRolledSeed.nSeedLow % nValidMonCount);
             }
 
             nMonClassId = aMonIdPool[nRandPick];
@@ -175,7 +175,7 @@ static void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty
             } else {
               sRolledSeed = (D2SeedStrc)(lSeedProduct + (uint64_t)pSeed->nSeedHigh);
               *pSeed = sRolledSeed;
-              nRandPick = (uint32_t)(((uint64_t)d2_bits_of(sRolledSeed) & 0xffffffff) % (uint64_t)nValidMonCount);
+              nRandPick = (uint32_t)(sRolledSeed.nSeedLow % nValidMonCount);
             }
 
             nMonClassId = aMonIdPool[nRandPick];
@@ -192,7 +192,7 @@ static void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty
             } else {
               sRolledSeed = (D2SeedStrc)(lSeedProduct + (uint64_t)pSeed->nSeedHigh);
               *pSeed = sRolledSeed;
-              nRandPick = (uint32_t)(((uint64_t)d2_bits_of(sRolledSeed) & 0xffffffff) % (uint64_t)nValidMonCount);
+              nRandPick = (uint32_t)(sRolledSeed.nSeedLow % nValidMonCount);
             }
 
             nMonClassId = aMonIdPool[nRandPick];
@@ -209,7 +209,7 @@ static void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty
             } else {
               sRolledSeed = (D2SeedStrc)(lSeedProduct + (uint64_t)pSeed->nSeedHigh);
               *pSeed = sRolledSeed;
-              nRandPick = (uint32_t)(((uint64_t)d2_bits_of(sRolledSeed) & 0xffffffff) % (uint64_t)nValidMonCount);
+              nRandPick = (uint32_t)(sRolledSeed.nSeedLow % nValidMonCount);
             }
 
             nMonClassId = aMonIdPool[nRandPick];
@@ -226,7 +226,7 @@ static void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty
             } else {
               sRolledSeed = (D2SeedStrc)(lSeedProduct + (uint64_t)pSeed->nSeedHigh);
               *pSeed = sRolledSeed;
-              nRandPick = (uint32_t)(((uint64_t)d2_bits_of(sRolledSeed) & 0xffffffff) % (uint64_t)nValidMonCount);
+              nRandPick = (uint32_t)(sRolledSeed.nSeedLow % nValidMonCount);
             }
 
             nMonClassId = aMonIdPool[nRandPick];
@@ -316,11 +316,49 @@ void __fastcall AllocMonsterRegion(D2PoolManagerStrc * pMemory, D2Row_D2MonsterR
         pMonsterRegionList = (D2Row_D2MonsterRegionStrc_1024*)(D2MonsterRegionStrc (*)[1024])pMonRegionListEntry;
       } while (nSeedLow < sgptDataTable->nTxtLevelsSize);
 
+    D2MonsterRegionStrc* pMonsterRegion;
+    nSeedLow = 1;
+    if (1 >= sgptDataTable->nTxtLevelsSize) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x83);
-    exit(-1);
+    do {
+      pMonRegionListEntry = (int*)((int)pMonsterRegionList + 4);
+      pMonsterRegion = (D2MonsterRegionStrc*)Fog::Memory::AllocServerMemory(pMemory, 0x2e4, ".\\MONSTER\\MonsterRegion.cpp", 0x87, 0);
+      memset(pMonsterRegion, 0, 0x2e4);
+      pLevelTxt = D2Common::DATATBLS::LvlTbls::TXT_Levels_GetLine(nSeedLow);
+      pMonsterRegion->nAct = pLevelTxt->Act;
+      pMonsterRegion->eLevelId = nSeedLow;
+      pMonsterRegion->nMonsterDensity = pLevelTxt->MonDen[nDifficulty_00];
+      pMonsterRegion->nBossMin = pLevelTxt->MonUMin[nDifficulty_00];
+      pMonsterRegion->nBossMax = pLevelTxt->MonUMax[nDifficulty_00];
+      pMonsterRegion->nMonWander = pLevelTxt->MonWndr;
+      pMonsterRegion->bQuest = (bool)pLevelTxt->Quest;
+      pMonsterRegion->nBehaviorType = -1;
+      pMonsterRegion->nLevelRoomsCount = -1;
+      if (!bExpansion) {
+        pMonsterRegion->dwDungeonLevel = (int)pLevelTxt->MonLvl[nDifficulty_00];
+        nMonLevel = pLevelTxt->MonLvl[nDifficulty_00];
+      } else {
+        pMonsterRegion->dwDungeonLevel = (int)pLevelTxt->MonLvlEx[nDifficulty_00];
+        nMonLevel = pLevelTxt->MonLvlEx[nDifficulty_00];
+      }
+      pMonsterRegion->dwDungeonLevelEx = (int)nMonLevel;
+      MONREGION_PopulateMonsterTypes((uint32_t)(nDifficulty != DIFFICULTY_NORMAL), pMonsterRegion, pLevelTxt, pSeed);
+      i = 0;
+      pMonField = pMonsterRegion->pMonData;
+      if (pMonsterRegion->nCounter) {
+        do {
+          SKILLS::SkillItem::SEED_RollChampionPack(pSeed, pMonField, 3);
+          i++;
+          pMonField++;
+        } while (i < (int)(uint32_t)pMonsterRegion->nCounter);
+      }
+      *pMonRegionListEntry = (int)pMonsterRegion;
+      nSeedLow++;
+      pMonsterRegionList = (D2Row_D2MonsterRegionStrc_1024*)(D2MonsterRegionStrc (*)[1024])pMonRegionListEntry;
+    } while (nSeedLow < sgptDataTable->nTxtLevelsSize);
+    return;
 }
 
 // @sourcefile .\MONSTER\MonsterRegion.cpp

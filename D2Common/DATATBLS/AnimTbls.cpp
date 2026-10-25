@@ -86,16 +86,15 @@ BOOL __stdcall ANIMDATA_CompareNames(uint32_t * pdwName1, uint32_t * pdwName2) {
     uint32_t uVar1 = Storm::Source::SSTR::SSTR_StringLength((char*)pdwName1);
     if (uVar1 < 9) {
       uVar1 = Storm::Source::SSTR::SSTR_StringLength((char*)pdwName2);
-      if (uVar1 < 9) {
-        if (*pdwName1 == *pdwName2) {
-          return (uint32_t)(pdwName1[1] == pdwName2[1]);
-        }
-
-        return 0;
+      if (!(uVar1 <= 8)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xda);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xda);
-      exit(-1);
+      if (*pdwName1 == *pdwName2) {
+        return (uint32_t)(pdwName1[1] == pdwName2[1]);
+      }
+      return 0;
     } else {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd9);
       exit(-1);
@@ -192,7 +191,6 @@ void __stdcall ANIMDATA_SetAnimSpeedForUnit(D2UnitStrc * pUnit, int32_t nParam) 
       pRecord[3] = nParam;
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Retrieves frame count, animation speed, and trigger frame from an AnimData

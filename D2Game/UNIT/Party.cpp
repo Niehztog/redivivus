@@ -372,9 +372,7 @@ int __stdcall PARTY_AddUnitToParty(::SGAMEDATA * pGame, int16_t nPartyId, D2Unit
       }
       if (!pFoundSub) {
         nLine = 0xfe;
-      } else if (!pUnit || pUnit->eUnitType != UNIT_PLAYER) {
-        nLine = 0xff;
-      } else {
+      } else if (!(!pUnit || pUnit->eUnitType != UNIT_PLAYER)) {
         bAlreadyInParty = CheckUnitGUIDInAllPartyControlSubs(nUnitGUID, pFoundSub);
         if (bAlreadyInParty) {
           return 1;
@@ -397,6 +395,8 @@ int __stdcall PARTY_AddUnitToParty(::SGAMEDATA * pGame, int16_t nPartyId, D2Unit
 
           return 1;
         }
+      } else {
+        nLine = 0xff;
       }
     }
 
@@ -581,24 +581,23 @@ int16_t __fastcall GetPartyIdFromUnit(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
       exit(-1);
     } else {
       D2UnitPartyControlSub* pSub;
-      if (pGame) {
-        if (!pGame->pPartyControl) {
-          return -1;
-        }
+      if (!pGame) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x27c);
+        exit(-1);
+      }
 
-        for (pSub = pGame->pPartyControl->pSub; pSub; pSub = pSub->pPrev) {
-          for (pSubSub = pSub->pSub; pSubSub; pSubSub = pSubSub->pNext) {
-            if (pSubSub->nUnitGUID == nSearchGUID) {
-              return pSub->nPartyId;
-            }
-          }
-        }
-
+      if (!pGame->pPartyControl) {
         return -1;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x27c);
-      exit(-1);
+      for (pSub = pGame->pPartyControl->pSub; pSub; pSub = pSub->pPrev) {
+        for (pSubSub = pSub->pSub; pSubSub; pSubSub = pSubSub->pNext) {
+          if (pSubSub->nUnitGUID == nSearchGUID) {
+            return pSub->nPartyId;
+          }
+        }
+      }
+      return -1;
     }
 }
 

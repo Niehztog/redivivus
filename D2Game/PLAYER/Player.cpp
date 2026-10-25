@@ -272,9 +272,7 @@ static uint32_t __stdcall PLAYER_PlaceItemInInventory(::SGAMEDATA * pGame, int32
       nErrorLine = pUnit2->nUnitGUID;
       pInventory = 0;
       bPlaced = 1;
-      nItemGUID = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit2);
-      nItemX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit2);
-      bItemPlaced = ITEMS::ItemMode::SERVER_ItemToInventory(".\\PLAYER\\Player.cpp", 0xba, pGame, pUnit, nErrorLine, nItemX, nItemGUID, nParam, bPlaced, pInventory);
+      bItemPlaced = ITEMS::ItemMode::SERVER_ItemToInventory(".\\PLAYER\\Player.cpp", 0xba, pGame, pUnit, nErrorLine, D2Client::Units::GetXPosFromDynamicPathUnit(pUnit2), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit2), nParam, bPlaced, pInventory);
       return (uint32_t)(bItemPlaced != 0);
     }
 }
@@ -298,8 +296,7 @@ static BOOL __stdcall PLAYER_EquipItemToBodyLoc(::SGAMEDATA * pGame, D2UnitStrc 
       nItemGUID_00 = pUnit2->nUnitGUID;
       pResultOut = &dwEquipResultOut;
       nItemGUID = 1;
-      eBodyLoc = D2Common::ITEMS::Items::GetBodyLocation(pUnit2);
-      bEquipResult = ITEMS::ItemMode::SERVER_EquipItemToBodyLoc(pGame, pUnit, nItemGUID_00, eBodyLoc, nItemGUID, pResultOut);
+      bEquipResult = ITEMS::ItemMode::SERVER_EquipItemToBodyLoc(pGame, pUnit, nItemGUID_00, D2Common::ITEMS::Items::GetBodyLocation(pUnit2), nItemGUID, pResultOut);
       return (uint32_t)(bEquipResult != 0);
     }
 }
@@ -322,8 +319,7 @@ uint32_t __stdcall PLAYER_PlaceItemInBelt(::SGAMEDATA * pGame, int32_t nParam, D
       nItemGUID = pUnit2->nUnitGUID;
       pnBeltSlot = &nParam;
       dwGUID = nParam;
-      nXPos = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit2);
-      bBeltPlaced = ITEMS::ItemMode::ITEM_TryPlaceInBelt(pGame, pUnit, nItemGUID, nXPos, dwGUID, (uint32_t*)pnBeltSlot);
+      bBeltPlaced = ITEMS::ItemMode::ITEM_TryPlaceInBelt(pGame, pUnit, nItemGUID, D2Client::Units::GetXPosFromDynamicPathUnit(pUnit2), dwGUID, (uint32_t*)pnBeltSlot);
       return (uint32_t)(bBeltPlaced != 0);
     }
 }
@@ -344,7 +340,7 @@ static D2UnitStrc * __stdcall PLAYER_CreateRewardItemFromTemplate(int32_t nGameP
       D2Common::Stats::StatsEx::STATLIST_RemoveAndRecalc(pCreatedItem, pStatList);
       D2Common::Stats::StatsEx::FreeStatList(&pStatList->sStatList);
     }
-    if (!bNoSkill && -1 < *(short int*)(pTemplateTxt + 0xac) && (int)*(short int*)(pTemplateTxt + 0xac) < sgptDataTable->nTxtSkillsCount) {
+    if (!bNoSkill && 0 <= *(short int*)(pTemplateTxt + 0xac) && (int)*(short int*)(pTemplateTxt + 0xac) < sgptDataTable->nTxtSkillsCount) {
       pStatList = D2Common::Stats::StatsEx::GetStatList(pCreatedItem, STATE_none, 0x40);
       if (!pStatList) {
         pStatList = (D2StatListExStrc*)D2Common::Stats::StatsEx::AllocStatList(pCreatedItem->pMemory, 0x40, 0, UNIT_ITEM, pCreatedItem->nUnitGUID);
@@ -450,12 +446,12 @@ static void __fastcall PLAYER_CreateStarterItems(::SGAMEDATA * pGame, D2UnitStrc
           PLAYER_PlaceItemInInventory(__frame0.pGameSaved, 1, pUnit, pNewItem);
           bIsQuiver = D2Common::ITEMS::Items::ITEMS_IsA(pNewItem, ITEMTYPE_BowQuiver);
           nLine = 0;
-          if (!bIsQuiver) {
-            nStatSubIndex = D2Common::Stats::StatsEx::GetTxtMaxDurability(pNewItem);
-            eUnitStat = UNITSTAT_durability;
-          } else {
+          if (bIsQuiver) {
             nStatSubIndex = 0xfa;
             eUnitStat = UNITSTAT_quantity;
+          } else {
+            nStatSubIndex = D2Common::Stats::StatsEx::GetTxtMaxDurability(pNewItem);
+            eUnitStat = UNITSTAT_durability;
           }
 
           D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pNewItem, eUnitStat, nStatSubIndex, nLine);
@@ -720,38 +716,35 @@ void __fastcall PLAYER_DestroyPortalPair(::SGAMEDATA * pGame, D2UnitStrc * pUnit
     } else {
       D2UnitDataPlayerStrc* pPlayerData;
       pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-      if (pPlayerData) {
-        pPortal = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_OBJECT, pPlayerData->dwUniqueId);
-        if (!(pPortal && pPortal->nClassId == 0x3b)) {
-          return;
-        }
+      if (!pPlayerData) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x25d);
+        exit(-1);
+      }
 
-        Quests::QUESTS::A5Q5::QUEST_OnPlayerLeaveArreatSummit(pGame, pPortal);
-        pPairedPortal = UNIT::SUnit::UNITS_FindPortalOwnerUnit(pGame, pPortal);
-        pRoom = D2Common::Units::UNITS_GetRoom(pPortal);
-        if (pRoom) {
-          D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pRoom, UNIT_OBJECT, pPortal->nUnitGUID);
-        }
-
-        UNIT::SUnit::FreeServerUnit(pGame, pPortal);
-        D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pRoom, 1);
-        if (!pPairedPortal) {
-          return;
-        }
-
-        Quests::QUESTS::A5Q5::QUEST_OnPlayerLeaveArreatSummit(pGame, pPairedPortal);
-        pRoom = D2Common::Units::UNITS_GetRoom(pPairedPortal);
-        if (pRoom) {
-          D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pRoom, UNIT_OBJECT, pPairedPortal->nUnitGUID);
-        }
-
-        UNIT::SUnit::FreeServerUnit(pGame, pPairedPortal);
-        D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pRoom, 1);
+      pPortal = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_OBJECT, pPlayerData->dwUniqueId);
+      if (!(pPortal && pPortal->nClassId == 0x3b)) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x25d);
-      exit(-1);
+      Quests::QUESTS::A5Q5::QUEST_OnPlayerLeaveArreatSummit(pGame, pPortal);
+      pPairedPortal = UNIT::SUnit::UNITS_FindPortalOwnerUnit(pGame, pPortal);
+      pRoom = D2Common::Units::UNITS_GetRoom(pPortal);
+      if (pRoom) {
+        D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pRoom, UNIT_OBJECT, pPortal->nUnitGUID);
+      }
+      UNIT::SUnit::FreeServerUnit(pGame, pPortal);
+      D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pRoom, 1);
+      if (!pPairedPortal) {
+        return;
+      }
+      Quests::QUESTS::A5Q5::QUEST_OnPlayerLeaveArreatSummit(pGame, pPairedPortal);
+      pRoom = D2Common::Units::UNITS_GetRoom(pPairedPortal);
+      if (pRoom) {
+        D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pRoom, UNIT_OBJECT, pPairedPortal->nUnitGUID);
+      }
+      UNIT::SUnit::FreeServerUnit(pGame, pPairedPortal);
+      D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pRoom, 1);
+      return;
     }
 }
 

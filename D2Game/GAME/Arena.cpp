@@ -138,9 +138,7 @@ void __stdcall ARENA_ApplyScoreModifier(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
     D2ArenaTxt* pArenaTxt;
     D2UnitDataPlayerArenaStrc* pArenaData;
     eD2ArenaFlags* peArenaFlags;
-    if (!pUnit2 || pUnit2->eUnitType != UNIT_PLAYER) {
-      dwParam = 0x73;
-    } else {
+    if (!(!pUnit2 || pUnit2->eUnitType != UNIT_PLAYER)) {
       D2UnitDataPlayerStrc* pPlayerData;
       pPlayerData = D2Common::Units::GetPlayerData(pUnit2);
       pArenaData = pPlayerData->pArena;
@@ -182,6 +180,8 @@ void __stdcall ARENA_ApplyScoreModifier(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
           dwParam = 0x94;
         }
       }
+    } else {
+      dwParam = 0x73;
     }
 
     Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), dwParam);
@@ -406,10 +406,7 @@ void __fastcall SERVER_ARENA_KillHandler(::SGAMEDATA * pGame, D2UnitStrc * pUnit
 
 // Clears bScoreDirty flag on player's D2UnitDataPlayerArenaStrc. Halts if unit is null, not player type, or has no arena data.
 void __fastcall ARENA_ClearScoreDirty(::SGAMEDATA * pGameStrc, D2UnitStrc * pUnit) {
-    if (!pUnit || pUnit->eUnitType != UNIT_PLAYER) {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc5);
-      exit(-1);
-    } else {
+    if (!(!pUnit || pUnit->eUnitType != UNIT_PLAYER)) {
       D2UnitDataPlayerStrc* pPlayerData;
       pPlayerData = D2Common::Units::GetPlayerData(pUnit);
       if (!pPlayerData->pArena) {
@@ -419,6 +416,9 @@ void __fastcall ARENA_ClearScoreDirty(::SGAMEDATA * pGameStrc, D2UnitStrc * pUni
 
       pPlayerData->pArena->bScoreDirty = 0;
       return;
+    } else {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc5);
+      exit(-1);
     }
 }
 

@@ -155,33 +155,32 @@ void __fastcall D2WINBUTTON_SetImageIndex(::D2WinButton * pButton, int32_t nImag
 // Handles mouse wheel input for scrollable buttons. Checks scroll up/down flags (bits 3-4 of field 0x10), invokes wheel callback (field 0xd) if delta is non-zero. Uses global recursion counter.
 BOOL __fastcall D2WINBUTTON_HandleMouseWheel(::D2WinButton * pButton, int32_t nWheelDelta) {
     uint32_t dwState;
-    if (pButton->sControl.neD2FormType == FORM_Button) {
-      D2ControlMsg sMsg;
-      dwState = pButton->sControl.dwState;
-      if (!(dwState & 1 && dwState & 4 && !pButton->bPressed && !pButton->bPressedInside && (0 < nWheelDelta && pButton->nButtonFlags & 8 || nWheelDelta < 0 && pButton->nButtonFlags & 0x10))) {
-        return 0;
-      }
+    if (pButton->sControl.neD2FormType != FORM_Button) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe2);
+      exit(-1);
+    }
 
-      sMsg.uMsg = 0;
-      sMsg.wParam = 0;
-      sMsg.uLParam.nLParam = 0;
-      sMsg.nCmdCode = 0;
-      sMsg.dwReserved = 0;
-      sMsg.bHandled = 0;
-      sMsg.dwResult = 0;
-      if (!pButton->sControl.fpOnPress) {
-        return 0;
-      }
-
-      gnFormControlCount++;
-      sMsg.pControl = &pButton->sControl;
-      pButton->sControl.fpOnPress(&sMsg);
-      gnFormControlCount--;
+    D2ControlMsg sMsg;
+    dwState = pButton->sControl.dwState;
+    if (!(dwState & 1 && dwState & 4 && !pButton->bPressed && !pButton->bPressedInside && (0 < nWheelDelta && pButton->nButtonFlags & 8 || nWheelDelta < 0 && pButton->nButtonFlags & 0x10))) {
       return 0;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe2);
-    exit(-1);
+    sMsg.uMsg = 0;
+    sMsg.wParam = 0;
+    sMsg.uLParam.nLParam = 0;
+    sMsg.nCmdCode = 0;
+    sMsg.dwReserved = 0;
+    sMsg.bHandled = 0;
+    sMsg.dwResult = 0;
+    if (!pButton->sControl.fpOnPress) {
+      return 0;
+    }
+    gnFormControlCount++;
+    sMsg.pControl = &pButton->sControl;
+    pButton->sControl.fpOnPress(&sMsg);
+    gnFormControlCount--;
+    return 0;
 }
 
 // Sets custom user data field (field 0x9c) for application-specific button state.
@@ -241,8 +240,7 @@ static void __stdcall D2WINBUTTON_DrawText(::D2WinButton * pButton, int nOffsetY
       nSizeY = pButton->sControl.dwSizeY;
       nPosY = pButton->sControl.dwPosY;
       nPrimaryXCenter = pButton->sControl.dwPosX + nSecondLabelY;
-      nSecondaryTextWidth = D2Lang::StrTable::strtable::GetLocaleString(pButton->nHotkeyStringId);
-      nDrawY = D2WinFont::DRAW_text0(nSecondaryTextWidth);
+      nDrawY = D2WinFont::DRAW_text0(D2Lang::StrTable::strtable::GetLocaleString(pButton->nHotkeyStringId));
       nSecondaryXCenter = (pButton->sControl.dwSizeX - nDrawY) / 2;
       if (nSecondaryXCenter < 0) {
         nSecondaryXCenter = 0;
@@ -261,8 +259,7 @@ static void __stdcall D2WINBUTTON_DrawText(::D2WinButton * pButton, int nOffsetY
       eGlobalPalette = pButton->nTextColor;
       eDrawMode = DRAW_DARKTRANSPARENT;
       bDrawBackground = 0;
-      nSecondaryTextWidth = D2Lang::StrTable::strtable::GetLocaleString(pButton->nHotkeyStringId);
-      D2WinFont::D2WINFONT_DrawTextWithOptionalBackground(nSecondaryTextWidth, nSecondaryXCenter, nSecondLabelY, eGlobalPalette, bDrawBackground, eDrawMode);
+      D2WinFont::D2WINFONT_DrawTextWithOptionalBackground(D2Lang::StrTable::strtable::GetLocaleString(pButton->nHotkeyStringId), nSecondaryXCenter, nSecondLabelY, eGlobalPalette, bDrawBackground, eDrawMode);
     }
 
     D2WinFont::D2WINFONT_DrawTextWithOptionalBackground(wszText, nPrimaryXCenter, nDrawY, pButton->nTextColor, 0, DRAW_DARKTRANSPARENT);

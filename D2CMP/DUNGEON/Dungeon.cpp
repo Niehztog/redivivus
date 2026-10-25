@@ -23,8 +23,8 @@ int * __stdcall TILEPROJECT_AllocSlot(void * pTileProject, char * szFilename) {
       D2TileLibraryHeaderStrc* pDVar1;
       i = 0;
       do {
-        if (!*(int*)(pTileProject + i * 4)) {
-          pDVar1 = SRC::TileProjects::Alloc((D2TileLibraryHashStrc**)(pTileProject + i * 4), szFilename);
+        if (!*(int*)((uint8_t*)pTileProject + i * 4)) {
+          pDVar1 = SRC::TileProjects::Alloc((D2TileLibraryHashStrc**)((uint8_t*)pTileProject + i * 4), szFilename);
           if (i < 0x20) {
             return &pDVar1->nVersion;
           }

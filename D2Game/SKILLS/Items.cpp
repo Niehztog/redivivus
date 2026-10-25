@@ -174,8 +174,7 @@ eD2Skills __stdcall ITEMMOD_RollStaffModSkills(D2UnitStrc * pUnit, eD2Skills eSk
         dwUnitGUID = D2Client::UNIT::GetGUID(pUnit);
         eUnitType = UNIT_ITEM;
         nStatListFlags = 0x40;
-        pMemory = D2Client::UNIT::CUnitEvent::GetMemPool(pUnit);
-        pStatsEx = (D2StatListExStrc*)D2Common::Stats::StatsEx::AllocStatList(pMemory, nStatListFlags, (int32_t)pStatsEx, eUnitType, dwUnitGUID);
+        pStatsEx = (D2StatListExStrc*)D2Common::Stats::StatsEx::AllocStatList(D2Client::UNIT::CUnitEvent::GetMemPool(pUnit), nStatListFlags, (int32_t)pStatsEx, eUnitType, dwUnitGUID);
         D2Common::Stats::StatsEx::STATLIST_AttachStatListToUnit(pUnit, pStatsEx, 1);
         if (pStatsEx) {
           D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_item_singleskill, eSkill, nPickedSkillId);
@@ -192,7 +191,7 @@ eD2Skills __stdcall ITEMMOD_RollStaffModSkills(D2UnitStrc * pUnit, eD2Skills eSk
 }
 
 // Expansion staff mod skill roller. Filters skills by itypea1/itypeb1/itypec1 matching item type. Counts valid, rolls RNG % count, walks to nth skill. Returns skill ID + level [1, 3].
-void __stdcall STAFFMOD_RollStaffModSkills(D2UnitStrc * pUnit, int32_t nSkillId, int32_t nSkillBaseOffset, int32_t nBonusCount) {
+static void __stdcall STAFFMOD_RollStaffModSkills(D2UnitStrc * pUnit, int32_t nSkillId, int32_t nSkillBaseOffset, int32_t nBonusCount) {
     uint16_t wItemVersion;
     uint32_t bIsOfType;
     int32_t dwUnitGUID;
@@ -313,8 +312,7 @@ void __stdcall STAFFMOD_RollStaffModSkills(D2UnitStrc * pUnit, int32_t nSkillId,
         eUnitType = UNIT_ITEM;
         nExpireFrame = 0;
         nStatListFlags = 0x40;
-        pMemory = D2Client::UNIT::CUnitEvent::GetMemPool(pUnit);
-        pStatsEx = (D2StatListExStrc*)D2Common::Stats::StatsEx::AllocStatList(pMemory, nStatListFlags, nExpireFrame, eUnitType, dwUnitGUID);
+        pStatsEx = (D2StatListExStrc*)D2Common::Stats::StatsEx::AllocStatList(D2Client::UNIT::CUnitEvent::GetMemPool(pUnit), nStatListFlags, nExpireFrame, eUnitType, dwUnitGUID);
         D2Common::Stats::StatsEx::STATLIST_AttachStatListToUnit(pUnit, pStatsEx, 1);
         if (pStatsEx) {
           D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_item_singleskill, nSkillLevel, nParam);
@@ -395,7 +393,7 @@ uint32_t __stdcall ITEMMOD_RollMagicAffix(D2UnitStrc * pUnit, int32_t bIsSuffix,
     wItemVersion = D2Common::ITEMS::Items::ITEM_GetItemData_wItemVersion(pUnit);
     uint32_t nItemVersion;
     nItemVersion = (uint32_t)wItemVersion;
-    if (!((uint64_t)d2_bits_of(sNewSeed) & 1) && !bExclude) {
+    if (!(sNewSeed.nSeedLow & 1) && !bExclude) {
       nAffixIdx = -1;
       return nAffixIdx + 1;
     }
@@ -585,7 +583,7 @@ int32_t __stdcall ITEMMOD_RollMagicAffixClassic(D2UnitStrc * pItem, int32_t bIsS
     byItemLvl = D2Common::ITEMS::Items::ITEM_GetItemsTxt_nLevel(pItem);
     uint32_t pCurAffixEntry;
     pCurAffixEntry = (uint32_t)byItemLvl;
-    if (!((uint64_t)d2_bits_of(DVar2) & 1) && !bForceRoll) {
+    if (!(DVar2.nSeedLow & 1) && !bForceRoll) {
       nCandidateIdx = -1;
       return nCandidateIdx + 1;
     }
@@ -1119,7 +1117,7 @@ BOOL __stdcall RollPrefixes(D2ItemGenContextStrc * pItemGenContext, D2UnitStrc *
     do {
       seedState = D2_SEED_NEXT(*pSeed);
       *pSeed = seedState;
-      if (nSuffixCount == 3 || nPrefixCount != 3 && (uint64_t)d2_bits_of(seedState) & 1) {
+      if (nSuffixCount == 3 || nPrefixCount != 3 && seedState.nSeedLow & 1) {
         nDupRetries = 0;
         do {
           sVar4 = D2Common::ITEMS::Items::ITEM_GetItemData_wItemVersion(pUnit);
@@ -1722,7 +1720,7 @@ BOOL __stdcall ITEMMOD_GenerateQualityItem(D2UnitStrc * pUnit, D2ItemGenContextS
     D2ItemsTxt* pDVar6 = D2Common::DATATBLS::ItemTbls::TXT_Items_GetLine(nClassId);
     if (pQualityItemsTableInfo && pDVar6) {
       nTableSize = *pQualityItemsTableInfo;
-      memset(aVisitedSlots, 0, 10 * sizeof(aVisitedSlots[0]));
+      for (int i = 0; i < 10; i++) aVisitedSlots[i] = 0;
       iVar2 = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_throwable(pUnit);
       if (iVar2 || pDVar6->bNoDurability != '\0') {
         nTableSize = 4;
@@ -1740,7 +1738,7 @@ BOOL __stdcall ITEMMOD_GenerateQualityItem(D2UnitStrc * pUnit, D2ItemGenContextS
           } else {
             DVar1 = D2_SEED_NEXT(*pDVar7);
             *pDVar7 = DVar1;
-            nRandIdx = (DWORD)(((uint64_t)d2_bits_of(DVar1) & 0xffffffff) % (uint64_t)nTableSize);
+            nRandIdx = (DWORD)(DVar1.nSeedLow % nTableSize);
           }
         } while (aVisitedSlots[nRandIdx] != '\0');
 

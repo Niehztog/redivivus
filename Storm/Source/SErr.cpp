@@ -63,8 +63,7 @@ static void __stdcall SERR_AddStormFacility(uint16_t wModuleId) {
 
     SIZE_T dwBytes = 0xc;
     DWORD dwFlags = 4;
-    HANDLE hHeap = GetProcessHeap();
-    uint16_t* pNewNode = (uint16_t*)HeapAlloc(hHeap, dwFlags, dwBytes);
+    uint16_t* pNewNode = (uint16_t*)HeapAlloc(GetProcessHeap(), dwFlags, dwBytes);
     *ppTailLink = (uint32_t)pNewNode;
     *pNewNode = wModuleId;
     HMODULE hModule = SSystem::StormGetInstance();
@@ -365,8 +364,7 @@ static LPSTR * SERR_GetString(int32_t nErrorIndex) {
     int nLen = 0x100;
     char* pcVar1 = gszErrorStringBuffer;
     UINT uID = nErrorIndex + 0x5100;
-    HMODULE hInstance_lcl = SSystem::StormGetInstance();
-    /* HINSTANCE hInstance for LoadStringA */ nLen = LoadStringA(hInstance_lcl, uID, pcVar1, nLen);
+    /* HINSTANCE hInstance for LoadStringA */ nLen = LoadStringA(SSystem::StormGetInstance(), uID, pcVar1, nLen);
     pcVar1 = gszErrorStringBuffer;
     if (nLen) {
       return (LPSTR*)pcVar1;
@@ -463,8 +461,7 @@ int __stdcall SErrRegisterMessageSource(uint16_t wModuleId, HMODULE dwModuleBase
     SERR_InternalEnterCriticalSection();
     SIZE_T dwBytes = 0xc;
     DWORD dwFlags = 4;
-    HANDLE hHeap = GetProcessHeap();
-    uint16_t* pNewModule = (uint16_t*)HeapAlloc(hHeap, dwFlags, dwBytes);
+    uint16_t* pNewModule = (uint16_t*)HeapAlloc(GetProcessHeap(), dwFlags, dwBytes);
     *pNewModule = wModuleId;
     *(HMODULE*)(pNewModule + 2) = dwModuleBase;
     *(void**)(pNewModule + 4) = (void*)gpErrorModuleList;
@@ -617,7 +614,6 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
     __frame0.pStackTracePtr = pStackTrace;
     __frame0.pCustomMsgPtr = (char*)pCustomMsg;
     if (gbSSystemShutdownInProgress || gbSSystemErrorDialogActive) {
-      Fog::Debug::GuardStack();
       return 0;
     }
 
@@ -811,7 +807,6 @@ int __stdcall SErrDisplayError(uint32_t nErrorCode, uint32_t * pStackTrace, int3
     }
 
     gbSSystemErrorDialogActive = 0;
-    Fog::Debug::GuardStack();
     return iVar1;
 }
 
@@ -836,7 +831,7 @@ void __stdcall SErrReportNamedResourceLeak(char * szMessage, char * szText) {
     static uint32_t gbDebugMemoryInitialized;
 
     char szDebugOutput[200];
-    uint32_t szFormatted[64];
+    char szFormatted[256];
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (!gbDebugMemoryInitialized) {
       gbDebugMemoryInitialized = 1;
@@ -844,12 +839,12 @@ void __stdcall SErrReportNamedResourceLeak(char * szMessage, char * szText) {
     }
     if (gnDebugMemoryInitFlag) {
       if (!szText || *szText == '\0') {
-        SSTR::SStrPrintf((char*)szFormatted, 0x100, "%s", szMessage);
+        SSTR::SStrPrintf(szFormatted, 0x100, "%s", szMessage);
       } else {
-        SSTR::SStrPrintf((char*)szFormatted, 0x100, "%s (%s)", szMessage, szText);
+        SSTR::SStrPrintf(szFormatted, 0x100, "%s (%s)", szMessage, szText);
       }
       if (!gnSSystemOption1) {
-        SErrDisplayError(0x8510007f, szFormatted, -3, nullptr, 1, 1);
+        SErrDisplayError(0x8510007f, (uint32_t*)szFormatted, -3, nullptr, 1, 1);
         return;
       }
 

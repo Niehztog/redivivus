@@ -925,8 +925,8 @@ void __stdcall ClientLight_UpdateRoomLightPulse() {
     uint8_t* pGreen = &gRoomLightPulse.nLightRoomGreen;
     uint8_t* pRed = &gRoomLightPulse.nLightRoomRed;
     uint32_t nAmbientColor = 0;
-    D2RoomStrc* pRoom = UNIT::CUnit::GetCurrentRoom();
-    Draw::LightMap::ROOM_GetAmbientLightColor(pRoom, &nAmbientColor, (char*)pRed, (char*)pGreen, (char*)pBlue, nAmbientArg);
+    D2RoomStrc* pRoom;
+    Draw::LightMap::ROOM_GetAmbientLightColor(UNIT::CUnit::GetCurrentRoom(), &nAmbientColor, (char*)pRed, (char*)pGreen, (char*)pBlue, nAmbientArg);
     if ((int)gRoomLightPulse.nCurrentTick < (int)gRoomLightPulse.nFadeInDuration) {
       fVar1 = Fog::MATH_sinTable_f32_LookupOffset(gRoomLightPulse.nSinOffset);
       fAmbientColorF = (float)(int)nAmbientColor;
@@ -1658,8 +1658,7 @@ void __fastcall TRADE_SendGoldToPartner(uint32_t nParam) {
       D2UnitStrc* pUnit;
       nLayer = 0;
       eUnitStat = UNITSTAT_gold;
-      pUnit = UNIT::Player::GetPlayerUnit_UI();
-      gnTradePlayerGoldAmount = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, eUnitStat, nLayer);
+      gnTradePlayerGoldAmount = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(UNIT::Player::GetPlayerUnit_UI(), eUnitStat, nLayer);
       if (nParam >= gnTradePlayerGoldAmount) {
         GAME::Msg::NET_D2GS_CLIENT_Send_SHORT_SHORT_SHORT(0x4f, 8, (int16_t)(gnTradePlayerGoldAmount >> 0x10), (int16_t)gnTradePlayerGoldAmount);
         return;
@@ -1779,7 +1778,7 @@ int32_t __fastcall SEED_RollRange(D2SeedStrc * pSeed, int32_t nMin, int32_t nMax
     if (nRangeWidth & nRangeWidth - 1) {
       dSeedResult = D2_SEED_NEXT(*pSeed);
       *pSeed = dSeedResult;
-      return (int)(((uint64_t)d2_bits_of(dSeedResult) & 0xffffffff) % (uint64_t)nRangeWidth) + nMin;
+      return (int)(dSeedResult.nSeedLow % nRangeWidth) + nMin;
     }
 
     dSeedResult = D2_SEED_NEXT(*pSeed);
@@ -1819,7 +1818,7 @@ BOOL __fastcall OBJECT_CheckAutoLight(D2UnitStrc * pUnit, int32_t bSkipCofLoad) 
         if (pUnit->eAnimMode.ePlayerMode == Death) {
           pUnit->eAnimMode.ePlayerMode = eD2PlayerAnimMode_ns::Neutral;
           if (!bSkipCofLoad) {
-            Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+            Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
           }
 
           D2Common::Units::InitAnimMode(pUnit);
@@ -1839,7 +1838,7 @@ BOOL __fastcall OBJECT_CheckAutoLight(D2UnitStrc * pUnit, int32_t bSkipCofLoad) 
 
     pUnit->eAnimMode.ePlayerMode = Death;
     if (!bSkipCofLoad) {
-      Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+      Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
     }
 
     D2Common::Units::InitAnimMode(pUnit);
@@ -1901,8 +1900,7 @@ void ITEM_ToggleHandState(D2UnitStrc * pUnit) {
         nSoundArg3 = 0;
         nSoundArg2 = 0;
         nSoundArg1 = 0;
-        nSoundId = UNIT::SOUND_GetIdFromUnit(pUnit);
-        Sound::SOUND_PlaySound(nSoundId, nullptr, nSoundArg1, nSoundArg2, nSoundArg3);
+        Sound::SOUND_PlaySound(UNIT::SOUND_GetIdFromUnit(pUnit), nullptr, nSoundArg1, nSoundArg2, nSoundArg3);
         return;
       }
     } else if (gnPlayerCashDisplay == 2) {
@@ -1931,8 +1929,7 @@ void __stdcall TEXT_HandleMouseMove() {
     int32_t nDialogX = 0;
     uint32_t uShadow = 0;
     uint32_t uTextColor = 0xf;
-    uint16_t* pszDialogTitle = D2Lang::StrTable::strtable::GetLocaleString(0xd19);
-    UI::Dialog::AddStringData(UI::Dialog::gpHoradricCubeDialog, pszDialogTitle, uTextColor, uShadow, nDialogX, uAlignment, uTransFlag, nDialogY);
+    UI::Dialog::AddStringData(UI::Dialog::gpHoradricCubeDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd19), uTextColor, uShadow, nDialogX, uAlignment, uTransFlag, nDialogY);
     gnPlayerCashDisplay = 3;
     if (!nHoradricCubeUIState) {
       D2UnitStrc* pPlayerUnit_lcl;
@@ -2182,8 +2179,8 @@ int32_t __fastcall GFXUTIL_GetOverlayFrameDelay(D2UnitStrc * pUnit, int32_t pOve
     uint8_t byDirection = D2Common::Units::GetDirection(pUnit);
     sGfxData.nDirection = (int)byDirection;
     sGfxData.pDC6 = 0;
-    sGfxData.nComponentType = '\x01';
     sGfxData.nFrameNumber = nBuilt;
+    sGfxData.nComponentType = '\x01';
     BOOL nWeaponClass = Engine::GfxUtil::GFXUTIL_BuildCofParams(&sGfxData, nullptr, (D2UnitStrc*)-1, &nOutItemClassId);
     if (!nWeaponClass) {
       return 1;

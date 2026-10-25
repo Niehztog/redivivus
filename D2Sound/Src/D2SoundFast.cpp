@@ -215,7 +215,7 @@ int __stdcall SOUND_PlayNextAmbientSound() {
             nAmbientCount = gaAmbientSoundFlags;
             if (BVar1) {
               /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&gSoundSmpCs);
-              return 0;
+              return 1;
             }
           }
         }

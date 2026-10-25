@@ -1092,76 +1092,73 @@ static int32_t __stdcall RENDERER_GLIDE_UploadTextureToCache(GlideTexInfoStrc * 
       exit(-1);
     } else {
       uint8_t* pBVar1;
-      if (pTexInfo->nTexArea < 0x10001) {
-        memset(gpGlideSpriteBuffer, 0, pTexInfo->nTexArea);
-        switch (nMode) {
-          case 1:
-
-          case 4:
-            D2CMP::SRC::CelCmp::CELCMP_DrawCelFrame(pTexInfo->pSprite, -pTexInfo->nLeft, pTexInfo->nTexHeight - pTexInfo->nTop - 1, 0, 0, (BYTE*)pvVar2, pTexInfo->nTexHeight, pTexInfo->nTexWidth, nullptr, nullptr, pPalette);
-          break;
-          case 2:
-            D2CMP::SRC::CelCmp::CELCMP_DrawCelFrame(pTexInfo->pSprite, -pTexInfo->nLeft, pTexInfo->nTexHeight - pTexInfo->nTop - 1, 0, 0, (BYTE*)pvVar2, pTexInfo->nTexHeight, pTexInfo->nTexWidth, nullptr, nullptr, pPalette);
-          pBVar1 = gpPaletteTable[0x46];
-          nSpriteBufferPtr = 0;
-          pbyPalettePixel = (uint8_t*)gpGlideSpriteBuffer;
-          if (0 < pTexInfo->nTexArea) {
-            do {
-              if (*pbyPalettePixel) {
-                *pbyPalettePixel = pBVar1[*pbyPalettePixel];
-              }
-
-              nSpriteBufferPtr++;
-              pbyPalettePixel++;
-            } while (nSpriteBufferPtr < pTexInfo->nTexArea);
-          }
-
-          break;
-          case 3:
-            D2CMP::SRC::CelCmp::CELCMP_DrawCelFrame(pTexInfo->pSprite, 1 - pTexInfo->nLeft, pTexInfo->nTexHeight - pTexInfo->nTop - 2, 0, 0, (BYTE*)pvVar2, pTexInfo->nTexHeight, pTexInfo->nTexWidth, nullptr, nullptr, nullptr);
-          pvVar2 = gpGlideSpritePixelBuffer;
-          if (!gpGlideSpritePixelBuffer) {
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1ad);
-            exit(-1);
-          }
-          if (0x10000 < pTexInfo->nTexArea) {
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1ae);
-            exit(-1);
-          }
-
-          memset(gpGlideSpritePixelBuffer, 0, pTexInfo->nTexArea);
-          nCacheSlot = pTexInfo->nTexWidth;
-          pSrcPixelRow = (char*)(nCacheSlot + (int)gpGlideSpriteBuffer);
-          nSpriteBufferPtr = nCacheSlot + (int)pvVar2;
-          nMode = pTexInfo->nTexArea + nCacheSlot * -2;
-          if (0 < nMode) {
-            do {
-              byPixel = *pSrcPixelRow;
-              pSrcPixelRow++;
-              if (byPixel != '\0') {
-                *(uint8_t*)(nSpriteBufferPtr - pTexInfo->nTexWidth) = nOutlineColor;
-                *(uint8_t*)(nSpriteBufferPtr - 1) = nOutlineColor;
-                *(uint8_t*)(nSpriteBufferPtr + 1) = nOutlineColor;
-                *(uint8_t*)(nSpriteBufferPtr + pTexInfo->nTexWidth) = nOutlineColor;
-              }
-
-              nSpriteBufferPtr++;
-              nMode--;
-            } while (nMode);
-          }
-
-          grTexInfo.data = pvVar2;
-        }
-
-        (*GLIDEDLL_grTexDownloadMipMap_16)(gnGlideTMUIndex, nTexStartAddress, 3, &grTexInfo);
-        startAddress = nTexStartAddress;
-        (*GLIDEDLL_grTexSource_16)(gnGlideTMUIndex, startAddress, 3, &grTexInfo);
-        RENDERER_GLIDE_SetTextureMode(gnGlideTMUIndex);
-        return 1;
+      if (!(pTexInfo->nTexArea < 0x10001)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x185);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x185);
-      exit(-1);
+      memset(gpGlideSpriteBuffer, 0, pTexInfo->nTexArea);
+      switch (nMode) {
+        case 1:
+
+        case 4:
+          D2CMP::SRC::CelCmp::CELCMP_DrawCelFrame(pTexInfo->pSprite, -pTexInfo->nLeft, pTexInfo->nTexHeight - pTexInfo->nTop - 1, 0, 0, (BYTE*)pvVar2, pTexInfo->nTexHeight, pTexInfo->nTexWidth, nullptr, nullptr, pPalette);
+        break;
+        case 2:
+          D2CMP::SRC::CelCmp::CELCMP_DrawCelFrame(pTexInfo->pSprite, -pTexInfo->nLeft, pTexInfo->nTexHeight - pTexInfo->nTop - 1, 0, 0, (BYTE*)pvVar2, pTexInfo->nTexHeight, pTexInfo->nTexWidth, nullptr, nullptr, pPalette);
+        pBVar1 = gpPaletteTable[0x46];
+        nSpriteBufferPtr = 0;
+        pbyPalettePixel = (uint8_t*)gpGlideSpriteBuffer;
+        if (0 < pTexInfo->nTexArea) {
+          do {
+            if (*pbyPalettePixel) {
+              *pbyPalettePixel = pBVar1[*pbyPalettePixel];
+            }
+
+            nSpriteBufferPtr++;
+            pbyPalettePixel++;
+          } while (nSpriteBufferPtr < pTexInfo->nTexArea);
+        }
+
+        break;
+        case 3:
+          D2CMP::SRC::CelCmp::CELCMP_DrawCelFrame(pTexInfo->pSprite, 1 - pTexInfo->nLeft, pTexInfo->nTexHeight - pTexInfo->nTop - 2, 0, 0, (BYTE*)pvVar2, pTexInfo->nTexHeight, pTexInfo->nTexWidth, nullptr, nullptr, nullptr);
+        pvVar2 = gpGlideSpritePixelBuffer;
+        if (!gpGlideSpritePixelBuffer) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1ad);
+          exit(-1);
+        }
+        if (0x10000 < pTexInfo->nTexArea) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1ae);
+          exit(-1);
+        }
+        memset(gpGlideSpritePixelBuffer, 0, pTexInfo->nTexArea);
+        nCacheSlot = pTexInfo->nTexWidth;
+        pSrcPixelRow = (char*)(nCacheSlot + (int)gpGlideSpriteBuffer);
+        nSpriteBufferPtr = nCacheSlot + (int)pvVar2;
+        nMode = pTexInfo->nTexArea + nCacheSlot * -2;
+        if (0 < nMode) {
+          do {
+            byPixel = *pSrcPixelRow;
+            pSrcPixelRow++;
+            if (byPixel != '\0') {
+              *(uint8_t*)(nSpriteBufferPtr - pTexInfo->nTexWidth) = nOutlineColor;
+              *(uint8_t*)(nSpriteBufferPtr - 1) = nOutlineColor;
+              *(uint8_t*)(nSpriteBufferPtr + 1) = nOutlineColor;
+              *(uint8_t*)(nSpriteBufferPtr + pTexInfo->nTexWidth) = nOutlineColor;
+            }
+            nSpriteBufferPtr++;
+            nMode--;
+          } while (nMode);
+        }
+        grTexInfo.data = pvVar2;
+      }
+
+      (*GLIDEDLL_grTexDownloadMipMap_16)(gnGlideTMUIndex, nTexStartAddress, 3, &grTexInfo);
+      startAddress = nTexStartAddress;
+      (*GLIDEDLL_grTexSource_16)(gnGlideTMUIndex, startAddress, 3, &grTexInfo);
+      RENDERER_GLIDE_SetTextureMode(gnGlideTMUIndex);
+      return 1;
     }
 }
 
@@ -1745,17 +1742,21 @@ void __stdcall RENDERER_GLIDE_InitSpriteCache() {
           return;
         }
 
-        bIsPerspective = RENDERER_GLIDE_IsPerspectiveMode();
-        if (bIsPerspective) {
-          return;
-        }
-
-        gnGlideSpriteSecondaryTMUEnabled = 1;
+      gpGlideSpriteBuffer = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\glSprite.cpp", 0x4c, 0);
+      gpGlideSpritePixelBuffer = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\glSprite.cpp", 0x4d, 0);
+      D2CMP::SRC::CelCmp::CELCMP_SetPixelDataFreeCallback(GLIDE_PixelDataFreeCallback_ClearCacheNodes);
+      gnGlideTMUIndex = (uint32_t)(1 < gnGlideTextureMemoryUsed);
+      gnGlideSpriteSecondaryTMUEnabled = 0;
+      if (1 >= gnGlideTextureMemoryUsed) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4b);
-      exit(-1);
+      bIsPerspective = RENDERER_GLIDE_IsPerspectiveMode();
+      if (bIsPerspective) {
+        return;
+      }
+      gnGlideSpriteSecondaryTMUEnabled = 1;
+      return;
     }
 }
 
@@ -1800,11 +1801,7 @@ int32_t __fastcall RENDERER_GLIDE_InitDebugFont(FxU32 nParam2, int32_t nParam) {
       tmu = gnGlideDebugFontTMU;
       pSrcTexel = (uint32_t*)(nGlyphOffset + (int)nGlyphTexBase);
       pDstTexel = pTexBuf;
-      for (nCopyCount = 0x20; nCopyCount; nCopyCount--) {
-        *pDstTexel = *pSrcTexel;
-        pSrcTexel++;
-        pDstTexel++;
-      }
+      memcpy(pDstTexel, pSrcTexel, 0x20 * sizeof(*pDstTexel));
 
       (*GLIDEDLL_grTexDownloadMipMap_16)(tmu, *pTexStartAddr, 3, &gTexInfoDebugFontGlide);
       nTexAddress += nTexStride;
@@ -2391,30 +2388,29 @@ void __fastcall DrawRect(RECT * pRect, DWORD nPaletteIndex) {
     } else {
       int nXEnd;
       nRectTop = pRect->top;
-      if (nRectTop <= pRect->bottom) {
-        nRectHeight = pRect->right - nRectLeft;
-        nRectWidth = pRect->bottom - nRectTop;
-        if (!(nRectHeight && nRectWidth)) {
-          return;
-        }
+      if (!(nRectTop <= pRect->bottom)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xba);
+        exit(-1);
+      }
 
-        nXEnd = nRectHeight + nRectLeft;
-        nYEnd = nRectWidth + nRectTop;
-        nXStart = (nRectHeight >> 1) + nRectLeft;
-        nYEnd_00 = (nRectWidth >> 1) + nRectTop;
-        if (!(-1 < nXEnd && nRectLeft <= RENDERER_nWindowWidth && -1 < nYEnd && nRectTop <= RENDERER_nWindowHeight)) {
-          return;
-        }
-
-        Glide::DrawLine(nXStart, nRectTop, nXEnd, nYEnd_00, nPaletteIndex, 0xff);
-        Glide::DrawLine(nXEnd, nYEnd_00, nXStart, nYEnd, nPaletteIndex, 0xff);
-        Glide::DrawLine(nXStart, nYEnd, nRectLeft, nYEnd_00, nPaletteIndex, 0xff);
-        Glide::DrawLine(nRectLeft, nYEnd_00, nXStart, nRectTop, nPaletteIndex, 0xff);
+      nRectHeight = pRect->right - nRectLeft;
+      nRectWidth = pRect->bottom - nRectTop;
+      if (!(nRectHeight && nRectWidth)) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xba);
-      exit(-1);
+      nXEnd = nRectHeight + nRectLeft;
+      nYEnd = nRectWidth + nRectTop;
+      nXStart = (nRectHeight >> 1) + nRectLeft;
+      nYEnd_00 = (nRectWidth >> 1) + nRectTop;
+      if (!(-1 < nXEnd && nRectLeft <= RENDERER_nWindowWidth && -1 < nYEnd && nRectTop <= RENDERER_nWindowHeight)) {
+        return;
+      }
+      Glide::DrawLine(nXStart, nRectTop, nXEnd, nYEnd_00, nPaletteIndex, 0xff);
+      Glide::DrawLine(nXEnd, nYEnd_00, nXStart, nYEnd, nPaletteIndex, 0xff);
+      Glide::DrawLine(nXStart, nYEnd, nRectLeft, nYEnd_00, nPaletteIndex, 0xff);
+      Glide::DrawLine(nRectLeft, nYEnd_00, nXStart, nRectTop, nPaletteIndex, 0xff);
+      return;
     }
 }
 
@@ -2431,44 +2427,43 @@ void __fastcall DrawRectEx(RECT * pRect, DWORD nPaletteIndex) {
       uint32_t nXStart;
       nClampedYStart = pRect->top;
       nClampedYEnd = pRect->bottom;
-      if ((int)nClampedYStart <= (int)nClampedYEnd) {
-        nXEnd = RENDERER_nWindowWidth - 1;
-        nXStart = nXEnd;
-        if ((int)((int)nClampedXStart <= 0 ? 0 : nClampedXStart) < (int)nXEnd) {
-          nXStart = (int)nClampedXStart <= 0 ? 0 : nClampedXStart;
-        }
-        if ((int)((int)nClampedYEndTmp <= 0 ? 0 : nClampedYEndTmp) < (int)nXEnd) {
-          nXEnd = (int)nClampedYEndTmp <= 0 ? 0 : nClampedYEndTmp;
-        }
-        if (nXStart == nXEnd) {
-          return;
-        }
+      if (!((int)nClampedYStart <= (int)nClampedYEnd)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe0);
+        exit(-1);
+      }
 
-        nClampedYEndTmp = RENDERER_nWindowHeight - 1;
-        nClampedXStart = nClampedYEndTmp;
-        if ((int)((int)nClampedYStart <= 0 ? 0 : nClampedYStart) < (int)nClampedYEndTmp) {
-          nClampedXStart = (int)nClampedYStart <= 0 ? 0 : nClampedYStart;
-        }
-        if ((int)((int)nClampedYEnd <= 0 ? 0 : nClampedYEnd) < (int)nClampedYEndTmp) {
-          nClampedYEndTmp = (int)nClampedYEnd <= 0 ? 0 : nClampedYEnd;
-        }
-        if (nClampedYEndTmp == nClampedXStart) {
-          return;
-        }
-        if ((int)nClampedYEndTmp < (int)nClampedXStart) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf0);
-          exit(-1);
-        }
-
-        Glide::DrawLine(nXStart, nClampedXStart, nXEnd, nClampedXStart, nPaletteIndex, 0xff);
-        Glide::DrawLine(nXEnd, nClampedXStart, nXEnd, nClampedYEndTmp, nPaletteIndex, 0xff);
-        Glide::DrawLine(nXEnd, nClampedYEndTmp, nXStart, nClampedYEndTmp, nPaletteIndex, 0xff);
-        Glide::DrawLine(nXStart, nClampedYEndTmp, nXStart, nClampedXStart, nPaletteIndex, 0xff);
+      nXEnd = RENDERER_nWindowWidth - 1;
+      nXStart = nXEnd;
+      if ((int)((int)nClampedXStart <= 0 ? 0 : nClampedXStart) < (int)nXEnd) {
+        nXStart = (int)nClampedXStart <= 0 ? 0 : nClampedXStart;
+      }
+      if ((int)((int)nClampedYEndTmp <= 0 ? 0 : nClampedYEndTmp) < (int)nXEnd) {
+        nXEnd = (int)nClampedYEndTmp <= 0 ? 0 : nClampedYEndTmp;
+      }
+      if (nXStart == nXEnd) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe0);
-      exit(-1);
+      nClampedYEndTmp = RENDERER_nWindowHeight - 1;
+      nClampedXStart = nClampedYEndTmp;
+      if ((int)((int)nClampedYStart <= 0 ? 0 : nClampedYStart) < (int)nClampedYEndTmp) {
+        nClampedXStart = (int)nClampedYStart <= 0 ? 0 : nClampedYStart;
+      }
+      if ((int)((int)nClampedYEnd <= 0 ? 0 : nClampedYEnd) < (int)nClampedYEndTmp) {
+        nClampedYEndTmp = (int)nClampedYEnd <= 0 ? 0 : nClampedYEnd;
+      }
+      if (nClampedYEndTmp == nClampedXStart) {
+        return;
+      }
+      if ((int)nClampedYEndTmp < (int)nClampedXStart) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf0);
+        exit(-1);
+      }
+      Glide::DrawLine(nXStart, nClampedXStart, nXEnd, nClampedXStart, nPaletteIndex, 0xff);
+      Glide::DrawLine(nXEnd, nClampedXStart, nXEnd, nClampedYEndTmp, nPaletteIndex, 0xff);
+      Glide::DrawLine(nXEnd, nClampedYEndTmp, nXStart, nClampedYEndTmp, nPaletteIndex, 0xff);
+      Glide::DrawLine(nXStart, nClampedYEndTmp, nXStart, nClampedXStart, nPaletteIndex, 0xff);
+      return;
     }
 }
 

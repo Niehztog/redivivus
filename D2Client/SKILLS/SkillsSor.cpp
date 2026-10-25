@@ -598,7 +598,7 @@ void __fastcall SKILLSSOR_CltCreateBlazeMissile(D2UnitStrc * pUnit) {
     }
 
     D2SkillsTxt* pSkillTxt = GAME::SCmd::TXT_Skills_GetLine(eSkill);
-    if (!(pSkillTxt && -1 < pSkillTxt->cltmissilea && (int)pSkillTxt->cltmissilea < sgptDataTable->nTxtMissilesSize)) {
+    if (!(pSkillTxt && 0 <= pSkillTxt->cltmissilea && (int)pSkillTxt->cltmissilea < sgptDataTable->nTxtMissilesSize)) {
       return;
     }
 
@@ -733,7 +733,7 @@ int32_t __fastcall SKILLSSOR_StateCltEventFn01_ChillingArmor(int32_t nParam1, D2
     sSkillArg.nUnitY = Units::GetYPosFromDynamicPathUnit(pOwnerUnit);
     UNIT::Missile::MakeMissile(&sSkillArg);
     short int nOverlayId = pSkillTxt->cltoverlaya;
-    if (!(-1 < nOverlayId && (int)nOverlayId < sgptDataTable->nTxtOverlaySize)) {
+    if (!(0 <= nOverlayId && (int)nOverlayId < sgptDataTable->nTxtOverlaySize)) {
       return 1;
     }
 
@@ -791,8 +791,7 @@ BOOL __fastcall Skills_CltDoFunc_Sor_RandomRadiusMissile(D2UnitStrc * pUnit, eD2
     nFireInterval = Units::GetXPosFromDynamicPathUnit(pUnit);
     nRandOffsetY = Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, nRandOffsetY);
     nCasterX = Units::GetYPosFromDynamicPathUnit(pUnit);
-    nDuration = Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, nDuration);
-    UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnit, eMissileId, 0, 0, nRandOffsetX - nRadius + nFireInterval, nRandOffsetY - nRadius + nCasterX, eSkill, nSkillLvl, nDuration);
+    UNIT::Missile::MISSILE_CreateFromUnitWithOffset(pUnit, eMissileId, 0, 0, nRandOffsetX - nRadius + nFireInterval, nRandOffsetY - nRadius + nCasterX, eSkill, nSkillLvl, Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, nDuration));
     return 1;
 }
 

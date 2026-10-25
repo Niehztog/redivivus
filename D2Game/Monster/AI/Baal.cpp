@@ -332,19 +332,17 @@ static uint32_t __fastcall AI_BAAL_IsUnitInRange(D2UnitStrc * pUnit, int * pnPar
       exit(-1);
     } else {
       uint32_t nDist;
-      if (pnParam) {
-        if (pUnit->nAct != *(eAct*)(pnParam + 6)) {
-          return 0;
-        }
-
-        nLine = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-        nX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-        nDist = GetCollisionDistanceFromXY((D2UnitStrc*)pnParam, nX, nLine);
-        return (uint32_t)(nDist < 0x3fc);
+      if (!pnParam) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x11e);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x11e);
-      exit(-1);
+      if (pUnit->nAct != *(eAct*)(pnParam + 6)) {
+        return 0;
+      }
+      nLine = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
+      nDist = GetCollisionDistanceFromXY((D2UnitStrc*)pnParam, D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), nLine);
+      return (uint32_t)(nDist < 0x3fc);
     }
 }
 
@@ -430,7 +428,7 @@ int32_t __stdcall AI_BAAL_SelectWeightedAction(int * pnWeights, int32_t nWeightC
       } else {
         sNewSeed = (D2SeedStrc)((uint64_t)nSeedLow * 0x6ac690c5 + nSeedHigh);
         pUnit->sSeed = sNewSeed;
-        nRandResult = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) % (uint64_t)nRandResult);
+        nRandResult = (uint32_t)(sNewSeed.nSeedLow % nRandResult);
       }
     }
 
@@ -461,7 +459,7 @@ int32_t __stdcall AI_BAAL_CloneChooseAction(::SGAMEDATA * pGame, D2UnitStrc * pU
     anWeights[0xc] = 10;
     anWeights[0] = 0;
     int nBaseWeight = 0x32;
-    memset(anWeights + 2, 0, 6 * sizeof(anWeights[0]));
+    for (int i = 2; i < 8; i++) anWeights[i] = 0;
     anWeights[8] = 0x14;
     anWeights[9] = 0x1e;
     anWeights[10] = 0x96;
@@ -744,7 +742,7 @@ int32_t __stdcall AI_Baal_SelectActionWeighted(::SGAMEDATA * pGame, int32_t nPar
       } else {
         sNewSeed = (D2SeedStrc)((uint64_t)nRandRoll * 0x6ac690c5 + nSeedHighExt);
         pUnit2->sSeed = sNewSeed;
-        nRandRoll = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) % (uint64_t)nTotalWeight);
+        nRandRoll = (uint32_t)(sNewSeed.nSeedLow % nTotalWeight);
       }
     }
 
@@ -809,8 +807,7 @@ static int32_t __stdcall AI_BaalEvaluateCombatAction(D2UnitStrc * pUnit, ::SGAME
 
       eCollisionFlag = 0x40;
       nCollisionWidth = COLLISION_PATTERN_BIG_UNIT_PRESENCE;
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      nAction = D2Common::Collision::CheckCollision_BlockPlayer_Type(pRoom, nDistToAnchorPt, nAction, nCollisionWidth, eCollisionFlag);
+      nAction = D2Common::Collision::CheckCollision_BlockPlayer_Type(D2Common::Units::UNITS_GetRoom(pUnit), nDistToAnchorPt, nAction, nCollisionWidth, eCollisionFlag);
       if (nAction) {
         return 4;
       }
@@ -825,8 +822,7 @@ static int32_t __stdcall AI_BaalEvaluateCombatAction(D2UnitStrc * pUnit, ::SGAME
 
     _bInThroneRoom = 0;
     if (pUnit2->eUnitType == UNIT_PLAYER) {
-      nFoundGUID = PLAYER::Player::GetPlayerUniqueId(pUnit2);
-      pFoundUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_OBJECT, nFoundGUID);
+      pFoundUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_OBJECT, PLAYER::Player::GetPlayerUniqueId(pUnit2));
       if (pFoundUnit) {
         pRoom = D2Common::Units::UNITS_GetRoom(pFoundUnit);
         eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
@@ -1143,8 +1139,7 @@ static void __fastcall AI_Baal_ExecuteAction(::SGAMEDATA * pGame, D2UnitStrc * p
           pnY = &__frame0.nUnitY;
           pnX = &__frame0.nUnitX;
           pRoomCoordList = 0;
-          pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-          BVar1 = Monsters::Spawn::SPAWN_FindRandomPositionForMonster(pGame, pRoom, pRoomCoordList, nClassId, pnX, pnY, nTeleportParam);
+          BVar1 = Monsters::Spawn::SPAWN_FindRandomPositionForMonster(pGame, D2Common::Units::UNITS_GetRoom(pUnit), pRoomCoordList, nClassId, pnX, pnY, nTeleportParam);
           if (BVar1) {
             SERVER_UNIT_CastSkill(pGame, pUnit, pMonStats->aSkMode[4], (int)pMonStats->aSkill[4], nullptr, __frame0.nUnitX, __frame0.nUnitY);
             return;
@@ -1168,8 +1163,8 @@ void __fastcall BaalCrabAi_ResetInfernoAndReattach(::SGAMEDATA * pGame, D2UnitSt
     int storedCommandArg2 = 0;
     D2MonsterAiCmdStrc* pInfernoCommand = Ai::AiGeneral::FindMonsterAiCmd(pUnit, 10, 0);
     if (pInfernoCommand) {
-      storedCommandArg2 = pInfernoCommand->nCmdArg[2];
       storedCommandArg1 = pInfernoCommand->nCmdArg[1];
+      storedCommandArg2 = pInfernoCommand->nCmdArg[2];
     }
 
     eD2States currentInfernoState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_inferno);

@@ -217,8 +217,17 @@ void __fastcall FreeLightMap(D2LightMapStrc * pLightMap) {
           return;
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x17a);
-        exit(-1);
+        if (!pPrevLightMap) {
+          gpLightMap = pDVar1->pPrev;
+        } else {
+          pPrevLightMap->pPrev = pDVar1->pPrev;
+        }
+        if (pLightMap->pPixelMap) {
+          Fog::Memory::FreeClientMemory(pLightMap->pPixelMap, ".\\DRAW\\dLightMap.cpp", 0x181, 0);
+        }
+        Fog::Memory::FreeClientMemory(pLightMap, ".\\DRAW\\dLightMap.cpp", 0x183, 0);
+        nFreedLightMapsCounter++;
+        return;
       }
 
       pPrevLightMap = pDVar1;
@@ -992,51 +1001,46 @@ static void LIGHTMAP_ApplyLightWithPixelMap(D2LightMapStrc * pLightMap) {
       exit(-1);
     } else {
       uint32_t nDistY;
-      if (pLightMap->bPixelMapReady) {
-        nGamma = pLightMap->nGamma;
-        if (nCellSpan < 0) {
-          return;
-        }
+      if (!pLightMap->bPixelMapReady) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x47f);
+        exit(-1);
+      }
 
-        nCellSpan++;
-        nYLoopCount = nCellSpan;
-        do {
-          nDistY = pLightMap->nGridY - nYCoord;
-          nCurX = nStartX;
-          nXLoopCount = nCellSpan;
-          if ((int)nDistY < 0) {
-            nDistY = -nDistY;
-          }
-
-          do {
-            nIntensity = *pPixelData;
-            if (nIntensity < 0x10) {
-              nDistX = pLightMap->nGridX - nCurX;
-              if ((int)nDistX < 0) {
-                nDistX = -nDistX;
-              }
-
-              nDistX = Weather::WEATHER_ApproximateDistance(nDistX, nDistY);
-              nIntensity = ((int)((pLightMap->nRadiusX - nDistX) * (int)((int64_t)((uint64_t)nGamma << 0x10) / (int64_t)nRadius)) >> 0x10) * (8 - (nIntensity >> 1)) >> 3;
-              if (0 < nIntensity) {
-                LIGHTMAP_AddLightToCell(nYCoord, nIntensity, pLightMap->nRed, pLightMap->nGreen, pLightMap->nBlue, nCurX);
-              }
-            }
-
-            pPixelData++;
-            nXLoopCount--;
-            nCurX += 8;
-          } while (nXLoopCount);
-
-          nYCoord += 8;
-          nYLoopCount--;
-        } while (nYLoopCount);
-
+      nGamma = pLightMap->nGamma;
+      if (nCellSpan < 0) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x47f);
-      exit(-1);
+      nCellSpan++;
+      nYLoopCount = nCellSpan;
+      do {
+        nDistY = pLightMap->nGridY - nYCoord;
+        nCurX = nStartX;
+        nXLoopCount = nCellSpan;
+        if ((int)nDistY < 0) {
+          nDistY = -nDistY;
+        }
+        do {
+          nIntensity = *pPixelData;
+          if (nIntensity < 0x10) {
+            nDistX = pLightMap->nGridX - nCurX;
+            if ((int)nDistX < 0) {
+              nDistX = -nDistX;
+            }
+            nDistX = Weather::WEATHER_ApproximateDistance(nDistX, nDistY);
+            nIntensity = ((int)((pLightMap->nRadiusX - nDistX) * (int)((int64_t)((uint64_t)nGamma << 0x10) / (int64_t)nRadius)) >> 0x10) * (8 - (nIntensity >> 1)) >> 3;
+            if (0 < nIntensity) {
+              LIGHTMAP_AddLightToCell(nYCoord, nIntensity, pLightMap->nRed, pLightMap->nGreen, pLightMap->nBlue, nCurX);
+            }
+          }
+          pPixelData++;
+          nXLoopCount--;
+          nCurX += 8;
+        } while (nXLoopCount);
+        nYCoord += 8;
+        nYLoopCount--;
+      } while (nYLoopCount);
+      return;
     }
 }
 

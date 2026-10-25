@@ -597,11 +597,9 @@ void __stdcall DIALOG_CleanupSystem() {
     if (gnDialogStructAllocCount) {
       HWND hWnd;
       nHandlerCount = 0xe;
-      hWnd = D2gfx::D2GFX::GetHwnd();
-      _Message::MESSAGE_UnregisterEventHandlerBatch(hWnd, gsUIDialogFlagInit, nHandlerCount);
+      _Message::MESSAGE_UnregisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), gsUIDialogFlagInit, nHandlerCount);
       nHandlerCount = 1;
-      hWnd = D2gfx::D2GFX::GetHwnd();
-      _Message::MESSAGE_UnregisterEventHandlerBatch(hWnd, &g_UIFlagInitDialogMouseWheel, nHandlerCount);
+      _Message::MESSAGE_UnregisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &g_UIFlagInitDialogMouseWheel, nHandlerCount);
       gnDialogCounter--;
       pDialogNode = gpDialogActual;
     }
@@ -716,11 +714,8 @@ D2DialogStrc * __fastcall AllocDialogStrcWithBackground(int32_t nX, int32_t nY, 
       gnDialogStructAllocCount = 1;
       DIALOG_RegisterHandler();
       nHandler = 0xe;
-      hWnd = D2gfx::D2GFX::GetHwnd();
-      _Message::MESSAGE_RegisterEventHandlerBatch(hWnd, gsUIDialogFlagInit, nHandler);
-      nHandler = 1;
-      hWnd = D2gfx::D2GFX::GetHwnd();
-      _Message::MESSAGE_RegisterEventHandlerBatch(hWnd, &g_UIFlagInitDialogMouseWheel, nHandler);
+      _Message::MESSAGE_RegisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), gsUIDialogFlagInit, nHandler);
+      _Message::MESSAGE_RegisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &g_UIFlagInitDialogMouseWheel, 1);
       gnDialogCounter++;
       if (gnDialogCounter_b == 1) {
         return pDialog;
@@ -777,11 +772,10 @@ D2DialogStrc * __fastcall AllocDialogStrc(int32_t nX, int32_t nY, fpDialogFunc f
     gnDialogStructAllocCount = 1;
     DIALOG_RegisterHandler();
     int32_t nCount = 0xe;
-    HWND hWnd = D2gfx::D2GFX::GetHwnd();
-    _Message::MESSAGE_RegisterEventHandlerBatch(hWnd, gsUIDialogFlagInit, nCount);
+    HWND hWnd;
+    _Message::MESSAGE_RegisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), gsUIDialogFlagInit, nCount);
     nCount = 1;
-    hWnd = D2gfx::D2GFX::GetHwnd();
-    _Message::MESSAGE_RegisterEventHandlerBatch(hWnd, &g_UIFlagInitDialogMouseWheel, nCount);
+    _Message::MESSAGE_RegisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &g_UIFlagInitDialogMouseWheel, nCount);
     gnDialogCounter++;
     if (gnDialogCounter_b != 1) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x408);
@@ -803,11 +797,9 @@ void __stdcall FreeDialogStrc() {
       HWND hWnd;
       ui::UI_RegisterAutoMapEventHandlers(1);
       nHandlerCount = 0xe;
-      hWnd = D2gfx::D2GFX::GetHwnd();
-      _Message::MESSAGE_UnregisterEventHandlerBatch(hWnd, gsUIDialogFlagInit, nHandlerCount);
+      _Message::MESSAGE_UnregisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), gsUIDialogFlagInit, nHandlerCount);
       nHandlerCount = 1;
-      hWnd = D2gfx::D2GFX::GetHwnd();
-      _Message::MESSAGE_UnregisterEventHandlerBatch(hWnd, &g_UIFlagInitDialogMouseWheel, nHandlerCount);
+      _Message::MESSAGE_UnregisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &g_UIFlagInitDialogMouseWheel, nHandlerCount);
       Inv::INV_SetInventoryActive(1);
       GAME::Select::SELECT_SetExclusionRect(nullptr);
       pCurrentDialog = gpDialogActual;
@@ -847,68 +839,64 @@ void __fastcall DIALOG_DrawBackground(D2DialogStrc * pDialog) {
     int nYAccum;
     int32_t nColor_lcl;
     D2DialogSubStrc* pSub;
-    if (pDialog) {
-      ::UIWidget* self;
-      memset(&sGfxData, 0, 0x48);
-      sBgRect.left = pDialog->pCoords2.x;
-      sBgRect.top = pDialog->pCoords2.y;
-      pDialog->nDrawFrameCount++;
-      sBgRect.right = pDialog->nBackgroundWidth - 1 + sBgRect.left;
-      nBottom = sBgRect.top + pDialog->nBackgroundHeight;
-      sBgRect.bottom = nBottom - 1;
-      sGfxData.nDirection = 0;
-      if (!pDialog->bHasBackground) {
-        Engine::GfxInfo::D2GFX_DrawSolidRectExBySize(sBgRect.left, sBgRect.top, sBgRect.right - sBgRect.left + 1, sBgRect.bottom - sBgRect.top + 1, 0, DRAW_TRANSPARENT);
-        ui::DRAW_Direct_RectFrame(&sBgRect);
-      } else if (pDialog->pBackgroundDC6) {
-        sGfxData.nFrameNumber = 0;
-        sGfxData.pDC6 = pDialog->pBackgroundDC6;
-        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, sBgRect.left, nBottom, -1, DRAW_SOLID, nullptr);
-      }
-
-      for (pSub = pDialog->pDialogSub; pSub; pSub = pSub->pNext) {
-        self = pSub->pWidget;
-        if (self) {
-          self->pVtable->Draw(self);
-        }
-      }
-
-      nPrevFont = D2Win::Src::D2WinFont::SetAndReturnLastFont(1);
-      nYAccum = 0;
-      nStringIdx = 0;
-      if (0 < pDialog->nSubCounter) {
-        piStringData = &pDialog->aStringData[0].nFont;
-        do {
-          nFont = piStringData[1];
-          D2Win::Src::D2WinFont::SetAndReturnLastFont(*piStringData);
-          nColor_lcl = pDialog->pCoords2.y + nYAccum + piStringData[-4];
-          nBottom = piStringData[-3] + pDialog->pCoords2.x;
-          if (pDialog->nSelectedLine == nStringIdx) {
-            if (pDialog->nHighlightStyle == 1) {
-              nFont = 3;
-            }
-            if (pDialog->nHighlightStyle == 2) {
-              sGfxData.pDC6 = ui::UI_GetCursorIconDC6();
-              sGfxData.nFrameNumber = gpDialogBackgroundDC6 % 7;
-              D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nBottom - 0x18, nColor_lcl + 4, -1, DRAW_SOLID, nullptr);
-              D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, piStringData[-2] + 2 + nBottom, nColor_lcl + 4, -1, DRAW_SOLID, nullptr);
-              gpDialogBackgroundDC6++;
-            }
-          }
-
-          D2Win::Src::D2WinFont::DRAW_text((uint16_t*)(piStringData - 0x40), nBottom, nColor_lcl, nFont, 0);
-          nYAccum += piStringData[-4];
-          nStringIdx++;
-          piStringData += 0x44;
-        } while (nStringIdx < pDialog->nSubCounter);
-      }
-
-      D2Win::Src::D2WinFont::SetAndReturnLastFont(nPrevFont);
-      return;
+    if (!pDialog) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x48e);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x48e);
-    exit(-1);
+    ::UIWidget* self;
+    memset(&sGfxData, 0, 0x48);
+    sBgRect.left = pDialog->pCoords2.x;
+    sBgRect.top = pDialog->pCoords2.y;
+    pDialog->nDrawFrameCount++;
+    sBgRect.right = pDialog->nBackgroundWidth - 1 + sBgRect.left;
+    nBottom = sBgRect.top + pDialog->nBackgroundHeight;
+    sBgRect.bottom = nBottom - 1;
+    sGfxData.nDirection = 0;
+    if (!pDialog->bHasBackground) {
+      Engine::GfxInfo::D2GFX_DrawSolidRectExBySize(sBgRect.left, sBgRect.top, sBgRect.right - sBgRect.left + 1, sBgRect.bottom - sBgRect.top + 1, 0, DRAW_TRANSPARENT);
+      ui::DRAW_Direct_RectFrame(&sBgRect);
+    } else if (pDialog->pBackgroundDC6) {
+      sGfxData.nFrameNumber = 0;
+      sGfxData.pDC6 = pDialog->pBackgroundDC6;
+      D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, sBgRect.left, nBottom, -1, DRAW_SOLID, nullptr);
+    }
+    for (pSub = pDialog->pDialogSub; pSub; pSub = pSub->pNext) {
+      self = pSub->pWidget;
+      if (self) {
+        self->pVtable->Draw(self);
+      }
+    }
+    nPrevFont = D2Win::Src::D2WinFont::SetAndReturnLastFont(1);
+    nYAccum = 0;
+    nStringIdx = 0;
+    if (0 < pDialog->nSubCounter) {
+      piStringData = &pDialog->aStringData[0].nFont;
+      do {
+        nFont = piStringData[1];
+        D2Win::Src::D2WinFont::SetAndReturnLastFont(*piStringData);
+        nColor_lcl = pDialog->pCoords2.y + nYAccum + piStringData[-4];
+        nBottom = piStringData[-3] + pDialog->pCoords2.x;
+        if (pDialog->nSelectedLine == nStringIdx) {
+          if (pDialog->nHighlightStyle == 1) {
+            nFont = 3;
+          }
+          if (pDialog->nHighlightStyle == 2) {
+            sGfxData.pDC6 = ui::UI_GetCursorIconDC6();
+            sGfxData.nFrameNumber = gpDialogBackgroundDC6 % 7;
+            D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nBottom - 0x18, nColor_lcl + 4, -1, DRAW_SOLID, nullptr);
+            D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, piStringData[-2] + 2 + nBottom, nColor_lcl + 4, -1, DRAW_SOLID, nullptr);
+            gpDialogBackgroundDC6++;
+          }
+        }
+        D2Win::Src::D2WinFont::DRAW_text((uint16_t*)(piStringData - 0x40), nBottom, nColor_lcl, nFont, 0);
+        nYAccum += piStringData[-4];
+        nStringIdx++;
+        piStringData += 0x44;
+      } while (nStringIdx < pDialog->nSubCounter);
+    }
+    D2Win::Src::D2WinFont::SetAndReturnLastFont(nPrevFont);
+    return;
 }
 
 void __fastcall DIALOG_SetSelectedLine(D2DialogStrc * pDialog, int32_t nSubIndex) {
@@ -1032,37 +1020,36 @@ void __fastcall DIALOG_RecalculateLayout(D2DialogStrc * pDialog) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5d2);
         exit(-1);
       } else {
-        if (nHeight <= ScreenSizeY - 0x62) {
-          if (nXOrigin + iVar1 > ScreenSizeX - 10) {
-            pDialog->pCoords2.x = ScreenSizeX - iVar1;
-          }
-          if (pDialog->pCoords2.y + nHeight > ScreenSizeY - 0x3a) {
-            pDialog->pCoords2.y = ScreenSizeY - nHeight - 0x30;
-          }
-          if (pDialog->pCoords2.x < 0xb) {
-            pDialog->pCoords2.x = 10;
-          }
-          if (pDialog->pCoords2.y < 0xb) {
-            pDialog->pCoords2.y = 10;
-          }
+        if (!(nHeight <= ScreenSizeY - 0x62)) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5d7);
+          exit(-1);
+        }
 
-          pDialog->nBackgroundWidth = iVar1;
-          iVar1 = 0;
-          pDialog->nBackgroundHeight = nHeight;
-          if (0 >= pDialog->nSubCounter) {
-            return;
-          }
+        if (nXOrigin + iVar1 > ScreenSizeX - 10) {
+          pDialog->pCoords2.x = ScreenSizeX - iVar1;
+        }
+        if (pDialog->pCoords2.y + nHeight > ScreenSizeY - 0x3a) {
+          pDialog->pCoords2.y = ScreenSizeY - nHeight - 0x30;
+        }
+        if (pDialog->pCoords2.x < 0xb) {
+          pDialog->pCoords2.x = 10;
+        }
+        if (pDialog->pCoords2.y < 0xb) {
+          pDialog->pCoords2.y = 10;
+        }
 
-          do {
-            DIALOG_CenterStringLine(pDialog, iVar1);
-            iVar1++;
-          } while (iVar1 < pDialog->nSubCounter);
-
+        pDialog->nBackgroundWidth = iVar1;
+        iVar1 = 0;
+        pDialog->nBackgroundHeight = nHeight;
+        if (0 >= pDialog->nSubCounter) {
           return;
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5d7);
-        exit(-1);
+        do {
+          DIALOG_CenterStringLine(pDialog, iVar1);
+          iVar1++;
+        } while (iVar1 < pDialog->nSubCounter);
+        return;
       }
     }
 }
@@ -1103,43 +1090,43 @@ void __fastcall AddStringData(D2DialogStrc * pDialog, uint16_t * szString, uint3
       pDialog->aStringData[nStringIdx].nFont = nParam;
       pDialog->aStringData[nStringIdx].nXOffset = 0;
       pDialog->aStringData[nStringIdx].nColor = param_2;
-      if (nParam1 != 3 || pDialog->nHighlightStyle != 1) {
-        pDialog->aStringData[nStringIdx].nLineType = nParam1;
-        pDialog->aStringData[nStringIdx].fpOnClick = nParam2;
-        pDialog->aStringData[nStringIdx].nCallbackParam = nParam3;
-        nErrLine = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(szString);
-        nStrLen = nErrLine + 1;
-        if (0x77 < (int)nStrLen) {
-          nStrLen = 119;
-        }
+      if (!(nParam1 != 3 || pDialog->nHighlightStyle != 1)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x55e);
+        exit(-1);
+      }
 
-        D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pDialog->aStringData[nStringIdx].szString, __frame0.pSrcString, nStrLen);
-        nStringIdx = __frame0.nDialogX2;
-        pDialog->aStringData[__frame0.nDialogX2].szString[nStrLen] = L'\0';
-        if (nParam3) {
-          pDialog->nClickableCount++;
-        }
-        if (pDialog->nAutoLayout) {
-          DIALOG_RecalculateLayout(pDialog);
-        } else {
-          DIALOG_CenterStringLine(pDialog, __frame0.nDialogX2);
-        }
+      pDialog->aStringData[nStringIdx].nLineType = nParam1;
+      pDialog->aStringData[nStringIdx].fpOnClick = nParam2;
+      pDialog->aStringData[nStringIdx].nCallbackParam = nParam3;
+      nErrLine = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(szString);
+      nStrLen = nErrLine + 1;
+      if (0x77 < (int)nStrLen) {
+        nStrLen = 119;
+      }
 
-        __frame0.nDialogY = pDialog->pCoords2.y;
-        __frame0.nDialogX = pDialog->pCoords2.x;
-        __frame0.nExclusionRight = pDialog->nBackgroundHeight + __frame0.nDialogY;
-        __frame0.nExclusionBottom = pDialog->nBackgroundWidth + __frame0.nDialogX;
-        GAME::Select::SELECT_SetExclusionRect((uint32_t*)&__frame0.nDialogX);
-        if (!(pDialog->nSelectedLine == -1 && nParam3)) {
-          return;
-        }
+      D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pDialog->aStringData[nStringIdx].szString, __frame0.pSrcString, nStrLen);
+      nStringIdx = __frame0.nDialogX2;
+      pDialog->aStringData[__frame0.nDialogX2].szString[nStrLen] = L'\0';
+      if (nParam3) {
+        pDialog->nClickableCount++;
+      }
+      if (pDialog->nAutoLayout) {
+        DIALOG_RecalculateLayout(pDialog);
+      } else {
+        DIALOG_CenterStringLine(pDialog, __frame0.nDialogX2);
+      }
 
-        DIALOG_SetSelectedLine(pDialog, nStringIdx);
+      __frame0.nDialogY = pDialog->pCoords2.y;
+      __frame0.nDialogX = pDialog->pCoords2.x;
+      __frame0.nExclusionRight = pDialog->nBackgroundHeight + __frame0.nDialogY;
+      __frame0.nExclusionBottom = pDialog->nBackgroundWidth + __frame0.nDialogX;
+      GAME::Select::SELECT_SetExclusionRect((uint32_t*)&__frame0.nDialogX);
+      if (!(pDialog->nSelectedLine == -1 && nParam3)) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x55e);
-      exit(-1);
+      DIALOG_SetSelectedLine(pDialog, nStringIdx);
+      return;
     } else {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x552);
       exit(-1);

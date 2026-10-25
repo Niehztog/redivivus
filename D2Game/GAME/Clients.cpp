@@ -579,35 +579,33 @@ void __fastcall GAME_CollectNearbyUnitPositions(D2ClientStrc * pClient, uint32_t
     } else {
       D2UnitStrc* pPlayerUnit_lcl;
       D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
-      if (ppAdjacentRooms) {
-        pPlayerUnit_lcl = CLIENTS_GetControlUnit(pClient, 0);
-        if (!pPlayerUnit_lcl) {
-          return;
-        }
+      if (!ppAdjacentRooms) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x70d);
+        exit(-1);
+      }
 
-        nX = D2Client::Units::GetXPosFromDynamicPathUnit(pPlayerUnit_lcl);
-        nY = D2Client::Units::GetYPosFromDynamicPathUnit(pPlayerUnit_lcl);
-        pnMaxDist = 0;
-        memset(pClient->nPacketBuffer + 500, 0, 4 * sizeof(pClient->nPacketBuffer[0]));
-        __frame0.nSortBufNext = 0;
-        __frame0.nSortBufHead = 0;
-        nRoomIdx = 0;
-        if (nAdjacentRoomCount) {
-          do {
-            for (pPlayerUnit_lcl = ppAdjacentRooms[nRoomIdx]->pUnitList; pPlayerUnit_lcl; pPlayerUnit_lcl = pPlayerUnit_lcl->pRoomNext) {
-              CLIENT_AddUnitToProximitySortedList(nX, pPlayerUnit_lcl, nY, &pnMaxDist, pClient, nMaxUnits, (uint32_t*)&__frame0.pSortList);
-            }
-
-            nRoomIdx++;
-          } while (nRoomIdx < nAdjacentRoomCount);
-        }
-
-        CLIENT_PopulateVisibilityPacketBuffer((int**)&__frame0.pSortList, pClient);
+      pPlayerUnit_lcl = CLIENTS_GetControlUnit(pClient, 0);
+      if (!pPlayerUnit_lcl) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x70d);
-      exit(-1);
+      nX = D2Client::Units::GetXPosFromDynamicPathUnit(pPlayerUnit_lcl);
+      nY = D2Client::Units::GetYPosFromDynamicPathUnit(pPlayerUnit_lcl);
+      pnMaxDist = 0;
+      memset(pClient->nPacketBuffer + 500, 0, 4 * sizeof(pClient->nPacketBuffer[0]));
+      __frame0.nSortBufNext = 0;
+      __frame0.nSortBufHead = 0;
+      nRoomIdx = 0;
+      if (nAdjacentRoomCount) {
+        do {
+          for (pPlayerUnit_lcl = ppAdjacentRooms[nRoomIdx]->pUnitList; pPlayerUnit_lcl; pPlayerUnit_lcl = pPlayerUnit_lcl->pRoomNext) {
+            CLIENT_AddUnitToProximitySortedList(nX, pPlayerUnit_lcl, nY, &pnMaxDist, pClient, nMaxUnits, (uint32_t*)&__frame0.pSortList);
+          }
+          nRoomIdx++;
+        } while (nRoomIdx < nAdjacentRoomCount);
+      }
+      CLIENT_PopulateVisibilityPacketBuffer((int**)&__frame0.pSortList, pClient);
+      return;
     }
 }
 
@@ -848,37 +846,37 @@ void __fastcall RemoveUnitForClient(D2ClientStrc * pClient, D2UnitStrc * pUnit) 
     } else {
       D2RoomStrc* pUnitRoom;
       pUnitRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      if (pClient->pRoom) {
-        D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
-        nRoomIdx = 0;
-        if (nAdjacentRoomCount) {
-          while (true) {
-            if (!ppAdjacentRooms[nRoomIdx]) {
-              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x85e);
-              exit(-1);
-            }
-            if (pUnitRoom == ppAdjacentRooms[nRoomIdx]) {
-              break;
-            }
+      if (!pClient->pRoom) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x859);
+        exit(-1);
+      }
 
-            nRoomIdx++;
-            if (nAdjacentRoomCount <= nRoomIdx) {
-              UNIT::SUnitMsg::SendRemoveObject(pUnit, pClient);
-              return;
-            }
+      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pClient->pRoom, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
+      nRoomIdx = 0;
+      if (nAdjacentRoomCount) {
+        while (true) {
+          if (!ppAdjacentRooms[nRoomIdx]) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x85e);
+            exit(-1);
+          }
+          if (pUnitRoom == ppAdjacentRooms[nRoomIdx]) {
+            break;
           }
 
-          if (nRoomIdx < nAdjacentRoomCount) {
+          nRoomIdx++;
+          if (nAdjacentRoomCount <= nRoomIdx) {
+            UNIT::SUnitMsg::SendRemoveObject(pUnit, pClient);
             return;
           }
         }
 
-        UNIT::SUnitMsg::SendRemoveObject(pUnit, pClient);
-        return;
+        if (nRoomIdx < nAdjacentRoomCount) {
+          return;
+        }
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x859);
-      exit(-1);
+      UNIT::SUnitMsg::SendRemoveObject(pUnit, pClient);
+      return;
     }
 }
 
@@ -1772,67 +1770,94 @@ int32_t __fastcall CLIENT_LoadCharacterAndSendGameData(D2ClientStrc * pClient, :
       exit(-1);
     } else {
       char* szCharNameLog;
-      if (pClient) {
-        pClient->fClientFlags |= 1;
-        if (!pGame->bExpansion && 5 <= pClient->nClass) {
-          szErrorName = "nError";
-          nErrorCode = 0x18;
-          szCharNameLog = GetCharName(pClient);
-          Fog::Src::LogManager::LOGMANAGER_TraceToModuleLog("", "[PLAYER CREATE]  ClientAddPlayerToGame()  Error Creating:%s  Error:%d=%s", szCharNameLog, nErrorCode, szErrorName);
+      if (!pClient) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x242);
+        exit(-1);
+      }
+      pClient->fClientFlags |= 1;
+      if (!pGame->bExpansion && 5 <= pClient->nClass) {
+        szErrorName = "nError";
+        nErrorCode = 0x18;
+        Fog::Src::LogManager::LOGMANAGER_TraceToModuleLog("", "[PLAYER CREATE]  ClientAddPlayerToGame()  Error Creating:%s  Error:%d=%s", GetCharName(pClient), nErrorCode, szErrorName);
+        pClient->pPlayer = 0;
+        return 0x18;
+      }
+      bLoadError = PLAYER::PlayerSave::CLIENT_LoadOrCreatePlayerUnit(pGame, pClient, (D2ClientStrc*)pClient->szCharName, bLoadFromSave, (D2UnitStrc*)&pPlayerUnitOut, (uint32_t)pRoom, nX, nY);
+      if (bLoadError) {
+        szErrorName = "nError";
+        bLoadErrorSave = bLoadError;
+        Fog::Src::LogManager::LOGMANAGER_TraceToModuleLog("", "[PLAYER LOAD]  ClientAddPlayerToGame()  Error Loading:%s  Error:%d=%s", GetCharName(pClient), bLoadErrorSave, szErrorName);
+        pClient->pPlayer = 0;
+        return bLoadError;
+      }
+      wCharFlags = pClient->nCharacterStatus;
+      if (!(wCharFlags & 0x20)) {
+        if (pGame->bExpansion) {
           pClient->pPlayer = 0;
-          return 0x18;
+          return 0x17;
+        }
+      } else if (!pGame->bExpansion) {
+        pClient->pPlayer = 0;
+        return 0x18;
+      }
+      if (wCharFlags & 4) {
+        if (wCharFlags & 8) {
+          pClient->pPlayer = 0;
+          return 0x15;
         }
 
-        bLoadError = PLAYER::PlayerSave::CLIENT_LoadOrCreatePlayerUnit(pGame, pClient, (D2ClientStrc*)pClient->szCharName, bLoadFromSave, (D2UnitStrc*)&pPlayerUnitOut, (uint32_t)pRoom, nX, nY);
-        if (bLoadError) {
-          szErrorName = "nError";
-          bLoadErrorSave = bLoadError;
-          szCharNameLog = GetCharName(pClient);
-          Fog::Src::LogManager::LOGMANAGER_TraceToModuleLog("", "[PLAYER LOAD]  ClientAddPlayerToGame()  Error Loading:%s  Error:%d=%s", szCharNameLog, bLoadErrorSave, szErrorName);
+        eArenaFlags = Arena::ARENA_GetFlags(pGame);
+        if (!(eArenaFlags & ARENAFLAG_Hardcore)) {
           pClient->pPlayer = 0;
-          return bLoadError;
+          return 0x14;
+        }
+      } else {
+        eArenaFlagsCheck = Arena::ARENA_GetFlags(pGame);
+        if (eArenaFlagsCheck & ARENAFLAG_Hardcore) {
+          pClient->pPlayer = 0;
+          return 0x13;
+        }
+      }
+      CLIENT_SendHandshakePacket0x0B(pClient, pPlayerUnitOut);
+      SCmd::NET_D2GS_SERVER_Send_0x5F_PortalFlags(pClient, '_', D2Common::Units::GetPlayerPortalFlags(pPlayerUnitOut));
+      D2Common::Stats::StatsEx::STATLIST_IterateChangedStats(pPlayerUnitOut, pPlayerUnitOut, PLAYER::PlayerMsg::SendAttributeUpdate);
+      pPlayerUnit_lcl = pPlayerUnitOut;
+      uPortalFlags = D2Client::UNIT::Player::CheckFlagWithMask(pPlayerUnitOut, 1);
+      if (uPortalFlags) {
+        UNIT::SendUpdatedItemsToClient(pGame, pPlayerUnit_lcl, pClient, nullptr);
+        if (pPlayerUnitOut) {
+          pPlayerUnitOut->eUnitFlagsEx |= 0x200000;
+        }
+      }
+      nHotkeyIdx = 0;
+      pHotKey = pClient->pHotKeys;
+      do {
+        wSkillId = pHotKey->wSkillId;
+        if (0 <= wSkillId && (int)wSkillId < sgptDataTable->nTxtSkillsCount) {
+          SCmd::NET_D2GS_SERVER_Send_0x7B_SYNCHOTKEYS(pClient, (int)wSkillId, (uint32_t)pHotKey->byHand, pHotKey->nItemGUID, dwHotkeyUnused);
         }
 
-        wCharFlags = pClient->nCharacterStatus;
-        if (!(wCharFlags & 0x20)) {
-          if (pGame->bExpansion) {
-            pClient->pPlayer = 0;
-            return 0x17;
-          }
-        } else if (!pGame->bExpansion) {
-          pClient->pPlayer = 0;
-          return 0x18;
-        }
-        if (wCharFlags & 4) {
-          if (wCharFlags & 8) {
-            pClient->pPlayer = 0;
-            return 0x15;
-          }
+        nHotkeyIdx++;
+        pHotKey++;
+      } while (nHotkeyIdx < 0x10);
 
-          eArenaFlags = Arena::ARENA_GetFlags(pGame);
-          if (!(eArenaFlags & ARENAFLAG_Hardcore)) {
-            pClient->pPlayer = 0;
-            return 0x14;
-          }
+      pPlayerData = D2Common::Units::GetPlayerData(pPlayerUnitOut);
+      if (pPlayerData) {
+        if (!pPlayerUnitOut) {
+          uPortalFlags = -1;
+          byUnitType = '\x06';
         } else {
-          eArenaFlagsCheck = Arena::ARENA_GetFlags(pGame);
-          if (eArenaFlagsCheck & ARENAFLAG_Hardcore) {
-            pClient->pPlayer = 0;
-            return 0x13;
-          }
+          uPortalFlags = pPlayerUnitOut->nUnitGUID;
+          byUnitType = (uint8_t)pPlayerUnitOut->eUnitType;
         }
 
-        CLIENT_SendHandshakePacket0x0B(pClient, pPlayerUnitOut);
-        uPortalFlags = D2Common::Units::GetPlayerPortalFlags(pPlayerUnitOut);
-        SCmd::NET_D2GS_SERVER_Send_0x5F_PortalFlags(pClient, '_', uPortalFlags);
-        D2Common::Stats::StatsEx::STATLIST_IterateChangedStats(pPlayerUnitOut, pPlayerUnitOut, PLAYER::PlayerMsg::SendAttributeUpdate);
-        pPlayerUnit_lcl = pPlayerUnitOut;
-        uPortalFlags = D2Client::UNIT::Player::CheckFlagWithMask(pPlayerUnitOut, 1);
-        if (uPortalFlags) {
-          UNIT::SendUpdatedItemsToClient(pGame, pPlayerUnit_lcl, pClient, nullptr);
-          if (pPlayerUnitOut) {
-            pPlayerUnitOut->eUnitFlagsEx |= 0x200000;
-          }
+        SCmd::NET_D2GS_SERVER_Send_0x23_SetSkill(pClient, byUnitType, uPortalFlags, '\x01', (short int)pPlayerData->eLeftSkillId, pPlayerData->nLeftSkillOwnerGUID);
+        if (!pPlayerUnitOut) {
+          uPortalFlags = -1;
+          byUnitType = '\x06';
+        } else {
+          uPortalFlags = pPlayerUnitOut->nUnitGUID;
+          byUnitType = (uint8_t)pPlayerUnitOut->eUnitType;
         }
 
         nHotkeyIdx = 0;
@@ -1843,45 +1868,15 @@ int32_t __fastcall CLIENT_LoadCharacterAndSendGameData(D2ClientStrc * pClient, :
             SCmd::NET_D2GS_SERVER_Send_0x7B_SYNCHOTKEYS(pClient, (uint8_t)nHotkeyIdx, (int)wSkillId, (uint32_t)pHotKey->byHand, pHotKey->nItemGUID);
           }
 
-          nHotkeyIdx++;
-          pHotKey++;
-        } while (nHotkeyIdx < 0x10);
-
-        pPlayerData = D2Common::Units::GetPlayerData(pPlayerUnitOut);
-        if (pPlayerData) {
-          if (!pPlayerUnitOut) {
-            uPortalFlags = -1;
-            byUnitType = '\x06';
-          } else {
-            uPortalFlags = pPlayerUnitOut->nUnitGUID;
-            byUnitType = (uint8_t)pPlayerUnitOut->eUnitType;
-          }
-
-          SCmd::NET_D2GS_SERVER_Send_0x23_SetSkill(pClient, byUnitType, uPortalFlags, '\x01', (short int)pPlayerData->eLeftSkillId, pPlayerData->nLeftSkillOwnerGUID);
-          if (!pPlayerUnitOut) {
-            uPortalFlags = -1;
-            byUnitType = '\x06';
-          } else {
-            uPortalFlags = pPlayerUnitOut->nUnitGUID;
-            byUnitType = (uint8_t)pPlayerUnitOut->eUnitType;
-          }
-
-          SCmd::NET_D2GS_SERVER_Send_0x23_SetSkill(pClient, byUnitType, uPortalFlags, '\0', (short int)pPlayerData->eRightSkillId, pPlayerData->nRightSkillOwnerGUID);
-        }
-
-        D2Common::Stats::StatsEx::STATLIST_IterateChangedStats(pPlayerUnitOut, pPlayerUnitOut, PLAYER::PlayerMsg::SendAttributeUpdate);
-        PLAYER::PlayerMsg::NET_D2GS_SERVER_Send_LifeManaStaminaLocationUpdate(pPlayerUnitOut, pPlayerUnitOut, 1);
-        UNIT::ITEM_ProcessInventoryUpdates(pGame, pPlayerUnitOut);
-        if (!pGame->bExpansion) {
-          return 0;
-        }
-
-        Quests::QUESTS::A5Q3::CalculateBonusResistances(pGame, pPlayerUnitOut);
+      D2Common::Stats::StatsEx::STATLIST_IterateChangedStats(pPlayerUnitOut, pPlayerUnitOut, PLAYER::PlayerMsg::SendAttributeUpdate);
+      PLAYER::PlayerMsg::NET_D2GS_SERVER_Send_LifeManaStaminaLocationUpdate(pPlayerUnitOut, pPlayerUnitOut, 1);
+      UNIT::ITEM_ProcessInventoryUpdates(pGame, pPlayerUnitOut);
+      if (!pGame->bExpansion) {
         return 0;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x242);
-      exit(-1);
+      Quests::QUESTS::A5Q3::CalculateBonusResistances(pGame, pPlayerUnitOut);
+      return 0;
     }
 }
 
@@ -2311,49 +2306,45 @@ void __fastcall UnusedClientJoinGame(D2ClientStrc * pClient, uint8_t bParam) {
     eD2UnitType eUnitType;
     int nOldUnitGUID;
     ::SGAMEDATA* pGame;
-    if (pClient) {
-      D2UnitStrc* pUnit;
-      pClient->nClass = bParam;
-      pUnit = CLIENTS_GetControlUnit(pClient, 0);
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      pClient->nClass = bParam;
-      eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-        nSpawnX = pUnit->pPath.pStaticPath->nPosX;
-      } else if (pUnit->pPath.pDynamicPath) {
-        nSpawnX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
-      } else {
-        nSpawnX = 0;
-      }
-
-      eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-        nSpawnY = pUnit->pPath.pStaticPath->nPosY;
-      } else if (pUnit->pPath.pDynamicPath) {
-        nSpawnY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
-      } else {
-        nSpawnY = 0;
-      }
-
-      nOldUnitGUID = pUnit->nUnitGUID;
-      eUnitType = pUnit->eUnitType;
-      pGame = pClient->pGame;
-      pRoom_00 = D2Common::Units::UNITS_GetRoom(pUnit);
-      D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pRoom_00, eUnitType, nOldUnitGUID);
-      UNIT::SUnit::FreeServerUnit(pGame, pUnit);
-      CLIENT_LoadCharacterAndSendGameData(pClient, pGame, 0, pRoom, nSpawnX, nSpawnY);
-      CLIENT_PlacePlayerInRoom(pClient, pClient->pPlayer, pGame, pRoom, (D2DrlgActStrc*)nSpawnX, (::SGAMEDATA*)nSpawnY, nSpawnY);
-      pClient->fClientFlags &= -2;
-      if (pRoom != pClient->pRoom) {
-        GAME_OnClientRoomChange(pRoom, pClient);
-      }
-
-      pClient->pRoom = pRoom;
-      return;
+    if (!pClient) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x952);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x952);
-    exit(-1);
+    D2UnitStrc* pUnit;
+    pClient->nClass = bParam;
+    pUnit = CLIENTS_GetControlUnit(pClient, 0);
+    pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
+    pClient->nClass = bParam;
+    eUnitType = pUnit->eUnitType;
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+      nSpawnX = pUnit->pPath.pStaticPath->nPosX;
+    } else if (pUnit->pPath.pDynamicPath) {
+      nSpawnX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nSpawnX = 0;
+    }
+    eUnitType = pUnit->eUnitType;
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+      nSpawnY = pUnit->pPath.pStaticPath->nPosY;
+    } else if (pUnit->pPath.pDynamicPath) {
+      nSpawnY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nSpawnY = 0;
+    }
+    nOldUnitGUID = pUnit->nUnitGUID;
+    eUnitType = pUnit->eUnitType;
+    pGame = pClient->pGame;
+    D2Common::DUNGEON::Dungeon::AllocDrlgDelete(D2Common::Units::UNITS_GetRoom(pUnit), eUnitType, nOldUnitGUID);
+    UNIT::SUnit::FreeServerUnit(pGame, pUnit);
+    CLIENT_LoadCharacterAndSendGameData(pClient, pGame, 0, pRoom, nSpawnX, nSpawnY);
+    CLIENT_PlacePlayerInRoom(pClient, pClient->pPlayer, pGame, pRoom, (D2DrlgActStrc*)nSpawnX, (::SGAMEDATA*)nSpawnY, nSpawnY);
+    pClient->fClientFlags &= -2;
+    if (pRoom != pClient->pRoom) {
+      GAME_OnClientRoomChange(pRoom, pClient);
+    }
+    pClient->pRoom = pRoom;
+    return;
 }
 
 void __fastcall UnusedClientJoinGame2(::SGAMEDATA * pGame, D2ClientStrc * pClient, uint8_t bActNo) {
@@ -2379,8 +2370,7 @@ void __fastcall UnusedClientJoinGame2(::SGAMEDATA * pGame, D2ClientStrc * pClien
 
     int nOldUnitGUID = pUnit->nUnitGUID;
     eUnitType = pUnit->eUnitType;
-    D2RoomStrc* pRoom_00 = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pRoom_00, eUnitType, nOldUnitGUID);
+    D2Common::DUNGEON::Dungeon::AllocDrlgDelete(D2Common::Units::UNITS_GetRoom(pUnit), eUnitType, nOldUnitGUID);
     UNIT::SUnit::FreeServerUnit(pGame, pUnit);
     CLIENT_LoadCharacterAndSendGameData(pClient, pGame, 0, pRoom, (uint32_t)*(uint32_t*)&bActNo, nSpawnY);
     CLIENT_PlacePlayerInRoom(pClient, pClient->pPlayer, pGame, pRoom, *(D2DrlgActStrc**)&bActNo, (::SGAMEDATA*)nSpawnY, (uint32_t)*(uint32_t*)&bActNo);
@@ -2521,29 +2511,27 @@ void __fastcall GAME_SendRemoveObjectsForAdjacentRooms(D2RoomStrc * pRoom, D2Cli
       D2UnitStrc* pPlayerUnit_lcl;
       D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
       pPlayerUnit_lcl = CLIENTS_GetControlUnit(pClient, 0);
-      if (pPlayerUnit_lcl) {
-        ePlayerUnitType = pPlayerUnit_lcl->eUnitType;
-        nPlayerGUID = pPlayerUnit_lcl->nUnitGUID;
-        nRoomIdx = 0;
-        if (!nRoomCount) {
-          return;
-        }
+      if (!pPlayerUnit_lcl) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x88);
+        exit(-1);
+      }
 
-        do {
-          for (pDrlgDelete = D2Common::DUNGEON::Dungeon::GetDrlgDeleteFromRoom(ppAdjacentRooms[nRoomIdx]); pDrlgDelete; pDrlgDelete = pDrlgDelete->pNext) {
-            if (pDrlgDelete->eUnitType != ePlayerUnitType || pDrlgDelete->nUnitGUID != nPlayerGUID) {
-              SCmd::NET_D2GS_SERVER_Send_0x0A_REMOVEUNIT(pClient, 10, (eD2UnitType)(uint8_t)(char)pDrlgDelete->eUnitType, pDrlgDelete->nUnitGUID);
-            }
-          }
-
-          nRoomIdx++;
-        } while (nRoomIdx < nRoomCount);
-
+      ePlayerUnitType = pPlayerUnit_lcl->eUnitType;
+      nPlayerGUID = pPlayerUnit_lcl->nUnitGUID;
+      nRoomIdx = 0;
+      if (!nRoomCount) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x88);
-      exit(-1);
+      do {
+        for (pDrlgDelete = D2Common::DUNGEON::Dungeon::GetDrlgDeleteFromRoom(ppAdjacentRooms[nRoomIdx]); pDrlgDelete; pDrlgDelete = pDrlgDelete->pNext) {
+          if (pDrlgDelete->eUnitType != ePlayerUnitType || pDrlgDelete->nUnitGUID != nPlayerGUID) {
+            SCmd::NET_D2GS_SERVER_Send_0x0A_REMOVEUNIT(pClient, 10, (eD2UnitType)(uint8_t)(char)pDrlgDelete->eUnitType, pDrlgDelete->nUnitGUID);
+          }
+        }
+        nRoomIdx++;
+      } while (nRoomIdx < nRoomCount);
+      return;
     }
 }
 
@@ -2574,35 +2562,33 @@ void __fastcall CLIENT_RevealRoomAndSendUnits(::SGAMEDATA * pGame, D2RoomStrc * 
     D2DrlgRoomCoordsStrc sRoomCoords;
     D2UnitStrc* pRoomUnit;
     ::SGAMEDATA* pGameSave = pGame;
-    if (pRoom) {
-      eD2LevelId eLevelId;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &sRoomCoords);
-      eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-      SCmd::NET_D2GS_SERVER_Send_0x07_MapReveal(pClient, (uint8_t)eLevelId, (uint16_t)sRoomCoords.sTileRect.left, (uint16_t)sRoomCoords.sTileRect.top);
-      D2Common::DUNGEON::Dungeon::DRLGROOM_AddClientToRoom(pRoom, (int32_t)pClient);
-      if ((uint32_t)pRoom->nClientsCount <= 1) {
-        for (pRoomUnit = pRoom->pUnitList; pRoomUnit; pRoomUnit = pRoomUnit->pRoomNext) {
-          eUnitType = UNIT_COUNT;
-          eUnitType = pRoomUnit->eUnitType;
-          if (eUnitType == UNIT_MONSTER) {
-            Monster::MONSTERAI_TriggerMageThink(pGameSave, pRoomUnit);
-          }
+    if (!pRoom) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcf);
+      exit(-1);
+    }
+    eD2LevelId eLevelId;
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &sRoomCoords);
+    eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
+    SCmd::NET_D2GS_SERVER_Send_0x07_MapReveal(pClient, (uint8_t)eLevelId, (uint16_t)sRoomCoords.sTileRect.left, (uint16_t)sRoomCoords.sTileRect.top);
+    D2Common::DUNGEON::Dungeon::DRLGROOM_AddClientToRoom(pRoom, (int32_t)pClient);
+    if ((uint32_t)pRoom->nClientsCount <= 1) {
+      for (pRoomUnit = pRoom->pUnitList; pRoomUnit; pRoomUnit = pRoomUnit->pRoomNext) {
+        eUnitType = UNIT_COUNT;
+        eUnitType = pRoomUnit->eUnitType;
+        if (eUnitType == UNIT_MONSTER) {
+          Monster::MONSTERAI_TriggerMageThink(pGameSave, pRoomUnit);
         }
       }
-
-      pRoomUnit = pRoom->pUnitList;
-      pPlayerUnit_lcl = CLIENTS_GetControlUnit(pClient, 0);
-      for (; pRoomUnit; pRoomUnit = pRoomUnit->pRoomNext) {
-        if (pPlayerUnit_lcl != pRoomUnit) {
-          UNIT::SUnitMsg::SERVER_SendInitUnitPacket(pGameSave, pRoomUnit, pClient);
-        }
-      }
-
-      return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcf);
-    exit(-1);
+    pRoomUnit = pRoom->pUnitList;
+    pPlayerUnit_lcl = CLIENTS_GetControlUnit(pClient, 0);
+    for (; pRoomUnit; pRoomUnit = pRoomUnit->pRoomNext) {
+      if (pPlayerUnit_lcl != pRoomUnit) {
+        UNIT::SUnitMsg::SERVER_SendInitUnitPacket(pGameSave, pRoomUnit, pClient);
+      }
+    }
+    return;
 }
 
 // Hides a room from a client and cleans up its units. Sends SendRemoveObject for every unit in the room, removes the client from the room's client count, and if nClientsCount drops to zero calls MONSTER_StartAiAndRegenTimers for all monsters (re-enabling AI/regen). Finally sends SCMD 0x08 (MapHide) with the room's level ID and tile coordinates. Halts fatally if pRoom is null.
@@ -2611,38 +2597,34 @@ void __fastcall RoomClearForClientAndHideMap(::SGAMEDATA * pGame, D2RoomStrc * p
     D2DrlgRoomCoordsStrc sRoomCoords;
     D2UnitStrc* pRoomUnit;
     ::SGAMEDATA* pGameSave = pGame;
-    if (pRoom) {
-      eD2UnitType eUnitType;
-      for (pRoomUnit = pRoom->pUnitList; pRoomUnit; pRoomUnit = pRoomUnit->pRoomNext) {
-        UNIT::SUnitMsg::SendRemoveObject(pRoomUnit, pClient);
-      }
-
-      D2Common::DUNGEON::Dungeon::DRLGROOM_RemoveClientFromRoom(pRoom, (int32_t)pClient);
-      if (!pRoom->nClientsCount) {
-        pRoomUnit = pRoom->pUnitList;
-        while (true) {
-          if (!pRoomUnit) {
-            break;
-          }
-
-          eUnitType = UNIT_COUNT;
-          eUnitType = pRoomUnit->eUnitType;
-          if (eUnitType == UNIT_MONSTER) {
-            Monster::MONSTER_StartAiAndRegenTimers(pGameSave, pRoomUnit);
-          }
-
-          pRoomUnit = pRoomUnit->pRoomNext;
-        }
-      }
-
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &sRoomCoords);
-      eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-      SCmd::NET_D2GS_SERVER_Send_0x08_REMOVEROOM(pClient, (uint8_t)eLevelId, (uint16_t)sRoomCoords.sTileRect.left, (uint16_t)sRoomCoords.sTileRect.top);
-      return;
+    if (!pRoom) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x104);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x104);
-    exit(-1);
+    eD2UnitType eUnitType;
+    for (pRoomUnit = pRoom->pUnitList; pRoomUnit; pRoomUnit = pRoomUnit->pRoomNext) {
+      UNIT::SUnitMsg::SendRemoveObject(pRoomUnit, pClient);
+    }
+    D2Common::DUNGEON::Dungeon::DRLGROOM_RemoveClientFromRoom(pRoom, (int32_t)pClient);
+    if (!pRoom->nClientsCount) {
+      pRoomUnit = pRoom->pUnitList;
+      while (true) {
+        if (!pRoomUnit) {
+          break;
+        }
+        eUnitType = UNIT_COUNT;
+        eUnitType = pRoomUnit->eUnitType;
+        if (eUnitType == UNIT_MONSTER) {
+          Monster::MONSTER_StartAiAndRegenTimers(pGameSave, pRoomUnit);
+        }
+        pRoomUnit = pRoomUnit->pRoomNext;
+      }
+    }
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &sRoomCoords);
+    eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
+    SCmd::NET_D2GS_SERVER_Send_0x08_REMOVEROOM(pClient, (uint8_t)eLevelId, (uint16_t)sRoomCoords.sTileRect.left, (uint16_t)sRoomCoords.sTileRect.top);
+    return;
 }
 
 void __fastcall MovementUpdateForClient(::SGAMEDATA * pGame, D2RoomStrc * * ppRoom, D2UnitStrc * pUnit) {
@@ -2667,24 +2649,23 @@ void __fastcall MovementUpdateForClient(::SGAMEDATA * pGame, D2RoomStrc * * ppRo
 void __fastcall CLIENT_BroadcastMovementToAdjacentRooms(::SGAMEDATA * pGame, D2RoomStrc * pRoom, D2UnitStrc * pUnit) {
     D2RoomStrc** ppAdjacentRooms;
     uint32_t nRoomCount;
-    if (pRoom) {
-      uint32_t nRoomIdx;
-      D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
-      nRoomIdx = 0;
-      if (!nRoomCount) {
-        return;
-      }
+    if (!pRoom) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x141);
+      exit(-1);
+    }
 
-      do {
-        MovementUpdateForClient(pGame, (D2RoomStrc**)ppAdjacentRooms[nRoomIdx], pUnit);
-        nRoomIdx++;
-      } while (nRoomIdx < nRoomCount);
-
+    uint32_t nRoomIdx;
+    D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
+    nRoomIdx = 0;
+    if (!nRoomCount) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x141);
-    exit(-1);
+    do {
+      MovementUpdateForClient(pGame, (D2RoomStrc**)ppAdjacentRooms[nRoomIdx], pUnit);
+      nRoomIdx++;
+    } while (nRoomIdx < nRoomCount);
+    return;
 }
 
 void __fastcall CLIENT_RemoveFromAdjacentRooms(D2RoomStrc * pRoom, int32_t nClientId) {
@@ -2731,10 +2712,10 @@ void __fastcall TellClientToLoadAct(::SGAMEDATA * pGame, D2ClientStrc * pClient)
     eD2LevelId eTownLevelId = D2Common::DUNGEON::Dungeon::GetTownLevelIdFromAct(pGame->pAct[bActNo]);
     SCmd::NET_D2GS_SERVER_Send_0x03_NEWACT(pClient, '\x03', (uint8_t)_byActNoArg, pGame->pInitSeed.nSeedLow, pGame->pInitSeed.nSeedHigh, (uint16_t)eTownLevelId);
     D2Common::Environment::DRLGENV_GetCycleIndex_Ticks_EclipseFromAct(pGame->pAct[bActNo], &nCycleOut, &nTicksOut, (BOOL*)bEclipseOut);
-    __frame0.nTicks = nTicksOut;
-    __frame0.bEclipse = bEclipseOut[0];
     __frame0.byPacketId = 0x53;
     __frame0.nCycleIndex = nCycleOut;
+    __frame0.nTicks = nTicksOut;
+    __frame0.bEclipse = bEclipseOut[0];
     SCmd::NET_D2GS_SERVER_Send_0x53_ACTTIMEOFDAY(pClient, (D2GSPacketSrv0x53*)&__frame0.byPacketId);
 }
 

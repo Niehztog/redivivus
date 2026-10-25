@@ -117,7 +117,6 @@ void __fastcall WriteCrashReportProcessInfo(::Report * pReport) {
     uint32_t uSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     int8_t iVar1 = _3rdparty::crashy::IsOpen(pReport);
     if (iVar1 == '\0') {
-      Debug::GuardStack();
       return;
     }
 
@@ -207,7 +206,6 @@ void __fastcall WriteCrashReportProcessInfo(::Report * pReport) {
       nLogIdx++;
     } while (nLogIdx < 0x15);
 
-    Debug::GuardStack();
 }
 
 static void __stdcall InitializeSystemInfo() {
@@ -503,7 +501,6 @@ int __fastcall DumpLog(void * pCrashInfo, void * pUserContext) {
     }
 
     ExceptionList = pPrevSehFrame;
-    Debug::GuardStack();
     return 2;
 }
 
@@ -619,8 +616,7 @@ BOOL __fastcall CheckErrorDuringError(char * szText, int32_t nLine, char * szRea
       return 0;
     }
 
-    char* pszRelativeFile = StripPathPrefixToRelative(szText);
-    LogManager::LOGMANAGER_TraceToModuleLog("", "\n***** ENCOUNTERED ERROR DURING ERROR HANDLING!!!\n%s,%d\n%s\n*****", pszRelativeFile, nLine, szReason);
+    LogManager::LOGMANAGER_TraceToModuleLog("", "\n***** ENCOUNTERED ERROR DURING ERROR HANDLING!!!\n%s,%d\n%s\n*****", StripPathPrefixToRelative(szText), nLine, szReason);
     return 1;
 }
 
@@ -4961,11 +4957,9 @@ void __fastcall ERRORMANAGER_InitErrorManager(char * dwUnused1, char * szText, B
       Storm::Source::SErr::SErrSetBlizzardErrorFunction(CRASH_FillupCrashTxt);
     } else if (bLogGameStrartupInfo) {
       Source::SFile::LOGFILE_StoreGameStartupInfo();
-      Debug::GuardStack();
       return;
     }
 
-    Debug::GuardStack();
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS

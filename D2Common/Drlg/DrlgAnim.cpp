@@ -281,7 +281,6 @@ void __fastcall DRLGANIM_AllocAnimatedTiles(D2DrlgGridStrc * pGrids, D2RoomExStr
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Wrapper calling DRLGANIM_AllocAnimatedTiles for wall/floor/shadow.

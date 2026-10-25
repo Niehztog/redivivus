@@ -168,7 +168,6 @@ void __fastcall MissileCalcLinker(char * pSrc, void * pRecord, int32_t nOffset, 
     uint8_t byCalcBuf[1024];
     uint32_t nStackGuard = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (!pRecord) {
-      Fog::Debug::GuardStack();
       return;
     }
     if (pSrc) {
@@ -176,13 +175,11 @@ void __fastcall MissileCalcLinker(char * pSrc, void * pRecord, int32_t nOffset, 
       if (0 < (int)sVar1) {
         nParsedLen = DataTbls::DATATBLS_AppendDataToBuffer(&sgtDataTable.pMissCode, &sgtDataTable.nMissCodeSize, &sgtDataTable.nMissCodeCapacity, byCalcBuf, sVar1);
         *(int32_t*)(nOffset + (int)pRecord) = nParsedLen;
-        Fog::Debug::GuardStack();
         return;
       }
     }
 
     *(uint32_t*)(nOffset + (int)pRecord) = -1;
-    Fog::Debug::GuardStack();
 }
 
 // Validates a single field of a D2MissilesTxt row (indexed by nMissileIdx) against [nMinVal, nMaxVal] and clamps it in-place if out of range. Reads the field via eFieldType (0=signed byte, 1=unsigned byte, 2=signed short, 3=unsigned short, 4=uint32) at nFieldOffset into the Missile sub-struct. On violation, walks pFieldDescArray to find the matching descriptor, then writes back the clamped value at the same offset and width.

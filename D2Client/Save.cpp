@@ -18,11 +18,11 @@ HANDLE GetKeyFileHandle(DWORD dwCreationDisposition, DWORD dwDesiredAccess) {
     char szRealmDir[260];
     char szKeyFilePath[260];
     szPath[0] = '\0';
-    memset(szPath + 1, 0, 0x103);
+    for (int i = 0x1; i < 0x104; i++) szPath[i] = 0;
     szKeyFilePath[0] = '\0';
-    memset(szKeyFilePath + 1, 0, 0x103);
+    for (int i = 0x1; i < 0x104; i++) szKeyFilePath[i] = 0;
     szRealmDir[0] = '\0';
-    memset(szRealmDir + 1, 0, 0x103);
+    for (int i = 0x1; i < 0x104; i++) szRealmDir[i] = 0;
     Fog::Source::SFile::GetAndCreateSavePath(szPath, 0x104);
     if (RealmName[0] != '\0') {
       Storm::Source::SSTR::SStrPrintf(szRealmDir, 0x104, "%s%s\\", szPath, RealmName);
@@ -61,7 +61,7 @@ void __stdcall CMD_WriteKeyFile() {
       return;
     }
 
-    memset(szBuffer + 2, 0, 0x474);
+    for (int i = 0x2; i < 0x476; i++) szBuffer[i] = 0;
     __frame0.nWritten = 0;
     szBuffer[0] = '%';
     szBuffer[1] = '\0';

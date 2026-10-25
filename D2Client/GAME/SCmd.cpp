@@ -535,8 +535,7 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x0A_RemoveObject(char * pBytes) {
     if (pBytes[1] == '\x01') {
       D2UnitStrc* pUnit;
       nPetIndex = 1;
-      pUnit = UNIT::Player::GetPlayerUnit_UI();
-      nPetGUID = RosterPets::GetRosterPetGUID(pUnit, 7, nPetIndex);
+      nPetGUID = RosterPets::GetRosterPetGUID(UNIT::Player::GetPlayerUnit_UI(), 7, nPetIndex);
       if (nUnitGUID == nPetGUID) {
         return;
       }
@@ -592,8 +591,8 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x0E_UNITCHANGE_ID(D2UnitStrc * pUnit, c
 void __fastcall NET_D2GS_CLIENT_Incoming0x0F_UNITCHANGE_XYPOS(D2UnitStrc * pUnit, char * pBytes) {
     D2ServerMessageHandleStrc msg;
     msg.nSkillId = (uint32_t)*(uint16_t*)(pBytes + 7);
-    msg.nTargetUnitType = (uint32_t)(uint8_t)pBytes[0xb];
     msg.nItemId = (uint32_t)*(uint16_t*)(pBytes + 9);
+    msg.nTargetUnitType = (uint32_t)(uint8_t)pBytes[0xb];
     UNIT::Path::PATH_MoveUnitToPoint(pUnit, *(uint16_t*)(pBytes + 0xc), (uint32_t)*(uint16_t*)(pBytes + 0xe), 0, 0, 0);
     UNIT::UnitMode::HandleMessage((uint32_t)(uint8_t)pBytes[6], pUnit, &msg, 1);
 }
@@ -621,10 +620,10 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x67_UNITCHANGE_MONSTERXYPATH(D2UnitStrc
 void __fastcall NET_D2GS_CLIENT_Incoming0x68_UNITCHANGE_MONSTERIDPATH(D2UnitStrc * pUnit, char * pBytes) {
     D2ServerMessageHandleStrc msg;
     msg.nSkillId = (uint32_t)(uint8_t)pBytes[10];
-    msg.nTargetUnitType = (uint32_t)(uint8_t)pBytes[0xf];
     msg.nItemId = *(uint32_t*)(pBytes + 0xb);
-    msg.nSkillLvl = (int)*(short int*)(pBytes + 0x12);
+    msg.nTargetUnitType = (uint32_t)(uint8_t)pBytes[0xf];
     msg.nTargetUnitId = (uint32_t)(uint8_t)pBytes[0x11];
+    msg.nSkillLvl = (int)*(short int*)(pBytes + 0x12);
     msg.nMaxDistance = (uint32_t)(uint8_t)pBytes[0x14];
     msg.nTargetX = (int32_t)(uint8_t)pBytes[0x10];
     UNIT::Path::PATH_MoveUnitToPoint(pUnit, *(uint16_t*)(pBytes + 6), (uint32_t)*(uint16_t*)(pBytes + 8), 0, 0, 0);
@@ -708,9 +707,7 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x6D_UNITCHANGE_MONSTERNEUTRAL(D2UnitStr
     sMsg.nMaxDistance = 4;
     sMsg.nTargetX = 0;
     UNIT::Path::PATH_MoveUnitToPoint(pUnit, *(uint16_t*)(pBytes + 5), sMsg.nItemId, 0, 0, 0);
-    int32_t nStatLayer = 0;
-    int32_t nPierceCount = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0);
-    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, nPierceCount + 1, nStatLayer);
+    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0) + 1, 0);
     UNIT::UnitMode::HandleMessage(7, pUnit, &sMsg, 1);
 }
 
@@ -845,31 +842,29 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x16_UPDATE(char * pBytes) {
     uint8_t* pUnitEntry;
     int i;
     uint16_t nY;
-    if (pBytes[3] != '\0') {
-      uint16_t nX;
-      pUnitEntry = (uint8_t*)(pBytes + 4);
-      i = 0;
-      if (pBytes[3] == '\0') {
-        return;
-      }
+    if (pBytes[3] == '\0') {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x855);
+      exit(-1);
+    }
 
-      do {
-        nX = *(uint16_t*)(pUnitEntry + 5);
-        nY = *(uint16_t*)(pUnitEntry + 7);
-        pUnit = UNIT::Player::UNITS_FindClientSideUnit(*(int32_t*)(pUnitEntry + 1), (eD2UnitType)*pUnitEntry);
-        if (pUnit) {
-          UNIT::Path::PATH_MoveUnitToPoint(pUnit, nX, (uint32_t)nY, 0, 0, 0);
-        }
-
-        i++;
-        pUnitEntry += 9;
-      } while (i < (int)(uint32_t)(uint8_t)pBytes[3]);
-
+    uint16_t nX;
+    pUnitEntry = (uint8_t*)(pBytes + 4);
+    i = 0;
+    if (pBytes[3] == '\0') {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x855);
-    exit(-1);
+    do {
+      nX = *(uint16_t*)(pUnitEntry + 5);
+      nY = *(uint16_t*)(pUnitEntry + 7);
+      pUnit = UNIT::Player::UNITS_FindClientSideUnit(*(int32_t*)(pUnitEntry + 1), (eD2UnitType)*pUnitEntry);
+      if (pUnit) {
+        UNIT::Path::PATH_MoveUnitToPoint(pUnit, nX, (uint32_t)nY, 0, 0, 0);
+      }
+      i++;
+      pUnitEntry += 9;
+    } while (i < (int)(uint32_t)(uint8_t)pBytes[3]);
+    return;
 }
 
 void __fastcall NET_D2GS_CLIENT_Incoming0x28_INTERACTION_ENABLE(D2GSPacketSrv0x28 * pBytes) {
@@ -1642,9 +1637,7 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x53(char * pBytes) {
       return;
     }
 
-    uint32_t nState = (uint32_t)(uint8_t)pBytes[9];
-    D2RoomStrc* pRoom = UNIT::CUnit::GetCurrentRoom();
-    D2Common::Environment::DRLGENV_InitializeEnvironment(sgpDrlgAct, pRoom, nIndex, nAngle, nState);
+    D2Common::Environment::DRLGENV_InitializeEnvironment(sgpDrlgAct, UNIT::CUnit::GetCurrentRoom(), nIndex, nAngle, (uint32_t)(uint8_t)pBytes[9]);
     UNIT::CUnit::UpdateObjectAutoLightOnPeriodChange();
     pPlayer = UNIT::Player::GetPlayerUnit_UI();
     if (!pPlayer) {
@@ -2561,7 +2554,7 @@ void __fastcall NET_D2GS_CLIENT_Incoming0xAC(char * pPacketData) {
         nSuperUniqueIndex = (int16_t)nSignedBits;
       }
 
-      memset(aMonUModList, 0, 9 * sizeof(aMonUModList[0]));
+      for (int i = 0; i < 9; i++) aMonUModList[i] = 0;
       pSuperUniqueName = aMonUModList;
       nReadBits = Fog::BitBuffer::ReadUnsigned(&bitBuffer, 8);
       if ((char)nReadBits != '\0') {

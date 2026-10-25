@@ -556,8 +556,7 @@ void __fastcall Q32_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
     } else {
       D2RoomStrc* pBarricadeRoom;
       bReset = 0;
-      pBarricadeRoom = D2Common::Units::UNITS_GetRoom(pPrisoner);
-      D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pBarricadeRoom, bReset);
+      D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(D2Common::Units::UNITS_GetRoom(pPrisoner), bReset);
       pBarricadeRoom = D2Common::Units::UNITS_GetRoom(pQuestArgs->pTarget);
       if (pBarricadeRoom) {
         D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pBarricadeRoom, &pAdjacentRooms, (int*)&nAdjacentCount);

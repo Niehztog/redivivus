@@ -340,10 +340,10 @@ static int32_t __stdcall STATLIST_CalcFullStatFromChildren(int32_t nStatId, D2It
     pChildStatArray = &pStatListEx->sStatList.sBaseStats;
     long int lVar3;
     lVar3 = Logging::STATLIST_BinarySearchStatById(nStatId, (int*)pChildStatArray);
-    if (lVar3 < 0 || (pDVar1 = pChildStatArray->pStatInfo + lVar3 , !pDVar1)) {
-      nTotalValue = 0;
-    } else {
+    if (!(lVar3 < 0 || (pDVar1 = pChildStatArray->pStatInfo + lVar3 , !pDVar1))) {
       nTotalValue = pDVar1->nStatValue;
+    } else {
+      nTotalValue = 0;
     }
     if (!(pStatListEx->sStatList.nFlags & 0x80000000U)) {
       return nTotalValue;
@@ -863,12 +863,12 @@ void __stdcall STATLIST_IterateChangedStats(D2UnitStrc * pUnit, D2UnitStrc * pUn
       D2StatStrc* pDVar1;
       nParam = pDVar2->sChangedStats.pChangedStatIds[nChangedIdx];
       lVar3 = Logging::STATLIST_BinarySearchStatById(nParam, (int*)&pDVar2->sStatList.sBaseStats);
-      if (lVar3 < 0 || (pDVar1 = pDVar2->sStatList.sBaseStats.pStatInfo + lVar3 , !pDVar1)) {
-        nSearchLo = 0;
-        nStatId = (uint16_t)((uint32_t)nParam >> 0x10);
-      } else {
+      if (!(lVar3 < 0 || (pDVar1 = pDVar2->sStatList.sBaseStats.pStatInfo + lVar3 , !pDVar1))) {
         nSearchLo = pDVar1->nStatValue;
         nStatId = pDVar1->wStatIndex;
+      } else {
+        nSearchLo = 0;
+        nStatId = (uint16_t)((uint32_t)nParam >> 0x10);
       }
 
       (*pfnCallback)(pUnit, nStatId, nSearchLo, pUnit2);

@@ -15,8 +15,8 @@ namespace Storm::_3rdparty::zlib::uncompr {
 int32_t __fastcall uncompress(uint8_t * dest, int * destLen, uint8_t * source, int sourceLen) {
     z_stream sZStream;
     sZStream.next_in = source;
-    sZStream.avail_out = *destLen;
     sZStream.avail_in = sourceLen;
+    sZStream.avail_out = *destLen;
     sZStream.zalloc = 0;
     sZStream.zfree = 0;
     sZStream.next_out = dest;

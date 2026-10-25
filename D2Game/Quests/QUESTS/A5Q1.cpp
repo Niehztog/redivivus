@@ -684,8 +684,8 @@ void __fastcall Objects_InitFn71(D2ObjectInitFnArg * pInitArg) {
       return;
     }
 
-    sSpawnPos.y = pInitArg->nY;
     sSpawnPos.x = pInitArg->nX;
+    sSpawnPos.y = pInitArg->nY;
     FindSpawnableLocation(pInitArg->pRoom, &sSpawnPos, 2, 0x100, &pSpawnRoom, 0x10, 100);
     if (!pSpawnRoom) {
       return;

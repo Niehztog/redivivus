@@ -55,7 +55,7 @@ void __stdcall DEBUG_ExtractDebugDirectory64(uint32_t dwParam, uint32_t * pnRVA,
 void __stdcall DEBUG_ExtractDebugDirectory32(uint32_t dwParam, uint32_t * pnRVA, uint32_t * pnSize, int32_t pOptHeader);
 // Unwinds stack frames for crash dumps. Walks EBP chain up to 128 frames, validates stack pointers, skips first N frames. Captures EIP, ESP, EBP for each frame. Handles current thread or remote thread via OpenThread/SuspendThread.
 int __stdcall DEBUG_UnwindStackFrames(DWORD dwThreadId, int pFrameArray, uint32_t nSkipFrames, CONTEXT * pContext);
-void __stdcall DEBUG_FormatAddressInfo(uint32_t nAddress, char * pOutput);
+bool __stdcall DEBUG_FormatAddressInfo(uint32_t nAddress, char * pOutput);
 // Global operator delete: frees p through Storm SMemFree with the delete source tag, and ignores null. Counterpart of MISC_OperatorNewShim.
 // The CRT and std scalar deleting destructors call it, so it is the linked global operator delete.
 void MISC_OperatorDeleteShim(void * p);

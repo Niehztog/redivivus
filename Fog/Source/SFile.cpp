@@ -436,7 +436,6 @@ void __fastcall GetAndCreateSavePath(char * pBuffer, size_t nSize) {
       uVar1 = Storm::Source::SSTR::SStrLen(pBuffer);
       if (!uVar1 || pBuffer[uVar1 - 1] != '\\') {
         if (uVar1 + 1 == nSize) {
-          Debug::GuardStack();
           return;
         }
 
@@ -445,11 +444,9 @@ void __fastcall GetAndCreateSavePath(char * pBuffer, size_t nSize) {
       }
 
       SafeCreateDirectoryTree(pBuffer);
-      Debug::GuardStack();
       return;
     }
 
-    Debug::GuardStack();
 }
 
 int32_t __fastcall SFILE_CalculateBufferOffset(int32_t pThis, int32_t nBufferOffset) {

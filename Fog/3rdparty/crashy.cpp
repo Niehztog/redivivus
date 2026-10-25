@@ -81,11 +81,9 @@ void __stdcall SYSTEM_GetCurrentProcessThreadCount() {
 
     /* HANDLE hObject for CloseHandle */ CloseHandle(hSnapshot);
     if (bFound) {
-      Debug::GuardStack();
       return;
     }
 
-    Debug::GuardStack();
 }
 
 uint32_t __stdcall SYSTEM_GetStackRegion(LPCVOID * ppStackBase, LPCVOID pAddress, LPCVOID * ppStackTop) {
@@ -339,11 +337,9 @@ bool __fastcall ErrorReportingLaunch(char * szText, D2BlizzardErrorArgument * pA
         File::STRING_AppendStringToString(&__frame0.szCmdLine, 0x1000, szText);
         File::STRING_AppendStringToString(&__frame0.szCmdLine, 0x1000, "\"");
         bExists = File::FILETOOLS_StartApplicationWithCommandLine_UTF8(__frame0.szExePath, &__frame0.szCmdLine);
-        Debug::GuardStack();
         return bExists;
       }
     }
-    Debug::GuardStack();
     return false;
 }
 

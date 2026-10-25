@@ -620,9 +620,9 @@ static void __stdcall Q04_SpawnDeckardCainNpc(D2RoomStrc * pRoom, ::SGAMEDATA * 
     pSpawnRoomOut = pRoom;
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &sRoomCoords);
     int iRetry;
-    iRetry = 0;
     ptCainSpawnPos.x = nX;
     ptCainSpawnPos.y = nY;
+    iRetry = 0;
     do {
       if (sRoomCoords.dwXStart <= ptCainSpawnPos.x && sRoomCoords.dwYStart <= ptCainSpawnPos.y && ptCainSpawnPos.x < sRoomCoords.dwXSize - 1 + sRoomCoords.dwXStart && ptCainSpawnPos.y < sRoomCoords.dwYSize - 1 + sRoomCoords.dwYStart) {
         goto spawn_cain;
@@ -637,9 +637,9 @@ static void __stdcall Q04_SpawnDeckardCainNpc(D2RoomStrc * pRoom, ::SGAMEDATA * 
     spawn_cain:
     FindSpawnableLocation(pRoom, &ptCainSpawnPos, 2, 0x100, &pSpawnRoomOut, 1, 100);
     if (!pSpawnRoomOut) {
+      pSpawnRoomOut = pRoom;
       ptCainSpawnPos.x = nX;
       ptCainSpawnPos.y = nY;
-      pSpawnRoomOut = pRoom;
     }
 
     D2UnitStrc* pSpawnedCain;
@@ -651,9 +651,9 @@ static void __stdcall Q04_SpawnDeckardCainNpc(D2RoomStrc * pRoom, ::SGAMEDATA * 
         ptCainSpawnPos.x++;
         pSpawnRoomOut = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pSpawnRoomOut, ptCainSpawnPos.x, ptCainSpawnPos.y);
         if (!pSpawnRoomOut) {
+          pSpawnRoomOut = pRoom;
           ptCainSpawnPos.x = nX;
           ptCainSpawnPos.y = nY;
-          pSpawnRoomOut = pRoom;
         }
 
         FindSpawnableLocation(pSpawnRoomOut, &ptCainSpawnPos, 2, 0x100, &pSpawnRoomOut, 2, 100);
@@ -856,8 +856,7 @@ static uint8_t __fastcall Q04_SpawnTristramPortal(::SGAMEDATA * pGame, D2QuestDa
     eD2LevelId eLevel = LEVEL_Tristram;
     nStonesY += 4;
     nStonesX += 4;
-    pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    bIgnoreSpawnLoc = SKILLS::SkillsServer::SERVER_SpawnPortal(pGame, nullptr, pRoom, nStonesX, nStonesY, eLevel, ppPortalUnitOut, nClassId, bIgnoreSpawnLoc);
+    bIgnoreSpawnLoc = SKILLS::SkillsServer::SERVER_SpawnPortal(pGame, nullptr, D2Common::Units::UNITS_GetRoom(pUnit), nStonesX, nStonesY, eLevel, ppPortalUnitOut, nClassId, bIgnoreSpawnLoc);
     if (!bIgnoreSpawnLoc) {
       return '\0';
     }
@@ -966,8 +965,7 @@ static bool __fastcall Q04_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nT
                          complete and the reward not available and the hero carries the Horadric
                          Scroll: active */ if (pQuestData->nStateFlag == 4 && !bCompleted && !bRewardAwaits) {
         dwItemCode = 0x20736b62;
-        pGame = UNIT::SUnit::GetGamePointer(pUnit);
-        pFoundItem = ITEMS::Items::Drop::HasQuestItem(pGame, pUnit, dwItemCode);
+        pFoundItem = ITEMS::Items::Drop::HasQuestItem(UNIT::SUnit::GetGamePointer(pUnit), pUnit, dwItemCode);
         if (pFoundItem) {
           return true;
         }
@@ -1260,8 +1258,7 @@ BOOL __fastcall OBJOP_A1Q4_ActivateInifussTree(D2ObjectOperateFnArg * pOperation
         pGame = pOperation->sArg.pGame;
         GAME::Event::SetEvent(pGame, pOperation->sArg.pVictim, 7, pGame->dwGameFrame + 0x11, 0, 0);
         _bQuestState = 0;
-        pRoom = D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim);
-        D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pRoom, _bQuestState);
+        D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim), _bQuestState);
         D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheSearchForCain, QUESTSTATE_JustCompleted);
         D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheSearchForCain, QUESTSTATE_RewardAwaits);
         QUEST_SendQuestInfoToUnit(pOperation->sArg.pGame, pOperation->pAttacker);
@@ -1316,14 +1313,14 @@ void __fastcall Objects_InitFn06(uint32_t * pdwParam) {
         D2Common::Units::SetupUpdateFlag((D2UnitStrc*)pdwParam[1], 2);
         return;
       }
-      if (!(*(uint8_t*)((uintptr_t)&pObject->nAnimSpeed + 1) == '\0' && *(char*)&pObject->pAnimData == '\0')) {
-        D2Common::Units::SetupUpdateFlag(pObjectUnit, 2);
-      } else {
+      if (*(uint8_t*)((uintptr_t)&pObject->nAnimSpeed + 1) == '\0' && *(char*)&pObject->pAnimData == '\0') {
         if (pObject->unk0x19[nClassId + 0x32] == 1) {
           pObject->unk0x19[nClassId + 0x32] = 0;
           D2Common::Units::SetupUpdateFlag((D2UnitStrc*)pdwParam[1], 0);
           return;
         }
+      } else {
+        D2Common::Units::SetupUpdateFlag(pObjectUnit, 2);
       }
     } else {
       pA1Q1Data = (D2QuestDataA1Q1Strc*)pdwParam[1];
@@ -2349,13 +2346,13 @@ void Q04_SetCainUnitGUID(void * pThis, int32_t nCainGUID) {
 static void __stdcall Q04_ActivateCairnStonesAndTree(char cParam1, char cParam2, D2QuestDataStrc * pQuestData, D2UnitStrc * pUnit) {
     D2UnitStrc* pTreeUnit;
     D2QuestDataA1Q4Strc* pA1Q4Sub = pQuestData->pQuestSpecificData.pA1Q4;
-    if (pA1Q4Sub->sSub.bCairnStonesObjectSaved && (pTreeUnit = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, pA1Q4Sub->sSub.nCairnStonesObjectGUID) , pTreeUnit != 0) && pTreeUnit->nClassId == 0x1a) {
+    if (!(pA1Q4Sub->sSub.bCairnStonesObjectSaved && (pTreeUnit = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, pA1Q4Sub->sSub.nCairnStonesObjectGUID) , pTreeUnit != 0) && pTreeUnit->nClassId == 0x1a)) {
+      pA1Q4Sub->sSub.nCairnAnimState = 3;
+    } else {
       if (pTreeUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Run) {
         D2Common::Units::SetupUpdateFlag(pTreeUnit, 3);
         pA1Q4Sub->sSub.nCairnAnimState = 3;
       }
-    } else {
-      pA1Q4Sub->sSub.nCairnAnimState = 3;
     }
     if (pA1Q4Sub->sSub.bTreeObjectSaved) {
       pTreeUnit = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, pA1Q4Sub->sSub.nTreeObjectGUID);
@@ -2481,9 +2478,7 @@ static void __fastcall Q04_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData,
         pUnit = UNIT::SUnit::FindUnitFromTable(pQuestArgs->pGame, UNIT_OBJECT, nUnitGUID);
         if (pUnit && pA1Q4SubCast->sSub.bPendingCairnActivation && !pA1Q4SubCast->sSub.bCairnMonsterSaved) {
           nY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-          nX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-          pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-          Q04_SpawnDeckardCainNpc(pRoom, pQuestArgs->pGame, nX, nY);
+          Q04_SpawnDeckardCainNpc(D2Common::Units::UNITS_GetRoom(pUnit), pQuestArgs->pGame, D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), nY);
           return;
         }
       }

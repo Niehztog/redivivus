@@ -1049,9 +1049,9 @@ void __fastcall TXT_AllocTxt_shrines(D2PoolManagerStrc * pMemory) {
     shrines[10].eType = FIELDTYPE_END;
     shrines[10].nSize = 0;
     shrines[10].nOffset = 0;
-    shrines[10].fpLinker = 0;
     shrines[0].szName = "Code";
     shrines[0].eType = FIELDTYPE_CHAR;
+    shrines[10].fpLinker = 0;
     shrines[1].szName = "Arg0";
     shrines[1].eType = FIELDTYPE_INT;
     shrines[1].nOffset = 4;

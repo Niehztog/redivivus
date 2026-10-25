@@ -5564,57 +5564,53 @@ void __fastcall TXT_AllocTxt_MonEquip(D2PoolManagerStrc * pMemory) {
     monequip[0xc].nOffset = 0;
     monequip[0xc].fpLinker = 0;
     sgtDataTable.pTxtMonEquip = (D2MonEquipTxt*)DataTbls::CompileTxt(pMemory, "monequip", monequip, &sgtDataTable.nTxtMonEquipSize, 0x1c);
-    if (sgtDataTable.nTxtMonEquipSize < 0x7fff) {
-      int nMonStatCount;
-      nMonStatCount = 0;
-      if (0 < sgptDataTable->nTxtMonStatsSize) {
-        nMonStatIdx = 0;
-        do {
-          pMonStatsCode = sgtDataTable.pTxtMonStats->Code;
-          (pMonStatsCode + nMonStatIdx + 0x1a)[0] = -1;
-          (pMonStatsCode + nMonStatIdx + 0x1a)[1] = -1;
-          nMonStatCount++;
-          nMonStatIdx += 0x1a8;
-        } while (nMonStatCount < sgptDataTable->nTxtMonStatsSize);
-      }
+    if (!(sgtDataTable.nTxtMonEquipSize < 0x7fff)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd1c);
+      exit(-1);
+    }
 
-      nEquipRow = 0;
-      if (0 >= sgtDataTable.nTxtMonEquipSize) {
-        return;
-      }
-
+    int nMonStatCount;
+    nMonStatCount = 0;
+    if (0 < sgptDataTable->nTxtMonStatsSize) {
+      nMonStatIdx = 0;
       do {
-        pMonStatEntry = &sgtDataTable.pTxtMonEquip[nEquipRow].monster;
-        if (-1 < *pMonStatEntry) {
-          nMonStatCount = (int)*pMonStatEntry;
-          if (nMonStatCount < sgptDataTable->nTxtMonStatsSize) {
-            if (sgtDataTable.pTxtMonStats[nMonStatCount].nMonEquipId < 0) {
-              sgtDataTable.pTxtMonStats[nMonStatCount].nMonEquipId = (short int)nEquipRow;
-            }
+        pMonStatsCode = sgtDataTable.pTxtMonStats->Code;
+        (pMonStatsCode + nMonStatIdx + 0x1a)[0] = -1;
+        (pMonStatsCode + nMonStatIdx + 0x1a)[1] = -1;
+        nMonStatCount++;
+        nMonStatIdx += 0x1a8;
+      } while (nMonStatCount < sgptDataTable->nTxtMonStatsSize);
+    }
 
-            pLocSlot = pMonStatEntry + 10;
-            puVar4 = (uint32_t*)(pMonStatEntry + 4);
-            nSlotLoop = 3;
-            do {
-              if ((char)*pLocSlot < '\x01' || '\n' < (char)*pLocSlot || *puVar4 != 0x20202020 && (nItemClassId = Fog::Src::Excel::GetClassIdFromName(sgptDataTable->sTxtItemsLink, *puVar4, 1) , nItemClassId < 0)) {
-                *(char*)pLocSlot = '\0';
-              }
-
-              puVar4++;
-              pLocSlot = (short int*)((int)pLocSlot + 1);
-              nSlotLoop--;
-            } while (nSlotLoop);
-          }
-        }
-
-        nEquipRow++;
-      } while (nEquipRow < sgtDataTable.nTxtMonEquipSize);
-
+    nEquipRow = 0;
+    if (0 >= sgtDataTable.nTxtMonEquipSize) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd1c);
-    exit(-1);
+    do {
+      pMonStatEntry = &sgtDataTable.pTxtMonEquip[nEquipRow].monster;
+      if (-1 < *pMonStatEntry) {
+        nMonStatCount = (int)*pMonStatEntry;
+        if (nMonStatCount < sgptDataTable->nTxtMonStatsSize) {
+          if (sgtDataTable.pTxtMonStats[nMonStatCount].nMonEquipId < 0) {
+            sgtDataTable.pTxtMonStats[nMonStatCount].nMonEquipId = (short int)nEquipRow;
+          }
+          pLocSlot = pMonStatEntry + 10;
+          puVar4 = (uint32_t*)(pMonStatEntry + 4);
+          nSlotLoop = 3;
+          do {
+            if ((char)*pLocSlot < '\x01' || '\n' < (char)*pLocSlot || *puVar4 != 0x20202020 && (nItemClassId = Fog::Src::Excel::GetClassIdFromName(sgptDataTable->sTxtItemsLink, *puVar4, 1) , nItemClassId < 0)) {
+              *(char*)pLocSlot = '\0';
+            }
+            puVar4++;
+            pLocSlot = (short int*)((int)pLocSlot + 1);
+            nSlotLoop--;
+          } while (nSlotLoop);
+        }
+      }
+      nEquipRow++;
+    } while (nEquipRow < sgtDataTable.nTxtMonEquipSize);
+    return;
 }
 
 // Frees all monster-related data tables from sgtDataTable. Unloads MonEquip, Npc, MonLvl, MonPreset, SuperUniques (+ txt link), MonUmod (+ txt link), MonStats (+ txt link), MonStats2 (+ txt link), MonProp (+ txt link), MonSounds (+ txt link), then delegates to MONSTERTBLS_FreeMonPropTxt, FreeParsedTC, and TXT_UnloadUniqueMonsterNameTables. Called during game shutdown or data table reload.

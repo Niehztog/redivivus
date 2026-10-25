@@ -29,7 +29,7 @@ typedef unsigned long LCID;
 namespace Bnclient::BnSend {
 
 // Function declarations
-void __stdcall NET_SID_CLIENT_Send_0x1E_ClientId2();
+int __stdcall NET_SID_CLIENT_Send_0x1E_ClientId2();
 void __fastcall BNSEND_SetServerToken(uint32_t nServerToken);
 // Returns cached Battle.net server token (g_nBNetServerToken) received from SID_AUTH_INFO. Used during CD key authentication.
 uint32_t __stdcall BNSEND_GetServerToken();

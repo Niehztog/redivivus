@@ -1499,9 +1499,7 @@ uint32_t __stdcall SBmpAllocLoadImage(char * szText, void * pPalette, uint32_t *
     if (pnBpp) {
       *pnBpp = 0;
     }
-    if (*szText == '\0' || !szText || !ppOutputBuf) {
-      SErr::SErrSetLastError(0x57);
-    } else {
+    if (!(*szText == '\0' || !szText || !ppOutputBuf)) {
       int32_t iOpenResult;
       iOpenResult = SFile::SFileOpenFile(szText, &hArchiveFile);
       if (iOpenResult) {
@@ -1547,6 +1545,8 @@ uint32_t __stdcall SBmpAllocLoadImage(char * szText, void * pPalette, uint32_t *
         SMem::SMemFree(pOutputBuffer, ".\\SOURCE\\SBMP.CPP", 0x5f3, 0);
         return bSuccess;
       }
+    } else {
+      SErr::SErrSetLastError(0x57);
     }
 
     return 0;

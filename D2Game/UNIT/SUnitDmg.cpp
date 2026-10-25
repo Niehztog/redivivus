@@ -121,7 +121,7 @@ uint32_t __fastcall DAMAGE_CheckMonsterTypeVsMonsterType(uint32_t nMonTypeA, int
       return 0;
     }
 
-    return *(uint32_t*)(sgptDataTable->pTxtMonTypeUnknown + (sgptDataTable->nMonTypeEquivRowDwords * nMonTypeB + ((int)nMonTypeA >> 5)) * 4) & gadwBitMasks[nMonTypeA & 0x1f];
+    return *(uint32_t*)((uint8_t*)sgptDataTable->pTxtMonTypeUnknown + (sgptDataTable->nMonTypeEquivRowDwords * nMonTypeB + ((int)nMonTypeA >> 5)) * 4) & gadwBitMasks[nMonTypeA & 0x1f];
 }
 
 uint32_t __stdcall DAMAGE_RollPhysicalDamageRange(int32_t nDamageRange, int32_t nMinPctBonus, D2UnitStrc * pUnit, int32_t nDamageMin, int32_t nRangePctBonus, uint32_t nDamageAccum) {
@@ -449,13 +449,13 @@ static void __stdcall DAMAGE_ApplyCold(D2UnitStrc * pUnit, int32_t nParam, D2Uni
 
     D2StatListExStrc* pColdStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit2, STATE_cold);
     ::SGAMEDATA* pGame = SUnit::GetGamePointer(pUnit);
-    if (!(!pUnit2 || pUnit2->eUnitType != UNIT_MONSTER || (nMonClassId = pUnit2->nClassId , nMonClassId < 0) || nMonClassId >= sgptDataTable->nTxtMonStatsSize || !(sgptDataTable->pTxtMonStats + nMonClassId))) {
+    if (!pUnit2 || pUnit2->eUnitType != UNIT_MONSTER || (nMonClassId = pUnit2->nClassId , nMonClassId < 0) || nMonClassId >= sgptDataTable->nTxtMonStatsSize || !(sgptDataTable->pTxtMonStats + nMonClassId)) {
+      local_8 = -0x32;
+    } else {
       local_8 = (int)sgptDataTable->pTxtMonStats[nMonClassId].aColdEffect[pGame->nDifficulty];
       if (!local_8) {
         return;
       }
-    } else {
-      local_8 = -0x32;
     }
     if (pUnit2 && pUnit2->eUnitType == UNIT_MONSTER && local_8 < 0) {
       D2DifficultyLevelsTxt* pDiffLevels;
@@ -510,7 +510,7 @@ static void __stdcall DAMAGE_ApplyCold(D2UnitStrc * pUnit, int32_t nParam, D2Uni
 }
 
 // Server-side application of the Freeze effect to a target (pUnit2) from attacker pUnit for nParam frames. Players and bosses/special/uninterruptable/merc monsters fall back to DAMAGE_ApplyCold instead of being frozen. For eligible monsters: bails if a monster delay-by-difficulty check passes, divides duration by the difficulty's MonsterFreezeDivisor, and computes an expire game-frame. Creates+attaches a STATE_freeze statlist with expire callback SUNITDMG_StatExpireCallback_ResumeAI (or extends an existing freeze's timeout to the later expiry). Fires game events: event 0xc with the expire frame, an AITHINK timer trigger, and event 2 one frame after expiry to resume AI. Halts via Fog::ErrorManager on a zero freeze divisor or a non-monster reaching the event stage.
-void __stdcall DAMAGE_ApplyFreeze(D2UnitStrc * pUnit, int32_t nParam, D2UnitStrc * pUnit2) {
+static void __stdcall DAMAGE_ApplyFreeze(D2UnitStrc * pUnit, int32_t nParam, D2UnitStrc * pUnit2) {
     D2MonStatsTxt* pMonStatsTxt;
     uint32_t nCheckResult;
     D2DifficultyLevelsTxt* pDiffLevels;
@@ -526,11 +526,12 @@ void __stdcall DAMAGE_ApplyFreeze(D2UnitStrc * pUnit, int32_t nParam, D2UnitStrc
     if (pUnit2) {
       eTargetType = pUnit2->eUnitType;
     }
-    if (eTargetType == UNIT_PLAYER) {
+    switch (eTargetType) {
+    case UNIT_PLAYER: {
       DAMAGE_ApplyCold(pUnit, nParam, pUnit2);
       return;
     }
-    if (eTargetType == UNIT_MONSTER) {
+    case UNIT_MONSTER: {
       eD2States eFrozenState;
       eFrozenState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit2, STATE_uninterruptable);
       if (eFrozenState != STATE_none) {
@@ -543,8 +544,7 @@ void __stdcall DAMAGE_ApplyFreeze(D2UnitStrc * pUnit, int32_t nParam, D2UnitStrc
       }
 
       pVictimCopy = pUnit2;
-      pMonStatsTxt = D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetLine(nMonStatsId);
-      nCheckResult = D2Common::Monsters::MONSTERS::UnitIsMarkedBoss(pMonStatsTxt, pVictimCopy);
+      nCheckResult = D2Common::Monsters::MONSTERS::UnitIsMarkedBoss(D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetLine(nMonStatsId), pVictimCopy);
       if (nCheckResult || (nCheckResult = Monsters::CheckMonsterType(pUnit2, 8) , nCheckResult != 0)) {
         DAMAGE_ApplyCold(pUnit, nParam, pUnit2);
         return;
@@ -555,6 +555,8 @@ void __stdcall DAMAGE_ApplyFreeze(D2UnitStrc * pUnit, int32_t nParam, D2UnitStrc
         DAMAGE_ApplyCold(pUnit, nParam, pUnit2);
         return;
       }
+      break;
+    }
     }
 
     D2StatListExStrc* pFreezeStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit2, STATE_freeze);
@@ -748,7 +750,7 @@ void __stdcall DAMAGE_ApplyMonsterTypeBonusDamage(D2UnitStrc * pUnit, D2DamageSt
     }
 
     int nMonTypeCount = pnParam[1];
-    if (!(-1 < nMonTypeCount && nMonTypeCount < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonTypeCount)) {
+    if (!(0 <= nMonTypeCount && nMonTypeCount < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonTypeCount)) {
       return;
     }
 
@@ -2064,8 +2066,7 @@ void __fastcall SERVER_KillMonster(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Un
     GAME::Event::Dispatch::Monster::SetCurrentSkill(pUnit, Death, &pMonsterKill);
     if (pAttacker) {
       nAttackerYPos = D2Client::Units::GetYPosFromDynamicPathUnit(pAttacker);
-      nAttackerXPos = D2Client::Units::GetXPosFromDynamicPathUnit(pAttacker);
-      nDirection = D2Common::Units::GetDirectionToCoords(pUnit, nAttackerXPos, nAttackerYPos);
+      nDirection = D2Common::Units::GetDirectionToCoords(pUnit, D2Client::Units::GetXPosFromDynamicPathUnit(pAttacker), nAttackerYPos);
       *(uint8_t*)(char*)&nDirection = (uint8_t)nDirection;
     } else {
       *(uint8_t*)(char*)&nDirection = D2Common::PATH::DynamicPath::GetDirection(pUnit->pPath.pDynamicPath);

@@ -549,7 +549,7 @@ int OnLeftArrow(::EditBoxImplementation * pThis, D2UIMouseMsgStrc * pMsg) {
     pThis->bNumericOnly = 1;
     pThis->bCursorVisible = 1;
     memcpy(szZeroBuf, "0000000000", 0xb);
-    memset(wszZeroBuf, 0, 11 * sizeof(wszZeroBuf[0]));
+    for (int i = 0; i < 11; i++) wszZeroBuf[i] = 0;
     D2Win::Src::D2WinFont::SetAndReturnLastFont(nFont);
     D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszZeroBuf, szZeroBuf, 0xb);
     if (nWidth < 1) {

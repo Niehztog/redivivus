@@ -129,8 +129,7 @@ BOOL MessageBoxA_InsertExpansionDisc() {
     UINT uType = 0x31;
     char* lpCaption = "Diablo II";
     char* lpText = "Insert Expansion Disc";
-    HWND hWnd = D2gfx::D2GFX::GetHwnd();
-    int nMsgBoxResult = MessageBoxA(hWnd, lpText, lpCaption, uType);
+    int nMsgBoxResult = MessageBoxA(D2gfx::D2GFX::GetHwnd(), lpText, lpCaption, uType);
     return (uint32_t)(nMsgBoxResult == 1);
 }
 
@@ -138,8 +137,7 @@ BOOL __stdcall MessageBoxA_InsertPlayDisc() {
     UINT uType = 0x31;
     char* lpCaption = "Diablo II";
     char* lpText = "Insert Play Disc";
-    HWND hWnd = D2gfx::D2GFX::GetHwnd();
-    int nMsgBoxResult = MessageBoxA(hWnd, lpText, lpCaption, uType);
+    int nMsgBoxResult = MessageBoxA(D2gfx::D2GFX::GetHwnd(), lpText, lpCaption, uType);
     return (uint32_t)(nMsgBoxResult == 1);
 }
 

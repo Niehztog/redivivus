@@ -124,83 +124,96 @@ void __stdcall SEED_RollChampionPack(D2SeedStrc * pSeed, D2MonsterRegionFieldStr
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xa0);
       exit(-1);
     } else {
-      if (pMonData) {
-        pMonStats2 = D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetMonStats2((int)(short int)pMonData->nClassId);
-        if (pMonStats2) {
-          nBytesToCompare = (uint32_t)pMonData->pad;
-          nFreeSlots = (1 << (pMonStats2->byTotalFrames & 0x1f)) - nBytesToCompare;
-          if (nNumChampions > nFreeSlots) {
-            nNumChampions = nFreeSlots;
+      if (!pMonData) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xa1);
+        exit(-1);
+      }
+      pMonStats2 = D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetMonStats2((int)(short int)pMonData->nClassId);
+      if (pMonStats2) {
+        nBytesToCompare = (uint32_t)pMonData->pad;
+        nFreeSlots = (1 << (pMonStats2->byTotalFrames & 0x1f)) - nBytesToCompare;
+        if (nNumChampions > nFreeSlots) {
+          nNumChampions = nFreeSlots;
+        }
+        if (0 < nNumChampions) {
+          if (3 < (int)(nBytesToCompare + nNumChampions)) {
+            nNumChampions = 3 - nBytesToCompare;
           }
           if (0 < nNumChampions) {
-            if (3 < (int)(nBytesToCompare + nNumChampions)) {
-              nNumChampions = 3 - nBytesToCompare;
-            }
-            if (0 < nNumChampions) {
-              pNextSlot = pMonData->aArray + nBytesToCompare;
-              pComponents = pMonStats2->aComponents;
-              pSlot = pMonData->aArray;
-              if (!pMonData->pad) {
-                nFreeSlots = (int)pComponents - (int)pSlot;
-                nMaxRetries = 0x10;
-                do {
-                  byCompCount = *(uint8_t*)(nFreeSlots + (int)pSlot);
-                  if (byCompCount <= 1) {
-                    pSlot->aComponentVariants[0] = 0;
-                  } else {
-                    nEligibleComps = D2Client::Archive::UNIT_GetModuloFromSeed(pSeed, (uint32_t)byCompCount);
-                    pSlot->aComponentVariants[0] = (uint8_t)nEligibleComps;
-                  }
-
-                  pSlot = (D2MonsterRegionFieldSubStrc*)(pSlot->aComponentVariants + 1);
-                  nMaxRetries--;
-                } while (nMaxRetries);
-
-                pMonData->pad++;
-                nNumChampions--;
-                pNextSlot++;
-              }
-              if (nNumChampions) {
-                nEligibleComps = 0;
-                byCompCount = 0;
-                pCompIter = pComponents;
-                do {
-                  if (1 < *pCompIter) {
-                    aCompIndices[nEligibleComps + 1] = byCompCount;
-                    nEligibleComps++;
-                  }
-
-                  byCompCount++;
-                  pCompIter++;
-                } while (byCompCount < 0x10);
-
-                if (nEligibleComps == 1) {
-                  bySecondCompIdx = aCompIndices[1];
-                  aCompIndices[0] = aCompIndices[1];
-                  byCompCount = aCompIndices[1];
+            pNextSlot = pMonData->aArray + nBytesToCompare;
+            pComponents = pMonStats2->aComponents;
+            pSlot = pMonData->aArray;
+            if (!pMonData->pad) {
+              nFreeSlots = (int)pComponents - (int)pSlot;
+              nMaxRetries = 0x10;
+              do {
+                byCompCount = *(uint8_t*)(nFreeSlots + (int)pSlot);
+                if (byCompCount <= 1) {
+                  pSlot->aComponentVariants[0] = 0;
                 } else {
-                  if ((int)nEligibleComps < 2) {
-                    Fog::Debug::GuardStack();
-                    return;
-                  }
-
-                  nRand1 = D2Client::Archive::UNIT_GetModuloFromSeed(pSeed, nEligibleComps);
-                  byCompCount = aCompIndices[nRand1 + 1];
-                  aCompIndices[nRand1 + 1] = aCompIndices[nEligibleComps];
-                  aCompIndices[0] = byCompCount;
-                  nEligibleComps = D2Client::Archive::UNIT_GetModuloFromSeed(pSeed, nEligibleComps - 1);
-                  bySecondCompIdx = aCompIndices[nEligibleComps + 1];
+                  nEligibleComps = D2Client::Archive::UNIT_GetModuloFromSeed(pSeed, (uint32_t)byCompCount);
+                  pSlot->aComponentVariants[0] = (uint8_t)nEligibleComps;
                 }
-                if (0 < nNumChampions) {
-                  nRemainingChampions = nNumChampions;
-                  do {
-                    *(uint32_t*)pNextSlot->aComponentVariants = *(uint32_t*)pMonData->aArray[0].aComponentVariants;
-                    *(uint32_t*)(pNextSlot->aComponentVariants + 4) = *(uint32_t*)(pMonData->aArray[0].aComponentVariants + 4);
-                    *(uint32_t*)(pNextSlot->aComponentVariants + 8) = *(uint32_t*)(pMonData->aArray[0].aComponentVariants + 8);
-                    *(uint32_t*)(pNextSlot->aComponentVariants + 0xc) = *(uint32_t*)(pMonData->aArray[0].aComponentVariants + 0xc);
-                    nMaxRetries = 3;
-                    while (true) {
-                      byCompVariant = pComponents[byCompCount];
+                pSlot = (D2MonsterRegionFieldSubStrc*)(pSlot->aComponentVariants + 1);
+                nMaxRetries--;
+              } while (nMaxRetries);
+              pMonData->pad++;
+              nNumChampions--;
+              pNextSlot++;
+            }
+            if (nNumChampions) {
+              nEligibleComps = 0;
+              byCompCount = 0;
+              pCompIter = pComponents;
+              do {
+                if (1 < *pCompIter) {
+                  aCompIndices[nEligibleComps + 1] = byCompCount;
+                  nEligibleComps++;
+                }
+                byCompCount++;
+                pCompIter++;
+              } while (byCompCount < 0x10);
+              if (nEligibleComps == 1) {
+                bySecondCompIdx = aCompIndices[1];
+                aCompIndices[0] = aCompIndices[1];
+                byCompCount = aCompIndices[1];
+              } else {
+                if ((int)nEligibleComps < 2) {
+                  return;
+                }
+                nRand1 = D2Client::Archive::UNIT_GetModuloFromSeed(pSeed, nEligibleComps);
+                byCompCount = aCompIndices[nRand1 + 1];
+                aCompIndices[nRand1 + 1] = aCompIndices[nEligibleComps];
+                aCompIndices[0] = byCompCount;
+                nEligibleComps = D2Client::Archive::UNIT_GetModuloFromSeed(pSeed, nEligibleComps - 1);
+                bySecondCompIdx = aCompIndices[nEligibleComps + 1];
+              }
+              if (0 < nNumChampions) {
+                nRemainingChampions = nNumChampions;
+                do {
+                  *(uint32_t*)pNextSlot->aComponentVariants = *(uint32_t*)pMonData->aArray[0].aComponentVariants;
+                  *(uint32_t*)(pNextSlot->aComponentVariants + 4) = *(uint32_t*)(pMonData->aArray[0].aComponentVariants + 4);
+                  *(uint32_t*)(pNextSlot->aComponentVariants + 8) = *(uint32_t*)(pMonData->aArray[0].aComponentVariants + 8);
+                  *(uint32_t*)(pNextSlot->aComponentVariants + 0xc) = *(uint32_t*)(pMonData->aArray[0].aComponentVariants + 0xc);
+                  nMaxRetries = 3;
+                  while (true) {
+                    byCompVariant = pComponents[byCompCount];
+                    nBytesToCompare = (uint32_t)byCompVariant;
+                    if (!nBytesToCompare) {
+                      byCompVariant = 0;
+                    } else if (!(nBytesToCompare & nBytesToCompare - 1)) {
+                      sSeedNext = D2_SEED_NEXT(*pSeed);
+                      *pSeed = sSeedNext;
+                      byCompVariant = byCompVariant - 1 & (uint8_t)sSeedNext.nSeedLow;
+                    } else {
+                      sSeedNext = D2_SEED_NEXT(*pSeed);
+                      *pSeed = sSeedNext;
+                      byCompVariant = (uint8_t)(sSeedNext.nSeedLow % nBytesToCompare);
+                    }
+
+                    pNextSlot->aComponentVariants[byCompCount] = byCompVariant;
+                    if (aCompIndices[0] != bySecondCompIdx) {
+                      byCompVariant = pComponents[bySecondCompIdx];
                       nBytesToCompare = (uint32_t)byCompVariant;
                       if (!nBytesToCompare) {
                         byCompVariant = 0;
@@ -211,108 +224,84 @@ void __stdcall SEED_RollChampionPack(D2SeedStrc * pSeed, D2MonsterRegionFieldStr
                       } else {
                         sSeedNext = D2_SEED_NEXT(*pSeed);
                         *pSeed = sSeedNext;
-                        byCompVariant = (uint8_t)(((uint64_t)d2_bits_of(sSeedNext) & 0xffffffff) % (uint64_t)nBytesToCompare);
+                        byCompVariant = (uint8_t)(sSeedNext.nSeedLow % nBytesToCompare);
                       }
 
-                      pNextSlot->aComponentVariants[byCompCount] = byCompVariant;
-                      if (aCompIndices[0] != bySecondCompIdx) {
-                        byCompVariant = pComponents[bySecondCompIdx];
-                        nBytesToCompare = (uint32_t)byCompVariant;
-                        if (!nBytesToCompare) {
-                          byCompVariant = 0;
-                        } else if (!(nBytesToCompare & nBytesToCompare - 1)) {
-                          sSeedNext = D2_SEED_NEXT(*pSeed);
-                          *pSeed = sSeedNext;
-                          byCompVariant = byCompVariant - 1 & (uint8_t)sSeedNext.nSeedLow;
-                        } else {
-                          sSeedNext = D2_SEED_NEXT(*pSeed);
-                          *pSeed = sSeedNext;
-                          byCompVariant = (uint8_t)(((uint64_t)d2_bits_of(sSeedNext) & 0xffffffff) % (uint64_t)nBytesToCompare);
+                      pNextSlot->aComponentVariants[bySecondCompIdx] = byCompVariant;
+                    }
+                    bIsSlotDuplicate = false;
+                    if (!pMonData->pad) {
+                      break;
+                    }
+                    pSlot = pMonData->aArray;
+                    nExistingSlots = (uint32_t)pMonData->pad;
+                    do {
+                      nBytesToCompare = 0x10;
+                      pSlot2 = pSlot;
+                      pSlot3 = pNextSlot;
+                      do {
+                        if (*(int*)pSlot3->aComponentVariants != *(int*)pSlot2->aComponentVariants) {
+                          goto compare_bytes;
                         }
 
-                        pNextSlot->aComponentVariants[bySecondCompIdx] = byCompVariant;
-                      }
+                        nBytesToCompare -= 4;
+                        pSlot2 = (D2MonsterRegionFieldSubStrc*)(pSlot2->aComponentVariants + 4);
+                        pSlot3 = (D2MonsterRegionFieldSubStrc*)(pSlot3->aComponentVariants + 4);
+                      } while (4 <= nBytesToCompare);
 
-                      bIsSlotDuplicate = false;
-                      if (!pMonData->pad) {
-                        break;
-                      }
-
-                      pSlot = pMonData->aArray;
-                      nExistingSlots = (uint32_t)pMonData->pad;
-                      do {
-                        nBytesToCompare = 0x10;
-                        pSlot2 = pSlot;
-                        pSlot3 = pNextSlot;
-                        do {
-                          if (*(int*)pSlot3->aComponentVariants != *(int*)pSlot2->aComponentVariants) {
-                            goto compare_bytes;
+                      if (!nBytesToCompare) {
+                        slots_equal:
+                        nMemcmpResult = 0;
+                      } else {
+                        compare_bytes:
+                        nFreeSlots = (uint32_t)pSlot3->aComponentVariants[0] - (uint32_t)pSlot2->aComponentVariants[0];
+                        if (!nFreeSlots) {
+                          if (nBytesToCompare == 1) {
+                            goto slots_equal;
                           }
 
-                          nBytesToCompare -= 4;
-                          pSlot2 = (D2MonsterRegionFieldSubStrc*)(pSlot2->aComponentVariants + 4);
-                          pSlot3 = (D2MonsterRegionFieldSubStrc*)(pSlot3->aComponentVariants + 4);
-                        } while (4 <= nBytesToCompare);
-
-                        if (!nBytesToCompare) {
-                          slots_equal:
-                          nMemcmpResult = 0;
-                        } else {
-                          compare_bytes:
-                          nFreeSlots = (uint32_t)pSlot3->aComponentVariants[0] - (uint32_t)pSlot2->aComponentVariants[0];
+                          nFreeSlots = (uint32_t)pSlot3->aComponentVariants[1] - (uint32_t)pSlot2->aComponentVariants[1];
                           if (!nFreeSlots) {
-                            if (nBytesToCompare == 1) {
+                            if (nBytesToCompare == 2) {
                               goto slots_equal;
                             }
 
-                            nFreeSlots = (uint32_t)pSlot3->aComponentVariants[1] - (uint32_t)pSlot2->aComponentVariants[1];
-                            if (!nFreeSlots) {
-                              if (nBytesToCompare == 2) {
-                                goto slots_equal;
-                              }
-
-                              nFreeSlots = (uint32_t)pSlot3->aComponentVariants[2] - (uint32_t)pSlot2->aComponentVariants[2];
-                              if (!nFreeSlots && (nBytesToCompare == 3 || (nFreeSlots = (uint32_t)pSlot3->aComponentVariants[3] - (uint32_t)pSlot2->aComponentVariants[3] , !nFreeSlots))) {
-                                goto slots_equal;
-                              }
+                            nFreeSlots = (uint32_t)pSlot3->aComponentVariants[2] - (uint32_t)pSlot2->aComponentVariants[2];
+                            if (!nFreeSlots && (nBytesToCompare == 3 || (nFreeSlots = (uint32_t)pSlot3->aComponentVariants[3] - (uint32_t)pSlot2->aComponentVariants[3] , !nFreeSlots))) {
+                              goto slots_equal;
                             }
                           }
-
-                          nMemcmpResult = 1;
-                          if (nFreeSlots < 1) {
-                            nMemcmpResult = -1;
-                          }
-                        }
-                        if (!nMemcmpResult) {
-                          nMaxRetries--;
-                          bIsSlotDuplicate = true;
                         }
 
-                        pSlot++;
-                        nExistingSlots--;
-                      } while (nExistingSlots);
-
-                      if (!bIsSlotDuplicate || !nMaxRetries) {
-                        break;
+                        nMemcmpResult = 1;
+                        if (nFreeSlots < 1) {
+                          nMemcmpResult = -1;
+                        }
                       }
-                    }
+                      if (!nMemcmpResult) {
+                        nMaxRetries--;
+                        bIsSlotDuplicate = true;
+                      }
 
-                    pMonData->pad++;
-                    pNextSlot++;
-                    nRemainingChampions--;
-                  } while (nRemainingChampions);
-                }
+                      pSlot++;
+                      nExistingSlots--;
+                    } while (nExistingSlots);
+                    if (!bIsSlotDuplicate || !nMaxRetries) {
+                      break;
+                    }
+                  }
+
+                  pMonData->pad++;
+                  pNextSlot++;
+                  nRemainingChampions--;
+                } while (nRemainingChampions);
               }
             }
           }
         }
-
-        Fog::Debug::GuardStack();
-        return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xa1);
-      exit(-1);
+      return;
     }
 }
 
@@ -455,8 +444,7 @@ BOOL __fastcall SKILLITEM_ItemSpellInit_UseStackable(::SGAMEDATA * pGame, D2Unit
 
     int32_t nParam = 1;
     BOOL bUseUnitGUID = 0;
-    D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillItem.cpp", 0x40);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x3F_SETSPELLICON(pClient, pItem, nSpellIcon, bUseUnitGUID, nParam, (uint16_t)eSkill);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x3F_SETSPELLICON(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillItem.cpp", 0x40), pItem, nSpellIcon, bUseUnitGUID, nParam, (uint16_t)eSkill);
     return 1;
 }
 
@@ -505,8 +493,7 @@ static void SKILLITEM_ClearCursorFlagAndNotifyClient(D2UnitStrc * pUnit) {
         nParam = 0;
         bHasCursorFlag = 1;
         nItemSlot = 0xff;
-        pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillItem.cpp", 0x7a);
-        GAME::SCmd::NET_D2GS_SERVER_Send_0x3F_SETSPELLICON(pClient, pUnitTmp2, nItemSlot, bHasCursorFlag, nParam, nSkillId);
+        GAME::SCmd::NET_D2GS_SERVER_Send_0x3F_SETSPELLICON(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillItem.cpp", 0x7a), pUnitTmp2, nItemSlot, bHasCursorFlag, nParam, nSkillId);
       }
     }
 }
@@ -568,9 +555,7 @@ BOOL __fastcall SKILLITEM_TownPortalScrollSpell(::SGAMEDATA * pGame, D2UnitStrc 
         nPortalObjId = 0x3b;
         ppNewPortal = &pNewPortal;
         pNewPortal = 0;
-        nPortalY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-        nPortalX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-        bInTown = SkillsServer::SERVER_SpawnPortal(pGame, pUnit, pRoom, nPortalX, nPortalY, eLevelId, ppNewPortal, nPortalObjId, bInTown);
+        bInTown = SkillsServer::SERVER_SpawnPortal(pGame, pUnit, pRoom, D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit), eLevelId, ppNewPortal, nPortalObjId, bInTown);
         UNIT::SUnit::SetupUpdateEvent_AttachEventSound(pUnit, UNITEVENTCALLBACK_MONUMOD, nullptr);
         if (bInTown) {
           if (!pNewPortal) {
@@ -595,10 +580,7 @@ BOOL __fastcall SKILLITEM_TownPortalScrollSpell(::SGAMEDATA * pGame, D2UnitStrc 
           return bInTown;
         }
 
-        nItemGUID = pItem->nUnitGUID;
-        byItemUnitType = (uint8_t)pItem->eUnitType;
-        pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillItem.cpp", 0xda);
-        GAME::SCmd::NET_D2GS_SERVER_Send_CMD_BYTE_INT(pClient, 0x7c, byItemUnitType, nItemGUID);
+        GAME::SCmd::NET_D2GS_SERVER_Send_CMD_BYTE_INT(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillItem.cpp", 0xda), 0x7c, (uint8_t)pItem->eUnitType, pItem->nUnitGUID);
         return bInTown;
       }
     }
@@ -1275,9 +1257,7 @@ BOOL __fastcall ITEM_CastFireballOnTarget(::SGAMEDATA * pGame, D2UnitStrc * pUni
       return BVar1;
     }
 
-    nItemClassId = D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath);
-    uint32_t nTargetX = D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath);
-    BVar1 = Monster::AI::MONSTERAI_CastItemEffectSkill(pUnit, SKILL_FireBall, 1, nTargetX, nItemClassId, nCastParam);
+    BVar1 = Monster::AI::MONSTERAI_CastItemEffectSkill(pUnit, SKILL_FireBall, 1, D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath), D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath), nCastParam);
     return BVar1;
 }
 
@@ -1443,8 +1423,7 @@ BOOL __fastcall Skills_SrvDoFunc_113_UseScrollOrBook(::SGAMEDATA * pGame, D2Unit
       bUseMerc = 0;
       pDVar2 = (D2UnitStrc*)&eSkill;
       iVar7 = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit_00);
-      iVar8 = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00);
-      ITEMS::ItemMode::SERVER_UseItemAtCoords(pGame, pUnit, DVar9, iVar8, iVar7, pDVar2, bUseMerc);
+      ITEMS::ItemMode::SERVER_UseItemAtCoords(pGame, pUnit, DVar9, D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00), iVar7, pDVar2, bUseMerc);
       return 1;
     }
     if (!pUnit_00) {
@@ -1455,8 +1434,7 @@ BOOL __fastcall Skills_SrvDoFunc_113_UseScrollOrBook(::SGAMEDATA * pGame, D2Unit
 
     eD2Skills* bResult = &eSkill;
     iVar7 = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit_00);
-    iVar8 = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00);
-    ITEMS::ItemMode::SpecialItemsBonuses(pGame, pUnit, DVar9, iVar8, iVar7, (BOOL*)bResult);
+    ITEMS::ItemMode::SpecialItemsBonuses(pGame, pUnit, DVar9, D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00), iVar7, (BOOL*)bResult);
     return 1;
 }
 
@@ -1466,13 +1444,12 @@ void __fastcall SKILL_ProcessPeriodicAuraTick(::SGAMEDATA * pGame, D2UnitStrc * 
     }
 
     D2SkillsTxt* pSkillTxt = sgptDataTable->pTxtSkills + eSkill;
-    if (!(pSkillTxt && pSkillTxt->aura && -1 < pSkillTxt->aurastate && (int)pSkillTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
+    if (!(pSkillTxt && pSkillTxt->aura && 0 <= pSkillTxt->aurastate && (int)pSkillTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_PERIODICSTATS, param_1);
-    int32_t pNextFrame = SkillsServer::SKILLS_CalcPerDelayInterval(pGame, pUnit, pSkillTxt, eSkill, nParam);
-    GAME::Event::SetEvent(pGame, pUnit, 9, pNextFrame, param_1, eSkill);
+    GAME::Event::SetEvent(pGame, pUnit, 9, SkillsServer::SKILLS_CalcPerDelayInterval(pGame, pUnit, pSkillTxt, eSkill, nParam), param_1, eSkill);
     if (!pSkillTxt->immediate) {
       return;
     }
@@ -1491,7 +1468,7 @@ void __fastcall SKILL_DeactivateAura(::SGAMEDATA * pGame, D2UnitStrc * pUnit, in
     }
 
     short int eAuraState = pSkillTxt->aurastate;
-    if (!(-1 < eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -2124,9 +2101,7 @@ BOOL __fastcall ITEMEVENT_CastOnAttack(::SGAMEDATA * pGame, uint32_t nUnitEvent,
         return 1;
       }
 
-      nCastY = D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath);
-      nCastX = D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath);
-      Monster::AI::MONSTERAI_CastItemEffectSkill(pUnit, eProcSkill, eSkillLevel, nCastX, nCastY, nProcChance);
+      Monster::AI::MONSTERAI_CastItemEffectSkill(pUnit, eProcSkill, eSkillLevel, D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath), D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath), nProcChance);
     } else if (pTarget) {
       Monster::AI::SKILL_CastOnTargetUnit(pTarget, eProcSkill, eSkillLevel, pTarget, 0);
       return 1;
@@ -2165,9 +2140,7 @@ BOOL __fastcall ITEMEVENT_CastOnStriking(::SGAMEDATA * pGame, uint32_t nUnitEven
     nProcChance = 0;
     if (!pTarget) {
       uint32_t nCastX;
-      nRandRoll = D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath);
-      nCastX = D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath);
-      Monster::AI::MONSTERAI_CastItemEffectSkill(pUnit, eProcSkill, eSkillLevel, nCastX, nRandRoll, nProcChance);
+      Monster::AI::MONSTERAI_CastItemEffectSkill(pUnit, eProcSkill, eSkillLevel, D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath), D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath), nProcChance);
       return 1;
     }
 
@@ -2197,9 +2170,7 @@ BOOL __fastcall ITEMEVENT_CastOnDeath(::SGAMEDATA * pGame, uint32_t nUnitEvent, 
     nProcChance = 0;
     if (!pTarget) {
       uint32_t nCastY;
-      nCastY = D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath);
-      nCastX = D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath);
-      Monster::AI::MONSTERAI_CastItemEffectSkill(pUnit, eProcSkill, eSkillLevel, nCastX, nCastY, nProcChance);
+      Monster::AI::MONSTERAI_CastItemEffectSkill(pUnit, eProcSkill, eSkillLevel, D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath), D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath), nProcChance);
       return 1;
     }
 
@@ -2254,12 +2225,7 @@ static BOOL __fastcall SKILL_ReviveMonsterFromCorpse(::SGAMEDATA * pGame, uint32
       return 0;
     }
 
-    int32_t eCollisionFlag = 0x8000;
-    eD2CollisionShapeType nType = D2Common::PATH::DynamicPath::GetUnitWidth(pAttacker);
-    nCollY = D2Client::Units::GetYPosFromDynamicPathUnit(pAttacker);
-    int32_t nCollX = D2Client::Units::GetXPosFromDynamicPathUnit(pAttacker);
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pAttacker);
-    D2Common::Collision::RemoveCollision_Type(pRoom, nCollX, nCollY, nType, eCollisionFlag);
+    D2Common::Collision::RemoveCollision_Type(D2Common::Units::UNITS_GetRoom(pAttacker), D2Client::Units::GetXPosFromDynamicPathUnit(pAttacker), D2Client::Units::GetYPosFromDynamicPathUnit(pAttacker), D2Common::PATH::DynamicPath::GetUnitWidth(pAttacker), 0x8000);
     D2UnitStrc* pRevived = Monster::Create::SpawnMonsterAtRoomPos(pGame, pTargetRoom, nCorpseSpawnX, nCorpseY, eSkill, eD2MonsterAnimMode_ns::Neutral, -1, 0x4a);
     if (!pRevived) {
       return 0;
@@ -2267,8 +2233,7 @@ static BOOL __fastcall SKILL_ReviveMonsterFromCorpse(::SGAMEDATA * pGame, uint32
 
     pRevived->eUnitFlags |= UNITFLAG_NOXP | UNITFLAG_NOTC | UNITFLAG_ISVALIDTARGET | UNITFLAG_CANBEATTACKED | UNITFLAG_TARGETABLE;
     nCollY = 0;
-    pReviveAiGeneral = UNIT::Monster::GetAiGeneral(pRevived);
-    Monster::AI::AttachCorrectAiFunctionToMonster(pGame, pRevived, pReviveAiGeneral, nCollY);
+    Monster::AI::AttachCorrectAiFunctionToMonster(pGame, pRevived, UNIT::Monster::GetAiGeneral(pRevived), nCollY);
     Monster::MONSTERAI_TriggerMageThink(pGame, pRevived);
     Ai::AiGeneral::AssignMinionOwner(pGame, pRevived, pOwnerUnit->nUnitGUID, pOwnerUnit->eUnitType, 0, 0);
     Monster::AI::MONSTERAI_SetTargetUnit(pRevived, pOwnerUnit);
@@ -2284,8 +2249,7 @@ static BOOL __fastcall SKILL_ReviveMonsterFromCorpse(::SGAMEDATA * pGame, uint32
     if (pMonStats2->byResurrectMode == '\x0e') {
       D2SkillStrc* pSkill;
       GAME::Event::Dispatch::Monster::SetCurrentSkill(pRevived, eD2MonsterAnimMode_ns::Sequence, &sKillStrc);
-      pSkill = D2Common::Skills::GetSkillByIdAndOwner(pRevived, SKILL_SkeletonRaise, -1);
-      D2Common::Units::SetCurrentSkill(pRevived, pSkill);
+      D2Common::Units::SetCurrentSkill(pRevived, D2Common::Skills::GetSkillByIdAndOwner(pRevived, SKILL_SkeletonRaise, -1));
       D2Common::PATH::DynamicPath::SetStepNum(pRevived->pPath.pDynamicPath, 1);
       sKillStrc.pAttacker = 0;
       sKillStrc.nTargetX = nCorpseSpawnX;

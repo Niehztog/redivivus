@@ -171,7 +171,9 @@ static uint32_t GFXHASH_CalcHashKey(D2GfxDataStrc * pGfxData, uint32_t * pnParam
     uint32_t nDirIdx = GFXHASH_CalcDirectionIndex((int32_t)pGfxData, pnParam1, pCelEntry);
     *pnParam2 = nDirIdx;
     eD2UnitType eUnitType = pGfxData->eUnitType;
-    if (eUnitType == UNIT_COUNT && pGfxData->dwFlags & 2 || eUnitType == UNIT_MISSILE || eUnitType == UNIT_ITEM) {
+    if (!(eUnitType == UNIT_COUNT && pGfxData->dwFlags & 2 || eUnitType == UNIT_MISSILE || eUnitType == UNIT_ITEM)) {
+      nHashAccum = pGfxData->nWeaponClass + pGfxData->nModeToken + pGfxData->nArmorToken + pGfxData->nCompositToken + pGfxData->nUnitToken + nDirIdx;
+    } else {
       if (!pGfxData->szFilename) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2c);
         exit(-1);
@@ -179,8 +181,6 @@ static uint32_t GFXHASH_CalcHashKey(D2GfxDataStrc * pGfxData, uint32_t * pnParam
 
       nDirIdx = Storm::Source::SSTR::SStrHash(pGfxData->szFilename, 1, 0);
       nHashAccum = nDirIdx + *pnParam2;
-    } else {
-      nHashAccum = pGfxData->nWeaponClass + pGfxData->nModeToken + pGfxData->nArmorToken + pGfxData->nCompositToken + pGfxData->nUnitToken + nDirIdx;
     }
 
     return ((nHashAccum >> 8 ^ nHashAccum) >> 0x10 ^ nHashAccum >> 8 ^ nHashAccum) & 0x1fff;

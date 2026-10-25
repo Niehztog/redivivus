@@ -53,7 +53,7 @@ uint32_t __stdcall DAMAGE_CheckDefenseEvasion(int32_t nParam, D2UnitStrc * pUnit
           roll_evade:
           DVar1 = D2_SEED_NEXT(pUnit->sSeed);
           pUnit->sSeed = DVar1;
-          nAvoidChance = DVar1.nSeedLow + (int)(((uint64_t)d2_bits_of(DVar1) & 0xffffffff) / 100) * -100;
+          nAvoidChance = DVar1.nSeedLow % 100;
           nSeedMod = "evades";
           nParryBonus = nParam;
           nDodgeChance = nAvoidChance;

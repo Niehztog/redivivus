@@ -562,16 +562,14 @@ static void CLIENT_ResolvePlayerCollision(D2UnitStrc * pUnit) {
     }
 
     int32_t iVar1 = 0xc01;
-    int32_t nUnitWidth = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-    eCollisionFlags eCollideResult = D2Common::Collision::CheckCollision_BlockAll_Type(pRoom, sTilePos.x, sTilePos.y, nUnitWidth, iVar1);
+    eCollisionFlags eCollideResult = D2Common::Collision::CheckCollision_BlockAll_Type(pRoom, sTilePos.x, sTilePos.y, D2Common::PATH::DynamicPath::GetUnitWidth(pUnit), iVar1);
     if (eCollideResult == COLLIDE_NONE) {
       return;
     }
 
     BOOL bAllowNeighboorRooms = 1;
     int32_t eCollisionFlag = 0xc01;
-    iVar1 = D2Common::Units::GetUnitSizeX(pUnit);
-    D2Common::Collision::GetFreeCoordinates_WithNeighboorRooms(pRoom, &sTilePos, iVar1, eCollisionFlag, bAllowNeighboorRooms);
+    D2Common::Collision::GetFreeCoordinates_WithNeighboorRooms(pRoom, &sTilePos, D2Common::Units::GetUnitSizeX(pUnit), eCollisionFlag, bAllowNeighboorRooms);
     CUnit::CLIENT_TeleportUnitToPosition(pUnit, sTilePos.x, sTilePos.y, 0);
 }
 
@@ -998,8 +996,7 @@ static void __stdcall PLAYER_InteractWithObject(int32_t nParam1, D2UnderMouseStr
     if (pObject->nClassId == 0x3b) {
       eD2States eCurseState;
       eState = STATE_just_portaled;
-      pObject = GetPlayerUnit_UI();
-      eCurseState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pObject, eState);
+      eCurseState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(GetPlayerUnit_UI(), eState);
       if (eCurseState != STATE_none) {
         bCanInteract = false;
       }
@@ -1116,44 +1113,42 @@ static void PLAYER_ExecuteSkillWithAura(int32_t nTargetGUID, eD2UnitType eTarget
       exit(-1);
     } else {
       uint32_t bOutOfRange;
-      if (pUnderMouse->pPlayer) {
-        if (!(*(uint8_t*)&pUnderMouse->flags & 0x20)) {
-          bOutOfRange = SKILL_CheckAuraRange(pUnderMouse->pSkill, pUnderMouse->pTarget, &nCurDist, &nTotalDist);
-          if (!bOutOfRange) {
-            if (*(uint8_t*)&pUnderMouse->flags & 1) {
-              Engine::StoreLastSkillHit(unk1, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID);
-            }
-            if (*(uint8_t*)&pUnderMouse->flags & 2) {
-              Engine::StoreLastSkillHit(unk3 | Poison, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID);
-            }
-
-            nStepsRemaining = nTotalDist - nCurDist;
-            if (nStepsRemaining <= 0) {
-              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x548);
+      if (!pUnderMouse->pPlayer) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x530);
+        exit(-1);
+      }
+      if (!(*(uint8_t*)&pUnderMouse->flags & 0x20)) {
+        bOutOfRange = SKILL_CheckAuraRange(pUnderMouse->pSkill, pUnderMouse->pTarget, &nCurDist, &nTotalDist);
+        if (!bOutOfRange) {
+          if (*(uint8_t*)&pUnderMouse->flags & 1) {
+            Engine::StoreLastSkillHit(unk1, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID);
+          }
+          if (*(uint8_t*)&pUnderMouse->flags & 2) {
+            Engine::StoreLastSkillHit(unk3 | Poison, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID);
+          }
+          nStepsRemaining = nTotalDist - nCurDist;
+          if (nStepsRemaining <= 0) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x548);
+            exit(-1);
+          } else {
+            if (!nTotalDist) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x549);
               exit(-1);
-            } else {
-              if (!nTotalDist) {
-                Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x549);
-                exit(-1);
-              }
-
-              nSrcX = Units::GetXPosFromDynamicPathUnit(pUnderMouse->pPlayer);
-              nCurDist = Units::GetYPosFromDynamicPathUnit(pUnderMouse->pPlayer);
-              nDstX = Units::GetXPosFromDynamicPathUnit(pUnderMouse->pTarget);
-              nDstY = Units::GetYPosFromDynamicPathUnit(pUnderMouse->pTarget);
-              nCurDist = (nDstY - nCurDist) * nStepsRemaining / nTotalDist + nCurDist;
-              CLIENT_MovePlayerToPosition(pUnderMouse->pPlayer, (short int)((nDstX - nSrcX) * nStepsRemaining / nTotalDist) + (short int)nSrcX, (int16_t)nCurDist, pUnderMouse->nMoveActionType);
-              return;
             }
+
+            nSrcX = Units::GetXPosFromDynamicPathUnit(pUnderMouse->pPlayer);
+            nCurDist = Units::GetYPosFromDynamicPathUnit(pUnderMouse->pPlayer);
+            nDstX = Units::GetXPosFromDynamicPathUnit(pUnderMouse->pTarget);
+            nDstY = Units::GetYPosFromDynamicPathUnit(pUnderMouse->pTarget);
+            nCurDist = (nDstY - nCurDist) * nStepsRemaining / nTotalDist + nCurDist;
+            CLIENT_MovePlayerToPosition(pUnderMouse->pPlayer, (short int)((nDstX - nSrcX) * nStepsRemaining / nTotalDist) + (short int)nSrcX, (int16_t)nCurDist, pUnderMouse->nMoveActionType);
+            return;
           }
         }
-
-        PLAYER_ExecuteModeBasedAction(1, pUnderMouse);
-        return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x530);
-      exit(-1);
+      PLAYER_ExecuteModeBasedAction(1, pUnderMouse);
+      return;
     }
 }
 
@@ -2201,15 +2196,13 @@ void __fastcall PLAYER_HandlePlayerDeath(int32_t pDeathMsg) {
       nPosY = (int16_t)nTmpPos;
       nTmpPos = Units::GetXPosFromDynamicPathUnit(pUnit);
       nPosX = (int16_t)nTmpPos;
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      BVar2 = D2Common::PATH::Path::PATH_GetCollisionMaskAt(pDynamicPath, pKillerOrCorpse, pRoom, nPosX, nPosY);
+      BVar2 = D2Common::PATH::Path::PATH_GetCollisionMaskAt(pDynamicPath, pKillerOrCorpse, D2Common::Units::UNITS_GetRoom(pUnit), nPosX, nPosY);
       if (!BVar2) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xaba);
         exit(-1);
       }
 
-      nDirection = D2Common::PATH::DynamicPath::GetDirection(pUnit->pPath.pDynamicPath);
-      D2Common::PATH::DynamicPath::SetDirectionAndNewDirection(pKillerOrCorpse->pPath.pDynamicPath, nDirection);
+      D2Common::PATH::DynamicPath::SetDirectionAndNewDirection(pKillerOrCorpse->pPath.pDynamicPath, D2Common::PATH::DynamicPath::GetDirection(pUnit->pPath.pDynamicPath));
     }
 
     D2InventoryStrc* pInventory = pUnit->pInventory;
@@ -2240,7 +2233,7 @@ void __fastcall PLAYER_HandlePlayerDeath(int32_t pDeathMsg) {
         ITEM_RemoveItemStatsFromOwner(pItem, pUnit, 0, 0);
         eBodyLoc = D2Common::ITEMS::Items::GetBodyLocation(pItem);
         D2Common::INVENTORY::Inventory::NullSub_2Arg(pInventory, (uint32_t)eBodyLoc);
-        Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+        Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
         if (!pItem) {
           eUnitType = UNIT_COUNT;
           nUnitGUID = -1;
@@ -2596,7 +2589,7 @@ void __fastcall PLAYER_ProcessPlayerModeSimulation(D2UnitStrc * pUnit) {
     }
 
     if (pUnit->eAnimMode.ePlayerMode == eD2PlayerAnimMode_ns::Sequence && pUnit->eUnitFlags >> 0xe & 1) {
-      Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+      Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
     }
     if (gaPlayerModeAttribs[pUnit->eAnimMode.ePlayerMode].nCompleteMode != 1) {
       if (1 < gaPlayerModeAttribs[pUnit->eAnimMode.ePlayerMode].nCompleteMode - 2U) {
@@ -2648,7 +2641,9 @@ void __fastcall PLAYER_ProcessPlayerModeSimulation(D2UnitStrc * pUnit) {
         pUnit->dwLastHitClass = 0;
         UnitMode::UNITMODE_SetAnimMode(pUnit, eD2PlayerAnimMode_ns::GetHit);
         Path::PATH_MoveUnitToPoint(pUnit, nX, nPosX, 1, 0, 0);
-      } else if (!(pUnit->eUnitType == UNIT_PLAYER && (pPlayerData = pUnit->pUnitData.pUnitDataPlayer , pPlayerData != 0) && pPlayerData->eQueuedSkillId)) {
+      } else if (pUnit->eUnitType == UNIT_PLAYER && (pPlayerData = pUnit->pUnitData.pUnitDataPlayer , pPlayerData != 0) && pPlayerData->eQueuedSkillId) {
+        pPlayerData->bHasPendingInteract = 1;
+      } else {
         pLightMap = D2Common::Skills::SwapLightMap(pUnit, nullptr);
         if (pLightMap) {
           Draw::LightMap::FreeLightMap(pLightMap);
@@ -2669,8 +2664,6 @@ void __fastcall PLAYER_ProcessPlayerModeSimulation(D2UnitStrc * pUnit) {
         CUnit::IsAttackable(pUnit);
         pUnit->eUnitFlags |= UNITFLAG_TARGETABLE;
         UnitMode::UNITMODE_SetAnimMode(pUnit, (_bHasDmgState ? 4 : 0) + eD2PlayerAnimMode_ns::Neutral);
-      } else {
-        pPlayerData->bHasPendingInteract = 1;
       }
     }
 
@@ -2879,40 +2872,38 @@ uint32_t InsertIntoHashTable(D2UnitStrc * pUnit) {
       pPrevUnit = FindUnit(pUnit->nUnitGUID, (D2UnitStrc**)((int)ClientSideUnitHashTables + pUnit->eUnitType * 0x200), pUnit->eUnitType, pUnit->nUnitGUID & 0x7f);
       if (!pPrevUnit) {
         pPrevUnit = FindUnit(pUnit->nUnitGUID, (D2UnitStrc**)((int)ClientSideUnitHashTables + pUnit->eUnitType * 0x200), pUnit->eUnitType, pUnit->nUnitGUID & 0x7f);
+        if (pPrevUnit) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9c);
+          exit(-1);
+        }
+        insert_sorted:
+        UnitSnd::MuteOrUnmuteUnitSounds(pUnit, 1);
+        nHashBucket = pUnit->nUnitGUID & 0x7f;
+        if (!(pUnit->eUnitFlags >> 0x15 & 1)) {
+          papDVar1 = ServerSideUnitHashTables;
+        } else {
+          papDVar1 = ClientSideUnitHashTables;
+        }
+        pNextUnit = *(D2UnitStrc**)((int)papDVar1 + nHashBucket * 4 + pUnit->eUnitType * 0x200);
+        pPrevUnit = 0;
+        while (true) {
+          pCurUnit = pNextUnit;
+          if (!(pCurUnit && (uint32_t)pCurUnit->nUnitGUID > (uint32_t)pUnit->nUnitGUID)) {
+            break;
+          }
+
+          pPrevUnit = pCurUnit;
+          pNextUnit = pCurUnit->pListNext;
+        }
+
+        pUnit->pListNext = pCurUnit;
         if (!pPrevUnit) {
-          insert_sorted:
-          UnitSnd::MuteOrUnmuteUnitSounds(pUnit, 1);
-          nHashBucket = pUnit->nUnitGUID & 0x7f;
-          if (!(pUnit->eUnitFlags >> 0x15 & 1)) {
-            papDVar1 = ServerSideUnitHashTables;
-          } else {
-            papDVar1 = ClientSideUnitHashTables;
-          }
-
-          pNextUnit = *(D2UnitStrc**)((int)papDVar1 + nHashBucket * 4 + pUnit->eUnitType * 0x200);
-          pPrevUnit = 0;
-          while (true) {
-            pCurUnit = pNextUnit;
-            if (!(pCurUnit && (uint32_t)pCurUnit->nUnitGUID > (uint32_t)pUnit->nUnitGUID)) {
-              break;
-            }
-
-            pPrevUnit = pCurUnit;
-            pNextUnit = pCurUnit->pListNext;
-          }
-
-          pUnit->pListNext = pCurUnit;
-          if (!pPrevUnit) {
-            *(D2UnitStrc**)((int)papDVar1 + nHashBucket * 4 + pUnit->eUnitType * 0x200) = (D2UnitStrc*)pUnit;
-            return 1;
-          }
-
-          pPrevUnit->pListNext = pUnit;
+          *(D2UnitStrc**)((int)papDVar1 + nHashBucket * 4 + pUnit->eUnitType * 0x200) = (D2UnitStrc*)pUnit;
           return 1;
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9c);
-        exit(-1);
+        pPrevUnit->pListNext = pUnit;
+        return 1;
       }
     }
 

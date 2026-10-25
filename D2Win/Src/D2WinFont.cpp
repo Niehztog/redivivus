@@ -97,8 +97,7 @@ static void InitFontCache(int32_t nFontIndex) {
     int32_t nAllocLine = 0xb5;
     char* szAllocFile = ".\\Src\\D2WinFont.cpp";
     size_t* pOutFileSize = 0;
-    D2PoolManagerStrc* pPoolMgr = D2WinArchive::ReturnZero();
-    D2FontTableHeaderStrc* pFontTable = (D2FontTableHeaderStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pPoolMgr, szFontTablePath, pOutFileSize, szAllocFile, nAllocLine);
+    D2FontTableHeaderStrc* pFontTable = (D2FontTableHeaderStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(D2WinArchive::ReturnZero(), szFontTablePath, pOutFileSize, szAllocFile, nAllocLine);
     gaFontCache[nFontIndex].pFontTable = pFontTable;
     gaFontCache[nFontIndex].pFontTableHeader = pFontTable;
     gaFontCache[nFontIndex].pGlyphs = (D2FontGlyphStrc*)(pFontTable + 1);
@@ -181,16 +180,16 @@ int32_t __fastcall D2WINFONT_GetStringPixelWidthN(uint16_t * pwszString, int32_t
         nCharPos++;
         nColorCodeLen++;
       } else {
-        if (nColorCodeLen >= nMaxChars || 0xff < wCharCode || wCharCode != 0xff || pwszString[1] != 99 || pwszString[2] < 0x30 || 0x37 <= pwszString[2]) {
+        if (!(nColorCodeLen >= nMaxChars || 0xff < wCharCode || wCharCode != 0xff || pwszString[1] != 99 || pwszString[2] < 0x30 || 0x37 <= pwszString[2])) {
+          pwszString += 3;
+          nCharPos += 3;
+          nColorCodeLen += 3;
+        } else {
           pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
           nWidth += (uint32_t)pGlyphEntry->abUnverified[1];
           pwszString++;
           nCharPos++;
           nColorCodeLen++;
-        } else {
-          pwszString += 3;
-          nCharPos += 3;
-          nColorCodeLen += 3;
         }
       }
 
@@ -256,11 +255,7 @@ static int32_t TEXT_CalculateTextWidth(uint16_t * szBuffer) {
         nCurLineWidth = 0;
         szBuffer++;
       } else {
-        if (0x100 <= (uint16_t)wCharCode || wCharCode != L'ÿ') {
-          pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
-          nCurLineWidth += (uint32_t)pGlyphEntry->abUnverified[1];
-          szBuffer++;
-        } else {
+        if (!(0x100 <= (uint16_t)wCharCode || wCharCode != L'ÿ')) {
           nColorCmpResult = D2Lang::Unicode::UNISYS::UNICODE_CompareWideStringsNNoCase((uint16_t*)(szBuffer + 1), gnFontTableCharWidthCache, 1);
           if (!nColorCmpResult) {
             pGlyphEntry = (*gpfnFontGetCharWidth)(gnFontTableCharWidthCache[0]);
@@ -269,6 +264,10 @@ static int32_t TEXT_CalculateTextWidth(uint16_t * szBuffer) {
 
           szBuffer += 3;
           nCharPos += 2;
+        } else {
+          pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
+          nCurLineWidth += (uint32_t)pGlyphEntry->abUnverified[1];
+          szBuffer++;
         }
       }
 
@@ -306,7 +305,11 @@ static int32_t D2WINFONT_GetFirstLinePixelWidth(uint16_t * pwszString) {
       if (wCharCode == 10) {
         return nLineWidth;
       }
-      if (wCharCode < 0x100 && wCharCode == 0xff) {
+      if (!(wCharCode < 0x100 && wCharCode == 0xff)) {
+        pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
+        nLineWidth += (uint32_t)pGlyphEntry->abUnverified[1];
+        pwszString++;
+      } else {
         nColorCmpResult = D2Lang::Unicode::UNISYS::UNICODE_CompareWideStringsNNoCase(pwszString + 1, gnFontTableCharWidthCache, 1);
         if (!nColorCmpResult) {
           pGlyphEntry = (*gpfnFontGetCharWidth)(gnFontTableCharWidthCache[0]);
@@ -315,10 +318,6 @@ static int32_t D2WINFONT_GetFirstLinePixelWidth(uint16_t * pwszString) {
 
         nCharPos += 2;
         pwszString += 3;
-      } else {
-        pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
-        nLineWidth += (uint32_t)pGlyphEntry->abUnverified[1];
-        pwszString++;
       }
 
       nCharPos++;

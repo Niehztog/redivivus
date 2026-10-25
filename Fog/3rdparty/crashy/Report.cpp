@@ -113,7 +113,6 @@ int8_t AddAttachment(::Report * pThis, char * szPath, int8_t bCopyToReportDir) {
     FILE* pFileReg;
     pFileReg = (FILE*)pThis;
     if (0xf < pThis->nAttachmentCount) {
-      Debug::GuardStack();
       return '\0';
     }
     if (bCopyToReportDir == '\0') {
@@ -143,7 +142,6 @@ int8_t AddAttachment(::Report * pThis, char * szPath, int8_t bCopyToReportDir) {
         szPath = szPath + strlen(szPath) + 1;
         count_attachment:
         pFileReg[0x40]._base++;
-        Debug::GuardStack();
         return '\x01';
       }
     } else if (pThis->szReportDir[0] != '\0') {
@@ -181,7 +179,6 @@ int8_t AddAttachment(::Report * pThis, char * szPath, int8_t bCopyToReportDir) {
       }
     }
 
-    Debug::GuardStack();
     return '\0';
 }
 

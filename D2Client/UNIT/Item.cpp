@@ -583,7 +583,7 @@ static void ITEM_RecalcAllEquippedItems_EBX(D2UnitStrc * pUnit) {
     }
     if (pUnit->eUnitType == UNIT_PLAYER) {
       Units::IfPlayer(pUnit);
-      Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+      Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
       return;
     }
 
@@ -794,49 +794,47 @@ void __fastcall ITEM_FreeItemUnit(D2UnitStrc * pUnit) {
 void __fastcall ITEM_UpdateItemAnimation(D2UnitStrc * pUnit) {
     BOOL bHasOverlay;
     int32_t nLine;
-    if (pUnit) {
-      uint32_t bAtEndOfCycle;
-      switch (pUnit->eAnimMode.ePlayerMode) {
-        case Death:
-
-        case eD2PlayerAnimMode_ns::Neutral:
-
-        case Walk:
-
-        case eD2PlayerAnimMode_ns::GetHit:
-
-        case TownWalk:
-          pUnit->eUnitFlags &= ~UNITFLAG_TARGETABLE;
-        return;
-        case eD2PlayerAnimMode_ns::Run:
-          pUnit->eUnitFlags |= UNITFLAG_TARGETABLE;
-        bHasOverlay = Engine::GfxInfo::GFX_HasOverlayOfType(pUnit, 0x46);
-        if (bHasOverlay) {
-          return;
-        }
-
-        break;
-        case TownNeutral:
-          bAtEndOfCycle = D2Common::Units::IsAtEndOfFrameCycle(pUnit);
-        if (!bAtEndOfCycle) {
-          D2Common::Units::UpdateFrame(pUnit);
-          return;
-        }
-
-        pUnit->eAnimMode.ePlayerMode = eD2PlayerAnimMode_ns::Run;
-        break;
-        default:
-          nLine = 0x362;
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), nLine);
-        exit(-1);
-      }
-
-      Engine::Gfx::GFX_AddOverlayToUnit(pUnit, OVERLAY_itemgleam, 6, 8, 0, 0, 8, 0);
-      return;
+    if (!pUnit) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x348);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x348);
-    exit(-1);
+    uint32_t bAtEndOfCycle;
+    switch (pUnit->eAnimMode.ePlayerMode) {
+      case Death:
+
+      case eD2PlayerAnimMode_ns::Neutral:
+
+      case Walk:
+
+      case eD2PlayerAnimMode_ns::GetHit:
+      case TownWalk:
+        pUnit->eUnitFlags &= ~UNITFLAG_TARGETABLE;
+      return;
+      case eD2PlayerAnimMode_ns::Run:
+        pUnit->eUnitFlags |= UNITFLAG_TARGETABLE;
+      bHasOverlay = Engine::GfxInfo::GFX_HasOverlayOfType(pUnit, 0x46);
+      if (bHasOverlay) {
+        return;
+      }
+
+      break;
+      case TownNeutral:
+        bAtEndOfCycle = D2Common::Units::IsAtEndOfFrameCycle(pUnit);
+      if (!bAtEndOfCycle) {
+        D2Common::Units::UpdateFrame(pUnit);
+        return;
+      }
+      pUnit->eAnimMode.ePlayerMode = eD2PlayerAnimMode_ns::Run;
+      break;
+      default:
+        nLine = 0x362;
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), nLine);
+      exit(-1);
+    }
+
+    Engine::Gfx::GFX_AddOverlayToUnit(pUnit, OVERLAY_itemgleam, 6, 8, 0, 0, 8, 0);
+    return;
 }
 
 void __fastcall ItemMessage(int32_t eMessageType, D2UnitStrc * pUnit, D2ServerMessageHandleStrc * pMessage, int32_t nUpdateFlag) {
@@ -1251,7 +1249,7 @@ void __fastcall ITEM_HandleItemRepairBreak(uint8_t * pPacket) {
       D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pItem, ITEMFLAG_BROKEN, *(BOOL*)(pPacket + 0xe));
       Units::IfPlayer(pUnit);
       ITEM_RemoveItemFromBodyAndRecalc(nItemComponent, pItem, pUnit);
-      Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+      Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
       D2Common::ITEM_ProcessSetItemEquip(pUnit, pItem, 1, 1);
       ITEM_RecalcAllEquippedItems_EBX(pUnit);
       return;
@@ -1532,7 +1530,7 @@ void __fastcall HandleItemOnGround(uint8_t * pBuffer) {
         }
 
         ITEM_RecalcAllEquippedItems_EBX(pUnit);
-        Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+        Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
         pBuffer = pBuffer2;
       }
 
@@ -1895,7 +1893,7 @@ void __fastcall HandleItemEquip(uint8_t * pBytes) {
       SRC::CelCmp::GFX_ClearAllModeFlags(pOwnerUnit, (uint32_t)byWeaponHand);
     }
 
-    Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit);
+    Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit, 0);
     if (pOwnerUnit == pLocalPlayer) {
       ITEM_SaveWeaponHandClassId(stItemDetails.nBodyLoc, pItem);
       uVar1 = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(stItemDetails.flags, ITEMFLAG_IGNORE);
@@ -1987,103 +1985,95 @@ void __fastcall HandleItemIndirectSwapBodyItem(uint8_t * pBytes) {
       SRC::CelCmp::GFX_ClearAllModeFlags(pCharmItem, nItemComponent);
       D2Common::INVENTORY::Inventory::GetCurrentItemOnBodyLocation(pCharmItem, pInvTmp, &pSwappedOutItem, nSwappedBodyLoc);
       pRemovedItem = D2Common::INVENTORY::Inventory::ItemBelongsToInventoryOfPlayer(pInvTmp, pSwappedOutItem);
-      if (pRemovedItem && pRemovedItem == pSwappedOutItem) {
-        if (pCharmItem->eUnitType == UNIT_PLAYER) {
-          D2Common::INVENTORY::Inventory::GetEquipedWeapon(pCharmItem->pInventory);
+      if (!(pRemovedItem && pRemovedItem == pSwappedOutItem)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5f7);
+        exit(-1);
+      }
+      if (pCharmItem->eUnitType == UNIT_PLAYER) {
+        D2Common::INVENTORY::Inventory::GetEquipedWeapon(pCharmItem->pInventory);
+      }
+      bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pRemovedItem, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
+      if (!bIsBroken) {
+        D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pCharmItem, pRemovedItem);
+      }
+      D2Common::INVENTORY::Inventory::NullSub_2Arg(pInvTmp, nSwappedBodyLoc);
+      Engine::Gfx::GFX_LoadUnitModeCof(pCharmItem, 0);
+      if (pCharmItem == pLocalPlayer) {
+        UI::Inv::INV_ResetHoverAndContextState();
+        pNewItem = pSwappedOutItem;
+        if (stItemDetails.nBodyLoc == BODYLOC_R_ARM) {
+          gnWeaponHandClassId_Right = 0;
+        } else if (stItemDetails.nBodyLoc == BODYLOC_L_ARM) {
+          gnWeaponHandClassId_Left = 0;
         }
 
-        bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pRemovedItem, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
-        if (!bIsBroken) {
-          D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pCharmItem, pRemovedItem);
-        }
-
-        D2Common::INVENTORY::Inventory::NullSub_2Arg(pInvTmp, nSwappedBodyLoc);
-        Engine::Gfx::GFX_LoadUnitModeCof(pCharmItem);
-        if (pCharmItem == pLocalPlayer) {
-          UI::Inv::INV_ResetHoverAndContextState();
-          pNewItem = pSwappedOutItem;
-          if (stItemDetails.nBodyLoc == BODYLOC_R_ARM) {
-            gnWeaponHandClassId_Right = 0;
-          } else if (stItemDetails.nBodyLoc == BODYLOC_L_ARM) {
-            gnWeaponHandClassId_Left = 0;
-          }
-
-          pLocalPlayer = (D2UnitStrc*)(uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&pLocalPlayer + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)stItemDetails.nInvPage);
-          if (!pSwappedOutItem) {
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xac);
-            exit(-1);
-          }
-
-          ITEM_SetAnimModeAndPlace(pSwappedOutItem, nullptr, 0, 0, 4, 0);
-          D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pNewItem, (eInventoryPage)(uintptr_t)pLocalPlayer);
-          D2Common::ITEMS::Items::SetBodyLoc(pSwappedOutItem, BODYLOC_NONE);
-          D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInvTmp, pSwappedOutItem);
-          pNewItem = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInvTmp);
-          UI::ui::ITEM_SetItemOnHand(pNewItem);
-        }
-
-        ITEM_RemoveUninterruptableState(pSwappedOutItem);
-        pBytesPacket = pBytesSaved;
-        pNewItem = Player::UNITS_FindClientSideUnit(*(int32_t*)(pBytesSaved + 4), UNIT_ITEM);
-        if (pNewItem) {
-          uVar1 = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(stItemDetails.flags, ITEMFLAG_RELOAD);
-          if (uVar1) {
-            CUnit::RemoveObjectFromServerObjectTable(UNIT_ITEM, *(uint32_t*)(pBytesPacket + 4));
-            pNewItem = ITEM_CreateItemFromBodyPacket(0, 0, 0, pBytesPacket, &stItemDetails);
-            if (!pNewItem) {
-              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x618);
-              exit(-1);
-            }
-          } else {
-            ITEM_DropItemToGroundWithMode((uint32_t)stItemDetails.nAnimMode, 0, stItemDetails.nInvPage, 0, pNewItem, 0);
-            pCharmItem = pOwnerUnit;
-          }
-        } else {
-          pNewItem = ITEM_CreateItemFromBodyPacket(0, 0, 0, pBytesPacket, &stItemDetails);
-        }
-
-        D2Common::ITEMS::Items::SetBodyLoc(pNewItem, stItemDetails.nBodyLoc);
-        pInvTmp = pInventory2;
-        nInvSlot = 3;
-        if (stItemDetails.nBodyLoc == BODYLOC_SWAPPED_R_ARM || stItemDetails.nBodyLoc == BODYLOC_SWAPPED_L_ARM) {
-          nInvSlot = 4;
-        }
-
-        bIsBroken = D2Common::INVENTORY::Inventory::PutItemInInventory(pInventory2, pNewItem, nInvSlot);
-        if (!bIsBroken) {
-          return;
-        }
-
-        uVar1 = ITEM_SetItemInBodyLocation(pInvTmp, pNewItem, (uint32_t)stItemDetails.nBodyLoc);
-        if (!uVar1) {
-          return;
-        }
-
-        D2Common::INVENTORY::Inventory::INVENTORY_UpdatePrimaryWeapon(pInvTmp, pNewItem);
-        Engine::GfxInfo::GFX_SetAllGfxInfoFlags(pCharmItem, '\0');
-        if (UNIT_MONSTER < pCharmItem->eUnitType) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x641);
+        pLocalPlayer = (D2UnitStrc*)(uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&pLocalPlayer + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)stItemDetails.nInvPage);
+        if (!pSwappedOutItem) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xac);
           exit(-1);
         }
 
-        byWeaponHand = pBytesSaved[3];
-        if (!byWeaponHand || byWeaponHand == 1) {
-          SRC::CelCmp::GFX_ClearAllModeFlags(pCharmItem, (uint32_t)byWeaponHand);
+        ITEM_SetAnimModeAndPlace(pSwappedOutItem, nullptr, 0, 0, 4, 0);
+        D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pNewItem, (eInventoryPage)(uintptr_t)pLocalPlayer);
+        D2Common::ITEMS::Items::SetBodyLoc(pSwappedOutItem, BODYLOC_NONE);
+        D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInvTmp, pSwappedOutItem);
+        pNewItem = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInvTmp);
+        UI::ui::ITEM_SetItemOnHand(pNewItem);
+      }
+      ITEM_RemoveUninterruptableState(pSwappedOutItem);
+      pBytesPacket = pBytesSaved;
+      pNewItem = Player::UNITS_FindClientSideUnit(*(int32_t*)(pBytesSaved + 4), UNIT_ITEM);
+      if (pNewItem) {
+        uVar1 = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(stItemDetails.flags, ITEMFLAG_RELOAD);
+        if (uVar1) {
+          CUnit::RemoveObjectFromServerObjectTable(UNIT_ITEM, *(uint32_t*)(pBytesPacket + 4));
+          pNewItem = ITEM_CreateItemFromBodyPacket(0, 0, 0, pBytesPacket, &stItemDetails);
+          if (!pNewItem) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x618);
+            exit(-1);
+          }
+        } else {
+          ITEM_DropItemToGroundWithMode((uint32_t)stItemDetails.nAnimMode, 0, stItemDetails.nInvPage, 0, pNewItem, 0);
+          pCharmItem = pOwnerUnit;
         }
+      } else {
+        pNewItem = ITEM_CreateItemFromBodyPacket(0, 0, 0, pBytesPacket, &stItemDetails);
+      }
 
-        Engine::Gfx::GFX_LoadUnitModeCof(pCharmItem);
-        ITEM_SaveWeaponHandClassId(stItemDetails.nBodyLoc, pNewItem);
-        ITEM_ApplySocketableAndEquipStats(0, pCharmItem, pNewItem);
-        pUnit = pOwnerUnit;
-        ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
-        ITEM_RecalcAllEquippedItems_EBX(pUnit);
-        UI::ui::UI_SendMouseMoveMessage();
-        ITEM_RemoveUninterruptableState(pNewItem);
+      D2Common::ITEMS::Items::SetBodyLoc(pNewItem, stItemDetails.nBodyLoc);
+      pInvTmp = pInventory2;
+      nInvSlot = 3;
+      if (stItemDetails.nBodyLoc == BODYLOC_SWAPPED_R_ARM || stItemDetails.nBodyLoc == BODYLOC_SWAPPED_L_ARM) {
+        nInvSlot = 4;
+      }
+      bIsBroken = D2Common::INVENTORY::Inventory::PutItemInInventory(pInventory2, pNewItem, nInvSlot);
+      if (!bIsBroken) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5f7);
-      exit(-1);
+      uVar1 = ITEM_SetItemInBodyLocation(pInvTmp, pNewItem, (uint32_t)stItemDetails.nBodyLoc);
+      if (!uVar1) {
+        return;
+      }
+      D2Common::INVENTORY::Inventory::INVENTORY_UpdatePrimaryWeapon(pInvTmp, pNewItem);
+      Engine::GfxInfo::GFX_SetAllGfxInfoFlags(pCharmItem, '\0');
+      if (UNIT_MONSTER < pCharmItem->eUnitType) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x641);
+        exit(-1);
+      }
+      byWeaponHand = pBytesSaved[3];
+      if (!byWeaponHand || byWeaponHand == 1) {
+        SRC::CelCmp::GFX_ClearAllModeFlags(pCharmItem, (uint32_t)byWeaponHand);
+      }
+      Engine::Gfx::GFX_LoadUnitModeCof(pCharmItem, 0);
+      ITEM_SaveWeaponHandClassId(stItemDetails.nBodyLoc, pNewItem);
+      ITEM_ApplySocketableAndEquipStats(0, pCharmItem, pNewItem);
+      pUnit = pOwnerUnit;
+      ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
+      ITEM_RecalcAllEquippedItems_EBX(pUnit);
+      UI::ui::UI_SendMouseMoveMessage();
+      ITEM_RemoveUninterruptableState(pNewItem);
+      return;
     }
 }
 
@@ -2134,7 +2124,7 @@ void __fastcall HandleItemUnequip(uint8_t * pBytes) {
     }
 
     ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
-    Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit);
+    Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit, 0);
     uint8_t* pOwnerUnitSaved3 = pBytesSaved;
     if (pOwnerUnit == pLocalPlayer) {
       uint8_t byBodyLoc;
@@ -2259,7 +2249,7 @@ void __stdcall ITEM_HandleSwapBodyEquipItem(int32_t nParam1, D2UnitDataItemDetai
         ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
         ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
         ITEM_SaveWeaponHandClassId(pItemDetails->nBodyLoc, pItem);
-        Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit);
+        Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit, 0);
         UI::ui::UI_SendMouseMoveMessage();
         ITEM_RemoveUninterruptableState(pItem);
         return;
@@ -2425,7 +2415,7 @@ static void __stdcall ITEM_HandleWeaponSwitchItems(D2UnitDataItemDetailsStrc * p
               ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
               ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
               ITEM_SaveWeaponHandClassId(pUnitDataItemDetails->nBodyLoc, pNewItem);
-              Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit);
+              Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit, 0);
             } else {
               ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
               ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
@@ -2472,27 +2462,27 @@ void __fastcall NET_D2GS_CLIENT_HandleItemAddQuantity(uint8_t * pbParam) {
     } else {
       eD2ItemFlag neD2ItemFlag;
       pInventory = pPlayerUnit_lcl->pInventory;
-      if (pInventory) {
-        eD2ItemFlag2 = ITEMFLAG_IGNORE;
-        neD2ItemFlag = D2Common::ITEMS::Items::ITEM_GetItemData_eD2ItemFlag(pItem);
-        bIsIgnore = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(neD2ItemFlag, eD2ItemFlag2);
-        if (!bIsIgnore) {
-          D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventory, nullptr);
-          pItem = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
-          UI::ui::ITEM_SetItemOnHand(pItem);
-        }
+      if (!pInventory) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x7b6);
+        exit(-1);
+      }
 
+      eD2ItemFlag2 = ITEMFLAG_IGNORE;
+      neD2ItemFlag = D2Common::ITEMS::Items::ITEM_GetItemData_eD2ItemFlag(pItem);
+      bIsIgnore = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(neD2ItemFlag, eD2ItemFlag2);
+      if (!bIsIgnore) {
+        D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventory, nullptr);
         pItem = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
-        if (!pItem) {
-          return;
-        }
+        UI::ui::ITEM_SetItemOnHand(pItem);
+      }
 
-        ITEM_RemoveUninterruptableState(pItem);
+      pItem = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
+      if (!pItem) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x7b6);
-      exit(-1);
+      ITEM_RemoveUninterruptableState(pItem);
+      return;
     }
 }
 
@@ -2657,45 +2647,42 @@ static void ITEM_HandleSwapContainerNewItem(uint8_t * pPacketData, D2UnitDataIte
       }
 
       pInventory = pPlayerUnit_lcl->pInventory;
-      if (pInventory) {
-        D2Common::Units::SetXForStaticUnit(pItem, (uint32_t)pUnitDataItemDetails->x);
-        D2Common::Units::SetYForStaticUnit(pItem, (uint32_t)pUnitDataItemDetails->y);
-        bIsLoD = D2Common::INVENTORY::Inventory::PutItemInInventory(pInventory, pItem, 1);
-        if (!bIsLoD) {
-          return;
-        }
+      if (!pInventory) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x87c);
+        exit(-1);
+      }
 
-        eVar1 = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(pItem);
-        nPageByte = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&nPageByte + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)eVar1);
-        if (pUnitDataItemDetails->nInvPage == 0xff) {
-          return;
-        }
-
-        nInvSlot = 1;
-        nLine = nPageByte;
-        bIsLoD = GAME::Game::CLIENT_CheckExpansion();
-        byPage = (uint8_t)nLine;
-        nLine = D2Common::Units::GetInventoryPage(pPlayerUnit_lcl, nPageByte, bIsLoD);
-        nXPos = Units::GetYPosFromDynamicPathUnit(pItem);
-        nInvPageInt = Units::GetXPosFromDynamicPathUnit(pItem);
-        bIsLoD = D2Common::INVENTORY::Inventory::INVENTORY_PlaceItemAtCoords(pInventory, pItem, nInvPageInt, nXPos, nLine, nInvSlot, byPage);
-        if (!bIsLoD) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x892);
-          exit(-1);
-        }
-
-        bIsReload = D2Common::ITEMS::Items::ITEM_IsActiveCharm(pItem, pPlayerUnit_lcl);
-        if (bIsReload) {
-          ITEM_ApplySocketableAndEquipStats(0, pPlayerUnit_lcl, pItem);
-        }
-
-        UI::ui::UI_SendMouseMoveMessage();
-        ITEM_RemoveUninterruptableState(pItem);
+      D2Common::Units::SetXForStaticUnit(pItem, (uint32_t)pUnitDataItemDetails->x);
+      D2Common::Units::SetYForStaticUnit(pItem, (uint32_t)pUnitDataItemDetails->y);
+      bIsLoD = D2Common::INVENTORY::Inventory::PutItemInInventory(pInventory, pItem, 1);
+      if (!bIsLoD) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x87c);
-      exit(-1);
+      eVar1 = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(pItem);
+      nPageByte = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&nPageByte + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)eVar1);
+      if (pUnitDataItemDetails->nInvPage == 0xff) {
+        return;
+      }
+      nInvSlot = 1;
+      nLine = nPageByte;
+      bIsLoD = GAME::Game::CLIENT_CheckExpansion();
+      byPage = (uint8_t)nLine;
+      nLine = D2Common::Units::GetInventoryPage(pPlayerUnit_lcl, nPageByte, bIsLoD);
+      nXPos = Units::GetYPosFromDynamicPathUnit(pItem);
+      nInvPageInt = Units::GetXPosFromDynamicPathUnit(pItem);
+      bIsLoD = D2Common::INVENTORY::Inventory::INVENTORY_PlaceItemAtCoords(pInventory, pItem, nInvPageInt, nXPos, nLine, nInvSlot, byPage);
+      if (!bIsLoD) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x892);
+        exit(-1);
+      }
+      bIsReload = D2Common::ITEMS::Items::ITEM_IsActiveCharm(pItem, pPlayerUnit_lcl);
+      if (bIsReload) {
+        ITEM_ApplySocketableAndEquipStats(0, pPlayerUnit_lcl, pItem);
+      }
+      UI::ui::UI_SendMouseMoveMessage();
+      ITEM_RemoveUninterruptableState(pItem);
+      return;
     }
 }
 
@@ -2737,32 +2724,31 @@ static void __stdcall ITEM_HandleSwapContainerOldItem(uint8_t * pPacketData, D2U
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8b0);
           exit(-1);
         } else {
-          if (pBelongsResult == pItem) {
-            bIsBroken = GAME::Game::CLIENT_CheckExpansion();
-            nLine = D2Common::Units::GetInventoryPage(pPlayerUnit_lcl, nPageByte, bIsBroken);
-            D2Common::INVENTORY::Inventory::UnusedDebug(".\\UNIT\\Item.cpp", 0x8b4, pInventory, (uint32_t)pUnitDataItemDetails->x, (uint32_t)pUnitDataItemDetails->y, (eInventoryPage)nLine, 1, nPageByte);
-            UI::Inv::INV_ResetHoverAndContextState();
-            bIsReload = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(pUnitDataItemDetails->flags, ITEMFLAG_RELOAD);
-            if (bIsReload) {
-              CUnit::RemoveObjectFromServerObjectTable(UNIT_ITEM, *(uint32_t*)(pPacketData + 4));
-              pItem = ITEM_CreateItemFromGroundPacket(0, 0, 0, pPacketData, pUnitDataItemDetails);
-              if (!pItem) {
-                Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8bb);
-                exit(-1);
-              }
-            } else {
-              ITEM_DropItemToGroundWithMode((uint32_t)pUnitDataItemDetails->nAnimMode, 0, pUnitDataItemDetails->nInvPage, 0, pItem, 0);
-            }
-
-            D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventory, pItem);
-            pPlayerUnit_lcl = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
-            UI::ui::ITEM_SetItemOnHand(pPlayerUnit_lcl);
-            ITEM_RemoveUninterruptableState(pItem);
-            return;
+          if (pBelongsResult != pItem) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8b1);
+            exit(-1);
           }
 
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8b1);
-          exit(-1);
+          bIsBroken = GAME::Game::CLIENT_CheckExpansion();
+          nLine = D2Common::Units::GetInventoryPage(pPlayerUnit_lcl, nPageByte, bIsBroken);
+          D2Common::INVENTORY::Inventory::UnusedDebug(".\\UNIT\\Item.cpp", 0x8b4, pInventory, (uint32_t)pUnitDataItemDetails->x, (uint32_t)pUnitDataItemDetails->y, (eInventoryPage)nLine, 1, nPageByte);
+          UI::Inv::INV_ResetHoverAndContextState();
+          bIsReload = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(pUnitDataItemDetails->flags, ITEMFLAG_RELOAD);
+          if (bIsReload) {
+            CUnit::RemoveObjectFromServerObjectTable(UNIT_ITEM, *(uint32_t*)(pPacketData + 4));
+            pItem = ITEM_CreateItemFromGroundPacket(0, 0, 0, pPacketData, pUnitDataItemDetails);
+            if (!pItem) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8bb);
+              exit(-1);
+            }
+          } else {
+            ITEM_DropItemToGroundWithMode((uint32_t)pUnitDataItemDetails->nAnimMode, 0, pUnitDataItemDetails->nInvPage, 0, pItem, 0);
+          }
+          D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventory, pItem);
+          pPlayerUnit_lcl = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
+          UI::ui::ITEM_SetItemOnHand(pPlayerUnit_lcl);
+          ITEM_RemoveUninterruptableState(pItem);
+          return;
         }
       }
     }
@@ -2875,46 +2861,46 @@ void __fastcall HandleItemRemoveFromBelt(uint8_t * pbParam) {
       pUnit = Player::UNITS_FindClientSideUnit(*(int32_t*)(pbParam + 4), UNIT_ITEM);
       pInventory = pPlayerUnit_lcl->pInventory;
       pInventorySaved = pInventory;
-      if (pInventory) {
-        pBelongsResult = D2Common::INVENTORY::Inventory::ItemBelongsToInventoryOfPlayer(pInventory, pUnit);
-        if (!pBelongsResult) {
-          return;
-        }
-        if (pBelongsResult != pUnit) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x93a);
-          exit(-1);
-        }
+      if (!pInventory) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x931);
+        exit(-1);
+      }
 
-        D2Common::INVENTORY::Inventory::INVENTORY_OnBeltChanged_NoOp(pInventory, (uint32_t)stItemDetails.x);
-        UI::Panel::PANEL_ClearBeltSlotHover();
-        UI::Panel::PANEL_SetBeltSlotHoverFlag((uint32_t)stItemDetails.x, 0);
-        if (pPlayerUnit_lcl->eUnitType == UNIT_PLAYER) {
-          D2Common::INVENTORY::Inventory::GetEquipedWeapon(pPlayerUnit_lcl->pInventory);
-        }
+      pBelongsResult = D2Common::INVENTORY::Inventory::ItemBelongsToInventoryOfPlayer(pInventory, pUnit);
+      if (!pBelongsResult) {
+        return;
+      }
+      if (pBelongsResult != pUnit) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x93a);
+        exit(-1);
+      }
 
-        bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pUnit, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
-        if (!bIsBroken) {
-          D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pPlayerUnit_lcl, pUnit);
-        }
+      D2Common::INVENTORY::Inventory::INVENTORY_OnBeltChanged_NoOp(pInventory, (uint32_t)stItemDetails.x);
+      UI::Panel::PANEL_ClearBeltSlotHover();
+      UI::Panel::PANEL_SetBeltSlotHoverFlag((uint32_t)stItemDetails.x, 0);
+      if (pPlayerUnit_lcl->eUnitType == UNIT_PLAYER) {
+        D2Common::INVENTORY::Inventory::GetEquipedWeapon(pPlayerUnit_lcl->pInventory);
+      }
 
-        bIsRemoved = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(stItemDetails.flags, ITEMFLAG_REMOVED);
-        if (!bIsRemoved) {
-          ITEM_DropItemToGroundWithMode((uint32_t)stItemDetails.nAnimMode, 0, stItemDetails.nInvPage, 0, pUnit, 0);
-          pInventory = pInventorySaved;
-          D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventorySaved, pUnit);
-          pPlayerUnit_lcl = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
-          UI::ui::ITEM_SetItemOnHand(pPlayerUnit_lcl);
-          ITEM_RemoveUninterruptableState(pUnit);
-          return;
-        }
+      bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pUnit, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
+      if (!bIsBroken) {
+        D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pPlayerUnit_lcl, pUnit);
+      }
 
-        CUnit::RemoveObjectFromServerObjectTable(UNIT_ITEM, *(uint32_t*)(pBytesSaved + 4));
-        UI::ui::ITEM_SetItemOnHand(nullptr);
+      bIsRemoved = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(stItemDetails.flags, ITEMFLAG_REMOVED);
+      if (!bIsRemoved) {
+        ITEM_DropItemToGroundWithMode((uint32_t)stItemDetails.nAnimMode, 0, stItemDetails.nInvPage, 0, pUnit, 0);
+        pInventory = pInventorySaved;
+        D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventorySaved, pUnit);
+        pPlayerUnit_lcl = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
+        UI::ui::ITEM_SetItemOnHand(pPlayerUnit_lcl);
+        ITEM_RemoveUninterruptableState(pUnit);
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x931);
-      exit(-1);
+      CUnit::RemoveObjectFromServerObjectTable(UNIT_ITEM, *(uint32_t*)(pBytesSaved + 4));
+      UI::ui::ITEM_SetItemOnHand(nullptr);
+      return;
     }
 }
 
@@ -2986,27 +2972,25 @@ void __stdcall ITEM_HandleSwapBeltOldItem(uint8_t * pBytes, D2UnitDataItemDetail
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x98f);
         exit(-1);
       } else {
-        if (pOwnerCheck == pUnit) {
-          if (pPlayer->eUnitType == UNIT_PLAYER) {
-            D2Common::INVENTORY::Inventory::GetEquipedWeapon(pPlayer->pInventory);
-          }
-
-          bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pUnit, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
-          if (!bIsBroken) {
-            D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pPlayer, pUnit);
-          }
-
-          D2Common::INVENTORY::Inventory::INVENTORY_OnBeltChanged_NoOp(pInventory, (uint32_t)itemDetails->x);
-          ITEM_DropItemToGroundWithMode((uint32_t)itemDetails->nAnimMode, 0, itemDetails->nInvPage, 0, pUnit, 0);
-          D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventory, pUnit);
-          pPlayer = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
-          UI::ui::ITEM_SetItemOnHand(pPlayer);
-          ITEM_RemoveUninterruptableState(pUnit);
-          return;
+        if (pOwnerCheck != pUnit) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x990);
+          exit(-1);
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x990);
-        exit(-1);
+        if (pPlayer->eUnitType == UNIT_PLAYER) {
+          D2Common::INVENTORY::Inventory::GetEquipedWeapon(pPlayer->pInventory);
+        }
+        bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pUnit, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
+        if (!bIsBroken) {
+          D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pPlayer, pUnit);
+        }
+        D2Common::INVENTORY::Inventory::INVENTORY_OnBeltChanged_NoOp(pInventory, (uint32_t)itemDetails->x);
+        ITEM_DropItemToGroundWithMode((uint32_t)itemDetails->nAnimMode, 0, itemDetails->nInvPage, 0, pUnit, 0);
+        D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventory, pUnit);
+        pPlayer = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
+        UI::ui::ITEM_SetItemOnHand(pPlayer);
+        ITEM_RemoveUninterruptableState(pUnit);
+        return;
       }
     }
 }
@@ -3130,70 +3114,64 @@ void __fastcall HandleItemAutoUnequip(uint8_t * pPacketData) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xaaf);
           exit(-1);
         } else {
-          if (pItem == pBodyItem) {
-            if (pOwnerUnit->eUnitType == UNIT_PLAYER) {
-              D2Common::INVENTORY::Inventory::GetEquipedWeapon(pOwnerUnit->pInventory);
-            }
-
-            bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pItem, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
-            if (!bIsBroken) {
-              D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pOwnerUnit, pItem);
-            }
-
-            D2Common::ITEM_ProcessSetItemEquip(pOwnerUnit, pItem, 1, 1);
-            ITEM_RemoveUninterruptableState(pItem);
-            D2Common::INVENTORY::Inventory::NullSub_2Arg(pInventory, (uint32_t)*(uint32_t*)((char*)&sItemDetails + 16) >> 8 & 0xff);
-            Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit);
-            nItemComponent = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(sItemDetails.flags, ITEMFLAG_RELOAD);
-            if (nItemComponent) {
-              CUnit::RemoveObjectFromServerObjectTable(UNIT_ITEM, *(uint32_t*)(pPacketData + 4));
-              pPlayer = Player::GetPlayerUnit_UI();
-              if (pOwnerUnit == pPlayer) {
-                pBodyItem = ITEM_CreateItemFromBodyPacket(0, 0, 0, pPacketData, &sItemDetails);
-                if (!pBodyItem) {
-                  Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xabd);
-                  exit(-1);
-                }
+          if (pItem != pBodyItem) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xab0);
+            exit(-1);
+          }
+          if (pOwnerUnit->eUnitType == UNIT_PLAYER) {
+            D2Common::INVENTORY::Inventory::GetEquipedWeapon(pOwnerUnit->pInventory);
+          }
+          bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pItem, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
+          if (!bIsBroken) {
+            D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pOwnerUnit, pItem);
+          }
+          D2Common::ITEM_ProcessSetItemEquip(pOwnerUnit, pItem, 1, 1);
+          ITEM_RemoveUninterruptableState(pItem);
+          D2Common::INVENTORY::Inventory::NullSub_2Arg(pInventory, (uint32_t)*(uint32_t*)((char*)&sItemDetails + 16) >> 8 & 0xff);
+          Engine::Gfx::GFX_LoadUnitModeCof(pOwnerUnit, 0);
+          nItemComponent = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(sItemDetails.flags, ITEMFLAG_RELOAD);
+          if (nItemComponent) {
+            CUnit::RemoveObjectFromServerObjectTable(UNIT_ITEM, *(uint32_t*)(pPacketData + 4));
+            pPlayer = Player::GetPlayerUnit_UI();
+            if (pOwnerUnit == pPlayer) {
+              pBodyItem = ITEM_CreateItemFromBodyPacket(0, 0, 0, pPacketData, &sItemDetails);
+              if (!pBodyItem) {
+                Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xabd);
+                exit(-1);
               }
-            } else {
-              ITEM_DropItemToGroundWithMode((uint32_t)sItemDetails.nAnimMode, 0, sItemDetails.nInvPage, 0, pBodyItem, 0);
             }
+          } else {
+            ITEM_DropItemToGroundWithMode((uint32_t)sItemDetails.nAnimMode, 0, sItemDetails.nInvPage, 0, pBodyItem, 0);
+          }
 
-            pItem = Player::GetPlayerUnit_UI();
-            if (pOwnerUnit != pItem) {
-              return;
-            }
-
-            UI::Inv::INV_ResetHoverAndContextState();
-            if (sItemDetails.nBodyLoc == 4) {
-              gnWeaponHandClassId_Right = 0;
-            } else if (sItemDetails.nBodyLoc == 5) {
-              gnWeaponHandClassId_Left = 0;
-            }
-
-            bIsBroken = D2Common::INVENTORY::Inventory::INVENTORY_PlaceItemAtCoords(pInventory, pBodyItem, (uint32_t)sItemDetails.x, (uint32_t)sItemDetails.y, nLine, 1, 0);
-            if (!bIsBroken) {
-              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xadf);
-              exit(-1);
-            }
-
-            bIsBroken = D2Common::INVENTORY::Inventory::PutItemInInventory(pInventory, pBodyItem, 1);
-            if (!bIsBroken) {
-              return;
-            }
-
-            D2Common::ITEMS::Items::SetBodyLoc(pBodyItem, BODYLOC_NONE);
-            D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventory, nullptr);
-            pItem = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
-            UI::ui::ITEM_SetItemOnHand(pItem);
-            ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
-            ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
-            ITEM_RemoveUninterruptableState(pBodyItem);
+          pItem = Player::GetPlayerUnit_UI();
+          if (pOwnerUnit != pItem) {
             return;
           }
 
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xab0);
-          exit(-1);
+          UI::Inv::INV_ResetHoverAndContextState();
+          if (sItemDetails.nBodyLoc == 4) {
+            gnWeaponHandClassId_Right = 0;
+          } else if (sItemDetails.nBodyLoc == 5) {
+            gnWeaponHandClassId_Left = 0;
+          }
+          bIsBroken = D2Common::INVENTORY::Inventory::INVENTORY_PlaceItemAtCoords(pInventory, pBodyItem, (uint32_t)sItemDetails.x, (uint32_t)sItemDetails.y, nLine, 1, 0);
+          if (!bIsBroken) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xadf);
+            exit(-1);
+          }
+          bIsBroken = D2Common::INVENTORY::Inventory::PutItemInInventory(pInventory, pBodyItem, 1);
+          if (!bIsBroken) {
+            return;
+          }
+          D2Common::ITEMS::Items::SetBodyLoc(pBodyItem, BODYLOC_NONE);
+          D2Common::INVENTORY::Inventory::CopyInventoryOfPlayerOrFree(pInventory, nullptr);
+          pItem = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pInventory);
+          UI::ui::ITEM_SetItemOnHand(pItem);
+          ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
+          ITEM_RecalcAllEquippedItems_EBX(pOwnerUnit);
+          ITEM_RemoveUninterruptableState(pBodyItem);
+          return;
         }
       }
     }
@@ -3332,7 +3310,7 @@ void __fastcall ITEM_HandleItemMoveToBodyLoc(uint8_t * pbParam) {
 
     Units::IfPlayer(pUnit);
     D2Common::INVENTORY::Inventory::INVENTORY_UpdatePrimaryWeapon(pInventory, pItem);
-    Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+    Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
     ITEM_ApplySocketableAndEquipStats(0, pUnit, pItem);
     ITEM_RecalcAllEquippedItems_EBX(pUnit);
     ITEM_RecalcAllEquippedItems_EBX(pUnit);
@@ -3434,7 +3412,7 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
 
       D2Common::ITEM_ProcessSetItemEquip(pUnit, pCursorItem_lcl, 1, 1);
       D2Common::INVENTORY::Inventory::NullSub_2Arg(pInventory, (uint32_t)stItemDetails.nBodyLoc);
-      Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+      Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
       if (!pRemovedItem) {
         eRemovedItemUnitType = UNIT_COUNT;
         bFlag = -1;
@@ -3478,7 +3456,7 @@ D2UnitStrc * __fastcall HandleItemUpdateStats(uint8_t * pbPacket) {
         SRC::CelCmp::GFX_ClearAllModeFlags(pUnit, (uint32_t)byPacketAnimMode);
       }
 
-      Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+      Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
       if (pUnit == pLocalPlayer) {
         ITEM_SaveWeaponHandClassId(stItemDetails.nBodyLoc, pCursorItem_lcl);
         bFlag = D2Common::ITEMS::Items::ITEMFLAG_CheckFlag(stItemDetails.flags, ITEMFLAG_IGNORE);

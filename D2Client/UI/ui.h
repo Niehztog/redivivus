@@ -231,7 +231,6 @@ void __stdcall DRAW_UI_CASH();
 BOOL __stdcall NPCSHOP_IsRepairTabActive();
 void __stdcall UI_ShowHoradricCubeTransmuteDialog();
 BOOL __stdcall thunk_NPCSHOP_IsRepairTabActive();
-BOOL NPCSHOP_GetActiveTabIndex(int32_t nMouseY, int32_t nMouseX);
 void __stdcall INPUT_GambleRepairClick(struct D2UIMouseMsgStrc * pMsg);
 void __fastcall UI_HandleHoradricCubePacket(int32_t pPacket);
 void __fastcall UI_OpenHoradricCubeWithNpcInteraction(int nNpcShopTab);

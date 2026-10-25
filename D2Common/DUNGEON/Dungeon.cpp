@@ -150,15 +150,14 @@ D2UnitStrc * __stdcall TakeStairsInternal(D2RoomStrc * pRoom, eD2LevelId eLevelI
     } else {
       D2RoomStrc* pDVar2;
       pDVar2 = Drlg::DrlgRoom::DRLGWARP_GetWarpDestinationRoom(pRoom->pRoomEx, eLevelId, (D2DrlgOrthStrc**)&pRoom, (D2RoomExStrc**)&eLevelId);
-      if (pDVar2) {
-        for (pDVar1 = pDVar2->pUnitList; pDVar1 && (pDVar1->eUnitType != UNIT_WARP || (D2RoomStrc*)pDVar1->nClassId != pRoom); pDVar1 = pDVar1->pRoomNext) {}
-
-        *ppRoomEx = (D2RoomExStrc*)eLevelId;
-        return pDVar1;
+      if (!pDVar2) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x71);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x71);
-      exit(-1);
+      for (pDVar1 = pDVar2->pUnitList; pDVar1 && (pDVar1->eUnitType != UNIT_WARP || (D2RoomStrc*)pDVar1->nClassId != pRoom); pDVar1 = pDVar1->pRoomNext) {}
+      *ppRoomEx = (D2RoomExStrc*)eLevelId;
+      return pDVar1;
     }
 }
 
@@ -323,24 +322,22 @@ uint32_t __stdcall DoRoomsTouchOrOverlap(D2RoomStrc * pRoom, D2RoomStrc * pRoom2
       exit(-1);
     } else {
       int iVar1;
-      if (pRoom2) {
-        iVar1 = pRoom2->sCoords.sTileRect.left;
-        nRoom1Left = pRoom->sCoords.sTileRect.left;
-        if (!(nRoom1Left <= pRoom2->sCoords.sTileRect.right + iVar1 && iVar1 <= pRoom->sCoords.sTileRect.right + nRoom1Left)) {
-          return 0;
-        }
-
-        iVar1 = pRoom2->sCoords.sTileRect.top;
-        nRoom1Left = pRoom->sCoords.sTileRect.top;
-        if (nRoom1Left > pRoom2->sCoords.sTileRect.bottom + iVar1) {
-          return 0;
-        }
-
-        return (uint32_t)(pRoom->sCoords.sTileRect.bottom + nRoom1Left >= iVar1);
+      if (!pRoom2) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x141);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x141);
-      exit(-1);
+      iVar1 = pRoom2->sCoords.sTileRect.left;
+      nRoom1Left = pRoom->sCoords.sTileRect.left;
+      if (!(nRoom1Left <= pRoom2->sCoords.sTileRect.right + iVar1 && iVar1 <= pRoom->sCoords.sTileRect.right + nRoom1Left)) {
+        return 0;
+      }
+      iVar1 = pRoom2->sCoords.sTileRect.top;
+      nRoom1Left = pRoom->sCoords.sTileRect.top;
+      if (nRoom1Left > pRoom2->sCoords.sTileRect.bottom + iVar1) {
+        return 0;
+      }
+      return (uint32_t)(pRoom->sCoords.sTileRect.bottom + nRoom1Left >= iVar1);
     }
 }
 
@@ -457,26 +454,24 @@ void __stdcall CallRoomCallback(D2RoomStrc * pRoom, ROOMCALLBACKFN pfnRoomCallba
     } else {
       BOOL bBadCodePtr;
       /* FARPROC lpfn for IsBadCodePtr */ bBadCodePtr = IsBadCodePtr((FARPROC)pfnRoomCallback);
-      if (!bBadCodePtr) {
-        nRoomIdx = 0;
-        if (!pRoom->nRoomListCount) {
+      if (bBadCodePtr) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1c2);
+        exit(-1);
+      }
+      nRoomIdx = 0;
+      if (!pRoom->nRoomListCount) {
+        return;
+      }
+      do {
+        bBadCodePtr = (*pfnRoomCallback)(pRoom->ppRoomList[nRoomIdx], pArgs);
+        if (!bBadCodePtr) {
           return;
         }
 
-        do {
-          bBadCodePtr = (*pfnRoomCallback)(pRoom->ppRoomList[nRoomIdx], pArgs);
-          if (!bBadCodePtr) {
-            return;
-          }
+        nRoomIdx++;
+      } while (nRoomIdx < pRoom->nRoomListCount);
 
-          nRoomIdx++;
-        } while (nRoomIdx < pRoom->nRoomListCount);
-
-        return;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1c2);
-      exit(-1);
+      return;
     }
 }
 
@@ -809,13 +804,10 @@ void __stdcall AllocDrlgDelete(D2RoomStrc * pRoom, eD2UnitType eUnitType, int32_
 void __stdcall DRLGROOM_FreeDrlgDelete(D2RoomStrc * pRoom) {
     D2PoolManagerStrc* pMemory;
     D2DrlgDeleteStrc* pNext;
-    if (pRoom) {
-      D2DrlgDeleteStrc* pCurrent;
-      pCurrent = pRoom->pDrlgDelete;
-      pMemory = pRoom->pDrlgAct->pMemory;
-      if (!pCurrent) {
-        return;
-      }
+    if (!pRoom) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x390);
+      exit(-1);
+    }
 
       do {
         pNext = pCurrent->pNext;
@@ -827,8 +819,13 @@ void __stdcall DRLGROOM_FreeDrlgDelete(D2RoomStrc * pRoom) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x390);
-    exit(-1);
+    do {
+      pNext = pCurrent->pNext;
+      Fog::Memory::FreeServerMemory(pMemory, pCurrent, ".\\DUNGEON\\Dungeon.cpp", 0x39c, 0);
+      pCurrent = pNext;
+    } while (pNext);
+    pRoom->pDrlgDelete = 0;
+    return;
 }
 
 D2DrlgDeleteStrc * __stdcall GetDrlgDeleteFromRoom(D2RoomStrc * pRoom) {
@@ -1065,8 +1062,15 @@ void __stdcall DRLGROOM_AddClientToRoom(D2RoomStrc * pRoom, int32_t nClientId) {
           return;
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x477);
-        exit(-1);
+        if (pRoom->nClientsCount == nClientsMaxSnapshot) {
+          pRoom->nClientsMax = nClientsMaxSnapshot + 4;
+          pNewClients = (D2ClientStrc**)Fog::Memory::ReAllocServerMemory(pRoom->pDrlgAct->pMemory, pRoom->pClients, (nClientsMaxSnapshot + 4) * 4, ".\\DUNGEON\\Dungeon.cpp", 0x47b, 0);
+          pRoom->pClients = pNewClients;
+        }
+        pRoom->pClients[pRoom->nClientsCount] = (D2ClientStrc*)nClientId;
+        pRoom->nClientsCount++;
+        DRLGROOM_SortClientList(pRoom);
+        return;
       }
     }
 }

@@ -108,15 +108,11 @@ BOOL __fastcall Skills_CltDoFunc_Bar_DoubleSwing_Sound(D2UnitStrc * pUnit, eD2Sk
       nTargetY = 0;
       nTargetX = 0;
       nHitSound = 4;
-      nHitClass = D2Common::Units::GetHitClassForPlayerOrMonster(pUnit);
-      nSoundId = UNIT::UnitSnd::UNITSND_GetSkillCastSound(pUnit, nHitClass);
-      Sound::SOUND_PlaySound(nSoundId, pUnit, nHitSound, nTargetX, nTargetY);
+      Sound::SOUND_PlaySound(UNIT::UnitSnd::UNITSND_GetSkillCastSound(pUnit, D2Common::Units::GetHitClassForPlayerOrMonster(pUnit)), pUnit, nHitSound, nTargetX, nTargetY);
       pConfirmedTarget = UNIT::CUnit::GetConfirmedTargetUnit(pUnit);
       if (pConfirmedTarget && pUnit->pPath.pStaticPath) {
         nTargetY = 0;
-        nHitSound = Units::GetYPosFromDynamicPathUnit(pConfirmedTarget);
-        nTargetX = Units::GetXPosFromDynamicPathUnit(pConfirmedTarget);
-        D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pUnit->pPath.pDynamicPath, nTargetX, nHitSound, nTargetY);
+        D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pUnit->pPath.pDynamicPath, Units::GetXPosFromDynamicPathUnit(pConfirmedTarget), Units::GetYPosFromDynamicPathUnit(pConfirmedTarget), nTargetY);
         return 1;
       }
     } else {
@@ -129,9 +125,7 @@ BOOL __fastcall Skills_CltDoFunc_Bar_DoubleSwing_Sound(D2UnitStrc * pUnit, eD2Sk
       pConfirmedTarget = Skills::SKILL_FindClosestTargetWithStats(pUnit, 0, 0, 3, 0, uVar2, nullptr);
       if (pConfirmedTarget && pUnit->pPath.pStaticPath) {
         nTargetY = 0;
-        nHitSound = Units::GetYPosFromDynamicPathUnit(pConfirmedTarget);
-        nTargetX = Units::GetXPosFromDynamicPathUnit(pConfirmedTarget);
-        D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pUnit->pPath.pDynamicPath, nTargetX, nHitSound, nTargetY);
+        D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pUnit->pPath.pDynamicPath, Units::GetXPosFromDynamicPathUnit(pConfirmedTarget), Units::GetYPosFromDynamicPathUnit(pConfirmedTarget), nTargetY);
       }
     }
 
@@ -374,8 +368,7 @@ static BOOL __stdcall SKILL_ValidateTeleportDestination(D2UnitStrc * pUnit, int3
       nCandidateX = ptCandidatePos.x;
       if (pRoom) {
         nRangeCalc = 0x1c09;
-        nUnitSize = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-        nCollisionHigh = D2Common::Collision::CheckCollision_BlockPlayer_Type(pRoom, nCandidateX, nCandidateY, nUnitSize, nRangeCalc);
+        nCollisionHigh = D2Common::Collision::CheckCollision_BlockPlayer_Type(pRoom, nCandidateX, nCandidateY, D2Common::PATH::DynamicPath::GetUnitWidth(pUnit), nRangeCalc);
         if (!nCollisionHigh) {
           bHasLOS = D2Common::Skills::SKILLS_HasLineOfSight(nUnitY, nUnitX, nCandidateX, nCandidateY, pRoom, 0x804);
           if (bHasLOS) {
@@ -668,9 +661,8 @@ static void __stdcall CLIENT_UpdateSkillMissilePosition(D2SkillStrc * pSkill, in
       return;
     }
 
-    eD2UnitType eTargetUnitType = D2Common::Skills::SKILL_GetParam3(pSkill);
-    int32_t nTargetUnitId = D2Common::Skills::SKILL_GetParam4(pSkill);
-    D2UnitStrc* pTargetUnit = UNIT::Player::UNITS_FindClientSideUnit(nTargetUnitId, eTargetUnitType);
+    eD2UnitType eTargetUnitType;
+    D2UnitStrc* pTargetUnit = UNIT::Player::UNITS_FindClientSideUnit(D2Common::Skills::SKILL_GetParam4(pSkill), D2Common::Skills::SKILL_GetParam3(pSkill));
     if (!pTargetUnit) {
       return;
     }
@@ -904,8 +896,7 @@ void __fastcall SKILL_HandleTeleportLanding(D2UnitStrc * pUnit) {
     eD2CollisionShapeType nType = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
     iVar1 = nDestX;
     int32_t nY = nDestY;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2Common::Collision::RemoveCollision_Type(pRoom, iVar1, nY, nType, nExpectedCollisionType);
+    D2Common::Collision::RemoveCollision_Type(D2Common::Units::UNITS_GetRoom(pUnit), iVar1, nY, nType, nExpectedCollisionType);
     UNIT::CUnit::CLIENT_TeleportUnitToPosition(pUnit, nDestX, nDestY, 0);
     PATH_ResetCollisionOnLanding(nDestY, nDestX, pUnit);
 }
@@ -1162,8 +1153,7 @@ void __fastcall SKILL_DrawUnitAtRotatedAngle(D2UnitStrc * pUnit, uint32_t nParam
       pXpos = &nScreenX;
       nAngle = 0x60;
       nWorldOffset = D2Common::Units::GetPrecisionY(pUnit);
-      nXpos = D2Common::Units::GetPrecisionX(pUnit);
-      D2gfx::D2GFX::D2GFX_PerspecitveScalePosition(nXpos, nWorldOffset, nAngle, (int*)pXpos, (int*)pYpos, bOrder);
+      D2gfx::D2GFX::D2GFX_PerspecitveScalePosition(D2Common::Units::GetPrecisionX(pUnit), nWorldOffset, nAngle, (int*)pXpos, (int*)pYpos, bOrder);
       nWorldOffset = UI::Path::DRAW_GetWorldOffsetX();
       nScreenX += nWorldOffset;
       nWorldOffset = UI::Path::DRAW_GetWorldOffsetY();
@@ -1271,8 +1261,7 @@ BOOL __fastcall Skills_CltStFunc_CalcLeapDestViaPathfind(D2UnitStrc * pUnit, eD2
         nType = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
         nSkillFlags = nSrcX;
         nDestY = nSrcY;
-        pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-        D2Common::Collision::AddCollision_Type(pRoom, nSkillFlags, nDestY, nType, eCollisionFlag);
+        D2Common::Collision::AddCollision_Type(D2Common::Units::UNITS_GetRoom(pUnit), nSkillFlags, nDestY, nType, eCollisionFlag);
         D2Common::Skills::SKILL_SetFlags(pSkill, 1);
         D2Common::Skills::SKILL_SetParam1(pSkill, nSrcX);
         D2Common::Skills::SKILL_SetParam2(pSkill, nSrcY);
@@ -1302,14 +1291,11 @@ BOOL __fastcall Skills_CltDoFunc_Bar_Whirlwind_EndCollision(D2UnitStrc * pUnit, 
     if (((uint8_t)nSkillFlags & 3) == 3) {
       eD2CollisionShapeType nUnitWidth;
       eCollisionFlag_00 = eCollisionFlag;
-      nUnitWidth = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      D2Common::Collision::RemoveCollision_Type(pRoom, nParam1X, nY, nUnitWidth, eCollisionFlag_00);
+      D2Common::Collision::RemoveCollision_Type(D2Common::Units::UNITS_GetRoom(pUnit), nParam1X, nY, D2Common::PATH::DynamicPath::GetUnitWidth(pUnit), eCollisionFlag_00);
       D2Common::PATH::DynamicPath::PATH_ChangeCollisionType(pDynamicPath, eCollisionFlag);
       D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pDynamicPath, (bIsPlayer ? -8184 : 0) + 0x3c01);
       D2Common::Skills::SKILL_SetFlags(pSkill, 0);
-      nParam1X = UNIT::UnitSnd::UNITSND_GetMissileSound(pUnit, 0x9e3);
-      Sound::SOUND_StopById(nParam1X);
+      Sound::SOUND_StopById(UNIT::UnitSnd::UNITSND_GetMissileSound(pUnit, 0x9e3));
       return 1;
     }
     if (!(nSkillFlags & 1)) {

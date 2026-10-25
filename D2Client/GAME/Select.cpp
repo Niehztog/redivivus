@@ -277,8 +277,7 @@ static BOOL SELECT_HandleMouseInput(int * pnMouseX, int * pnMouseY) {
         pUnit = UNIT::Player::UNITS_FindClientSideUnit(_Selection::nSelectedUnitGUID, UNIT_WARP);
         if (pUnit) {
           eLevel = pUnit->nClassId;
-          pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-          D2Common::DUNGEON::Dungeon::UpdateWarpRoomDeselect(pRoom, eLevel);
+          D2Common::DUNGEON::Dungeon::UpdateWarpRoomDeselect(D2Common::Units::UNITS_GetRoom(pUnit), eLevel);
           View::SetFlag0x1(D2GameView);
         }
       }
@@ -478,8 +477,7 @@ static D2UnitStrc * __stdcall SKILL_FindTargetInRange(D2SkillStrc * pSkill, D2Un
     sUnitFindArg.nDistance = 9;
     sUnitFindArg.nX = nX;
     sUnitFindArg.nY = nY;
-    D2RoomStrc* pRoom = UNIT::CUnit::GetCurrentRoom();
-    D2Common::Units::UnitFinds::InitializeUnitFindData(nullptr, &sUnitFindData, pRoom, nX, nY, nRadius, nfpUnitTest, pFindArg);
+    D2Common::Units::UnitFinds::InitializeUnitFindData(nullptr, &sUnitFindData, UNIT::CUnit::GetCurrentRoom(), nX, nY, nRadius, nfpUnitTest, pFindArg);
     sUnitFindData.nFlags = nFindFlags;
     D2Common::Units::UnitFinds::UNITFINDS_FindCullRange(&sUnitFindData);
     nFindFlags = 0;

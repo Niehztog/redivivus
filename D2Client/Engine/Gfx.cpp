@@ -175,7 +175,7 @@ void * __stdcall GFX_FindTextureInCache(void * pTextureCache, char * szPath) {
     char nFilenameWord0[260];
     uint32_t* pEntry;
     *(uint32_t*)(char*)&nFilenameWord0 &= -256;
-    memset(nFilenameWord0 + 1, 0, 0x103);
+    for (int i = 0x1; i < 0x104; i++) nFilenameWord0[i] = 0;
     GFX_ExtractFilenameFromPath(nHashUnused, szPath, nFilenameWord0);
     __strlwr(nFilenameWord0);
     nHash = GFX_HashTextureName((D2ArchiveStrc*)nFilenameWord0);
@@ -259,8 +259,7 @@ void __stdcall GFX_LoadAndHashCofArchive(char * szPath, int * pCache) {
     int32_t nSrcLine = 0x10b;
     char* pcSrcFile = ".\\ENGINE\\Gfx.cpp";
     size_t* pSize = (size_t*)(pCache + 2);
-    D2PoolManagerStrc* pMPQ = D2Win::Src::D2WinArchive::ReturnZero();
-    int* pEntry = (int*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMPQ, szPath, pSize, pcSrcFile, nSrcLine);
+    int* pEntry = (int*)Fog::Archive::D2FILE_AllocAndLoadD2File(D2Win::Src::D2WinArchive::ReturnZero(), szPath, pSize, pcSrcFile, nSrcLine);
     pCache[1] = (int)pEntry;
     if (!pEntry) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10c);
@@ -558,7 +557,7 @@ static void __stdcall GFX_PrecacheMonsterCofSprites(D2MonStatsTxt * pMonStatsTxt
     uint8_t byComponent;
     uint8_t* pLayerData;
     szCofPath[0] = '\0';
-    memset(szCofPath + 1, 0, 0x103);
+    for (int i = 0x1; i < 0x104; i++) szCofPath[i] = 0;
     GFX_BuildMonsterCofPath(nModeId, szCofPath, &nComponentCode, (int)*pComponentTable);
     void* pCofFile = GFX_FindTextureInCache(&gMonsterCofCache, szCofPath);
     if (!pCofFile && (pCofFile = GFX_LoadCofFile(&gMonsterCofCache, szCofPath) , !pCofFile)) {
@@ -1271,36 +1270,34 @@ void __fastcall GFX_AddOverlayToUnit(D2UnitStrc * pUnit, eOverlayId eOverlay, in
       }
 
       pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
-      if (pGfxInfo) {
-        pOverlay->nPreDraw = (uint32_t)(uint8_t)pOverlayTxt->PreDraw;
-        pOverlay->pNext = (D2GfxUnknown_0xa8*)pGfxInfo->pOverlayList;
-        pGfxInfo->pOverlayList = pOverlay;
-        if (pOverlay->nOverlayType == 8) {
-          pOverlay->nStatePriorityValue = nValue0;
-          GFX_SyncStateOverlayPriority(&pOverlay->nOverlayType, (int32_t)pGfxInfo);
-        }
-        if (nColorScale) {
-          nRandomValue = Archive::RANDOM_RandomNumberSelector(&pPlayer->sSeed, nColorScale << 8);
-          pOverlay->nRandomOffset = nRandomValue;
-        }
-
-        pOverlay->nAnimRate = pOverlayTxt->AnimRate << 4;
-        if (nRandomMod) {
-          nRandomValue = Archive::RANDOM_RandomNumberSelector(&pPlayer->sSeed, nRandomMod << 4);
-          pOverlay->nAnimRate += nRandomValue;
-        }
-
-        pOverlay->nLoopWaitTime = pOverlayTxt->LoopWaitTime;
-        return;
+      if (!pGfxInfo) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc7a);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc7a);
-      exit(-1);
+      pOverlay->nPreDraw = (uint32_t)(uint8_t)pOverlayTxt->PreDraw;
+      pOverlay->pNext = (D2GfxUnknown_0xa8*)pGfxInfo->pOverlayList;
+      pGfxInfo->pOverlayList = pOverlay;
+      if (pOverlay->nOverlayType == 8) {
+        pOverlay->nStatePriorityValue = nValue0;
+        GFX_SyncStateOverlayPriority(&pOverlay->nOverlayType, (int32_t)pGfxInfo);
+      }
+      if (nColorScale) {
+        nRandomValue = Archive::RANDOM_RandomNumberSelector(&pPlayer->sSeed, nColorScale << 8);
+        pOverlay->nRandomOffset = nRandomValue;
+      }
+      pOverlay->nAnimRate = pOverlayTxt->AnimRate << 4;
+      if (nRandomMod) {
+        nRandomValue = Archive::RANDOM_RandomNumberSelector(&pPlayer->sSeed, nRandomMod << 4);
+        pOverlay->nAnimRate += nRandomValue;
+      }
+      pOverlay->nLoopWaitTime = pOverlayTxt->LoopWaitTime;
+      return;
     }
 }
 
 // @sourcefile .\ENGINE\Gfx.cpp
-void __fastcall GFX_LoadUnitModeCof(D2UnitStrc * pUnit) {
+void __fastcall GFX_LoadUnitModeCof(D2UnitStrc * pUnit, int32_t nUnused) {
     // Frame slots -20..-12 are ONE object: &nCompositResult is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {

@@ -43,6 +43,6 @@ BOOL __fastcall Skills_CltDoFunc_Pal_HolyBolt_Melee(struct D2UnitStrc * pUnit, e
 void __fastcall SKILL_StopAndClearUninterruptable(struct D2UnitStrc * pUnit, eD2Skills eSkill);
 BOOL __fastcall Skills_CltDoFunc_Pal_RateThrottledBloodParticles(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 void __fastcall SKILL_ExecuteItemCastOnUnit(struct D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, struct D2UnitStrc * pTargetUnit, uint16_t nParam);
-int __fastcall SKILL_ExecuteItemCastAtCoords(struct D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, int32_t nTargetX, int32_t nTargetY, uint16_t nItemParam);
+void __fastcall SKILL_ExecuteItemCastAtCoords(struct D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, int32_t nTargetX, int32_t nTargetY, uint16_t nItemParam);
 
 } // namespace D2Client::SKILLS::SkillsPal

@@ -514,11 +514,10 @@ int __fastcall FOG_ParseTxtLink(D2TxtLinkStrc * pTxtLink, char * szText) {
       exit(-1);
     } else {
       int iVar1;
-      if (!pTxtLink->pTxtLinkSub0x08) {
-        iVar1 = GetLinkNodeIndex(pTxtLink, szText, 0);
-        if (iVar1 >= 0) {
-          return iVar1;
-        }
+      if (pTxtLink->pTxtLinkSub0x08) {
+        ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x4d0);
+        exit(-1);
+      }
 
         pKey = (uint8_t*)D2_ALLOC_POOL(nullptr, 0x2c);
         memset(pKey, 0, 0x2c);
@@ -531,8 +530,15 @@ int __fastcall FOG_ParseTxtLink(D2TxtLinkStrc * pTxtLink, char * szText) {
         return iVar1;
       }
 
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x4d0);
-      exit(-1);
+      pKey = (uint8_t*)Memory::AllocServerMemory(nullptr, 0x2c, ".\\Src\\Excel\\Excel.cpp", 0x4d9, 0);
+      memset(pKey, 0, 0x2c);
+      Storm::Source::SSTR::SStrCopy((char*)pKey, szText, 0x20);
+      SMem::SMemStringToUppercase((char*)pKey, 0x20);
+      *(int*)(pKey + 0x20) = pTxtLink->nRecords;
+      FOG_ValidateBytePtr((uint8_t*)&pTxtLink->pTxtLinkNode, pKey);
+      iVar1 = pTxtLink->nRecords;
+      pTxtLink->nRecords = iVar1 + 1;
+      return iVar1;
     }
 }
 
@@ -1223,7 +1229,7 @@ void __stdcall TXT_ParseDataAndPutIntoStructure(D2BinFieldExcelStrc * pBinFieldE
 
               case FIELDTYPE_NAME_I_INT:
                 pCurDataPos = pRecord + nFillOffset;
-              memset(pCurDataPos, 0, 4 * sizeof(pCurDataPos[0]));
+              for (int i = 0; i < 4; i++) pCurDataPos[i] = 0;
               break;
               case FIELDTYPE_SHORT:
 

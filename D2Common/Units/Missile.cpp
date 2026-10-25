@@ -1118,7 +1118,7 @@ uint32_t __stdcall MISSILE_EvalMissileCalc(D2UnitStrc * pMissile, D2UnitStrc * p
     __frame0.pCalcCtxOwner = pOwner;
     __frame0.nCalcCtxMissileId = nMissileId;
     __frame0.nCalcCtxMissileLevel = nMissileLevel;
-    uint32_t nResult = Fog::Skills::SKILLS_CompileSkillFormula((uint32_t*)(sgptDataTable->pMissCode + nCalcExpression), sgptDataTable->nMissCodeSize - nCalcExpression, (fnSkillCalcMethod)MISSILE_CalcVMCallback_GetSpecialParam, gaMissileCalcMethods, gnMissileCalcMethodCount, &__frame0.pCalcCtxMissile);
+    uint32_t nResult = Fog::Skills::SKILLS_CompileSkillFormula((uint32_t*)((uint8_t*)sgptDataTable->pMissCode + nCalcExpression), sgptDataTable->nMissCodeSize - nCalcExpression, (fnSkillCalcMethod)MISSILE_CalcVMCallback_GetSpecialParam, gaMissileCalcMethods, gnMissileCalcMethodCount, &__frame0.pCalcCtxMissile);
     return nResult;
 }
 

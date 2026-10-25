@@ -175,8 +175,8 @@ int __stdcall NPCMENU_ShowMercResurrectDialog() {
     }
 
     int32_t nRosterPetGUID = 0;
-    D2UnitStrc* pMerc = UNIT::Player::GetPlayerUnit_UI();
-    nRosterPetGUID = GAME::RosterPets::GetRosterPetGUID(pMerc, 7, nRosterPetGUID);
+    D2UnitStrc* pMerc;
+    nRosterPetGUID = GAME::RosterPets::GetRosterPetGUID(UNIT::Player::GetPlayerUnit_UI(), 7, nRosterPetGUID);
     if (nRosterPetGUID == -1) {
       BOOL bIsExpansion;
       bIsExpansion = GAME::Game::CLIENT_CheckExpansion();

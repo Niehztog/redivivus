@@ -60,10 +60,7 @@ void __stdcall PALETTE_BuildAdditiveBlendTable_Callback(LPPALETTEENTRY pPalette,
 void __stdcall DRAW_BuildMultiplicativeBlendTable(LPPALETTEENTRY pPalette);
 void __stdcall DRAW_BuildScreenBlendAndDesatTable(LPPALETTEENTRY pPalette);
 void __stdcall DRAW_BuildColorTintTable(LPPALETTEENTRY pPalette);
-void __stdcall DRAW_BuildDarkenTable(LPPALETTEENTRY pPalette);
-void __stdcall DRAW_BuildBrightenTable(LPPALETTEENTRY pPalette);
 void __stdcall DRAW_BuildHSLTransformTables(LPPALETTEENTRY pPalette, LPPALETTEENTRY pHSLPalette);
-void DRAW_BuildBrightenLightnessTable(struct D2HSLColorStrc * pHSLPalette, LPPALETTEENTRY pPalette);
 LPPALETTEENTRY __stdcall DRAW_BuildAllPaletteTables(tagPALETTEENTRY * pPaletteEntry);
 void __stdcall DRAW_BuildPaletteTablesWrapper(tagPALETTEENTRY * pPaletteEntry, uint32_t * pdwParam);
 

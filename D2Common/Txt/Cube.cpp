@@ -526,11 +526,11 @@ static void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * ps
           if (bTokenMatch) {
             nSpanLen = strcspn(szPaddedCode, ",");
             pszCursor = pcVar2 + nSpanLen;
-            if (*pszCursor == '\0') {
-              szPaddedCode = 0;
-            } else {
+            if (*pszCursor != '\0') {
               *pszCursor = '\0';
               szPaddedCode = pszCursor + 1;
+            } else {
+              szPaddedCode = 0;
             }
 
             nAtol = atol(pcVar2);
@@ -541,11 +541,11 @@ static void __stdcall CUBE_ParseOutputItem(D2CubeOutputStrc * pOutput, char * ps
             if (bTokenMatch) {
               nSpanLen = strcspn(szPaddedCode, ",");
               pszCursor = pcVar2 + nSpanLen;
-              if (*pszCursor == '\0') {
-                szPaddedCode = 0;
-              } else {
+              if (*pszCursor != '\0') {
                 *pszCursor = '\0';
                 szPaddedCode = pszCursor + 1;
+              } else {
+                szPaddedCode = 0;
               }
 
               nAtol = atol(pcVar2);

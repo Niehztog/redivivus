@@ -119,16 +119,16 @@ uint32_t __fastcall MONSTER_CheckMonTypeHasFlag(D2UnitStrc * pUnit, int32_t nMon
     }
 
     int nMonStatId = pUnit->nClassId;
-    if (!(-1 < nMonStatId && nMonStatId < sgptDataTable->nTxtMonStatsSize)) {
+    if (!(0 <= nMonStatId && nMonStatId < sgptDataTable->nTxtMonStatsSize)) {
       return 0;
     }
 
     D2MonStatsTxt* pMonStatsTxt = sgptDataTable->pTxtMonStats + nMonStatId;
-    if (!(pMonStatsTxt && -1 < pMonStatsTxt->MonType && (int)pMonStatsTxt->MonType < sgptDataTable->nTxtMonTypeSize && -1 < nMonTypeFlag && nMonTypeFlag < sgptDataTable->nTxtMonTypeSize)) {
+    if (!(pMonStatsTxt && 0 <= pMonStatsTxt->MonType && (int)pMonStatsTxt->MonType < sgptDataTable->nTxtMonTypeSize && 0 <= nMonTypeFlag && nMonTypeFlag < sgptDataTable->nTxtMonTypeSize)) {
       return 0;
     }
 
-    return *(uint32_t*)(sgptDataTable->pTxtMonTypeUnknown + (sgptDataTable->nMonTypeEquivRowDwords * nMonTypeFlag + ((int)pMonStatsTxt->MonType >> 5)) * 4) & gadwBitMasks[(int)pMonStatsTxt->MonType & 0x1f];
+    return *(uint32_t*)((uint8_t*)sgptDataTable->pTxtMonTypeUnknown + (sgptDataTable->nMonTypeEquivRowDwords * nMonTypeFlag + ((int)pMonStatsTxt->MonType >> 5)) * 4) & gadwBitMasks[(int)pMonStatsTxt->MonType & 0x1f];
 }
 
 int32_t __fastcall GetUmodConstant(int32_t nUmodId) {
@@ -282,7 +282,7 @@ int32_t __fastcall MONSTER_GetBossNo(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
 }
 
 // Checks whether a MonUMod.txt unique modifier entry is eligible to be applied to pUnit. Rejects if disabled or version &gt; 99 in non-expansion mode. Rejects if the monster has any excluded monster type (exclude1/exclude2). Respects the fpick field: 1=boss-only, 2=excludes melee/no-multishot monsters, 3=requires a different boss flag. Returns 1 if eligible, 0 otherwise.
-BOOL __stdcall MONSTER_CanApplyUniqueModifier(D2MonUModTxt * pD2MonUModTxt, int32_t nParam, D2UnitStrc * pUnit) {
+static BOOL __stdcall MONSTER_CanApplyUniqueModifier(D2MonUModTxt * pD2MonUModTxt, int32_t nParam, D2UnitStrc * pUnit) {
     bool _bHasFlag;
     bool bHasFlag;
     int32_t nClassId;
@@ -293,7 +293,7 @@ BOOL __stdcall MONSTER_CanApplyUniqueModifier(D2MonUModTxt * pD2MonUModTxt, int3
     int nExcludeIdx = 0;
     short int* pExclude = &pD2MonUModTxt->exclude1;
     do {
-      if (*pExclude < 1) {
+      if (*pExclude <= 0) {
         break;
       }
 
@@ -327,7 +327,7 @@ BOOL __stdcall MONSTER_CanApplyUniqueModifier(D2MonUModTxt * pD2MonUModTxt, int3
         {
           if (pUnit) {
             nExcludeIdx = pUnit->nClassId;
-            if (-1 < nExcludeIdx) {
+            if (0 <= nExcludeIdx) {
               if (nExcludeIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nExcludeIdx && sgptDataTable->pTxtMonStats[nExcludeIdx].isMelee) {
                 return 0;
               }
@@ -454,7 +454,7 @@ int32_t __stdcall MONUMOD_RollRandomModifier(D2UnitStrc * pUnit, uint8_t * pUsed
     int nCandidates = 0;
     uint32_t nTotalWeight = 0;
     int nTxtSizeSaved = nPickIdx;
-    if (nPickIdx < 1) {
+    if (nPickIdx <= 0) {
       pUmodEntry = 0;
     } else {
       pUmodEntry = sgptDataTable->pTxtMonUmod;
@@ -604,10 +604,10 @@ static void __stdcall MONSTER_TransferEnchantments(D2UnitStrc * pDstUnit, BOOL b
     D2WaypointStrc** nDstOffset;
     uint8_t* pDstSlot;
     uint8_t byUmodId;
-    if (!(!pSrcUnit || pSrcUnit->eUnitType != UNIT_MONSTER || !pSrcUnit->pUnitData.pUnitDataMonster)) {
-      pSrcEnchants = pSrcUnit->pUnitData.pUnitDataMonster->MonUModList;
-    } else {
+    if (!pSrcUnit || pSrcUnit->eUnitType != UNIT_MONSTER || !pSrcUnit->pUnitData.pUnitDataMonster) {
       pSrcEnchants = 0;
+    } else {
+      pSrcEnchants = pSrcUnit->pUnitData.pUnitDataMonster->MonUModList;
     }
     if (!pDstUnit || pDstUnit->eUnitType != UNIT_MONSTER || !pDstUnit->pUnitData.pUnitDataPlayer) {
       nDstOffset = 0;
@@ -761,8 +761,7 @@ static void __stdcall MONSTER_SpawnMinionsForBoss(D2RoomCoordListStrc * pCoordLi
         bSetOwner = 0;
         bAddToList = 0;
         eUnitType = UNIT_MONSTER;
-        nUnitGUID = D2Client::UNIT::GetGUID(pUnit);
-        Ai::AiGeneral::AssignMinionOwner(pGame, pMinion, nUnitGUID, eUnitType, bAddToList, bSetOwner);
+        Ai::AiGeneral::AssignMinionOwner(pGame, pMinion, D2Client::UNIT::GetGUID(pUnit), eUnitType, bAddToList, bSetOwner);
         Ai::AiGeneral::AddMinionToList(pGame, pUnit, pMinion);
         Monster::AI::MONSTERAI_SetTargetUnit(pMinion, pUnit);
         if (pMinion->eUnitType == UNIT_MONSTER && pMinion->pUnitData.pUnitDataMonster) {
@@ -967,7 +966,7 @@ static void __fastcall MONSTER_ApplyAmplifyDamageCurse(::SGAMEDATA * pGame, D2Un
       D2UnitStrc* pUnitSaved = pUnit;
       pAuraStat++;
       pAuraStatCalcPtr++;
-      if (-1 < *pAuraStat && (int)*pAuraStat < sgptDataTable->nTxtItemStatCostSize) {
+      if (0 <= *pAuraStat && (int)*pAuraStat < sgptDataTable->nTxtItemStatCostSize) {
         nValue = D2Common::Skills::D2GetSkillCalc(pUnitSaved, *pAuraStatCalcPtr, SKILL_AmplifyDamage, nDuration);
         if (nValue) {
           D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStateStats, (int)*pAuraStat, nValue, 0);
@@ -985,7 +984,7 @@ static void __fastcall MONSTER_OnDeathAmplifyDamageAura(::SGAMEDATA * pGame, D2U
 
     D2SeedStrc sSeedNext = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = sSeedNext;
-    if (!((uint64_t)d2_bits_of(sSeedNext) & 3)) {
+    if (!(sSeedNext.nSeedLow & 3)) {
       return;
     }
 
@@ -1073,8 +1072,8 @@ void __fastcall MONSTER_CorpseExplode(::SGAMEDATA * pGame, D2UnitStrc * pUnit, u
     int32_t nMonStatsId = pUnit->nClassId;
     int* pScaledStats = &__frame1.aMonStatsScaled;
     uint32_t nRandDamage = 1;
-    int iVar5 = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0);
-    D2Common::DATATBLS::MonsterTbls::MONSTER_CalculateLevelScaledStats(nMonStatsId, bIsMultiplayer, (uint32_t)pGame->nDifficulty, iVar5, nRandDamage, pScaledStats);
+    int iVar5;
+    D2Common::DATATBLS::MonsterTbls::MONSTER_CalculateLevelScaledStats(nMonStatsId, bIsMultiplayer, (uint32_t)pGame->nDifficulty, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0), nRandDamage, pScaledStats);
     D2DifficultyLevelsTxt* pDiffLevels = D2Common::DATATBLS::DataTbls::GetDifficultyLevels((uint32_t)pGame->nDifficulty);
     if (!pDiffLevels) {
       return;
@@ -1215,10 +1214,10 @@ void __fastcall MONSTER_LightningUniqueDeathBolts(::SGAMEDATA * pGame, D2UnitStr
     if (!bShouldTrigger) {
       return;
     }
-    if (!(!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataMonster)) {
-      nSkillLevel = pUnit->pUnitData.pUnitDataMonster->nDurielUnk;
-    } else {
+    if (!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataMonster) {
       nSkillLevel = 0;
+    } else {
+      nSkillLevel = pUnit->pUnitData.pUnitDataMonster->nDurielUnk;
     }
 
     nSkillLevel = pGame->dwGameFrame - nSkillLevel;
@@ -1847,17 +1846,15 @@ void __fastcall MONSTER_MissileSplitOnHit(::SGAMEDATA * pGame, D2UnitStrc * pUni
     int32_t nActivateFrame = 0;
     int32_t nVelocityOverride = 0;
     nMissileLevel = D2Common::Units::Missile::GetLevel(pMissileUnit);
-    eD2Skills eSkillId = D2Common::Units::Missile::GetSkillId(pMissileUnit);
-    SKILLS::SkillsServer::CreatingAMissile(pGameLocal, eMissileId, pOwnerUnit, eSkillId, nMissileLevel, nVelocityOverride, nActivateFrame, nSpawn1X, nSpawn1Y, nMissileFlags);
+    eD2Skills eSkillId;
+    SKILLS::SkillsServer::CreatingAMissile(pGameLocal, eMissileId, pOwnerUnit, D2Common::Units::Missile::GetSkillId(pMissileUnit), nMissileLevel, nVelocityOverride, nActivateFrame, nSpawn1X, nSpawn1Y, nMissileFlags);
     pTarget = pMissileUnit;
     int32_t nParam5 = 0;
     nOwnerDirSignX = nTargetY - nOwnerDirSignX;
     nDirSignX += nTargetX;
     nActivateFrame = 0;
     nVelocityOverride = 0;
-    nMissileLevel = D2Common::Units::Missile::GetLevel(pMissileUnit);
-    eSkillId = D2Common::Units::Missile::GetSkillId(pTarget);
-    SKILLS::SkillsServer::CreatingAMissile(pGameLocal, eMissileId, pOwnerUnit, eSkillId, nMissileLevel, nVelocityOverride, nActivateFrame, nDirSignX, nOwnerDirSignX, nParam5);
+    SKILLS::SkillsServer::CreatingAMissile(pGameLocal, eMissileId, pOwnerUnit, D2Common::Units::Missile::GetSkillId(pTarget), D2Common::Units::Missile::GetLevel(pMissileUnit), nVelocityOverride, nActivateFrame, nDirSignX, nOwnerDirSignX, nParam5);
     if (!(pOwnerUnit->eUnitType == UNIT_MONSTER && pOwnerUnit->pUnitData.pUnitDataMonster)) {
       return;
     }
@@ -1931,12 +1928,8 @@ void __fastcall MONSTER_SelfResurrect(::SGAMEDATA * pGame, D2UnitStrc * pUnit, u
       return;
     }
 
-    int32_t eCollisionFlag = 0x3c01;
-    int32_t eCollisionResult = 1;
-    int32_t iVar1 = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    int32_t nX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    eCollisionFlags eCollision = D2Common::Collision::CheckCollision_BlockAll_Type(pRoom, nX, iVar1, eCollisionResult, eCollisionFlag);
+    int32_t iVar1;
+    eCollisionFlags eCollision = D2Common::Collision::CheckCollision_BlockAll_Type(D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit), 1, 0x3c01);
     if (eCollision != COLBIT_NONE) {
       GAME::Event::SetEvent(pGame, pUnit, 7, pGame->dwGameFrame + 1 + pMonStatsTxt->aip[0][pGame->nDifficulty] * 10, 0, 0);
       return;
@@ -2027,53 +2020,49 @@ void __fastcall UMOD_SetLevelAndAttackRating(int32_t pUModEntry, D2UnitStrc * pU
 
     D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_level, nMonLevel, 0);
     D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_tohit, nToHitRating, 0);
-    if (pUnit && pUnit->eUnitType == UNIT_MONSTER) {
-      D2StatListExStrc* pStatsEx;
-      pStatsEx = D2Common::Stats::StatsEx::GetStatsByFlags(pUnit, 1);
-      if (pUnit->nClassId - 0x146U >= 0x2c) {
-        return;
-      }
+    if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc42);
+      exit(-1);
+    }
 
-      nToHitRating = nMonLevel >> 1;
-      switch (pUnit->nClassId) {
-        case 0x146:
-          D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_mindamage, 0, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_maxdamage, 0, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_firemindam, nToHitRating, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_firemaxdam, nMonLevel * 3 >> 1, 0);
-        return;
-        case 0x147:
-
-        case 0x148:
-          nElMinDmg = nToHitRating + 1;
-        if (nMonLevel < nToHitRating + 1) {
-          nElMinDmg = nMonLevel;
-        }
-
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_mindamage, nElMinDmg, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_maxdamage, nMonLevel, 0);
-        return;
-        case 0x149:
-          D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_mindamage, 0, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_maxdamage, 0, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_poisonmindam, nMonLevel, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_poisonmaxdam, nMonLevel * 2, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_poisonlength, nMonLevel * 2, 0);
-        return;
-        case 0x14a:
-
-        case 0x171:
-          D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_mindamage, 0, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_maxdamage, 0, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_lightmindam, nToHitRating, 0);
-        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_lightmaxdam, nMonLevel * 3 >> 1, 0);
-      }
-
+    D2StatListExStrc* pStatsEx;
+    pStatsEx = D2Common::Stats::StatsEx::GetStatsByFlags(pUnit, 1);
+    if (pUnit->nClassId - 0x146U >= 0x2c) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc42);
-    exit(-1);
+    nToHitRating = nMonLevel >> 1;
+    switch (pUnit->nClassId) {
+      case 0x146:
+        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_mindamage, 0, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_maxdamage, 0, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_firemindam, nToHitRating, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_firemaxdam, nMonLevel * 3 >> 1, 0);
+      return;
+      case 0x147:
+      case 0x148:
+        nElMinDmg = nToHitRating + 1;
+      if (nMonLevel < nToHitRating + 1) {
+        nElMinDmg = nMonLevel;
+      }
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_mindamage, nElMinDmg, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_maxdamage, nMonLevel, 0);
+      return;
+      case 0x149:
+        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_mindamage, 0, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_maxdamage, 0, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_poisonmindam, nMonLevel, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_poisonmaxdam, nMonLevel * 2, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_poisonlength, nMonLevel * 2, 0);
+      return;
+      case 0x14a:
+      case 0x171:
+        D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_mindamage, 0, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_maxdamage, 0, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_lightmindam, nToHitRating, 0);
+      D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_lightmaxdam, nMonLevel * 3 >> 1, 0);
+    }
+    return;
 }
 
 // Server-side monster skill handler that deals physical AoE damage centered on the casting monster. Reads El1MinD/El1MaxD from MonStatsTxt for the damage range, rolls a random value using the unit's RNG seed, scales by unit level and a difficulty-dependent multiplier from MonStatsTxt, then calls DAMAGE_ApplyAreaOfEffectDamage with zero magic damage flags. dwUnused1/dwUnused2 are not consumed.
@@ -2174,7 +2163,7 @@ void __fastcall MONSTER_SuicideExplosion(::SGAMEDATA * pGame, D2UnitStrc * pUnit
       int aMonScaledStats[5];
       int nScaledDmgMax;
       int nScaledDmgMin;
-      uint8_t __pad28[28];
+      struct { uint8_t e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19, e20, e21, e22, e23, e24, e25, e26, e27; } __pad28;
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 56, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
@@ -2213,8 +2202,8 @@ void __fastcall MONSTER_SuicideExplosion(::SGAMEDATA * pGame, D2UnitStrc * pUnit
 
     int* pScaledStats = __frame0.aMonScaledStats;
     int32_t bIsMultiplayer = 8;
-    int nPosX = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0);
-    D2Common::DATATBLS::MonsterTbls::MONSTER_CalculateLevelScaledStats(nMonClassId, bIsMultiplayerB, (uint32_t)nDifficulty, nPosX, bIsMultiplayer, pScaledStats);
+    int nPosX;
+    D2Common::DATATBLS::MonsterTbls::MONSTER_CalculateLevelScaledStats(nMonClassId, bIsMultiplayerB, (uint32_t)nDifficulty, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0), bIsMultiplayer, pScaledStats);
     uint32_t nDmgRange = __frame0.nScaledDmgMin - __frame0.nScaledDmgMax;
     if ((int)nDmgRange <= 0) {
       nDmgRange = 0;
@@ -2226,7 +2215,7 @@ void __fastcall MONSTER_SuicideExplosion(::SGAMEDATA * pGame, D2UnitStrc * pUnit
       if (nDmgRange & nDmgRange - 1) {
         sSeedNext = (D2SeedStrc)((uint64_t)nSeedLow * 0x6ac690c5 + nDmgRollRaw);
         pUnit->sSeed = sSeedNext;
-        nDmgRange = (uint32_t)(((uint64_t)d2_bits_of(sSeedNext) & 0xffffffff) % (uint64_t)nDmgRange);
+        nDmgRange = (uint32_t)(sSeedNext.nSeedLow % nDmgRange);
       } else {
         sSeedNext = (D2SeedStrc)((uint64_t)nSeedLow * 0x6ac690c5 + nDmgRollRaw);
         pUnit->sSeed = sSeedNext;
@@ -2353,10 +2342,10 @@ void __fastcall FUN_005a4230(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t d
 void __stdcall MONSTER_DispatchUniqueModifiers(::SGAMEDATA * pGame, D2UnitStrc * dwParam, int32_t nParam, D2UnitStrc * pUnit) {
     uint32_t nSecurityCookie;
     int nUModSlot = 0;
-    if (!(!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataPlayer)) {
-      nSecurityCookie = *(uint8_t*)((int)pUnit->pUnitData.pUnitDataPlayer->pQuestRecord + 6) >> 3 & 1;
-    } else {
+    if (!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataPlayer) {
       nSecurityCookie = 0;
+    } else {
+      nSecurityCookie = *(uint8_t*)((int)pUnit->pUnitData.pUnitDataPlayer->pQuestRecord + 6) >> 3 & 1;
     }
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && pUnit->pUnitData.pUnitDataMonster)) {
       return;
@@ -2555,10 +2544,10 @@ int * __fastcall MONSTER_SpawnWithUniqueModifiers(::SGAMEDATA * pGame, D2RoomStr
         }
       }
     }
-    if (!(pSpawnedUnit->eUnitType == UNIT_MONSTER && pSpawnedUnit->pUnitData.pUnitDataMonster)) {
-      pUModList = 0;
-    } else {
+    if (pSpawnedUnit->eUnitType == UNIT_MONSTER && pSpawnedUnit->pUnitData.pUnitDataMonster) {
       pUModList = pSpawnedUnit->pUnitData.pUnitDataMonster->MonUModList;
+    } else {
+      pUModList = 0;
     }
 
     *pUModList = *pUModListSrc;
@@ -2854,8 +2843,7 @@ D2UnitStrc * __fastcall SPAWN_UniqueMonster(::SGAMEDATA * pGame, D2RoomStrc * pR
       case 0x3c:
         Ai::AiGeneral::AssignMinionOwner(pGame, pUnit, pUnit->nUnitGUID, UNIT_MONSTER, 1, 0);
       nUModCount = 0x1c5;
-      pUnitRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      nUModCount = D2Common::Monsters::MONSTERS::GetMonsterBaseId(pUnitRoom, nUModCount);
+      nUModCount = D2Common::Monsters::MONSTERS::GetMonsterBaseId(D2Common::Units::UNITS_GetRoom(pUnit), nUModCount);
       Monster::Create::SpawnMinions_BySlot(pGame, pUnit, nUModCount, eD2MonsterAnimMode_ns::Neutral, 10, 0x14, 0x40);
       Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_BetrayalOfHaggorath);
       InitUmods(pGame, pUnit, 0x16, 1);

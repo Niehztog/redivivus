@@ -367,15 +367,14 @@ void __stdcall CHAT_ShutdownIME() {
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     int32_t nEventCount = 4;
-    HWND hWnd = D2gfx::D2GFX::GetHwnd();
-    _Message::MESSAGE_UnregisterEventHandlerBatch(hWnd, &gUIFlagChatInit, nEventCount);
+    HWND hWnd;
+    _Message::MESSAGE_UnregisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &gUIFlagChatInit, nEventCount);
     if (!gbChatInputEnabled) {
       return;
     }
 
     nEventCount = 7;
-    hWnd = D2gfx::D2GFX::GetHwnd();
-    _Message::MESSAGE_UnregisterEventHandlerBatch(hWnd, &g_UIFlagInitChatPanel, nEventCount);
+    _Message::MESSAGE_UnregisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &g_UIFlagInitChatPanel, nEventCount);
     hWnd = D2gfx::D2GFX::GetHwnd();
     HIMC hIMC = ImmGetContext(hWnd);
     if (hIMC) {
@@ -385,8 +384,8 @@ void __stdcall CHAT_ShutdownIME() {
         /* DWORD param_3 for ImmSetConversionStatus */ /* DWORD param_2 for ImmSetConversionStatus */ /* HIMC param_1 for ImmSetConversionStatus */ ImmSetConversionStatus(hIMC, 0, __frame0.dwSentenceMode);
       }
 
-      /* HIMC param_2 for ImmReleaseContext */ hWnd = D2gfx::D2GFX::GetHwnd();
-      /* HWND param_1 for ImmReleaseContext */ ImmReleaseContext(hWnd, hIMC);
+       /* HIMC param_2 for ImmReleaseContext */
+      /* HWND param_1 for ImmReleaseContext */ ImmReleaseContext(D2gfx::D2GFX::GetHwnd(), hIMC);
     }
 
     gwcImeCompositionBuffer[0] = L'\0';
@@ -443,8 +442,7 @@ static void CHAT_DrawCursor(int32_t nPosY, int32_t nPosX, int32_t nColor) {
     if (gnIMECursorVisible == 1) {
       uint16_t* wszCursor;
       bMultiLineCenter = 0;
-      wszCursor = D2Lang::StrTable::strtable::GetLocaleString(0xd4c);
-      D2Win::Src::D2WinFont::DRAW_text(wszCursor, nPosX + 0x83, nPosY, nColor, bMultiLineCenter);
+      D2Win::Src::D2WinFont::DRAW_text(D2Lang::StrTable::strtable::GetLocaleString(0xd4c), nPosX + 0x83, nPosY, nColor, bMultiLineCenter);
     }
 
     DWORD dwTickCount = GetTickCount();
@@ -540,7 +538,7 @@ static void __stdcall CHAT_DrawIMECandidates() {
       pdwOffsetTable = pCandidateList->dwOffset;
       nPosY += nFontHeight;
       nDisplayNumber++;
-      memset(wszNumberPrefix, 0, 20 * sizeof(wszNumberPrefix[0]));
+      for (int i = 0; i < 20; i++) wszNumberPrefix[i] = 0;
       sprintf(szNumberPrefix, "%d: ", nDisplayNumber);
       D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszNumberPrefix, szNumberPrefix, 0x14);
       D2Win::Src::D2WinFont::DRAW_text(wszNumberPrefix, 0x14, nPosY - 0x170 + ScreenSizeY, 0, 0);
@@ -577,7 +575,7 @@ void __stdcall DRAW_UI_ChatInput() {
     int32_t nPrevFont;
     nPrevFont = D2Win::Src::D2WinFont::SetAndReturnLastFont(0xd);
     if (gbChatInputEnabled) {
-      memset(wszModeLabel, 0, 20 * sizeof(wszModeLabel[0]));
+      for (int i = 0; i < 20; i++) wszModeLabel[i] = 0;
       switch (gnIMEInputMode) {
         case 0:
           D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszModeLabel, "Alphanumeric", 0x14);

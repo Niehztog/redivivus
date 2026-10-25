@@ -406,7 +406,7 @@ static void __stdcall DRAW_LocalCharsInSelectionScreen() {
             pwVar3 += 2;
           }
 
-          memset(wszLevelStr, 0, 10 * sizeof(wszLevelStr[0]));
+          for (int i = 0; i < 10; i++) wszLevelStr[i] = 0;
           sprintf(szNameBuf, " %d ", (uint32_t)pDVar1->nLevel);
           D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszLevelStr, szNameBuf, 9);
           pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0xfd9);
@@ -500,8 +500,8 @@ void __stdcall DRAW_LocalCharsInSelectionScreen0() {
     int nLoopIdx = 0x100;
     D2CharSelStrc* pCharSelIter = D2Client::CharScreen::D2CharSelStrcFirst;
     int nNavigationIndex = 0;
-    uint16_t* pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0x1419);
-    D2Lang::WideCharToUTF8(szRetrievingMsg, pwszLocaleStr, nLoopIdx);
+    uint16_t* pwszLocaleStr;
+    D2Lang::WideCharToUTF8(szRetrievingMsg, D2Lang::StrTable::strtable::GetLocaleString(0x1419), nLoopIdx);
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlActive(gpControlCharSelArrows, 0);
     if (0 < gnCharSelScreenSlotCount) {
       nLoopIdx = 0;
@@ -667,7 +667,7 @@ void __stdcall DRAW_LocalCharsInSelectionScreen0() {
               pwVar1 += 2;
             }
 
-            memset(wszLevelStr, 0, 10 * sizeof(wszLevelStr[0]));
+            for (int i = 0; i < 10; i++) wszLevelStr[i] = 0;
             sprintf(szNameBuf, " %d ", (uint32_t)pCharSelIter->nLevel);
             D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszLevelStr, szNameBuf, 9);
             pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0xfd9);
@@ -1439,69 +1439,69 @@ BOOL __stdcall CHARSEL_UpdateSelectedCharDisplay() {
           pCharSelComp = D2Win::Src::D2Comp::AllocCharSelectComponent(7, 5, pCharSelCopy->abEquipSlot1, (char*)pCharSelCopy->abEquipSlot2);
           pCharSelCopy->pCharSelCompStrc = pCharSelComp;
         }
-        if (pCharSelCopy->pCharSelCompStrc) {
-          D2Win::Src::D2Comp::D2COMP_SetAnimationSpeed(pCharSelCopy->pCharSelCompStrc, 0);
-          D2Win::Src::D2Comp::D2COMP_SetCurrentFrame(gpCharSelPendingEntry->pCharSelCompStrc, 0);
-          D2Win::Src::D2Comp::D2COMP_SetAnimationMode(gpCharSelPendingEntry->pCharSelCompStrc, 5);
-          D2Win::Src::D2Comp::D2COMP_SetScreenX(gpCharSelPendingEntry->pCharSelCompStrc, 0x118);
-          D2Win::Src::D2Comp::D2COMP_SetScreenY(gpCharSelPendingEntry->pCharSelCompStrc, 0x172);
-          wCharFlags = gpCharSelPendingEntry->nCharacterFlags;
-          if (!(wCharFlags & 8)) {
-            dwCompFlags = 5;
-          } else {
-            dwCompFlags = 0x15;
-          }
-          if (wCharFlags & 4) {
-            dwCompFlags |= 0x20;
-          }
-          if (wCharFlags & 0x20) {
-            dwCompFlags |= 0x1000;
-          }
+        if (!pCharSelCopy->pCharSelCompStrc) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x619);
+          exit(-1);
+        }
 
-          D2Win::Src::D2Comp::D2COMP_SetFlags((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, dwCompFlags);
-          Fog::File::CONTAINER_InitializeBuffer(wszClassName, 2, 100, MainMenus::STRING_ZeroOneWCHAR);
-          D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(gpaCharSelectDisplay);
-          pszText = gpCharSelPendingEntry->szGuildTag;
-          pszText = pszText + strlen(pszText) + 1;
-          pCharSelCopy = gpCharSelPendingEntry;
-          if (pszText != gpCharSelPendingEntry->szGuildTag + 1) {
-            sprintf(szTmpBuf, "%s {%s}", gpCharSelPendingEntry->szCharname, gpCharSelPendingEntry->szGuildTag);
-            pCharSelCopy = (D2CharSelStrc*)szTmpBuf;
-          }
+        D2Win::Src::D2Comp::D2COMP_SetAnimationSpeed(pCharSelCopy->pCharSelCompStrc, 0);
+        D2Win::Src::D2Comp::D2COMP_SetCurrentFrame(gpCharSelPendingEntry->pCharSelCompStrc, 0);
+        D2Win::Src::D2Comp::D2COMP_SetAnimationMode(gpCharSelPendingEntry->pCharSelCompStrc, 5);
+        D2Win::Src::D2Comp::D2COMP_SetScreenX(gpCharSelPendingEntry->pCharSelCompStrc, 0x118);
+        D2Win::Src::D2Comp::D2COMP_SetScreenY(gpCharSelPendingEntry->pCharSelCompStrc, 0x172);
+        wCharFlags = gpCharSelPendingEntry->nCharacterFlags;
+        if (!(wCharFlags & 8)) {
+          dwCompFlags = 5;
+        } else {
+          dwCompFlags = 0x15;
+        }
+        if (wCharFlags & 4) {
+          dwCompFlags |= 0x20;
+        }
+        if (wCharFlags & 0x20) {
+          dwCompFlags |= 0x1000;
+        }
 
-          D2Win::Src::D2WinImage::D2WINTEXTBOX_SetTextFromAnsi(gpaCharSelectDisplay, pCharSelCopy->szCharname, 0);
-          D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(gpCharSelDeleteButton);
-          CHARSEL_GetClassNameString((uint32_t)gpCharSelPendingEntry->ePlayerClassID, wszClassName);
-          Fog::File::CONTAINER_InitializeBuffer(wszLineBuf, 2, 100, MainMenus::STRING_ZeroOneWCHAR);
-          Fog::File::CONTAINER_InitializeBuffer(wszLevelStr, 2, 10, MainMenus::STRING_ZeroOneWCHAR);
-          sprintf(szTmpBuf, " %d ", (uint32_t)pSelectedChar->nLevel);
-          D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszLevelStr, szTmpBuf, 9);
-          pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0xfd9);
-          D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszLineBuf, pwszLocaleStr);
-          D2Lang::Unicode::UNISYS::AppendToBuffer(wszLineBuf, wszLevelStr);
-          D2Lang::Unicode::UNISYS::AppendToBuffer(wszLineBuf, wszClassName);
-          D2Win::Src::D2WinTextBox::SetText(gpCharSelDeleteButton, wszLineBuf, 0, false, 0);
-          D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(gpCharSelExpansionToggle);
-          nSlotIndex = 0;
-          pszText = gpCharSelPendingEntry->szCommandStringTable;
-          bIndent = false;
-          nClassicOrExpansionMode = 0;
-          if (!*(short int*)pszText) {
-            bIndent = 0;
-            pszText = (char*)D2Lang::StrTable::strtable::GetLocaleString(0x142c);
-          }
+        D2Win::Src::D2Comp::D2COMP_SetFlags((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, dwCompFlags);
+        Fog::File::CONTAINER_InitializeBuffer(wszClassName, 2, 100, MainMenus::STRING_ZeroOneWCHAR);
+        D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(gpaCharSelectDisplay);
+        pszText = gpCharSelPendingEntry->szGuildTag;
+        pszText = pszText + strlen(pszText) + 1;
+        pCharSelCopy = gpCharSelPendingEntry;
+        if (pszText != gpCharSelPendingEntry->szGuildTag + 1) {
+          sprintf(szTmpBuf, "%s {%s}", gpCharSelPendingEntry->szCharname, gpCharSelPendingEntry->szGuildTag);
+          pCharSelCopy = (D2CharSelStrc*)szTmpBuf;
+        }
 
-          D2Win::Src::D2WinTextBox::SetText(gpCharSelExpansionToggle, (uint16_t*)pszText, nClassicOrExpansionMode, (bool)bIndent, nSlotIndex);
-          if (!(pSelectedChar->nCharacterFlags & 0x20)) {
-            return 1;
-          }
+        D2Win::Src::D2WinImage::D2WINTEXTBOX_SetTextFromAnsi(gpaCharSelectDisplay, pCharSelCopy->szCharname, 0);
+        D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(gpCharSelDeleteButton);
+        CHARSEL_GetClassNameString((uint32_t)gpCharSelPendingEntry->ePlayerClassID, wszClassName);
+        Fog::File::CONTAINER_InitializeBuffer(wszLineBuf, 2, 100, MainMenus::STRING_ZeroOneWCHAR);
+        Fog::File::CONTAINER_InitializeBuffer(wszLevelStr, 2, 10, MainMenus::STRING_ZeroOneWCHAR);
+        sprintf(szTmpBuf, " %d ", (uint32_t)pSelectedChar->nLevel);
+        D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszLevelStr, szTmpBuf, 9);
+        pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0xfd9);
+        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszLineBuf, pwszLocaleStr);
+        D2Lang::Unicode::UNISYS::AppendToBuffer(wszLineBuf, wszLevelStr);
+        D2Lang::Unicode::UNISYS::AppendToBuffer(wszLineBuf, wszClassName);
+        D2Win::Src::D2WinTextBox::SetText(gpCharSelDeleteButton, wszLineBuf, 0, false, 0);
+        D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(gpCharSelExpansionToggle);
+        nSlotIndex = 0;
+        pszText = gpCharSelPendingEntry->szCommandStringTable;
+        bIndent = false;
+        nClassicOrExpansionMode = 0;
+        if (!*(short int*)pszText) {
+          bIndent = 0;
+          pszText = (char*)D2Lang::StrTable::strtable::GetLocaleString(0x142c);
+        }
 
-          D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(gpCtlCharSelDeleteButton, 0);
+        D2Win::Src::D2WinTextBox::SetText(gpCharSelExpansionToggle, (uint16_t*)pszText, nClassicOrExpansionMode, (bool)bIndent, nSlotIndex);
+        if (!(pSelectedChar->nCharacterFlags & 0x20)) {
           return 1;
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x619);
-        exit(-1);
+        D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(gpCtlCharSelDeleteButton, 0);
+        return 1;
       }
 
       D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(gpaCharSelectDisplay);
@@ -1527,13 +1527,10 @@ void __fastcall UIMENU_SelectDifficultySinglePlayerOrTcpip(int32_t nCharLevel, i
     int nTextArg2 = 0;
     uint8_t byTextColor = 0;
     int32_t nTextArg1 = 7;
-    uint16_t* szText = D2Lang::StrTable::strtable::GetLocaleString(0x2723);
-    D2Win::Src::D2WinTextBox::SetText(pDVar2, szText, nTextArg1, (bool)byTextColor, nTextArg2);
+    D2Win::Src::D2WinTextBox::SetText(pDVar2, D2Lang::StrTable::strtable::GetLocaleString(0x2723), nTextArg1, (bool)byTextColor, nTextArg2);
     D2Win::Src::D2WinMain::SetUnsetFlag0x08((D2ControlStrc*)pDVar2, 1);
-    pFormControl = MainMenus::FORMS_CreateAnyFormFromList(0xa8);
-    D2Win::Src::D2WinMain::SetUnsetFlag0x08(pFormControl, 1);
-    pFormControl = MainMenus::FORMS_CreateAnyFormFromList(0xa9);
-    D2Win::Src::D2WinMain::SetUnsetFlag0x08(pFormControl, 1);
+    D2Win::Src::D2WinMain::SetUnsetFlag0x08(MainMenus::FORMS_CreateAnyFormFromList(0xa8), 1);
+    D2Win::Src::D2WinMain::SetUnsetFlag0x08(MainMenus::FORMS_CreateAnyFormFromList(0xa9), 1);
     pFormControl = MainMenus::FORMS_CreateAnyFormFromList(0xaa);
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(pFormControl, 0);
     D2Win::Src::D2WinMain::SetUnsetFlag0x08(pFormControl, 1);
@@ -1577,13 +1574,11 @@ BOOL __stdcall SelectCharHandler(D2ControlMsg * pControlMsg) {
         nSelectedIndex = 0;
         byTextColor = 0;
         nTextArg1 = 0;
-        pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0x2b3c);
-        D2Win::Src::D2WinTextBox::SetText(gnCharSelScrollOffset, pwszLocaleStr, nTextArg1, (bool)byTextColor, nSelectedIndex);
+        D2Win::Src::D2WinTextBox::SetText(gnCharSelScrollOffset, D2Lang::StrTable::strtable::GetLocaleString(0x2b3c), nTextArg1, (bool)byTextColor, nSelectedIndex);
         nSelectedIndex = 0;
         bIsCreateNewSlot = false;
         nTextArg1 = 0;
-        pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0x2b3d);
-        D2Win::Src::D2WinTextBox::SetText(gnCharSelScrollOffset, pwszLocaleStr, nTextArg1, bIsCreateNewSlot, nSelectedIndex);
+        D2Win::Src::D2WinTextBox::SetText(gnCharSelScrollOffset, D2Lang::StrTable::strtable::GetLocaleString(0x2b3d), nTextArg1, bIsCreateNewSlot, nSelectedIndex);
         return 1;
       }
       if (nSelectedIndex != -1) {
@@ -1961,8 +1956,7 @@ void CHARSEL_SetStatusMessage(int32_t nStatusCode) {
     int nTextArg4 = 0;
     bool uVar3 = false;
     int32_t nTextLine = 4;
-    uint16_t* szText = D2Lang::StrTable::strtable::GetLocaleString(wLocaleStrId);
-    D2Win::Src::D2WinTextBox::SetText(gpCharSelStatusTextBox, szText, nTextLine, uVar3, nTextArg4);
+    D2Win::Src::D2WinTextBox::SetText(gpCharSelStatusTextBox, D2Lang::StrTable::strtable::GetLocaleString(wLocaleStrId), nTextLine, uVar3, nTextArg4);
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(gpControlCharSelArrows, 0);
     if (!gnCharSelSelectedIndex) {
       return;
@@ -1981,8 +1975,7 @@ void __stdcall CHARSEL_ShowWaitTimeout() {
     int nTextArg4 = 0;
     bool uVar3 = false;
     int32_t nTextLine = 4;
-    uint16_t* szText = D2Lang::StrTable::strtable::GetLocaleString(0x2b39);
-    D2Win::Src::D2WinTextBox::SetText(gpCharSelStatusTextBox, szText, nTextLine, uVar3, nTextArg4);
+    D2Win::Src::D2WinTextBox::SetText(gpCharSelStatusTextBox, D2Lang::StrTable::strtable::GetLocaleString(0x2b39), nTextLine, uVar3, nTextArg4);
 }
 
 BOOL __stdcall CHARSEL_InitRealmSelection() {
@@ -2013,12 +2006,7 @@ BOOL __stdcall CHARSEL_InitRealmSelection() {
         MainMenus::FORMS_CreateAnyFormFromListExEx(0x69);
         gpControlRealmSelectDropdown = MainMenus::FORMS_CreateAnyFormFromListExEx(0x6b);
         gpControlCharSelList = (::D2WinTextBox*)MainMenus::FORMS_CreateAnyFormFromListExEx(0x6c);
-        nRealmCount = 0;
-        nTextArg8 = 0;
-        nRegResult = 4;
-        pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0x2b32);
-        pTitleForm = (::D2WinTextBox*)MainMenus::FORMS_CreateAnyFormFromListExEx(0x6a);
-        D2Win::Src::D2WinTextBox::SetText(pTitleForm, pwszLocaleStr, nRegResult, (bool)nTextArg8, nRealmCount);
+        D2Win::Src::D2WinTextBox::SetText((::D2WinTextBox*)MainMenus::FORMS_CreateAnyFormFromListExEx(0x6a), D2Lang::StrTable::strtable::GetLocaleString(0x2b32), 4, (bool)0, 0);
         nRegResult = Storm::Source::SReg::SRegLoadString("Diablo II", "Preferred Realm", 0, PreferredClosedRealm, 0x100);
         if (nRegResult) {
           nTextLine = MainMenus::CHARSEL_FindRealmByName(PreferredClosedRealm);
@@ -2029,8 +2017,7 @@ BOOL __stdcall CHARSEL_InitRealmSelection() {
 
         pBNetGateway = (D2BNetGatewayAccessStr*)gpBNetCallbacks->pfnBnetLoadAndReturn();
         nRegResult = 0x7fffffff;
-        pszRealmName = Bnclient::BNGatewayAccess::Realm(pBNetGateway, pBNetGateway->nCurGatewayIdx);
-        Storm::Source::SSTR::SStrCopy(PreferredClosedRealm, pszRealmName, nRegResult);
+        Storm::Source::SSTR::SStrCopy(PreferredClosedRealm, Bnclient::BNGatewayAccess::Realm(pBNetGateway, pBNetGateway->nCurGatewayIdx), nRegResult);
         Storm::Source::SReg::SRegSaveString((uint32_t*)"Diablo II", "Preferred Realm", 0, PreferredClosedRealm);
         nTextLine = MainMenus::CHARSEL_FindRealmByName(PreferredClosedRealm);
         if (nTextLine) {

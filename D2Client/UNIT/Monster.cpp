@@ -826,9 +826,7 @@ static void MONSTER_InitSpecialMonster(D2UnitStrc * pUnit, int32_t nClassId) {
         case 0x19d:
           nMissileLevel = 1;
         eSkill = SKILL_Attack;
-        nPosY = Units::GetYPosFromDynamicPathUnit(pUnit);
-        nPosX = Units::GetXPosFromDynamicPathUnit(pUnit);
-        pTargetUnit = Missile::CastAttack(pUnit, MISSILE_BladeCreeper, nPosX, nPosY, eSkill, nMissileLevel);
+        pTargetUnit = Missile::CastAttack(pUnit, MISSILE_BladeCreeper, Units::GetXPosFromDynamicPathUnit(pUnit), Units::GetYPosFromDynamicPathUnit(pUnit), eSkill, nMissileLevel);
         if (pTargetUnit) {
           D2Common::Units::StoreOwner(pTargetUnit, pUnit);
           return;
@@ -847,9 +845,7 @@ static void MONSTER_InitSpecialMonster(D2UnitStrc * pUnit, int32_t nClassId) {
         case 0x23a:
           nMissileLevel = 1;
         eSkill = SKILL_Attack;
-        nPosY = Units::GetYPosFromDynamicPathUnit(pUnit);
-        nPosX = Units::GetXPosFromDynamicPathUnit(pUnit);
-        Missile::CastAttack(pUnit, MISSILE_Baalteleport, nPosX, nPosY, eSkill, nMissileLevel);
+        Missile::CastAttack(pUnit, MISSILE_Baalteleport, Units::GetXPosFromDynamicPathUnit(pUnit), Units::GetYPosFromDynamicPathUnit(pUnit), eSkill, nMissileLevel);
       }
     }
 }
@@ -1238,7 +1234,7 @@ void __fastcall MONSTER_TransformToClassId(D2UnitStrc * pUnit, int32_t nClassId)
     pSkillIdPtr = pMonStatsTxtNew->aSkill;
     nMonStats2Idx = 0;
     do {
-      if (-1 < *pSkillIdPtr) {
+      if (0 <= *pSkillIdPtr) {
         D2Common::Skills::AddSkill(pUnit, (int)*pSkillIdPtr, (int)pMonStatsTxtNew->aSkLvl[nMonStats2Idx], 0, ".\\UNIT\\Monster.cpp", 0x2ea);
       }
 
@@ -1298,7 +1294,7 @@ void __fastcall MONSTER_TransformToClassId(D2UnitStrc * pUnit, int32_t nClassId)
       }
 
       clamp_pal_shift:
-      if (nPalShiftIdx < 8) {
+      if ((int)nPalShiftIdx < 8) {
         goto apply_pal_shift;
       }
     }
@@ -1344,7 +1340,7 @@ static void __stdcall MONSTER_SpawnFetishMissileSpread(D2UnitStrc * pUnit, eMiss
       }
 
       sSeed = D2_SEED_NEXT_VAL(nSeedStep);
-      if ((uint64_t)d2_bits_of(sSeed) & 1) {
+      if (sSeed.nSeedLow & 1) {
         nFetishBaseId = -nFetishBaseId;
       }
 
@@ -1875,7 +1871,7 @@ D2MonStats2Txt * __fastcall MONSTER_SpawnBloodParticles(D2UnitStrc * pUnit, D2Mo
       if (nVelocity) {
         nDirection = D2Common::Units::GetDirection(pUnit);
         sNextSeed = D2_SEED_NEXT(pUnit->sSeed);
-        nDirWeightedIdx = (int)(((uint64_t)d2_bits_of(sNextSeed) & 0xffffffff) / 7);
+        nDirWeightedIdx = (int)(sNextSeed.nSeedLow / 7);
         nBloodCount = ((sNextSeed.nSeedLow - nDirWeightedIdx >> 1) + nDirWeightedIdx >> 2) + sNextSeed.nSeedLow - 3 + (uint32_t)(nDirection >> 3);
         pUnit->sSeed = sNextSeed;
       } else {
@@ -1968,7 +1964,7 @@ static void MONSTER_PreloadSequenceAnimations(D2UnitStrc * pUnit) {
       uD2UnitMode nAnimMode;
       D2Common::Merc::ANIM_GetSequenceFrameInfo((uint8_t*)pSeqTxt, i << 8, i << 8, (uint32_t*)&nAnimMode.ePlayerMode, &nFrameSpeed, &nFrameEnd, &nFrameStart);
       pUnit->eAnimMode = nAnimMode;
-      Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+      Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
       i++;
     } while (i < nFrameCount >> 8);
 }
@@ -2063,8 +2059,7 @@ static void MONSTER_HandleBurrowTransition(D2UnitStrc * pUnit, int32_t nParam) {
       }
 
       nRemoveCollisionFlags = 0x1000;
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      D2Common::Collision::RemoveCollision(pRoom, nPosX, nPosY, nRemoveCollisionFlags);
+      D2Common::Collision::RemoveCollision(D2Common::Units::UNITS_GetRoom(pUnit), nPosX, nPosY, nRemoveCollisionFlags);
       eUnitType = pUnit->eUnitType;
       if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         nPosY = pUnit->pPath.pStaticPath->nPosY;
@@ -2084,8 +2079,7 @@ static void MONSTER_HandleBurrowTransition(D2UnitStrc * pUnit, int32_t nParam) {
       }
 
       nRemoveCollisionFlags = 0x100;
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      D2Common::Collision::RemoveCollision(pRoom, nPosX, nPosY, nRemoveCollisionFlags);
+      D2Common::Collision::RemoveCollision(D2Common::Units::UNITS_GetRoom(pUnit), nPosX, nPosY, nRemoveCollisionFlags);
       D2Common::PATH::DynamicPath::SetUnitWidth(pUnit, 5);
       D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pUnit->pPath.pDynamicPath, 0);
       nPosY = Engine::Particle::PARTICLE_GetScreenZ(pUnit);
@@ -2121,8 +2115,7 @@ static void MONSTER_HandleBurrowTransition(D2UnitStrc * pUnit, int32_t nParam) {
       }
 
       eAddCollisionFlag = COLLIDE_UNIT_RELATED;
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      D2Common::Collision::AddCollision(pRoom, nPosX, nPosY, eAddCollisionFlag);
+      D2Common::Collision::AddCollision(D2Common::Units::UNITS_GetRoom(pUnit), nPosX, nPosY, eAddCollisionFlag);
       eUnitType = pUnit->eUnitType;
       if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         nPosY = pUnit->pPath.pStaticPath->nPosY;
@@ -2142,8 +2135,7 @@ static void MONSTER_HandleBurrowTransition(D2UnitStrc * pUnit, int32_t nParam) {
       }
 
       eAddCollisionFlag = COLLIDE_MONSTER;
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      D2Common::Collision::AddCollision(pRoom, nPosX, nPosY, eAddCollisionFlag);
+      D2Common::Collision::AddCollision(D2Common::Units::UNITS_GetRoom(pUnit), nPosX, nPosY, eAddCollisionFlag);
       D2Common::PATH::DynamicPath::SetUnitWidth(pUnit, 1);
       D2Common::PATH::DynamicPath::PATH_SetCollisionPattern(pUnit->pPath.pDynamicPath, 0x3c01);
       nPosY = Engine::Particle::PARTICLE_GetScreenZ(pUnit);
@@ -2931,8 +2923,7 @@ void __fastcall MERC_InitializeFromPacket(D2UnitStrc * pUnit, uint16_t * nParam)
     nMercNameId = *nParam;
     pPacketData = nParam;
     pMercUnit = pUnit;
-    bIsExpansion = GAME::Game::CLIENT_CheckExpansion();
-    nMercAct = D2Common::Merc::GetMercAct(bIsExpansion, 0, nMercNameId);
+    nMercAct = D2Common::Merc::GetMercAct(GAME::Game::CLIENT_CheckExpansion(), 0, nMercNameId);
     bVar1 = GAME::Game::GetDificulity();
     nLevel = *(int32_t*)(nParam + 2);
     nDifficulty = (uint32_t)bVar1;
@@ -2945,8 +2936,7 @@ void __fastcall MERC_InitializeFromPacket(D2UnitStrc * pUnit, uint16_t * nParam)
     }
 
     nLevel = sHireData.nLevel;
-    bIsExpansion = GAME::Game::CLIENT_CheckExpansion();
-    pHirelingTxt = D2Common::DATATBLS::MonsterTbls::GetHirelingText(bIsExpansion, sHireData.nId, nLevel);
+    pHirelingTxt = D2Common::DATATBLS::MonsterTbls::GetHirelingText(GAME::Game::CLIENT_CheckExpansion(), sHireData.nId, nLevel);
     if (!pHirelingTxt) {
       return;
     }
@@ -2972,8 +2962,7 @@ void __fastcall MERC_InitializeFromPacket(D2UnitStrc * pUnit, uint16_t * nParam)
 
       nSkillModeVal = (uint32_t)(char)pHirelingTxt->nSkillMode[nSkillIdx];
       D2Common::Skills::AddSkill(pMercUnit, eSkill, nLevel, 0, ".\\UNIT\\Monster.cpp", 0x9c8);
-      pSkill = D2Common::Skills::SKILLS_GetSkillByEnum(eSkill, pMercUnit);
-      D2Common::Skills::SetSkillMode(pSkill, nSkillModeVal);
+      D2Common::Skills::SetSkillMode(D2Common::Skills::SKILLS_GetSkillByEnum(eSkill, pMercUnit), nSkillModeVal);
       pSkillIdPtr++;
       nSkillIdx++;
       pUnit = pMercUnit;
@@ -2984,8 +2973,7 @@ void __fastcall MERC_InitializeFromPacket(D2UnitStrc * pUnit, uint16_t * nParam)
       nNameId = 0x2b0d;
     }
 
-    pMercName = D2Lang::StrTable::strtable::GetLocaleString(nNameId);
-    D2Common::Monsters::MONSTERS::SetSuperUniqueName(pUnit, pMercName);
+    D2Common::Monsters::MONSTERS::SetSuperUniqueName(pUnit, D2Lang::StrTable::strtable::GetLocaleString(nNameId));
     ITEM_RecalcAllEquippedItems_ECX(pUnit);
 }
 

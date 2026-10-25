@@ -1339,8 +1339,77 @@ void __stdcall CELCMP_FixupOffsetsAndSerialize(int * pnParam, uint32_t * pdwPara
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2cc);
-      exit(-1);
+      pnParam[1] |= 2;
+      iFrame = 0;
+      if (pnParam[4] * pnParam[5]) {
+        pFrameOffsets = pnParam + 0xd;
+        do {
+          pFrameEntry = *pFrameOffsets + (int)pnParam;
+          *pFrameOffsets = pFrameEntry;
+          if (*(int*)(pFrameEntry + 0x1c)) {
+            *(int*)(pFrameEntry + 0x20) += (int)pnParam;
+          } else {
+            *(uint32_t*)(pFrameEntry + 0x20) = 0;
+          }
+          iFrame++;
+          pFrameOffsets++;
+        } while (iFrame < (uint32_t)(pnParam[4] * pnParam[5]));
+      }
+      nTotalFrames = pnParam[4] * pnParam[5];
+      pFrameOffsets = (int*)(nTotalFrames * 4 + 0x18);
+      pSerializedEnd = pFrameOffsets;
+      if (nTotalFrames) {
+        pFrameSlot = pnParam + 0xd;
+        pFrameEntry = nTotalFrames;
+        pnParam = pFrameOffsets;
+        do {
+          pnParam = (int*)((int)pnParam + *(int*)(*pFrameSlot + 0x24) + *(int*)(*pFrameSlot + 0x1c) + 0x23);
+          pFrameSlot++;
+          pFrameEntry--;
+          pSerializedEnd = pnParam;
+        } while (pFrameEntry);
+      }
+      pnParam = pSerializedEnd;
+      pSerializedBlock = (uint32_t*)Fog::Memory::AllocClientMemory((size_t)pnParam, ".\\SRC\\CelCmp.cpp", 0x2e3, 0);
+      *pSerializedBlock = 6;
+      pSerializedBlock[1] = *(uint8_t*)(pSrcParam + 1) & 4 | 1;
+      pSerializedBlock[2] = 0;
+      pSerializedBlock[3] = 0;
+      pSerializedBlock[4] = pSrcParam[4];
+      pSerializedBlock[5] = pSrcParam[5];
+      if (nTotalFrames) {
+        pDstFrameOffset = pSerializedBlock + 6;
+        pSrcParam += 0xd;
+        pDstFrame = (uint32_t*)((int)pFrameOffsets + (int)pSerializedBlock);
+        do {
+          *pDstFrameOffset = (int)pDstFrame - (int)pSerializedBlock;
+          *pDstFrame = *(uint32_t*)(*pSrcParam + 4);
+          pDstFrame[1] = *(uint32_t*)(*pSrcParam + 0xc);
+          pDstFrame[2] = *(uint32_t*)(*pSrcParam + 0x10);
+          pDstFrame[3] = *(uint32_t*)(*pSrcParam + 0x14);
+          pDstFrame[4] = *(uint32_t*)(*pSrcParam + 0x18);
+          pDstFrame[5] = *(uint32_t*)(*pSrcParam + 0x1c);
+          _Size = *(size_t*)(*pSrcParam + 0x24);
+          pDstFrame[7] = _Size;
+          memcpy(pDstFrame + 8, (void*)(*pSrcParam + 0x28), _Size);
+          pFrameEntry = *pSrcParam;
+          pColorShiftDst = (uint32_t*)((int)pDstFrame + pDstFrame[7] + 0x23);
+          if (!*(int*)(pFrameEntry + 0x20)) {
+            pDstFrame[6] = 0;
+          } else {
+            memcpy(pColorShiftDst, (void*)(pFrameEntry + 0x20), *(size_t*)(pFrameEntry + 0x1c));
+            pDstFrame[6] = (int)pColorShiftDst - (int)pSerializedBlock;
+            pColorShiftDst = (uint32_t*)((int)pColorShiftDst + *(int*)(*pSrcParam + 0x1c));
+          }
+          pDstFrameOffset++;
+          pSrcParam++;
+          nTotalFrames--;
+          pDstFrame = pColorShiftDst;
+        } while (nTotalFrames);
+      }
+      *pdwParam = (uint32_t)(uintptr_t)pSerializedBlock;
+      *pnSize = (size_t)pnParam;
+      return;
     }
 }
 
@@ -1348,32 +1417,30 @@ void __stdcall CELCMP_FixupOffsetsAndSerialize(int * pnParam, uint32_t * pdwPara
 void __stdcall CELCMP_ApplyPaletteToAllFrames(DC6 * pDCC, uint8_t * pPalette) {
     uint32_t nDirIndex;
     uint32_t nFrameIndex;
-    if (pDCC->nFlags & 4) {
-      uint32_t nNumFrames;
-      nDirIndex = 0;
-      if (!pDCC->nDirections) {
-        return;
-      }
+    if (!(pDCC->nFlags & 4)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x322);
+      exit(-1);
+    }
 
-      nNumFrames = pDCC->nFrames;
-      do {
-        if (nNumFrames) {
-          nFrameIndex = 0;
-          do {
-            CELCMP_ApplyColorKeyToAllPixels(*(void**)(pDCC[1].nTerm + (nNumFrames * nDirIndex + nFrameIndex) * 4 - 0xc), (pfnTilecmpPixelCallback)pPalette, *(uint32_t*)pDCC->nTerm);
-            nNumFrames = pDCC->nFrames;
-            nFrameIndex++;
-          } while (nFrameIndex < nNumFrames);
-        }
-
-        nDirIndex++;
-      } while (nDirIndex < (uint32_t)pDCC->nDirections);
-
+    uint32_t nNumFrames;
+    nDirIndex = 0;
+    if (!pDCC->nDirections) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x322);
-    exit(-1);
+    nNumFrames = pDCC->nFrames;
+    do {
+      if ((uint32_t)nNumFrames > 0) {
+        nFrameIndex = 0;
+        do {
+          CELCMP_ApplyColorKeyToAllPixels(*(void**)(pDCC[1].nTerm + (nNumFrames * nDirIndex + nFrameIndex) * 4 - 0xc), (pfnTilecmpPixelCallback)pPalette, *(uint32_t*)pDCC->nTerm);
+          nNumFrames = pDCC->nFrames;
+          nFrameIndex++;
+        } while (nFrameIndex < nNumFrames);
+      }
+      nDirIndex++;
+    } while (nDirIndex < (uint32_t)pDCC->nDirections);
+    return;
 }
 
 uint32_t __stdcall CELCMP_SerializeCelFileToMemory(uint32_t * pDCCSrc, uint32_t * ppDCCDest, size_t * pSizeOut) {
@@ -1496,25 +1563,24 @@ void __stdcall CELCMP_InvokeFormatSpecificCleanup(int32_t nParam, BYTE * dwParam
     static fpCelRemapFrameByFormat gapfnCelRemapFrameByFormat[2] = { &D2CMP::SRC::FastCmp::FASTCMP_RemapFramePaletteIndices, nullptr };
 
     uint32_t iFrame;
-    if (nParam) {
-      uint32_t* puVar1;
-      iFrame = 0;
-      if (!(*(int*)(nParam + 0x10) * *(int*)(nParam + 0x14))) {
-        return;
-      }
+    if (!nParam) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x431);
+      exit(-1);
+    }
 
-      puVar1 = (uint32_t*)(nParam + 0x18);
-      do {
-        (*gapfnCelRemapFrameByFormat[*(int*)(nParam + 8)])((DC6Block*)*puVar1, dwParam);
-        iFrame++;
-        puVar1++;
-      } while (iFrame < (uint32_t)(*(int*)(nParam + 0x10) * *(int*)(nParam + 0x14)));
-
+    uint32_t* puVar1;
+    iFrame = 0;
+    if (!(*(int*)(nParam + 0x10) * *(int*)(nParam + 0x14))) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x431);
-    exit(-1);
+    puVar1 = (uint32_t*)(nParam + 0x18);
+    do {
+      (*gapfnCelRemapFrameByFormat[*(int*)(nParam + 8)])((DC6Block*)*puVar1, dwParam);
+      iFrame++;
+      puVar1++;
+    } while (iFrame < (uint32_t)(*(int*)(nParam + 0x10) * *(int*)(nParam + 0x14)));
+    return;
 }
 
 void __stdcall CELCMP_DrawCelFrame(D2GfxDataStrc * pGfxData, int32_t nDrawX, int32_t nDrawY, int32_t nClipLeft, int32_t nClipRight, BYTE * pDstBits, int32_t nDstHeight, uint32_t nDstPitch, BYTE * pRenderArg1, BYTE * pRenderArg2, BYTE * pPalette) {
@@ -1657,34 +1723,33 @@ void __stdcall CELCMP_DrawCelFrameCentered(D2GfxDataStrc * pGfxData, int32_t nDr
     } else {
       int nCenteredY;
       pFrameBlock = pGfxData->pDC6Block;
-      if (pFrameBlock) {
-        nCenteredY = pFrameBlock->nOffsetY / 2;
-        nDrawYCentered = nDrawY + nCenteredY;
-        nRowsToRender = (uint32_t)pFrameBlock->nHeight >> 1;
-        nClipRows = 0;
-        if (nDrawYCentered - pFrameBlock->nHeight / 2 < 0) {
-          nRowsToRender = nDrawYCentered + 1;
-        }
-        if (0 >= (int)nRowsToRender) {
-          return;
-        }
-        if (nDrawYCentered >= nDstHeight) {
-          nClipRows = nDrawYCentered - nDstHeight + 1;
-          nRowsToRender -= nClipRows;
-          if ((int)nRowsToRender <= 0) {
-            return;
-          }
-
-          nDrawYCentered = nDstHeight - 1;
-        }
-
-        nCenteredY = nDrawX + pFrameBlock->nOffsetX + nCenteredY - nClipRows;
-        FastCmp::FASTCMP_DecompressRLEWithAlpha((uint8_t*)pFrameBlock, pDstBits + nDrawYCentered * nDstPitch + nCenteredY, nCenteredY, nClipLeft, nClipRight, nDstPitch, nClipRows, nRowsToRender, pBlendTable, byBlendColor);
+      if (!pFrameBlock) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x514);
+        exit(-1);
+      }
+      nCenteredY = pFrameBlock->nOffsetY / 2;
+      nDrawYCentered = nDrawY + nCenteredY;
+      nRowsToRender = (uint32_t)pFrameBlock->nHeight >> 1;
+      nClipRows = 0;
+      if (nDrawYCentered - pFrameBlock->nHeight / 2 < 0) {
+        nRowsToRender = nDrawYCentered + 1;
+      }
+      if (0 >= (int)nRowsToRender) {
         return;
       }
+      if (nDrawYCentered >= nDstHeight) {
+        nClipRows = nDrawYCentered - nDstHeight + 1;
+        nRowsToRender -= nClipRows;
+        if ((int)nRowsToRender <= 0) {
+          return;
+        }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x514);
-      exit(-1);
+        nDrawYCentered = nDstHeight - 1;
+      }
+
+      nCenteredY = nDrawX + pFrameBlock->nOffsetX + nCenteredY - nClipRows;
+      FastCmp::FASTCMP_DecompressRLEWithAlpha((uint8_t*)pFrameBlock, pDstBits + nDrawYCentered * nDstPitch + nCenteredY, nCenteredY, nClipLeft, nClipRight, nDstPitch, nClipRows, nRowsToRender, pBlendTable, byBlendColor);
+      return;
     }
 }
 

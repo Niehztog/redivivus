@@ -99,11 +99,13 @@ int __fastcall GetAiArgument(D2UnitStrc * pMonster, int32_t nArgNumber) {
     if (!pAiGeneral) {
       return 0;
     }
-    if (nArgNumber == 1) {
+    switch (nArgNumber) {
+    case 1: {
       return pAiGeneral->dwArg0;
     }
-    if (nArgNumber == 2) {
+    case 2: {
       return pAiGeneral->dwArg1;
+    }
     }
     if (nArgNumber != 3) {
       return 0;
@@ -587,43 +589,40 @@ void __fastcall CallForEachMinion(D2UnitStrc * pUnit, void * pContext, D2UnitStr
     D2MonsterDataMinionList* pMinionListHead;
     D2MonsterDataMinionList* pMinionNode;
     BOOL bBadCodePtr = IsBadCodePtr((FARPROC)pfnProc);
-    if (!bBadCodePtr) {
-      D2UnitStrc* pOwnerUnit;
-      if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && pUnit->pUnitData.pUnitDataMonster)) {
-        return;
-      }
+    if (bBadCodePtr) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x24e);
+      exit(-1);
+    }
 
-      pAi = pUnit->pUnitData.pUnitDataMonster->pAiGeneral;
-      if (!(pAi && pAi->pGame)) {
-        return;
-      }
-
-      pOwnerUnit = UNIT::SUnit::FindUnitFromTable(pAi->pGame, pAi->eOwnerTypeEx, pAi->nOwnerGUIDEx);
-      if (!(pOwnerUnit && pOwnerUnit->eUnitType == UNIT_MONSTER)) {
-        return;
-      }
-      if (!pOwnerUnit->pUnitData.pUnitDataMonster) {
-        pOwnerAi = 0;
-      } else {
-        pOwnerAi = pOwnerUnit->pUnitData.pUnitDataMonster->pAiGeneral;
-      }
-
-      pGame = pOwnerAi->pGame;
-      pMinionNode = pOwnerAi->pMinionList;
-      while (pMinionNode) {
-        pMinionListHead = pMinionNode->pNext;
-        pMinion = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_MONSTER, pMinionNode->nMinionGUID);
-        pMinionNode = pMinionListHead;
-        if (pMinion) {
-          (*pfnProc)(pMinion, pContext, pArgument);
-        }
-      }
-
+    D2UnitStrc* pOwnerUnit;
+    if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && pUnit->pUnitData.pUnitDataMonster)) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x24e);
-    exit(-1);
+    pAi = pUnit->pUnitData.pUnitDataMonster->pAiGeneral;
+    if (!(pAi && pAi->pGame)) {
+      return;
+    }
+    pOwnerUnit = UNIT::SUnit::FindUnitFromTable(pAi->pGame, pAi->eOwnerTypeEx, pAi->nOwnerGUIDEx);
+    if (!(pOwnerUnit && pOwnerUnit->eUnitType == UNIT_MONSTER)) {
+      return;
+    }
+    if (!pOwnerUnit->pUnitData.pUnitDataMonster) {
+      pOwnerAi = 0;
+    } else {
+      pOwnerAi = pOwnerUnit->pUnitData.pUnitDataMonster->pAiGeneral;
+    }
+    pGame = pOwnerAi->pGame;
+    pMinionNode = pOwnerAi->pMinionList;
+    while (pMinionNode) {
+      pMinionListHead = pMinionNode->pNext;
+      pMinion = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_MONSTER, pMinionNode->nMinionGUID);
+      pMinionNode = pMinionListHead;
+      if (pMinion) {
+        (*pfnProc)(pMinion, pContext, pArgument);
+      }
+    }
+    return;
 }
 
 void __fastcall GetAndRemoveMinionList(D2UnitStrc * pUnit, int * pOwnerId, eD2UnitType * pType, uint32_t * nFlagBit1, uint32_t * nFlagBit2, D2MonsterDataMinionList * * pMinionList) {

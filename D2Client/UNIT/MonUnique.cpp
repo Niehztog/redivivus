@@ -194,10 +194,10 @@ static void __fastcall DefineSuperMonster(D2UnitStrc * pUnit, int32_t eModifier,
     szSpace[0] = ' ';
     szSpace[1] = '\0';
     D2Lang::UTF8_ConvertToWideChar(gnMonsterUniqueNameBuffer, szSpace, 2);
-    if (!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataMonster) {
-      nNameSeed = 0;
-    } else {
+    if (!(!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataMonster)) {
       nNameSeed = (uint32_t)pUnit->pUnitData.pUnitDataMonster->nNameSeed;
+    } else {
+      nNameSeed = 0;
     }
     if (pUnit) {
       short int nBossNo;
@@ -384,8 +384,7 @@ static void __fastcall MONUNIQUE_ApplyModifierBloodRaven(D2UnitStrc * pUnit, int
 
     D2Common::Skills::AddSkill(pUnit, SKILL_MonTeleport, 1, 1, ".\\UNIT\\MonUnique.cpp", 0x157);
     uint32_t nMode = 4;
-    D2SkillStrc* pSkill = D2Common::Skills::SKILLS_GetSkillByEnum(SKILL_MonTeleport, pUnit);
-    D2Common::Skills::SetSkillMode(pSkill, nMode);
+    D2Common::Skills::SetSkillMode(D2Common::Skills::SKILLS_GetSkillByEnum(SKILL_MonTeleport, pUnit), nMode);
 }
 
 // Applies a unique/champion monster resistance modifier to a unit (eModifier = the monster modifier/affix id). For mod 0x1c (stone skin) also doubles armorclass. Reads the unit's current fire/light/cold/poison/magic/damage resists and counts how many are already >=100 (maxed); if 2+ are maxed it skips additive mods (prevents over-stacking). mod 8 = +40 cold/fire/light (cold-resistant style), mod 0x1b = +20 to those, mods 9/0x12/0x11/0x17 = +75 single elemental resist, 0x19 = +20 magic resist, 0x1c = +50 damage resist. Does nothing unless bApply is non-zero. Mutates unit stats via STATLIST_SetUnitStat and returns nothing. __fastcall: pUnit in ECX, eModifier in EDX, bApply on the stack.
@@ -664,9 +663,7 @@ void __fastcall MONUNIQUE_SpawnDeathMissile(D2UnitStrc * pUnit, int32_t eModifie
 
     int32_t nTotalFrames = (int32_t)pUnit;
     if (eModifier == 0x2a && (!pUnit || pUnit->eAnimMode.ePlayerMode == Death)) {
-      nVelocity = D2Common::DATATBLS::MissileTbls::MISSILETBLS_CalculateVelocity(0x5a, 0);
-      nLevel = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0);
-      SKILLS::Skills::SKILL_SpawnMissilesAtTarget(pUnit, pUnit, MISSILE_Nova, ~MISSILE_Arrow, SKILL_Attack, nLevel, nVelocity);
+      SKILLS::Skills::SKILL_SpawnMissilesAtTarget(pUnit, pUnit, MISSILE_Nova, ~MISSILE_Arrow, SKILL_Attack, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0), D2Common::DATATBLS::MissileTbls::MISSILETBLS_CalculateVelocity(0x5a, 0));
     }
 
     D2Common::Units::GetShiftedFrameMetrics(pUnit, &bApply, &nTotalFrames);
@@ -677,18 +674,14 @@ void __fastcall MONUNIQUE_SpawnDeathMissile(D2UnitStrc * pUnit, int32_t eModifie
       int32_t nX;
       nLevel = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0);
       eSkill = SKILL_Attack;
-      nVelocity = Units::GetYPosFromDynamicPathUnit(pUnit);
-      nX = Units::GetXPosFromDynamicPathUnit(pUnit);
-      Missile::MakeMissileAtXY(pUnit, MISSILE_Corpsepoisoncloud, nX, nVelocity, eSkill, nLevel);
+      Missile::MakeMissileAtXY(pUnit, MISSILE_Corpsepoisoncloud, Units::GetXPosFromDynamicPathUnit(pUnit), Units::GetYPosFromDynamicPathUnit(pUnit), eSkill, nLevel);
       return;
     }
     if (eModifier != 0x12) {
       return;
     }
 
-    nVelocity = D2Common::DATATBLS::MissileTbls::MISSILETBLS_CalculateVelocity(0x77, 0);
-    nLevel = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0);
-    SKILLS::Skills::SKILL_SpawnMissilesAtTarget(pUnit, pUnit, MISSILE_Coldunique, ~MISSILE_Arrow, SKILL_Attack, nLevel, nVelocity);
+    SKILLS::Skills::SKILL_SpawnMissilesAtTarget(pUnit, pUnit, MISSILE_Coldunique, ~MISSILE_Arrow, SKILL_Attack, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0), D2Common::DATATBLS::MissileTbls::MISSILETBLS_CalculateVelocity(0x77, 0));
 }
 
 void __fastcall MONUNIQUE_DurielDeathAndSpawn(D2UnitStrc * pUnit, int32_t nUMod, int32_t nParam2) {

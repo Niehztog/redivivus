@@ -105,8 +105,7 @@ int32_t __fastcall AllocObjectControl(::SGAMEDATA * pGame) {
     D2SeedStrc sSeedNext = D2_SEED_NEXT(pGame->pGameSeed);
     aShrineClassCounts[8] = sSeedNext.nSeedLow;
     pGame->pGameSeed = sSeedNext;
-    pObjectControl->sSeed.nSeedLow = aShrineClassCounts[8];
-    pObjectControl->sSeed.nSeedHigh = 0x29a;
+    D2Common::Seed::InitSeed_Param_666(&pObjectControl->sSeed, aShrineClassCounts[8]);
     pObjectControl->aLevelsRng[0] = 0;
     pObjectControl->pSub0x1110 = 0;
     eD2LevelId eLevel = LEVEL_RogueEncampment;
@@ -167,7 +166,7 @@ int32_t __fastcall AllocObjectControl(::SGAMEDATA * pGame) {
       pShrinesTxt = D2Common::DATATBLS::ObjectTbls::TXT_Shrines_GetLine(iShrineIdx);
       byEffectClass = pShrinesTxt->nEffectClass;
       if (byEffectClass < 8) {
-        *(int*)(pObjectControl->sShrinesRng.aShrinesRng[byEffectClass] + pObjectControl->sShrinesRng.nShrinesCount[byEffectClass] * 4) = iShrineIdx;
+        *(int*)((uint8_t*)pObjectControl->sShrinesRng.aShrinesRng[byEffectClass] + pObjectControl->sShrinesRng.nShrinesCount[byEffectClass] * 4) = iShrineIdx;
         pnShrineClassCount = pObjectControl->sShrinesRng.nShrinesCount + byEffectClass;
         (*pnShrineClassCount)++;
       }
@@ -229,7 +228,7 @@ D2ObjectRngStrc * __fastcall GetObjectLevelRng(::SGAMEDATA * pGame, eD2LevelId e
     return pGame->pObjectControl->aLevelsRng[eLevelId];
 }
 
-D2SeedStrc * __fastcall GetObjectControlSeed(::SGAMEDATA * pGame) {
+D2SeedStrc * __fastcall GetObjectControlSeed(::SGAMEDATA * pGame, D2RoomStrc * pRoom) {
     return &pGame->pObjectControl->sSeed;
 }
 

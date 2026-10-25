@@ -930,8 +930,7 @@ uint32_t __fastcall GFXUTIL_GetUnitCofDirectionOnScreen(D2UnitStrc * pUnit, uint
       pXAdjust = &__frame0.nScreenX;
       nBais = 0;
       nCoord = D2Common::Units::GetPrecisionY(pUnit);
-      nXpos = D2Common::Units::GetPrecisionX(pUnit);
-      D2gfx::D2GFX::D2GFX_AdjustPerspectivePosition(nXpos, nCoord, nBais, pXAdjust, pYAdjust);
+      D2gfx::D2GFX::D2GFX_AdjustPerspectivePosition(D2Common::Units::GetPrecisionX(pUnit), nCoord, nBais, pXAdjust, pYAdjust);
       uVar1 = UI::Path::DRAW_GetTypeOfBorder();
       if (uVar1 == 1) {
         __frame0.nScreenX -= (int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2;
@@ -959,8 +958,7 @@ uint32_t __fastcall GFXUTIL_GetUnitCofDirectionOnScreen(D2UnitStrc * pUnit, uint
       }
     }
 
-    int nAnimMode = Source::ClientEngine::CLIENT_GetEffectiveAnimMode(pUnit);
-    uint8_t* pCofData = (uint8_t*)GfxInfo::GFX_GetGfxInfoCofData(pUnit, nAnimMode);
+    uint8_t* pCofData = (uint8_t*)GfxInfo::GFX_GetGfxInfoCofData(pUnit, Source::ClientEngine::CLIENT_GetEffectiveAnimMode(pUnit));
     if (!pCofData) {
       return 0;
     }

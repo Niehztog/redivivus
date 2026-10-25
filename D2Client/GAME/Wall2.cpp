@@ -103,10 +103,10 @@ void __fastcall WALL2_InitUnitGfx(D2UnitStrc * pUnit) {
         case UNIT_PLAYER:
 
         case UNIT_OBJECT:
-          Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+          Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
         return;
         case UNIT_MONSTER:
-          Engine::Gfx::GFX_LoadUnitModeCof(pUnit);
+          Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
         return;
         case UNIT_MISSILE:
 
@@ -140,9 +140,8 @@ void __fastcall WALL2_DrawDebugUnitDiamond(D2UnitStrc * pUnit) {
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
     int nScreenX2 = nScreenX - nOffsetTmp + 0x10;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    int nScreenXAdj = nScreenY - nOffsetTmp;
-    nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - nOffsetTmp, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
+    int nScreenXAdj;
+    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - UI::Path::DRAW_GetWorldOffsetX(), nScreenY - nOffsetTmp, nScreenX2, nScreenY2, dwColor2, dwColor1);
     dwColor1 = 0xff;
     dwColor2 = 0xff;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
@@ -150,9 +149,7 @@ void __fastcall WALL2_DrawDebugUnitDiamond(D2UnitStrc * pUnit) {
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
     nScreenX2 = nScreenX - nOffsetTmp - 0x10;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nScreenXAdj = nScreenY - nOffsetTmp;
-    nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - nOffsetTmp, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
+    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - UI::Path::DRAW_GetWorldOffsetX(), nScreenY - nOffsetTmp, nScreenX2, nScreenY2, dwColor2, dwColor1);
     dwColor1 = 0xff;
     dwColor2 = 0xff;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
@@ -160,9 +157,7 @@ void __fastcall WALL2_DrawDebugUnitDiamond(D2UnitStrc * pUnit) {
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
     nScreenX2 = nScreenX - nOffsetTmp;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nScreenXAdj = nScreenY - nOffsetTmp + 8;
-    nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - nOffsetTmp - 0x10, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
+    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - UI::Path::DRAW_GetWorldOffsetX() - 0x10, nScreenY - nOffsetTmp + 8, nScreenX2, nScreenY2, dwColor2, dwColor1);
     dwColor1 = 0xff;
     dwColor2 = 0xff;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
@@ -170,9 +165,7 @@ void __fastcall WALL2_DrawDebugUnitDiamond(D2UnitStrc * pUnit) {
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
     nScreenX2 = nScreenX - nOffsetTmp;
     nOffsetTmp = UI::Path::DRAW_GetWorldOffsetY();
-    nScreenXAdj = nScreenY - nOffsetTmp + 8;
-    nOffsetTmp = UI::Path::DRAW_GetWorldOffsetX();
-    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - nOffsetTmp + 0x10, nScreenXAdj, nScreenX2, nScreenY2, dwColor2, dwColor1);
+    D2gfx::D2GFX::D2GFX_DrawLine(nScreenX - UI::Path::DRAW_GetWorldOffsetX() + 0x10, nScreenY - nOffsetTmp + 8, nScreenX2, nScreenY2, dwColor2, dwColor1);
     nOffsetTmp = D2Common::Units::GetTargetX(pUnit);
     nErrLine = UI::Path::DRAW_GetWorldOffsetX();
     int32_t nWorldOffsetTmp = D2Common::Units::GetTargetY(pUnit);
@@ -1326,54 +1319,50 @@ void __fastcall WALL2_BuildSceneDrawList(D2GameViewStrc * pGameView, uint32_t nT
       }
 
       pUnit = UNIT::Player::GetPlayerUnit_UI();
-      if (pUnit) {
-        pGameViewLocal.pRoom = UNIT::CUnit::GetCurrentRoom();
-        eUnitType = pUnit->eUnitType;
-        if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-          nGridRowIdx = pUnit->pPath.pStaticPath->nPosX;
-        } else if (pUnit->pPath.pDynamicPath) {
-          nGridRowIdx = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
-        } else {
-          nGridRowIdx = 0;
-        }
-
-        eUnitType = pUnit->eUnitType;
-        UNIT_CenterXCoordsDiv5 = nGridRowIdx / 5;
-        if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
-          nGridRowIdx = pUnit->pPath.pStaticPath->nPosY;
-        } else if (!pUnit->pPath.pDynamicPath) {
-          nGridRowIdx = 0;
-        } else {
-          nGridRowIdx = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
-        }
-
-        eUnitType = pUnit->eUnitType;
-        UNIT_CenterYCoordsDiv5 = nGridRowIdx / 5;
-        if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-          nPlayerX = pUnit->pPath.pStaticPath->nPosY;
-        } else if (!pUnit->pPath.pDynamicPath) {
-          nPlayerX = 0;
-        } else {
-          nPlayerX = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
-        }
-
-        eUnitType = pUnit->eUnitType;
-        if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-          nPlayerY = pUnit->pPath.pStaticPath->nPosX;
-        } else if (pUnit->pPath.pDynamicPath) {
-          nPlayerY = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
-        } else {
-          nPlayerY = 0;
-        }
-
-        pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-        gnPlayerTileGridIndex = D2Common::DUNGEON::Dungeon::GetGridIndex(pRoom, nPlayerY, nPlayerX);
-        D2Common::DUNGEON::Dungeon::CallRoomCallback(pGameViewLocal.pRoom, (ROOMCALLBACKFN)WALL2_CollectRoomTilesAndUnits, (D2GameViewStrc*)&pGameViewLocal);
-        return;
+      if (!pUnit) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x351);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x351);
-      exit(-1);
+      pGameViewLocal.pRoom = UNIT::CUnit::GetCurrentRoom();
+      eUnitType = pUnit->eUnitType;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+        nGridRowIdx = pUnit->pPath.pStaticPath->nPosX;
+      } else if (pUnit->pPath.pDynamicPath) {
+        nGridRowIdx = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      } else {
+        nGridRowIdx = 0;
+      }
+      eUnitType = pUnit->eUnitType;
+      UNIT_CenterXCoordsDiv5 = nGridRowIdx / 5;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+        nGridRowIdx = pUnit->pPath.pStaticPath->nPosY;
+      } else if (!pUnit->pPath.pDynamicPath) {
+        nGridRowIdx = 0;
+      } else {
+        nGridRowIdx = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      }
+      eUnitType = pUnit->eUnitType;
+      UNIT_CenterYCoordsDiv5 = nGridRowIdx / 5;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+        nPlayerX = pUnit->pPath.pStaticPath->nPosY;
+      } else if (!pUnit->pPath.pDynamicPath) {
+        nPlayerX = 0;
+      } else {
+        nPlayerX = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      }
+      eUnitType = pUnit->eUnitType;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+        nPlayerY = pUnit->pPath.pStaticPath->nPosX;
+      } else if (pUnit->pPath.pDynamicPath) {
+        nPlayerY = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      } else {
+        nPlayerY = 0;
+      }
+      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
+      gnPlayerTileGridIndex = D2Common::DUNGEON::Dungeon::GetGridIndex(pRoom, nPlayerY, nPlayerX);
+      D2Common::DUNGEON::Dungeon::CallRoomCallback(pGameViewLocal.pRoom, (ROOMCALLBACKFN)WALL2_CollectRoomTilesAndUnits, (D2GameViewStrc*)&pGameViewLocal);
+      return;
     }
 }
 

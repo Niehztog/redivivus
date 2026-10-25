@@ -244,7 +244,6 @@ void __fastcall UTF8_EncodeCodePoint(uint16_t * nParam) {
     uint8_t abUtf8Buf[8];
     uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     EncodeUTF8CodePoint(*nParam, abUtf8Buf);
-    Fog::Debug::GuardStack();
 }
 
 uint16_t * __fastcall UTF8_ConvertToWideChar(uint16_t * wszText, char * szText, int32_t nMaxWideChars) {
@@ -330,7 +329,6 @@ void __fastcall UTF8_GetEncodedLength(uint16_t * pwszStr, int32_t nMaxChars) {
       wCurChar = *pwszStr;
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Compares two characters using UI character lookup table for case-insensitive comparison. If char < 0x100, maps via CharacterLookupTable, else uses raw value. Returns 1 if equal, 0 otherwise.

@@ -1262,12 +1262,10 @@ void __fastcall CMD_ToggleKeyConfigMode(int32_t nEnable, int32_t bUpdateUIHandle
       if (gbKeyConfigModeActive == 1) {
         nHandlerCount = 4;
         gbKeyConfigModeActive = 0;
-        hWnd = D2gfx::D2GFX::GetHwnd();
-        _Message::MESSAGE_UnregisterEventHandlerBatch(hWnd, gsUICmdTblFlagInit, nHandlerCount);
+        _Message::MESSAGE_UnregisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), gsUICmdTblFlagInit, nHandlerCount);
         if (bUpdateUIHandlers && !gbNormalUIHandlersRegistered) {
           nHandlerCount = 2;
-          hWnd = D2gfx::D2GFX::GetHwnd();
-          _Message::MESSAGE_RegisterEventHandlerBatch(hWnd, &gUIFlagCmdTableInit, nHandlerCount);
+          _Message::MESSAGE_RegisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &gUIFlagCmdTableInit, nHandlerCount);
           gbNormalUIHandlersRegistered = 1;
         }
       }
@@ -1275,8 +1273,7 @@ void __fastcall CMD_ToggleKeyConfigMode(int32_t nEnable, int32_t bUpdateUIHandle
       gbKeyConfigModeActive = 1;
       if (bUpdateUIHandlers && gbNormalUIHandlersRegistered) {
         nHandlerCount = 2;
-        hWnd = D2gfx::D2GFX::GetHwnd();
-        _Message::MESSAGE_UnregisterEventHandlerBatch(hWnd, &gUIFlagCmdTableInit, nHandlerCount);
+        _Message::MESSAGE_UnregisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &gUIFlagCmdTableInit, nHandlerCount);
         gbNormalUIHandlersRegistered = 0;
       }
 
@@ -1399,8 +1396,7 @@ void __stdcall CMD_InitKeyBindings() {
 
     int32_t nHandlerCount = 4;
     gbKeyConfigModeActive = 1;
-    HWND hWnd = D2gfx::D2GFX::GetHwnd();
-    _Message::MESSAGE_RegisterEventHandlerBatch(hWnd, gsUICmdTblFlagInit, nHandlerCount);
+    _Message::MESSAGE_RegisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), gsUICmdTblFlagInit, nHandlerCount);
 }
 
 void __stdcall CMD_ExitKeyConfigMode() {
@@ -1411,8 +1407,7 @@ void __stdcall CMD_ExitKeyConfigMode() {
 
     int32_t nHandlerCount = 4;
     gbKeyConfigModeActive = 0;
-    HWND hWnd = D2gfx::D2GFX::GetHwnd();
-    _Message::MESSAGE_UnregisterEventHandlerBatch(hWnd, gsUICmdTblFlagInit, nHandlerCount);
+    _Message::MESSAGE_UnregisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), gsUICmdTblFlagInit, nHandlerCount);
 }
 
 void __fastcall CMD_InitKeyConfigUI(int32_t nFadeInDuration, int32_t nHoldDuration, int32_t nFadeOutDuration, eD2LevelId eLevelId, int32_t bForce) {

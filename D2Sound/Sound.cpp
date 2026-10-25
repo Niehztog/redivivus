@@ -154,19 +154,16 @@ static void __stdcall SOUND_InitDirectSound() {
     gbDirectSoundCritSecInitialized = 1;
     int hResultCall = DirectSoundCreate(0, &gnDirectSoundInitStatus, 0);
     if (hResultCall < 0) {
-      szErrorMsg = SOUND_GetDirectSoundErrorString(hResultCall);
-      Fog::Src::LogManager::LOGFILE_WriteStringToFile("DirectSound error: %s returned on DirectSoundCreate", szErrorMsg);
+      Fog::Src::LogManager::LOGFILE_WriteStringToFile("DirectSound error: %s returned on DirectSoundCreate", SOUND_GetDirectSoundErrorString(hResultCall));
       SOUND_ShutdownDirectSound();
       return;
     }
 
     IDirectSoundVtbl* pIVar1 = gnDirectSoundInitStatus->lpVtbl;
     uint32_t dwCoopLevel = 2;
-    HWND hWnd = D2gfx::D2GFX::GetHwnd();
-    HRESULT hResultDSCall = pIVar1->SetCooperativeLevel(gnDirectSoundInitStatus, hWnd, dwCoopLevel);
+    HRESULT hResultDSCall = pIVar1->SetCooperativeLevel(gnDirectSoundInitStatus, D2gfx::D2GFX::GetHwnd(), dwCoopLevel);
     if (hResultDSCall < 0) {
-      szErrorMsg = SOUND_GetDirectSoundErrorString(hResultDSCall);
-      Fog::Src::LogManager::LOGFILE_WriteStringToFile("DirectSound error: %s returned on SetCooperativeLevel", szErrorMsg);
+      Fog::Src::LogManager::LOGFILE_WriteStringToFile("DirectSound error: %s returned on SetCooperativeLevel", SOUND_GetDirectSoundErrorString(hResultDSCall));
       SOUND_ShutdownDirectSound();
       return;
     }
@@ -182,8 +179,7 @@ static void __stdcall SOUND_InitDirectSound() {
     tPrimaryBufferDesc.lpwfxFormat = 0;
     hResultDSCall = gnDirectSoundInitStatus->lpVtbl->CreateSoundBuffer(gnDirectSoundInitStatus, &tPrimaryBufferDesc, (void**)&gpDSoundPrimaryBuffer, nullptr);
     if (hResultDSCall < 0) {
-      szErrorMsg = SOUND_GetDirectSoundErrorString(hResultDSCall);
-      Fog::Src::LogManager::LOGFILE_WriteStringToFile("........DirectSound progress: %s returned on failed CreateSoundBuffer", szErrorMsg);
+      Fog::Src::LogManager::LOGFILE_WriteStringToFile("........DirectSound progress: %s returned on failed CreateSoundBuffer", SOUND_GetDirectSoundErrorString(hResultDSCall));
       SOUND_ShutdownDirectSound();
       return;
     }
@@ -191,8 +187,7 @@ static void __stdcall SOUND_InitDirectSound() {
     gDSoundCapsBuffer.dwSize = 0x60;
     hResultDSCall = gnDirectSoundInitStatus->lpVtbl->GetCaps(gnDirectSoundInitStatus, &gDSoundCapsBuffer);
     if (hResultDSCall < 0) {
-      szErrorMsg = SOUND_GetDirectSoundErrorString(hResultDSCall);
-      Fog::Src::LogManager::LOGFILE_WriteStringToFile("........DirectSound progress: %s returned on failed GetCaps", szErrorMsg);
+      Fog::Src::LogManager::LOGFILE_WriteStringToFile("........DirectSound progress: %s returned on failed GetCaps", SOUND_GetDirectSoundErrorString(hResultDSCall));
       SOUND_ShutdownDirectSound();
       return;
     }
@@ -365,18 +360,18 @@ int * SOUND_GetAmbientSoundEntry(int32_t nIndex) {
       exit(-1);
     } else {
       int* pAmbientEntry;
-      if (nIndex < gaAmbientSoundFlags) {
-        pAmbientEntry = gaAmbientSoundEntryTable + nIndex * 2;
-        if (gnAmbientSoundLanguageCode) {
-          return pAmbientEntry;
-        }
+      if (!(nIndex < gaAmbientSoundFlags)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x53);
+        exit(-1);
+      }
 
-        pAmbientEntry = gAmbientSoundTable + nIndex * 2;
+      pAmbientEntry = gaAmbientSoundEntryTable + nIndex * 2;
+      if (gnAmbientSoundLanguageCode) {
         return pAmbientEntry;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x53);
-      exit(-1);
+      pAmbientEntry = gAmbientSoundTable + nIndex * 2;
+      return pAmbientEntry;
     }
 }
 

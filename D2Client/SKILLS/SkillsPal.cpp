@@ -376,8 +376,7 @@ void __fastcall SKILL_DrawChargeTrail(D2UnitStrc * pUnit, uint32_t nParticleType
           pXpos = &nTrailCount;
           nPerspAngle = 0x60;
           nPrecisionY = D2Common::Units::GetPrecisionY(pUnit);
-          nPrecisionX = D2Common::Units::GetPrecisionX(pUnit);
-          D2gfx::D2GFX::D2GFX_PerspecitveScalePosition(nPrecisionX, nPrecisionY, nPerspAngle, (int*)pXpos, (int*)pYpos, bOrder);
+          D2gfx::D2GFX::D2GFX_PerspecitveScalePosition(D2Common::Units::GetPrecisionX(pUnit), nPrecisionY, nPerspAngle, (int*)pXpos, (int*)pYpos, bOrder);
           nPrecisionY = UI::Path::DRAW_GetWorldOffsetX();
           nTrailCount += nPrecisionY;
           nPrecisionY = UI::Path::DRAW_GetWorldOffsetY();
@@ -622,11 +621,13 @@ BOOL __fastcall Skills_CltDoFunc_Pal_HolyBolt_Melee(D2UnitStrc * pUnit, eD2Skill
         if (pUnit && pUnit->eUnitType == UNIT_MONSTER) {
           nFrameRate = UNIT::Player::TXT_MonStats_GetBaseId(pUnit);
           nFrameRate = UNIT::Player::ValidateClassId(nFrameRate);
-          if (nFrameRate == 0x1b4) {
+          switch (nFrameRate) {
+          case 0x1b4: {
             return 1;
           }
-          if (nFrameRate == 0x1b9) {
+          case 0x1b9: {
             return 1;
+          }
           }
         }
 
@@ -640,9 +641,7 @@ BOOL __fastcall Skills_CltDoFunc_Pal_HolyBolt_Melee(D2UnitStrc * pUnit, eD2Skill
       pUnit->nFrameCount = (nFrameRate - ((int)pUnit->nSeqFrame >> 8)) * 0x100;
       if (pCurrentTarget || (pCurrentTarget = Skills::SKILL_FindClosestTargetWithStats(pUnit, 0, 0, 3, 3, -1, nullptr) , pCurrentTarget != 0)) {
         pSavedTarget = 0;
-        nFrameRate = Units::GetYPosFromDynamicPathUnit(pCurrentTarget);
-        nEventFrame = Units::GetXPosFromDynamicPathUnit(pCurrentTarget);
-        D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pUnit->pPath.pDynamicPath, nEventFrame, nFrameRate, pSavedTarget);
+        D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pUnit->pPath.pDynamicPath, Units::GetXPosFromDynamicPathUnit(pCurrentTarget), Units::GetYPosFromDynamicPathUnit(pCurrentTarget), pSavedTarget);
         return 1;
       }
     } else {
@@ -729,13 +728,13 @@ static void __fastcall SKILL_ExecuteItemCast(D2UnitStrc * pUnit, eD2Skills eSkil
         D2Common::DATATBLS::ItemStats::SetState(pTargetUnit, STATE_corpse_noselect, 1);
       }
     }
-    if (-1 < pSkillTxt->ItemCastSound) {
+    if (0 <= pSkillTxt->ItemCastSound) {
       Sound::SOUND_PlaySound((int)pSkillTxt->ItemCastSound, pUnit, 0, 0, 0);
     }
 
     short int nOverlayId;
     nOverlayId = pSkillTxt->ItemCastOverlay;
-    if (-1 < nOverlayId && (int)nOverlayId < sgptDataTable->nTxtOverlaySize) {
+    if (0 <= nOverlayId && (int)nOverlayId < sgptDataTable->nTxtOverlaySize) {
       Engine::Gfx::GFX_AddOverlayToUnit(pUnit, (int)nOverlayId, 2, 0, 0, 0, 0, 0);
     }
 
@@ -762,13 +761,12 @@ void __fastcall SKILL_ExecuteItemCastOnUnit(D2UnitStrc * pUnit, eD2Skills eSkill
     SKILL_ExecuteItemCast(pUnit, eSkill, pSkillLevelData, pTargetUnit, 0, 0, nParam);
 }
 
-int __fastcall SKILL_ExecuteItemCastAtCoords(D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, int32_t nTargetX, int32_t nTargetY, uint16_t nItemParam) {
+void __fastcall SKILL_ExecuteItemCastAtCoords(D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, int32_t nTargetX, int32_t nTargetY, uint16_t nItemParam) {
     if (!(pUnit && nTargetX && nTargetY)) {
-      return 0;
+      return;
     }
 
     SKILL_ExecuteItemCast(pUnit, eSkill, pSkillLevelData, nullptr, (int16_t)nTargetX, (int16_t)nTargetY, nItemParam);
-    return 0;
 }
 
 } // namespace D2Client::SKILLS::SkillsPal

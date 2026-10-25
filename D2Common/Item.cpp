@@ -248,13 +248,17 @@ void __fastcall ITEM_ManageSetBonusStatList(D2UnitStrc * pUnit, D2UnitStrc * pUn
     Stats::StatsEx::STATLIST_AttachStatListToUnit(pUnit, pStatList, 1);
     Stats::StatsEx::SetState(pStatList, eState);
     apply_or_remove_set_bonus:
-    if (!nMode) {
+    switch (nMode) {
+    case 0: {
       Stats::StatsEx::STATLIST_AddStatValue(pStatList, UNITSTAT_value, nSetId, 0);
       ITEMS::ItemMods::ITEMMOD_ApplySetBonuses(pUnit, pUnit2, eState);
-    } else if (nMode == 1) {
+      break;
+    }
+    case 1: {
       Stats::StatsEx::STATLIST_RemoveAndRecalc(pUnit, pStatList);
       Stats::StatsEx::FreeStatList(&pStatList->sStatList);
       return;
+    }
     }
 }
 

@@ -606,7 +606,7 @@ void __stdcall UIMENU_CantTestItBeacuseItCrash() {
       pDVar2 = (D2UiLevelLineTextStrc*)(pDVar2->wszLevelLine + 2);
     }
 
-    memset(wszLevelStr, 0, 10 * sizeof(wszLevelStr[0]));
+    for (int i = 0; i < 10; i++) wszLevelStr[i] = 0;
     uint32_t uVar1 = (uint32_t)D2IniData_multiplayer->padding_0x35F[0x62];
     if (!D2IniData_multiplayer->padding_0x35F[0x62]) {
       uVar1 = 1;
@@ -614,16 +614,16 @@ void __stdcall UIMENU_CantTestItBeacuseItCrash() {
 
     sprintf(sLevelLineText.szNameAndTitle, " %d ", uVar1);
     D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszLevelStr, sLevelLineText.szNameAndTitle, 9);
-    /* Level */ pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0xfd9);
-    D2Lang::Unicode::UNISYS::STRING_CopyWideString(sLevelLineText.wszLevelLine, pwszLocaleStr);
+     /* Level */
+    D2Lang::Unicode::UNISYS::STRING_CopyWideString(sLevelLineText.wszLevelLine, D2Lang::StrTable::strtable::GetLocaleString(0xfd9));
     D2Lang::Unicode::UNISYS::AppendToBuffer(sLevelLineText.wszLevelLine, wszLevelStr);
     D2Lang::Unicode::UNISYS::AppendToBuffer(sLevelLineText.wszLevelLine, wszClassName);
     D2Win::Src::D2WinTextBox::SetText(gpCtlConfirmDialog, sLevelLineText.wszLevelLine, 0, false, 0);
     nDifficultyDone = 0;
     bool bCentered = false;
     int32_t dwTextColor = 0;
-    /* Last Difficulty Setting Completed: */ pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0x2b74);
-    D2Win::Src::D2WinTextBox::SetText(gpCtlConfirmDialog, pwszLocaleStr, dwTextColor, bCentered, nDifficultyDone);
+     /* Last Difficulty Setting Completed: */
+    D2Win::Src::D2WinTextBox::SetText(gpCtlConfirmDialog, D2Lang::StrTable::strtable::GetLocaleString(0x2b74), dwTextColor, bCentered, nDifficultyDone);
     nDifficultyDone = (int)((uint64_t)(D2IniData_multiplayer->eCTEMP_eD2PlayerStatus >> 8 & 0x1f) / (uint64_t)(int64_t)(int)((D2IniData_multiplayer->eCTEMP_eD2PlayerStatus & 0x20 | 0x80) >> 5));
     int nVertAlign = 0;
     bCentered = false;
@@ -660,8 +660,8 @@ void __stdcall UIMENU_CantTestItBeacuseItCrash() {
     nDifficultyDone = 0;
     bCentered = false;
     dwTextColor = 3;
-    /* Battle.net News Updates */ pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(0x2b73);
-    D2Win::Src::D2WinTextBox::SetText(BattleNetNews, pwszLocaleStr, dwTextColor, bCentered, nDifficultyDone);
+     /* Battle.net News Updates */
+    D2Win::Src::D2WinTextBox::SetText(BattleNetNews, D2Lang::StrTable::strtable::GetLocaleString(0x2b73), dwTextColor, bCentered, nDifficultyDone);
 }
 
 void __stdcall CHATDLG_DestroyAllForms() {

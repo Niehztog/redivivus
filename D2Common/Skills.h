@@ -101,8 +101,6 @@ int32_t __stdcall SKILLS_GetTotalSkillLevel(struct D2UnitStrc * pUnit, eD2Skills
 // Heart of skill scaling system.
 int32_t __stdcall SKILLS_CalculateManaCost(eD2Skills eSkillId, int32_t nSkillLevel);
 int32_t __fastcall SKILLS_GetValueByLevelBreakpoints(int32_t nLevel, int * pLevelArray);
-// Applies an Sorceress elemental mastery passive bonus to a base damage value. Given an element type (fire/lightning/cold/freeze/poison), reads the corresponding passive mastery stat from pUnit and scales nBaseDamage by that percentage via D2ApplyPercent. Returns the adjusted damage, or 0 if no mastery bonus or unrecognized element type.
-int32_t SKILLS_ApplyElementalMasteryBonus(eD2ElementalDamageTypeDWORD eElementType, int32_t nBaseDamage, struct D2UnitStrc * pUnit);
 // Calculates the minimum elemental damage for a skill at a given level. Looks up the skill in sgptDataTable, computes base min damage from EMinLev breakpoints and EMin, then optionally evaluates the EDmgSymPerCalc formula via SKILLS_CompileSkillFormula, and if bApplyMastery is set, further scales by the caster's elemental mastery passive stat. Returns 0 if skill ID or level is invalid.
 int32_t __stdcall SERVER_MinDamage(struct D2UnitStrc * pUnit, int32_t eSkillId, int32_t nSkillLevel, BOOL bApplyMastery);
 int32_t __stdcall SERVER_MaxDamage(struct D2UnitStrc * pUnit, int32_t eSkillId, int32_t nSkillLevel, int32_t bApplyElemBonus);

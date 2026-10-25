@@ -436,11 +436,9 @@ bool DEBUG_EnumerateModulesViaToolhelp32(int * pModuleList) {
       }
 
       /* HANDLE hObject for CloseHandle */ CloseHandle(hSnapshot);
-      Debug::GuardStack();
       return true;
     }
 
-    Debug::GuardStack();
     return false;
 }
 
@@ -693,7 +691,7 @@ int __stdcall DEBUG_UnwindStackFrames(DWORD dwThreadId, int pFrameArray, uint32_
     return nFrameCount;
 }
 
-void __stdcall DEBUG_FormatAddressInfo(uint32_t nAddress, char * pOutput) {
+bool __stdcall DEBUG_FormatAddressInfo(uint32_t nAddress, char * pOutput) {
     char* pSep;
     char* pBasename;
     char szModulePath[260];
@@ -758,6 +756,7 @@ void __stdcall DEBUG_FormatAddressInfo(uint32_t nAddress, char * pOutput) {
     }
 
     _strncpy_s(pSrcFileField, 0x100, pSep, -1);
+    return true;
 }
 
 // Global operator delete: frees p through Storm SMemFree with the delete source tag, and ignores null. Counterpart of MISC_OperatorNewShim.

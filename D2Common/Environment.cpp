@@ -523,46 +523,45 @@ void __stdcall DRLGENV_InitializeEnvironment(D2DrlgActStrc * pDrlgAct, D2RoomStr
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x211);
       exit(-1);
     } else {
-      if (-1 < nAngle) {
-        if (nAngle > pEnv->nTimeRate * 0x168) {
-          nAngle = 0;
-        }
+      if (!(0 <= nAngle)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x212);
+        exit(-1);
+      }
 
-        pEnv->nTimeIndex = nIndex;
-        pEnv->nTicks = nAngle;
-        if (!bEclipse) {
-          puVar1 = aENVIRONMENTDATA1 + nIndex * 3;
-        } else {
-          puVar1 = aENVIRONMENTDATA2 + nIndex * 3;
-        }
+      if (nAngle > pEnv->nTimeRate * 0x168) {
+        nAngle = 0;
+      }
 
-        pEnv->nEnvironmentData = puVar1[1];
-        nDrlgAct = (eD2LevelId)0x0;
-        if (pRoom) {
-          nDrlgAct = DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-        }
+      pEnv->nTimeIndex = nIndex;
+      pEnv->nTicks = nAngle;
+      if (!bEclipse) {
+        puVar1 = aENVIRONMENTDATA1 + nIndex * 3;
+      } else {
+        puVar1 = aENVIRONMENTDATA2 + nIndex * 3;
+      }
 
-        eActNo = Drlg::GetActNoFromLevelNumber(nDrlgAct);
-        nActNo = (uint32_t)eActNo;
+      pEnv->nEnvironmentData = puVar1[1];
+      nDrlgAct = (eD2LevelId)0x0;
+      if (pRoom) {
+        nDrlgAct = DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
+      }
+      eActNo = Drlg::GetActNoFromLevelNumber(nDrlgAct);
+      nActNo = (uint32_t)eActNo;
+      DRLGENV_UpdateLightIntensity(nDrlgAct, pEnv, nActNo);
+      pEnv->bEclipse = bEclipse;
+      if (bEclipse) {
+        DRLGENV_InitEnvironmentCycle(pEnv);
         DRLGENV_UpdateLightIntensity(nDrlgAct, pEnv, nActNo);
-        pEnv->bEclipse = bEclipse;
-        if (bEclipse) {
-          DRLGENV_InitEnvironmentCycle(pEnv);
-          DRLGENV_UpdateLightIntensity(nDrlgAct, pEnv, nActNo);
-          DRLGENV_UpdateLightColor(nActNo, pEnv);
-        }
-        if ((D2DrlgActStrc*)nDrlgAct != (D2DrlgActStrc*)LEVEL_ArreatSummit) {
-          return;
-        }
-
-        pEnv->nGlobalLightRed = 0xf5;
-        pEnv->nGlobalLightGreen = 0xf0;
-        pEnv->nGlobalLightBlue = 0xff;
+        DRLGENV_UpdateLightColor(nActNo, pEnv);
+      }
+      if ((D2DrlgActStrc*)nDrlgAct != (D2DrlgActStrc*)LEVEL_ArreatSummit) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x212);
-      exit(-1);
+      pEnv->nGlobalLightRed = 0xf5;
+      pEnv->nGlobalLightGreen = 0xf0;
+      pEnv->nGlobalLightBlue = 0xff;
+      return;
     }
 }
 

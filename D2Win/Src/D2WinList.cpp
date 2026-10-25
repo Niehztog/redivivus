@@ -237,63 +237,59 @@ BOOL __fastcall Draw(::D2WinList * pList) {
     int nSizeX;
     int nSkipCount;
     int* ppDrawFrame;
-    if (pList->sControl.neD2FormType == FORM_List) {
-      int nTextWidth;
-      D2WinFont::SetAndReturnLastFont(pList->sEntriesControl.nFontId);
-      pCurrentEntry = pList->sEntriesControl.pFirstEntry;
-      pY = pList->sEntriesControl.nRowPadding - pList->sControl.dwSizeY + pList->sEntriesControl.nFontHeight + pList->sControl.dwPosY;
-      if (0 < pList->sEntriesControl.nTopIndex) {
-        nTextWidth = pList->sEntriesControl.nTopIndex;
-        do {
-          if (pCurrentEntry) {
-            pCurrentEntry = pCurrentEntry->pNext;
-          }
-
-          nTextWidth--;
-        } while (nTextWidth);
-      }
-
-      memset(&sGfxData, 0, 0x48);
-      sGfxData.nFrameNumber = pList->sEntriesControl.nCursorFrame;
-      sGfxData.nDirection = 0;
-      sGfxData.pDC6 = gpPentSpinCursorDC6;
-      for (; pCurrentEntry && pY < pList->sControl.dwPosY; pY = pY + pList->sEntriesControl.nFontHeight + pList->sEntriesControl.nRowPadding * 2) {
-        nTextWidth = pList->sControl.dwSizeX;
-        nPosX = pList->sControl.dwPosX;
-        nSizeX = pCurrentEntry->nTextWidth;
-        if (pCurrentEntry == pList->sEntriesControl.pSelectedEntry) {
-          pYBase = pY + 3;
-          if (pList->sEntriesControl.nFontId == 2) {
-            pYBase = pY + 9;
-          }
-
-          nSkipCount = pList->sControl.dwPosX;
-          nScrollOffset = nTextWidth - pList->sEntriesControl.nMaxTextWidth >> 2;
-          D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, pList->sControl.dwPosX - 0x19 + nScrollOffset, pYBase, -1, DRAW_SOLID, nullptr);
-          D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nSkipCount - nScrollOffset - 0x19 + nTextWidth, pYBase, -1, DRAW_SOLID, nullptr);
-        }
-
-        D2WinFont::DRAW_text(pCurrentEntry->wszText, (nTextWidth - nSizeX >> 1) + nPosX, pY, 0, 0);
-        nTextWidth = pList->sControl.dwPosX;
-        pCurrentEntry->nLeft = nTextWidth;
-        pCurrentEntry->nRight = pList->sControl.dwSizeX + nTextWidth;
-        pCurrentEntry->nTop = pY - pList->sEntriesControl.nRowPadding - pList->sEntriesControl.nFontHeight;
-        pCurrentEntry->nBottom = pList->sEntriesControl.nRowPadding + pY;
-        pCurrentEntry = pCurrentEntry->pNext;
-      }
-
-      ppDrawFrame = &pList->sEntriesControl.nCursorFrame;
-      (*ppDrawFrame)++;
-      if (8 <= pList->sEntriesControl.nCursorFrame) {
-        pList->sEntriesControl.nCursorFrame = 0;
-      }
-
-      D2WinFont::SetAndReturnLastFont(1);
-      return 1;
+    if (pList->sControl.neD2FormType != FORM_List) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x119);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x119);
-    exit(-1);
+    int nTextWidth;
+    D2WinFont::SetAndReturnLastFont(pList->sEntriesControl.nFontId);
+    pCurrentEntry = pList->sEntriesControl.pFirstEntry;
+    pY = pList->sEntriesControl.nRowPadding - pList->sControl.dwSizeY + pList->sEntriesControl.nFontHeight + pList->sControl.dwPosY;
+    if (0 < pList->sEntriesControl.nTopIndex) {
+      nTextWidth = pList->sEntriesControl.nTopIndex;
+      do {
+        if (pCurrentEntry) {
+          pCurrentEntry = pCurrentEntry->pNext;
+        }
+        nTextWidth--;
+      } while (nTextWidth);
+    }
+    memset(&sGfxData, 0, 0x48);
+    sGfxData.nFrameNumber = pList->sEntriesControl.nCursorFrame;
+    sGfxData.nDirection = 0;
+    sGfxData.pDC6 = gpPentSpinCursorDC6;
+    for (; pCurrentEntry && pY < pList->sControl.dwPosY; pY = pY + pList->sEntriesControl.nFontHeight + pList->sEntriesControl.nRowPadding * 2) {
+      nTextWidth = pList->sControl.dwSizeX;
+      nPosX = pList->sControl.dwPosX;
+      nSizeX = pCurrentEntry->nTextWidth;
+      if (pCurrentEntry == pList->sEntriesControl.pSelectedEntry) {
+        pYBase = pY + 3;
+        if (pList->sEntriesControl.nFontId == 2) {
+          pYBase = pY + 9;
+        }
+        nSkipCount = pList->sControl.dwPosX;
+        nScrollOffset = nTextWidth - pList->sEntriesControl.nMaxTextWidth >> 2;
+        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, pList->sControl.dwPosX - 0x19 + nScrollOffset, pYBase, -1, DRAW_SOLID, nullptr);
+        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nSkipCount - nScrollOffset - 0x19 + nTextWidth, pYBase, -1, DRAW_SOLID, nullptr);
+      }
+
+      D2WinFont::DRAW_text(pCurrentEntry->wszText, (nTextWidth - nSizeX >> 1) + nPosX, pY, 0, 0);
+      nTextWidth = pList->sControl.dwPosX;
+      pCurrentEntry->nLeft = nTextWidth;
+      pCurrentEntry->nRight = pList->sControl.dwSizeX + nTextWidth;
+      pCurrentEntry->nTop = pY - pList->sEntriesControl.nRowPadding - pList->sEntriesControl.nFontHeight;
+      pCurrentEntry->nBottom = pList->sEntriesControl.nRowPadding + pY;
+      pCurrentEntry = pCurrentEntry->pNext;
+    }
+
+    ppDrawFrame = &pList->sEntriesControl.nCursorFrame;
+    (*ppDrawFrame)++;
+    if (8 <= pList->sEntriesControl.nCursorFrame) {
+      pList->sEntriesControl.nCursorFrame = 0;
+    }
+    D2WinFont::SetAndReturnLastFont(1);
+    return 1;
 }
 
 BOOL __stdcall Push(D2ControlMsg * pControlMsg) {
@@ -376,7 +372,8 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
     uint32_t WVar2 = pControlMsg->wParam;
     if (WVar2 != 0xd) {
       int* piVar1;
-      if (WVar2 == 0x26) {
+      switch (WVar2) {
+      case 0x26: {
         pDVar6 = pList->sEntriesControl.pFirstEntry;
         pPrevEntry = pList->sEntriesControl.pSelectedEntry;
         pDVar4 = pDVar6->pNext;
@@ -416,7 +413,7 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
         D2WinMain::D2WINMAIN_SetFocusedControl(nullptr);
         return 1;
       }
-      if (WVar2 == 0x28) {
+      case 0x28: {
         pDVar6 = pList->sEntriesControl.pSelectedEntry->pNext;
         if (!pDVar6) {
           pDVar6 = pList->sEntriesControl.pFirstEntry;
@@ -447,6 +444,7 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
 
         D2WinMain::D2WINMAIN_SetFocusedControl(nullptr);
         return 1;
+      }
       }
     } else {
       D2WinMain::D2WINMAIN_SetFocusedControl(nullptr);

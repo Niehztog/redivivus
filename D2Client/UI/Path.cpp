@@ -305,8 +305,8 @@ void __stdcall DRAW_DrawRoomCollisionGrid(D2RoomStrc * pRoom) {
       return;
     }
 
-    int nXEnd = roomCoords.dwXSize + 5 + roomCoords.dwXStart;
     int nXStart = roomCoords.dwXStart;
+    int nXEnd = roomCoords.dwXSize + 5 + roomCoords.dwXStart;
     int nYStart = roomCoords.dwYStart;
     do {
       int nX;

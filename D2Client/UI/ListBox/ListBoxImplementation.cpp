@@ -217,12 +217,8 @@ static int GetVisibleItemCount(::ListBoxImplementation * pThis) {
 static void DrawTruncatedText(::ListBoxImplementation * pThis, uint16_t * wszText, int nX, int nY, int nColor) {
     int i;
     uint16_t wszWorkBuffer[1024];
-    uint16_t* pWcharClear = wszWorkBuffer;
-    for (i = 0x200; i; i--) {
-      pWcharClear[0] = L'\0';
-      pWcharClear[1] = L'\0';
-      pWcharClear += 2;
-    }
+    uint16_t* pWcharClear;
+    for (int i = 0; i < 0x400; i++) wszWorkBuffer[i] = 0;
 
     D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszWorkBuffer, wszText);
     int32_t nPixelWidth = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszWorkBuffer);

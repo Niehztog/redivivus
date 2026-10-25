@@ -120,23 +120,23 @@ static int __stdcall D3DTEXCACHE_AllocateNodeFromFreeList(D3DTextureCacheStrc * 
 
       pNode[6] = 0;
       pNode[7] = 0;
-      if (*pNode < pCache->nMaxNodes) {
-        if (!pCache->pUsedHead) {
-          pCache->nUsedCount++;
-          pCache->pUsedHead = (uint8_t*)pNode;
-          pCache->pUsedTail = (uint8_t*)pNode;
-          return *pNode + 1;
-        }
+      if (!(*pNode < pCache->nMaxNodes)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd8);
+        exit(-1);
+      }
 
-        *(int**)(pCache->pUsedTail + 0x18) = (int*)pNode;
-        pNode[7] = (int)pCache->pUsedTail;
+      if (!pCache->pUsedHead) {
         pCache->nUsedCount++;
+        pCache->pUsedHead = (uint8_t*)pNode;
         pCache->pUsedTail = (uint8_t*)pNode;
         return *pNode + 1;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd8);
-      exit(-1);
+      *(int**)(pCache->pUsedTail + 0x18) = (int*)pNode;
+      pNode[7] = (int)pCache->pUsedTail;
+      pCache->nUsedCount++;
+      pCache->pUsedTail = (uint8_t*)pNode;
+      return *pNode + 1;
     } else {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd7);
       exit(-1);

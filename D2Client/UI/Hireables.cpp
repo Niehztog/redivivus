@@ -248,7 +248,7 @@ static void __stdcall GetAndDrawHirelingName(int32_t nX, int32_t nY, int32_t nPe
 
 static void __fastcall UI_DrawHirelingNameFromString(char * szText, int32_t nX, int32_t nY) {
     uint16_t szString[32];
-    memset(szString, 0, 32 * sizeof(szString[0]));
+    for (int i = 0; i < 32; i++) szString[i] = 0;
     D2Lang::UTF8_ConvertToWideChar(szString, szText, 0x20);
     DrawHirelingName(nX, nY, 0, szString);
 }
@@ -820,8 +820,7 @@ static void __stdcall UI_DrawHirelingNameFromUnit(int32_t nX, int32_t nY, D2Unit
 
     memset(__frame0.wszName, 0, 0x40);
     size_t nNameMaxChars = 0x20;
-    uint16_t* pwszName = UNIT::CUnit::GetName(pUnit);
-    D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(__frame0.wszName, pwszName, nNameMaxChars);
+    D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(__frame0.wszName, UNIT::CUnit::GetName(pUnit), nNameMaxChars);
     __frame0.wszNull = L'\0';
     DrawHirelingName(nX, nY, 0, __frame0.wszName);
 }
@@ -888,8 +887,7 @@ static BOOL __stdcall UI_DrawPartyMembersHirelingIcons(int * pnY, int * pnYOffse
             DrawHealthBar(nRosterGUID, 0, *pnX);
             nIconDrawX = *pnY;
             nX = *pnX;
-            pszName = GAME::Roster::GetRosterName(pRoster);
-            UI_DrawHirelingNameFromString(pszName, nX, nIconDrawX);
+            UI_DrawHirelingNameFromString(GAME::Roster::GetRosterName(pRoster), nX, nIconDrawX);
             if (*pnYOffset) {
               *pnY -= *pnYOffset;
               *pnYOffset = 0;

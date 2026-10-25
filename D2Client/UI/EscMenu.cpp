@@ -302,12 +302,15 @@ static void __stdcall ESCMENU_ClickMenuItem(D2UIMouseMsgStrc * pMsg) {
     }
 
     D2EscMenuItemStrc* pItemData = gpEscMenuCurrentTable + gnEscMenuSelectedIndex;
-    if (!pItemData->nMenuItemType) {
+    switch (pItemData->nMenuItemType) {
+    case 0: {
       if (pItemData->fpClickCallback) {
         pItemData->fpClickCallback(pItemData, pMsg);
         Sound::SOUND_PlaySound(SOUND_CURSOR_SELECT, nullptr, 0, 0, 0);
       }
-    } else if (pItemData->nMenuItemType == 1) {
+      break;
+    }
+    case 1: {
       pItemData->nImageIndex++;
       if ((uint32_t)pItemData->nImageIndex > pItemData->nSubImageCount - 1U) {
         pItemData->nImageIndex = 0;
@@ -318,6 +321,7 @@ static void __stdcall ESCMENU_ClickMenuItem(D2UIMouseMsgStrc * pMsg) {
 
       Sound::SOUND_PlaySound(SOUND_CURSOR_PASS, nullptr, 0, 0, 0);
       return;
+    }
     }
 }
 
@@ -571,7 +575,7 @@ void __fastcall ESCMENU_LoadLocalizedImages(int * pMenuHeader, D2EscMenuItemStrc
     if (pMenuTable) {
       __frame0.szImagePath = '\0';
       memset(__frame0.szImagePathBuffer, 0, 0x103);
-      memset(szLangAbbrev, 0, 4 * sizeof(szLangAbbrev[0]));
+      for (int i = 0; i < 4; i++) szLangAbbrev[i] = 0;
       D2Lang::StrTable::strtable::TABLES_GetLangAbbreviation(szLangAbbrev, 0);
       __frame0.nItemIndex = 0;
       if (0 >= *pMenuHeader) {
@@ -963,105 +967,101 @@ void __stdcall DRAW_EscMenu() {
       exit(-1);
     } else {
       DRAWMODE eDrawMode;
-      if (gpEscMenuCurrentTable) {
-        nMouseX = ui::GetMouseX();
-        nMouseY = ui::GetMouseY();
-        nVerticalSpacing = gpEscMenuItemCount->nVerticalSpacing;
-        nTotalItemCount = gpEscMenuItemCount->nItemCount;
-        nMenuCenterY = ScreenSizeY - 0x50;
-        if (gnEscMenuLastMouseY != nMouseY || gnEscMenuLastMouseX != nMouseX) {
-          gnEscMenuLastMouseX = nMouseX;
-          gnEscMenuLastMouseY = nMouseY;
-          if (!gbEscMenuSliderDragging) {
-            nErrorLine = ESCMENU_GetItemIndexFromMouseY(nMouseY);
-            if (nErrorLine != -1) {
-              gnEscMenuSelectedIndex = nErrorLine;
-            }
-          } else {
-            ESCMENU_HandleSliderDrag(nMouseY, nMouseX);
+      if (!gpEscMenuCurrentTable) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x64c);
+        exit(-1);
+      }
+      nMouseX = ui::GetMouseX();
+      nMouseY = ui::GetMouseY();
+      nVerticalSpacing = gpEscMenuItemCount->nVerticalSpacing;
+      nTotalItemCount = gpEscMenuItemCount->nItemCount;
+      nMenuCenterY = ScreenSizeY - 0x50;
+      if (gnEscMenuLastMouseY != nMouseY || gnEscMenuLastMouseX != nMouseX) {
+        gnEscMenuLastMouseX = nMouseX;
+        gnEscMenuLastMouseY = nMouseY;
+        if (!gbEscMenuSliderDragging) {
+          nErrorLine = ESCMENU_GetItemIndexFromMouseY(nMouseY);
+          if (nErrorLine != -1) {
+            gnEscMenuSelectedIndex = nErrorLine;
           }
+        } else {
+          ESCMENU_HandleSliderDrag(nMouseY, nMouseX);
         }
+      }
 
-        nVisibleItemCount = 0;
-        nItemIndex = 0;
-        if (0 < gpEscMenuItemCount->nItemCount) {
-          pCurrentTable = gpEscMenuCurrentTable;
-          do {
-            bItemVisible = 0;
-            nMouseY = pCurrentTable[nItemIndex].nExpansionOnly;
-            pcVar1 = (char*)&pCurrentTable[nItemIndex].nYPosition;
-            memset(pcVar1, 0, 4 * sizeof(pcVar1[0]));
-            if (!nMouseY || (bIsExpansion = Fog::D2CheckExpansionGame() , pCurrentTable = gpEscMenuCurrentTable , bIsExpansion != 0)) {
-              pfnEnableCallback = pCurrentTable[nItemIndex].fpVisibilityCheck;
-              if (!pfnEnableCallback || (bIsExpansion = (*pfnEnableCallback)() , pCurrentTable = gpEscMenuCurrentTable , bIsExpansion != 0)) {
-                bItemVisible = 1;
-              }
-
-              eDrawMode = (uint32_t)bItemVisible * 4 + DRAW_TRANSPARENT;
-              if (pCurrentTable[nItemIndex].fpDrawCallback) {
-                (*pCurrentTable[nItemIndex].fpDrawCallback)(&pCurrentTable[nItemIndex], nullptr);
-                pCurrentTable = gpEscMenuCurrentTable;
-              }
-
-              nMouseY = gpEscMenuItemCount->nVerticalSpacing * nVisibleItemCount + (nMenuCenterY / 2 - nVerticalSpacing * nTotalItemCount / 2);
-              nItemBottomY = gpEscMenuItemCount->nRowHeight + nMouseY;
-              pCurrentTable[nItemIndex].nYPosition = nMouseY;
-              switch ((int32_t)(uint32_t)pCurrentTable[nItemIndex].nMenuItemType) {
-                case 1:
-                  D2Win::Src::D2WinFont::IMAGE_DrawDC6ImageOnScreen(pCurrentTable[nItemIndex].pDC6Main, ScreenSizeX / 2 - 0xe6, nItemBottomY, 0, eDrawMode, -1);
-                D2Win::Src::D2WinFont::IMAGE_DrawDC6ImageOnScreen(gpEscMenuCurrentTable[nItemIndex].pDC6SubImages[gpEscMenuCurrentTable[nItemIndex].nImageIndex], ScreenSizeX / 2 + 0xe6, nItemBottomY, 2, eDrawMode, -1);
-                pCurrentTable = gpEscMenuCurrentTable;
-                break;
-                case 2:
-                  if ((int)pCurrentTable[nItemIndex].pDC6Main) {
-                    D2Win::Src::D2WinFont::IMAGE_DrawDC6ImageOnScreen(pCurrentTable[nItemIndex].pDC6Main, ScreenSizeX / 2 - 0xe6, nItemBottomY, 0, eDrawMode, -1);
-                    pCurrentTable = gpEscMenuCurrentTable;
-                  }
-                ESCMENU_DrawProgressBar(&pCurrentTable[nItemIndex], nMouseY, eDrawMode, (uint32_t)!pCurrentTable[nItemIndex].pDC6Main);
-                pCurrentTable = gpEscMenuCurrentTable;
-                break;
-                case -1:
-
-                case 0:
-                  D2Win::Src::D2WinFont::IMAGE_DrawDC6ImageOnScreen(pCurrentTable[nItemIndex].pDC6Main, ScreenSizeX / 2, nItemBottomY, 1, eDrawMode, -1);
-                pCurrentTable = gpEscMenuCurrentTable;
-              }
-
-              nVisibleItemCount++;
+      nVisibleItemCount = 0;
+      nItemIndex = 0;
+      if (0 < gpEscMenuItemCount->nItemCount) {
+        pCurrentTable = gpEscMenuCurrentTable;
+        do {
+          bItemVisible = 0;
+          nMouseY = pCurrentTable[nItemIndex].nExpansionOnly;
+          pcVar1 = (char*)&pCurrentTable[nItemIndex].nYPosition;
+          for (int i = 0; i < 4; i++) pcVar1[i] = 0;
+          if (!nMouseY || (bIsExpansion = Fog::D2CheckExpansionGame() , pCurrentTable = gpEscMenuCurrentTable , bIsExpansion != 0)) {
+            pfnEnableCallback = pCurrentTable[nItemIndex].fpVisibilityCheck;
+            if (!pfnEnableCallback || (bIsExpansion = (*pfnEnableCallback)() , pCurrentTable = gpEscMenuCurrentTable , bIsExpansion != 0)) {
+              bItemVisible = 1;
             }
 
-            nItemIndex++;
-          } while (nItemIndex < gpEscMenuItemCount->nItemCount);
-        }
+            eDrawMode = (uint32_t)bItemVisible * 4 + DRAW_TRANSPARENT;
+            if (pCurrentTable[nItemIndex].fpDrawCallback) {
+              (*pCurrentTable[nItemIndex].fpDrawCallback)(&pCurrentTable[nItemIndex], nullptr);
+              pCurrentTable = gpEscMenuCurrentTable;
+            }
 
-        memset(&sGfxData, 0, 0x48);
-        sGfxData.pDC6 = ui::UI_GetCursorIconIndex();
-        if (DRAW_RotatingStarPosition) {
-          sGfxData.nFrameNumber = 8 - DRAW_RotatingStarPosition;
-        } else {
-          sGfxData.nFrameNumber = 0;
-        }
+            nMouseY = gpEscMenuItemCount->nVerticalSpacing * nVisibleItemCount + (nMenuCenterY / 2 - nVerticalSpacing * nTotalItemCount / 2);
+            nItemBottomY = gpEscMenuItemCount->nRowHeight + nMouseY;
+            pCurrentTable[nItemIndex].nYPosition = nMouseY;
+            switch ((int32_t)(uint32_t)pCurrentTable[nItemIndex].nMenuItemType) {
+              case 1:
+                D2Win::Src::D2WinFont::IMAGE_DrawDC6ImageOnScreen(pCurrentTable[nItemIndex].pDC6Main, ScreenSizeX / 2 - 0xe6, nItemBottomY, 0, eDrawMode, -1);
+              D2Win::Src::D2WinFont::IMAGE_DrawDC6ImageOnScreen(gpEscMenuCurrentTable[nItemIndex].pDC6SubImages[gpEscMenuCurrentTable[nItemIndex].nImageIndex], ScreenSizeX / 2 + 0xe6, nItemBottomY, 2, eDrawMode, -1);
+              pCurrentTable = gpEscMenuCurrentTable;
+              break;
+              case 2:
+                if ((int)pCurrentTable[nItemIndex].pDC6Main) {
+                  D2Win::Src::D2WinFont::IMAGE_DrawDC6ImageOnScreen(pCurrentTable[nItemIndex].pDC6Main, ScreenSizeX / 2 - 0xe6, nItemBottomY, 0, eDrawMode, -1);
+                  pCurrentTable = gpEscMenuCurrentTable;
+                }
+              ESCMENU_DrawProgressBar(&pCurrentTable[nItemIndex], nMouseY, eDrawMode, (uint32_t)!pCurrentTable[nItemIndex].pDC6Main);
+              pCurrentTable = gpEscMenuCurrentTable;
+              break;
+              case -1:
 
-        nVerticalSpacing = gpEscMenuCurrentTable[gnEscMenuSelectedIndex].nYPosition + gpEscMenuItemCount->nStarOffset;
-        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, ScreenSizeX / 2 - SizeCurrentSelectedEscMenuItem - 0xf9, nVerticalSpacing, -1, DRAW_SOLID, nullptr);
-        sGfxData.nFrameNumber = DRAW_RotatingStarPosition;
-        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, ScreenSizeX / 2 + 0xf9, nVerticalSpacing, -1, DRAW_SOLID, nullptr);
-        bIsExpansion = Draw::DRAW_CheckTickRateLimiter();
-        if (!bIsExpansion) {
-          return;
-        }
+              case 0:
+                D2Win::Src::D2WinFont::IMAGE_DrawDC6ImageOnScreen(pCurrentTable[nItemIndex].pDC6Main, ScreenSizeX / 2, nItemBottomY, 1, eDrawMode, -1);
+              pCurrentTable = gpEscMenuCurrentTable;
+            }
 
-        DRAW_RotatingStarPosition = DRAW_RotatingStarPosition + 1 & 0x80000007;
-        if ((int)DRAW_RotatingStarPosition >= 0) {
-          return;
-        }
+            nVisibleItemCount++;
+          }
 
-        DRAW_RotatingStarPosition = (DRAW_RotatingStarPosition - 1 | -8) + 1;
+          nItemIndex++;
+        } while (nItemIndex < gpEscMenuItemCount->nItemCount);
+      }
+      memset(&sGfxData, 0, 0x48);
+      sGfxData.pDC6 = ui::UI_GetCursorIconIndex();
+      if (DRAW_RotatingStarPosition) {
+        sGfxData.nFrameNumber = 8 - DRAW_RotatingStarPosition;
+      } else {
+        sGfxData.nFrameNumber = 0;
+      }
+      nVerticalSpacing = gpEscMenuCurrentTable[gnEscMenuSelectedIndex].nYPosition + gpEscMenuItemCount->nStarOffset;
+      D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, ScreenSizeX / 2 - SizeCurrentSelectedEscMenuItem - 0xf9, nVerticalSpacing, -1, DRAW_SOLID, nullptr);
+      sGfxData.nFrameNumber = DRAW_RotatingStarPosition;
+      D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, ScreenSizeX / 2 + 0xf9, nVerticalSpacing, -1, DRAW_SOLID, nullptr);
+      bIsExpansion = Draw::DRAW_CheckTickRateLimiter();
+      if (!bIsExpansion) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x64c);
-      exit(-1);
+      DRAW_RotatingStarPosition = DRAW_RotatingStarPosition + 1 & 0x80000007;
+      if ((int)DRAW_RotatingStarPosition >= 0) {
+        return;
+      }
+      DRAW_RotatingStarPosition = (DRAW_RotatingStarPosition - 1 | -8) + 1;
+      return;
     }
 }
 

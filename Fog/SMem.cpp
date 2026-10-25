@@ -1083,7 +1083,6 @@ char * __fastcall SMemFormat64BitWithSeparators(char * szText, uint32_t nWidth, 
       if (pcWrite2 >= szTempBuf + (nClampedWidth - 1)) {
         memset(szText, 0x2a, nClampedWidth - 1);
         szText[nWidthCopy - 1] = '\0';
-        Debug::GuardStack();
         return szText;
       }
 
@@ -1115,7 +1114,6 @@ char * __fastcall SMemFormat64BitWithSeparators(char * szText, uint32_t nWidth, 
     }
 
     *szText = '\0';
-    Debug::GuardStack();
     return pcWrite2;
 }
 

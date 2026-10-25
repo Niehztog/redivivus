@@ -558,8 +558,7 @@ static int __stdcall NPCMENU_OpenTradeWithNpc() {
     int32_t nFontId = 0;
     uint32_t nTextAlign = 0;
     uint32_t nFontSize = 0xf;
-    uint16_t* pszCancelString = D2Lang::StrTable::strtable::GetLocaleString(0xd19);
-    Dialog::AddStringData(Dialog::gpNpcTransactionWaitDialog, pszCancelString, nFontSize, nTextAlign, nFontId, bClickable, nUnused, nColorId);
+    Dialog::AddStringData(Dialog::gpNpcTransactionWaitDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd19), nFontSize, nTextAlign, nFontId, bClickable, nUnused, nColorId);
     return 1;
 }
 
@@ -591,8 +590,7 @@ void __stdcall NPCMENU_HireMerc() {
     int32_t nFontId = 0;
     uint32_t nTextAlign = 0;
     uint32_t nFontSize = 0xf;
-    uint16_t* pszCancelString = D2Lang::StrTable::strtable::GetLocaleString(0xd19);
-    Dialog::AddStringData(Dialog::gpNpcTransactionWaitDialog, pszCancelString, nFontSize, nTextAlign, nFontId, bClickable, nUnused, nColorId);
+    Dialog::AddStringData(Dialog::gpNpcTransactionWaitDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd19), nFontSize, nTextAlign, nFontId, bClickable, nUnused, nColorId);
 }
 
 void NPCMENU_IsItemIdentified(D2UnitStrc * pUnit) {
@@ -671,8 +669,7 @@ int __stdcall NPCMENU_CainIdentifyOptionCallback() {
     nErrorLine = 0;
     uint32_t nTextAlign = 0;
     uint32_t nFontSize = 0xf;
-    uint16_t* pszCancelString = D2Lang::StrTable::strtable::GetLocaleString(0xd19);
-    Dialog::AddStringData(Dialog::gpNpcTransactionWaitDialog, pszCancelString, nFontSize, nTextAlign, nErrorLine, bClickable, nUnused, nColorId);
+    Dialog::AddStringData(Dialog::gpNpcTransactionWaitDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd19), nFontSize, nTextAlign, nErrorLine, bClickable, nUnused, nColorId);
     _Interaction::geNpcUiState = NPCUI_WAIT_SERVER;
     gnNpcMenuTransactionType = 4;
     gnNpcMenuActiveContainer = 0;
@@ -1100,8 +1097,7 @@ void __stdcall NPCMENU_ExecuteShopTransaction(int32_t nParam, uint8_t bParam) {
     nSellCost = 0;
     nTextAlign = 0;
     nItemClassId = 0xf;
-    pszWaitStr = D2Lang::StrTable::strtable::GetLocaleString(0xd19);
-    Dialog::AddStringData(Dialog::gpNpcTransactionWaitDialog, pszWaitStr, nItemClassId, nTextAlign, nSellCost, dwDialogArg3, dwDialogArg2, nDialogStrIdx);
+    Dialog::AddStringData(Dialog::gpNpcTransactionWaitDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd19), nItemClassId, nTextAlign, nSellCost, dwDialogArg3, dwDialogArg2, nDialogStrIdx);
     return;
 }
 
@@ -2698,7 +2694,7 @@ void __stdcall NPCMENU_OpenInteractionDialog() {
 
                 pnOptionCallback = D2Lang::StrTable::strtable::GetLocaleString(*pnOptionStringId);
                 D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszOptionText, pnOptionCallback);
-                memset(wGoldCostWChar, 0, 20 * sizeof(wGoldCostWChar[0]));
+                for (int i = 0; i < 20; i++) wGoldCostWChar[i] = 0;
                 wsprintfA(szGoldCostAnsi, "%d", dwFontArg);
                 D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize((uint16_t*)wGoldCostWChar, szGoldCostAnsi, 9);
                 D2Lang::Unicode::UNISYS::AppendToBuffer(wszOptionText, (uint16_t*)wGoldCostWChar);
@@ -2748,73 +2744,64 @@ static void __stdcall NPCMENU_ShowMainMenuDialog() {
       D2UnitStrc* pNpcUnit;
       pNpcUnit = UNIT::Player::UNITS_FindClientSideUnit(_Interaction::nCurrentInteractedNpcGUID, UNIT_MONSTER);
       if (pNpcUnit) {
-        if (!Dialog::gpNpcMainMenuDialog) {
-          nDialogPosX.x = 0;
-          nDialogPosX.y = 0;
-          NPCMENU_CalculateDialogPosition(&nDialogPosX);
-          Dialog::gpNpcMainMenuDialog = Dialog::AllocDialogStrc(nDialogPosX.x, nDialogPosX.y, NPCMENU_RepairDrawCallback, NPCMENU_RepairMouseCallback, 0, 0, 1, 0, 0, 0, 1);
-          Dialog::DIALOG_SetHighlightStyle(Dialog::gpNpcMainMenuDialog, 1);
-          pszDialogPtr = wszNpcName;
-          for (nCharIdx = 0x28; nCharIdx; nCharIdx--) {
-            pszDialogPtr[0] = L'\0';
-            pszDialogPtr[1] = L'\0';
-            pszDialogPtr += 2;
-          }
-
-          if (!_Interaction::bInteractingWithNpc) {
-            pNpcUnit = 0;
-          } else {
-            pNpcUnit = UNIT::Player::UNITS_FindClientSideUnit(_Interaction::nCurrentInteractedNpcGUID, UNIT_MONSTER);
-          }
-
-          pszDialogPtr = UNIT::CUnit::GetName(pNpcUnit);
-          D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszNpcName, pszDialogPtr);
-          nNpcNameLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszNpcName);
-          nCharIdx = 0;
-          if (0 < nNpcNameLen) {
-            do {
-              wCurChar = wszNpcName[nCharIdx];
-              if ((uint16_t)wCurChar < 0x100) {
-                wCurChar = gnNpcMenuQuestIdTable[(uint16_t)wCurChar];
-              }
-
-              wszNpcName[nCharIdx] = wCurChar;
-              nCharIdx++;
-            } while (nCharIdx < nNpcNameLen);
-          }
-
-          Dialog::AddStringData(Dialog::gpNpcMainMenuDialog, wszNpcName, 0x15, 0, 4, 1, nullptr, 0);
-          _Interaction::geNpcUiState = NPCUI_MENU;
-          nDialogPosY[0] = 0xd3a;
-          nDialogPosY[1] = 0xd3b;
-          nDialogPosY[2] = 0xd3c;
-          nDialogPosY[3] = 0xd3d;
-          nDialogPosY[4] = 0xd3e;
-          pNpcUnit = UNIT::Player::GetPlayerUnit_UI();
-          seedUpdated = D2_SEED_NEXT(pNpcUnit->sSeed);
-          pNpcUnit->sSeed = seedUpdated;
-          bOptionEnabled = 1;
-          pfnOptionCallback = NPCMENU_TradeDrawCallback;
-          dwFontArg2 = 1;
-          nNpcNameLen = 0;
-          nSeedResult = 0;
-          dwColorArg2 = 0xf;
-          pszDialogPtr = D2Lang::StrTable::strtable::GetLocaleString(nDialogPosY[(int)(((uint64_t)d2_bits_of(seedUpdated) & 0xffffffff) % 5)]);
-          Dialog::AddStringData(Dialog::gpNpcMainMenuDialog, pszDialogPtr, dwColorArg2, nSeedResult, nNpcNameLen, dwFontArg2, pfnOptionCallback, bOptionEnabled);
-          bOptionEnabled = 1;
-          nParam2 = NPCMENU_RepairDrawCallback;
-          dwFontArg2 = 1;
-          nNpcNameLen = 0;
-          nSeedResult = 0;
-          dwColorArg2 = 0xf;
-          pszDialogPtr = D2Lang::StrTable::strtable::GetLocaleString(0x102e);
-          Dialog::AddStringData(Dialog::gpNpcMainMenuDialog, pszDialogPtr, dwColorArg2, nSeedResult, nNpcNameLen, dwFontArg2, nParam2, bOptionEnabled);
-          Dialog::DIALOG_SetSelectedLine(Dialog::gpNpcMainMenuDialog, 1);
-          return;
+        if (!(!Dialog::gpNpcMainMenuDialog)) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd69);
+          exit(-1);
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd69);
-        exit(-1);
+        nDialogPosX.x = 0;
+        nDialogPosX.y = 0;
+        NPCMENU_CalculateDialogPosition(&nDialogPosX);
+        Dialog::gpNpcMainMenuDialog = Dialog::AllocDialogStrc(nDialogPosX.x, nDialogPosX.y, NPCMENU_RepairDrawCallback, NPCMENU_RepairMouseCallback, 0, 0, 1, 0, 0, 0, 1);
+        Dialog::DIALOG_SetHighlightStyle(Dialog::gpNpcMainMenuDialog, 1);
+        for (int i = 0; i < 0x50; i++) wszNpcName[i] = 0;
+        if (!_Interaction::bInteractingWithNpc) {
+          pNpcUnit = 0;
+        } else {
+          pNpcUnit = UNIT::Player::UNITS_FindClientSideUnit(_Interaction::nCurrentInteractedNpcGUID, UNIT_MONSTER);
+        }
+        pszDialogPtr = UNIT::CUnit::GetName(pNpcUnit);
+        D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszNpcName, pszDialogPtr);
+        nNpcNameLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszNpcName);
+        nCharIdx = 0;
+        if (0 < nNpcNameLen) {
+          do {
+            wCurChar = wszNpcName[nCharIdx];
+            if ((uint16_t)wCurChar < 0x100) {
+              wCurChar = gnNpcMenuQuestIdTable[(uint16_t)wCurChar];
+            }
+            wszNpcName[nCharIdx] = wCurChar;
+            nCharIdx++;
+          } while (nCharIdx < nNpcNameLen);
+        }
+        Dialog::AddStringData(Dialog::gpNpcMainMenuDialog, wszNpcName, 0x15, 0, 4, 1, nullptr, 0);
+        _Interaction::geNpcUiState = NPCUI_MENU;
+        nDialogPosY[0] = 0xd3a;
+        nDialogPosY[1] = 0xd3b;
+        nDialogPosY[2] = 0xd3c;
+        nDialogPosY[3] = 0xd3d;
+        nDialogPosY[4] = 0xd3e;
+        pNpcUnit = UNIT::Player::GetPlayerUnit_UI();
+        seedUpdated = D2_SEED_NEXT(pNpcUnit->sSeed);
+        pNpcUnit->sSeed = seedUpdated;
+        bOptionEnabled = 1;
+        pfnOptionCallback = NPCMENU_TradeDrawCallback;
+        dwFontArg2 = 1;
+        nNpcNameLen = 0;
+        nSeedResult = 0;
+        dwColorArg2 = 0xf;
+        pszDialogPtr = D2Lang::StrTable::strtable::GetLocaleString(nDialogPosY[(int)(((uint64_t)d2_bits_of(seedUpdated) & 0xffffffff) % 5)]);
+        Dialog::AddStringData(Dialog::gpNpcMainMenuDialog, pszDialogPtr, dwColorArg2, nSeedResult, nNpcNameLen, dwFontArg2, pfnOptionCallback, bOptionEnabled);
+        bOptionEnabled = 1;
+        nParam2 = NPCMENU_RepairDrawCallback;
+        dwFontArg2 = 1;
+        nNpcNameLen = 0;
+        nSeedResult = 0;
+        dwColorArg2 = 0xf;
+        pszDialogPtr = D2Lang::StrTable::strtable::GetLocaleString(0x102e);
+        Dialog::AddStringData(Dialog::gpNpcMainMenuDialog, pszDialogPtr, dwColorArg2, nSeedResult, nNpcNameLen, dwFontArg2, nParam2, bOptionEnabled);
+        Dialog::DIALOG_SetSelectedLine(Dialog::gpNpcMainMenuDialog, 1);
+        return;
       }
     }
 
@@ -3127,51 +3114,46 @@ static void __stdcall NPCMENU_HandleTradeAccepted() {
       D2UnitStrc* pTradeItem;
       _Interaction::geNpcUiState = NPCUI_TRANSACTION_ACCEPTED;
       Inv::INV_SetIdentifyMode();
-      if (!Dialog::gpNpcTradeErrorDialog) {
-        if (gnNpcMenuTransactionType == 2) {
-          pPlayerUnit_lcl = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pPlayerInv);
-          if (gnNpcMenuPreviousGold == 1 && pPlayerUnit_lcl) {
-            pTradeItem = ui::GetCursorItem();
-            if (!pTradeItem) {
-              ui::ITEM_SetItemOnHand(pPlayerUnit_lcl);
-            }
+      if (!(!Dialog::gpNpcTradeErrorDialog)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1399);
+        exit(-1);
+      }
+      if (gnNpcMenuTransactionType == 2) {
+        pPlayerUnit_lcl = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pPlayerInv);
+        if (gnNpcMenuPreviousGold == 1 && pPlayerUnit_lcl) {
+          pTradeItem = ui::GetCursorItem();
+          if (!pTradeItem) {
+            ui::ITEM_SetItemOnHand(pPlayerUnit_lcl);
           }
         }
-
-        dwScrollable = 1;
-        dwFontArg = 0;
-        nColorArg = 0;
-        nAlignArg = 0;
-        dwHighlight = 1;
-        nDialogY = 1;
-        dwErrorCode = 0;
-        dwCallbackArg = 0;
-        pfnDrawCallback = NPCMENU_GetCurrentMenuId;
-        nY = ui::GetMouseY();
-        nDialogX = ui::GetMouseX();
-        Dialog::gpNpcTradeErrorDialog = Dialog::AllocDialogStrc(nDialogX, nY, pfnDrawCallback, dwCallbackArg, dwErrorCode, nDialogY, dwHighlight, nAlignArg, nColorArg, dwFontArg, dwScrollable);
-        Dialog::DIALOG_SetHighlightStyle(Dialog::gpNpcTradeErrorDialog, 1);
-        nDialogY = 0;
-        dwCallbackArg = 0;
-        dwEnabledArg = 1;
-        dwErrorCode = 1;
-        dwColorArg2 = 0;
-        dwFontArg2 = 0x15;
-        pszErrorStr = D2Lang::StrTable::strtable::GetLocaleString(nErrorStringId);
-        Dialog::AddStringData(Dialog::gpNpcTradeErrorDialog, pszErrorStr, dwFontArg2, dwColorArg2, dwErrorCode, dwEnabledArg, dwCallbackArg, nDialogY);
-        nDialogY = 1;
-        nParam2 = NPCMENU_GetCurrentMenuId;
-        dwEnabledArg = 1;
-        dwErrorCode = 0;
-        dwColorArg2 = 0;
-        dwFontArg2 = 0xf;
-        pszErrorStr = D2Lang::StrTable::strtable::GetLocaleString(0xd4b);
-        Dialog::AddStringData(Dialog::gpNpcTradeErrorDialog, pszErrorStr, dwFontArg2, dwColorArg2, dwErrorCode, dwEnabledArg, nParam2, nDialogY);
-        return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1399);
-      exit(-1);
+      dwScrollable = 1;
+      dwFontArg = 0;
+      nColorArg = 0;
+      nAlignArg = 0;
+      dwHighlight = 1;
+      nDialogY = 1;
+      dwErrorCode = 0;
+      dwCallbackArg = 0;
+      pfnDrawCallback = NPCMENU_GetCurrentMenuId;
+      Dialog::gpNpcTradeErrorDialog = Dialog::AllocDialogStrc(ui::GetMouseX(), ui::GetMouseY(), pfnDrawCallback, dwCallbackArg, dwErrorCode, nDialogY, dwHighlight, nAlignArg, nColorArg, dwFontArg, dwScrollable);
+      Dialog::DIALOG_SetHighlightStyle(Dialog::gpNpcTradeErrorDialog, 1);
+      nDialogY = 0;
+      dwCallbackArg = 0;
+      dwEnabledArg = 1;
+      dwErrorCode = 1;
+      dwColorArg2 = 0;
+      dwFontArg2 = 0x15;
+      Dialog::AddStringData(Dialog::gpNpcTradeErrorDialog, D2Lang::StrTable::strtable::GetLocaleString(nErrorStringId), dwFontArg2, dwColorArg2, dwErrorCode, dwEnabledArg, dwCallbackArg, nDialogY);
+      nDialogY = 1;
+      nParam2 = NPCMENU_GetCurrentMenuId;
+      dwEnabledArg = 1;
+      dwErrorCode = 0;
+      dwColorArg2 = 0;
+      dwFontArg2 = 0xf;
+      Dialog::AddStringData(Dialog::gpNpcTradeErrorDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd4b), dwFontArg2, dwColorArg2, dwErrorCode, dwEnabledArg, nParam2, nDialogY);
+      return;
     } else {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x13ad);
       exit(-1);
@@ -3357,8 +3339,8 @@ void __stdcall NPCMENU_ShowTalkDialog(uint16_t nTitleStringId, int32_t nSpeechId
     nErrorAddr = 4;
     uint32_t dwColorArg = 0;
     uint32_t dwFontArg = 0x15;
-    uint16_t* pszDialogLine = D2Lang::StrTable::strtable::GetLocaleString(nTitleStringId);
-    Dialog::AddStringData(Dialog::gpNpcGossipDialog, pszDialogLine, dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, dwCallbackArg, nErrorLine);
+    uint16_t* pszDialogLine;
+    Dialog::AddStringData(Dialog::gpNpcGossipDialog, D2Lang::StrTable::strtable::GetLocaleString(nTitleStringId), dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, dwCallbackArg, nErrorLine);
     D2GSPacketSrv0x27_TextStrc* pMsgLog = Text::TEXT_GetOverheadGlobalPointer();
     if (pMsgLog) {
       D2UnitStrc* pPlayerUnit_lcl;
@@ -3371,8 +3353,7 @@ void __stdcall NPCMENU_ShowTalkDialog(uint16_t nTitleStringId, int32_t nSpeechId
         nErrorLine = 0;
         dwColorArg = 0;
         dwFontArg = 0xf;
-        pszDialogLine = D2Lang::StrTable::strtable::GetLocaleString(0xd47);
-        Dialog::AddStringData(Dialog::gpNpcGossipDialog, pszDialogLine, dwFontArg, dwColorArg, nErrorLine, dwEnabledArg, pfnDrawCallback, nAddStringEnabled);
+        Dialog::AddStringData(Dialog::gpNpcGossipDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd47), dwFontArg, dwColorArg, nErrorLine, dwEnabledArg, pfnDrawCallback, nAddStringEnabled);
       }
 
       nAddStringEnabled = 1;
@@ -3381,8 +3362,7 @@ void __stdcall NPCMENU_ShowTalkDialog(uint16_t nTitleStringId, int32_t nSpeechId
       nErrorLine = 0;
       dwColorArg = 0;
       dwFontArg = 0xf;
-      pszDialogLine = D2Lang::StrTable::strtable::GetLocaleString(0xd43);
-      Dialog::AddStringData(Dialog::gpNpcGossipDialog, pszDialogLine, dwFontArg, dwColorArg, nErrorLine, dwEnabledArg, pcVar1, nAddStringEnabled);
+      Dialog::AddStringData(Dialog::gpNpcGossipDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd43), dwFontArg, dwColorArg, nErrorLine, dwEnabledArg, pcVar1, nAddStringEnabled);
       nMsgLoopIdx = 0;
       if (0 < nErrorAddr) {
         do {
@@ -3405,8 +3385,7 @@ void __stdcall NPCMENU_ShowTalkDialog(uint16_t nTitleStringId, int32_t nSpeechId
         nErrorAddr = 0;
         dwColorArg = 0;
         dwFontArg = 0xf;
-        pszDialogLine = D2Lang::StrTable::strtable::GetLocaleString(0xd40);
-        Dialog::AddStringData(Dialog::gpNpcGossipDialog, pszDialogLine, dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, pcVar3, nErrorLine);
+        Dialog::AddStringData(Dialog::gpNpcGossipDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd40), dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, pcVar3, nErrorLine);
       }
       if (_Interaction::nCurrentInteractedNpcClassId == 0x109 || _Interaction::nCurrentInteractedNpcClassId == 0xf4 || _Interaction::nCurrentInteractedNpcClassId == 0xf5 || _Interaction::nCurrentInteractedNpcClassId == 0x208 || _Interaction::nCurrentInteractedNpcClassId == 0xf6) {
         pPlayerUnit_lcl = UNIT::Player::GetPlayerUnit_UI();
@@ -3438,8 +3417,7 @@ void __stdcall NPCMENU_ShowTalkDialog(uint16_t nTitleStringId, int32_t nSpeechId
     dwColorArg = 0;
     dwFontArg = 0xf;
     fpDialogFunc nParam2_00 = NPCMENU_MercDrawCallback1;
-    pszDialogLine = D2Lang::StrTable::strtable::GetLocaleString(0xd48);
-    Dialog::AddStringData(Dialog::gpNpcGossipDialog, pszDialogLine, dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, nParam2_00, nErrorLine);
+    Dialog::AddStringData(Dialog::gpNpcGossipDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd48), dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, nParam2_00, nErrorLine);
 }
 
 // Opens a confirm dialog for an NPC action (gpNpcRepairDialog). Line 1 is the localized string nTitleStringId (font 0x15), then "ok" (3401) -> NPCMENU_ConfirmDialogOkCallback and "cancel" (3400) -> NPCMENU_ConfirmDialogCancelCallback. The dialog's own callbacks are NPCMENU_ConfirmDialogCancelCallback and NPCMENU_EmptyDrawCallback2.
@@ -3465,24 +3443,22 @@ void __stdcall NPCMENU_ShowNpcActionConfirmDialog(uint16_t nTitleStringId) {
     nErrorAddr = 4;
     uint32_t dwColorArg = 0;
     uint32_t dwFontArg = 0x15;
-    uint16_t* pszStr = D2Lang::StrTable::strtable::GetLocaleString(nTitleStringId);
-    Dialog::AddStringData(Dialog::gpNpcActionConfirmDialog, pszStr, dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, dwCallbackArg, nErrorLine);
+    uint16_t* pszStr;
+    Dialog::AddStringData(Dialog::gpNpcActionConfirmDialog, D2Lang::StrTable::strtable::GetLocaleString(nTitleStringId), dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, dwCallbackArg, nErrorLine);
     nErrorLine = 1;
     fpDialogFunc pfnDrawCallback = (fpDialogFunc)NPCMENU_ConfirmDialogOkCallback;
     dwEnabledArg = 1;
     nErrorAddr = 0;
     dwColorArg = 0;
     dwFontArg = 0xf;
-    pszStr = D2Lang::StrTable::strtable::GetLocaleString(0xd49);
-    Dialog::AddStringData(Dialog::gpNpcActionConfirmDialog, pszStr, dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, pfnDrawCallback, nErrorLine);
+    Dialog::AddStringData(Dialog::gpNpcActionConfirmDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd49), dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, pfnDrawCallback, nErrorLine);
     nErrorLine = 1;
     fpDialogFunc nParam2 = NPCMENU_ConfirmDialogCancelCallback;
     dwEnabledArg = 1;
     nErrorAddr = 0;
     dwColorArg = 0;
     dwFontArg = 0xf;
-    pszStr = D2Lang::StrTable::strtable::GetLocaleString(0xd48);
-    Dialog::AddStringData(Dialog::gpNpcActionConfirmDialog, pszStr, dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, nParam2, nErrorLine);
+    Dialog::AddStringData(Dialog::gpNpcActionConfirmDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd48), dwFontArg, dwColorArg, nErrorAddr, dwEnabledArg, nParam2, nErrorLine);
 }
 
 // Sets the NPC UI state to menu, re-points the trade menu at the interacted NPC's D2NPCSpeech entry and reopens the talk dialog (string 3381). Same tail as NPCMENU_TalkOptionCallback; sends nothing.
@@ -3576,22 +3552,16 @@ int __stdcall NPCMENU_BuildMercHireMenu() {
     Dialog::DIALOG_SetHighlightStyle(Dialog::gpNpcMercListDialog, 1);
     uint16_t nNameStringId = 0;
     eD2UnitStat eStatId = UNITSTAT_goldbank;
-    uint16_t* pszDialogPtr = wszGoldFmtBuf;
-    for (nLoopCounter = 0x96; nLoopCounter; nLoopCounter--) {
-      pszDialogPtr[0] = L'\0';
-      pszDialogPtr[1] = L'\0';
-      pszDialogPtr += 2;
-    }
+    uint16_t* pszDialogPtr;
+    for (int i = 0; i < 0x12c; i++) wszGoldFmtBuf[i] = 0;
 
-    D2UnitStrc* pPlayerUnit_lcl = UNIT::Player::GetPlayerUnit_UI();
-    nLoopCounter = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pPlayerUnit_lcl, eStatId, nNameStringId);
+    D2UnitStrc* pPlayerUnit_lcl;
+    nLoopCounter = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(UNIT::Player::GetPlayerUnit_UI(), eStatId, nNameStringId);
     nNameStringId = 0;
     eStatId = UNITSTAT_gold;
-    pPlayerUnit_lcl = UNIT::Player::GetPlayerUnit_UI();
-    int nGoldOnBody = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pPlayerUnit_lcl, eStatId, nNameStringId);
+    int nGoldOnBody = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(UNIT::Player::GetPlayerUnit_UI(), eStatId, nNameStringId);
     uint16_t* nTotalGold = (uint16_t*)(nLoopCounter + nGoldOnBody);
-    pszDialogPtr = D2Lang::StrTable::strtable::GetLocaleString(0xd24);
-    D2Lang::Unicode::UNISYS::UNICODE_FormatWideString(300, wszGoldFmtBuf, pszDialogPtr, nTotalGold);
+    D2Lang::Unicode::UNISYS::UNICODE_FormatWideString(300, wszGoldFmtBuf, D2Lang::StrTable::strtable::GetLocaleString(0xd24), nTotalGold);
     Dialog::AddStringData(Dialog::gpNpcMercListDialog, wszGoldFmtBuf, 0x15, 0, 4, 1, nullptr, 0);
     int32_t nMercSeed = 1;
     fpDialogFunc pfnCloseCallback = NPCMENU_MercListDrawCallback;
@@ -3599,8 +3569,7 @@ int __stdcall NPCMENU_BuildMercHireMenu() {
     int32_t nMercActRolled = 0;
     uint32_t dwColorArg = 0;
     uint32_t dwFontArg = 0x13b;
-    pszDialogPtr = D2Lang::StrTable::strtable::GetLocaleString(0xd48);
-    Dialog::AddStringData(Dialog::gpNpcMercListDialog, pszDialogPtr, dwFontArg, dwColorArg, nMercActRolled, dwEnabledArg, pfnCloseCallback, nMercSeed);
+    Dialog::AddStringData(Dialog::gpNpcMercListDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd48), dwFontArg, dwColorArg, nMercActRolled, dwEnabledArg, pfnCloseCallback, nMercSeed);
     ::ListBoxWrapper* ppListBox = (::ListBoxWrapper*)Storm::SMem::SMemAlloc(0xc, "new", -1, 0);
     nEHState = 0;
     if (ppListBox) {
@@ -3672,8 +3641,8 @@ int __stdcall NPCMENU_BuildMercHireMenu() {
         pszDialogPtr = D2Lang::StrTable::strtable::GetLocaleString(0xf9b);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszMercDesc, pszDialogPtr);
         nLabelMaxLen = 0x14;
-        memset(wszLabelBuf, 0, 20 * sizeof(wszLabelBuf[0]));
-        memset(wNumCharBuf, 0, 10 * sizeof(wNumCharBuf[0]));
+        for (int i = 0; i < 20; i++) wszLabelBuf[i] = 0;
+        for (int i = 0; i < 10; i++) wNumCharBuf[i] = 0;
         pszDialogPtr = D2Lang::StrTable::strtable::GetLocaleString(0xd28);
         D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(wszLabelBuf, pszDialogPtr, nLabelMaxLen);
         D2Lang::Unicode::UNISYS::AppendToBuffer(wszMercDesc, wszLabelBuf);
@@ -3781,8 +3750,7 @@ void __fastcall NPCMENU_HandleTradePacket(D2GSPacketSrv0x2A * pPacket) {
     *(uint8_t*)((char*)&D2GSPacketSrv0x2A_007c0d87.nGold + 3) = *(uint8_t*)((uintptr_t)&pPacket->nGold + 3);
     uint16_t wStatLayer = 0;
     eD2UnitStat eUnitStat = UNITSTAT_gold;
-    D2UnitStrc* pUnit = UNIT::Player::GetPlayerUnit_UI();
-    PLAYER_CurrentGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, eUnitStat, wStatLayer);
+    PLAYER_CurrentGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(UNIT::Player::GetPlayerUnit_UI(), eUnitStat, wStatLayer);
     if (_Interaction::geNpcUiState == NPCUI_TRANSACTION_PENDING) {
       NPCMENU_HandleTradeAccepted();
       return;

@@ -173,9 +173,7 @@ void __fastcall UpdateGameInfo(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     uint32_t nExperience = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_experience, 0);
     D2UnitStrc* nNewLevel = (D2UnitStrc*)D2Common::DATATBLS::DataTbls::DATATBLS_GetLevelFromExperience(nCurHp, nExperience);
     D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_level, (int32_t)nNewLevel, 0);
-    int32_t nLayer = 0;
-    DWORD nNextExp = D2Common::DATATBLS::DataTbls::TXT_Experience_GetLineLevel(nCurHp, (int32_t)nNewLevel);
-    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_nextexp, nNextExp, nLayer);
+    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_nextexp, D2Common::DATATBLS::DataTbls::TXT_Experience_GetLineLevel(nCurHp, (int32_t)nNewLevel), 0);
     int nLevelDelta = (int)nNewLevel - nCurrentStat;
     if (0 >= nLevelDelta) {
       return;
@@ -771,7 +769,6 @@ void __fastcall PLAYER_SendHoverTextToClient(D2UnitStrc * pUnit, D2ClientStrc * 
           }
         }
 
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -780,7 +777,6 @@ void __fastcall PLAYER_SendHoverTextToClient(D2UnitStrc * pUnit, D2ClientStrc * 
     }
 
     GAME::SCmd::NET_D2GS_SERVER_Send_CMD_BYTE_INT(pClient, 0x76, byUnitTypeFallback, nGUIDFallback);
-    Fog::Debug::GuardStack();
 }
 
 void __fastcall UNITMSG_SendSoundPacketToClient(D2UnitStrc * pUnit, D2ClientStrc * pClient) {
@@ -805,10 +801,10 @@ void __fastcall UNITMSG_SendSoundPacketToClient(D2UnitStrc * pUnit, D2ClientStrc
       }
     }
 
-    __frame0.nUnitGUID = pUnit->nUnitGUID;
-    __frame0.wSoundId = *(uint16_t*)((uintptr_t)&pUnit->uSideData + 10);
     __frame0.byOpcode = 0x2c;
     __frame0.byUnitType = (uint8_t)pUnit->eUnitType;
+    __frame0.wSoundId = *(uint16_t*)((uintptr_t)&pUnit->uSideData + 10);
+    __frame0.nUnitGUID = pUnit->nUnitGUID;
     GAME::SCmd::NET_D2GS_SERVER_Send_0x2C_PlaySound(pClient, (uint32_t*)&__frame0.byOpcode);
 }
 
@@ -1252,8 +1248,7 @@ void __fastcall SERVER_UnitQueuePacketFree(D2UnitStrc * pUnit) {
       nLine = 0x3ce;
       pMsgNext = pMemoryToFree->pNext;
       szFile = ".\\UNIT\\SUnitMsg.cpp";
-      pMemory = D2Client::UNIT::CUnitEvent::GetMemPool(pUnit);
-      Fog::Memory::FreeServerMemory(pMemory, pMemoryToFree, szFile, nLine, nNull);
+      Fog::Memory::FreeServerMemory(D2Client::UNIT::CUnitEvent::GetMemPool(pUnit), pMemoryToFree, szFile, nLine, nNull);
       pMemoryToFree = pMsgNext;
     } while (pMsgNext);
 

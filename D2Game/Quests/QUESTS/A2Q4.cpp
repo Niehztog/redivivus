@@ -91,9 +91,7 @@ bool __fastcall Q12_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetCl
       pDVar2 = pQuestData->pQuestSpecificData.pA2Q4;
       *(uint8_t*)(char*)&sVar1 = pDVar2->nPortalPlacedStateLo;
       *(uint8_t*)((char*)&sVar1 + 1) = pDVar2->nPortalPlacedStateHi;
-      if (!sVar1) {
-        eQuestState = QUESTSTATE_Step0x07;
-      } else {
+      if (sVar1) {
         if (sVar1 != 2) {
           return false;
         }
@@ -102,6 +100,8 @@ bool __fastcall Q12_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetCl
         }
 
         eQuestState = QUESTSTATE_Step0x08;
+      } else {
+        eQuestState = QUESTSTATE_Step0x07;
       }
     } else {
       if (nTargetClassId == 0xb1) {
@@ -661,15 +661,14 @@ void __fastcall BlockHaremRoomForPlayerAccess(int32_t nParam, D2UnitStrc * pUnit
     pA2Q4Specific->field_0x20 = ptPlayerPos.x - 2;
     uint8_t bForcedSpawn = 1;
     pA2Q4Specific->nHaremBlockerY = ptPlayerPos.y - 1;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2UnitStrc* pBlockerUnit = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 0x13e, pA2Q4Specific->field_0x20, pA2Q4Specific->nHaremBlockerY, *(::SGAMEDATA**)(nParam + 4), pRoom, bForcedSpawn, iVar1, pNullArg);
+    D2RoomStrc* pRoom;
+    D2UnitStrc* pBlockerUnit = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 0x13e, pA2Q4Specific->field_0x20, pA2Q4Specific->nHaremBlockerY, *(::SGAMEDATA**)(nParam + 4), D2Common::Units::UNITS_GetRoom(pUnit), bForcedSpawn, iVar1, pNullArg);
     if (!pBlockerUnit) {
       pNullArg = 0;
       iVar1 = 0;
       bForcedSpawn = 1;
       pA2Q4Specific->nHaremBlockerY = ptPlayerPos.y;
-      pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      pBlockerUnit = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 0x13e, pA2Q4Specific->field_0x20, pA2Q4Specific->nHaremBlockerY, *(::SGAMEDATA**)(nParam + 4), pRoom, bForcedSpawn, iVar1, pNullArg);
+      pBlockerUnit = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 0x13e, pA2Q4Specific->field_0x20, pA2Q4Specific->nHaremBlockerY, *(::SGAMEDATA**)(nParam + 4), D2Common::Units::UNITS_GetRoom(pUnit), bForcedSpawn, iVar1, pNullArg);
       if (!pBlockerUnit) {
         return;
       }
@@ -943,8 +942,7 @@ static void __fastcall Q12_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData,
         pPlayerData = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, *(int32_t*)(ptPos.y + 0x38));
         if (pPlayerData) {
           D2Common::Units::GetCoords(pPlayerData, &ptPos);
-          pRoom = D2Common::Units::UNITS_GetRoom(pPlayerData);
-          ReplaceJerhyn(pRoom, pQuestData, &ptPos);
+          ReplaceJerhyn(D2Common::Units::UNITS_GetRoom(pPlayerData), pQuestData, &ptPos);
         }
       }
 

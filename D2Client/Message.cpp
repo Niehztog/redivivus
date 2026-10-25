@@ -169,46 +169,44 @@ void __fastcall MESSAGE_UnregisterEventHandler(HWND hWnd, int32_t eEventType, ch
 
 // Iterates D2UIFlagInitStrc array and registers nCount event handlers via MESSAGE_RegisterEventHandler. Used during UI state initialization.
 void __fastcall MESSAGE_RegisterEventHandlerBatch(HWND hWnd, D2UIFlagInitStrc * pEventHandlers, int32_t nCount) {
-    if (hWnd) {
-      int32_t* pnMessageCode;
-      if (!nCount) {
-        return;
-      }
+    if (!hWnd) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x153);
+      exit(-1);
+    }
 
-      pnMessageCode = &pEventHandlers->nMessageOrKeyCode;
-      do {
-        MESSAGE_RegisterEventHandler(hWnd, ((D2UIFlagInitStrc*)(pnMessageCode - 1))->eEventType, *pnMessageCode, (int32_t)pnMessageCode[1]);
-        pnMessageCode += 3;
-        nCount--;
-      } while (nCount);
-
+    int32_t* pnMessageCode;
+    if ((uint32_t)nCount <= 0) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x153);
-    exit(-1);
+    pnMessageCode = &pEventHandlers->nMessageOrKeyCode;
+    do {
+      MESSAGE_RegisterEventHandler(hWnd, ((D2UIFlagInitStrc*)(pnMessageCode - 1))->eEventType, *pnMessageCode, (int32_t)pnMessageCode[1]);
+      pnMessageCode += 3;
+      nCount--;
+    } while (nCount);
+    return;
 }
 
 // Iterates D2UIFlagInitStrc array and unregisters nCount event handlers via MESSAGE_UnregisterEventHandler. Used during UI state cleanup.
 void __fastcall MESSAGE_UnregisterEventHandlerBatch(HWND hWnd, D2UIFlagInitStrc * pEventHandlers, int32_t nCount) {
-    if (hWnd) {
-      int32_t* pnMessageCode;
-      if (!nCount) {
-        return;
-      }
+    if (!hWnd) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x166);
+      exit(-1);
+    }
 
-      pnMessageCode = &pEventHandlers->nMessageOrKeyCode;
-      do {
-        MESSAGE_UnregisterEventHandler(hWnd, ((D2UIFlagInitStrc*)(pnMessageCode - 1))->eEventType, (char*)*pnMessageCode, (char*)pnMessageCode[1]);
-        pnMessageCode += 3;
-        nCount--;
-      } while (nCount);
-
+    int32_t* pnMessageCode;
+    if ((uint32_t)nCount <= 0) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x166);
-    exit(-1);
+    pnMessageCode = &pEventHandlers->nMessageOrKeyCode;
+    do {
+      MESSAGE_UnregisterEventHandler(hWnd, ((D2UIFlagInitStrc*)(pnMessageCode - 1))->eEventType, (char*)*pnMessageCode, (char*)pnMessageCode[1]);
+      pnMessageCode += 3;
+      nCount--;
+    } while (nCount);
+    return;
 }
 
 uint32_t __fastcall MESSAGE_RegisterWindowMessageHandlers(uint32_t nParam) {

@@ -60,8 +60,7 @@ static int32_t AppendLineToFile(::IgnoreList * pThis, char * szLine) {
         pThis->pAppendFile = _File;
         if (_File) {
           _Count = 1;
-          nStrLen = Storm::Source::SSTR::SStrLen(szPath);
-          fwrite(szPath, nStrLen, _Count, _File);
+          fwrite(szPath, Storm::Source::SSTR::SStrLen(szPath), _Count, _File);
           iVar1 = fclose(pThis->pAppendFile);
           uVar2 = (uint32_t)!iVar1;
         }
@@ -348,7 +347,7 @@ void LoadFromFile(::IgnoreList * pThis) {
     if (pFile) {
       char* pszLine;
       szLineBuf[0] = '\0';
-      memset(szLineBuf + 1, 0, 0xff);
+      for (int i = 0x1; i < 0x100; i++) szLineBuf[i] = 0;
       pszLine = CRT_Fgets(szLineBuf, 0x100, pFile);
       while (pszLine) {
         pszIter = 0;
@@ -479,16 +478,13 @@ void AddAccountMapping(::IgnoreList * pThis, char * szRaw, int32_t nRawLen) {
           Storm::Source::SSTR::SStrPack(&__frame0.cPatternPrefix, __frame0.szCharName, 0x100);
           pszPatternDup = Storm::Source::SSTR::SStrDup(&__frame0.cPatternPrefix);
           pNameEntry->szMappedValue = (char*)pszPatternDup;
-          Fog::Debug::GuardStack();
           return;
         }
 
-        Fog::Debug::GuardStack();
         return;
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 } // namespace D2Common::Chat::Ignorelist::IgnoreList

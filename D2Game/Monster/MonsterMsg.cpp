@@ -64,9 +64,7 @@ void __stdcall SendCastSkillMsg(D2ClientStrc * pClient, D2UnitStrc * pTarget, D2
     nTargetX = 0;
     wSkillPad = 0;
     nTargetYPos = D2Common::PATH::DynamicPath::GetYSP1(pMonster->pPath.pDynamicPath);
-    wTargetY = (uint16_t)nTargetYPos;
-    nTargetYPos = D2Common::PATH::DynamicPath::GetXSP1(pMonster->pPath.pDynamicPath);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x4D_SKILL_XY(pClient, 1, nMonsterGUID, (uint16_t)nTargetYPos, wTargetY, eSkillId, wSkillPad, bySkillLvl, nTargetX);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x4D_SKILL_XY(pClient, 1, nMonsterGUID, (uint16_t)D2Common::PATH::DynamicPath::GetXSP1(pMonster->pPath.pDynamicPath), (uint16_t)nTargetYPos, eSkillId, wSkillPad, bySkillLvl, nTargetX);
 }
 
 } // namespace D2Game::Monster::MonsterMsg

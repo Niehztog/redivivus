@@ -1149,9 +1149,7 @@ BOOL __stdcall FreeInGameGFX() {
     D2WINMAIN_FreeLeadingFormControls();
     D2WinList::D2WINLIST_FreePentSpinCursor();
     D2WinFont::D2WINFONT_FreeFontCache();
-    int32_t nHandlerCount = 0x21;
-    HWND hWnd = D2gfx::D2GFX::GetHwnd();
-    Forms::D2WIN_UnregisterWindowHandlerArray((int32_t)hWnd, gaUIWindowHandlers, nHandlerCount);
+    Forms::D2WIN_UnregisterWindowHandlerArray((int32_t)D2gfx::D2GFX::GetHwnd(), gaUIWindowHandlers, 0x21);
     return 1;
 }
 

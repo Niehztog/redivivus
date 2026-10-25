@@ -878,8 +878,7 @@ uint32_t __stdcall DEBUG_GetDbgHelpModuleRange(LPVOID * ppBaseOfDll, DWORD * pdw
     DWORD cb = 0xc;
     _MODULEINFO* pModuleInfo = &moduleInfo;
     HMODULE hModule = hDbgHelpDll;
-    HANDLE hProcess = GetCurrentProcess();
-    BOOL bGotInfo = GetModuleInformation(hProcess, hModule, pModuleInfo, cb);
+    BOOL bGotInfo = GetModuleInformation(GetCurrentProcess(), hModule, pModuleInfo, cb);
     if (!bGotInfo) {
       return 0;
     }
@@ -911,7 +910,7 @@ void __fastcall ZeroStruct36Bytes(uint32_t * pStruct) {
     pStruct[2] = 0;
     pStruct[3] = 0;
     *(uint8_t*)(pStruct + 4) = 0;
-    memset(pStruct + 5, 0, 4 * sizeof(pStruct[0]));
+    for (int i = 5; i < 9; i++) pStruct[i] = 0;
 }
 
 void __stdcall ZeroStruct16Bytes(void * pStruct) {
@@ -6205,8 +6204,7 @@ void __fastcall FullStackWalkWithAnnotations(HANDLE hThread, CONTEXT * pContext)
     char* pszText = (char*)BuildSymbolSearchPath(szSearchPath);
     bWalkOk = (*pSymInitialize)(hDupProcess, pszText, 0);
     if (!bWalkOk) {
-      dwSymOptions = GetLastError();
-      Src::LogManager::LOGMANAGER_TraceToModuleLog("", "SymInitialize(): gle = %lu", dwSymOptions);
+      Src::LogManager::LOGMANAGER_TraceToModuleLog("", "SymInitialize(): gle = %lu", GetLastError());
       (*pSymCleanup)(hDupProcess);
       /* HANDLE hObject for CloseHandle */ CloseHandle(hDupProcess);
       return;
@@ -6214,8 +6212,7 @@ void __fastcall FullStackWalkWithAnnotations(HANDLE hThread, CONTEXT * pContext)
 
     dwSymOptions = (*pSymGetOptions)();
     (*pSymSetOptions)(dwSymOptions | 0x10);
-    dwSymOptions = GetCurrentProcessId();
-    D2FogModuleNodeStrc* pModuleList = LoadSymbolsForAllModules(hDupProcess, dwSymOptions);
+    D2FogModuleNodeStrc* pModuleList = LoadSymbolsForAllModules(hDupProcess, GetCurrentProcessId());
     CONTEXT* pContextBase = __frame0.pContextLocal;
     DumpAnnotatedStackMemory(hDupProcess, __frame0.pContextLocal, pModuleList);
     FOG_FreeModuleList(pModuleList);

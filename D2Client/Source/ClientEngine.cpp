@@ -142,12 +142,12 @@ static void __stdcall DenOfEvilSpecific(D2RoomStrc * pRoom) {
         } else {
           sNewSeed = (D2SeedStrc)((uint64_t)nRandCoord * 0x6ac690c5 + nSeedHigh);
           pPlayer->sSeed = sNewSeed;
-          nRandCoord = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) % (uint64_t)(uint32_t)sRoomCoords.dwXSize);
+          nRandCoord = (uint32_t)(sNewSeed.nSeedLow % (uint32_t)sRoomCoords.dwXSize);
         }
       }
 
       sSkillArg.nX = nRandCoord + sRoomCoords.dwXStart;
-      if (sRoomCoords.dwYSize < 1) {
+      if (sRoomCoords.dwYSize <= 0) {
         nRandCoord = 0;
       } else {
         nRandCoord = pPlayer->sSeed.nSeedLow;
@@ -159,7 +159,7 @@ static void __stdcall DenOfEvilSpecific(D2RoomStrc * pRoom) {
         } else {
           sNewSeed = (D2SeedStrc)((uint64_t)nRandCoord * 0x6ac690c5 + nSeedHigh);
           pPlayer->sSeed = sNewSeed;
-          nRandCoord = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) % (uint64_t)(uint32_t)sRoomCoords.dwYSize);
+          nRandCoord = (uint32_t)(sNewSeed.nSeedLow % (uint32_t)sRoomCoords.dwYSize);
         }
       }
 
@@ -373,9 +373,7 @@ static void __stdcall CLIENT_QuestEvent_FreeAnyaFromIce() {
 
     int32_t nSkillLevel = 1;
     eD2Skills eSkill = SKILL_Attack;
-    int32_t nY = Units::GetYPosFromDynamicPathUnit(pUnit);
-    int32_t nX = Units::GetXPosFromDynamicPathUnit(pUnit);
-    pPlayer = UNIT::Missile::CastAttack(pPlayer, MISSILE_AnyaCenter, nX, nY, eSkill, nSkillLevel);
+    pPlayer = UNIT::Missile::CastAttack(pPlayer, MISSILE_AnyaCenter, Units::GetXPosFromDynamicPathUnit(pUnit), Units::GetYPosFromDynamicPathUnit(pUnit), eSkill, nSkillLevel);
     if (!pPlayer) {
       return;
     }
@@ -499,18 +497,18 @@ void __fastcall HandleIncoming0x89(int32_t nEventId) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1d9);
       exit(-1);
     } else {
-      if (nEventId < 0x14) {
-        gdwDenOfEvilEventFlags |= 1 << ((uint8_t)nEventId & 0x1f);
-        if (!CLIENT_QuestEventHandlers[nEventId]) {
-          return;
-        }
+      if (!(nEventId < 0x14)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1da);
+        exit(-1);
+      }
 
-        (*CLIENT_QuestEventHandlers[nEventId])();
+      gdwDenOfEvilEventFlags |= 1 << ((uint8_t)nEventId & 0x1f);
+      if (!CLIENT_QuestEventHandlers[nEventId]) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1da);
-      exit(-1);
+      (*CLIENT_QuestEventHandlers[nEventId])();
+      return;
     }
 }
 
@@ -542,8 +540,7 @@ void __fastcall CLIENT_SpawnTowerMistEffect(D2UnitStrc * pUnit) {
     D2SkillArgStrc sSkillArg;
     int32_t nTargetClassId = 0x173;
     eD2UnitType eFindType = UNIT_OBJECT;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2UnitStrc* pTarget = D2Common::Units::UnitFinds::FindUnitInNeighboredRooms(pRoom, eFindType, nTargetClassId);
+    D2UnitStrc* pTarget = D2Common::Units::UnitFinds::FindUnitInNeighboredRooms(D2Common::Units::UNITS_GetRoom(pUnit), eFindType, nTargetClassId);
     if (pTarget) {
       eFindType = pTarget->eUnitType;
       if (eFindType == UNIT_OBJECT || 3 < (int)eFindType && (int)eFindType <= 5) {
@@ -607,8 +604,7 @@ void __fastcall CLIENT_SpawnOrbMistEffect(D2UnitStrc * pUnit) {
     int nX;
     int32_t nClassId = 0x182;
     eD2UnitType eFindType = UNIT_OBJECT;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2UnitStrc* pTarget = D2Common::Units::UnitFinds::FindUnitInNeighboredRooms(pRoom, eFindType, nClassId);
+    D2UnitStrc* pTarget = D2Common::Units::UnitFinds::FindUnitInNeighboredRooms(D2Common::Units::UNITS_GetRoom(pUnit), eFindType, nClassId);
     if (pTarget) {
       GAME::Wall2::WALL2_ScheduleSoundSequence(0x124f, 0, 0x15e, 0, 0, 0, 0);
       eFindType = pTarget->eUnitType;
@@ -805,8 +801,7 @@ void __stdcall CLIENT_BossDeath_Baal() {
     D2UnitStrc* pPlayerUnit_lcl = UNIT::Player::GetPlayerUnit_Net();
     int32_t nSearchRange = 0x220;
     eD2UnitType eSearchType = UNIT_MONSTER;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pPlayerUnit_lcl);
-    D2UnitStrc* pBaalUnit = D2Common::Units::UnitFinds::FindUnitInNeighboredRooms(pRoom, eSearchType, nSearchRange);
+    D2UnitStrc* pBaalUnit = D2Common::Units::UnitFinds::FindUnitInNeighboredRooms(D2Common::Units::UNITS_GetRoom(pPlayerUnit_lcl), eSearchType, nSearchRange);
     if (!pBaalUnit) {
       return;
     }
@@ -964,8 +959,8 @@ void __fastcall CLIENT_SetQuestGameEndTimer(int32_t nSeconds) {
 void __fastcall CLIENT_SpawnWorldstoneShakeParticle(D2UnitStrc * pUnit) {
     int32_t nClassId = 0x271;
     eD2UnitType eUnitType = UNIT_MISSILE;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2UnitStrc* pMissileUnit = D2Common::Units::UnitFinds::FindUnitInNeighboredRooms(pRoom, eUnitType, nClassId);
+    D2RoomStrc* pRoom;
+    D2UnitStrc* pMissileUnit = D2Common::Units::UnitFinds::FindUnitInNeighboredRooms(D2Common::Units::UNITS_GetRoom(pUnit), eUnitType, nClassId);
     if (!pMissileUnit) {
       return;
     }
@@ -1408,14 +1403,13 @@ static uint32_t __stdcall MONSTER_TryMoveTowardTarget(D2UnitStrc * pUnit, uint8_
     eD2CollisionUnitSize nWidth = COLLISION_UNIT_SIZE_POINT;
     int nY = nStepY + local_c;
     int nX = nStepX + nMonsterY;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    eCollisionFlags eVar2 = D2Common::Collision::CheckCollision_BlockAll_Width(pRoom, nX, nY, nWidth, eCollisionFlag);
+    eCollisionFlags eVar2 = D2Common::Collision::CheckCollision_BlockAll_Width(D2Common::Units::UNITS_GetRoom(pUnit), nX, nY, nWidth, eCollisionFlag);
     if (eVar2 != COLLIDE_NONE) {
       return 0;
     }
 
-    sMsg.nItemId = (uint32_t)bMoveStep * nStepY + local_c;
     sMsg.nSkillId = (uint32_t)bMoveStep * nStepX + nMonsterY;
+    sMsg.nItemId = (uint32_t)bMoveStep * nStepY + local_c;
     sMsg.nTargetUnitType = 0;
     sMsg.nTargetUnitId = D2Common::PATH::DynamicPath::GetPathType(pServerPath);
     sMsg.nSkillLvl = dwAnimMode;
@@ -1451,13 +1445,13 @@ static void __stdcall CLIENT_SendMonsterMoveToRandomNearbyPosMessage(uint32_t nO
     D2SeedStrc sSeed = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = sSeed;
     uint32_t nOffsetX = nOffsetY;
-    if ((uint64_t)d2_bits_of(sSeed) & 1) {
+    if (sSeed.nSeedLow & 1) {
       nOffsetX = -nOffsetY;
     }
 
     sSeed = D2_SEED_NEXT_VAL(sSeed);
     pUnit->sSeed = sSeed;
-    if ((uint64_t)d2_bits_of(sSeed) & 1) {
+    if (sSeed.nSeedLow & 1) {
       nOffsetY = -nOffsetY;
     }
 
@@ -1952,8 +1946,7 @@ static void CLIENT_MonsterSeekCorpse(D2UnitStrc * pUnit) {
     }
 
     eCollisionFlags eCollision = COLLISION_LOS_THREAT | COLLIDE_MISSILE;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    eCollision = D2Common::Collision::CheckCollision_BlockPlayerMissile(pRoom, nX, nY, eCollision);
+    eCollision = D2Common::Collision::CheckCollision_BlockPlayerMissile(D2Common::Units::UNITS_GetRoom(pUnit), nX, nY, eCollision);
     if (eCollision != COLLIDE_NONE) {
       CLIENT_SendMonsterAttackMessage(pUnit);
       return;
@@ -2037,7 +2030,7 @@ static void CLIENT_SpawnWorldstoneChipDebris(D2UnitStrc * pUnit) {
         pMissileOrPlayer = UNIT::Missile::CastAttack(pUnit, (sSeed1.nSeedLow & 3) + MISSILE_WorldStoneChip1, sSeed3.nSeedLow % 0x3c - 0x1e + nX, sSeed2.nSeedLow % 0x3c - 0x1e + nY, SKILL_Attack, 1);
         if (pMissileOrPlayer) {
           sSeed1 = D2_SEED_NEXT(pUnit->sSeed);
-          bDirFlag = !((uint64_t)d2_bits_of(sSeed1) & 1);
+          bDirFlag = !(sSeed1.nSeedLow & 1);
           pUnit->sSeed = sSeed1;
           if (bDirFlag) {
             Engine::Particle::SetPosVectorShifted(pMissileOrPlayer, 0, 0, 300);

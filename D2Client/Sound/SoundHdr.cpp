@@ -414,8 +414,7 @@ static void __stdcall TXT_AllocTxt_sounds_soundenviron() {
         nLine = 0x101;
         szSourceFile = ".\\Sound\\SoundHdr.cpp";
         pFileSize = &nFileSize;
-        pMpq = D2Win::Src::D2WinArchive::ReturnZero();
-        pD2File = (D2ArchiveStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMpq, szPath, pFileSize, szSourceFile, nLine);
+        pD2File = (D2ArchiveStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(D2Win::Src::D2WinArchive::ReturnZero(), szPath, pFileSize, szSourceFile, nLine);
         pBinExcel = Fog::Src::Excel::STRUCT_CreateBinFieldExcelAndFillData(pD2File, nFileSize);
         nTxtSoundsSize = Fog::Src::Excel::TXT_GetLinesCountFromBinFieldExcel(pBinExcel);
         pSounds = (D2SoundsTxt*)D2_ALLOC(nTxtSoundsSize * 0x8e);
@@ -803,38 +802,34 @@ void __fastcall SOUNDHDR_BuildSoundPath(int32_t nSoundId, uint32_t * pszOutPath)
     } while (*pScanDwordEnd != '\0');
 
     D2SoundsTxt* pSoundCopy = pSound;
-    if (pszDst + (int)((int)pSoundScan + (-(int)(pSound->Filename + 1) - ((int)pszOutPath + 1))) < (char*)0x50) {
-      uint32_t nFilenameLen;
-      do {
-        pszDst = pSoundCopy->Filename;
-        pScanDwordEnd = pSoundCopy->Filename;
-        pSoundCopy = (D2SoundsTxt*)(pScanDwordEnd + 1);
-      } while (*pszDst != '\0');
-
-      nFilenameLen = (int)(pScanDwordEnd + 1) - (int)pSound;
-      pszDst = (char*)((int)pszOutPath - 1);
-      do {
-        pScanDwordEnd = pszDst + 1;
-        pszDst++;
-      } while (*pScanDwordEnd != '\0');
-
-      for (nDwordCount = nFilenameLen >> 2; nDwordCount; nDwordCount--) {
-        *(uint32_t*)pszDst = *(uint32_t*)pSound->Filename;
-        pSound = (D2SoundsTxt*)(pSound->Filename + 4);
-        pszDst += 4;
-      }
-
-      for (nFilenameLen &= 3; nFilenameLen; nFilenameLen--) {
-        *pszDst = pSound->Filename[0];
-        pSound = (D2SoundsTxt*)(pSound->Filename + 1);
-        pszDst++;
-      }
-
-      return;
+    if (!(pszDst + (int)((int)pSoundScan + (-(int)(pSound->Filename + 1) - ((int)pszOutPath + 1))) < (char*)0x50)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3ab);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3ab);
-    exit(-1);
+    uint32_t nFilenameLen;
+    do {
+      pszDst = pSoundCopy->Filename;
+      pScanDwordEnd = pSoundCopy->Filename;
+      pSoundCopy = (D2SoundsTxt*)(pScanDwordEnd + 1);
+    } while (*pszDst != '\0');
+    nFilenameLen = (int)(pScanDwordEnd + 1) - (int)pSound;
+    pszDst = (char*)((int)pszOutPath - 1);
+    do {
+      pScanDwordEnd = pszDst + 1;
+      pszDst++;
+    } while (*pScanDwordEnd != '\0');
+    for (nDwordCount = nFilenameLen >> 2; nDwordCount; nDwordCount--) {
+      *(uint32_t*)pszDst = *(uint32_t*)pSound->Filename;
+      pSound = (D2SoundsTxt*)(pSound->Filename + 4);
+      pszDst += 4;
+    }
+    for (nFilenameLen &= 3; nFilenameLen; nFilenameLen--) {
+      *pszDst = pSound->Filename[0];
+      pSound = (D2SoundsTxt*)(pSound->Filename + 1);
+      pszDst++;
+    }
+    return;
 }
 
 void __fastcall SOUNDHDR_UpdateLRUTimestamp(int32_t nSoundId) {
@@ -943,8 +938,7 @@ void __fastcall SOUNDHDR_LoadSoundFile(int32_t nSoundId, int32_t bForceSync, int
       nResult = 0x301;
       szSourceFile = ".\\Sound\\SoundHdr.cpp";
       pSoundDataBytes = &pSound->nSoundDataBytes;
-      pMpqMgr = D2Win::Src::D2WinArchive::ReturnZero();
-      pSoundData = Fog::Archive::D2FILE_AllocAndLoadD2File(pMpqMgr, szPath, (size_t*)pSoundDataBytes, szSourceFile, nResult);
+      pSoundData = Fog::Archive::D2FILE_AllocAndLoadD2File(D2Win::Src::D2WinArchive::ReturnZero(), szPath, (size_t*)pSoundDataBytes, szSourceFile, nResult);
       pSound->pSoundDataBuffer = pSoundData;
       if (pSoundData) {
         nLoadStateOrBytes = pSound->nSoundDataBytes;

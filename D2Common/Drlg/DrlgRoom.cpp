@@ -248,7 +248,7 @@ static D2RoomExStrc * __fastcall DRLGSPAWN_GetRandomPresetSpawnPoint(int32_t nSp
           if (nMatchingCount & nMatchingCount - 1) {
             sNextSeed = (D2SeedStrc)((uint64_t)nSeedLow * 0x6ac690c5 + nSeedHighU);
             pLevel->sSeed = sNextSeed;
-            nSelectedIdx = (int)(((uint64_t)d2_bits_of(sNextSeed) & 0xffffffff) % (uint64_t)nMatchingCount) + 1;
+            nSelectedIdx = (int)(sNextSeed.nSeedLow % nMatchingCount) + 1;
           } else {
             sNextSeed = (D2SeedStrc)((uint64_t)nSeedLow * 0x6ac690c5 + nSeedHighU);
             nSelectedIdx = (nMatchingCount - 1 & sNextSeed.nSeedLow) + 1;
@@ -341,18 +341,17 @@ static D2RoomExStrc * DRLGSPAWN_GetRandomRoomFromLevel(D2DrlgLevelStrc * pLevel)
       exit(-1);
     } else {
       D2RoomExStrc* pDVar1;
-      if (pLevel->pRoomExFirst) {
-        nRandomIndex = D2Client::Archive::RANDOM_RandomNumberSelector(&pLevel->sSeed, pLevel->nRoomExCount);
-        pDVar1 = pLevel->pRoomExFirst;
-        for (; nRandomIndex; nRandomIndex--) {
-          pDVar1 = pDVar1->pRoomExNext;
-        }
-
-        return pDVar1;
+      if (!pLevel->pRoomExFirst) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x13f);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x13f);
-      exit(-1);
+      nRandomIndex = D2Client::Archive::RANDOM_RandomNumberSelector(&pLevel->sSeed, pLevel->nRoomExCount);
+      pDVar1 = pLevel->pRoomExFirst;
+      for (; nRandomIndex; nRandomIndex--) {
+        pDVar1 = pDVar1->pRoomExNext;
+      }
+      return pDVar1;
     }
 }
 
@@ -1019,11 +1018,13 @@ uint32_t __fastcall DRLGROOMEX_CheckWorldCoordsInRoomBounds(D2DrlgCoordsStrc * p
 }
 
 uint32_t __fastcall CheckLOSDraw(D2RoomExStrc * pRoomEx) {
-    if (pRoomEx->nPresetType == 1) {
+    switch (pRoomEx->nPresetType) {
+    case 1: {
       return 1;
     }
-    if (pRoomEx->nPresetType == 2) {
+    case 2: {
       return pRoomEx->eRoomExFlags & 0x80000;
+    }
     }
 
     return 0;
@@ -1152,13 +1153,13 @@ void __stdcall DefineRoomsNear(D2PoolManagerStrc * pMemory, D2RoomExStrc * pRoom
       } else {
         nGapY = nGapY - pRoomExIter->sCoords.WorldSize.y - nPosY2;
       }
-      if (!(nGapX < 6 && nGapY < 6)) {
-        pRoomExIter = pRoomExIter->pRoomExNext;
-      } else {
+      if (nGapX < 6 && nGapY < 6) {
         nGapX = pRoomEx->nDrlgRoomsExNearCount;
         apNearRoomExList[nGapX] = (D2RoomStrc*)pRoomExIter;
         pRoomExIter = pRoomExIter->pRoomExNext;
         pRoomEx->nDrlgRoomsExNearCount = nGapX + 1;
+      } else {
+        pRoomExIter = pRoomExIter->pRoomExNext;
       }
     }
 

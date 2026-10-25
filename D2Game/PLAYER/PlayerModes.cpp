@@ -479,32 +479,30 @@ void __stdcall PLRMODES_UnequipAndPrepareItemForDrop(::SGAMEDATA * pGame, D2Unit
       exit(-1);
     } else {
       eD2ItemTypes eItemType;
-      if (pUnit2 == pOwnerUnit) {
-        D2Common::INVENTORY::Inventory::NullSub_2Arg(pInventory, nBodyLoc);
-        eItemType = D2Common::ITEMS::Items::ITEM_GetItemData_wType(pUnit2);
-        if (eItemType == ITEMTYPE_Belt) {
-          ITEMS::ItemMode::ITEMMODE_RemoveItemFromBelt(pGame, pUnit, nullptr);
-        }
-        if (pUnit2) {
-          pUnit2->eUnitFlags &= ~UNITFLAG_TARGETABLE;
-        }
-
-        ITEMS::ItemMode::ITEMMODE_UnequipItemStats(pGame, pUnit2, pUnit, 0, 1);
-        D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pUnit2, ITEMFLAG_REMOVED, 1);
-        D2Common::ITEMS::Items::ITEM_EditItemData_eD2ItemCmd(pUnit2, ITEMCMD_DELETE, 1);
-        D2Common::ITEMS::Items::ITEM_EditItemData_eD2ItemCmd(pUnit2, ITEMCMD_BODYLOC_TAKE_ITEM, 1);
-        D2Common::INVENTORY::Inventory::UpsertToUpdateList(pInventory, pUnit2);
-        if (bShouldReturnItem) {
-          ITEMS::ItemMode::ITEMMODE_ReturnOne(0);
-        }
-
-        D2Common::ITEM_ProcessSetItemEquip(pUnit, pUnit2, 1, 1);
-        D2Common::Units::RefreshInventory(pUnit, 1);
-        return;
+      if (pUnit2 != pOwnerUnit) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x25e);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x25e);
-      exit(-1);
+      D2Common::INVENTORY::Inventory::NullSub_2Arg(pInventory, nBodyLoc);
+      eItemType = D2Common::ITEMS::Items::ITEM_GetItemData_wType(pUnit2);
+      if (eItemType == ITEMTYPE_Belt) {
+        ITEMS::ItemMode::ITEMMODE_RemoveItemFromBelt(pGame, pUnit, nullptr);
+      }
+      if (pUnit2) {
+        pUnit2->eUnitFlags &= ~UNITFLAG_TARGETABLE;
+      }
+      ITEMS::ItemMode::ITEMMODE_UnequipItemStats(pGame, pUnit2, pUnit, 0, 1);
+      D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pUnit2, ITEMFLAG_REMOVED, 1);
+      D2Common::ITEMS::Items::ITEM_EditItemData_eD2ItemCmd(pUnit2, ITEMCMD_DELETE, 1);
+      D2Common::ITEMS::Items::ITEM_EditItemData_eD2ItemCmd(pUnit2, ITEMCMD_BODYLOC_TAKE_ITEM, 1);
+      D2Common::INVENTORY::Inventory::UpsertToUpdateList(pInventory, pUnit2);
+      if (bShouldReturnItem) {
+        ITEMS::ItemMode::ITEMMODE_ReturnOne(0);
+      }
+      D2Common::ITEM_ProcessSetItemEquip(pUnit, pUnit2, 1, 1);
+      D2Common::Units::RefreshInventory(pUnit, 1);
+      return;
     }
 }
 
@@ -633,8 +631,16 @@ static uint32_t __stdcall PLRMODES_IsCorpseOwnedByPlayer(::SGAMEDATA * pGame, D2
         return nPartyFlags;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x38f);
-      exit(-1);
+      nPartyFlags = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID((D2UnitStrc*)pCorpseUnitRaw->pInventory);
+      if (pUnit->nUnitGUID == nPartyFlags) {
+        return 1;
+      }
+      pCorpseOwner = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_PLAYER, nPartyFlags);
+      if (!pCorpseOwner) {
+        return 0;
+      }
+      nPartyFlags = UNIT::PlayerList::PLAYERLIST_GetFlagsMasked(pCorpseOwner, pUnit, 1);
+      return nPartyFlags;
     }
 }
 
@@ -673,8 +679,7 @@ void __fastcall PLRMODES_PickupCorpse(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D
       D2Common::INVENTORY::Inventory::INVENTORY_RemoveCorpse(pUnit->pInventory, pCorpseUnit->nUnitGUID, 1);
       nPendingExperience = pCorpseUnit->nUnitGUID;
       eCorpseUnitType = pCorpseUnit->eUnitType;
-      pRoom = D2Common::Units::UNITS_GetRoom(pCorpseUnit);
-      D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pRoom, eCorpseUnitType, nPendingExperience);
+      D2Common::DUNGEON::Dungeon::AllocDrlgDelete(D2Common::Units::UNITS_GetRoom(pCorpseUnit), eCorpseUnitType, nPendingExperience);
       GAME::SCmd::NET_D2GS_SERVER_Send_0x8E_CorpseAssign_Sender(pGame, pUnit->nUnitGUID, pCorpseUnit->nUnitGUID, 0);
       D2Common::Units::RemoveCollision_Vector(pCorpseUnit);
       UNIT::SUnit::FreeServerUnit(pGame, pCorpseUnit);
@@ -1260,9 +1265,7 @@ static void PLRMODES_RegenMana(D2UnitStrc * pUnit) {
         nCharClassId = 1;
       }
 
-      n100Percent = 100;
-      nCurrentMana = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_manarecoverybonus, 0);
-      nBaseRegen = D2Client::Stats::D2ApplyPercent(nCharClassId, nCurrentMana + 100, n100Percent);
+      nBaseRegen = D2Client::Stats::D2ApplyPercent(nCharClassId, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_manarecoverybonus, 0) + 100, 100);
     }
 
     nCharClassId = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_manarecovery, 0);

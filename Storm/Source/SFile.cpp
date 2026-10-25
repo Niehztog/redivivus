@@ -135,8 +135,8 @@ int32_t __stdcall SFILE_DecompressLzw(int32_t pSrcData, int32_t pDstData, int32_
       gpSFileExplodeWorkBuffer = SMem::SMemAlloc(0x3134, ".\\SOURCE\\SFILE.CPP", 0x2c9, 0);
     }
 
-    bufState[2] = pSrcData;
     bufState[0] = pDstData;
+    bufState[2] = pSrcData;
     bufState[1] = 0;
     bufState[3] = 0;
     bufState[4] = nDstSize;
@@ -313,8 +313,8 @@ static void __fastcall SFILE_ShiftSectorTable(int32_t pSectorTable, uint32_t nSe
     void* pDst = (void*)(nSectorCount * 0x2c - 0x2c + pSectorTable);
     if (1 < nSectorCount) {
       uint32_t* pDstExtra;
-      nSectorsLeft = nSectorCount - 1;
       pDstExtra = (uint32_t*)((int)pDst + 0x24);
+      nSectorsLeft = nSectorCount - 1;
       do {
         memmove(pDst, pSrc, 0x10);
         pSrc = (void*)((int)pSrc - 0x10);
@@ -1953,16 +1953,15 @@ int __stdcall SFileAuthenticateArchive(D2ArchiveStrc * pArchive, uint32_t * pdwA
                                       /* LPCSTR lpType for FindResourceA */ lpType = "#256";
                                       /* LPCSTR lpName for FindResourceA */ hModule_00 = SSystem::StormGetInstance();
                                       /* HMODULE hModule for FindResourceA */ hResInfo = FindResourceA(hModule_00, lpName, lpType);
-                                      hResInfoSaved = hResInfo;
-                                      /* HRSRC hResInfo for LoadResource */ hModule_00 = SSystem::StormGetInstance();
-                                      /* HMODULE hModule for LoadResource */ hResData = LoadResource(hModule_00, hResInfoSaved);
+                                       /* HRSRC hResInfo for LoadResource */
+                                      /* HMODULE hModule for LoadResource */ hResData = LoadResource(SSystem::StormGetInstance(), hResInfo);
                                       /* HGLOBAL hResData for LockResource */ pResData = LockResource(hResData);
                                       if (pResData) {
                                         phKeyOut = &__frame0.hKey;
                                         nResult = 0;
                                         nRet = 0;
-                                        /* HRSRC hResInfo for SizeofResource */ hModule_00 = SSystem::StormGetInstance();
-                                        /* HMODULE hModule for SizeofResource */ dwResSize = SizeofResource(hModule_00, hResInfo);
+                                         /* HRSRC hResInfo for SizeofResource */
+                                        /* HMODULE hModule for SizeofResource */ dwResSize = SizeofResource(SSystem::StormGetInstance(), hResInfo);
                                         pCryptFuncs->pfnImportKey(__frame0.hProv, pResData, dwResSize, nRet, nResult, phKeyOut);
                                       }
 
@@ -2412,16 +2411,16 @@ static int __fastcall SFILE_SearchFileInArchives(D2ArchiveStrc * pArchive, D2MPQ
         if (nHashIndex != -1) {
           nRet = 1;
           pBlockEntry = SFILE_GetBlockTableEntry(pSearchArchive, nHashIndex);
-          if (!((int)pBlockEntry->dwFlags < 0 && (!(bSearchFlags & 4) || !(pBlockEntry->dwFlags & 0x1ff00)))) {
-            nRet = 0;
-            SErr::SErrSetLastError(0x3ee);
-          } else {
+          if ((int)pBlockEntry->dwFlags < 0 && (!(bSearchFlags & 4) || !(pBlockEntry->dwFlags & 0x1ff00))) {
             if (ppArchiveOut) {
               *ppArchiveOut = pSearchArchive;
             }
             if (ppBlockEntryOut) {
               *ppBlockEntryOut = pBlockEntry;
             }
+          } else {
+            nRet = 0;
+            SErr::SErrSetLastError(0x3ee);
           }
 
           return nRet;
@@ -3673,8 +3672,7 @@ int __stdcall SFileCloseFile(D2MPQFileStrc * pMPQFile) {
 
 // @blizzard SFileOpenFile (SFILE.CPP)
 int32_t __stdcall SFileOpenFile(char * szFilename, D2MPQFileStrc * * ppFile) {
-    uint32_t dwOpenFlags = SFILE_GetOpenFlags();
-    int nResult = SFileOpenFileEx(nullptr, szFilename, dwOpenFlags, (void**)ppFile);
+    int nResult = SFileOpenFileEx(nullptr, szFilename, SFILE_GetOpenFlags(), (void**)ppFile);
     return nResult;
 }
 
@@ -5337,7 +5335,6 @@ int __stdcall SFileOpenArchive(char * szArchiveName, int * pUserData, uint32_t n
     }
     if (!(bValidArgs & -(uint32_t)(szArchiveName != 0) & -(uint32_t)(*szArchiveName != '\0'))) {
       SErr::SErrSetLastError(0x57);
-      Fog::Debug::GuardStack();
       return 0;
     }
 
@@ -5395,7 +5392,6 @@ int __stdcall SFileOpenArchive(char * szArchiveName, int * pUserData, uint32_t n
         pArchive->nPriority = 0;
         iVar2 = SFILE_s_OpenArchive(pArchive, nFlags, bIsCdrom, ppArchive);
         /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
-        Fog::Debug::GuardStack();
         return iVar2;
       }
     } else {
@@ -5403,7 +5399,6 @@ int __stdcall SFileOpenArchive(char * szArchiveName, int * pUserData, uint32_t n
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -5427,7 +5422,6 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
     uint32_t nSearchFlags = SFILE_GetOpenFlags();
     int nOpenResult = SFileOpenFileEx((D2ArchiveStrc*)nParentArchive, szFileName, nSearchFlags, (void**)pMpqFile);
     if (!nOpenResult) {
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -5440,7 +5434,6 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
       nSearchFlags = SFILE_GetOpenFlags();
       SFILE_FindFileOnDisk((uint8_t)nSearchFlags, __frame0.szResolvedPath, szFileName);
       SFileOpenArchive(szFileName, pUserData, nFlags, ppArchive);
-      Fog::Debug::GuardStack();
       return;
     }
     if (!(pOpenedFile->pBlockEntry->dwFlags & 0x1ff00)) {
@@ -5466,14 +5459,12 @@ void __stdcall SFILE_OpenNestedArchive(int32_t nParentArchive, char * szFileName
       pArchive->nArchiveFileSize = pOpenedFile->pBlockEntry->dwFileSize + pOpenedFile->pBlockEntry->dwFilePos;
       SFILE_s_OpenArchive(pArchive, nFlags, pArchive->nArchiveType, ppArchive);
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
-      Fog::Debug::GuardStack();
       return;
     }
 
     SFileCloseFile(pMPQFile);
     SErr::SErrSetLastError(0x3ee);
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);
-    Fog::Debug::GuardStack();
 }
 
 void __fastcall CRC32_UpdateCRC(uint8_t * pbData, int32_t nLength, uint32_t * pdwCrc, uint8_t byFlags) {

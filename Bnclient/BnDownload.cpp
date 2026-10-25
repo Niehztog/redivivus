@@ -233,8 +233,8 @@ int32_t __fastcall BNDOWNLOAD_PerformCheckRevision(uint32_t * pdwVersionOut, uin
                   memset(__frame0.aVersionStringTail, 0, 0x103);
                   /* DWORD nSize for GetModuleFileNameA */ dwStartTick = 0x104;
                   szGameExePathPtr = &__frame0.szGameExePath;
-                  /* LPSTR lpFilename for GetModuleFileNameA */ /* LPCSTR lpModuleName for GetModuleHandleA */ hGameModule = GetModuleHandleA((LPCSTR)0x0);
-                  /* HMODULE hModule for GetModuleFileNameA */ GetModuleFileNameA(hGameModule, szGameExePathPtr, dwStartTick);
+                    /* LPSTR lpFilename for GetModuleFileNameA */ /* LPCSTR lpModuleName for GetModuleHandleA */
+                  /* HMODULE hModule for GetModuleFileNameA */ GetModuleFileNameA(GetModuleHandleA((LPCSTR)0x0), szGameExePathPtr, dwStartTick);
                   __frame0.nCheckResult = (*pCheckRevision)(&__frame0.szGameExePath, &__frame0.szArchivePath, &__frame0.szVersionString, gszBNetChatInputBuffer, (DWORD*)__frame0.local_428, (DWORD*)__frame0.local_424, pbResultOut);
                 }
 
@@ -519,7 +519,6 @@ static void __fastcall BNDOWNLOAD_ProcessPrepatchList(uint32_t * pResultOut) {
     nCmpResult = Storm::Source::SReg::SRegLoadData((uint32_t*)"Patch", "Patches", 2, &__frame1.cRegistryValue, 0x3fe, nullptr);
     if (!nCmpResult || __frame1.cRegistryValue == '\0') {
       *pResultOut = 0;
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -534,7 +533,6 @@ static void __fastcall BNDOWNLOAD_ProcessPrepatchList(uint32_t * pResultOut) {
       if (!bArchiveOpened) {
         /* LPCSTR lpFileName for DeleteFileA */ DeleteFileA((LPCSTR)lpFileName);
         *__frame0.pOpenFileOut = -1;
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -543,7 +541,6 @@ static void __fastcall BNDOWNLOAD_ProcessPrepatchList(uint32_t * pResultOut) {
         Storm::Source::SFile::SFileCloseArchive(__frame0.pArchiveHandle);
         /* LPCSTR lpFileName for DeleteFileA */ DeleteFileA((LPCSTR)lpFileName);
         *__frame0.pOpenFileOut = -1;
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -672,12 +669,10 @@ static void __fastcall BNDOWNLOAD_ProcessPrepatchList(uint32_t * pResultOut) {
     bIsExpansion = BNDOWNLOAD_LaunchVerifiedExecutables(&__frame3.cModulePathBuf, &__frame1.cArchiveListBuf);
     if (bIsExpansion) {
       *__frame0.pOpenFileOut = 2;
-      Fog::Debug::GuardStack();
       return;
     }
 
     *__frame0.pOpenFileOut = -1;
-    Fog::Debug::GuardStack();
 }
 
 int __fastcall BNDOWNLOAD_ApplyPrepatch(uint32_t * pdwParam) {
@@ -1349,7 +1344,7 @@ uintptr_t __fastcall BNDOWNLOAD_InitiatePatchDownload(BYTE * pbParam, size_t nSi
     pThreadCtx[3] = 0x4958;
     pThreadCtx[4] = 0x4456;
     pThreadCtx[5] = 0x4432;
-    memset(pThreadCtx + 6, 0, 6 * sizeof(pThreadCtx[0]));
+    for (int i = 6; i < 12; i++) pThreadCtx[i] = 0;
     pThreadCtx[0x114] = 2;
     pThreadCtx[0x115] = -0x8000;
     pThreadCtx[0x116] = 2;

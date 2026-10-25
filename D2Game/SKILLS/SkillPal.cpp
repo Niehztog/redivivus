@@ -164,8 +164,7 @@ BOOL __fastcall Skills_SrvDoFunc_064_Sacrifice(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     n100Percent = 100;
-    nPercent = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxtBase[eSkill].calc[1], eSkill, nSkillLvl);
-    sDamage.dwPhysDamage = D2Client::Stats::D2ApplyPercent(nDmgFromHit, nPercent, n100Percent);
+    sDamage.dwPhysDamage = D2Client::Stats::D2ApplyPercent(nDmgFromHit, D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxtBase[eSkill].calc[1], eSkill, nSkillLvl), n100Percent);
     sDamage.dwDmgTotal = sDamage.dwPhysDamage;
     UNIT::SUnitDmg::DAMAGE_ApplyDamageToUnit(pGame, pUnit, pUnit, 0, &sDamage);
     UNIT::SUnitDmg::SERVER_GetHitCalculation(pGame, pUnit, pUnit, &sDamage);
@@ -551,7 +550,7 @@ BOOL __fastcall Skills_SrvDoFunc_065_Prayer(::SGAMEDATA * pGame, D2UnitStrc * pU
         }
       }
     }
-    if (-1 >= pSkillData->auratargetstate) {
+    if (0 > pSkillData->auratargetstate) {
       return 1;
     }
 
@@ -612,11 +611,7 @@ static uint32_t __fastcall SKILLPAL_HandleFistOfHeavensLightningBolt(D2SkillCall
 
     uint32_t* pCopySrc = (uint32_t*)pAuraArgs->pExtra;
     uint32_t* pCopyDst = (uint32_t*)&uScratch;
-    for (nCopyCount = 0x1c; nCopyCount; nCopyCount--) {
-      *pCopyDst = *pCopySrc;
-      pCopySrc++;
-      pCopyDst++;
-    }
+    memcpy(pCopyDst, pCopySrc, 0x1c * sizeof(*pCopyDst));
 
     UNIT::SUnitDmg::DAMAGE_ApplyDamageToUnit(pGame, pCaster, pUnit, 1, &uScratch.sDamage);
     UNIT::SUnitDmg::SERVER_GetHitCalculation(pGame, pCaster, pUnit, &uScratch.sDamage);
@@ -634,7 +629,7 @@ BOOL __fastcall Skills_SrvDoFunc_066_Conviction(::SGAMEDATA * pGame, D2UnitStrc 
     }
 
     D2SkillsTxt* pSkillsTxt = sgptDataTable->pTxtSkills + eSkill;
-    if (!(pSkillsTxt && -1 < pSkillsTxt->aurastate && (int)pSkillsTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
+    if (!(pSkillsTxt && 0 <= pSkillsTxt->aurastate && (int)pSkillsTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -1224,9 +1219,7 @@ BOOL __fastcall Skills_SrvDoFunc_073_BlessedHammer(::SGAMEDATA * pGame, D2UnitSt
     int32_t nConcentrationBonus = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit_00, UNITSTAT_magicmindam, 0);
     nConcentrationBonus = D2Client::Stats::D2ApplyPercent(nConcentrationBonus, nConcentrationBonusPct + 100, nPctBase);
     D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit_00, UNITSTAT_magicmindam, nConcentrationBonus, 0);
-    nPctBase = 100;
-    nConcentrationBonus = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit_00, UNITSTAT_magicmaxdam, 0);
-    nConcentrationBonusPct = D2Client::Stats::D2ApplyPercent(nConcentrationBonus, nConcentrationBonusPct + 100, nPctBase);
+    nConcentrationBonusPct = D2Client::Stats::D2ApplyPercent(D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit_00, UNITSTAT_magicmaxdam, 0), nConcentrationBonusPct + 100, 100);
     D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit_00, UNITSTAT_magicmaxdam, nConcentrationBonusPct, 0);
     return 1;
 }
@@ -1493,7 +1486,7 @@ BOOL __fastcall Skills_SrvDoFunc_080_FistOfTheHeavens(::SGAMEDATA * pGame, D2Uni
     D2Common::Units::Missile::SetTargetX(pUnit_01, pUnit_00->eUnitType);
     D2Common::Units::Missile::SetTargetY(pUnit_01, pUnit_00->nUnitGUID);
     short int nOverlayId = pSkillsTxt[eSkill].srvoverlay;
-    if (!(-1 < nOverlayId && (int)nOverlayId < sgptDataTable->nTxtOverlaySize)) {
+    if (!(0 <= nOverlayId && (int)nOverlayId < sgptDataTable->nTxtOverlaySize)) {
       return 1;
     }
 
@@ -1562,11 +1555,7 @@ uint32_t __fastcall SKILL_HitTargetApplyDamageAndShatter(D2SkillCallbackContextS
     if ((uint32_t*)pAuraArgs[0x13]) {
       pCopySrc = (uint32_t*)pAuraArgs[0x13];
       pCopyDst = (uint32_t*)&uScratch;
-      for (nIdx = 0x1c; nIdx; nIdx--) {
-        *pCopyDst = *pCopySrc;
-        pCopySrc++;
-        pCopyDst++;
-      }
+      memcpy(pCopyDst, pCopySrc, 0x1c * sizeof(*pCopyDst));
 
       UNIT::SUnitDmg::DAMAGE_ApplyDamageToUnit(pGame, pCaster, pUnit, 1, &uScratch.sDamage);
       UNIT::SUnitDmg::SERVER_GetHitCalculation(pGame, pCaster, pUnit, &uScratch.sDamage);
@@ -1595,7 +1584,7 @@ BOOL __fastcall Skills_SrvDoFunc_081_HolyFreeze(::SGAMEDATA * pGame, D2UnitStrc 
     }
 
     D2SkillsTxt* pSkillRecord = sgptDataTable->pTxtSkills + eSkill;
-    if (!(pSkillRecord && -1 < pSkillRecord->aurastate && (int)pSkillRecord->aurastate < sgptDataTable->nTxtStatesSize)) {
+    if (!(pSkillRecord && 0 <= pSkillRecord->aurastate && (int)pSkillRecord->aurastate < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -1794,7 +1783,7 @@ BOOL __fastcall Skills_SrvDoFunc_082_Redemption(::SGAMEDATA * pGame, D2UnitStrc 
     }
 
     D2SkillsTxt* pSkillRecord = sgptDataTable->pTxtSkills + eSkill;
-    if (!(pSkillRecord && -1 < pSkillRecord->aurastate && (int)pSkillRecord->aurastate < sgptDataTable->nTxtStatesSize)) {
+    if (!(pSkillRecord && 0 <= pSkillRecord->aurastate && (int)pSkillRecord->aurastate < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -1814,9 +1803,9 @@ BOOL __fastcall Skills_SrvDoFunc_082_Redemption(::SGAMEDATA * pGame, D2UnitStrc 
       short int sPassiveStat;
       sPassiveStat = *pPassiveStatIter;
       nAuraSelfState.anStats[eSkill] = (int)sPassiveStat;
-      if (-1 < sPassiveStat) {
+      if (0 <= sPassiveStat) {
         eUnitType = D2Client::Units::GetType(pUnit);
-        if (eUnitType != UNIT_PLAYER || nManaCost <= iVar1) {
+        if (eUnitType != UNIT_PLAYER || iVar1 >= nManaCost) {
           nTmp = D2Common::Skills::D2GetSkillCalc(pUnit, *pPassiveCalcIter, eSkill_00, nSkillLvl);
           nAuraSelfState.anCalcs[eSkill] = nTmp;
         }
@@ -1828,8 +1817,7 @@ BOOL __fastcall Skills_SrvDoFunc_082_Redemption(::SGAMEDATA * pGame, D2UnitStrc 
     } while ((int)eSkill < 5);
 
     SkillsServer::SKILLS_InvokeCallbackNoTarget(pGame, pUnit, SKILLPAL_ApplyAuraStateToTarget, &nAuraSelfState);
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    BOOL bIsRoomInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pRoom);
+    BOOL bIsRoomInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(D2Common::Units::UNITS_GetRoom(pUnit));
     if (bIsRoomInTown) {
       return 1;
     }

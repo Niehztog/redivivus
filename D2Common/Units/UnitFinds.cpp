@@ -77,36 +77,32 @@ BOOL __stdcall AreUnitsInNeighboredRooms(D2UnitStrc * pUnit, D2UnitStrc * pSrcUn
       exit(-1);
     } else {
       D2RoomStrc* pSrcRoom;
-      if (pSrcUnit) {
-        pSrcRoom = UNITS_GetRoom(pSrcUnit);
-        if (!pSrcRoom) {
-          return 0;
-        }
+      if (!pSrcUnit) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x19);
+        exit(-1);
+      }
 
-        pUnitRoom = UNITS_GetRoom(pUnitSaved);
-        if (!pUnitRoom) {
-          return 0;
-        }
-
-        /* Both arguments are reused here */ DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pSrcRoom, (D2RoomStrc***)&pSrcUnit, (int*)&pUnit);
-        nRoomIdx = 0;
-        if (0 >= (int)pUnit) {
-          return 0;
-        }
-
-        do {
-          if (*(D2RoomStrc**)(pSrcUnit->unk0x19 + nRoomIdx * 4 - 0x19) == pUnitRoom) {
-            return 1;
-          }
-
-          nRoomIdx++;
-        } while (nRoomIdx < (int)pUnit);
-
+      pSrcRoom = UNITS_GetRoom(pSrcUnit);
+      if (!pSrcRoom) {
         return 0;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x19);
-      exit(-1);
+      pUnitRoom = UNITS_GetRoom(pUnitSaved);
+      if (!pUnitRoom) {
+        return 0;
+      }
+      /* Both arguments are reused here */ DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pSrcRoom, (D2RoomStrc***)&pSrcUnit, (int*)&pUnit);
+      nRoomIdx = 0;
+      if (0 >= (int)pUnit) {
+        return 0;
+      }
+      do {
+        if (*(D2RoomStrc**)(pSrcUnit->unk0x19 + nRoomIdx * 4 - 0x19) == pUnitRoom) {
+          return 1;
+        }
+        nRoomIdx++;
+      } while (nRoomIdx < (int)pUnit);
+      return 0;
     }
 }
 

@@ -51,7 +51,7 @@ void __stdcall Roll(::SGAMEDATA * pGame, D2RoomStrc * pRoom, D2DrlgCoordsStrc * 
       return;
     }
 
-    D2SeedStrc* pCtrlSeed = ObjectsRgn::GetObjectControlSeed(pGame);
+    D2SeedStrc* pCtrlSeed = ObjectsRgn::GetObjectControlSeed(pGame, pRoom);
     D2SeedStrc seedNew = D2_SEED_NEXT(*pCtrlSeed);
     __frame0.nRackVariant = seedNew.nSeedLow & 1;
     *pCtrlSeed = seedNew;

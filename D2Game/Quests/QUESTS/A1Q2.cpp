@@ -64,7 +64,7 @@ namespace D2Game::Quests::QUESTS::A1Q2 {
 // status flag has advanced past the "boss killed" stage (nStateFlag > 3, i.e.
 // the reward/turn-in stages 4/5). Used to gate whether the quest is finalizable.
 bool __fastcall QuestDataBool(D2QuestDataStrc * pQuestData) {
-    if (!(pQuestData->bIsNotIntroduction && 3 < pQuestData->nStateFlag)) {
+    if (!(pQuestData->bIsNotIntroduction && 4 <= pQuestData->nStateFlag)) {
       return false;
     }
 

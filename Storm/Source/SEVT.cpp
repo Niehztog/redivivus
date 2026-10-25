@@ -339,7 +339,7 @@ int __stdcall SEvtRegisterHandler(uint32_t dwEventId, uint32_t dwSubId, uint32_t
     (*(int*)(pEvent[3] + 8))++;
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ gnSevtSnapshotActive = 1;
     LeaveCriticalSection(&lpCriticalSection_0077930c);
-    return 0;
+    return 1;
 }
 
 // Removes one registered handler from an event type.

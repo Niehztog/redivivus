@@ -302,7 +302,7 @@ BOOL __fastcall Skills_SrvDoFunc_116_Werewolf(::SGAMEDATA * pGame, D2UnitStrc * 
     }
 
     D2SkillsTxt* pSkillTxt = sgptDataTable->pTxtSkills + eSkill;
-    if (!(pSkillTxt && -1 < pSkillTxt->aurastate && (int)pSkillTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
+    if (!(pSkillTxt && 0 <= pSkillTxt->aurastate && (int)pSkillTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
     if (pUnit) {
@@ -535,7 +535,7 @@ BOOL __fastcall Skills_SrvDoFunc_119_SummonDireWolf(::SGAMEDATA * pGame, D2UnitS
     }
 
     uint8_t byPetType = pSkillTxt->pettype;
-    if (!(-1 < (char)byPetType && (int)(char)byPetType < sgptDataTable->nTxtPetTypeSize)) {
+    if (!(0 <= (char)byPetType && (int)(char)byPetType < sgptDataTable->nTxtPetTypeSize)) {
       return 0;
     }
     if ((int)(uint32_t)byPetType >= sgptDataTable->nTxtPetTypeSize) {
@@ -595,7 +595,7 @@ uint32_t __fastcall SKILLDRUID_CreateSummon(::SGAMEDATA * pGame, D2UnitStrc * pU
     }
 
     uint8_t byPetType = pSkillTxt->pettype;
-    if (!(-1 < (char)byPetType && (int)(char)byPetType < sgptDataTable->nTxtPetTypeSize)) {
+    if (!(0 <= (char)byPetType && (int)(char)byPetType < sgptDataTable->nTxtPetTypeSize)) {
       return 0;
     }
     if ((int)(uint32_t)byPetType >= sgptDataTable->nTxtPetTypeSize) {
@@ -798,7 +798,7 @@ BOOL __fastcall SKILLDRUID_SrvStFn57_Rabies(::SGAMEDATA * pGame, D2UnitStrc * pU
     }
 
     short int nAuraStateId = pSkillTxt->aurastate;
-    if (-1 < nAuraStateId && (int)nAuraStateId < sgptDataTable->nTxtStatesSize) {
+    if (0 <= nAuraStateId && (int)nAuraStateId < sgptDataTable->nTxtStatesSize) {
       eD2States eActiveState;
       eActiveState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, (int)nAuraStateId);
       if (eActiveState == STATE_none) {
@@ -1174,7 +1174,7 @@ BOOL __fastcall Skills_SrvDoFunc_145_Hurricane(::SGAMEDATA * pGame, D2UnitStrc *
       pSkillTxt = sgptDataTable->pTxtSkills + eSkill;
       if (pSkillTxt && 0 < nSkillLvl) {
         nAuraStateId = pSkillTxt->aurastate;
-        if (-1 < nAuraStateId && (int)nAuraStateId < sgptDataTable->nTxtStatesSize) {
+        if (0 <= nAuraStateId && (int)nAuraStateId < sgptDataTable->nTxtStatesSize) {
           eActiveAuraState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, (int)nAuraStateId);
           if (eActiveAuraState != STATE_none) {
             if (!pSkillTxt->InTown && (pRoom = D2Common::Units::UNITS_GetRoom(pUnit) , pRoom != 0) && (bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pRoom) , bIsInTown != 0)) {
@@ -1244,7 +1244,7 @@ BOOL __fastcall Skills_SrvDoFunc_146_CycloneArmor(::SGAMEDATA * pGame, D2UnitStr
       pSkillTxt = sgptDataTable->pTxtSkills + eSkill;
       if (pSkillTxt && 0 < nSkillLvl) {
         nAuraStateId = pSkillTxt->aurastate;
-        if (-1 < nAuraStateId && (int)nAuraStateId < sgptDataTable->nTxtStatesSize) {
+        if (0 <= nAuraStateId && (int)nAuraStateId < sgptDataTable->nTxtStatesSize) {
           eActiveAuraState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, (int)nAuraStateId);
           if (eActiveAuraState != STATE_none) {
             if (!pSkillTxt->InTown && (pRoom = D2Common::Units::UNITS_GetRoom(pUnit) , pRoom != 0) && (bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pRoom) , bIsInTown != 0)) {

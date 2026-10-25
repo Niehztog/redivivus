@@ -215,9 +215,7 @@ void __fastcall SendUnitCast0x4d(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Clie
     nSubType = 0;
     wPad = 0;
     dwPathCoord = D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath);
-    wTargetY = (uint16_t)dwPathCoord;
-    dwPathCoord = D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x4D_SKILL_XY(pClient, 0, dwCasterGUID, (uint16_t)dwPathCoord, wTargetY, eSkillId, wPad, skillLevel, nSubType);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x4D_SKILL_XY(pClient, 0, dwCasterGUID, (uint16_t)D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath), (uint16_t)dwPathCoord, eSkillId, wPad, skillLevel, nSubType);
 }
 
 // Sends the appropriate movement packet to pClient for pUnit's current move-mode (index nModeIndex into gaPlayerModeNetMsgTable). If pUnit has a target entity visible to the client, sends 0x10 (CharToObj); otherwise sends 0x0F (PlayerMove) with the unit's current tile position and path sub-step target coordinates. Skips self-movement (pUnit == client's own player).
@@ -247,9 +245,7 @@ void __fastcall SendPlayerMoveOrObject(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
         }
 
         nPos = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-        wPosY = (uint16_t)nPos;
-        nPos = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-        GAME::SCmd::NET_D2GS_SERVER_Send_0x10_UNITCHANGE_IDPOS(pClient, '\x10', '\0', dwUnitGUID, (uint8_t)gaPlayerModeNetMsgTable[nModeIndex].nObjModeByte, (uint8_t)eUnitType, dwTargetGUID, (uint16_t)nPos, wPosY);
+        GAME::SCmd::NET_D2GS_SERVER_Send_0x10_UNITCHANGE_IDPOS(pClient, '\x10', '\0', dwUnitGUID, (uint8_t)gaPlayerModeNetMsgTable[nModeIndex].nObjModeByte, (uint8_t)eUnitType, dwTargetGUID, (uint16_t)D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), (uint16_t)nPos);
         return;
       }
     }
@@ -278,9 +274,7 @@ void __fastcall SendPlayerMoveOrObject(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
     dwTargetGUID = pUnit->nUnitGUID;
     uint8_t byReserved = '\0';
     uint32_t dwTargetYRaw = D2Common::PATH::DynamicPath::GetYSP1(pDynamicPath);
-    uint16_t wTargetY = (uint16_t)dwTargetYRaw;
-    uint32_t dwTargetY = D2Common::PATH::DynamicPath::GetXSP1(pDynamicPath);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x0F_UNITCHANGE_XYPOS(pClient, '\x0f', '\0', dwTargetGUID, (uint8_t)gaPlayerModeNetMsgTable[nModeIndex].nMoveModeByte, (uint16_t)dwTargetY, wTargetY, byReserved, wPosX, wPosY);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x0F_UNITCHANGE_XYPOS(pClient, '\x0f', '\0', dwTargetGUID, (uint8_t)gaPlayerModeNetMsgTable[nModeIndex].nMoveModeByte, (uint16_t)D2Common::PATH::DynamicPath::GetXSP1(pDynamicPath), (uint16_t)dwTargetYRaw, byReserved, wPosX, wPosY);
 }
 
 void __fastcall SendPlayerMove(::SGAMEDATA * pGame, D2UnitStrc * pUnitRaw, D2ClientStrc * pClient, int32_t nModeIndex) {
@@ -311,9 +305,7 @@ void __fastcall SendPlayerMove(::SGAMEDATA * pGame, D2UnitStrc * pUnitRaw, D2Cli
 
     uint32_t dwUnitGUID = pUnitRaw->nUnitGUID;
     uint32_t dwTargetYRaw = D2Common::PATH::DynamicPath::GetYSP1(pDynamicPath);
-    uint16_t wTargetY = (uint16_t)dwTargetYRaw;
-    uint32_t dwTargetXRaw = D2Common::PATH::DynamicPath::GetXSP1(pDynamicPath);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x0F_UNITCHANGE_XYPOS(pClient, '\x0f', '\0', dwUnitGUID, (uint8_t)gaPlayerModeNetMsgTable[nModeIndex].nMoveModeByte, (uint16_t)dwTargetXRaw, wTargetY, byHitClass, wPosX, wPosY);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x0F_UNITCHANGE_XYPOS(pClient, '\x0f', '\0', dwUnitGUID, (uint8_t)gaPlayerModeNetMsgTable[nModeIndex].nMoveModeByte, (uint16_t)D2Common::PATH::DynamicPath::GetXSP1(pDynamicPath), (uint16_t)dwTargetYRaw, byHitClass, wPosX, wPosY);
 }
 
 void __fastcall SendPlayerStop(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2ClientStrc * pClient, eD2MonsterAnimMode param_1) {
@@ -1515,13 +1507,11 @@ static void __stdcall PLAYER_ProcessSkillOnEntity(D2UnitStrc * pUnit, ::SGAMEDAT
         bDualWieldOrMeleeCheck = D2Common::Units::IsInMovingModeEx(pTargetUnit);
         bDualWieldOrMeleeCheck = D2Common::Units::IsInMeleeRange(pUnit, pTargetUnit, bDualWieldOrMeleeCheck);
         if (!bDualWieldOrMeleeCheck) {
-          eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\PLAYER\\PlrMsg.cpp", 0x7dd);
-          StartModeID(eSkillId, pGame, eUnitType, pUnit, dwParam);
+          StartModeID(D2Common::Skills::GetSkillId(pSkill, ".\\PLAYER\\PlrMsg.cpp", 0x7dd), pGame, eUnitType, pUnit, dwParam);
           return;
         }
       } else if (nSkillWeaponClass == 4) {
-        eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\PLAYER\\PlrMsg.cpp", 0x7dd);
-        StartModeID(eSkillId, pGame, eUnitType, pUnit, dwParam);
+        StartModeID(D2Common::Skills::GetSkillId(pSkill, ".\\PLAYER\\PlrMsg.cpp", 0x7dd), pGame, eUnitType, pUnit, dwParam);
         return;
       }
     }
@@ -1543,9 +1533,7 @@ eD2ServerIncomingStatus __fastcall SCMD_0x05_LeftSkillOnLocation(::SGAMEDATA * p
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    int32_t nLayer = 0;
-    nPierceIdx = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0);
-    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, nPierceIdx + 1, nLayer);
+    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0) + 1, 0);
     uint32_t nTargetY = nSize & 0xffff;
     uint32_t nTargetX = (uint32_t)pPacket & 0xffff;
     pLeftSkill = D2Common::Units::GetLeftSkill(pUnit);
@@ -1568,9 +1556,8 @@ eD2ServerIncomingStatus __fastcall SCMD_0x06_LeftSkillOnEntity(::SGAMEDATA * pGa
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    int32_t nLayer = 0;
-    int32_t nPierceIdx = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0);
-    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, nPierceIdx + 1, nLayer);
+    int32_t nPierceIdx;
+    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0) + 1, 0);
     nPierceIdx = 1;
     D2GSPacketClt0x06_LeftSkillOnEntity* pRawUnitType = pPacket;
     uint32_t nTargetGUID = nSize;
@@ -1594,9 +1581,8 @@ eD2ServerIncomingStatus __fastcall SCMD_0x07_LeftSkillOnEntityEx(::SGAMEDATA * p
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    int32_t nLayer = 0;
-    int32_t nPierceIdx = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0);
-    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, nPierceIdx + 1, nLayer);
+    int32_t nPierceIdx;
+    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0) + 1, 0);
     nPierceIdx = 0;
     D2GSPacketClt0x07_LeftSkillOnEntityEx* eUnitTypeParsed = pPacket;
     uint32_t nTargetGUID = nSize;
@@ -1690,9 +1676,7 @@ eD2ServerIncomingStatus __fastcall SCMD_0x0C_RightSkillOnLocation(::SGAMEDATA * 
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    int32_t nLayer = 0;
-    nPierceIdx = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0);
-    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, nPierceIdx + 1, nLayer);
+    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0) + 1, 0);
     uint32_t nTargetY = nSize & 0xffff;
     uint32_t nTargetX = (uint32_t)pPacket & 0xffff;
     pRightSkill = D2Common::Units::GetRightSkill(pUnit);
@@ -1715,9 +1699,8 @@ eD2ServerIncomingStatus __fastcall SCMD_0x0D_RightSkillOnEntity(::SGAMEDATA * pG
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    int32_t nLayerZero = 0;
-    int32_t nPierceIdx = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0);
-    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, nPierceIdx + 1, nLayerZero);
+    int32_t nPierceIdx;
+    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0) + 1, 0);
     nPierceIdx = 1;
     D2GSPacketClt0x0D_RightSkillOnEntity* eUnitTypeParsed = pPacket;
     size_t nTargetGUID = nSize;
@@ -1741,9 +1724,8 @@ eD2ServerIncomingStatus __fastcall SCMD_0x0E_RightSkillOnEntityEx(::SGAMEDATA * 
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    int32_t nLayerZero = 0;
-    int32_t nPierceIdx = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0);
-    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, nPierceIdx + 1, nLayerZero);
+    int32_t nPierceIdx;
+    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_pierce_idx, D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_pierce_idx, 0) + 1, 0);
     nPierceIdx = 0;
     D2GSPacketClt0x0E_RightSkillOnEntityEx* eUnitTypeParsed = pPacket;
     size_t nTargetGUID = nSize;
@@ -1842,7 +1824,6 @@ eD2ServerIncomingStatus __fastcall SCMD_0x14_OverheadMessage(::SGAMEDATA * pGame
     char szSenderName[16];
     uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (0x10f < nSize - 4) {
-      Fog::Debug::GuardStack();
       return SERVERSTATUS_BAD_PARAMS;
     }
 
@@ -1850,7 +1831,6 @@ eD2ServerIncomingStatus __fastcall SCMD_0x14_OverheadMessage(::SGAMEDATA * pGame
     if (0 < (int)szMsgFiltered) {
       Storm::Source::SSTR::SStrCopy(szMessage, pPacket->szMsg, 0x100);
       if (0x100 <= (int)szMsgFiltered) {
-        Fog::Debug::GuardStack();
         return SERVERSTATUS_BAD_DATA;
       }
 
@@ -1885,7 +1865,6 @@ eD2ServerIncomingStatus __fastcall SCMD_0x14_OverheadMessage(::SGAMEDATA * pGame
       }
     }
 
-    Fog::Debug::GuardStack();
     return SERVERSTATUS_OK;
 }
 
@@ -2025,7 +2004,6 @@ eD2ServerIncomingStatus __fastcall SCMD_0x15_ChatMessage(::SGAMEDATA * pGame, D2
     Storm::Source::SSTR::SStrCopy(__frame0.pBuffer.szMessage, (char*)&pPacket->nLocale, 0x100);
     uint32_t szFiltered = Storm::Source::SSTR::SStrLen((char*)&pPacket->nLocale);
     if (0x100 <= (int)szFiltered || (int)(szFiltered + 4) >= (int)nSize) {
-      Fog::Debug::GuardStack();
       return SERVERSTATUS_BAD_DATA;
     }
 
@@ -2130,16 +2108,13 @@ eD2ServerIncomingStatus __fastcall SCMD_0x15_ChatMessage(::SGAMEDATA * pGame, D2
           *(uint32_t*)((char*)&sEventPacket.szName1 + 12) &= 0xffffff;
           pSenderClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", nErrorLine);
           GAME::SCmd::NET_D2GS_SERVER_Send_0x5A_SYSTEMMSG(pSenderClient, &sEventPacket);
-          Fog::Debug::GuardStack();
           return SERVERSTATUS_OK;
         }
 
-        Fog::Debug::GuardStack();
         return SERVERSTATUS_OK;
       }
     }
 
-    Fog::Debug::GuardStack();
     return SERVERSTATUS_OK;
 }
 
@@ -3264,8 +3239,7 @@ eD2ServerIncomingStatus __fastcall SCMD_0x3B_AllocSkillPoint(::SGAMEDATA * pGame
       bySkillSide = 0;
       bySkillArg = 1;
       eSkillId = SKILL_Attack;
-      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0x114f);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x21_SETSKILLLEVEL(pClient, pUnit, eSkillId, bySkillArg, bySkillSide);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x21_SETSKILLLEVEL(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0x114f), pUnit, eSkillId, bySkillArg, bySkillSide);
       return (eD2ServerIncomingStatus)iVar2;
     }
 
@@ -3301,8 +3275,8 @@ eD2ServerIncomingStatus __fastcall SCMD_0x3C_SelectSkill(::SGAMEDATA * pGame, D2
       return SERVERSTATUS_BAD_PARAMS;
     }
 
-    uint32_t dwSkillOwnerId = pPacket->dwOwnerId;
     int nHand = -((int)pPacket->dwSkillIdWithHand >> 0x1f);
+    uint32_t dwSkillOwnerId = pPacket->dwOwnerId;
     eD2Skills eSkill = pPacket->dwSkillIdWithHand & 0x7fffffff;
     if (!(true && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return SERVERSTATUS_BAD_PARAMS;
@@ -3473,17 +3447,13 @@ eD2ServerIncomingStatus __fastcall SCMD_0x41_Resurrect(::SGAMEDATA * pGame, D2Un
     D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_uninterruptable, 1);
     D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_uninterruptable, 0);
     D2Common::Drlg::GetActNoFromLevelNumber(LEVEL_None);
-    pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-    nAct = D2Common::Drlg::GetActNoFromLevelNumber(eLevelId);
-    eLevelId = D2Common::DUNGEON::Dungeon::GetTownLevelIdFromActNo(nAct);
-    GAME::Level::InitLevel(pGame, pUnit, eLevelId, bArena);
+    eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(D2Common::Units::UNITS_GetRoom(pUnit));
+    GAME::Level::InitLevel(pGame, pUnit, D2Common::DUNGEON::Dungeon::GetTownLevelIdFromActNo(D2Common::Drlg::GetActNoFromLevelNumber(eLevelId)), bArena);
     PlayerModes::PLRMODES_MoveToLocation(pGame, pUnit, nullptr, 1, 0, 0, 1);
     pSkill = D2Common::Units::GetLeftSkill(pUnit);
     if (pSkill) {
       nStatVal = D2Common::Skills::GetOwnerGUID(pSkill);
-      eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\PLAYER\\PlrMsg.cpp", 0x1209);
-      SKILLS::SkillsServer::Server_SelectSkill(pUnit, 1, eSkillId, nStatVal);
+      SKILLS::SkillsServer::Server_SelectSkill(pUnit, 1, D2Common::Skills::GetSkillId(pSkill, ".\\PLAYER\\PlrMsg.cpp", 0x1209), nStatVal);
     }
 
     pSkill = D2Common::Units::GetRightSkill(pUnit);
@@ -3492,8 +3462,7 @@ eD2ServerIncomingStatus __fastcall SCMD_0x41_Resurrect(::SGAMEDATA * pGame, D2Un
     }
 
     nStatVal = D2Common::Skills::GetOwnerGUID(pSkill);
-    eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\PLAYER\\PlrMsg.cpp", 0x120e);
-    SKILLS::SkillsServer::Server_SelectSkill(pUnit, 0, eSkillId, nStatVal);
+    SKILLS::SkillsServer::Server_SelectSkill(pUnit, 0, D2Common::Skills::GetSkillId(pSkill, ".\\PLAYER\\PlrMsg.cpp", 0x120e), nStatVal);
     return SERVERSTATUS_OK;
 }
 
@@ -4045,53 +4014,47 @@ eD2ServerIncomingStatus __fastcall SCMD_0x5F_SyncPosition(::SGAMEDATA * pGame, D
     uint32_t nX = (uint32_t)*(uint16_t*)(pPacket + 1);
     uint32_t nY = (uint32_t)*(uint16_t*)(pPacket + 3);
     D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0x1616);
-    if (pClient) {
-      D2SkillStrc* pCurrentSkill;
-      pCurrentSkill = D2Common::Units::GetCurrentSkill(pUnit);
-      if (pCurrentSkill) {
-        return SERVERSTATUS_OK;
-      }
+    if (!pClient) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1617);
+      exit(-1);
+    }
 
-      bDead = UNIT::SUnit::CheckForModeZeroDeath(pUnit);
-      if (bDead) {
-        return SERVERSTATUS_OK;
-      }
-
-      nDistance = D2Common::Collision::GetDistanceToXY(pUnit, nX, nY);
-      if (5 > nDistance) {
-        return SERVERSTATUS_OK;
-      }
-
-      eSyncWarpState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_sync_warped);
-      if (eSyncWarpState == STATE_none && nDistance - 0xfU <= 0x1e) {
-        bPathReachable = ValidateSyncWarpPath(pGame, pUnit, nY, nX);
-        if (bPathReachable) {
-          bDead = RelocateAndApplySyncWarp(pGame, pUnit, nX, nY);
-          if (bDead) {
-            return SERVERSTATUS_OK;
-          }
-        }
-
-        SendReassignPlayer(pUnit, pClient, '\0');
-        return SERVERSTATUS_OK;
-      }
-
-      pTarget = UNIT::SUnit::GetTargetEx(pGame, pUnit);
-      if (pTarget) {
-        return SERVERSTATUS_OK;
-      }
-
-      eAnimMode = Death;
-      if (pUnit) {
-        eAnimMode = pUnit->eAnimMode.ePlayerMode;
-      }
-
-      PlayerModes::PLRMODES_MoveToLocation(pGame, pUnit, nullptr, (eAnimMode == eD2PlayerAnimMode_ns::Run) + 2, nX, nY, 0);
+    D2SkillStrc* pCurrentSkill;
+    pCurrentSkill = D2Common::Units::GetCurrentSkill(pUnit);
+    if (pCurrentSkill) {
       return SERVERSTATUS_OK;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1617);
-    exit(-1);
+    bDead = UNIT::SUnit::CheckForModeZeroDeath(pUnit);
+    if (bDead) {
+      return SERVERSTATUS_OK;
+    }
+    nDistance = D2Common::Collision::GetDistanceToXY(pUnit, nX, nY);
+    if (5 > nDistance) {
+      return SERVERSTATUS_OK;
+    }
+    eSyncWarpState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_sync_warped);
+    if (eSyncWarpState == STATE_none && nDistance - 0xfU <= 0x1e) {
+      bPathReachable = ValidateSyncWarpPath(pGame, pUnit, nY, nX);
+      if (bPathReachable) {
+        bDead = RelocateAndApplySyncWarp(pGame, pUnit, nX, nY);
+        if (bDead) {
+          return SERVERSTATUS_OK;
+        }
+      }
+      SendReassignPlayer(pUnit, pClient, '\0');
+      return SERVERSTATUS_OK;
+    }
+    pTarget = UNIT::SUnit::GetTargetEx(pGame, pUnit);
+    if (pTarget) {
+      return SERVERSTATUS_OK;
+    }
+    eAnimMode = Death;
+    if (pUnit) {
+      eAnimMode = pUnit->eAnimMode.ePlayerMode;
+    }
+    PlayerModes::PLRMODES_MoveToLocation(pGame, pUnit, nullptr, (eAnimMode == eD2PlayerAnimMode_ns::Run) + 2, nX, nY, 0);
+    return SERVERSTATUS_OK;
 }
 
 eD2ServerIncomingStatus __fastcall SCMD_0x60_WeaponSwap(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2GSPacketClt0x60_WeaponSwap * pPacket, size_t nSize) {
@@ -4509,14 +4472,12 @@ eD2ServerIncomingStatus __fastcall SCMD_0x63_ItemToBeltAuto(::SGAMEDATA * pGame,
               nDbgParam = 0;
               nItemPosY = nPrevInvPage;
               nErrAddr = D2Client::Units::GetYPosFromDynamicPathUnit(pItem);
-              nItemX = D2Client::Units::GetXPosFromDynamicPathUnit(pItem);
-              D2Common::INVENTORY::Inventory::UnusedDebug(".\\PLAYER\\PlrMsg.cpp", 0x1830, pInventory, nItemX, nErrAddr, invPage, nDbgParam, nItemPosY);
+              D2Common::INVENTORY::Inventory::UnusedDebug(".\\PLAYER\\PlrMsg.cpp", 0x1830, pInventory, D2Client::Units::GetXPosFromDynamicPathUnit(pItem), nErrAddr, invPage, nDbgParam, nItemPosY);
               D2Common::ITEMS::Items::ITEM_SetItemData_ePreviousPage(pItem, (uint8_t)nPrevInvPage);
               D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pItem, INVPAGE_None);
               itemFlagMask = ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD);
               pItemInInv = pItem;
-              pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0x1834);
-              GAME::SCmd::Send0x9DRemoveItemFromContainer(pClient, pUnit, pItemInInv, itemFlagMask);
+              GAME::SCmd::Send0x9DRemoveItemFromContainer(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0x1834), pUnit, pItemInInv, itemFlagMask);
               D2Common::Units::SetupUpdateFlag(pItem, 4);
               pItem->eUnitFlags &= ~UNITFLAG_TARGETABLE;
               D2Common::ITEMS::Items::ITEM_GetItemsTxt_nWidthAndHeight(pItem, (char*)((uintptr_t)&pPacket + 3), (char*)((uintptr_t)&nSize + 3), ".\\PLAYER\\PlrMsg.cpp", 0x183b);
@@ -4527,8 +4488,7 @@ eD2ServerIncomingStatus __fastcall SCMD_0x63_ItemToBeltAuto(::SGAMEDATA * pGame,
                 if (bFoundSlot) {
                   D2Common::Units::SetupUpdateFlag(pItem, 2);
                   itemFlagMask = ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD);
-                  pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0x1842);
-                  GAME::SCmd::Send0x9CItemPutInBelt(pClient, pUnit, pItem, itemFlagMask);
+                  GAME::SCmd::Send0x9CItemPutInBelt(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0x1842), pUnit, pItem, itemFlagMask);
                 }
               }
 
@@ -4690,8 +4650,58 @@ void __fastcall PLAYERMSG_BroadcastPlayerSlain(::SGAMEDATA * pGame, D2UnitStrc *
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x19b4);
-    exit(-1);
+    if (pUnit && pUnit->eUnitType == UNIT_MONSTER) {
+      pOwnerUnit = Ai::AiGeneral::GetOwnerUnit(pUnit);
+      if (pOwnerUnit && pOwnerUnit->eUnitType == UNIT_PLAYER) {
+        pUnit = pOwnerUnit;
+      }
+    }
+    memset(szVictimNameBuf, 0, 4 * sizeof(szVictimNameBuf[0]));
+    memset(szKillerNameBuf + 2, 0, 6 * sizeof(szKillerNameBuf[0]));
+    __frame0.byMsgOpcode = 0x5a;
+    __frame0.byMsgField1 = 6;
+    __frame0.byMsgField2 = 4;
+    if (!pUnit) {
+      __frame0.nKillerClassId = -1;
+    } else {
+      __frame0.nKillerClassId = pUnit->nClassId;
+    }
+    __frame0.byKillerUnitType = 6;
+    if (pUnit) {
+      __frame0.byKillerUnitType = (uint8_t)pUnit->eUnitType;
+    }
+    szKillerNameBuf[0] = 0;
+    szKillerNameBuf[1] = 0;
+    pClient = UNIT::SUnit::SUNIT_GetClient(pVictim, ".\\PLAYER\\PlrMsg.cpp", 0x19c9);
+    szCharName = GAME::Clients::GetCharName(pClient);
+    pVictimNameEnd = Storm::Source::SSTR::SStrLen(szCharName);
+    if (pVictimNameEnd) {
+      Storm::Source::SSTR::SStrCopy((char*)szVictimNameBuf, szCharName, 0x10);
+    } else {
+      szVictimNameBuf[0] &= -256;
+    }
+    eKillerType = UNIT_COUNT;
+    if (pUnit) {
+      eKillerType = pUnit->eUnitType;
+    }
+    if (eKillerType == UNIT_PLAYER) {
+      nAddress = 0x10;
+      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0x19db);
+      szCharName = GAME::Clients::GetCharName(pClient);
+      Storm::Source::SSTR::SStrCopy(szKillerNameTmp, szCharName, nAddress);
+      pVictimNameEnd = Storm::Source::SSTR::SStrLen(szKillerNameTmp);
+      if (pVictimNameEnd) {
+        Storm::Source::SSTR::SStrCopy((char*)szKillerNameBuf, szKillerNameTmp, 0x10);
+      }
+    } else if (eKillerType == UNIT_MONSTER) {
+      pVictimNameEnd = Monsters::CheckMonsterType(pUnit, 2);
+      if (pVictimNameEnd) {
+        nBossNo = Monsters::GetBossNo(pUnit);
+        szKillerNameBuf[0] = nBossNo;
+      }
+    }
+    BroadcastEventMessage(pGame, &__frame0.byMsgOpcode);
+    return;
 }
 
 void __fastcall SendPlayerStopAndAtributeUpdate(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2ClientStrc * pClient, int32_t nStopReason) {

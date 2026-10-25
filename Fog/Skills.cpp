@@ -29,7 +29,7 @@ typedef int (__fastcall *CalcGetFunctionParameterCount_t)(int nFunctionIndex);
 
 namespace Fog::Skills {
 
-void __fastcall SKILLS_PushValue(int * pStack, int value) {
+static void __fastcall SKILLS_PushValue(int * pStack, int value) {
     if (pStack[0x40] >= 0x40) {
       return;
     }
@@ -38,8 +38,8 @@ void __fastcall SKILLS_PushValue(int * pStack, int value) {
     pStack[0x40]++;
 }
 
-int SKILLS_PopValue(int * pValueStack) {
-    if (pValueStack[0x40] < 1) {
+static int SKILLS_PopValue(int * pValueStack) {
+    if (pValueStack[0x40] <= 0) {
       return 0;
     }
 
@@ -58,7 +58,7 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
     uint32_t uVar1;
     int nIntResult;
     int aFormulaValueStack[65];
-    if (nParam < 1) {
+    if (nParam <= 0) {
       return 0;
     }
 
@@ -323,14 +323,14 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
 
         break;
         case 0x10:
-          if (nArgCount < 1) {
+          if (nArgCount <= 0) {
             nIntResult = 0;
           } else {
             nArgCount--;
             aFormulaValueStack[0x40] = nArgCount;
             nIntResult = aFormulaValueStack[nArgCount];
           }
-        if (nArgCount < 1) {
+        if (nArgCount <= 0) {
           uOperandB = 0;
         } else {
           nArgCount--;
@@ -344,14 +344,14 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
 
         break;
         case 0x11:
-          if (nArgCount < 1) {
+          if (nArgCount <= 0) {
             nIntResult = 0;
           } else {
             nArgCount--;
             aFormulaValueStack[0x40] = nArgCount;
             nIntResult = aFormulaValueStack[nArgCount];
           }
-        if (nArgCount < 1) {
+        if (nArgCount <= 0) {
           uOperandB = 0;
         } else {
           nArgCount--;
@@ -365,14 +365,14 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
 
         break;
         case 0x12:
-          if (nArgCount < 1) {
+          if (nArgCount <= 0) {
             nIntResult = 0;
           } else {
             nArgCount--;
             aFormulaValueStack[0x40] = nArgCount;
             nIntResult = aFormulaValueStack[nArgCount];
           }
-        if (nArgCount < 1) {
+        if (nArgCount <= 0) {
           uOperandB = 0;
         } else {
           nArgCount--;
@@ -386,14 +386,14 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
 
         break;
         case 0x13:
-          if (nArgCount < 1) {
+          if (nArgCount <= 0) {
             nIntResult = 0;
           } else {
             nArgCount--;
             aFormulaValueStack[0x40] = nArgCount;
             nIntResult = aFormulaValueStack[nArgCount];
           }
-        if (nArgCount < 1) {
+        if (nArgCount <= 0) {
           uOperandB = 0;
         } else {
           nArgCount--;
@@ -409,7 +409,7 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
         nArgCount = aFormulaValueStack[0x40];
         break;
         case 0x14:
-          if (nArgCount < 1) {
+          if (nArgCount <= 0) {
             nIntResult = 0;
           } else {
             nArgCount--;
@@ -456,21 +456,21 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
 
         break;
         case 0x16:
-          if (nArgCount < 1) {
+          if (nArgCount <= 0) {
             nIntResult = 0;
           } else {
             nArgCount--;
             aFormulaValueStack[0x40] = nArgCount;
             nIntResult = aFormulaValueStack[nArgCount];
           }
-        if (nArgCount < 1) {
+        if (nArgCount <= 0) {
           uOperandB = 0;
         } else {
           nArgCount--;
           aFormulaValueStack[0x40] = nArgCount;
           uOperandB = aFormulaValueStack[nArgCount];
         }
-        if (nArgCount < 1) {
+        if (nArgCount <= 0) {
           uOperandB = nIntResult;
         } else {
           nArgCount--;
@@ -729,7 +729,7 @@ char * __fastcall SKILLS_ParseSkillDescription(CalcGetKeyWordToNumber_t pFuncLoo
 }
 
 // Returns the operator precedence level for a skill formula opcode used by the calc compiler. Switches on the opcode byte (in AL): opcode 1 invokes a callback via pFunctionTable; opcodes 10-20 (0xa-0x14) return precedence 2; 0x15 returns 1; 0x16 returns 3; others return 0. Part of the skill formula expression evaluator (SKILLS_CompileSkillFormula).
-int __fastcall SKILLS_GetOpcodePrecedence(uint8_t opcode, CalcGetFunctionParameterCount_t pFunctionTable, uint32_t nFunctionArg) {
+static int __fastcall SKILLS_GetOpcodePrecedence(uint8_t opcode, CalcGetFunctionParameterCount_t pFunctionTable, uint32_t nFunctionArg) {
     int iVar1;
     switch (opcode) {
       case '\x01':
@@ -769,7 +769,7 @@ int __fastcall SKILLS_GetOpcodePrecedence(uint8_t opcode, CalcGetFunctionParamet
 }
 
 // Shunting-yard step for compiling a skill calc (skills.txt formula) into RPN bytecode. Given the current output write pointer, an operator-stack/parser-state struct (count at +0x140, accumulated precedence at +0x144, op array at base, arg array at +0x40), the output buffer/size, and an incoming token (bToken) with its function/arg payload: pops higher-or-equal precedence operators from the stack into the output (respecting the INT_ARRAY_006fc874 precedence table and SKILLS_GetOpcodePrecedence) until a lower-precedence/paren/end is hit, then either pushes the new operator/operand or, for end-of-expression (token 0), terminates the output with a 0 byte. Returns the advanced write pointer, or NULL on buffer overflow / stack overflow (writing a 0 to the buffer start to mark failure).
-uint8_t * __stdcall SKILLS_EmitFormulaBytecode(uint8_t * pWritePtr, uint8_t * pOperatorStack, uint8_t * pBuffer, int nBufferSize, uint8_t bToken, CalcGetFunctionParameterCount_t pFunction, uint32_t nFunctionArg) {
+static uint8_t * __stdcall SKILLS_EmitFormulaBytecode(uint8_t * pWritePtr, uint8_t * pOperatorStack, uint8_t * pBuffer, int nBufferSize, uint8_t bToken, CalcGetFunctionParameterCount_t pFunction, uint32_t nFunctionArg) {
     // Static local variables (originally global data)
     static uint8_t BYTE_ARRAY_006fc874[24] = {
     0x17,
@@ -805,7 +805,7 @@ uint8_t * __stdcall SKILLS_EmitFormulaBytecode(uint8_t * pWritePtr, uint8_t * pO
       nWriteOffset = (int)pWritePtr - (int)pBuffer;
       do {
         opcode = pOperatorStack[*(int*)(pOperatorStack + 0x140) - 1];
-        if (opcode == 1 || bToken == 1 || 0x16 < opcode || BYTE_ARRAY_006fc874[opcode] < bToken) {
+        if (opcode == 1 || bToken == 1 || 0x17 <= opcode || BYTE_ARRAY_006fc874[opcode] < bToken) {
           break;
         }
 
@@ -813,7 +813,7 @@ uint8_t * __stdcall SKILLS_EmitFormulaBytecode(uint8_t * pWritePtr, uint8_t * pO
         if (*(int*)(pOperatorStack + 0x144) < nPrecedence) {
           goto clear_and_fail;
         }
-        if (nBufferSize <= nWriteOffset) {
+        if (nWriteOffset >= nBufferSize) {
           *pBuffer = 0;
           return nullptr;
         }
@@ -829,7 +829,7 @@ uint8_t * __stdcall SKILLS_EmitFormulaBytecode(uint8_t * pWritePtr, uint8_t * pO
       if (!bToken) {
         goto emit_terminator;
       }
-      if (0x3f < *(int*)(pOperatorStack + 0x140)) {
+      if (0x40 <= *(int*)(pOperatorStack + 0x140)) {
         *pBuffer = 0;
         return nullptr;
       }

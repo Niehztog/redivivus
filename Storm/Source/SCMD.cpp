@@ -1117,12 +1117,10 @@ int __stdcall SCmdProcess(char * szCommandLine, int bSkipFirstToken, pfnSCmdUnkn
         if (pfnErrorCallback && !bVar1) {
           SCMD_GenerateError(0x8510006d, pfnErrorCallback);
         }
-        Fog::Debug::GuardStack();
-        return 0;
+        return bVar1;
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 

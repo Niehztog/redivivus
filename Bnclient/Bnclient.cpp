@@ -121,13 +121,11 @@ int32_t __fastcall D2FILE_VerifySignatureWinTrust(LPCSTR szText) {
         }
 
         Fog::Engine::Application::MISC_OperatorDeleteShim(pWideStr);
-        Fog::Debug::GuardStack();
         return nVerifyResult;
       }
     }
 
     nVerifyResult = 4;
-    Fog::Debug::GuardStack();
     return nVerifyResult;
 }
 

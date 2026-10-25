@@ -131,7 +131,7 @@ static void __fastcall DRLGACTMISC_LoadTileProjects(D2DrlgStrc * pDrlg) {
     char szPath[260];
     LPCSTR pszFmtStr;
     szPath[0] = '\0';
-    memset(szPath + 1, 0, 0x103);
+    for (int i = 0x1; i < 0x104; i++) szPath[i] = 0;
     uint8_t byActNo = pDrlg->nActNo;
     if (!byActNo) {
       /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ pszFmtStr = "%s\\Tiles\\Act1\\Town\\Floor.dt1";
@@ -487,19 +487,18 @@ void __fastcall DRLGLEVEL_AdjustRoomCoordinates(D2DrlgLevelStrc * pLevel) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2eb);
           exit(-1);
         } else {
-          if (nMaxY - nMinY <= pLevel->sCoordinatesAndSize.WorldSize.y) {
-            do {
-              pRoomEx->sCoords.WorldPosition.x += pLevel->sCoordinatesAndSize.WorldPosition.x - nMinX;
-              pWorldY = &pRoomEx->sCoords.WorldPosition.y;
-              *pWorldY += pLevel->sCoordinatesAndSize.WorldPosition.y - nMinY;
-              pRoomEx = pRoomEx->pRoomExNext;
-            } while (pRoomEx);
-
-            return;
+          if (!(pLevel->sCoordinatesAndSize.WorldSize.y >= nMaxY - nMinY)) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2ec);
+            exit(-1);
           }
 
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2ec);
-          exit(-1);
+          do {
+            pRoomEx->sCoords.WorldPosition.x += pLevel->sCoordinatesAndSize.WorldPosition.x - nMinX;
+            pWorldY = &pRoomEx->sCoords.WorldPosition.y;
+            *pWorldY += pLevel->sCoordinatesAndSize.WorldPosition.y - nMinY;
+            pRoomEx = pRoomEx->pRoomExNext;
+          } while (pRoomEx);
+          return;
         }
       }
     }
@@ -513,21 +512,19 @@ D2RoomExStrc * __fastcall GetRoomOfCoord(D2DrlgLevelStrc * pLevel, int32_t nX, i
     } else {
       BOOL bIsInside;
       pRoom = pLevel->pRoomExFirst;
-      if (pRoom) {
-        do {
-          bIsInside = DrlgRoom::AreXYInsideCoordinates(&pRoom->sCoords, nX, nY);
-          if (bIsInside) {
-            return pRoom;
-          }
-
-          pRoom = pRoom->pRoomExNext;
-        } while (pRoom);
-
-        return nullptr;
+      if (!pRoom) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2fe);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2fe);
-      exit(-1);
+      do {
+        bIsInside = DrlgRoom::AreXYInsideCoordinates(&pRoom->sCoords, nX, nY);
+        if (bIsInside) {
+          return pRoom;
+        }
+        pRoom = pRoom->pRoomExNext;
+      } while (pRoom);
+      return nullptr;
     }
 }
 
@@ -1347,7 +1344,7 @@ int __fastcall DRLG_FindHTile(D2RoomExStrc * pRoomEx, int nTileType, uint32_t nG
       } else {
         sNewSeed = D2_SEED_NEXT(pRoomEx->sSeed);
         pRoomEx->sSeed = sNewSeed;
-        nRandom = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) % (uint64_t)nRaritySum);
+        nRandom = (uint32_t)(sNewSeed.nSeedLow % nRaritySum);
       }
     }
 
@@ -1727,7 +1724,7 @@ void __fastcall DRLGROOMEX_InitTileData(D2RoomExStrc * pRoomEx) {
     }
 
     pathBuf[0] = '\0';
-    memset(pathBuf + 1, 0, 0x103);
+    for (int i = 0x1; i < 0x104; i++) pathBuf[i] = 0;
     /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(pathBuf, "%s\\Tiles\\Act1\\Outdoors\\Blank.dt1", "DATA\\GLOBAL");
     void** pTileProject = pRoomEx->apTiles;
     D2CMP::DUNGEON::Dungeon::TILEPROJECT_AllocSlot((uint8_t*)pTileProject, pathBuf);
@@ -2077,7 +2074,7 @@ void __stdcall CheckAll(D2DrlgWallLayerGridsStrc * pUnknown, D2LvlSubTxt * pSubT
                       } else {
                         DVar2 = (D2SeedStrc)((uint64_t)uSeedLow * 0x6ac690c5 + uVar3);
                         pDVar1->sSeed = DVar2;
-                        nVariantIdx = (uint32_t)(((uint64_t)d2_bits_of(DVar2) & 0xffffffff) % (uint64_t)nVariantIdx);
+                        nVariantIdx = (uint32_t)(DVar2.nSeedLow % nVariantIdx);
                       }
                     }
 
@@ -2301,8 +2298,8 @@ void __fastcall DRLGMAZE_FreeRoomPresetData(D2DrlgRoomExDataMazeStrc * pData) {
     }
     if (0 < *(int*)(pData->pVertex + 0x14)) {
       D2DrlgGridStrc* pCurrentGrid;
-      pCurrentGrid = (D2DrlgGridStrc*)&pData->dwFlags;
       i = 0;
+      pCurrentGrid = (D2DrlgGridStrc*)&pData->dwFlags;
       do {
         DrlgGrid::DRLGGRID_FreeGrid(nullptr, pCurrentGrid + 4);
         DrlgGrid::DRLGGRID_FreeGrid(nullptr, pCurrentGrid);
@@ -5447,7 +5444,7 @@ void __stdcall DRLGOUTROOM_FillBorderCornersAndPresets(D2DrlgLevelStrc * pLevel)
       bColumnEmpty = 0;
       sNewSeed = D2_SEED_NEXT(pLevel->sSeed);
       pLevel->sSeed = sNewSeed;
-      if (!((uint64_t)d2_bits_of(sNewSeed) & 1)) {
+      if (!(sNewSeed.nSeedLow & 1)) {
         nX = 0;
         if (pWildData->nGridCoordsHeight < 1) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x194);
@@ -5515,7 +5512,7 @@ void __stdcall DRLGOUTROOM_FillBorderCornersAndPresets(D2DrlgLevelStrc * pLevel)
     int nGridWidth = pWildData->nGridCoordsHeight;
     sNewSeed = D2_SEED_NEXT(pLevel->sSeed);
     pLevel->sSeed = sNewSeed;
-    bool bVar1 = !((uint64_t)d2_bits_of(sNewSeed) & 1);
+    bool bVar1 = !(sNewSeed.nSeedLow & 1);
     int nX_00 = 3;
     if (bVar1) {
       nX_00 = nSpawnResult - (~(dwFlags >> 4) & 1 | 4);
@@ -5535,7 +5532,7 @@ static BOOL __stdcall DRLGOUTROOM_SpawnRandomOutdoorDecorations(int32_t nPresetT
     uint32_t uVar1;
     D2SeedStrc newSeed = D2_SEED_NEXT(pDrlgLevelStrc->sSeed);
     pDrlgLevelStrc->sSeed = newSeed;
-    if (!((uint64_t)d2_bits_of(newSeed) & 3)) {
+    if (!(newSeed.nSeedLow & 3)) {
       Outdoors::SpawnRandomOutdoorDS1(pDrlgLevelStrc, nPresetType, -1);
       uVar1 = Outdoors::SpawnRandomOutdoorDS1(pDrlgLevelStrc, nPresetType, -1);
     } else {
@@ -5545,7 +5542,7 @@ static BOOL __stdcall DRLGOUTROOM_SpawnRandomOutdoorDecorations(int32_t nPresetT
         newSeed = D2_SEED_NEXT(pDrlgLevelStrc->sSeed);
         uVar1 = newSeed.nSeedLow;
         pDrlgLevelStrc->sSeed = newSeed;
-        if ((uint64_t)d2_bits_of(newSeed) & 1) {
+        if (newSeed.nSeedLow & 1) {
           BVar2 = Outdoors::SpawnRandomOutdoorDS1(pDrlgLevelStrc, 0x31, -1);
           return BVar2;
         }
@@ -6335,7 +6332,7 @@ int * __stdcall DRLGOUTROOM_PathSearchStep(int * * ppNodeList, int32_t nMaxFCost
               ppNewNodeSlot = ppNodeList + (int)pNewNodeSlot * 10 + 1;
               ppNodeList[0x2329] = (int*)((int)pNewNodeSlot + 1);
               *ppNewNodeSlot = 0;
-              memset(ppNewNodeSlot + 1, 0, 9 * sizeof(ppNewNodeSlot[0]));
+              for (int i = 1; i < 10; i++) ppNewNodeSlot[i] = 0;
             }
 
             pAdvancedNode[9] = (int)ppNewNodeSlot;

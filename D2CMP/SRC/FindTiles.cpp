@@ -158,35 +158,33 @@ void __fastcall FINDTILE_Register(D2TileLibraryHashStrc * pHashTable, D2TileLibr
       exit(-1);
     } else {
       uint32_t nHashIdx;
-      if (pTileData) {
-        nHashIdx = FINDTILE_ComputeHash((char)pTileData->nSubIndex, (char)pTileData->nIndex, (char)pTileData->nOrientation);
-        pHashSlot = pHashTable->pNodes + (nHashIdx & 0xff);
-        pHashEntry = *pHashSlot;
-        if (pHashEntry) {
-          do {
-            if (!bFound) {
-              goto add_to_existing_entry;
-            }
-            if (pHashEntry->nSubIndex == pTileData->nSubIndex && pHashEntry->nIndex == pTileData->nIndex && pHashEntry->nOrientation == pTileData->nOrientation) {
-              bFound = false;
-            } else {
-              pHashEntry = pHashEntry->pNext;
-            }
-          } while (pHashEntry);
-
-          if (!bFound) {
-            add_to_existing_entry:
-            FINDTILE_AddTileToChain(pHashEntry, pTileData);
-            return;
-          }
-        }
-
-        FINDTILE_AllocHashEntry(pTileData, pHashSlot);
-        return;
+      if (!pTileData) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xa6);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xa6);
-      exit(-1);
+      nHashIdx = FINDTILE_ComputeHash((char)pTileData->nSubIndex, (char)pTileData->nIndex, (char)pTileData->nOrientation);
+      pHashSlot = pHashTable->pNodes + (nHashIdx & 0xff);
+      pHashEntry = *pHashSlot;
+      if (pHashEntry) {
+        do {
+          if (!bFound) {
+            goto add_to_existing_entry;
+          }
+          if (pHashEntry->nSubIndex == pTileData->nSubIndex && pHashEntry->nIndex == pTileData->nIndex && pHashEntry->nOrientation == pTileData->nOrientation) {
+            bFound = false;
+          } else {
+            pHashEntry = pHashEntry->pNext;
+          }
+        } while (pHashEntry);
+        if (!bFound) {
+          add_to_existing_entry:
+          FINDTILE_AddTileToChain(pHashEntry, pTileData);
+          return;
+        }
+      }
+      FINDTILE_AllocHashEntry(pTileData, pHashSlot);
+      return;
     }
 }
 

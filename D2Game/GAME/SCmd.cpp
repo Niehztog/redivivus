@@ -149,8 +149,8 @@ void __fastcall NET_D2GS_SERVER_Send_0x01_NEWGAME(D2ClientStrc * pClient, uint8_
     struct { uint8_t e0, e1, e2, e3, e4, e5, e6, e7; } aPacketBuf;
     ((uint8_t*)&aPacketBuf)[0] = nPacketId;
     *(uint32_t*)((char*)&aPacketBuf + 2) = Arena::ARENA_GetFlags(pGame);
-    ((uint8_t*)&aPacketBuf)[6] = pGame->bExpansion != 0;
     ((uint8_t*)&aPacketBuf)[1] = pGame->nDifficulty;
+    ((uint8_t*)&aPacketBuf)[6] = pGame->bExpansion != 0;
     ((uint8_t*)&aPacketBuf)[7] = pGame->eGameType != GAMETYPE_SINGLEPLAYER;
     SCMD_QueuePacketForClient(((uint8_t*)&aPacketBuf), 8, pClient);
 }
@@ -325,7 +325,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x68_UNITCHANGE_MONSTERIDPATH(D2ClientStrc 
 void __fastcall NET_D2GS_SERVER_Send_0x67_UNITCHANGE_MONSTERXYPATH(D2ClientStrc * pClient, uint8_t nPacketId, uint32_t nMonsterGUID, uint8_t nMoveType, uint16_t wX, uint16_t wY, uint8_t bParam) {
     uint8_t uStack_14[16];
     uStack_14[5] = nMoveType;
-    memset(uStack_14 + 12, 0, 4 * sizeof(uStack_14[0]));
+    for (int i = 12; i < 16; i++) uStack_14[i] = 0;
     uStack_14[10] = '\0';
     uStack_14[0xb] = '\0';
     *(uint16_t*)((char*)&uStack_14 + 8) = wY;
@@ -854,10 +854,10 @@ void __fastcall NET_D2GS_SERVER_Send_0x20_STATCHANGE_PLAYER(D2ClientStrc * pClie
       exit(-1);
     }
 
+    ((uint8_t*)&aPacket)[0] = nPacketId;
     *(uint32_t*)((char*)&aPacket + 1) = nUnitGUID;
     ((uint8_t*)&aPacket)[5] = (uint8_t)nAttributeId;
     *(uint32_t*)((char*)&aPacket + 6) = dwValue;
-    ((uint8_t*)&aPacket)[0] = nPacketId;
     SCMD_QueuePacketForClient(((uint8_t*)&aPacket), 10, pClient);
 }
 
@@ -979,8 +979,8 @@ void __fastcall NET_D2GS_SERVER_Send_0x23_SetSkill(D2ClientStrc * pClient, uint8
     struct { uint8_t e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12; } aPacket;
     ((uint8_t*)&aPacket)[6] = nSkillSlot;
     ((uint8_t*)&aPacket)[1] = bParam;
-    *(uint16_t*)((char*)&aPacket + 7) = wSkill;
     *(uint32_t*)((char*)&aPacket + 2) = dwSkillId;
+    *(uint16_t*)((char*)&aPacket + 7) = wSkill;
     ((uint8_t*)&aPacket)[0] = 0x23;
     *(uint32_t*)((char*)&aPacket + 9) = dwReserved;
     SCMD_QueuePacketForClient(((uint8_t*)&aPacket), 0xd, pClient);
@@ -1390,21 +1390,20 @@ static BOOL __stdcall SCMD_DispatchUnitPartyData(D2UnitStrc * pUnit, int32_t nUn
       exit(-1);
     } else {
       int32_t nResult;
-      if (pUnit2) {
-        if (pUnit2->eUnitType == UNIT_PLAYER) {
-          nPartyDataChanged = PLAYERDATA_AllocPartyData(pUnit2, nUnitLife, eLevel, pUnit);
-          return nPartyDataChanged;
-        }
-        if (pUnit2->eUnitType != UNIT_MONSTER) {
-          return 0;
-        }
-
-        nResult = SCMD_CheckMonsterPositionDesync(pUnit, pUnit2, nUnitLife);
-        return nResult;
+      if (!pUnit2) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x713);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x713);
-      exit(-1);
+      if (pUnit2->eUnitType == UNIT_PLAYER) {
+        nPartyDataChanged = PLAYERDATA_AllocPartyData(pUnit2, nUnitLife, eLevel, pUnit);
+        return nPartyDataChanged;
+      }
+      if (pUnit2->eUnitType != UNIT_MONSTER) {
+        return 0;
+      }
+      nResult = SCMD_CheckMonsterPositionDesync(pUnit, pUnit2, nUnitLife);
+      return nResult;
     }
 }
 
@@ -1431,13 +1430,12 @@ void __fastcall NET_D2GS_SERVER_Send_0x7F_AllyPartyInfo_0x90_PartyAutoMapInfo(D2
       ((uint8_t*)&aPacket)[3] = 0xff;
     }
 
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    eD2LevelId eLevelRaw = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
+    eD2LevelId eLevelRaw = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(D2Common::Units::UNITS_GetRoom(pUnit));
     eD2LevelId eLevel = eLevelRaw & 0xffff;
     ((uint8_t*)&aPacket)[8] = (uint8_t)eLevelRaw;
     ((uint8_t*)&aPacket)[9] = (uint8_t)(eLevelRaw >> 8);
-    D2UnitStrc* pPlayer = Clients::CLIENTS_GetControlUnit(pClient, 0);
-    BOOL bPartyDataChanged = SCMD_DispatchUnitPartyData(pPlayer, nLifePct, eLevel, pUnit);
+    D2UnitStrc* pPlayer;
+    BOOL bPartyDataChanged = SCMD_DispatchUnitPartyData(Clients::CLIENTS_GetControlUnit(pClient, 0), nLifePct, eLevel, pUnit);
     if (bPartyDataChanged) {
       SCMD_QueuePacketForClient(((uint8_t*)&aPacket), 10, pClient);
     }
@@ -1531,8 +1529,7 @@ void __fastcall Send0x9DRemoveItemFromContainer(D2ClientStrc * pClient, D2UnitSt
     }
 
     eInventoryPage ePage = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(pItem);
-    eInventoryPage ePrevPage = D2Common::ITEMS::Items::ITEM_GetItemData_ePreviousPage(pItem);
-    D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pItem, ePrevPage);
+    D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pItem, D2Common::ITEMS::Items::ITEM_GetItemData_ePreviousPage(pItem));
     NET_D2GS_SERVER_Send_0x9D_ITEMUNITEX(pClient, pUnit, pItem, 5, eItemFlag, 0);
     D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pItem, ePage);
 }
@@ -1563,7 +1560,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x3E_UpdateItemStats(D2ClientStrc * pClient
     D2BitBufferStrc bitBuf;
     uint8_t aPacket[34];
     int32_t nBitPos;
-    memset(aPacket + 4, 0, 30 * sizeof(aPacket[0]));
+    for (int i = 4; i < 34; i++) aPacket[i] = 0;
     aPacket[0] = 0x3e;
     aPacket[1] = 0;
     aPacket[2] = 0;
@@ -1827,10 +1824,10 @@ void __fastcall NET_D2GS_SERVER_Send_0x4C_UnitCastSkill_Target_0x4D_UnitCastSkil
 
 void __fastcall NET_D2GS_SERVER_Send_0x28_PlayerQuestInfo(D2ClientStrc * pClient, uint8_t nPacketId, uint32_t nUpdateType, uint32_t nUnitGUID, D2BitBufferStrc * pBitBuffer, uint8_t nActionType) {
     D2GSPacketSrv0x28 sPacket0x28;
-    sPacket0x28.nUnitGUID = nUnitGUID;
     sPacket0x28.nUpdateType = (uint8_t)nUpdateType;
-    sPacket0x28.nActionType = nActionType;
     sPacket0x28.nPacketId = nPacketId;
+    sPacket0x28.nUnitGUID = nUnitGUID;
+    sPacket0x28.nActionType = nActionType;
     D2Common::QuestRecord::CopyQuestBitBuffer(pBitBuffer, sPacket0x28.szQuestBits, 0x60, 0);
     SCMD_QueuePacketForClient(&sPacket0x28.nPacketId, 0x67, pClient);
 }
@@ -1937,8 +1934,8 @@ void __fastcall NET_D2GS_SERVER_Send_0x60_SETWARPDEST(D2ClientStrc * pClient, D2
     struct { uint8_t e0, e1, e2, e3, e4, e5, e6; } aPacket;
     ((uint8_t*)&aPacket)[0] = 0x60;
     ((uint8_t*)&aPacket)[1] = D2Common::Units::GetObjectPortalFlags(pUnit);
-    *(uint32_t*)((char*)&aPacket + 3) = pUnit->nUnitGUID;
     ((uint8_t*)&aPacket)[2] = pUnit->pUnitData.pUnitDataMonster->Components[0];
+    *(uint32_t*)((char*)&aPacket + 3) = pUnit->nUnitGUID;
     SCMD_QueuePacketForClient(((uint8_t*)&aPacket), 7, pClient);
 }
 
@@ -2012,7 +2009,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x75_UPDATEROSTER(D2UnitStrc * pUnit, D2Uni
     int nGUID;
     uint8_t aPacket[13];
     D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\GAME\\SCmd.cpp", 0xafa);
-    memset(aPacket + 5, 0, 8 * sizeof(aPacket[0]));
+    for (int i = 5; i < 13; i++) aPacket[i] = 0;
     if (!pTargetUnit) {
       nGUID = -1;
     } else {
@@ -2065,9 +2062,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x82_PortalOwnership(::SGAMEDATA * pGame, D
       nOwnerGUID = Objects::GetUnitGUIDFromUnitTimerArg(pUnit);
       pUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_PLAYER, nOwnerGUID);
       if (pUnit) {
-        nBufferOutputLength = 0x10;
-        pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-        Storm::Source::SSTR::SStrCopy((char*)(aPacket + 5), pPlayerData->szCharName, nBufferOutputLength);
+        Storm::Source::SSTR::SStrCopy((char*)(aPacket + 5), D2Common::Units::GetPlayerData(pUnit)->szCharName, 0x10);
         *(uint32_t*)((char*)&aPacket + 1) = pUnit->nUnitGUID;
         *(uint32_t*)((char*)&aPacket + 21) = dwPortalObjGUID;
         *(uint32_t*)((char*)&aPacket + 25) = dwPortalGUIDArg;
@@ -2528,9 +2523,7 @@ void __fastcall NET_D2GS_SERVER_Send_0xAC_AddMonster(D2ClientStrc * pClient, D2U
         Fog::BitBuffer::WriteValueToBitBuffer(&bitBuffer, (uint32_t)(nComponentIdx != 0), 1);
         nComponentIdx = Monsters::CheckMonsterType(pUnit, MONTYPE_SUPERUNIQUE);
         if (nComponentIdx) {
-          nScratch = 0x10;
-          nBossNo = Monsters::GetBossNo(pUnit);
-          Fog::BitBuffer::WriteValueToBitBuffer(&bitBuffer, (int)nBossNo, nScratch);
+          Fog::BitBuffer::WriteValueToBitBuffer(&bitBuffer, (int)Monsters::GetBossNo(pUnit), 0x10);
         }
 
         nScratch = Monsters::GetMonUModList(pUnit);
@@ -2672,12 +2665,12 @@ void __fastcall NET_D2GS_SERVER_Send_0xAA_AddUnit_0xA8_SetState(D2ClientStrc * p
 
 void __fastcall NET_D2GS_SERVER_Send_0x59_AssignPlayer(D2ClientStrc * pClient, uint32_t nUnitGUID, uint8_t byCharClass2, char * szCharNameSrc, uint16_t wSrcPosX, uint16_t wSrcPosY) {
     uint8_t byPacketId[26];
-    memset(byPacketId + 22, 0, 4 * sizeof(byPacketId[0]));
+    for (int i = 22; i < 26; i++) byPacketId[i] = 0;
     byPacketId[5] = byCharClass2;
     d2_store24((char*)&byPacketId + 1, (uint32_t)nUnitGUID & 0xffffffu);
     byPacketId[0] = 'Y';
     byPacketId[4] = (uint8_t)(nUnitGUID >> 0x18);
-    memset(byPacketId + 6, 0, 16 * sizeof(byPacketId[0]));
+    for (int i = 6; i < 22; i++) byPacketId[i] = 0;
     Storm::Source::SSTR::SStrCopy((char*)(byPacketId + 6), szCharNameSrc, 0x7fffffff);
     *(uint16_t*)((char*)&byPacketId + 22) = wSrcPosX;
     *(uint16_t*)((char*)&byPacketId + 24) = wSrcPosY;
@@ -2897,8 +2890,7 @@ void Send0x9CItemHandleInShop(void * pThis, D2UnitStrc * pUnit, char cParam) {
       NET_D2GS_SERVER_Send_0x9C_ITEMEX((D2ClientStrc*)pThis, pUnit, 0xb, ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD), nUnidentifiedFlag);
     } else if (cParam == '9') {
       eCurrentPage = D2Common::ITEMS::Items::ITEM_GetContainingInventoryPage(pUnit);
-      ePreviousPage = D2Common::ITEMS::Items::ITEM_GetItemData_ePreviousPage(pUnit);
-      D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pUnit, ePreviousPage);
+      D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pUnit, D2Common::ITEMS::Items::ITEM_GetItemData_ePreviousPage(pUnit));
       NET_D2GS_SERVER_Send_0x9C_ITEMEX((D2ClientStrc*)pThis, pUnit, 0xc, ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD), 0);
       D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pUnit, eCurrentPage);
       return;

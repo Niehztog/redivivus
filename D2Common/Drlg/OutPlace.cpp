@@ -350,52 +350,7 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
           nRoadTypeB = OutSiege::DRLGOUTROOM_GetGridDivisionSize(park_18);
       }
 
-      if (!(pCurVertex->dwFlags & 2)) {
-        if (!(pNextVertex->dwFlags & 2)) {
-          nCornerPresetId = nNextDx * 2;
-          nCurY = nDx * 2;
-          if (nCurY < 0) {
-            nCurY += -2;
-          } else if (0 < nCurY) {
-            nCurY += 2;
-          }
-          if (nCornerPresetId < 0) {
-            nCornerPresetId += -2;
-          } else if (0 < nCornerPresetId) {
-            nCornerPresetId += 2;
-          }
-
-          nCornerPresetId += nNextDy * 2;
-        } else {
-          nCurY = nDx * 2;
-          if (nCurY < 0) {
-            nCurY += -2;
-          } else if (0 < nCurY) {
-            nCurY += 2;
-          }
-          if (nNextDx < 0) {
-            nCornerPresetId = nNextDx - 2 + nNextDy;
-          } else {
-            nCornerPresetId = nNextDx;
-            if (0 < nNextDx) {
-              nCornerPresetId = nNextDx + 2;
-            }
-
-            nCornerPresetId += nNextDy;
-          }
-        }
-
-        nCornerPresetId = gaOutPlaceAdjacentRoadIndex[nCurY + nCornerPresetId * 9 + nDy * 2 + 0x28];
-        if (nCornerPresetId != -1) {
-          if ((int)nRoadTypeB < 4) {
-            nCornerPresetId = gnOutdoorsGridWidthByLevel[nRoadTypeB + nCornerPresetId * 4 + 1];
-          } else {
-            nCornerPresetId = gRoadPresetIdLookupTable[nRoadTypeB - 6 + nCornerPresetId * 2];
-          }
-
-          goto spawn_vertex_preset;
-        }
-      } else {
+      if (pCurVertex->dwFlags & 2) {
         nCornerPresetId = nDx;
         if (!(pNextVertex->dwFlags & 2)) {
           nCurY = nNextDx * 2;
@@ -450,6 +405,47 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
           Outdoors::SpawnOutdoorLevelPresetEx(park_18, nX, nY, nCornerPresetId, -1, 0);
           DrlgGrid::AlterGridFlag(&park_28->sGridOutdoor, nX, nY, park_38, 0);
         }
+      } else {
+        if (!(pNextVertex->dwFlags & 2)) {
+          nCornerPresetId = nNextDx * 2;
+          nCurY = nDx * 2;
+          if (nCurY < 0) {
+            nCurY += -2;
+          } else if (0 < nCurY) {
+            nCurY += 2;
+          }
+          if (nCornerPresetId < 0) {
+            nCornerPresetId += -2;
+          } else if (0 < nCornerPresetId) {
+            nCornerPresetId += 2;
+          }
+          nCornerPresetId += nNextDy * 2;
+        } else {
+          nCurY = nDx * 2;
+          if (nCurY < 0) {
+            nCurY += -2;
+          } else if (0 < nCurY) {
+            nCurY += 2;
+          }
+          if (nNextDx < 0) {
+            nCornerPresetId = nNextDx - 2 + nNextDy;
+          } else {
+            nCornerPresetId = nNextDx;
+            if (0 < nNextDx) {
+              nCornerPresetId = nNextDx + 2;
+            }
+            nCornerPresetId += nNextDy;
+          }
+        }
+        nCornerPresetId = gaOutPlaceAdjacentRoadIndex[nCurY + nCornerPresetId * 9 + nDy * 2 + 0x28];
+        if (nCornerPresetId != -1) {
+          if ((int)nRoadTypeB < 4) {
+            nCornerPresetId = gnOutdoorsGridWidthByLevel[nRoadTypeB + nCornerPresetId * 4 + 1];
+          } else {
+            nCornerPresetId = gRoadPresetIdLookupTable[nRoadTypeB - 6 + nCornerPresetId * 2];
+          }
+          goto spawn_vertex_preset;
+        }
       }
 
       next_vertex:
@@ -465,7 +461,7 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
 }
 
 // Calculates placement coordinates for a sub-level within the outdoor grid, writing results to pOutCoords.
-void __stdcall DRLGOUTPLACE_CalcSubLevelPlacement(int nHeight, int nWidth, D2DrlgCoordsStrc * pOutCoords, int * dwParam4, int32_t dwParam5) {
+static void __stdcall DRLGOUTPLACE_CalcSubLevelPlacement(int nHeight, int nWidth, D2DrlgCoordsStrc * pOutCoords, int * dwParam4, int32_t dwParam5) {
     int nOffsetX;
     nOffsetX = 0;
     int nOffsetY;
@@ -570,7 +566,7 @@ static D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc *
     nMinY = nGridY - iVar3;
     uint32_t nSubLevelCount;
     nSubLevelCount = 1;
-    memset(aSubLevelRecords, 0, 0xa8);
+    for (int i = 0; i < 0x2a; i++) aSubLevelRecords[i] = 0;
     aSubLevelRecords[0] = pLevel->sCoordinatesAndSize.WorldPosition.x;
     aSubLevelRecords[1] = pLevel->sCoordinatesAndSize.WorldPosition.y - iVar3;
     aSubLevelRecords[4] = 0;
@@ -592,7 +588,7 @@ static D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc *
         } else {
           sNewSeed = (D2SeedStrc)((uint64_t)nConnFlags * 0x6ac690c5 + uSeedHigh64);
           pDrlg->nSeed = sNewSeed;
-          nRandIdx = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) % (uint64_t)nSubLevelCount);
+          nRandIdx = (uint32_t)(sNewSeed.nSeedLow % nSubLevelCount);
         }
       }
 
@@ -805,14 +801,14 @@ static D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc *
                 } else {
                   uSeedHigh64 = (uint64_t)pDrlg->nSeed.nSeedHigh;
                   nConnFlags = pDrlg->nSeed.nSeedLow;
-                  if (!(nRandIdx & nRandIdx - 1)) {
+                  if (nRandIdx & nRandIdx - 1) {
                     sNewSeed = (D2SeedStrc)((uint64_t)nConnFlags * 0x6ac690c5 + uSeedHigh64);
                     pDrlg->nSeed = sNewSeed;
-                    nRandExitIdx = nRandIdx - 1 & sNewSeed.nSeedLow;
+                    nRandExitIdx = (uint32_t)(sNewSeed.nSeedLow % nRandIdx);
                   } else {
                     sNewSeed = (D2SeedStrc)((uint64_t)nConnFlags * 0x6ac690c5 + uSeedHigh64);
                     pDrlg->nSeed = sNewSeed;
-                    nRandExitIdx = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) % (uint64_t)nRandIdx);
+                    nRandExitIdx = nRandIdx - 1 & sNewSeed.nSeedLow;
                   }
                 }
 
@@ -1090,7 +1086,7 @@ static D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc *
 
                       sNewSeed = D2_SEED_NEXT_VAL(sNewSeed);
                       pDrlg->nSeed = sNewSeed;
-                      if (!((uint64_t)d2_bits_of(sNewSeed) & 1) || (bFoundExit = true , !bSwapped)) {
+                      if (!(sNewSeed.nSeedLow & 1) || (bFoundExit = true , !bSwapped)) {
                         bFoundExit = false;
                       }
 

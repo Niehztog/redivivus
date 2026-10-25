@@ -151,8 +151,19 @@ D2TileLibraryHeaderStrc * __stdcall Alloc(D2TileLibraryHashStrc * * ppHash, char
         return pTileData;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x7c);
-      exit(-1);
+      memset(pExistingNode, 0, 0x110);
+      pExistingNode->pNext = gpTileProjectListHead;
+      pExistingNode->pTileLibrary = pTileData;
+      pExistingNode->pHash = pNewHash;
+      nNameCopyOffset = (int)pExistingNode - (int)szFilename;
+      gpTileProjectListHead = pExistingNode;
+      do {
+        cNameChar = *szFilename;
+        szFilename[nNameCopyOffset] = cNameChar;
+        szFilename++;
+      } while (cNameChar != '\0');
+      *ppHash = pExistingNode->pHash;
+      return pTileData;
     }
 }
 

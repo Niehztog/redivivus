@@ -134,9 +134,6 @@ void __fastcall DRLGPATH_GetMissileTargetPosition(short * pOutPos, struct D2Unit
 int32_t __stdcall DRLGPATH_GetWeightedDistancePacked(uint32_t nParam1, uint32_t nParam2);
 // Given a triplet of candidate directions (from GetPathDirectionTriplet), checks each against collision and returns the first non-blocked direction. Used by path smoothing and movement.
 BOOL __stdcall DRLGPATH_FindNonBlockedDirectionFromTriplet(uint32_t nPackedPos, int * pnDirTriplet, int * pnChosenDir, struct D2PathTypeArg * pPathTypeArg);
-// Raycasts a straight line from a packed source coord (nParam, hi/lo = x/y) toward a packed destination coord (*pnParam) in fixed-point 16.16, stepping by the normalized velocity vector (pVelocity[0]/[1]) along the major axis. At each cell transition it calls Collision::CheckCollision_BlockPlayer_Type with the path's unit width and collision pattern. Returns 1 if the line is clear; on a blocked cell returns 0 and writes the last free position back into *pnParam. Degenerate inputs trigger ERROR_UnrecoverableInternalError_Halt.
-// Stack-slot reuse: the nParam slot holds the packed current cell (Y << 16 | X) passed to CheckCollision_BlockPlayer_Type.
-BOOL __stdcall DRLGPATH_RaycastCollisionLine(int * pVelocity, uint32_t nParam, uint32_t * pnParam, struct D2DynamicPathStrc * pPathArg);
 // Performs a Bresenham line raycast between two packed positions, checking collision at each step. Handles all octant cases (X-major, Y-major, diagonal). Returns 0 if blocked, 1 if path is clear.
 BOOL __stdcall DRLGPATH_RaycastBresenhamLine(uint32_t nPackedSrc, uint32_t * pnParam, struct D2DynamicPathStrc * pPathArg);
 // Checks if a target position is reachable from a unit's current dynamic path position. Validates unit type (player/monster), handles zero-velocity case, and performs a Bresenham line collision check.
@@ -149,8 +146,6 @@ void * __fastcall DRLGPATH_BuildCircularPathPoints(struct D2StaticPathStrc * pSt
 void __fastcall DRLGPATH_BuildRandomizedPathPoints(int32_t pPathStrc, struct D2DynamicPathStrc * pDynamicPath);
 // Scales a direction vector by a velocity factor (fixed-point). Computes a normalized velocity direction and validates the resulting magnitude does not exceed 0x200000.
 void __fastcall DRLGPATH_ScaleVelocityVector(int32_t nVelocityScale, POINT * pPoint, uint32_t nPackedSrc, uint32_t nPackedDst);
-// Checks if a ray from source to target position is collision-free. Normalizes the direction vector and delegates to DRLGPATH_RaycastCollisionLine. Used when waypoints are more than 1 tile apart.
-BOOL __stdcall DRLGPATH_CheckRayCollisionToTarget(uint32_t nPackedSrc, uint32_t nPackedDst, struct D2DynamicPathStrc * pDynamicPath);
 // Validates an entire path by checking collision between each consecutive pair of waypoints. For adjacent tiles, does a direct collision check; for distant tiles, uses ray collision testing. Returns 1 if valid, 0 if any segment is blocked.
 uint32_t __fastcall DRLGPATH_ValidateFullPath(struct D2PathTypeArg * pPathTypeArgs);
 // Computes a simple distance heuristic between two packed coordinates: min(dx,dy) + max(dx,dy)*2. This is equivalent to a simple diagonal distance estimation.

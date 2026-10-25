@@ -50,28 +50,27 @@ void __fastcall FreeWeatherPointer(void * pParam) {
 
 void __fastcall FOG_InitDataArray(D2DataArrayStrc * pDataArray) {
     int nObjectOffset;
-    if (pDataArray->bInitialized) {
-      int nObjectIndex;
-      nObjectIndex = 0;
-      pDataArray->nHighestUsedIndex = -1;
-      pDataArray->nUsedCount = 0;
-      pDataArray->nNextFreeIndex = 0;
-      pDataArray->nMagic = -0x8000;
-      if (0 >= pDataArray->numObjects) {
-        return;
-      }
+    if (!pDataArray->bInitialized) {
+      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x68);
+      exit(-1);
+    }
 
-      do {
-        nObjectOffset = pDataArray->nObjectSize * nObjectIndex;
-        nObjectIndex++;
-        *(uint16_t*)(nObjectOffset + (int)pDataArray->pData) = 0;
-      } while (nObjectIndex < pDataArray->numObjects);
-
+    int nObjectIndex;
+    nObjectIndex = 0;
+    pDataArray->nHighestUsedIndex = -1;
+    pDataArray->nUsedCount = 0;
+    pDataArray->nNextFreeIndex = 0;
+    pDataArray->nMagic = -0x8000;
+    if (0 >= pDataArray->numObjects) {
       return;
     }
 
-    ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x68);
-    exit(-1);
+    do {
+      nObjectOffset = pDataArray->nObjectSize * nObjectIndex;
+      nObjectIndex++;
+      *(uint16_t*)(nObjectOffset + (int)pDataArray->pData) = 0;
+    } while (nObjectIndex < pDataArray->numObjects);
+    return;
 }
 
 uint32_t __fastcall FOG_GetMissileField(D2MissilesTxt * pMissilesTxt) {
@@ -126,21 +125,21 @@ short * __fastcall FOG_GetDataArrayEntry(D2DataArrayStrc * pDataArray, int nHand
       exit(-1);
     } else {
       short int* pEntry;
-      if (pDataArray->bInitialized) {
-        pEntry = (short int*)(pDataArray->nObjectSize * nHighWord + (int)pDataArray->pData);
-        nSlotId = *pEntry;
-        if (!nSlotId) {
-          return nullptr;
-        }
-        if (!((short int)nHandle && nSlotId != (short int)nHandle)) {
-          return pEntry;
-        }
-
-        return nullptr;
+      if (!pDataArray->bInitialized) {
+        ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0xde);
+        exit(-1);
       }
 
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0xde);
-      exit(-1);
+      pEntry = (short int*)(pDataArray->nObjectSize * nHighWord + (int)pDataArray->pData);
+      nSlotId = *pEntry;
+      if (!nSlotId) {
+        return nullptr;
+      }
+      if (!((short int)nHandle && nSlotId != (short int)nHandle)) {
+        return pEntry;
+      }
+
+      return nullptr;
     }
 }
 

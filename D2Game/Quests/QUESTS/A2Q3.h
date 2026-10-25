@@ -76,10 +76,6 @@ void __fastcall Q11_SequenceFilter(struct D2QuestDataStrc * pQuestData);
 // saved quest record. If not yet Completed/RewardAwaits, reads the live stateFlag and writes the matching
 // progress sub-state: any flag -> Step0x02, ==2 -> Step0x03, ==3 -> Step0x04. Keeps client save in sync.
 BOOL __fastcall Q11_UpdateQuestRecord(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
-// A2Q3 - Q11_OnPlayerInteract: player triggers the Tainted-Sun start (e.g. via the altar/NPC). Calls
-// Q11_BeginTaintedSun; if it deferred (act not loaded, returns 0) sets the pending flag and sends a 0x5D
-// quest-state packet (quest 10, flag 1) to the interacting client; otherwise sets the darkened flag.
-void __stdcall Q11_OnPlayerInteract(struct D2QuestDataStrc * pQuestData, struct D2UnitStrc * pUnit);
 // A2Q3 - state-0xd quest-event callback (fpQuestStateHandler[0xd], Q11_Callback_13): re-syncs server
 // stateFlag from a player's saved record on (re)entry. If record is Completed or RewardAwaits ->
 // SetQuestRecordState JustCompleted and return. Else only proceeds if Step0x02 is set: re-runs the start

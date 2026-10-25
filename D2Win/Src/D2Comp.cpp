@@ -77,8 +77,7 @@ static int32_t D2COMP_AssertNotNull(int32_t pValue) {
 static void * __stdcall D2COMP_LoadAndValidateCOFFile(char * szCOFFilePath, size_t * pnSize) {
     int32_t nLineNum = 0x3eb;
     char* pszSourceFile = ".\\Src\\D2Comp.cpp";
-    D2PoolManagerStrc* pMPQPool = D2WinArchive::ReturnZero();
-    void* pArchive = Fog::Archive::D2FILE_AllocAndLoadD2File(pMPQPool, szCOFFilePath, pnSize, pszSourceFile, nLineNum);
+    void* pArchive = Fog::Archive::D2FILE_AllocAndLoadD2File(D2WinArchive::ReturnZero(), szCOFFilePath, pnSize, pszSourceFile, nLineNum);
     if (!pArchive) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3ec);
       exit(-1);
@@ -1311,12 +1310,18 @@ void __stdcall D2COMP_DestroyCompositeUnit(D2CharSelStrc * pCharSel, int32_t bUn
           return;
         }
 
-        D2COMP_UnlinkCompositeUnit(pCharSel);
+      *pCOFListHead = 0;
+      Fog::Memory::FreeClientMemory(pCOFListHead, ".\\Src\\D2Comp.cpp", 0x889, 0);
+      if (*(DC6**)(pCharSel->szCharname + 0xbc)) {
+        D2WinArchive::IMAGE_FreeImage(*(DC6**)(pCharSel->szCharname + 0xbc));
+        memset(pCharSel->szCharname + 188, 0, 4 * sizeof(pCharSel->szCharname[0]));
+      }
+      if (!bUnlink) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x87b);
-      exit(-1);
+      D2COMP_UnlinkCompositeUnit(pCharSel);
+      return;
     }
 }
 
@@ -1436,12 +1441,23 @@ void * __stdcall LoadTxt(D2PoolManagerStrc * pMemory, char * szTxtName, D2BinFie
         return pRecord;
       }
 
-      *pSize = (size_t)pRowCountOrData;
+    if (!gbLoadBinFiles) {
+      pBinFieldExcel = Fog::Src::Excel::STRUCT_CreateBinFieldExcelAndFillData(pArchive, nFileSize);
+      pRowCountOrData = (D2ArchiveStrc*)Fog::Src::Excel::TXT_GetLinesCountFromBinFieldExcel(pBinFieldExcel);
+      pRecord = (D2ArchiveStrc**)Fog::Memory::AllocServerMemory(nullptr, (int)pRowCountOrData * nLineLength, ".\\Src\\D2Comp.cpp", 0x9fa, 0);
+      memset(pRecord, 0, (int)pRowCountOrData * nLineLength);
+      Fog::Src::Excel::TXT_ParseDataAndPutIntoStructure(pBinFieldExcel, pBinFields, (char*)pRecord, (size_t)pRowCountOrData, nLineLength);
+      Fog::Src::Excel::TXT_FreeBinFieldExcel(pBinFieldExcel);
+    } else {
+      pRowCountOrData = pArchive->pPrevLink;
+      pRecord = &pArchive->pNext;
+    }
+    if (!pSize) {
       return pRecord;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9e3);
-    exit(-1);
+    *pSize = (size_t)pRowCountOrData;
+    return pRecord;
 }
 
 void __fastcall D2COMP_AllocTxt_Items(D2PoolManagerStrc * pMemory) {
@@ -1987,13 +2003,66 @@ void __stdcall D2COMP_CreateCompositeUnit(uint32_t * pCompUnit, uint32_t nPlayer
         if (!BVar1) {
           return;
         }
+      } else {
+        pCompUnit[9] = 1;
+      }
+      pCompUnit[8] = nAnimMode;
+      *pCompUnit |= 1;
+      nWeaponClass = *pCompUnit;
+      nSlot = 0;
+      *pCompUnit = nWeaponClass | 2;
+      pSlotCode = pCompUnit + 0xe;
+      *pCompUnit = nWeaponClass | 6;
+      do {
+        pSlotCode[0x10] = 1;
+        if (!*pbyEquipSlots || *pbyEquipSlots == 0xff) {
+          *pSlotCode = 0;
+        } else {
+          D2COMP_ValidateEquippedItemForClass(nSlot, pbyEquipSlots);
+          *pSlotCode = gaCompCharacterCompositeItems[*pbyEquipSlots].nItemCode;
+          pSlotCode[0x10] = gaCompCharacterCompositeItems[*pbyEquipSlots].nItemTypeIndex;
+        }
 
-        D2COMP_SetAnimationMode((D2CharSelCompStrc*)pCompUnit, nAnimMode);
+        nSlot++;
+        pbyEquipSlots++;
+        pSlotCode++;
+      } while (nSlot < 0x10);
+
+      pCodeDst = (char*)((int)pCompUnit + 0x29);
+      nCofResult = 4;
+      do {
+        cCodeByte = *szText;
+        pCodeDst[-1] = cCodeByte;
+        if (cCodeByte != -1) {
+          pCodeDst[-1] = cCodeByte - 1;
+        }
+
+        cCodeByte = szText[1];
+        *pCodeDst = cCodeByte;
+        if (cCodeByte != -1) {
+          *pCodeDst = cCodeByte - 1;
+        }
+        cCodeByte = szText[2];
+        pCodeDst[1] = cCodeByte;
+        if (cCodeByte != -1) {
+          pCodeDst[1] = cCodeByte - 1;
+        }
+        cCodeByte = szText[3];
+        pCodeDst[2] = cCodeByte;
+        if (cCodeByte != -1) {
+          pCodeDst[2] = cCodeByte - 1;
+        }
+        pCodeDst += 4;
+        szText += 4;
+        nCofResult--;
+      } while (nCofResult);
+      BVar1 = D2COMP_ValidateAndLoadCOFForUnit((D2CharSelCompStrc*)pCompUnit);
+      if (!BVar1) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x867);
-      exit(-1);
+      D2COMP_SetAnimationMode((D2CharSelCompStrc*)pCompUnit, nAnimMode);
+      return;
     }
 }
 
@@ -2407,16 +2476,12 @@ int __fastcall D2COMP_DrawUnitNameAndTitle(uint32_t * pnParam) {
 
     uint32_t dwFlags = *pnParam;
     if (!(dwFlags & 2)) {
-      return 1;
+      return 0;
     }
 
     uint32_t nCharClass = pnParam[6];
-    uint16_t* pWCharClear = wszTitleText;
-    for (i = 0x80; i; i--) {
-      pWCharClear[0] = L'\0';
-      pWCharClear[1] = L'\0';
-      pWCharClear += 2;
-    }
+    uint16_t* pWCharClear;
+    for (int i = 0; i < 0x100; i++) wszTitleText[i] = 0;
 
     uint32_t dwGameType = pnParam[7];
     i = nCharClass + 6;
@@ -2444,25 +2509,15 @@ int __fastcall D2COMP_DrawUnitNameAndTitle(uint32_t * pnParam) {
     } else {
       char* szTitlePrefix;
       szTitlePrefix = D2COMP_GetTitlePrefix(dwGameType, (dwFlags >> 5 & 1) * 3 + (dwFlags >> 7 & 1) * 2 + (dwFlags >> 6 & 1), dwFlags >> 0xc & 1);
-      pWCharClear = wszTitlePrefix;
-      for (j = 0x80; j; j--) {
-        pWCharClear[0] = L'\0';
-        pWCharClear[1] = L'\0';
-        pWCharClear += 2;
-      }
+      for (int i = 0; i < 0x100; i++) wszTitlePrefix[i] = 0;
 
       D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszTitlePrefix, szTitlePrefix, 0xff);
-      memset(wszTitleText, 0, 0x200);
+      for (int i = 0; i < 0x100; i++) wszTitleText[i] = 0;
       D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszTitleText, wszTitlePrefix);
       D2Lang::Unicode::UNISYS::AppendToBuffer(wszTitleText, (uint16_t*)(pnParam + 0x53));
     }
 
-    pWCharClear = wszTempAppend;
-    for (j = 0x80; j; j--) {
-      pWCharClear[0] = L'\0';
-      pWCharClear[1] = L'\0';
-      pWCharClear += 2;
-    }
+    for (int i = 0; i < 0x100; i++) wszTempAppend[i] = 0;
 
     nAddress = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength((uint16_t*)(pnParam + 0x73));
     if (nAddress) {

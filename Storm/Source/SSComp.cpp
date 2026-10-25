@@ -527,13 +527,11 @@ static int __stdcall SCOMP_ZlibCompress(uint8_t * pSrc, uint32_t nSrcLen, uint32
         _3rdparty::zlib::deflate::deflateEnd(&zStream);
         nRetInit = -5;
         if (nRet) {
-          Fog::Debug::GuardStack();
           return nRet;
         }
       }
     }
 
-    Fog::Debug::GuardStack();
     return nRetInit;
 }
 
@@ -604,13 +602,11 @@ static void __stdcall SCOMP_InflateZlibStackArena(uint8_t * pSrc, uint32_t nSrcL
       } else {
         _3rdparty::zlib::inflate::inflateEnd(&zStream);
         if (nRet) {
-          Fog::Debug::GuardStack();
           return;
         }
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 void __fastcall SCOMP_Bzip2Decompress(uint8_t * pDst, uint32_t * pnDstLen, uint32_t pSrc, uint32_t nSrcLen, uint32_t pUserData) {

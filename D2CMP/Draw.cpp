@@ -1081,71 +1081,67 @@ BOOL __stdcall DRAW_InitPalette(LPCSTR szPaletteFile, int nStartIndex, int nEndI
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3b8);
       exit(-1);
     } else {
-      if (nEndIndex < 0x100) {
-        gnPaletteMaxIndex = nEndIndex;
-        gnPaletteColorDepth = 1;
-        iVar1 = -0x100;
+      if (!(nEndIndex < 0x100)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3b9);
+        exit(-1);
+      }
+      gnPaletteMaxIndex = nEndIndex;
+      gnPaletteColorDepth = 1;
+      iVar1 = -0x100;
+      do {
+        gaColorDistanceLookupTable[iVar1 + 0x100] = iVar1 * iVar1;
+        iVar1++;
+      } while (iVar1 < 0x100);
+      gnDrawTransparentColorRGB = 0;
+      szStringEnd = Storm::Source::SSTR::SStrLen((char*)szPaletteFile);
+      if (!szStringEnd) {
+        nPaletteIndex = 0;
         do {
-          gaColorDistanceLookupTable[iVar1 + 0x100] = iVar1 * iVar1;
-          iVar1++;
-        } while (iVar1 < 0x100);
+          byPaletteValue = (uint8_t)nPaletteIndex;
+          gaGlobalPaletteRed[nPaletteIndex].r = byPaletteValue;
+          gaGlobalPaletteRed[nPaletteIndex].g = byPaletteValue;
+          gaGlobalPaletteRed[nPaletteIndex].b = byPaletteValue;
+          nPaletteIndex++;
+        } while (nPaletteIndex < 0x100);
 
-        gnDrawTransparentColorRGB = 0;
-        szStringEnd = Storm::Source::SSTR::SStrLen((char*)szPaletteFile);
-        if (!szStringEnd) {
+        gbPaletteLoaded = 1;
+        return 1;
+      }
+      /* HANDLE hTemplateFile for CreateFileA */ /* DWORD dwFlagsAndAttributes for CreateFileA */ /* DWORD dwCreationDisposition for CreateFileA */ /* LPSECURITY_ATTRIBUTES lpSecurityAttributes for CreateFileA */ /* DWORD dwShareMode for CreateFileA */ /* DWORD dwDesiredAccess for CreateFileA */ /* LPCSTR lpFileName for CreateFileA */ hFile = CreateFileA(lpFileName, 0x80000000, 1, (LPSECURITY_ATTRIBUTES)0x0, 3, 0, (HANDLE)0x0);
+      if (hFile == (HANDLE)-1) {
+        /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA("Unable to open ");
+        /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA(lpFileName);
+        /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA("\n");
+        return 0;
+      }
+      /* LPDWORD lpFileSizeHigh for GetFileSize */ /* HANDLE hFile for GetFileSize */ DVar2 = GetFileSize(hFile, (LPDWORD)&nStartIndex);
+      if (DVar2 == 0x300) {
+        /* LPOVERLAPPED lpOverlapped for ReadFile */ /* LPDWORD lpNumberOfBytesRead for ReadFile */ /* DWORD nNumberOfBytesToRead for ReadFile */ /* LPVOID lpBuffer for ReadFile */ /* HANDLE hFile for ReadFile */ szPaletteFile = (LPCSTR)0x0;
+        ReadFile(hFile, lpBuffer_008e8d28, 0x300, (LPDWORD)&szPaletteFile, (LPOVERLAPPED)0x0);
+        if (szPaletteFile == (LPCSTR)0x300) {
+          pbPaletteEntry = &gaGlobalPaletteRed[0].g;
           nPaletteIndex = 0;
           do {
-            byPaletteValue = (uint8_t)nPaletteIndex;
-            gaGlobalPaletteRed[nPaletteIndex].r = byPaletteValue;
-            gaGlobalPaletteRed[nPaletteIndex].g = byPaletteValue;
-            gaGlobalPaletteRed[nPaletteIndex].b = byPaletteValue;
-            nPaletteIndex++;
-          } while (nPaletteIndex < 0x100);
+            pbPaletteEntry[1] = lpBuffer_008e8d28[nPaletteIndex];
+            *pbPaletteEntry = lpBuffer_008e8d28[nPaletteIndex + 1];
+            ((D2PaletteEntryStrc*)(pbPaletteEntry - 1))->r = lpBuffer_008e8d28[nPaletteIndex + 2];
+            nPaletteIndex += 3;
+            pbPaletteEntry += 4;
+          } while (nPaletteIndex < 0x300);
 
-          gbPaletteLoaded = 1;
-          return 1;
-        }
-
-        /* HANDLE hTemplateFile for CreateFileA */ /* DWORD dwFlagsAndAttributes for CreateFileA */ /* DWORD dwCreationDisposition for CreateFileA */ /* LPSECURITY_ATTRIBUTES lpSecurityAttributes for CreateFileA */ /* DWORD dwShareMode for CreateFileA */ /* DWORD dwDesiredAccess for CreateFileA */ /* LPCSTR lpFileName for CreateFileA */ hFile = CreateFileA(lpFileName, 0x80000000, 1, (LPSECURITY_ATTRIBUTES)0x0, 3, 0, (HANDLE)0x0);
-        if (hFile == (HANDLE)-1) {
-          /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA("Unable to open ");
-          /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA(lpFileName);
-          /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA("\n");
-          return 0;
-        }
-
-        /* LPDWORD lpFileSizeHigh for GetFileSize */ /* HANDLE hFile for GetFileSize */ DVar2 = GetFileSize(hFile, (LPDWORD)&nStartIndex);
-        if (DVar2 == 0x300) {
-          /* LPOVERLAPPED lpOverlapped for ReadFile */ /* LPDWORD lpNumberOfBytesRead for ReadFile */ /* DWORD nNumberOfBytesToRead for ReadFile */ /* LPVOID lpBuffer for ReadFile */ /* HANDLE hFile for ReadFile */ szPaletteFile = (LPCSTR)0x0;
-          ReadFile(hFile, lpBuffer_008e8d28, 0x300, (LPDWORD)&szPaletteFile, (LPOVERLAPPED)0x0);
-          if (szPaletteFile == (LPCSTR)0x300) {
-            pbPaletteEntry = &gaGlobalPaletteRed[0].g;
-            nPaletteIndex = 0;
-            do {
-              pbPaletteEntry[1] = lpBuffer_008e8d28[nPaletteIndex];
-              *pbPaletteEntry = lpBuffer_008e8d28[nPaletteIndex + 1];
-              ((D2PaletteEntryStrc*)(pbPaletteEntry - 1))->r = lpBuffer_008e8d28[nPaletteIndex + 2];
-              nPaletteIndex += 3;
-              pbPaletteEntry += 4;
-            } while (nPaletteIndex < 0x300);
-
-            /* HANDLE hObject for CloseHandle */ gbPaletteLoaded = 1;
-            CloseHandle(hFile);
-            return gbPaletteLoaded;
-          }
-
-          /* HANDLE hObject for CloseHandle */ gbPaletteLoaded = 0;
+          /* HANDLE hObject for CloseHandle */ gbPaletteLoaded = 1;
           CloseHandle(hFile);
           return gbPaletteLoaded;
         }
 
-        /* HANDLE hObject for CloseHandle */ CloseHandle(hFile);
-        gbPaletteLoaded = DRAW_LoadPaletteFromPCX(lpFileName);
+        /* HANDLE hObject for CloseHandle */ gbPaletteLoaded = 0;
+        CloseHandle(hFile);
         return gbPaletteLoaded;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3b9);
-      exit(-1);
+      /* HANDLE hObject for CloseHandle */ CloseHandle(hFile);
+      gbPaletteLoaded = DRAW_LoadPaletteFromPCX(lpFileName);
+      return gbPaletteLoaded;
     }
 }
 
@@ -1435,7 +1431,7 @@ void __stdcall DRAW_BuildColorTintTable(LPPALETTEENTRY pPalette) {
     } while (nTintLevel);
 }
 
-void __stdcall DRAW_BuildDarkenTable(LPPALETTEENTRY pPalette) {
+static void __stdcall DRAW_BuildDarkenTable(LPPALETTEENTRY pPalette) {
     uint32_t nLuminance;
     uint32_t nDarkenLevel = 0;
     LPPALETTEENTRY pDestTable = pPalette + 0x100;
@@ -1453,7 +1449,7 @@ void __stdcall DRAW_BuildDarkenTable(LPPALETTEENTRY pPalette) {
     } while (nDarkenLevel < 0x20);
 }
 
-void __stdcall DRAW_BuildBrightenTable(LPPALETTEENTRY pPalette) {
+static void __stdcall DRAW_BuildBrightenTable(LPPALETTEENTRY pPalette) {
     uint32_t nLuminance;
     uint32_t nBrightenLevel = 0;
     LPPALETTEENTRY pDestTable = pPalette + 0x900;
@@ -1852,7 +1848,7 @@ void __stdcall DRAW_BuildHSLTransformTables(LPPALETTEENTRY pPalette, LPPALETTEEN
     } while (pHSLSource);
 }
 
-void DRAW_BuildBrightenLightnessTable(D2HSLColorStrc * pHSLPalette, LPPALETTEENTRY pPalette) {
+static void DRAW_BuildBrightenLightnessTable(D2HSLColorStrc * pHSLPalette, LPPALETTEENTRY pPalette) {
     uint8_t rgbWorkBuffer[1024];
     double dOldLightness;
     int nColorIndex = 0x100;

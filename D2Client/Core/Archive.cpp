@@ -58,8 +58,7 @@ DC6 * __fastcall IMAGE_LoadDC6Ex(char * szFilename, BOOL bUseDccExtension) {
       pszNameEnd++;
     }
 
-    D2PoolManagerStrc* pMPQ = D2Win::Src::D2WinArchive::ReturnZero();
-    DC6* pArchiveData = (DC6*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMPQ, aFullName, pnFileSize, szSrcFile, nSrcLine);
+    DC6* pArchiveData = (DC6*)Fog::Archive::D2FILE_AllocAndLoadD2File(D2Win::Src::D2WinArchive::ReturnZero(), aFullName, pnFileSize, szSrcFile, nSrcLine);
     DC6* pDC6Result = 0;
     D2CMP::SRC::CelCmp::CELCMP_FixupPointersAndPrepare(pArchiveData, &pDC6Result, ".\\CORE\\ARCHIVE.CPP", 0x56, -1, aFullName);
     return pDC6Result;

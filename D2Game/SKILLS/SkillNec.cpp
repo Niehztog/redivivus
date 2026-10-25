@@ -274,8 +274,7 @@ int CorpseConsumedCheck(D2UnitStrc * pUnit) {
       return 0;
     }
 
-    SkillsServer::D2CheckCorpseConsumed(pUnit, 7);
-    return 0;
+    return SkillsServer::D2CheckCorpseConsumed(pUnit, 7) != 0;
 }
 
 BOOL __fastcall Skills_SrvStFunc_21_IsRevivableCorpse(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
@@ -318,8 +317,7 @@ void __fastcall SKILLNEC_OnCurseExpire(D2UnitStrc * pUnit, eD2States eState, int
     if (pUnit->eUnitType == UNIT_MONSTER) {
       D2AiGeneralStrc* pMonsterAiGeneral = !pUnit->pUnitData.pUnitDataMonster ? 0 : pUnit->pUnitData.pUnitDataMonster->pAiGeneral;
       bReattach = 0;
-      pGame = UNIT::SUnit::GetGamePointer(pUnit);
-      Monster::AI::AttachCorrectAiFunctionToMonster(pGame, pUnit, pMonsterAiGeneral, bReattach);
+      Monster::AI::AttachCorrectAiFunctionToMonster(UNIT::SUnit::GetGamePointer(pUnit), pUnit, pMonsterAiGeneral, bReattach);
     }
 
     SkillsServer::DefaultExpireFunction(pUnit, eState, dwParam);
@@ -1115,7 +1113,7 @@ uint32_t __fastcall SKILLNEC_ApplySummonBuffs(::SGAMEDATA * pGame, D2UnitStrc * 
     int iStatLoop = 5;
     D2DataTableTxtStrc* pDataTable = sgptDataTable;
     do {
-      if (-1 < (short int)*pPassiveStatCursor) {
+      if (0 <= (short int)*pPassiveStatCursor) {
         eStatId = (eD2UnitStat)(short int)*pPassiveStatCursor;
         if ((int)eStatId < pDataTable->nTxtItemStatCostSize && 0 <= (int)eStatId) {
           pStatCostTxt = pDataTable->pTxtItemStatCost + eStatId;
@@ -1154,7 +1152,7 @@ uint32_t __fastcall SKILLNEC_ApplySummonBuffs(::SGAMEDATA * pGame, D2UnitStrc * 
     pPassiveStatCursor = pSkillsTxt->aurastatcalc;
     pPassiveCalcCursor = (int*)pSkillsTxt->aurastat;
     do {
-      if (-1 < (short int)*pPassiveCalcCursor) {
+      if (0 <= (short int)*pPassiveCalcCursor) {
         eStatId = (eD2UnitStat)(short int)*pPassiveCalcCursor;
         if ((int)eStatId < pDataTable->nTxtItemStatCostSize && 0 <= (int)eStatId) {
           pStatCostTxt = pDataTable->pTxtItemStatCost + eStatId;
@@ -1164,8 +1162,7 @@ uint32_t __fastcall SKILLNEC_ApplySummonBuffs(::SGAMEDATA * pGame, D2UnitStrc * 
             if (nStatCalc) {
               if (!pSummonStatList) {
                 nSummonGUID = D2Client::UNIT::GetGUID(pSummon);
-                eUnitType = D2Client::Units::GetType(pSummon);
-                pSummonStatList = (D2UnitStrc*)D2Common::Stats::StatsEx::AllocStatList(pGame->pMemoryPool, 0, 0, eUnitType, nSummonGUID);
+                pSummonStatList = (D2UnitStrc*)D2Common::Stats::StatsEx::AllocStatList(pGame->pMemoryPool, 0, 0, D2Client::Units::GetType(pSummon), nSummonGUID);
                 if (!pSummonStatList) {
                   return 0;
                 }
@@ -1405,8 +1402,7 @@ BOOL __fastcall Skills_SrvDoFunc_031_RaiseSkeletonFromCorpse(::SGAMEDATA * pGame
     sPet.pSkillTxt = (D2SkillsTxt*)D2Client::Units::GetYPosFromDynamicPathUnit(pCorpse);
     eD2UnitType eUnitType = pCorpse->eUnitType;
     int nUnitGUID = pCorpse->nUnitGUID;
-    D2RoomStrc* pCorpseRoom = D2Common::Units::UNITS_GetRoom(pCorpse);
-    D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pCorpseRoom, eUnitType, nUnitGUID);
+    D2Common::DUNGEON::Dungeon::AllocDrlgDelete(D2Common::Units::UNITS_GetRoom(pCorpse), eUnitType, nUnitGUID);
     UNIT::SUnit::FreeServerUnit(pGame, pCorpse);
     sPet.nSkillCalc = 0;
     sPet.nFunctionId = 0;
@@ -1460,11 +1456,7 @@ uint32_t __fastcall SKILLNEC_ApplyCorpseExplosionToUnit(D2SkillCallbackContextSt
     eD2UnitType eUnitType = pUnit->eUnitType;
     uint32_t* pDmgDataSrc = (uint32_t*)*pExplosionArgs;
     uint32_t* pDmgDataDst = (uint32_t*)&sDamage;
-    for (nDwordsLeft = 0x1c; nDwordsLeft; nDwordsLeft--) {
-      *pDmgDataDst = *pDmgDataSrc;
-      pDmgDataSrc++;
-      pDmgDataDst++;
-    }
+    memcpy(pDmgDataDst, pDmgDataSrc, 0x1c * sizeof(*pDmgDataDst));
 
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nPosY = pUnit->pPath.pStaticPath->nPosY;
@@ -1500,7 +1492,7 @@ BOOL __fastcall Skills_SrvDoFunc_055_CorpseExplosion(::SGAMEDATA * pGame, D2Unit
     struct __frame0_t {
       int nMonStatsHpMin;
       int nMonStatsHpMax;
-      uint8_t __pad8[48];
+      struct { uint8_t e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19, e20, e21, e22, e23, e24, e25, e26, e27, e28, e29, e30, e31, e32, e33, e34, e35, e36, e37, e38, e39, e40, e41, e42, e43, e44, e45, e46, e47; } __pad8;
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 56, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
@@ -1757,8 +1749,7 @@ BOOL __fastcall Skills_SrvDoFunc_057_IronGolem(::SGAMEDATA * pGame, D2UnitStrc *
       D2RoomStrc* pRoom;
       nUnitGUID = pTargetItem->nUnitGUID;
       eUnitType = pTargetItem->eUnitType;
-      pRoom = D2Common::Units::UNITS_GetRoom(pTargetItem);
-      D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pRoom, eUnitType, nUnitGUID);
+      D2Common::DUNGEON::Dungeon::AllocDrlgDelete(D2Common::Units::UNITS_GetRoom(pTargetItem), eUnitType, nUnitGUID);
       D2Common::Units::RemoveCollision_Vector(pTargetItem);
       D2Common::Unit::RemoveUnitFromRoom(pTargetItem);
       D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_BodyLoc1andBodyLoc2(pTargetItem, (eD2BodyLoc*)&sPetCastParams.nPetType, &byBodyLoc2Out);
@@ -1768,8 +1759,7 @@ BOOL __fastcall Skills_SrvDoFunc_057_IronGolem(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     SKILLNEC_InitializeSummon(pGamePostCreate, pUnit, pGolem, eSkill, nSkillLvl);
-    D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillNec.cpp", 0x74f);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x7F_AllyPartyInfo_0x90_PartyAutoMapInfo(pClient, pGolem);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x7F_AllyPartyInfo_0x90_PartyAutoMapInfo(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillNec.cpp", 0x74f), pGolem);
     GAME::Targets::CreateUnitNode(pGamePostCreate, pGolem, nullptr, pUnit->nNodeTableIndex);
     return 1;
 }
@@ -1801,8 +1791,8 @@ void __stdcall SKILLNEC_ReviveCorpse(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
 
     int32_t eCollisionFlag = 0x8000;
     eD2CollisionShapeType nUnitWidth = D2Common::PATH::DynamicPath::GetUnitWidth(pUnit);
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2Common::Collision::RemoveCollision_Type(pRoom, nX, nPosY, nUnitWidth, eCollisionFlag);
+    D2RoomStrc* pRoom;
+    D2Common::Collision::RemoveCollision_Type(D2Common::Units::UNITS_GetRoom(pUnit), nX, nPosY, nUnitWidth, eCollisionFlag);
     eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       ptRevivePos.x = pUnit->pPath.pStaticPath->nPosX;
@@ -1939,8 +1929,7 @@ BOOL __fastcall Skills_SrvDoFunc_060_SummonBoneWall(::SGAMEDATA * pGame, D2UnitS
     }
 
     uint32_t nTargetY = nCursorYRaw;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    D2RoomStrc* pTargetRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nTargetX, nTargetY);
+    D2RoomStrc* pTargetRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(D2Common::Units::UNITS_GetRoom(pUnit), nTargetX, nTargetY);
     if (!pTargetRoom) {
       return 0;
     }
@@ -2014,7 +2003,7 @@ BOOL __fastcall Skills_SrvDoFunc_060_SummonBoneWall(::SGAMEDATA * pGame, D2UnitS
     }
 
     short int nSrvMissileId = pSkillsTxt->srvmissilea;
-    if (!(-1 < nSrvMissileId && (int)nSrvMissileId < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= nSrvMissileId && (int)nSrvMissileId < sgptDataTable->nTxtMissilesSize)) {
       return 1;
     }
 
@@ -2280,7 +2269,7 @@ BOOL __fastcall ITEMEVENT_AuraThornsWithLifeSteal(::SGAMEDATA * pGame, uint32_t 
     }
 
     short int wAuraTargetState = pSkillTxt->auratargetstate;
-    if (!(-1 < wAuraTargetState && (int)wAuraTargetState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= wAuraTargetState && (int)wAuraTargetState < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -2295,8 +2284,7 @@ BOOL __fastcall ITEMEVENT_AuraThornsWithLifeSteal(::SGAMEDATA * pGame, uint32_t 
     }
 
     uint32_t nMercTypeId = D2Common::Stats::StatsEx::GetOwnerGUID(pStatList);
-    eD2UnitType eUnitType = D2Common::Stats::StatsEx::GetOwnerType(pStatList);
-    D2UnitStrc* pOwnerUnit = UNIT::SUnit::FindUnitFromTable(pGame, eUnitType, nMercTypeId);
+    D2UnitStrc* pOwnerUnit = UNIT::SUnit::FindUnitFromTable(pGame, D2Common::Stats::StatsEx::GetOwnerType(pStatList), nMercTypeId);
     if (pUnit->eUnitType == UNIT_PLAYER || (nMercTypeId = D2Common::Monsters::MONSTERS::MONSTER_GetMercType(pUnit) , nMercTypeId != 0)) {
       if (pTarget->eUnitType == UNIT_PLAYER) {
         nThornsOrCalcIdx = pSkillTxt->calc[1];
@@ -2397,7 +2385,7 @@ BOOL __fastcall ITEMEVENT_AuraHealTarget(::SGAMEDATA * pGame, uint32_t nUnitEven
     }
 
     short int nAuraTargetState = pSkillTxt->auratargetstate;
-    if (!(-1 < nAuraTargetState && (int)nAuraTargetState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= nAuraTargetState && (int)nAuraTargetState < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -2412,8 +2400,7 @@ BOOL __fastcall ITEMEVENT_AuraHealTarget(::SGAMEDATA * pGame, uint32_t nUnitEven
     }
 
     uint32_t nOwnerGUID = D2Common::Stats::StatsEx::GetOwnerGUID(pStatList);
-    eD2UnitType eUnitType = D2Common::Stats::StatsEx::GetOwnerType(pStatList);
-    D2UnitStrc* pAuraCaster = UNIT::SUnit::FindUnitFromTable(pGame, eUnitType, nOwnerGUID);
+    D2UnitStrc* pAuraCaster = UNIT::SUnit::FindUnitFromTable(pGame, D2Common::Stats::StatsEx::GetOwnerType(pStatList), nOwnerGUID);
     int32_t nHealCalc = D2Common::Skills::D2GetSkillCalc(pAuraCaster, pSkillTxt->calc[0], eSkill, nSkillLvlCast);
     nHealCalc = D2Client::Stats::D2ApplyPercent(pDamage->dwPhysDamage, nHealCalc, 100);
     int nCurHp = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pTargetUnit, UNITSTAT_hitpoints, 0);
@@ -2633,7 +2620,7 @@ BOOL __fastcall ITEMEVENT_NecroReviveLeech(::SGAMEDATA * pGame, uint32_t nUnitEv
     }
 
     D2MonStatsTxt* pMonStatsTxt = D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetLine(pUnit->nClassId);
-    if (!(pMonStatsTxt && -1 < pMonStatsTxt->aSkill[0])) {
+    if (!(pMonStatsTxt && 0 <= pMonStatsTxt->aSkill[0])) {
       return 0;
     }
 
@@ -2716,7 +2703,7 @@ int32_t __fastcall BloodGolemLifeLeech(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
     if (nParam) {
       D2MonStatsTxt* pMonStatsTxt;
       pMonStatsTxt = D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetLine(0x122);
-      if (pMonStatsTxt && -1 < pMonStatsTxt->aSkill[0]) {
+      if (pMonStatsTxt && 0 <= pMonStatsTxt->aSkill[0]) {
         nLeechAmt = D2Client::SKILLS::SkillsAma::GetTxtSkillParam5((int)pMonStatsTxt->aSkill[0]);
         nLeechAmt = SKILLNEC_AddHitpoints(pGolem, nLeechAmt * nParam / 100);
         return nParam - nLeechAmt;

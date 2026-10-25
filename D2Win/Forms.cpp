@@ -103,46 +103,44 @@ void __fastcall D2WIN_UnregisterWindowHandler(int32_t hHandle, int32_t nHandlerT
 
 // Registers multiple window handlers from array. Each array entry contains {type, message, callback} triplet. Iterates array and calls RegisterWindowHandler for each entry.
 void __fastcall D2WIN_RegisterWindowHandlerArray(int32_t hHandle, void * pHandlerArray, int32_t nHandlerCount) {
-    if (hHandle) {
-      int32_t* pHandlerEntry;
-      if (!nHandlerCount) {
-        return;
-      }
+    if (!hHandle) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4d);
+      exit(-1);
+    }
 
-      pHandlerEntry = (int32_t*)((int)pHandlerArray + 4);
-      do {
-        D2WIN_RegisterWindowHandler(hHandle, pHandlerEntry[-1], *pHandlerEntry, pHandlerEntry[1]);
-        pHandlerEntry += 3;
-        nHandlerCount--;
-      } while (nHandlerCount);
-
+    int32_t* pHandlerEntry;
+    if ((uint32_t)nHandlerCount <= 0) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4d);
-    exit(-1);
+    pHandlerEntry = (int32_t*)((int)pHandlerArray + 4);
+    do {
+      D2WIN_RegisterWindowHandler(hHandle, pHandlerEntry[-1], *pHandlerEntry, pHandlerEntry[1]);
+      pHandlerEntry += 3;
+      nHandlerCount--;
+    } while (nHandlerCount);
+    return;
 }
 
 // Unregisters multiple window handlers from array. Iterates array and calls UnregisterWindowHandler for each {type, message, callback} triplet.
 void __fastcall D2WIN_UnregisterWindowHandlerArray(int32_t hHandle, void * pHandlerArray, int32_t nHandlerCount) {
-    if (hHandle) {
-      int32_t* pHandlerEntry;
-      if (!nHandlerCount) {
-        return;
-      }
+    if (!hHandle) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5a);
+      exit(-1);
+    }
 
-      pHandlerEntry = (int32_t*)((int)pHandlerArray + 4);
-      do {
-        D2WIN_UnregisterWindowHandler(hHandle, pHandlerEntry[-1], (void*)*pHandlerEntry, (void*)pHandlerEntry[1]);
-        pHandlerEntry += 3;
-        nHandlerCount--;
-      } while (nHandlerCount);
-
+    int32_t* pHandlerEntry;
+    if ((uint32_t)nHandlerCount <= 0) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5a);
-    exit(-1);
+    pHandlerEntry = (int32_t*)((int)pHandlerArray + 4);
+    do {
+      D2WIN_UnregisterWindowHandler(hHandle, pHandlerEntry[-1], (void*)*pHandlerEntry, (void*)pHandlerEntry[1]);
+      pHandlerEntry += 3;
+      nHandlerCount--;
+    } while (nHandlerCount);
+    return;
 }
 
 // Adds list item from narrow character string. Converts szCharName to wide string (max 256 chars), forwards to AddListItem.

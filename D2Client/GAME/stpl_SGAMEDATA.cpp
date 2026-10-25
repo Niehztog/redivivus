@@ -366,7 +366,7 @@ template<> void TSHashTable<SGAMEDATA, HASHKEY_NONE>::InternalClear(int32_t bUnl
 
             *(int*)pPrevLink = pNext;
             *(uint32_t*)(*(int*)pNode + 4) = *(uint32_t*)(pNode + 4);
-            memset(pNode, 0, 8 * sizeof(pNode[0]));
+            for (int i = 0; i < 8; i++) pNode[i] = 0;
           }
         } else {
           this->pVtable->InternalDelete(this, pGame);

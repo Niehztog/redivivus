@@ -924,19 +924,19 @@ BOOL __fastcall OBJOP_A3Q5_NihlathakAltarLaunchOrb(D2ObjectOperateFnArg * pOpera
         pQuestSpecificData->bJerhynAiActive = true;
         NotifyPlayersAboutEvent(pQuestData->pGame, 10);
         /* FARPROC lpfn for IsBadCodePtr */ _bQuestState = IsBadCodePtr((FARPROC)pQuestData->fpSequenceFilter);
-        if (!_bQuestState) {
-          pQuestData->fpSequenceFilter(pQuestData);
-          nAttackerPartyId = UNIT::SUnit::GetPartyId(pOperation->pAttacker);
-          if (nAttackerPartyId == -1) {
-            return 0;
-          }
+        if (_bQuestState) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x353);
+          exit(-1);
+        }
 
-          UNIT::Party::ExecuteFunctionForEveryPartyMember(pOperation->sArg.pGame, nAttackerPartyId, (::fpExecuteOnUnitFunction)Q22_PlayerCompleteKhalimsWill, 0);
+        pQuestData->fpSequenceFilter(pQuestData);
+        nAttackerPartyId = UNIT::SUnit::GetPartyId(pOperation->pAttacker);
+        if (nAttackerPartyId == -1) {
           return 0;
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x353);
-        exit(-1);
+        UNIT::Party::ExecuteFunctionForEveryPartyMember(pOperation->sArg.pGame, nAttackerPartyId, (::fpExecuteOnUnitFunction)Q22_PlayerCompleteKhalimsWill, 0);
+        return 0;
       }
     }
 

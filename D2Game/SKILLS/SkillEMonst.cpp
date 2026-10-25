@@ -209,9 +209,7 @@ BOOL __fastcall Skills_SrvDoFunc_126_ImpInferno(::SGAMEDATA * pGame, D2UnitStrc 
       pDynamicPath = pUnit->pPath.pDynamicPath;
       if (pDynamicPath) {
         nCalcResult = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit_00);
-        nY = (int16_t)nCalcResult;
-        nCalcResult = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00);
-        D2Common::PATH::DynamicPath::SetSP1(pDynamicPath, (int16_t)nCalcResult, nY);
+        D2Common::PATH::DynamicPath::SetSP1(pDynamicPath, (int16_t)D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00), (int16_t)nCalcResult);
         D2Common::Units::SetTargetUnitForDynamicUnit(pUnit, pUnit_00);
       }
     }
@@ -487,8 +485,7 @@ void __fastcall SKILLEMONST_DetachFromHost(::SGAMEDATA * pGame, D2UnitStrc * pUn
     pUnit->eUnitFlags |= UNITFLAG_ISVALIDTARGET | UNITFLAG_CANBEATTACKED | UNITFLAG_TARGETABLE;
     GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_ACTIVESTATE, nEventParam);
     nParasiteBaseId = 0;
-    pMonsterAiGeneral = UNIT::Monster::GetAiGeneral(pUnit);
-    Monster::AI::AttachCorrectAiFunctionToMonster(pGame, pUnit, pMonsterAiGeneral, nParasiteBaseId);
+    Monster::AI::AttachCorrectAiFunctionToMonster(pGame, pUnit, UNIT::Monster::GetAiGeneral(pUnit), nParasiteBaseId);
 }
 
 // SrvDoFunc 129: parasite attach/detach dispatch. If unit already has an owner, relocates it to target coords and calls SKILLEMONST_DetachFromHost. If no target exists, falls back to SrvDoFunc_098 teleport. Otherwise relocates unit onto the target and calls SKILLEMONST_AttachToHost.
@@ -537,9 +534,7 @@ BOOL __fastcall Skills_SrvDoFunc_129_AttachOrDetachFromHost(::SGAMEDATA * pGame,
 
     int32_t bRelocateSucceeded = 1;
     uint32_t nPosX = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit_00);
-    uint32_t nPosY = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00);
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit_00);
-    bIsDead = UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, pRoom, nPosY, nPosX, bRelocateSucceeded, bIsDead);
+    bIsDead = UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, D2Common::Units::UNITS_GetRoom(pUnit_00), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00), nPosX, bRelocateSucceeded, bIsDead);
     if (!bIsDead) {
       return 0;
     }
@@ -576,7 +571,7 @@ static int __stdcall SKILLSOR_GetMeteorSubMissileCount(eMissilesId pParam, eD2Sk
     sSkillArg.pOwner = pUnit;
     _bGotTargetPos = SkillsServer::SKILLS_GetTargetOrCursorPos(pGame, pUnit, (uint32_t*)&sSkillArg.nX, (uint32_t*)&sSkillArg.nY);
     if (!_bGotTargetPos) {
-      return 1;
+      return 0;
     }
 
     int32_t nMissileCount = 0;
@@ -717,7 +712,7 @@ BOOL __fastcall Skills_SrvDoFunc_131_ConditionalTransformOrBuff(::SGAMEDATA * pG
     }
 
     D2SkillsTxt* pSkillRecord = sgptDataTable->pTxtSkills + eSkill;
-    if (!(pSkillRecord && -1 < pSkillRecord->auratargetstate && (int)pSkillRecord->auratargetstate < sgptDataTable->nTxtStatesSize)) {
+    if (!(pSkillRecord && 0 <= pSkillRecord->auratargetstate && (int)pSkillRecord->auratargetstate < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -895,8 +890,7 @@ BOOL __fastcall Skills_SrvDoFunc_134_AreaExplosionAttack(::SGAMEDATA * pGame, D2
 
     SkillsServer::SKILLS_AddRandomSkillDamage(pUnit, &sDamage.dwHitFlags, eSkill, nSkillLvl);
     SkillsServer::SetDamageOnEvent(pUnit, &sDamage, eSkill, nSkillLvl);
-    nAuraRange = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillRecord->aurarangecalc, eSkill, nSkillLvl);
-    SkillsServer::SKILLS_ApplyAreaDamage(pGame, pUnit, 0, 0, nAuraRange, &sDamage, 0);
+    SkillsServer::SKILLS_ApplyAreaDamage(pGame, pUnit, 0, 0, D2Common::Skills::D2GetSkillCalc(pUnit, pSkillRecord->aurarangecalc, eSkill, nSkillLvl), &sDamage, 0);
     return 1;
 }
 
@@ -959,7 +953,7 @@ BOOL __fastcall Skills_SrvDoFunc_135_SpawnMinionFromParams(::SGAMEDATA * pGame, 
     pSpawnedUnit->eUnitFlags |= UNITFLAG_NOXP | UNITFLAG_NOTC;
     D2Common::Units::StoreOwner(pSpawnedUnit, pUnit);
     sSumOverlay = pSkillTxt[eSkill].sumoverlay;
-    if (!(-1 < sSumOverlay && (int)sSumOverlay < sgptDataTable->nTxtOverlaySize)) {
+    if (!(0 <= sSumOverlay && (int)sSumOverlay < sgptDataTable->nTxtOverlaySize)) {
       return 1;
     }
 

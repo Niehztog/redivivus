@@ -517,7 +517,7 @@ int __stdcall GFX_LoadCompositCof(int * pnOutCofData, uint32_t nAnimMode, D2Unit
     int nWeaponParam;
     nWeaponParam = 0;
     szCofPath[0] = '\0';
-    memset(szCofPath + 1, 0, 0x103);
+    for (int i = 0x1; i < 0x104; i++) szCofPath[i] = 0;
     int bResult;
     bResult = GfxUtil::GFXUTIL_IsValidUnitType(pUnit);
     if (!bResult) {
@@ -698,8 +698,14 @@ static void __stdcall GFX_FreeAllGfxInfoEntries(int32_t nComponentCount, D2UnitS
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x668);
-      exit(-1);
+      pMemoryToFree = pGfxInfo->pGfxInfoUnk;
+      while (pMemoryToFree) {
+        pNext = pMemoryToFree->pNext;
+        Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0x66d, 0);
+        pMemoryToFree = pNext;
+      }
+      pGfxInfo->pGfxInfoUnk = 0;
+      return;
     } else {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x65f);
       exit(-1);
@@ -806,8 +812,29 @@ void __fastcall GFX_FreeNonBaseGfxInfoEntries(D2UnitStrc * pUnit) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x83d);
-    exit(-1);
+    D2GfxInfoUnkStrc* pMemoryToFree;
+    pNext = pGfxInfo->pGfxInfoUnk;
+    pMemoryToFree = 0;
+    while (true) {
+      pPrev = pMemoryToFree;
+      pMemoryToFree = pNext;
+      if (!pMemoryToFree) {
+        break;
+      }
+      pNext = pMemoryToFree->pNext;
+      if (pMemoryToFree->nAnimMode && pMemoryToFree->nAnimMode != 0x11) {
+        Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0x847, 0);
+        if (!pPrev) {
+          pGfxInfo->pGfxInfoUnk = pNext;
+          pMemoryToFree = pPrev;
+        } else {
+          pPrev->pNext = pNext;
+          pMemoryToFree = pPrev;
+        }
+      }
+    }
+
+    return;
 }
 
 // @sourcefile .\ENGINE\Gfx.cpp
@@ -914,9 +941,8 @@ uint32_t __fastcall DrawItemGfx(D2UnitStrc * pUnit, int32_t nHeight, int32_t nWi
       return 0;
     }
 
-    BOOL bEthereal = 0;
-    nDC6Height = D2CMP::SRC::CelCmp::GetDC6Height(sGfxData.pDC6Block);
-    uint32_t uVar1 = GfxUtil::GFXUTIL_IsDC6BlockOnScreen(sGfxData.pDC6Block, nHeight, nDC6Height + nWidth, bEthereal);
+    BOOL bEthereal;
+    uint32_t uVar1 = GfxUtil::GFXUTIL_IsDC6BlockOnScreen(sGfxData.pDC6Block, nHeight, D2CMP::SRC::CelCmp::GetDC6Height(sGfxData.pDC6Block) + nWidth, 0);
     if (!uVar1) {
       return 0;
     }
@@ -934,9 +960,7 @@ uint32_t __fastcall DrawItemGfx(D2UnitStrc * pUnit, int32_t nHeight, int32_t nWi
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nSavedX, nDC6HeightTmp + nWidth, nBlendMode, eDrawMode, pPalette);
     nDC6HeightTmp = 0;
     nGoldAmount = D2CMP::SRC::CelCmp::GetDC6Height(sGfxData.pDC6Block);
-    nDrawX = (nGoldAmount >> 1) + nWidth;
-    nGoldAmount = D2CMP::SRC::CelCmp::GetDC6Width(sGfxData.pDC6Block);
-    DRAW_UNIT_States(pUnit, 0xff, 0, (nGoldAmount >> 1) + nDC6Height, nDrawX, nDC6HeightTmp);
+    DRAW_UNIT_States(pUnit, 0xff, 0, (D2CMP::SRC::CelCmp::GetDC6Width(sGfxData.pDC6Block) >> 1) + nDC6Height, (nGoldAmount >> 1) + nWidth, nDC6HeightTmp);
     return 1;
 }
 

@@ -110,8 +110,7 @@ void __fastcall CLIENT_WarpToAct(::SGAMEDATA * pGame, D2ClientStrc * pClient, eD
         nErrorAddr = 0x1c89;
         ptSpawnPos.x = nSpawnX;
         ptSpawnPos.y = nSpawnY;
-        nErrorLine = D2Common::Units::GetUnitSizeX(pUnit);
-        pSpawnRoom = D2Common::Collision::GetFreeCoordinates_WithIncrementValue(pSpawnRoom, &ptSpawnPos, nErrorLine, nErrorAddr, nSearchRadius);
+        pSpawnRoom = D2Common::Collision::GetFreeCoordinates_WithIncrementValue(pSpawnRoom, &ptSpawnPos, D2Common::Units::GetUnitSizeX(pUnit), nErrorAddr, nSearchRadius);
         if (!pSpawnRoom) {
           return;
         }
@@ -144,9 +143,7 @@ void __fastcall CLIENT_WarpToAct(::SGAMEDATA * pGame, D2ClientStrc * pClient, eD
             }
 
             nErrorLine = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-            wPosY = (uint16_t)nErrorLine;
-            nErrorLine = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-            PLAYER::PlayerPets::PETS_ManagePetsByType(pGamePost, pUnit, (uint16_t)nErrorLine, wPosY);
+            PLAYER::PlayerPets::PETS_ManagePetsByType(pGamePost, pUnit, (uint16_t)D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), (uint16_t)nErrorLine);
             return;
           }
 

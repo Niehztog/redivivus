@@ -573,18 +573,18 @@ static void __fastcall Q21_SequenceFilter(D2QuestDataStrc * pQuestData) {
     }
 
     /* FARPROC lpfn for IsBadCodePtr */ bBadCodePtr = IsBadCodePtr((FARPROC)pQuestData->fpSequenceFilter);
-    if (!bBadCodePtr) {
-      bool cGidbinnFilterResult;
-      cGidbinnFilterResult = pNextQuestData->fpSequenceFilter(pNextQuestData);
-      if (!(!cGidbinnFilterResult && !cPrereqFilterResult)) {
-        return;
-      }
+    if (bBadCodePtr) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x28a);
+      exit(-1);
+    }
 
+    bool cGidbinnFilterResult;
+    cGidbinnFilterResult = pNextQuestData->fpSequenceFilter(pNextQuestData);
+    if (!(!cGidbinnFilterResult && !cPrereqFilterResult)) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x28a);
-    exit(-1);
+    return;
 }
 
 // Q21_Callback_13 (__fastcall) -- Golden Bird quest-load / state-flag reconstruction (event 0xd, run

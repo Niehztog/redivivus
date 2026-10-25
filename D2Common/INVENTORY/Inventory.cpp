@@ -2968,7 +2968,7 @@ D2RoomStrc * * __stdcall CORPSE_GetData(D2RoomStrc * pRoom) {
 
 static void ITEM_GetBodyComponents(D2UnitStrc * pUnit, uint8_t * pbParam) {
     if (!pUnit) {
-      memset(pbParam, 0, 6 * sizeof(pbParam[0]));
+      for (int i = 0; i < 6; i++) pbParam[i] = 0;
       return;
     }
 
@@ -4239,20 +4239,20 @@ static void __stdcall INVENTORY_UpdateCompositeWeaponGfx(int32_t nParam1, int32_
         pOffhandItem = INVENTORY_FindWornItemByType(pInventory, 5);
         if (pOffhandItem) {
           pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pOffhandItem->nClassId);
-          if (pItemsTxt) {
-            nAltGfxIdx = INVENTORY_GetAlternateGfxIndex(pItemsTxt->dwCode, pItemsTxt->dwAlternateGfx);
-            if (0 < (int)nAltGfxIdx) {
-              *(char*)(nParam1 + 6) = (char)nAltGfxIdx;
-              return;
-            }
+          if (!pItemsTxt) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x13cf);
+            exit(-1);
+          }
 
-            *(uint8_t*)(nParam1 + 6) = 0xff;
-            *(uint8_t*)(nParam2 + 6) = 0xff;
+          nAltGfxIdx = INVENTORY_GetAlternateGfxIndex(pItemsTxt->dwCode, pItemsTxt->dwAlternateGfx);
+          if (0 < (int)nAltGfxIdx) {
+            *(char*)(nParam1 + 6) = (char)nAltGfxIdx;
             return;
           }
 
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x13cf);
-          exit(-1);
+          *(uint8_t*)(nParam1 + 6) = 0xff;
+          *(uint8_t*)(nParam2 + 6) = 0xff;
+          return;
         }
       }
     } else if (nAltGfxIdx == 0x20776f62 && bHasComponent == '\x06' && (pItemsTxt = DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(0x2074696c, &nLitClassId) , pItemsTxt != 0)) {
@@ -4525,8 +4525,7 @@ int32_t __stdcall INVENTORY_GetEquipActionForBodySlot(D2UnitStrc * pUnit, eD2Bod
       case BODYLOC_L_ARM:
         uVar1 = (nBodyLoc != BODYLOC_L_ARM) + 4;
       pCurrentSlotItem = INVENTORY_GetItemByGridOffset(pInventory, nBodyLoc);
-      pPairedSlotItem = INVENTORY_GetItemByGridOffset(pInventory, uVar1);
-      uVar1 = INVENTORY_GetEquipSwapAction(pPairedSlotItem, pItem, pUnit, uVar1, pCurrentSlotItem);
+      uVar1 = INVENTORY_GetEquipSwapAction(INVENTORY_GetItemByGridOffset(pInventory, uVar1), pItem, pUnit, uVar1, pCurrentSlotItem);
       return uVar1;
       case BODYLOC_SWAPPED_R_ARM:
 
@@ -4739,10 +4738,10 @@ static BOOL __stdcall INVENTORY_CanTransferMercItems(D2UnitStrc * pUnit, D2Inven
         pCurrentItem = (D2UnitStrc*)(pNextItem->eUnitType != UNIT_ITEM ? 0 : (uint32_t)pNextItem);
         if (pNextItem->eUnitType == UNIT_ITEM) {
           pItemUnitData = pNextItem->pUnitData.pUnitDataItem;
-          if (!(!pItemUnitData || pItemUnitData == (D2UnitDataItemStrc*)-92)) {
-            pNextItem = pItemUnitData->pNextItem;
-          } else {
+          if (!pItemUnitData || pItemUnitData == (D2UnitDataItemStrc*)-92) {
             pNextItem = 0;
+          } else {
+            pNextItem = pItemUnitData->pNextItem;
           }
         } else {
           pNextItem = 0;

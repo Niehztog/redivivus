@@ -10,9 +10,10 @@
 namespace D2Game::Archive {
 
 int32_t __fastcall RollRandomSeed(D2SeedStrc * pSeed) {
-    D2SeedStrc DVar1 = D2_SEED_NEXT(*pSeed);
-    *pSeed = DVar1;
-    return DVar1.nSeedLow;
+    uint64_t lSeed = (uint64_t)pSeed->nSeedHigh + (uint64_t)pSeed->nSeedLow * 0x6AC690C5;
+    pSeed->nSeedHigh = (uint32_t)(lSeed >> 32);
+    pSeed->nSeedLow = (uint32_t)lSeed;
+    return pSeed->nSeedLow;
 }
 
 } // namespace D2Game::Archive

@@ -957,10 +957,7 @@ void __stdcall DRAW_Overlay_Weather() {
             nRollResult = Seed::RollBetweenMinAndMax(pSeed, 0x19, 0x32);
             nClipLeft = Sound::SOUND_PlaySound(SOUND_ITEM_BOOTSCHAIN, nullptr, nRollResult, 0, 0);
             if (nClipLeft) {
-              nSoundPosZ = 0;
-              nRollResult = Seed::RollBetweenMinAndMax(pSeed, -200, 400);
-              nLineOrCoord = Seed::RollBetweenMinAndMax(pSeed, -200, 400);
-              Sound::SOUND_PlayEnvironmentSound(nClipLeft, nLineOrCoord, nRollResult, nSoundPosZ);
+              Sound::SOUND_PlayEnvironmentSound(nClipLeft, Seed::RollBetweenMinAndMax(pSeed, -200, 400), Seed::RollBetweenMinAndMax(pSeed, -200, 400), 0);
             }
           }
         }

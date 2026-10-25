@@ -96,7 +96,6 @@ static void __fastcall ITEMTBLS_CompileItemCodeExpression(char * szExpression, c
     uint8_t szWorkBuf[1024];
     uint32_t nGuardCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (!pRecord) {
-      Fog::Debug::GuardStack();
       return;
     }
     if (szExpression) {
@@ -104,7 +103,6 @@ static void __fastcall ITEMTBLS_CompileItemCodeExpression(char * szExpression, c
       if (0 < (int)nParsedLen) {
         nFieldLen = DataTbls::DATATBLS_AppendDataToBuffer(&sgtDataTable.pItemsCode, &sgtDataTable.nItemsCodeSize, &sgtDataTable.nItemsCodeCapacity, szWorkBuf, nParsedLen);
         *(int32_t*)(pRecord + nOffset) = nFieldLen;
-        Fog::Debug::GuardStack();
         return;
       }
     }
@@ -114,7 +112,6 @@ static void __fastcall ITEMTBLS_CompileItemCodeExpression(char * szExpression, c
     pcVar1[1] = -1;
     pcVar1[2] = -1;
     pcVar1[3] = -1;
-    Fog::Debug::GuardStack();
 }
 
 // Loads and compiles items.txt into the engine's runtime ItemsTxt table. Builds the ~194-field D2BinFieldInputStrc schema (code/version/type/damage/req/inv/vendor min-max/quality columns, with code/string/sound/stat/state link resolvers and calc-string compilers), then compiles the weapons, armor and misc .txt files separately and memcpy-merges them into one contiguous sgpTxtItems array (sgpTxtWeapons/sgpTxtArmor/sgpTxtMisc point into it). Registers each item code in the items code link (FillUpTxtLinkSub0x08) unless bUseTxt, saves the itemscode bin, and builds sgpTxtItemsVersion: a short index table of all rows whose version==0 (classic items). __fastcall(pMemory).
@@ -1244,7 +1241,7 @@ static void __fastcall ITEMTBLS_ParseSkillMonTypeOrStateId(char * szValue, char 
     }
 
     char* pcVar1 = pRecord + nOffset;
-    memset(pcVar1, 0, 4 * sizeof(pcVar1[0]));
+    for (int i = 0; i < 4; i++) pcVar1[i] = 0;
 }
 
 // Loads and concatenates the magicsuffix/magicprefix/automagic .txt files into a single pTxtMagicAffixes table. Builds a D2BinFieldInputStrc descriptor array (name/spawnable/level/itypeN/etypeN/modNcode..max, etc.), calls DataTbls::CompileTxt for each of the three files (0x90-byte rows), allocates one combined server buffer (count*0x90), memcpys the three blocks in order (suffix, prefix, automagic), frees the temporaries, then resolves each row's display-name string id via STRTABLE_LookupString. Sets global nTxtMagicAffixesSize/pTxtMagicAffixes. Part of D2Common item-data table initialization.
@@ -2877,45 +2874,42 @@ void __stdcall TXT_AllocTxt_setitems() {
       setitems[0x5c].fpLinker = 0;
       sgtDataTable.pTxtSetItemsLink = Fog::Src::Excel::STRUCT_CreateTxtLinkStrc(".\\DATATBLS\\ItemTbls.cpp", 0x45d);
       sgtDataTable.pTxtSetItems = (D2SetItemsTxt*)DataTbls::CompileTxt((D2PoolManagerStrc*)__frame0.nByteOffset, "setitems", setitems, &sgtDataTable.nTxtSetItemsSize, 0x1b8);
-      if (sgtDataTable.nTxtSetItemsSize < 0x7fff) {
-        __frame0.nIdx = 0;
-        if (0 >= sgtDataTable.nTxtSetItemsSize) {
-          return;
-        }
+      if (!(sgtDataTable.nTxtSetItemsSize < 0x7fff)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x45f);
+        exit(-1);
+      }
 
-        __frame0.nByteOffset = 0;
-        do {
-          pCurSetItem = (D2SetItemsTxt*)(sgtDataTable.pTxtSetItems->index + __frame0.nByteOffset - 2);
-          pCurSetItem->nId = (short int)__frame0.nIdx;
-          Fog::Src::Excel::FOG_ParseStringField(sgtDataTable.pTxtSetItemsLink, pCurSetItem->index);
-          __frame0.pStringLookup = 0;
-          nStringId = D2Lang::StrTable::strtable::STRTABLE_LookupString((uint8_t*)pCurSetItem->index, &__frame0.pStringLookup);
-          pCurSetItem->stringId = (uint16_t)nStringId;
-          if (!(uint16_t)nStringId) {
-            pCurSetItem->stringId = 0x1507;
-          }
-
-          pTxtSetsCached = sgtDataTable.pTxtSets;
-          if (-1 < pCurSetItem->set) {
-            nSetIdx = (int)pCurSetItem->set;
-            if (nSetIdx < sgtDataTable.nTxtSetsSize && sgtDataTable.pTxtSets[nSetIdx].nTxtSetItemsCount < 6) {
-              pCurSetItem->version = sgtDataTable.pTxtSets[nSetIdx].version;
-              nSetItemSlot = (short int)pTxtSetsCached[nSetIdx].nTxtSetItemsCount;
-              pCurSetItem->setIndex = nSetItemSlot;
-              pTxtSetsCached[nSetIdx].pTxtSetItems[nSetItemSlot] = pCurSetItem;
-              pTxtSetsCached[nSetIdx].nTxtSetItemsCount++;
-            }
-          }
-
-          __frame0.nByteOffset += 0x1b8;
-          __frame0.nIdx++;
-        } while (__frame0.nIdx < sgtDataTable.nTxtSetItemsSize);
-
+      __frame0.nIdx = 0;
+      if (0 >= sgtDataTable.nTxtSetItemsSize) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x45f);
-      exit(-1);
+      __frame0.nByteOffset = 0;
+      do {
+        pCurSetItem = (D2SetItemsTxt*)(sgtDataTable.pTxtSetItems->index + __frame0.nByteOffset - 2);
+        pCurSetItem->nId = (short int)__frame0.nIdx;
+        Fog::Src::Excel::FOG_ParseStringField(sgtDataTable.pTxtSetItemsLink, pCurSetItem->index);
+        __frame0.pStringLookup = 0;
+        nStringId = D2Lang::StrTable::strtable::STRTABLE_LookupString((uint8_t*)pCurSetItem->index, &__frame0.pStringLookup);
+        pCurSetItem->stringId = (uint16_t)nStringId;
+        if (!(uint16_t)nStringId) {
+          pCurSetItem->stringId = 0x1507;
+        }
+        pTxtSetsCached = sgtDataTable.pTxtSets;
+        if (-1 < pCurSetItem->set) {
+          nSetIdx = (int)pCurSetItem->set;
+          if (nSetIdx < sgtDataTable.nTxtSetsSize && sgtDataTable.pTxtSets[nSetIdx].nTxtSetItemsCount < 6) {
+            pCurSetItem->version = sgtDataTable.pTxtSets[nSetIdx].version;
+            nSetItemSlot = (short int)pTxtSetsCached[nSetIdx].nTxtSetItemsCount;
+            pCurSetItem->setIndex = nSetItemSlot;
+            pTxtSetsCached[nSetIdx].pTxtSetItems[nSetItemSlot] = pCurSetItem;
+            pTxtSetsCached[nSetIdx].nTxtSetItemsCount++;
+          }
+        }
+        __frame0.nByteOffset += 0x1b8;
+        __frame0.nIdx++;
+      } while (__frame0.nIdx < sgtDataTable.nTxtSetItemsSize);
+      return;
     } else {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3f4);
       exit(-1);
@@ -2938,9 +2932,9 @@ void __fastcall TXT_AllocTxt_qualityitems(D2PoolManagerStrc * pMemory) {
     qualityitems[1].eType = FIELDTYPE_NAME_INT;
     qualityitems[1].fpLinker = &sgtDataTable.pTxtPropertiesLink;
     qualityitems[2].eType = FIELDTYPE_NAME_INT;
-    qualityitems[2].fpLinker = &sgtDataTable.pTxtPropertiesLink;
     qualityitems[0].szName = "nummods";
     qualityitems[0].eType = FIELDTYPE_CHAR;
+    qualityitems[2].fpLinker = &sgtDataTable.pTxtPropertiesLink;
     qualityitems[0].nSize = 0;
     qualityitems[0].nOffset = 10;
     qualityitems[0].fpLinker = 0;
@@ -5109,26 +5103,25 @@ void __fastcall TXT_AllocTxt_runes(D2PoolManagerStrc * pMemory) {
         exit(-1);
       } else {
         bSrvBinExists = ITEMTBLS_CheckIfDataFileExists(".xls", pMemory, "runessrv");
-        if (!bSrvBinExists) {
-          pTxtRunes = (int*)DataTbls::CompileTxt(pMemory, "runes", aFieldDefs, &nTxtRunesSize, 0x120);
-          pStringOut = 0;
-          if (0 >= nTxtRunesSize) {
-            return;
-          }
+        if (bSrvBinExists) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x90c);
+          exit(-1);
+        }
 
-          nOffset = 0;
-          do {
-            nStringId = D2Lang::StrTable::strtable::STRTABLE_LookupString((uint8_t*)((int)pTxtRunes + nOffset), &pStringOut);
-            *(short int*)((int)pTxtRunes + nOffset + 0x82) = (short int)nStringId;
-            nRuneIdx++;
-            nOffset += 0x120;
-          } while (nRuneIdx < nTxtRunesSize);
-
+        pTxtRunes = (int*)DataTbls::CompileTxt(pMemory, "runes", aFieldDefs, &nTxtRunesSize, 0x120);
+        pStringOut = 0;
+        if (0 >= nTxtRunesSize) {
           return;
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x90c);
-        exit(-1);
+        nOffset = 0;
+        do {
+          nStringId = D2Lang::StrTable::strtable::STRTABLE_LookupString((uint8_t*)((int)pTxtRunes + nOffset), &pStringOut);
+          *(short int*)((int)pTxtRunes + nOffset + 0x82) = (short int)nStringId;
+          nRuneIdx++;
+          nOffset += 0x120;
+        } while (nRuneIdx < nTxtRunesSize);
+        return;
       }
     }
 }

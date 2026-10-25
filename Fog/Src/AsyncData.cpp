@@ -510,8 +510,35 @@ void __fastcall ASYNCDATA_Free(D2AsyncData_Line0x128 * pAsyncData) {
         return;
       }
 
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x291);
-      exit(-1);
+      if (pAsyncData->nFlags & 8U) {
+        ppListEntry = &gpAsyncDataDeferredList;
+        do {
+          if (*ppListEntry == pAsyncData) {
+            *ppListEntry = pAsyncData->pNextDeferred;
+            break;
+          }
+          ppListEntry = &(*ppListEntry)->pNextDeferred;
+        } while (ppListEntry);
+      }
+      bIsComplete = ASYNCDATA_IsComplete(pAsyncData);
+      if (!bIsComplete) {
+        Storm::Source::SFile::SFILE_CancelAsyncRequestNoReturn((int32_t)pAsyncData->pReadBuffer);
+        /* DWORD dwMilliseconds for WaitForSingleObject */ /* HANDLE hHandle for WaitForSingleObject */ WaitForSingleObject(pAsyncData->pSlot->pHandle[0], -1);
+        ASYNCDATA_CancelAndCleanup(pAsyncData);
+      }
+      if (pAsyncData->nFlags & 2) {
+        if (!pAsyncData->pReadBuffer) {
+          ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x2c3);
+          exit(-1);
+        }
+
+        Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x2c6, 0);
+        pAsyncData->nFlags &= 0xf;
+        pAsyncData->pReadBuffer = 0;
+      }
+
+      Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData, ".\\Src\\AsyncData.cpp", 0x2cd, 0);
+      return;
     }
 }
 

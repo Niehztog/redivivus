@@ -68,24 +68,22 @@ int __stdcall DrawAgreeToTrade() {
     int32_t nStringIdx = 0;
     uint32_t nColorOrFont = 0;
     uint32_t nColor_lcl = 0xf;
-    uint16_t* szString = D2Lang::StrTable::strtable::GetLocaleString(0xfca);
-    Dialog::AddStringData(Dialog::gpTradeAgreeDialog, szString, nColor_lcl, nColorOrFont, nStringIdx, nClickable, nCallbackParam, nLineNum);
+    uint16_t* szString;
+    Dialog::AddStringData(Dialog::gpTradeAgreeDialog, D2Lang::StrTable::strtable::GetLocaleString(0xfca), nColor_lcl, nColorOrFont, nStringIdx, nClickable, nCallbackParam, nLineNum);
     nLineNum = 1;
     fpDialogFunc pcVar1 = ConfirmExchange;
     nClickable = 1;
     nStringIdx = 0;
     nColorOrFont = 0;
     nColor_lcl = 0xf;
-    szString = D2Lang::StrTable::strtable::GetLocaleString(0xd49);
-    Dialog::AddStringData(Dialog::gpTradeAgreeDialog, szString, nColor_lcl, nColorOrFont, nStringIdx, nClickable, pcVar1, nLineNum);
+    Dialog::AddStringData(Dialog::gpTradeAgreeDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd49), nColor_lcl, nColorOrFont, nStringIdx, nClickable, pcVar1, nLineNum);
     nLineNum = 1;
     fpDialogFunc nParam2 = TRADE_GetPlayerGoldAmount;
     nClickable = 1;
     nStringIdx = 0;
     nColorOrFont = 0;
     nColor_lcl = 0xf;
-    szString = D2Lang::StrTable::strtable::GetLocaleString(0xd48);
-    Dialog::AddStringData(Dialog::gpTradeAgreeDialog, szString, nColor_lcl, nColorOrFont, nStringIdx, nClickable, nParam2, nLineNum);
+    Dialog::AddStringData(Dialog::gpTradeAgreeDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd48), nColor_lcl, nColorOrFont, nStringIdx, nClickable, nParam2, nLineNum);
     Dialog::DIALOG_SetSelectedLine(Dialog::gpTradeAgreeDialog, -1);
     return 1;
 }
@@ -116,16 +114,15 @@ void __stdcall TRADE_HandleTradeCancel() {
     nErrAddr = 0;
     uint32_t nColorOrFont = 0;
     uint32_t nColor_lcl = 0xf;
-    uint16_t* szString = D2Lang::StrTable::strtable::GetLocaleString(0xfcb);
-    Dialog::AddStringData(Dialog::gpTradeCancelDialog, szString, nColor_lcl, nColorOrFont, nErrAddr, nClickable, nCallbackParam, nLineNum);
+    uint16_t* szString;
+    Dialog::AddStringData(Dialog::gpTradeCancelDialog, D2Lang::StrTable::strtable::GetLocaleString(0xfcb), nColor_lcl, nColorOrFont, nErrAddr, nClickable, nCallbackParam, nLineNum);
     nLineNum = 1;
     fpDialogFunc fpCancelCallback = TRADE_GetPartnerGoldAmount;
     nClickable = 1;
     nErrAddr = 0;
     nColorOrFont = 0;
     nColor_lcl = 0xf;
-    szString = D2Lang::StrTable::strtable::GetLocaleString(0xd48);
-    Dialog::AddStringData(Dialog::gpTradeCancelDialog, szString, nColor_lcl, nColorOrFont, nErrAddr, nClickable, fpCancelCallback, nLineNum);
+    Dialog::AddStringData(Dialog::gpTradeCancelDialog, D2Lang::StrTable::strtable::GetLocaleString(0xd48), nColor_lcl, nColorOrFont, nErrAddr, nClickable, fpCancelCallback, nLineNum);
     Dialog::DIALOG_SetSelectedLine(Dialog::gpTradeCancelDialog, -1);
 }
 

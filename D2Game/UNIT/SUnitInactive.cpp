@@ -105,8 +105,7 @@ static void __stdcall SUNITINACTIVE_FindAndRemoveInactiveUnitsByRoom(int * pnPar
     D2DrlgRoomCoordsStrc sRoomCoords;
     *pnParam1 = 0;
     *pnParam2 = 0;
-    eD2LevelId eLevel = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-    eAct neAct = D2Common::Drlg::GetActNoFromLevelNumber(eLevel);
+    eAct neAct = D2Common::Drlg::GetActNoFromLevelNumber(D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom));
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &sRoomCoords);
     int* pMemoryToFree = *(int**)(nParam + 0xd8 + (uint32_t)neAct * 4);
     int* pPrevNode = 0;
@@ -961,37 +960,35 @@ BOOL __fastcall SUNITINACTIVE_CheckDeadMonsterAtCoords(::SGAMEDATA * pGame, D2Ro
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6db);
       exit(-1);
     } else {
-      if (nPosX && nPosY) {
-        pFoundRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nPosX, nPosY);
-        eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-        eActNo = D2Common::Drlg::GetActNoFromLevelNumber(eLevelId);
-        if (pFoundRoom || (pFoundRoom = D2Common::DUNGEON::Dungeon::FindRoomBySubtileCoordinates(pGame->pAct[eActNo], nPosX, nPosY) , pFoundRoom != 0)) {
-          for (pUnit = pFoundRoom->pUnitList; pUnit; pUnit = pUnit->pRoomNext) {
-            if (pUnit->eUnitType == UNIT_MONSTER && pUnit->nClassId == nParam) {
-              BVar1 = SUnit::CheckForModeZeroDeath(pUnit);
-              if (BVar1) {
-                return 1;
-              }
+      if (!(nPosX && nPosY)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6dc);
+        exit(-1);
+      }
+      pFoundRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nPosX, nPosY);
+      eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
+      eActNo = D2Common::Drlg::GetActNoFromLevelNumber(eLevelId);
+      if (pFoundRoom || (pFoundRoom = D2Common::DUNGEON::Dungeon::FindRoomBySubtileCoordinates(pGame->pAct[eActNo], nPosX, nPosY) , pFoundRoom != 0)) {
+        for (pUnit = pFoundRoom->pUnitList; pUnit; pUnit = pUnit->pRoomNext) {
+          if (pUnit->eUnitType == UNIT_MONSTER && pUnit->nClassId == nParam) {
+            BVar1 = SUnit::CheckForModeZeroDeath(pUnit);
+            if (BVar1) {
+              return 1;
             }
           }
         }
+      }
 
-        pInactiveList = SUNITINACTIVE_AllocOrFindInactiveList(pGame, (uint32_t)eActNo, nPosY, 0, nPosX);
-        if (!pInactiveList) {
-          return 0;
-        }
-
-        for (pInactiveMonster = pInactiveList->pInactiveMonsters; pInactiveMonster; pInactiveMonster = pInactiveMonster->pNext) {
-          if (pInactiveMonster->nClassId == nParam && pInactiveMonster->nTypeFlags & 4) {
-            return 1;
-          }
-        }
-
+      pInactiveList = SUNITINACTIVE_AllocOrFindInactiveList(pGame, (uint32_t)eActNo, nPosY, 0, nPosX);
+      if (!pInactiveList) {
         return 0;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6dc);
-      exit(-1);
+      for (pInactiveMonster = pInactiveList->pInactiveMonsters; pInactiveMonster; pInactiveMonster = pInactiveMonster->pNext) {
+        if (pInactiveMonster->nClassId == nParam && pInactiveMonster->nTypeFlags & 4) {
+          return 1;
+        }
+      }
+      return 0;
     }
 }
 

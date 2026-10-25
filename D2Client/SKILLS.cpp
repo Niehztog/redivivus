@@ -251,7 +251,7 @@ static void __stdcall SKILLSCLT_CreateMultiMissileDirected(int32_t nParam1, eD2S
       if (*(short int*)(nParam1 + 0xee) < 0) {
         seedNext = D2_SEED_NEXT(*pSeed);
         *pSeed = seedNext;
-        if ((uint64_t)d2_bits_of(seedNext) & 1) {
+        if (seedNext.nSeedLow & 1) {
           goto spawn_selected_missile;
         }
       } else {
@@ -425,7 +425,7 @@ BOOL __fastcall Skills_CltDoFunc_DualMissileWithZ(D2UnitStrc * pUnit, eD2Skills 
     sSkillArg.nSkillLevel = nSkillLvl;
     int nCalcC = nCalcB;
     sSkillArg.eSkillNo = eSkill;
-    if (-1 < pSkillTxt->cltmissilea) {
+    if (0 <= pSkillTxt->cltmissilea) {
       sSkillArg.nMissileTxtNo = (eMissilesId)pSkillTxt->cltmissilea;
       pMissile = UNIT::Missile::MakeMissile(&sSkillArg);
       nCalcC = nCalcB;
@@ -435,7 +435,7 @@ BOOL __fastcall Skills_CltDoFunc_DualMissileWithZ(D2UnitStrc * pUnit, eD2Skills 
         Engine::Particle::SetOffsetVector(pMissile, -nAuraRange, 0, -nCalcB, 1);
       }
     }
-    if (-1 >= pSkillTxt->cltmissileb) {
+    if (0 > pSkillTxt->cltmissileb) {
       return 1;
     }
 
@@ -1214,19 +1214,19 @@ void __fastcall SKILLSCLT_SetMissilePathExtended(D2UnitStrc * pUnit, int32_t nIn
     eD2UnitType eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nCurX = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nCurX = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nCurX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nCurX = 0;
     }
 
     eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nCurY = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nCurY = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nCurY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nCurY = 0;
     }
 
     uint32_t nSP1Y = D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath);
@@ -1822,8 +1822,7 @@ BOOL __fastcall Skills_CltDoFunc_AuraLevel_MissilesOnTargetVelocity(D2UnitStrc *
       return 0;
     }
 
-    int32_t nVelocity = D2Common::DATATBLS::MissileTbls::MISSILETBLS_CalculateVelocity(eMissileId, nSkillLvl);
-    Skills::SKILL_SpawnMissilesAtTarget(pUnit, pTargetUnit, eMissileId, ~MISSILE_Arrow, eSkill, nSkillLvl, nVelocity);
+    Skills::SKILL_SpawnMissilesAtTarget(pUnit, pTargetUnit, eMissileId, ~MISSILE_Arrow, eSkill, nSkillLvl, D2Common::DATATBLS::MissileTbls::MISSILETBLS_CalculateVelocity(eMissileId, nSkillLvl));
     return 1;
 }
 
@@ -1918,7 +1917,7 @@ BOOL __fastcall Skills_CltDoFunc_AuraState_OverlayOnTarget(D2UnitStrc * pUnit, e
     if (pSkillTxt->progressive) {
       D2StatListExStrc* pStatListEx;
       sAuraState = pSkillTxt->aurastate;
-      if (-1 < sAuraState && (int)sAuraState < sgptDataTable->nTxtStatesSize && -1 < pSkillTxt->aurastat[0] && (int)pSkillTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize) {
+      if (0 <= sAuraState && (int)sAuraState < sgptDataTable->nTxtStatesSize && 0 <= pSkillTxt->aurastat[0] && (int)pSkillTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize) {
         pStatListEx = D2Common::Stats::StatsEx::GetStatsByState(pUnit, (int)sAuraState);
         if (pStatListEx) {
           nAuraStat = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatListEx, (int)pSkillTxt->aurastat[0], 0);
@@ -1964,7 +1963,7 @@ BOOL __fastcall Skills_CltDoFunc_AuraState_OverlayOnCaster(D2UnitStrc * pUnit, e
     if (pSkillTxt->progressive) {
       D2StatListExStrc* pStatListEx;
       sAuraState = pSkillTxt->aurastate;
-      if (-1 < sAuraState && (int)sAuraState < sgptDataTable->nTxtStatesSize && -1 < pSkillTxt->aurastat[0] && (int)pSkillTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize) {
+      if (0 <= sAuraState && (int)sAuraState < sgptDataTable->nTxtStatesSize && 0 <= pSkillTxt->aurastat[0] && (int)pSkillTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize) {
         pStatListEx = D2Common::Stats::StatsEx::GetStatsByState(pUnit, (int)sAuraState);
         if (pStatListEx) {
           nAuraStat = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatListEx, (int)pSkillTxt->aurastat[0], 0);

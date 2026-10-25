@@ -198,7 +198,6 @@ void __fastcall D2FILE_SeekFile(D2PoolManagerStrc * pMemory, D2MPQFileStrc * pFi
     } else {
       nSeekResult = Fog::Source::SFile::SFILE_SetFilePointerThunk(pFile, nDistanceToMove, pnNewPos, dwMoveMethod);
       if (nSeekResult != -1) {
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -748,12 +747,8 @@ void __stdcall QSERVER_InitGlobalGameState() {
 
 void StaticInit_6caa10() {
     int iVar1;
-    uint16_t* pWVar2 = UNICODE_007a2c80;
-    for (iVar1 = 0x28; iVar1; iVar1--) {
-      pWVar2[0] = L'\0';
-      pWVar2[1] = L'\0';
-      pWVar2 += 2;
-    }
+    uint16_t* pWVar2;
+    for (int i = 0; i < 0x50; i++) UNICODE_007a2c80[i] = 0;
 }
 
 void StaticInit_6caa30() {
@@ -803,7 +798,7 @@ void StaticInit_6caab0() {
 }
 
 void StaticInit_6caad0() {
-    memset(gwKeyNameBuffer, 0, 4 * sizeof(gwKeyNameBuffer[0]));
+    for (int i = 0; i < 4; i++) gwKeyNameBuffer[i] = 0;
 }
 
 void StaticInit_6caaf0() {
@@ -822,17 +817,17 @@ void StaticInit_6cab10() {
     int nDwordsRemaining;
     uint8_t* pChatHistoryBuf = gaChatHistoryBuffer;
     for (nDwordsRemaining = 0x404; nDwordsRemaining; nDwordsRemaining--) {
-      memset(pChatHistoryBuf, 0, 4 * sizeof(pChatHistoryBuf[0]));
+      for (int i = 0; i < 4; i++) pChatHistoryBuf[i] = 0;
       pChatHistoryBuf += 4;
     }
 }
 
 void StaticInit_6cab30() {
-    memset(gwcIMECompositionString, 0, 32 * sizeof(gwcIMECompositionString[0]));
+    for (int i = 0; i < 32; i++) gwcIMECompositionString[i] = 0;
 }
 
 void StaticInit_6cab90() {
-    memset(gwcImeCompositionBuffer, 0, 32 * sizeof(gwcImeCompositionBuffer[0]));
+    for (int i = 0; i < 32; i++) gwcImeCompositionBuffer[i] = 0;
 }
 
 void StaticInit_6cabf0() {
@@ -881,7 +876,7 @@ void StaticInit_6cad00() {
 }
 
 void StaticInit_6cad10() {
-    memset(gNpcMenuConfirmDialogStrings, 0, 40 * sizeof(gNpcMenuConfirmDialogStrings[0]));
+    for (int i = 0; i < 40; i++) gNpcMenuConfirmDialogStrings[i] = 0;
 }
 
 void StaticInit_6cad80() {

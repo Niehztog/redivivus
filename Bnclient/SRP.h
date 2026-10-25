@@ -65,6 +65,7 @@ void __fastcall SRP_InitializeRandomState(struct D2Srp * pThis, uint32_t dwSeed)
 void __stdcall SRP_ComputePasswordHash(void * pParam, char * szText1, char * szText2, int * pnParam);
 void __fastcall SRP_ComputeScramblingParam(int32_t pThis, struct BigData * * ppBase, struct BigData * * pnParam);
 void __stdcall SRP_HashBigNumToU32(struct BigData * * ppBigNum, uint32_t * pdwOut);
+int __fastcall SRP_ClientComputeSharedSecret(int32_t pSrp, struct BigData * * pPrivateKey, struct BigData * * pnParam1, struct BigData * * pnParam2, struct BigData * * pnParam3);
 void __fastcall SRP_ComputeClientProof(int32_t pThis, char * szUsername, void * pParam1, void * pParam2, void * pParam3, void * pParam4, int32_t nParam);
 // @sourcefile .\SRP.cpp
 void __fastcall SRP_CreateContext(struct D2Srp * * ppSrp);

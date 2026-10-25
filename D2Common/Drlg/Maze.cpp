@@ -518,7 +518,7 @@ static void __stdcall DRLGMAZE_BuildRoomGrid(int32_t nGridSize, D2DrlgLevelStrc 
     DRLGMAZE_PickRoomPreset(pFirstRoom, 1);
 }
 
-D2RoomExStrc * GetRandomRoomExFromLevel(D2DrlgLevelStrc * pLevel) {
+static D2RoomExStrc * GetRandomRoomExFromLevel(D2DrlgLevelStrc * pLevel) {
     uint32_t nSeedLowOld;
     D2SeedStrc sSeed;
     uint32_t nSelectedRoom = pLevel->nRoomExCount;
@@ -535,7 +535,7 @@ D2RoomExStrc * GetRandomRoomExFromLevel(D2DrlgLevelStrc * pLevel) {
       } else {
         sSeed = (D2SeedStrc)((uint64_t)nSeedLowOld * 0x6ac690c5 + nSeedLowCopy);
         pLevel->sSeed = sSeed;
-        nSelectedRoom = (uint32_t)(((uint64_t)d2_bits_of(sSeed) & 0xffffffff) % (uint64_t)nSelectedRoom);
+        nSelectedRoom = (uint32_t)(sSeed.nSeedLow % nSelectedRoom);
       }
     }
 
@@ -548,7 +548,7 @@ D2RoomExStrc * GetRandomRoomExFromLevel(D2DrlgLevelStrc * pLevel) {
 }
 
 // Core maze expansion loop: repeatedly picks a random non-preset room, advances its seed to choose a random direction, allocates and attempts to place a new adjacent room, links and registers it on success. Scales the target room count by difficulty and doubles or triples it for the Act 2 tombs. Runs until pLevel->nRoomExCount reaches the scaled target. The loop keeps pLevel in ECX across the GetRandomRoomExFromLevel call and its tail re-reads [ECX+8] without reloading, which is why that callee is typed __fastcall_ecxsafe.
-void __stdcall ActualLevelGeneration(D2DrlgLevelStrc * pLevel) {
+static void __stdcall ActualLevelGeneration(D2DrlgLevelStrc * pLevel) {
     uint32_t nRandDirection;
     D2RoomExStrc* pRoomExNew;
     int bReplaceResult;

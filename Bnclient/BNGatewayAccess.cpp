@@ -31,7 +31,6 @@ int32_t __stdcall GetSystemTimeZone() {
       iVar1 = tziInfo.Bias;
     }
 
-    Fog::Debug::GuardStack();
     return iVar1;
 }
 

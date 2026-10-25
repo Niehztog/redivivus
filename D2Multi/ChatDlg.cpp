@@ -631,13 +631,13 @@ BOOL __stdcall CHATDLG_OnPressLadderPageDown(D2ControlMsg * pControlMsg) {
 
 void __stdcall UIMENU_LadderBoard_PrintClassButtonLabels() {
     uint16_t awszCharNames[112];
-    memset(awszCharNames + 80, 0, 16 * sizeof(awszCharNames[0]));
-    memset(awszCharNames + 16, 0, 16 * sizeof(awszCharNames[0]));
-    memset(awszCharNames + 48, 0, 16 * sizeof(awszCharNames[0]));
-    memset(awszCharNames + 96, 0, 16 * sizeof(awszCharNames[0]));
-    memset(awszCharNames + 64, 0, 16 * sizeof(awszCharNames[0]));
-    memset(awszCharNames + 32, 0, 16 * sizeof(awszCharNames[0]));
-    memset(awszCharNames, 0, 16 * sizeof(awszCharNames[0]));
+    for (int i = 80; i < 96; i++) awszCharNames[i] = 0;
+    for (int i = 16; i < 32; i++) awszCharNames[i] = 0;
+    for (int i = 48; i < 64; i++) awszCharNames[i] = 0;
+    for (int i = 96; i < 112; i++) awszCharNames[i] = 0;
+    for (int i = 64; i < 80; i++) awszCharNames[i] = 0;
+    for (int i = 32; i < 48; i++) awszCharNames[i] = 0;
+    for (int i = 0; i < 16; i++) awszCharNames[i] = 0;
     D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(awszCharNames + 0x50, "AMA", 0x10);
     D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(awszCharNames + 0x10, "SOR", 0x10);
     D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(awszCharNames + 0x30, "NEC", 0x10);
@@ -1533,26 +1533,11 @@ static void __fastcall CHATDLG_HandleChatListClick(int32_t nStartRank, int32_t n
       return;
     }
     if (!nRankCount) {
-      pcScratch = local_410;
-      for (nCmp = 0x80; nCmp; nCmp--) {
-        pcScratch[0] = L'\0';
-        pcScratch[1] = L'\0';
-        pcScratch += 2;
-      }
 
-      pcScratch = wszNamePart;
-      for (nCmp = 0x80; nCmp; nCmp--) {
-        pcScratch[0] = L'\0';
-        pcScratch[1] = L'\0';
-        pcScratch += 2;
-      }
+      for (int i = 0; i < 0x100; i++) local_410[i] = 0;
 
-      pcScratch = wszEmptyMsg;
-      for (nCmp = 0x80; nCmp; nCmp--) {
-        pcScratch[0] = L'\0';
-        pcScratch[1] = L'\0';
-        pcScratch += 2;
-      }
+      for (int i = 0; i < 0x100; i++) wszNamePart[i] = 0;
+      for (int i = 0; i < 0x100; i++) wszEmptyMsg[i] = 0;
 
       OOGUtilities::OOGUTIL_GetProfileCharacterName(sScratch);
       D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszNamePart, "Player \'%s\' is not on the ladder.", 0x100);

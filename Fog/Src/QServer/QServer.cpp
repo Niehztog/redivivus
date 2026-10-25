@@ -1313,8 +1313,7 @@ D2QServerClientContainerStrc * __fastcall AddClient(D2QServerStrc * pQServer, SO
     pQServer->nConnectedClients++;
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&pQServer->csClientLifecycle);
     SOCKET sock = client->client.socket;
-    char* szIpStr = inet_ntoa((in_addr)client->client.ipAddress.S_un.S_un_b);
-    QSERVER_LOG("QSRV", "[QSrvAddClient]  Added client %d %s on socket %d", client->client.nClientToken, szIpStr, sock);
+    QSERVER_LOG("QSRV", "[QSrvAddClient]  Added client %d %s on socket %d", client->client.nClientToken, inet_ntoa((in_addr)client->client.ipAddress.S_un.S_un_b), sock);
     return client;
 }
 
@@ -1365,10 +1364,8 @@ static void __stdcall RemoveClient(D2QServerStrc * pQServer, uint32_t nClientTok
 
     in_addr* pClientIp = &pClient->ipAddress;
     uint32_t nHighResTime = LogManager::LOGMGR_GetHighResolutionTime();
-    int nLifeMs = nHighResTime - pClient->dwCreatedTick;
-    int nRefCount = pClient->nRefCount;
-    /* in_addr in for inet_ntoa */ pcVar1 = inet_ntoa((in_addr)pClientIp->S_un.S_un_b);
-    QSERVER_LOG("QSRV", "[sRemoveClient]  Remove client %d %s refcount=%d life=%d", nClientToken, pcVar1, nRefCount, nLifeMs);
+     /* in_addr in for inet_ntoa */
+    QSERVER_LOG("QSRV", "[sRemoveClient]  Remove client %d %s refcount=%d life=%d", nClientToken, inet_ntoa((in_addr)pClientIp->S_un.S_un_b), pClient->nRefCount, nHighResTime - pClient->dwCreatedTick);
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&pQServer->csTokenHash);
     D2QServerClientIpHashBucketTable ppIpHashBucket = pQServer->pIpHashBuckets + (pClientIp->S_un.S_addr & pQServer->nClientHashMask);
     pPrevClient = 0;
@@ -1690,8 +1687,7 @@ void __stdcall BanClient(D2QServerStrc * pQServer, int nClientId, char * szFile,
     _struct_1227 sClientIpAddr = pClientConn->ipAddress.S_un.S_un_b;
     char* szLogFile = szFile;
     int nLogLine = nLine;
-    char* szIpAddress = inet_ntoa((in_addr)sClientIpAddr);
-    LogManager::LOGMANAGER_TraceToModuleLog("HACK", "[HACKLIST]  IP:%s  QSHackList() from FILE:%s  LINE:%d", szIpAddress, szLogFile, nLogLine);
+    LogManager::LOGMANAGER_TraceToModuleLog("HACK", "[HACKLIST]  IP:%s  QSHackList() from FILE:%s  LINE:%d", inet_ntoa((in_addr)sClientIpAddr), szLogFile, nLogLine);
     CloseRemoteConnection(pQServer, nClientId, szFile, nLine);
     BanIpAddress(pQServer, szFile, (uint32_t)d2_bits_of(sClientIpAddr), nLine);
 }
@@ -1711,14 +1707,13 @@ void __stdcall DisconnectAndBanIp(D2QServerStrc * pQServer, uint32_t nIpAddress,
     if (pClientConn) {
       CloseRemoteConnection(pQServer, pClientConn->nClientToken, szFile, nLine);
     } else {
-      /* in_addr in for inet_ntoa */ szLogFile = inet_ntoa((in_addr)nIpAddress);
-      LogManager::LOGMANAGER_TraceToModuleLog("HACK", "[HACKLIST]  Client %s is already closed", szLogFile);
+       /* in_addr in for inet_ntoa */
+      LogManager::LOGMANAGER_TraceToModuleLog("HACK", "[HACKLIST]  Client %s is already closed", inet_ntoa((in_addr)nIpAddress));
     }
 
     szLogFile = szFile;
     int nLogLine = nLine;
-    char* szIpStr = inet_ntoa((in_addr)nIpAddress);
-    LogManager::LOGMANAGER_TraceToModuleLog("HACK", "[HACKLIST]  IP:%s  QSHackListIP() from FILE:%s  LINE:%d", szIpStr, szLogFile, nLogLine);
+    LogManager::LOGMANAGER_TraceToModuleLog("HACK", "[HACKLIST]  IP:%s  QSHackListIP() from FILE:%s  LINE:%d", inet_ntoa((in_addr)nIpAddress), szLogFile, nLogLine);
     BanIpAddress(pQServer, szFile, nIpAddress, nLine);
 }
 
@@ -1743,8 +1738,8 @@ void __stdcall QSDisconnectIP(D2QServerStrc * pQServer, in_addr addr, char * szT
       CloseRemoteConnection(pQServer, pFoundClient->nClientToken, szText, nParam);
     }
 
-    /* in_addr in for inet_ntoa */ szIpStr = inet_ntoa(addr);
-    LogManager::LOGMANAGER_TraceToModuleLog("HACK", "[HACKLIST]  IP:%s  QSDisconnectIP() from FILE:%s  LINE:%d", szIpStr, szText, nParam);
+     /* in_addr in for inet_ntoa */
+    LogManager::LOGMANAGER_TraceToModuleLog("HACK", "[HACKLIST]  IP:%s  QSDisconnectIP() from FILE:%s  LINE:%d", inet_ntoa(addr), szText, nParam);
 }
 
 // pQServerStrc arrives in EDI; the other three arguments are on the stack (RET 0xc).

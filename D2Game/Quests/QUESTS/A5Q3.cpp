@@ -370,8 +370,7 @@ static void Q33_CleanupQuestMonsters(D2QuestDataStrc * pQuestData) {
         GAME::Event::Dispatch::Monster::MONSTERAI_ExecuteLifecycleTransition(pQuestData->pGame, &sMonsterKill, 1);
         nAnyaGUID = pSpecificData->nFrozenAnyaGUID;
         eUnitType = pAnyaUnit->eUnitType;
-        pUnitRoom = D2Common::Units::UNITS_GetRoom(pAnyaUnit);
-        D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pUnitRoom, eUnitType, nAnyaGUID);
+        D2Common::DUNGEON::Dungeon::AllocDrlgDelete(D2Common::Units::UNITS_GetRoom(pAnyaUnit), eUnitType, nAnyaGUID);
         D2Common::Units::RemoveCollision_Vector(pAnyaUnit);
         D2Common::Unit::RemoveUnitFromRoom(pAnyaUnit);
       } else {
@@ -705,10 +704,7 @@ void __fastcall Q33_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
       pSeed = GetQuestControlSeed(pQuestArgs->pGame);
       nRandIndex = D2Client::Archive::UNIT_GetModuloFromSeed(pSeed, __frame0.pRewardList->sQuestGUID.aPlayerGUID[nPlayerClassId * 2 + 1]);
       memcpy(((char*)&nRewardClassId), (const void*)(__frame0.pRewardList->sQuestGUID.aPlayerGUID[nPlayerClassId * 2] + nRandIndex * 4), sizeof(nRewardClassId));
-      bQuestStateResult = 1;
-      eRewardQuality = QUALITY_RARE;
-      nRewardLevel = ITEMS::Items::Drop::GetLevel(pQuestArgs->pPlayer, LEVEL_None);
-      pQuestSpecificData = ITEM_RewardItemInInventory(pQuestArgs->pGame, pQuestArgs->pPlayer, (int32_t)((char*)&nRewardClassId), nRewardLevel, eRewardQuality, bQuestStateResult);
+      pQuestSpecificData = ITEM_RewardItemInInventory(pQuestArgs->pGame, pQuestArgs->pPlayer, (int32_t)((char*)&nRewardClassId), ITEMS::Items::Drop::GetLevel(pQuestArgs->pPlayer, LEVEL_None), QUALITY_RARE, 1);
       if (!pQuestSpecificData) {
         return;
       }
@@ -1118,18 +1114,12 @@ void __fastcall CalculateBonusResistances(::SGAMEDATA * pGame, D2UnitStrc * pUni
       nBonusTotal = 10;
     }
 
-    eD2QuestState eScrollStateInner = QUESTSTATE_Step0x07;
-    eD2Quests eQuestIdInner = QUEST_PrisonOfIce;
-    pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-    _bHasScrollQuestState = D2Common::QuestRecord::GetQuestState(pPlayerData->pQuestRecord[1], eQuestIdInner, eScrollStateInner);
+    _bHasScrollQuestState = D2Common::QuestRecord::GetQuestState(D2Common::Units::GetPlayerData(pUnit)->pQuestRecord[1], QUEST_PrisonOfIce, QUESTSTATE_Step0x07);
     if (_bHasScrollQuestState) {
       nBonusTotal += 10;
     }
 
-    eD2QuestState eScrollStateInner2 = QUESTSTATE_Step0x07;
-    eD2Quests eQuestIdInner2 = QUEST_PrisonOfIce;
-    pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-    _bHasScrollQuestState = D2Common::QuestRecord::GetQuestState(pPlayerData->pQuestRecord[2], eQuestIdInner2, eScrollStateInner2);
+    _bHasScrollQuestState = D2Common::QuestRecord::GetQuestState(D2Common::Units::GetPlayerData(pUnit)->pQuestRecord[2], QUEST_PrisonOfIce, QUESTSTATE_Step0x07);
     if (_bHasScrollQuestState) {
       nBonusTotal += 10;
     }
@@ -1372,13 +1362,7 @@ void __fastcall SpawnFrozenAnya(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
       return;
     }
 
-    void* pSpawnArg = 0;
-    int32_t nSpawnArg6 = 0;
-    bool bInitUnit = true;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    int32_t nPosY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    int32_t nPosX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-    D2UnitStrc* pFrozenAnya = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 0x22e, nPosX, nPosY, pGame, pRoom, bInitUnit, nSpawnArg6, pSpawnArg);
+    D2UnitStrc* pFrozenAnya = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 0x22e, D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit), pGame, D2Common::Units::UNITS_GetRoom(pUnit), true, 0, 0);
     if (pFrozenAnya) {
       pFrozenAnya->eUnitFlags |= UNITFLAG_ISRESURRECT | UNITFLAG_ISINIT;
       *(uint8_t*)&pQuestSpecificData->bFrozenAnyaSpawning = 1;
@@ -1733,13 +1717,11 @@ static uint8_t __fastcall Q33_TransformFrozenAnya(::SGAMEDATA * pGame, D2QuestDa
       pA1Q4Specific->nTransformStep = 1;
     } else if (nFrozenAnyaGUID == 1 && (pA1Q4Specific->nTransformStep = 2 , pFrozenAnyaObj != 0)) {
       nAnyaRescuedClassId = 0x20f;
-      pAnyaRoom = D2Common::Units::UNITS_GetRoom(pFrozenAnyaObj);
-      pAnyaMonster = QUEST_SpawnMonsterNearCoords(pGame, pA1Q4Specific->nTransformX, pA1Q4Specific->nTransformY, pAnyaRoom, nFrozenAnyaGUID, nAnyaRescuedClassId);
+      pAnyaMonster = QUEST_SpawnMonsterNearCoords(pGame, pA1Q4Specific->nTransformX, pA1Q4Specific->nTransformY, D2Common::Units::UNITS_GetRoom(pFrozenAnyaObj), nFrozenAnyaGUID, nAnyaRescuedClassId);
       if (pAnyaMonster) {
         nFrozenAnyaGUID = pFrozenAnyaObj->nUnitGUID;
         eUnitType = pFrozenAnyaObj->eUnitType;
-        pAnyaRoom = D2Common::Units::UNITS_GetRoom(pFrozenAnyaObj);
-        D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pAnyaRoom, eUnitType, nFrozenAnyaGUID);
+        D2Common::DUNGEON::Dungeon::AllocDrlgDelete(D2Common::Units::UNITS_GetRoom(pFrozenAnyaObj), eUnitType, nFrozenAnyaGUID);
         D2Common::Unit::RemoveUnitFromRoom(pFrozenAnyaObj);
         ppMapAi = Ai::AiGeneral::GetMonsterMapAi(pAnyaMonster);
         if (pA1Q4Specific->pDrlgMap && pA1Q4Specific->pDrlgMap->pPosition && !pA1Q4Specific->bDrlgMapTaken) {
@@ -1816,8 +1798,7 @@ BOOL __fastcall OBJOP_A5Q3_RescueAnyaFromPortal(D2ObjectOperateFnArg * pOperatio
               pA5Q3Data->nTransformY = nTransformCoord;
               AddQuestTimer(pPrisonQuest, Q33_TransformFrozenAnya, 1);
               bQuestStateResult = 0;
-              pPortalRoom = D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim);
-              D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pPortalRoom, bQuestStateResult);
+              D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim), bQuestStateResult);
             }
           }
         }

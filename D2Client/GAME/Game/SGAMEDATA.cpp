@@ -116,11 +116,7 @@ namespace D2Client::GAME::Game {
     pThis->pQuestControl = pSource->pQuestControl;
     D2UnitNodeStrc** ppSrcUnitNode = pSource->pUnitNodes;
     D2UnitNodeStrc** ppDstUnitNode = pThis->pUnitNodes;
-    for (nWordsLeft = 10; nWordsLeft; nWordsLeft--) {
-      *ppDstUnitNode = *ppSrcUnitNode;
-      ppSrcUnitNode++;
-      ppDstUnitNode++;
-    }
+    memcpy(ppDstUnitNode, ppSrcUnitNode, 10 * sizeof(*ppDstUnitNode));
 
     nWordsLeft = 0x80;
     D2UnitStrc** ppSrcUnit = pSource->pUnitList[0];
@@ -189,11 +185,7 @@ namespace D2Client::GAME::Game {
 
     pSrcArray = pSource->nPathCount;
     pDstArray = pThis->nPathCount;
-    for (nWordsLeft = 0x12; nWordsLeft; nWordsLeft--) {
-      *pDstArray = *pSrcArray;
-      pSrcArray++;
-      pDstArray++;
-    }
+    memcpy(pDstArray, pSrcArray, 0x12 * sizeof(*pDstArray));
 
     pThis->bUpdateStatsTick = pSource->bUpdateStatsTick;
     pThis->dwStatsTick = pSource->dwStatsTick;

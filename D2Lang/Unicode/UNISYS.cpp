@@ -490,7 +490,7 @@ void UNICODE_FormatWideString(int32_t nMaxChars, uint16_t * wszText1, uint16_t *
 
             case L'u':
               wszNumBuf[0] = L'\0';
-            memset(wszNumBuf + 1, 0, 14 * sizeof(wszNumBuf[0]));
+            for (int i = 1; i < 15; i++) wszNumBuf[i] = 0;
             if (wszFmtBuf[2] == L'd') {
               __itoa((int)pArgSave, szNumBuf, 10);
             } else {
@@ -669,7 +669,7 @@ static bool __fastcall UNICODE_CheckTrailingPunctuation(char * szSourceFile, uin
     uint16_t wszTable[20];
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     int i = 0;
-    memset(wszTable, 0, 20 * sizeof(wszTable[0]));
+    for (int i = 0; i < 20; i++) wszTable[i] = 0;
     do {
       if (!szSourceFile[i]) {
         break;
@@ -730,7 +730,7 @@ static bool __fastcall UNICODE_CheckTrailingPunctuation(char * szSourceFile, uin
 bool UNICODE_CheckLeadingPunctuation(char * pszTable, uint16_t * wszText) {
     uint16_t wszTable[21];
     int i = 0;
-    memset(wszTable + 1, 0, 20 * sizeof(wszTable[0]));
+    for (int i = 1; i < 21; i++) wszTable[i] = 0;
     do {
       if (!pszTable[i]) {
         break;
@@ -811,7 +811,7 @@ void __fastcall UNICODE_FormatPossessiveName(uint16_t * wszText1, uint16_t * wsz
       }
     } else {
       bool bIsPunct;
-      memset(wszScratch + 4, 0, 10 * sizeof(wszScratch[0]));
+      for (int i = 4; i < 14; i++) wszScratch[i] = 0;
       if (false) {
         default_case:
         wszScratch[0] = L'\0';
@@ -1324,15 +1324,7 @@ uint8_t * __fastcall UNICODE_ConvertWideToMultiByte(uint8_t * pParam, uint16_t *
 
         nIsControl = nSize;
         pArgSave = nParam;
-        if (!(wChar < 0x20)) {
-          wCharBuf = wChar;
-          pFoundEntry = (uint16_t*)bsearch(abSearchKey, gpUnicodeKamapToCodeTable, (uint32_t)gnUnicodeKamapEntryCount, 4, UNICODE_CompareKamapEntry);
-          if (pFoundEntry) {
-            wChar = *pFoundEntry;
-            nIsControl = nEcxSave;
-            goto store_multibyte_char;
-          }
-        } else {
+        if (wChar < 0x20) {
           store_multibyte_char:
           {
             if (wChar & 0xff00 || (nIsControl = UNICODE_IsControlChar(nIsControl, (uint8_t)wChar) , nIsControl != 0)) {
@@ -1342,6 +1334,14 @@ uint8_t * __fastcall UNICODE_ConvertWideToMultiByte(uint8_t * pParam, uint16_t *
 
             pParam[i] = (uint8_t)wChar;
             i++;
+          }
+        } else {
+          wCharBuf = wChar;
+          pFoundEntry = (uint16_t*)bsearch(abSearchKey, gpUnicodeKamapToCodeTable, (uint32_t)gnUnicodeKamapEntryCount, 4, UNICODE_CompareKamapEntry);
+          if (pFoundEntry) {
+            wChar = *pFoundEntry;
+            nIsControl = nEcxSave;
+            goto store_multibyte_char;
           }
         }
 

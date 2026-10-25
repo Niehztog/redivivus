@@ -455,7 +455,7 @@ int32_t __stdcall SummonOrSpawnMode(D2UnitStrc * pUnit, int32_t nParam1, int32_t
     if (!nParam1 || !pUnit || pUnit->eUnitType != UNIT_MONSTER) {
       if (0 <= nParam2 && nParam2 < sgptDataTable->nTxtSkillsCount) {
         pSkillsTxt = sgptDataTable->pTxtSkills + nParam2;
-        if (pSkillsTxt && -1 < pSkillsTxt->summon && (int)pSkillsTxt->summon < sgptDataTable->nTxtMonStatsSize) {
+        if (pSkillsTxt && 0 <= pSkillsTxt->summon && (int)pSkillsTxt->summon < sgptDataTable->nTxtMonStatsSize) {
           if (pnParam1) {
             nPosXY = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
             *pnParam1 = nPosXY;
@@ -671,10 +671,7 @@ void __stdcall MONSTERS_GetUpgradeSkillsAndCount(D2UnitStrc * pUnit, uint32_t * 
     }
 };
 
-    if (!pUnit || pUnit->eUnitType != UNIT_MONSTER) {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 700);
-      exit(-1);
-    } else {
+    if (!(!pUnit || pUnit->eUnitType != UNIT_MONSTER)) {
       DATATBLS::MonsterTbls::MONSTERTBLS_GetUpgradeDataByMonStatsId(pUnit->nClassId, nullptr, (eD2Skills*)&pUnit);
       if (!((int)pUnit < 4)) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2c8);
@@ -689,6 +686,9 @@ void __stdcall MONSTERS_GetUpgradeSkillsAndCount(D2UnitStrc * pUnit, uint32_t * 
         *pdwValidFlags = gdwMonStatAnimFlagsTable[(int)pUnit].dwValidFlags;
         return;
       }
+    } else {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 700);
+      exit(-1);
     }
 }
 

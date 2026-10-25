@@ -90,12 +90,12 @@ typedef void (__fastcall *PFN_StatExpireCallback)(D2UnitStrc * pUnit, eD2States 
 namespace D2Game::SKILLS::SkillAss {
 
 D2MonEquipTxt * __fastcall SKILLBAR_GetVelocityAndSpreadForMissile(int32_t nParam) {
-    if (!(-1 < nParam && nParam < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nParam)) {
+    if (!(0 <= nParam && nParam < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nParam)) {
       return nullptr;
     }
 
     short int nMonEquipId = sgptDataTable->pTxtMonStats[nParam].nMonEquipId;
-    if (-1 >= nMonEquipId) {
+    if (0 > nMonEquipId) {
       return nullptr;
     }
 
@@ -108,8 +108,8 @@ BOOL __fastcall SKILLASS_SrvStFn22_PsychicHammer(::SGAMEDATA * pGame, D2UnitStrc
       return 0;
     }
 
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    BOOL bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pRoom);
+    D2RoomStrc* pRoom;
+    BOOL bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(D2Common::Units::UNITS_GetRoom(pUnit));
     if (bIsInTown) {
       return 0;
     }
@@ -257,7 +257,7 @@ static void __stdcall SKILLASS_AddChargeUpStack(::SGAMEDATA * pGame, eD2Skills e
 
     D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, eUnitStat, nNewChargeLevel, 0);
     short int sAuraStat = pSkillRecord->aurastat[1];
-    if (-1 < sAuraStat && (int)sAuraStat < sgptDataTable->nTxtItemStatCostSize) {
+    if (0 <= sAuraStat && (int)sAuraStat < sgptDataTable->nTxtItemStatCostSize) {
       nGuidOrDuration = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillRecord->aurastatcalc[1], eSkill, nParam);
       D2Common::Stats::StatsEx::STATLIST_AddStatValue(pStatsEx, (int)sAuraStat, nGuidOrDuration, 0);
     }
@@ -277,14 +277,13 @@ BOOL __fastcall Skills_SrvDoFunc_034_ChargeUpStackMelee(::SGAMEDATA * pGame, D2U
     }
 
     D2SkillsTxt* pSkillRecord = sgptDataTable->pTxtSkills + eSkill;
-    if (!(pSkillRecord && -1 < pSkillRecord->aurastate && (int)pSkillRecord->aurastate < sgptDataTable->nTxtStatesSize && -1 < pSkillRecord->aurastat[0] && (int)pSkillRecord->aurastat[0] < sgptDataTable->nTxtItemStatCostSize)) {
+    if (!(pSkillRecord && 0 <= pSkillRecord->aurastate && (int)pSkillRecord->aurastate < sgptDataTable->nTxtStatesSize && 0 <= pSkillRecord->aurastat[0] && (int)pSkillRecord->aurastat[0] < sgptDataTable->nTxtItemStatCostSize)) {
       return 0;
     }
 
     memset(&sDamage, 0, 0x70);
     int32_t nHitFlags = 0;
-    uint32_t nToHit = D2Common::Skills::SKILLS_CalcToHit(pUnit, eSkill, nSkillLvl);
-    uint32_t nHitResult = UNIT::SUnitDmg::DAMAGE_CalculateHitCheck(pGame, pUnit, pTarget, nToHit, nHitFlags, (eD2UnitType)pTarget);
+    uint32_t nHitResult = UNIT::SUnitDmg::DAMAGE_CalculateHitCheck(pGame, pUnit, pTarget, D2Common::Skills::SKILLS_CalcToHit(pUnit, eSkill, nSkillLvl), nHitFlags, (eD2UnitType)pTarget);
     sDamage.wResultFlags = (short int)nHitResult;
     uint8_t bySrcDam = pSkillRecord->SrcDam;
     if (!bySrcDam) {
@@ -333,7 +332,7 @@ static void __stdcall SKILLBAR_HandleWarCryStun(D2StatListExStrc * pStatList, D2
     ::SGAMEDATA* pGame;
     D2UnitStrc* pUnit_00;
     eD2Skills eSkill = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_skill, 0);
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return;
     }
 
@@ -344,9 +343,8 @@ static void __stdcall SKILLBAR_HandleWarCryStun(D2StatListExStrc * pStatList, D2
 
     int nEffSkillLvl = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_level, 0);
     BOOL bApplyBonus = 1;
-    D2SkillStrc* pSkill = D2Common::Skills::SKILLS_GetSkillByEnum(eSkill, pUnit);
-    int nCurrentSkillLvl = D2Common::Skills::GetSkillLevel(pUnit, pSkill, bApplyBonus);
-    if (nEffSkillLvl < nCurrentSkillLvl) {
+    int nCurrentSkillLvl = D2Common::Skills::GetSkillLevel(pUnit, D2Common::Skills::SKILLS_GetSkillByEnum(eSkill, pUnit), bApplyBonus);
+    if (nCurrentSkillLvl > nEffSkillLvl) {
       nEffSkillLvl = nCurrentSkillLvl;
     }
     if (0 >= nEffSkillLvl) {
@@ -354,7 +352,7 @@ static void __stdcall SKILLBAR_HandleWarCryStun(D2StatListExStrc * pStatList, D2
     }
 
     short int sAuraStat = pDVar1->aurastat[0];
-    if (!(-1 < sAuraStat && (int)sAuraStat < sgptDataTable->nTxtItemStatCostSize)) {
+    if (!(0 <= sAuraStat && (int)sAuraStat < sgptDataTable->nTxtItemStatCostSize)) {
       return;
     }
 
@@ -365,8 +363,7 @@ static void __stdcall SKILLBAR_HandleWarCryStun(D2StatListExStrc * pStatList, D2
 
     int32_t nCalcBonus = D2Common::Skills::D2GetSkillCalc(pUnit, pDVar1->calc[0], eSkill, nEffSkillLvl);
     pDamage->dwEnDmgPct += nCalcBonus * nCurrentSkillLvl;
-    pGame = UNIT::SUnit::GetGamePointer(pUnit);
-    pUnit_00 = UNIT::SUnit::GetTargetEx(pGame, pUnit);
+    pUnit_00 = UNIT::SUnit::GetTargetEx(UNIT::SUnit::GetGamePointer(pUnit), pUnit);
     if (!pUnit_00) {
       return;
     }
@@ -403,7 +400,7 @@ static void __stdcall SKILLASS_AddChargeUpDamageRange(D2UnitStrc * pUnit, D2Stat
     }
 
     short int eAuraStat = pDVar2[eSkill].aurastat[0];
-    if (!(-1 < eAuraStat && (int)eAuraStat < sgptDataTable->nTxtItemStatCostSize)) {
+    if (!(0 <= eAuraStat && (int)eAuraStat < sgptDataTable->nTxtItemStatCostSize)) {
       return;
     }
 
@@ -453,7 +450,7 @@ static void __stdcall SKILLASS_ApplyChargeUpDamage(D2UnitStrc * pUnit, D2StatLis
     }
 
     short int eAuraStat = pDVar1->aurastat[0];
-    if (!(-1 < eAuraStat && (int)eAuraStat < sgptDataTable->nTxtItemStatCostSize)) {
+    if (!(0 <= eAuraStat && (int)eAuraStat < sgptDataTable->nTxtItemStatCostSize)) {
       return;
     }
 
@@ -500,7 +497,7 @@ static void __stdcall SKILLASS_ApplyChargeUpConvertDamage(D2UnitStrc * pUnit, D2
     }
 
     short int eAuraStat = pSkillTxt->aurastat[0];
-    if (!(-1 < eAuraStat && (int)eAuraStat < sgptDataTable->nTxtItemStatCostSize)) {
+    if (!(0 <= eAuraStat && (int)eAuraStat < sgptDataTable->nTxtItemStatCostSize)) {
       return;
     }
 
@@ -626,11 +623,7 @@ static uint32_t __fastcall SKILLBAR_ApplyWarCryDamage(D2SkillCallbackContextStrc
     D2DamageStrc sDamage;
     uint32_t* pSrcDamage = (uint32_t*)pContext->pCallbackArg;
     uint32_t* pDstDamage = (uint32_t*)&sDamage;
-    for (nWordsLeft = 0x1c; nWordsLeft; nWordsLeft--) {
-      *pDstDamage = *pSrcDamage;
-      pSrcDamage++;
-      pDstDamage++;
-    }
+    memcpy(pDstDamage, pSrcDamage, 0x1c * sizeof(*pDstDamage));
 
     SkillsServer::SKILLS_ApplyDamageToTarget(pContext->pGame, pContext->pUnit, pUnit, &sDamage, 0);
     return 1;
@@ -650,7 +643,7 @@ int32_t __fastcall SKILLASS_GetChargeUpMissile(D2UnitStrc * pUnit, int32_t nSkil
     }
 
     short int eAuraState = pSkillTxt->aurastate;
-    if (!(-1 < eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize && -1 < pSkillTxt->aurastat[0] && (int)pSkillTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize)) {
+    if (!(0 <= eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize && 0 <= pSkillTxt->aurastat[0] && (int)pSkillTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize)) {
       return (int)pSkillTxt->srvmissilea;
     }
 
@@ -676,7 +669,7 @@ uint32_t __fastcall SKILLASS_GetChargeUpCalcValue(D2UnitStrc * pUnit, eD2Skills 
     uint32_t nCalcResult;
     int nCalcIdx;
     short int eAuraState;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -691,7 +684,7 @@ uint32_t __fastcall SKILLASS_GetChargeUpCalcValue(D2UnitStrc * pUnit, eD2Skills 
         nCalcResult = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->prgcalc[0], eSkill, nSkillLvl);
         return nCalcResult;
       }
-      if (-1 < pSkillTxt->aurastat[0] && (int)pSkillTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize) {
+      if (0 <= pSkillTxt->aurastat[0] && (int)pSkillTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize) {
         pStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, (int)eAuraState);
         if (pStatList) {
           nCalcIdx = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, (int)pSkillTxt->aurastat[0], 0);
@@ -1476,8 +1469,7 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
               nChargeLvlMax = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_level, 0);
               bInMeleeRange = 1;
               nEffectiveSkillLvl = nChargeLvlMax;
-              pSkill = D2Common::Skills::SKILLS_GetSkillByEnum(eSkillId, pUnit);
-              nChargeLvl = D2Common::Skills::GetSkillLevel(pUnit, pSkill, bInMeleeRange);
+              nChargeLvl = D2Common::Skills::GetSkillLevel(pUnit, D2Common::Skills::SKILLS_GetSkillByEnum(eSkillId, pUnit), bInMeleeRange);
               if (nChargeLvl > nChargeLvlMax) {
                 nChargeLvlMax = nChargeLvl;
                 nEffectiveSkillLvl = nChargeLvl;
@@ -1486,7 +1478,7 @@ void __fastcall SKILLASS_ReleaseChargeUpAttack(::SGAMEDATA * pGame, D2UnitStrc *
               nChargeLvl = nStateIdxLoop;
               if (0 < nChargeLvlMax) {
                 eAuraStat = pDVar4->aurastat[0];
-                if (-1 < eAuraStat && (int)eAuraStat < sgptDataTable->nTxtItemStatCostSize) {
+                if (0 <= eAuraStat && (int)eAuraStat < sgptDataTable->nTxtItemStatCostSize) {
                   nChargeLvl = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, (int)eAuraStat, 0);
                   if (nChargeLvl < 2) {
                     nChargeLvl = 1;
@@ -1706,7 +1698,7 @@ static void __stdcall SKILLBAR_ApplyWhirlwindDamage(::SGAMEDATA * pGame, D2Damag
     D2Common::Stats::StatsEx::STATLIST_SetItemStatActive(pUnit2, pMainWeapon, 1);
 }
 
-void __stdcall D2CalcKickDamage(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2SkillsTxt * pSkillTxt, int32_t nSkillLvl, BOOL bKickCheck, D2UnitStrc * pAttacker, eD2Skills eSkill) {
+static void __stdcall D2CalcKickDamage(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2SkillsTxt * pSkillTxt, int32_t nSkillLvl, BOOL bKickCheck, D2UnitStrc * pAttacker, eD2Skills eSkill) {
     D2DamageStrc sDamage;
     uint32_t nToHit = D2Common::Skills::SKILLS_CalcToHit(pAttacker, eSkill, nSkillLvl);
     int nProgToHit = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pAttacker, UNITSTAT_progressive_tohit, 0);
@@ -2092,14 +2084,11 @@ BOOL __fastcall Skills_SrvDoFunc_044_SummonBladeSentinel(::SGAMEDATA * pGame, D2
     }
 
     nMonClassIdOrLevel = 0;
-    int nValue = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0);
-    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit_00, UNITSTAT_level, nValue, nMonClassIdOrLevel);
+    D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit_00, UNITSTAT_level, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0), nMonClassIdOrLevel);
     int32_t nRelocFlags = 0;
     nMonClassIdOrLevel = 0;
     uint32_t nPosY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    uint32_t nPosX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit_00, pRoom, nPosX, nPosY, nMonClassIdOrLevel, nRelocFlags);
+    UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit_00, D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), nPosY, nMonClassIdOrLevel, nRelocFlags);
     local_2c.nUnused0 = 0;
     local_2c.nUnused1 = 0;
     local_2c.nCmdArg1 = 0;
@@ -2145,7 +2134,7 @@ BOOL __fastcall Skills_SrvDoFunc_045_SummonTrapSentry(::SGAMEDATA * pGame, D2Uni
 }
 
 // Generic Assassin skill melee attack resolver. Computes to-hit (SKILLS_CalcToHit + progressive_tohit stat), runs DAMAGE_CalculateHitCheck; on hit applies progressive damage, elemental enhancement, conversion percent, SetDamageOnEvent, offensive damage calculation, and DispatchChargeUpDamage. Always finalises with DAMAGE_CalculateAndApplyDamage.
-void __stdcall SKILLASS_SkillMeleeAttack(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nParam, eD2Skills eSkill, D2UnitStrc * pUnit2) {
+static void __stdcall SKILLASS_SkillMeleeAttack(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nParam, eD2Skills eSkill, D2UnitStrc * pUnit2) {
     D2DamageStrc sDamage;
     if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return;
@@ -2355,7 +2344,7 @@ BOOL __fastcall Skills_SrvDoFunc_047_CloakOfShadows(::SGAMEDATA * pGame, D2UnitS
     }
 
     short int eAuraState = pSkillTxt->aurastate;
-    if (!(-1 < eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -2403,7 +2392,7 @@ BOOL __fastcall Skills_SrvDoFunc_047_CloakOfShadows(::SGAMEDATA * pGame, D2UnitS
     D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_modifierlist_skill, eSkillOrig, 0);
     D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, UNITSTAT_modifierlist_level, nSkillLvl, 0);
     D2Common::DATATBLS::ItemStats::D2StatesTogglegfx(pUnitSaved, (int)pSkillTxt->aurastate, 1);
-    if (!(-1 < pSkillTxt->auratargetstate && (int)pSkillTxt->auratargetstate < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= pSkillTxt->auratargetstate && (int)pSkillTxt->auratargetstate < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -2418,7 +2407,7 @@ BOOL __fastcall Skills_SrvDoFunc_047_CloakOfShadows(::SGAMEDATA * pGame, D2UnitS
       int anAuraStatIds[6];
       anAuraStatIds[nAuraStatIdx] = (int)*pStatPtr;
       anAuraStatValues[nAuraStatIdx] = 0;
-      if (-1 < *pStatPtr) {
+      if (0 <= *pStatPtr) {
         nCalcVal = D2Common::Skills::D2GetSkillCalc(pUnitSaved, *(int32_t*)eSkill, eSkillOrig, nSkillLvl);
         anAuraStatValues[nAuraStatIdx] = nCalcVal;
       }
@@ -2641,7 +2630,7 @@ void __fastcall SKILLASS_EquipSummonItems(::SGAMEDATA * pGame, D2UnitStrc * nPar
         } else {
           sNewSeed = (D2SeedStrc)((uint64_t)nSeedLowSave * 0x6ac690c5 + nSlotCount);
           pUnit_00->sSeed = sNewSeed;
-          nRandEquipSlot = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) % (uint64_t)nRandEquipSlot);
+          nRandEquipSlot = (uint32_t)(sNewSeed.nSeedLow % nRandEquipSlot);
         }
 
         bVar1 = pUnit->unk0x19[nRandEquipSlot - 5];
@@ -2915,9 +2904,7 @@ BOOL __fastcall Skills_SrvDoFunc_050_DragonTail_FireExplosion(::SGAMEDATA * pGam
     int32_t nRadius = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillsTxt->aurarangecalc, eSkill, nSkillLvl);
     uint32_t nCollisionFlags = 0;
     D2DamageStrc* pExplosionDamage = &sFireExplosionDamage;
-    int32_t nPosY = D2Client::Units::GetYPosFromDynamicPathUnit(pTarget);
-    int32_t nPosX = D2Client::Units::GetXPosFromDynamicPathUnit(pTarget);
-    SkillsServer::SKILLS_ApplyAreaDamage(pGame, pUnit, nPosX, nPosY, nRadius, pExplosionDamage, nCollisionFlags);
+    SkillsServer::SKILLS_ApplyAreaDamage(pGame, pUnit, D2Client::Units::GetXPosFromDynamicPathUnit(pTarget), D2Client::Units::GetYPosFromDynamicPathUnit(pTarget), nRadius, pExplosionDamage, nCollisionFlags);
     return 1;
 }
 
@@ -2964,9 +2951,7 @@ void __fastcall SKILLASS_OnConversionExpire(D2UnitStrc * pUnit, eD2States eState
       nConvMaxHp = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_conversion_maxhp, 0);
       nTxtMaxHp = D2Common::Stats::StatsEx::GetTxtMaxHp(pUnit);
       nMaxHpShifted = nTxtMaxHp >> 8;
-      nHpResult = nMaxHpShifted;
-      nCurHp = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_hitpoints, 0);
-      nHpShifted = D2Client::Stats::D2ApplyPercent(nConvMaxHp, nCurHp >> 8, nHpResult);
+      nHpShifted = D2Client::Stats::D2ApplyPercent(nConvMaxHp, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_hitpoints, 0) >> 8, nMaxHpShifted);
       nHpResult = nHpShifted;
       if ((int)nHpShifted <= 1) {
         nHpResult = 1;
@@ -3294,7 +3279,7 @@ BOOL __fastcall SKILLASS_SrvStFn28_BladeShield(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     short int sAuraState = pSkillsTxt->aurastate;
-    if (!(-1 < sAuraState && (int)sAuraState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= sAuraState && (int)sAuraState < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -3390,10 +3375,10 @@ BOOL __fastcall Skills_SrvDoFunc_142_BladeShield_SpinDamage(::SGAMEDATA * pGame,
       D2DamageStrc* pDamage;
       uint32_t nToHit;
       short int wResultFlags;
-      uint8_t __pad10[2];
+      struct { uint8_t e0, e1; } __pad10;
       int nHitFlags;
       char bSrcDam;
-      uint8_t __pad17[3];
+      struct { uint8_t e0, e1, e2; } __pad17;
       ::SGAMEDATA* pGame_00;
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 24, "frame group __frame0_t must reproduce the Ghidra frame layout");
@@ -3442,7 +3427,7 @@ BOOL __fastcall Skills_SrvDoFunc_054_BladeShield_Activate(::SGAMEDATA * pGame, D
     }
 
     short int eAuraState = sgptDataTable->pTxtSkills[eSkill].aurastate;
-    if (!(-1 < eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= eAuraState && (int)eAuraState < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 

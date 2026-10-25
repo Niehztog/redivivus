@@ -121,8 +121,6 @@ int32_t __stdcall SKILLITEMS_GetDispatchTableRange(int32_t pDispatchTable, int32
 int32_t __stdcall SKILLITEMS_ApplyPercentWithMinimum(int32_t nValue, int32_t nMinimum, int32_t nPercent);
 // Rolls 1-3 staff mod skills. Classic: tier-based (5 skills per tier). Expansion: type-restricted (skill.itypea1 must match item). Skill level: [1, 3]. Applies via STATLIST_AddStatValue(UNITSTAT_item_singleskill).
 eD2Skills __stdcall ITEMMOD_RollStaffModSkills(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillBaseId);
-// Expansion staff mod skill roller. Filters skills by itypea1/itypeb1/itypec1 matching item type. Counts valid, rolls RNG % count, walks to nth skill. Returns skill ID + level [1, 3].
-void __stdcall STAFFMOD_RollStaffModSkills(struct D2UnitStrc * pUnit, int32_t nSkillId, int32_t nSkillBaseOffset, int32_t nBonusCount);
 // Staff mod entry point. Checks item eligibility (Staves, Orbs, Wands, Scepters, Javelins, Claws, Druid helms). Delegates to ITEMMOD_RollStaffModSkills for skill selection. Stores in separate stat list (flag 0x40).
 void __fastcall StaffMod(struct D2UnitStrc * pUnit, struct D2ItemGenContextStrc * pItemData);
 // Magic affix selection (prefix or suffix). Version-aware dispatch: wItemVersion 0-99 = classic (ITEMMOD_RollMagicAffixClassic), 100+ = expansion (ITEMMOD_RollMagicAffixVersioned). Returns affix index or 0 on failure.

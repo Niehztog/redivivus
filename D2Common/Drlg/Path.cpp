@@ -1130,7 +1130,7 @@ uint32_t __fastcall DRLGPATH_UpdatePathVelocityAndDirection(uint32_t * pnParam) 
     int nDistY;
     uint32_t* pnDirOut;
     if ((short int)*pnParam == (short int)pnParam[1] && *(short int*)((int)pnParam + 2) == *(short int*)((int)pnParam + 6)) {
-      memset(pnParam + 2, 0, 5 * sizeof(pnParam[0]));
+      for (int i = 2; i < 7; i++) pnParam[i] = 0;
     } else {
       uint32_t nVelX;
       DRLGPATH_CalcPathDirection((POINT*)(pnParam + 2), (uint32_t*)&pnDirOut, *pnParam, pnParam[1]);
@@ -1373,49 +1373,49 @@ void __fastcall DRLGPATH_GetMissileTargetPosition(short * pOutPos, D2UnitStrc * 
     } else {
       uint8_t byDirection;
       pOwner = (int*)pMissileStrc->pGfxDataCopy;
-      if (pOwner) {
-        eUnitType = *pOwner;
-        if (eUnitType == 2 || 3 < eUnitType && eUnitType <= 5) {
-          nCoord = (short int)*(uint32_t*)(pOwner[0xb] + 0xc);
-        } else if ((D2DynamicPathStrc*)pOwner[0xb]) {
-          nLine = PATH::DynamicPath::GetXPos((D2DynamicPathStrc*)pOwner[0xb]);
-          nCoord = (short int)nLine;
-        } else {
-          nCoord = 0;
-        }
+      if (!pOwner) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x202);
+        exit(-1);
+      }
 
-        *pOutPos = nCoord;
-        pOwner = (int*)pMissileStrc->pGfxDataCopy;
-        eUnitType = *pOwner;
-        if (eUnitType == 2 || 3 < eUnitType && eUnitType <= 5) {
-          nCoord = (short int)*(uint32_t*)(pOwner[0xb] + 0x10);
-        } else if ((D2DynamicPathStrc*)pOwner[0xb]) {
-          nLine = PATH::DynamicPath::GetYPos((D2DynamicPathStrc*)pOwner[0xb]);
-          nCoord = (short int)nLine;
-        } else {
-          nCoord = 0;
-        }
+      eUnitType = *pOwner;
+      if (eUnitType == 2 || 3 < eUnitType && eUnitType <= 5) {
+        nCoord = (short int)*(uint32_t*)(pOwner[0xb] + 0xc);
+      } else if ((D2DynamicPathStrc*)pOwner[0xb]) {
+        nLine = PATH::DynamicPath::GetXPos((D2DynamicPathStrc*)pOwner[0xb]);
+        nCoord = (short int)nLine;
+      } else {
+        nCoord = 0;
+      }
 
-        pOutPos[1] = nCoord;
-        if (*(char*)((uintptr_t)&pMissileStrc->uSideData + 4) == '\0') {
-          return;
-        }
+      *pOutPos = nCoord;
+      pOwner = (int*)pMissileStrc->pGfxDataCopy;
+      eUnitType = *pOwner;
+      if (eUnitType == 2 || 3 < eUnitType && eUnitType <= 5) {
+        nCoord = (short int)*(uint32_t*)(pOwner[0xb] + 0x10);
+      } else if ((D2DynamicPathStrc*)pOwner[0xb]) {
+        nLine = PATH::DynamicPath::GetYPos((D2DynamicPathStrc*)pOwner[0xb]);
+        nCoord = (short int)nLine;
+      } else {
+        nCoord = 0;
+      }
 
-        byDirection = PATH::DynamicPath::GetDirection(*(D2DynamicPathStrc**)(pMissileStrc->pGfxDataCopy + 0x2c));
-        findex = (uint32_t)*(uint8_t*)((uintptr_t)&pMissileStrc->uSideData + 4);
-        fSpiralRadius = (float)findex;
-        findex = (uint32_t)byDirection * 8 + findex * -0x100 & 0x1ff;
-        fVar1 = Fog::MATH_sinTable_f32_LookupOffset(findex);
-        nOffsetRadius = (short int)(int)std::nearbyint(fVar1 * fSpiralRadius);
-        *pOutPos += nOffsetRadius;
-        fVar1 = Fog::MATH_sinTable_f32_Lookup(findex);
-        nOffsetRadius = (short int)(int)std::nearbyint(fVar1 * fSpiralRadius);
-        pOutPos[1] += nOffsetRadius;
+      pOutPos[1] = nCoord;
+      if (*(char*)((uintptr_t)&pMissileStrc->uSideData + 4) == '\0') {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x202);
-      exit(-1);
+      byDirection = PATH::DynamicPath::GetDirection(*(D2DynamicPathStrc**)(pMissileStrc->pGfxDataCopy + 0x2c));
+      findex = (uint32_t)*(uint8_t*)((uintptr_t)&pMissileStrc->uSideData + 4);
+      fSpiralRadius = (float)findex;
+      findex = (uint32_t)byDirection * 8 + findex * -0x100 & 0x1ff;
+      fVar1 = Fog::MATH_sinTable_f32_LookupOffset(findex);
+      nOffsetRadius = (short int)(int)std::nearbyint(fVar1 * fSpiralRadius);
+      *pOutPos += nOffsetRadius;
+      fVar1 = Fog::MATH_sinTable_f32_Lookup(findex);
+      nOffsetRadius = (short int)(int)std::nearbyint(fVar1 * fSpiralRadius);
+      pOutPos[1] += nOffsetRadius;
+      return;
     }
 }
 
@@ -1555,7 +1555,7 @@ BOOL __stdcall DRLGPATH_FindNonBlockedDirectionFromTriplet(uint32_t nPackedPos, 
 
 // Raycasts a straight line from a packed source coord (nParam, hi/lo = x/y) toward a packed destination coord (*pnParam) in fixed-point 16.16, stepping by the normalized velocity vector (pVelocity[0]/[1]) along the major axis. At each cell transition it calls Collision::CheckCollision_BlockPlayer_Type with the path's unit width and collision pattern. Returns 1 if the line is clear; on a blocked cell returns 0 and writes the last free position back into *pnParam. Degenerate inputs trigger ERROR_UnrecoverableInternalError_Halt.
 // Stack-slot reuse: the nParam slot holds the packed current cell (Y << 16 | X) passed to CheckCollision_BlockPlayer_Type.
-BOOL __stdcall DRLGPATH_RaycastCollisionLine(int * pVelocity, uint32_t nParam, uint32_t * pnParam, D2DynamicPathStrc * pPathArg) {
+static BOOL __stdcall DRLGPATH_RaycastCollisionLine(int * pVelocity, uint32_t nParam, uint32_t * pnParam, D2DynamicPathStrc * pPathArg) {
     short int nCurX;
     int32_t nUnitWidth;
     int32_t iVar1;
@@ -1828,27 +1828,25 @@ BOOL DRLGPATH_CheckTargetReachable(uint32_t * pnParam, D2DynamicPathStrc * pDyna
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x146);
       exit(-1);
     } else {
-      if (*(short int*)((int)pnParam + 2)) {
-        if (!pDynamicPath->dwVelocity) {
-          *(short int*)pnParam = pDynamicPath->Coords.tSubtile.nPosX;
-          *(short int*)((int)pnParam + 2) = pDynamicPath->Coords.tSubtile.nPosY;
-          return 0;
-        }
-
-        DRLGPATH_AdvanceAlongPathPoints(pDynamicPath, 1, 1);
-        if (!pDynamicPath->dwVelocity) {
-          *(short int*)pnParam = pDynamicPath->Coords.tSubtile.nPosX;
-          *(short int*)((int)pnParam + 2) = pDynamicPath->Coords.tSubtile.nPosY;
-          return 0;
-        }
-
-        nPackedPos = (uint32_t)((uint32_t)(uint16_t)pDynamicPath->Coords.tSubtile.nPosY << 16 | (uint32_t)(uint16_t)pDynamicPath->Coords.tSubtile.nPosX);
-        nReachResult = DRLGPATH_RaycastBresenhamLine(nPackedPos, pnParam, pDynamicPath);
-        return nReachResult;
+      if (!*(short int*)((int)pnParam + 2)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x147);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x147);
-      exit(-1);
+      if (!pDynamicPath->dwVelocity) {
+        *(short int*)pnParam = pDynamicPath->Coords.tSubtile.nPosX;
+        *(short int*)((int)pnParam + 2) = pDynamicPath->Coords.tSubtile.nPosY;
+        return 0;
+      }
+      DRLGPATH_AdvanceAlongPathPoints(pDynamicPath, 1, 1);
+      if (!pDynamicPath->dwVelocity) {
+        *(short int*)pnParam = pDynamicPath->Coords.tSubtile.nPosX;
+        *(short int*)((int)pnParam + 2) = pDynamicPath->Coords.tSubtile.nPosY;
+        return 0;
+      }
+      nPackedPos = (uint32_t)((uint32_t)(uint16_t)pDynamicPath->Coords.tSubtile.nPosY << 16 | (uint32_t)(uint16_t)pDynamicPath->Coords.tSubtile.nPosX);
+      nReachResult = DRLGPATH_RaycastBresenhamLine(nPackedPos, pnParam, pDynamicPath);
+      return nReachResult;
     }
 }
 
@@ -2077,7 +2075,7 @@ void __fastcall DRLGPATH_ScaleVelocityVector(int32_t nVelocityScale, POINT * pPo
 }
 
 // Checks if a ray from source to target position is collision-free. Normalizes the direction vector and delegates to DRLGPATH_RaycastCollisionLine. Used when waypoints are more than 1 tile apart.
-BOOL __stdcall DRLGPATH_CheckRayCollisionToTarget(uint32_t nPackedSrc, uint32_t nPackedDst, D2DynamicPathStrc * pDynamicPath) {
+static BOOL __stdcall DRLGPATH_CheckRayCollisionToTarget(uint32_t nPackedSrc, uint32_t nPackedDst, D2DynamicPathStrc * pDynamicPath) {
     POINT ptVelocity;
     if (!pDynamicPath->dwVelocity) {
       return 0;
@@ -2252,7 +2250,7 @@ D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AdvancePathNodeChain(D2DrlgAStarCon
 }
 
 // Extracts a path from an A* search result by walking parent pointers from the destination node back to the source. Stores the packed coordinates as waypoints (up to 77). Returns the number of waypoints.
-int32_t DRLGPATH_ExtractPathFromResult(int32_t nPathCtx, int32_t nCurNode) {
+static int32_t DRLGPATH_ExtractPathFromResult(int32_t nPathCtx, int32_t nCurNode) {
     int nDX;
     int nDY;
     void* pvStack_18;
@@ -2267,7 +2265,7 @@ int32_t DRLGPATH_ExtractPathFromResult(int32_t nPathCtx, int32_t nCurNode) {
 
     void** pWaypointStack = &pvStack_18;
     do {
-      if (0x4d < nWaypointCount) {
+      if (0x4e <= nWaypointCount) {
         break;
       }
 
@@ -2287,7 +2285,7 @@ int32_t DRLGPATH_ExtractPathFromResult(int32_t nPathCtx, int32_t nCurNode) {
       nCurNode = pParentNode;
     } while (pParentNode);
 
-    if (nWaypointCount - 2U >= 0x4c) {
+    if (nWaypointCount - 2U > 0x4b) {
       return 0;
     }
 
@@ -3104,49 +3102,46 @@ bool DRLGPATH_TryStepWithFallbackDirections(D2PathTypeArg * pPathTypeArg, int * 
     int32_t nType = pPathTypeArg->nUnitWidth;
     D2RoomStrc* pRoom = pPathTypeArg->pRoom;
     int32_t nFallbackDirIdx = (int32_t)pPathTypeArg->pDynamicPath->pOwner;
-    if (nFallbackDirIdx && (!*(int*)nFallbackDirIdx || nFallbackDirIdx && *(int*)nFallbackDirIdx == 1)) {
-      int iVar1;
-      pScannerState[4] = 0;
-      *(short int*)(pScannerState + 3) = (short int)gnPathDirectionTripletXOffsets[*pScannerState * 2] + (short int)pScannerState[2];
-      wNextY = (short int)gnPathDirectionTripletXOffsets[*pScannerState * 2 + 1] + *(short int*)((int)pScannerState + 10);
-      *(uint16_t*)((int)pScannerState + 0xe) = wNextY;
-      iVar2 = Collision::CheckCollision_BlockPlayer_Type(pRoom, (uint32_t)*(uint16_t*)(pScannerState + 3), (uint32_t)wNextY, nType, iVar3);
-      if (!iVar2) {
-        return true;
-      }
-
-      nErrorAddr = *(int32_t*)(pScannerState[6] + *pScannerState * 4);
-      *pScannerState = nErrorAddr;
-      *(short int*)(pScannerState + 3) = (short int)gnPathDirectionTripletXOffsets[nErrorAddr * 2] + (short int)pScannerState[2];
-      wNextY = (short int)gnPathDirectionTripletXOffsets[nErrorAddr * 2 + 1] + *(short int*)((int)pScannerState + 10);
-      *(uint16_t*)((int)pScannerState + 0xe) = wNextY;
-      iVar2 = Collision::CheckCollision_BlockPlayer_Type(pRoom, (uint32_t)*(uint16_t*)(pScannerState + 3), (uint32_t)wNextY, nType, iVar3);
-      if (!iVar2) {
-        return true;
-      }
-
-      iVar1 = *(int*)(pScannerState[6] + *pScannerState * 4);
-      *pScannerState = iVar1;
-      *(short int*)(pScannerState + 3) = (short int)gnPathDirectionTripletXOffsets[iVar1 * 2] + (short int)pScannerState[2];
-      wNextY = (short int)gnPathDirectionTripletXOffsets[*pScannerState * 2 + 1] + *(short int*)((int)pScannerState + 10);
-      *(uint16_t*)((int)pScannerState + 0xe) = wNextY;
-      iVar2 = Collision::CheckCollision_BlockPlayer_Type(pRoom, (uint32_t)*(uint16_t*)(pScannerState + 3), (uint32_t)wNextY, nType, iVar3);
-      if (!iVar2) {
-        return true;
-      }
-
-      pScannerState[4] = 1;
-      iVar1 = *(int*)(pScannerState[6] + *pScannerState * 4);
-      *pScannerState = iVar1;
-      *(short int*)(pScannerState + 3) = (short int)gnPathDirectionTripletXOffsets[iVar1 * 2] + (short int)pScannerState[2];
-      wNextY = (short int)gnPathDirectionTripletXOffsets[iVar1 * 2 + 1] + *(short int*)((int)pScannerState + 10);
-      *(uint16_t*)((int)pScannerState + 0xe) = wNextY;
-      iVar3 = Collision::CheckCollision_BlockPlayer_Type(pRoom, (uint32_t)*(uint16_t*)(pScannerState + 3), (uint32_t)wNextY, nType, iVar3);
-      return (bool)('\x01' - (iVar3 != 0));
+    if (!(nFallbackDirIdx && (!*(int*)nFallbackDirIdx || nFallbackDirIdx && *(int*)nFallbackDirIdx == 1))) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x122);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x122);
-    exit(-1);
+    int iVar1;
+    pScannerState[4] = 0;
+    *(short int*)(pScannerState + 3) = (short int)gnPathDirectionTripletXOffsets[*pScannerState * 2] + (short int)pScannerState[2];
+    wNextY = (short int)gnPathDirectionTripletXOffsets[*pScannerState * 2 + 1] + *(short int*)((int)pScannerState + 10);
+    *(uint16_t*)((int)pScannerState + 0xe) = wNextY;
+    iVar2 = Collision::CheckCollision_BlockPlayer_Type(pRoom, (uint32_t)*(uint16_t*)(pScannerState + 3), (uint32_t)wNextY, nType, iVar3);
+    if (!iVar2) {
+      return true;
+    }
+    nErrorAddr = *(int32_t*)(pScannerState[6] + *pScannerState * 4);
+    *pScannerState = nErrorAddr;
+    *(short int*)(pScannerState + 3) = (short int)gnPathDirectionTripletXOffsets[nErrorAddr * 2] + (short int)pScannerState[2];
+    wNextY = (short int)gnPathDirectionTripletXOffsets[nErrorAddr * 2 + 1] + *(short int*)((int)pScannerState + 10);
+    *(uint16_t*)((int)pScannerState + 0xe) = wNextY;
+    iVar2 = Collision::CheckCollision_BlockPlayer_Type(pRoom, (uint32_t)*(uint16_t*)(pScannerState + 3), (uint32_t)wNextY, nType, iVar3);
+    if (!iVar2) {
+      return true;
+    }
+    iVar1 = *(int*)(pScannerState[6] + *pScannerState * 4);
+    *pScannerState = iVar1;
+    *(short int*)(pScannerState + 3) = (short int)gnPathDirectionTripletXOffsets[iVar1 * 2] + (short int)pScannerState[2];
+    wNextY = (short int)gnPathDirectionTripletXOffsets[*pScannerState * 2 + 1] + *(short int*)((int)pScannerState + 10);
+    *(uint16_t*)((int)pScannerState + 0xe) = wNextY;
+    iVar2 = Collision::CheckCollision_BlockPlayer_Type(pRoom, (uint32_t)*(uint16_t*)(pScannerState + 3), (uint32_t)wNextY, nType, iVar3);
+    if (!iVar2) {
+      return true;
+    }
+    pScannerState[4] = 1;
+    iVar1 = *(int*)(pScannerState[6] + *pScannerState * 4);
+    *pScannerState = iVar1;
+    *(short int*)(pScannerState + 3) = (short int)gnPathDirectionTripletXOffsets[iVar1 * 2] + (short int)pScannerState[2];
+    wNextY = (short int)gnPathDirectionTripletXOffsets[iVar1 * 2 + 1] + *(short int*)((int)pScannerState + 10);
+    *(uint16_t*)((int)pScannerState + 0xe) = wNextY;
+    iVar3 = Collision::CheckCollision_BlockPlayer_Type(pRoom, (uint32_t)*(uint16_t*)(pScannerState + 3), (uint32_t)wNextY, nType, iVar3);
+    return (bool)('\x01' - (iVar3 != 0));
 }
 
 // Inserts a set of waypoints from a path node into the main waypoint buffer at a given index. Uses memmove to shift existing data and memcpy to copy the new points. Updates the insertion index and total count.

@@ -322,39 +322,29 @@ void __fastcall UNITSND_ResolveSoundFromFlags(D2UnitStrc * pUnit, uint32_t nAnim
 }
 
 int __fastcall UNITSND_GetHitSound(int32_t pSoundTable, uint32_t nAnimMode) {
-    if (pSoundTable) {
-      int nSoundId;
-      nSoundId = 0;
-      switch (nAnimMode & 0xf) {
-        case 1:
-
-        case 2:
-
-        case 3:
-
-        case 4:
-
-        case 5:
-
-        case 6:
-
-        case 7:
-
-        case 8:
-
-        case 9:
-          return 0x18e;
-        case 10:
-
-        case 0xb:
-          nSoundId = 0x191;
-      }
-
-      return nSoundId;
+    if (!pSoundTable) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc08);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc08);
-    exit(-1);
+    int nSoundId;
+    nSoundId = 0;
+    switch (nAnimMode & 0xf) {
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+      case 8:
+      case 9:
+        return 0x18e;
+      case 10:
+      case 0xb:
+        nSoundId = 0x191;
+    }
+    return nSoundId;
 }
 
 // Returns the address of pUnit's client-side pUnitSfxData list head (+0x78); halts (UnitSnd.cpp line 3116, ptUnit) on NULL.
@@ -451,24 +441,23 @@ void __fastcall UNITSND_UpdatePositionalAudio(D2UnitStrc * pUnit) {
     int32_t nSoundId;
     uint32_t nLoopFlag;
     int32_t* pSfxNode;
-    if (pUnit) {
-      int nSoundId_00;
-      pSfxNode = (int32_t*)pUnit->uSideData.pClientSide.pUnitSfxData;
-      while (pSfxNode) {
-        nSoundId = *pSfxNode;
-        pSfxNode = (int32_t*)pSfxNode[1];
-        nSoundId_00 = Sound::SOUND_StopChannelById(nSoundId);
-        nLoopFlag = Sound::SoundHdr::SOUNDHDR_GetSoundLoopFlag(nSoundId_00);
-        if (nLoopFlag) {
-          Sound::SOUND_StopUnitSoundByIndex(nSoundId, pUnit, 0);
-        }
-      }
-
-      return;
+    if (!pUnit) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc2c);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc2c);
-    exit(-1);
+    int nSoundId_00;
+    pSfxNode = (int32_t*)pUnit->uSideData.pClientSide.pUnitSfxData;
+    while (pSfxNode) {
+      nSoundId = *pSfxNode;
+      pSfxNode = (int32_t*)pSfxNode[1];
+      nSoundId_00 = Sound::SOUND_StopChannelById(nSoundId);
+      nLoopFlag = Sound::SoundHdr::SOUNDHDR_GetSoundLoopFlag(nSoundId_00);
+      if (nLoopFlag) {
+        Sound::SOUND_StopUnitSoundByIndex(nSoundId, pUnit, 0);
+      }
+    }
+    return;
 }
 
 // Returns pUnit's client-side bUnitSfx byte (+0x70); halts (UnitSnd.cpp line 3215, ptUnit) on NULL.
@@ -942,36 +931,34 @@ void __stdcall UNITSND_UpdateNeutralSound(D2UnitStrc * pUnit, int32_t bForceStop
     int nChanSoundBase;
     int32_t* pSfxNode;
     int32_t* pSfxNodeNext;
-    if (pUnit) {
-      D2MonSoundsTxt* pMonSoundsLine;
-      pSfxNode = (int32_t*)pUnit->uSideData.pClientSide.pUnitSfxData;
-      while (pSfxNode) {
-        pSfxNodeNext = (int32_t*)pSfxNode[1];
-        nSfxChannelId = *pSfxNode;
-        pMonSoundsLine = TxtGetSoundIdLineFromUnit(pUnit);
-        if (!pMonSoundsLine) {
-          nChanSoundBase = 0;
+    if (!pUnit) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc2c);
+      exit(-1);
+    }
+    D2MonSoundsTxt* pMonSoundsLine;
+    pSfxNode = (int32_t*)pUnit->uSideData.pClientSide.pUnitSfxData;
+    while (pSfxNode) {
+      pSfxNodeNext = (int32_t*)pSfxNode[1];
+      nSfxChannelId = *pSfxNode;
+      pMonSoundsLine = TxtGetSoundIdLineFromUnit(pUnit);
+      if (!pMonSoundsLine) {
+        nChanSoundBase = 0;
+      } else {
+        nChanSoundBase = pMonSoundsLine->Neutral;
+      }
+      nLine = Sound::SOUND_StopChannelById(nSfxChannelId);
+      nLine = Sound::SoundHdr::SOUNDHDR_GetSoundField0x60(nLine);
+      pSfxNode = pSfxNodeNext;
+      if (nLine == nChanSoundBase) {
+        if (!bForceStop || (nChanSoundBase = Sound::SOUND_GetSoundChannel(nSfxChannelId) , nChanSoundBase != 0)) {
+          Sound::SOUND_StopUnitSoundByIndex(nSfxChannelId, pUnit, 1);
         } else {
-          nChanSoundBase = pMonSoundsLine->Neutral;
-        }
-
-        nLine = Sound::SOUND_StopChannelById(nSfxChannelId);
-        nLine = Sound::SoundHdr::SOUNDHDR_GetSoundField0x60(nLine);
-        pSfxNode = pSfxNodeNext;
-        if (nLine == nChanSoundBase) {
-          if (!bForceStop || (nChanSoundBase = Sound::SOUND_GetSoundChannel(nSfxChannelId) , nChanSoundBase != 0)) {
-            Sound::SOUND_StopUnitSoundByIndex(nSfxChannelId, pUnit, 1);
-          } else {
-            Sound::SOUND_StopChannelGracefully(nSfxChannelId, 0, 0, 6);
-          }
+          Sound::SOUND_StopChannelGracefully(nSfxChannelId, 0, 0, 6);
         }
       }
-
-      return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc2c);
-    exit(-1);
+    return;
 }
 
 static void __stdcall UNITSND_StopAllCombatSounds(D2UnitStrc * pUnit) {
@@ -1003,9 +990,9 @@ static void __stdcall UNITSND_StopAllCombatSounds(D2UnitStrc * pUnit) {
     }
 }
 
-eD2Sounds __stdcall UNITSND_GetModeChangeSound(int32_t nPrevMode, D2UnitStrc * pUnit, int32_t nNewMode) {
+static eD2Sounds __stdcall UNITSND_GetModeChangeSound(int32_t nPrevMode, D2UnitStrc * pUnit, int32_t nNewMode) {
     DWORD nClassId = GetSndUnitClassId(pUnit);
-    if (0x23c < nClassId || 7 < nNewMode) {
+    if (0x23d <= nClassId || 8 <= nNewMode) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe72);
       exit(-1);
     }
@@ -1095,36 +1082,34 @@ void __fastcall UpdateUnitSfxOnModeChange(D2UnitStrc * pUnit) {
           }
         }
       }
-      if (pUnit) {
-        if (pUnit->uSideData.pClientSide.bUnitSfx && nUnitMode == (int*)pUnit->uSideData.pClientSide.nSfxMode) {
-          return;
-        }
+      if (!pUnit) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc8f);
+        exit(-1);
+      }
 
-        eSpecialSound = UNITSND_GetSpecialSoundByMode(pUnit, (int32_t)nUnitMode);
-        if (eSpecialSound == SOUND_NONE) {
-          UNITSND_UpdatePositionalAudio(pUnit);
-        } else {
-          nSndOrResult = UNITSND_GetMissileSound(pUnit, eSpecialSound);
-          if (!nSndOrResult) {
-            Sound::SOUND_PlaySound(eSpecialSound, pUnit, 0, 0, 0);
-          }
-        }
-
-        nClassId = GetSndUnitClassId(pUnit);
-        if (pUnit->uSideData.pClientSide.bUnitSfx || nClassId == 0x3b) {
-          eSpecialSound = UNITSND_GetModeChangeSound(pUnit->uSideData.pClientSide.nSfxMode, pUnit, (int32_t)nUnitMode);
-          if (eSpecialSound != SOUND_NONE) {
-            Sound::SOUND_PlaySound(eSpecialSound, pUnit, 0, 0, 0);
-          }
-        }
-
-        pUnit->uSideData.pClientSide.nSfxMode = (uint32_t)nUnitMode;
-        pUnit->uSideData.pClientSide.bUnitSfx = 1;
+      if (pUnit->uSideData.pClientSide.bUnitSfx && nUnitMode == (int*)pUnit->uSideData.pClientSide.nSfxMode) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc8f);
-      exit(-1);
+      eSpecialSound = UNITSND_GetSpecialSoundByMode(pUnit, (int32_t)nUnitMode);
+      if (eSpecialSound == SOUND_NONE) {
+        UNITSND_UpdatePositionalAudio(pUnit);
+      } else {
+        nSndOrResult = UNITSND_GetMissileSound(pUnit, eSpecialSound);
+        if (!nSndOrResult) {
+          Sound::SOUND_PlaySound(eSpecialSound, pUnit, 0, 0, 0);
+        }
+      }
+      nClassId = GetSndUnitClassId(pUnit);
+      if (pUnit->uSideData.pClientSide.bUnitSfx || nClassId == 0x3b) {
+        eSpecialSound = UNITSND_GetModeChangeSound(pUnit->uSideData.pClientSide.nSfxMode, pUnit, (int32_t)nUnitMode);
+        if (eSpecialSound != SOUND_NONE) {
+          Sound::SOUND_PlaySound(eSpecialSound, pUnit, 0, 0, 0);
+        }
+      }
+      pUnit->uSideData.pClientSide.nSfxMode = (uint32_t)nUnitMode;
+      pUnit->uSideData.pClientSide.bUnitSfx = 1;
+      return;
     }
 
     eUnitType = GetSndUnitType(pUnit);
@@ -1403,10 +1388,8 @@ static void UNITSND_PlayFleeSound(D2UnitStrc * pUnit) {
       return;
     }
 
-    int32_t nSfxTick = 0;
-    nRecordingIdx = 0;
-    uint32_t nFleeDelay = _Utils::RollRandomNumerUpToArgument(3);
-    Sound::SOUND_PlaySound(pMonSoundsLine->Flee, pUnit, nFleeDelay + 6, nRecordingIdx, nSfxTick);
+    uint32_t nFleeDelay;
+    Sound::SOUND_PlaySound(pMonSoundsLine->Flee, pUnit, _Utils::RollRandomNumerUpToArgument(3) + 6, 0, 0);
     nFleeDelay = GAME::Game::gnRecordingIndex();
     SetSfxTicks(nFleeDelay, pUnit);
     gdwSoundChannelIndex = GAME::Game::gnRecordingIndex();

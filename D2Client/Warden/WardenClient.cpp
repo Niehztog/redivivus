@@ -772,7 +772,7 @@ int __fastcall WARDEN_Initialize(uint32_t dwModuleParam) {
     gpWardenModuleParam = dwModuleParam;
     sgpUnknownSequence = Bnclient::NET_GetLobbyChatQueue();
     if (!sgpUnknownSequence) {
-      return 1;
+      return 0;
     }
 
     WARDEN_ResolveAndLoadModule(gabWardenModuleRc4Key, gabWardenEmbeddedModuleHash);

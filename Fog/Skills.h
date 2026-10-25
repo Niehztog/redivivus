@@ -31,8 +31,6 @@ typedef int (__fastcall *fnSkillCalcMethod)(int32_t nCalcCode, void * pContext);
 namespace Fog::Skills {
 
 // Function declarations
-void __fastcall SKILLS_PushValue(int * pStack, int value);
-int SKILLS_PopValue(int * pValueStack);
 // Stack-based bytecode evaluator for compiled skill and missile calc formulas. The 64-entry value stack keeps its count in the 65th slot, at byte offset 0x100 from the base, which is why it is one int[65] local and not a head plus a separate counter. Consecutive SKILLS_PopValue calls reuse the stack pointer in ECX without reloading it, so that callee is typed __fastcall_ecxsafe.
 uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, fnSkillCalcMethod pFunction, struct D2ItemsEventMethodStrc * pFunctionArray, int32_t nFunctionArraySize, void * dwParam);
 // *pTokenType out is eD2SkillCalcToken:
@@ -43,10 +41,6 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
 // 16=TOKEN_CUSTOM_RAW_CONSTANT (int literal / '.'id / 'string') 17=TOKEN_CUSTOM_FUNCTION_PARAMETER_CONSTANT (identifier)
 // 18=TOKEN_CUSTOM_FUNCTION_TABLE (identifier followed by '(').
 char * __fastcall SKILLS_ParseSkillDescription(CalcGetKeyWordToNumber_t pFuncLookup, CalcGetLinkerIndex_t pfnSkillLookup, int nParserContext, char * szToken, uint8_t * pTokenType, int * pnTokenValue);
-// Returns the operator precedence level for a skill formula opcode used by the calc compiler. Switches on the opcode byte (in AL): opcode 1 invokes a callback via pFunctionTable; opcodes 10-20 (0xa-0x14) return precedence 2; 0x15 returns 1; 0x16 returns 3; others return 0. Part of the skill formula expression evaluator (SKILLS_CompileSkillFormula).
-int __fastcall SKILLS_GetOpcodePrecedence(uint8_t opcode, CalcGetFunctionParameterCount_t pFunctionTable, uint32_t nFunctionArg);
-// Shunting-yard step for compiling a skill calc (skills.txt formula) into RPN bytecode. Given the current output write pointer, an operator-stack/parser-state struct (count at +0x140, accumulated precedence at +0x144, op array at base, arg array at +0x40), the output buffer/size, and an incoming token (bToken) with its function/arg payload: pops higher-or-equal precedence operators from the stack into the output (respecting the INT_ARRAY_006fc874 precedence table and SKILLS_GetOpcodePrecedence) until a lower-precedence/paren/end is hit, then either pushes the new operator/operand or, for end-of-expression (token 0), terminates the output with a 0 byte. Returns the advanced write pointer, or NULL on buffer overflow / stack overflow (writing a 0 to the buffer start to mark failure).
-uint8_t * __stdcall SKILLS_EmitFormulaBytecode(uint8_t * pWritePtr, uint8_t * pOperatorStack, uint8_t * pBuffer, int nBufferSize, uint8_t bToken, CalcGetFunctionParameterCount_t pFunction, uint32_t nFunctionArg);
 // Parse calc expression from skill desc into bytecode formula
 int __stdcall SKILLS_ParseCalcExpression(char * szExpressionString, uint8_t * pbByteCodeOutput, int nMaxOutputSize, CalcGetKeyWordToNumber_t pDescTable, CalcGetFunctionParameterCount_t pOpcodeInfo, CalcGetLinkerIndex_t pParam);
 

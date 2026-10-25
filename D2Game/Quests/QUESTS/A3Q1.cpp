@@ -787,8 +787,7 @@ bool __fastcall Q18_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUni
       *nUnknown = '\f';
       pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
       if (pRoom) {
-        eLevel = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-        neAct = D2Common::Drlg::GetActNoFromLevelNumber(eLevel);
+        neAct = D2Common::Drlg::GetActNoFromLevelNumber(D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom));
         if (neAct == ACT_III && pLamEsenData->nPlayersInArea) {
           *nUnknown = '\x01';
         }

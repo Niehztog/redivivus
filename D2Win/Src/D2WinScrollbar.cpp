@@ -312,54 +312,52 @@ BOOL __fastcall Draw(::D2WinScrollbar * pScrollbar) {
       exit(-1);
     } else {
       uint32_t nGlobalTickCount;
-      if (pScrollbar->sControl.neD2FormType == FORM_Scrollbar) {
-        dwCtrlState = pScrollbar->sControl.dwState;
-        if (!(dwCtrlState & 4 && dwCtrlState & 1)) {
-          return 0;
-        }
+      if (pScrollbar->sControl.neD2FormType != FORM_Scrollbar) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe8);
+        exit(-1);
+      }
 
-        local_8 = pScrollbar->sControl.pDC6;
-        nLine = pScrollbar->sControl.dwPosX;
-        nDrawY = pScrollbar->sControl.dwPosY - 1;
-        if (!pScrollbar->nMaxValue) {
-          return 1;
-        }
+      dwCtrlState = pScrollbar->sControl.dwState;
+      if (!(dwCtrlState & 4 && dwCtrlState & 1)) {
+        return 0;
+      }
 
-        nGlobalTickCount = D2WinMain::D2WINMAIN_GetWinMainState();
-        if (!nGlobalTickCount) {
-          pScrollbar->nWheelLockFlag = 0;
-        }
-        if (pScrollbar->nWheelLockFlag) {
-          pScrollbarArg.uMsg = 0x201;
-          pScrollbarArg.pControl = &pScrollbar->sControl;
-          D2WinScrollbar::Push(&pScrollbarArg);
-        }
-
-        memset(&sGfxData, 0, 0x48);
-        sGfxData.pDC6 = local_8;
-        sGfxData.nFrameNumber = (uint32_t)(pScrollbar->bDownArrowPressed != 0) * 2 + 1;
-        sGfxData.nDirection = 0;
-        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nLine, nDrawY, -1, DRAW_SOLID, nullptr);
-        sGfxData.nFrameNumber = 5;
-        if (10 < pScrollbar->sControl.dwSizeY - 10) {
-          local_8 = (DC6*)0xa;
-          do {
-            local_8 = (DC6*)((uintptr_t)&local_8->nFormat + 2);
-            nDrawY += -10;
-            D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nLine, nDrawY, -1, DRAW_SOLID, nullptr);
-          } while ((int)local_8 < pScrollbar->sControl.dwSizeY - 10);
-        }
-
-        sGfxData.nFrameNumber = pScrollbar->bUpArrowPressed ? 2 : 0;
-        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nLine, pScrollbar->sControl.dwPosY - pScrollbar->sControl.dwSizeY + 9, -1, DRAW_SOLID, nullptr);
-        nDrawY = pScrollbar->sControl.dwSizeY;
-        sGfxData.nFrameNumber = 4;
-        D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nLine, (nDrawY - 0x1e) * pScrollbar->nPosition / pScrollbar->nMaxValue - nDrawY + 0x13 + pScrollbar->sControl.dwPosY, -1, DRAW_SOLID, nullptr);
+      local_8 = pScrollbar->sControl.pDC6;
+      nLine = pScrollbar->sControl.dwPosX;
+      nDrawY = pScrollbar->sControl.dwPosY - 1;
+      if (!pScrollbar->nMaxValue) {
         return 1;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe8);
-      exit(-1);
+      nGlobalTickCount = D2WinMain::D2WINMAIN_GetWinMainState();
+      if (!nGlobalTickCount) {
+        pScrollbar->nWheelLockFlag = 0;
+      }
+      if (pScrollbar->nWheelLockFlag) {
+        pScrollbarArg.uMsg = 0x201;
+        pScrollbarArg.pControl = &pScrollbar->sControl;
+        D2WinScrollbar::Push(&pScrollbarArg);
+      }
+      memset(&sGfxData, 0, 0x48);
+      sGfxData.pDC6 = local_8;
+      sGfxData.nFrameNumber = (uint32_t)(pScrollbar->bDownArrowPressed != 0) * 2 + 1;
+      sGfxData.nDirection = 0;
+      D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nLine, nDrawY, -1, DRAW_SOLID, nullptr);
+      sGfxData.nFrameNumber = 5;
+      if (10 < pScrollbar->sControl.dwSizeY - 10) {
+        local_8 = (DC6*)0xa;
+        do {
+          local_8 = (DC6*)((uintptr_t)&local_8->nFormat + 2);
+          nDrawY += -10;
+          D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nLine, nDrawY, -1, DRAW_SOLID, nullptr);
+        } while ((int)local_8 < pScrollbar->sControl.dwSizeY - 10);
+      }
+      sGfxData.nFrameNumber = pScrollbar->bUpArrowPressed ? 2 : 0;
+      D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nLine, pScrollbar->sControl.dwPosY - pScrollbar->sControl.dwSizeY + 9, -1, DRAW_SOLID, nullptr);
+      nDrawY = pScrollbar->sControl.dwSizeY;
+      sGfxData.nFrameNumber = 4;
+      D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nLine, (nDrawY - 0x1e) * pScrollbar->nPosition / pScrollbar->nMaxValue - nDrawY + 0x13 + pScrollbar->sControl.dwPosY, -1, DRAW_SOLID, nullptr);
+      return 1;
     }
 }
 

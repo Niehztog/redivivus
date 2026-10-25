@@ -52,7 +52,7 @@ void __fastcall CRASH_DumpThreadContext(DWORD dwThreadId, void * pContext, fnCra
       *pFrameBufCursor = 0;
       pFrameBufCursor[1] = 0;
       *(uint8_t*)(pFrameBufCursor + 2) = 0;
-      memset(pFrameBufCursor + 3, 0, 4 * sizeof(pFrameBufCursor[0]));
+      for (int i = 3; i < 7; i++) pFrameBufCursor[i] = 0;
       pFrameBufCursor += 9;
       nFrameCountClamped--;
     } while (-1 < nFrameCountClamped);
@@ -424,12 +424,10 @@ LONG __stdcall ERRORMANAGER_UnhandledExceptionFilter(_EXCEPTION_POINTERS * pExce
       __frame0.local_314 = 0;
       nFilterResult = (*gpCurrentExceptionFilter)(&__frame0.pszExceptionName, gpCurrentExceptionContext);
       if (nFilterResult) {
-        Debug::GuardStack();
         return (uint32_t)(nFilterResult != 1) * 2 - 1;
       }
     }
 
-    Debug::GuardStack();
     return 0;
 }
 

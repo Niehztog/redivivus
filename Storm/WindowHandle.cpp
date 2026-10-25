@@ -396,8 +396,7 @@ static int __stdcall SMSG_InternalRegister(uint32_t hWnd, int32_t pCallback, uin
       SMSG_AddWindow(hWnd);
     }
 
-    Source::SEVT::SEvtRegisterHandler(dwEventTag, hWnd, dwContext, 0, (pfnSEvtHandler)pCallback);
-    return 0;
+    return Source::SEVT::SEvtRegisterHandler(dwEventTag, hWnd, dwContext, 0, (pfnSEvtHandler)pCallback);
 }
 
 // @blizzard InternalUnregister (SMSG.CPP)

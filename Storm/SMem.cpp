@@ -500,13 +500,11 @@ int __fastcall SMEM_DestroyHeap(LPVOID * ppHeap) {
       } while ((void*)pNextBlock < nHeap->pWriteCursor);
 
       if (byLeakFlags) {
-        Fog::Debug::GuardStack();
         return (int)nHeap;
       }
     }
 
     SMEM_FreeHeap(ppHeap);
-    Fog::Debug::GuardStack();
     return (int)ppHeap;
 }
 

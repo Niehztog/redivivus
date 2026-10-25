@@ -362,33 +362,32 @@ void __stdcall VIEW_FreeLookupTables() {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xfd);
       exit(-1);
     } else {
-      if (gpViewPalByteTable32x40) {
-        D2MEM_VirtualFree(gpViewPalPointerTable32x8);
-        if (gpViewPalByteTable32x16) {
-          D2MEM_VirtualFree(gpViewPalByteTable32x16);
-        }
-        if (gpViewPalByteTable16x32) {
-          D2MEM_VirtualFree(gpViewPalByteTable16x32);
-        }
-        if (gpViewPalPointerTable32x32) {
-          D2MEM_VirtualFree(gpViewPalPointerTable32x32);
-        }
-        if (gpViewPalByteTable32x40) {
-          D2MEM_VirtualFree(gpViewPalByteTable32x40);
-        }
-
-        gpViewPalPointerTable32x8 = 0;
-        gpViewPalByteTable32x16 = 0;
-        gpViewPalByteTable16x32 = 0;
-        gpViewPalPointerTable32x32 = 0;
-        gpViewPalByteTable32x40 = 0;
-        gnSoundShakeVolume = 0;
-        VIEW_FreeDC6Images();
-        return;
+      if (!gpViewPalByteTable32x40) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xfe);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xfe);
-      exit(-1);
+      D2MEM_VirtualFree(gpViewPalPointerTable32x8);
+      if (gpViewPalByteTable32x16) {
+        D2MEM_VirtualFree(gpViewPalByteTable32x16);
+      }
+      if (gpViewPalByteTable16x32) {
+        D2MEM_VirtualFree(gpViewPalByteTable16x32);
+      }
+      if (gpViewPalPointerTable32x32) {
+        D2MEM_VirtualFree(gpViewPalPointerTable32x32);
+      }
+      if (gpViewPalByteTable32x40) {
+        D2MEM_VirtualFree(gpViewPalByteTable32x40);
+      }
+      gpViewPalPointerTable32x8 = 0;
+      gpViewPalByteTable32x16 = 0;
+      gpViewPalByteTable16x32 = 0;
+      gpViewPalPointerTable32x32 = 0;
+      gpViewPalByteTable32x40 = 0;
+      gnSoundShakeVolume = 0;
+      VIEW_FreeDC6Images();
+      return;
     }
 }
 
@@ -507,7 +506,7 @@ static void __stdcall VIEW_GenerateRandomViewParams(int32_t nStarIndex, int32_t 
     } else {
       seed = D2_SEED_NEXT(*pStarSeed);
       *pStarSeed = seed;
-      nYPos = (uint32_t)(((uint64_t)d2_bits_of(seed) & 0xffffffff) % (uint64_t)(uint32_t)nWindowHeight);
+      nYPos = (uint32_t)(seed.nSeedLow % (uint32_t)nWindowHeight);
     }
 
     gaArcaneStarYPos[nStarIndex] = nYPos;
@@ -951,8 +950,8 @@ D2GameViewStrc * __stdcall AllocGameView() {
       pGameView = (D2GameViewStrc*)Fog::Memory::AllocClientMemory(0xeabc, ".\\GAME\\View.cpp", 0x11d, 0);
       /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&pGameView->pView, 0, 0, 0, 0);
       pPalByteTable16x32 = gpViewPalByteTable16x32;
-      pPalByteTable32x16 = gpViewPalByteTable32x16;
       pPalPointerTable = gpViewPalPointerTable32x8;
+      pPalByteTable32x16 = gpViewPalByteTable32x16;
       pGameView->nFlags = 0;
       pGameView->pPalPointerTable32x8 = pPalPointerTable;
       pGameView->pPalByteTable32x16 = pPalByteTable32x16;

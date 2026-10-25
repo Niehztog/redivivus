@@ -971,19 +971,11 @@ void __stdcall PATH_AddUnitCollision(D2UnitStrc * pUnit) {
             nPosY = GetXPos(pUnit->pPath.pDynamicPath);
           }
 
-          nPosX = Units::GetCollisionType(pUnit);
-          pRoom = Units::UNITS_GetRoom(pUnit);
-          Collision::AddCollision_Type(pRoom, nPosY, iVar1, nUnitWidth, nPosX);
+          Collision::AddCollision_Type(Units::UNITS_GetRoom(pUnit), nPosY, iVar1, nUnitWidth, Units::GetCollisionType(pUnit));
           return;
         }
         if (eUnitType == UNIT_OBJECT) {
-          iVar1 = Units::GetCollisionType(pUnit);
-          nVectorY = Units::GetUnitSizeY(pUnit);
-          nVectorX = Units::GetUnitSizeX(pUnit);
-          nPosY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-          nPosX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-          pRoom = Units::UNITS_GetRoom(pUnit);
-          Collision::AddCollision_Vector(pRoom, nPosX, nPosY, nVectorX, nVectorY, iVar1);
+          Collision::AddCollision_Vector(Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit), Units::GetUnitSizeX(pUnit), Units::GetUnitSizeY(pUnit), Units::GetCollisionType(pUnit));
           return;
         }
       }
@@ -1007,10 +999,7 @@ void __stdcall PATH_AddUnitCollision(D2UnitStrc * pUnit) {
       nPosY = 0;
     }
 
-    nPosX = Units::GetCollisionType(pUnit);
-    int32_t nUnitSizeX = Units::GetUnitSizeX(pUnit);
-    pRoom = Units::UNITS_GetRoom(pUnit);
-    Collision::AddCollision_Width(pRoom, nPosY, iVar1, nUnitSizeX, nPosX);
+    Collision::AddCollision_Width(Units::UNITS_GetRoom(pUnit), nPosY, iVar1, Units::GetUnitSizeX(pUnit), Units::GetCollisionType(pUnit));
 }
 
 // Removes a unit's collision footprint from its room's collision grid, choosing the removal method by unit type. For players (Dead anim) and monsters (Kick/Death anim), and any unit when forced via nParam, it removes using the dynamic path's target coords + nUnitWidth (RemoveCollision_Type). For objects it removes a size-X box at the unit's position (RemoveCollision_Width). For other unit types it removes a full sizeX-by-sizeY rectangle (RemoveCollision_Vector). Objects/monsters that have no collision and aren't forced (nParam==0) return 0 without acting. Position is read from the static path (objects/types 4-5) or dynamic path Get X/YPos. Returns 1 if collision was removed, 0 if skipped. Called before moving a unit so its old footprint is cleared.
@@ -1499,23 +1488,22 @@ void __stdcall AllocDynamicPath(D2PoolManagerStrc * pMemory, D2RoomStrc * pRoom,
             Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x871);
             exit(-1);
           } else {
-            if (pDynamicPath->dwPrevPathType != 8) {
-              nUnitWidth = D2Client::UNIT::Player::TXT_MonStats_GetBaseId(pUnit_00);
-              if (nUnitWidth < 0 || nUnitWidth >= sgptDataTable->nTxtMonStatsSize || nUnitWidth != 0x26) {
-                nUnitWidth = PATH_GetCollisionPatternFromMonStats(pUnit_00);
-                pDynamicPath->nCollisionPattern = nUnitWidth;
-                pDynamicPath->nDistMax = 0xe;
-              } else {
-                pUnit_00->pPath.pDynamicPath->nUnitWidth = 5;
-                pDynamicPath->nCollisionPattern = 0x804;
-                pDynamicPath->nDistMax = 0xe;
-              }
-
-              goto place_and_set_screen_pos;
+            if (pDynamicPath->dwPrevPathType == 8) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x872);
+              exit(-1);
             }
 
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x872);
-            exit(-1);
+            nUnitWidth = D2Client::UNIT::Player::TXT_MonStats_GetBaseId(pUnit_00);
+            if (!(nUnitWidth < 0 || nUnitWidth >= sgptDataTable->nTxtMonStatsSize || nUnitWidth != 0x26)) {
+              pUnit_00->pPath.pDynamicPath->nUnitWidth = 5;
+              pDynamicPath->nCollisionPattern = 0x804;
+              pDynamicPath->nDistMax = 0xe;
+            } else {
+              nUnitWidth = PATH_GetCollisionPatternFromMonStats(pUnit_00);
+              pDynamicPath->nCollisionPattern = nUnitWidth;
+              pDynamicPath->nDistMax = 0xe;
+            }
+            goto place_and_set_screen_pos;
           }
         } else {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x861);

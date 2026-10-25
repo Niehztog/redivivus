@@ -812,8 +812,7 @@ void __fastcall TXT_AllocTxt_levels(D2PoolManagerStrc * pMemory) {
       memset(pWVar2, 0, 0x50);
       memset((void*)&pDVar1[i].wszLevelWarp[0], 0, 0x50);
       nWideCharBufLen = 0x28;
-      pwszLevelWarpStr = D2Lang::StrTable::strtable::STRTABLE_GetStringByKey((uint8_t*)(pDVar1->LevelName + nByteOffset));
-      D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pWVar2, pwszLevelWarpStr, nWideCharBufLen);
+      D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pWVar2, D2Lang::StrTable::strtable::STRTABLE_GetStringByKey((uint8_t*)(pDVar1->LevelName + nByteOffset)), nWideCharBufLen);
       nWideCharBufLen = 0x28;
       pDVar1[i].wszLevelName[39] = 0;
       pWVar2 = D2Lang::StrTable::strtable::STRTABLE_GetStringByKey((uint8_t*)(pDVar1->LevelWarp + nByteOffset));
@@ -1860,9 +1859,9 @@ void __fastcall TXT_AllocTxt_lvlmaze(D2PoolManagerStrc * pMemory) {
     lvlmaze[7].eType = FIELDTYPE_END;
     lvlmaze[7].nSize = 0;
     lvlmaze[7].nOffset = 0;
-    lvlmaze[7].fpLinker = 0;
     lvlmaze[0].szName = "Level";
     lvlmaze[0].eType = FIELDTYPE_INT;
+    lvlmaze[7].fpLinker = 0;
     lvlmaze[1].szName = "Rooms";
     lvlmaze[1].eType = FIELDTYPE_INT;
     lvlmaze[1].nOffset = 4;

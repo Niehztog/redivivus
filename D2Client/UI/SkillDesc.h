@@ -1156,7 +1156,6 @@ void __fastcall SKILLDESC_BuildMagicAffixDesc(struct D2UnitStrc * pUnit, uint16_
 int32_t __fastcall GetSkillParam4(eD2Skills eSkill);
 uint16_t __fastcall SKILLDESC_GetStatNameString(int32_t nSkillId, int32_t nStatOffset);
 int16_t GetSkillLongDescription(eD2Skills eSkill);
-int16_t GetAltSkillDescription(eD2Skills eSkillId);
 void __stdcall ApplyPassiveFireMasteryDamage(int32_t nParam, int32_t * nMinElemDamage, int32_t * nMaxElemDamage);
 void __stdcall ApplyPassiveLightningMasteryDamage(int32_t nParam, int32_t * nMinElemDamage, int32_t * nMaxElemDamage);
 uint32_t SKILLDESC_FormatDamageRangeWithCalc(int32_t bPrefixSign, int32_t nMinVal, int32_t nMaxVal, uint16_t * wszText);

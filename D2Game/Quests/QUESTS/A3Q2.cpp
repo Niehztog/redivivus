@@ -806,7 +806,9 @@ void __fastcall Q19_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     if (pQuestArgs->pTarget->nClassId != 0xf5) {
       return;
     }
-    if (!pQuestData->nStateFlag || (bQuestState = D2Common::QuestRecord::GetQuestState(pQuestRecord, QUEST_KhalimsWill, QUESTSTATE_Step0x02) , bQuestState != 0)) {
+    if (!(!pQuestData->nStateFlag || (bQuestState = D2Common::QuestRecord::GetQuestState(pQuestRecord, QUEST_KhalimsWill, QUESTSTATE_Step0x02) , bQuestState != 0))) {
+      nGossipMsgIndex = 0;
+    } else {
       D2GossipTextStrc* sTextMessage;
       nKhalimPartsHeld = 0;
       bHasWill = false;
@@ -899,8 +901,6 @@ void __fastcall Q19_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
 
         nGossipMsgIndex = 7;
       }
-    } else {
-      nGossipMsgIndex = 0;
     }
 
     show_gossip:

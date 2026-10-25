@@ -684,7 +684,7 @@ static void MONSTER_SpawnMinionGroup(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     D2Common::DATATBLS::MonsterTbls::MONSTERTBLS_GetUpgradeDataByMonStatsId((int32_t)nPartySize, nullptr, &eUpgradeSkill);
     ::SGAMEDATA* pGameInst = (::SGAMEDATA*)pGame->m_hashval;
     int32_t nOwnerGUID = pGame->bGameIsSetup;
-    if (!(-1 < pMonStats->minion1 && (int)pMonStats->minion1 < sgptDataTable->nTxtMonStatsSize)) {
+    if (!(0 <= pMonStats->minion1 && (int)pMonStats->minion1 < sgptDataTable->nTxtMonStatsSize)) {
       return;
     }
 

@@ -1319,10 +1319,10 @@ void __fastcall FASTCMP_DecompressRLEDispatcher(uint8_t * pImageHeader, uint8_t 
           nDstPitch = -nDstPitch;
         }
         if (!gbCodecUseFallbackDecompressor) {
-          if (!nClipLeft && !nClipRight || nClipLeft <= nDrawX && (int)(nFrameWidth + nDrawX) < nClipRight) {
-            bNoClip = true;
-          } else {
+          if (!(!nClipLeft && !nClipRight || nClipLeft <= nDrawX && (int)(nFrameWidth + nDrawX) < nClipRight)) {
             bNoClip = false;
+          } else {
+            bNoClip = true;
           }
           if (pLookupTable1) {
             if (pBlendTable) {
@@ -1778,7 +1778,7 @@ void __fastcall FASTCMP_DecompressRLEWithAlpha(BYTE * pFrameBlock, BYTE * pDst, 
         while (true) {
           bRLEToken = *pbRLEData;
           pbRLEData++;
-          if (-1 < (char)bRLEToken) {
+          if (0 <= (char)bRLEToken) {
             break;
           }
 

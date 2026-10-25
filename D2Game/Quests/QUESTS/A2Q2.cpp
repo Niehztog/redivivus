@@ -482,9 +482,7 @@ void __fastcall Q10_Callback04_ItemPickedUp(D2QuestDataStrc * pQuestData, D2Ques
     }
 
     int iVar1 = pItemTxt->dwCode;
-    if (iVar1 == 0x20317274 && !bStep0x03Set) {
-      pQuestData->nStateFlagPrev = 1;
-    } else {
+    if (!(iVar1 == 0x20317274 && !bStep0x03Set)) {
       if (iVar1 != 0x20706976 && iVar1 != 0x20786f62) {
         if (iVar1 != 0x2066736d) {
           return;
@@ -504,6 +502,8 @@ void __fastcall Q10_Callback04_ItemPickedUp(D2QuestDataStrc * pQuestData, D2Ques
       } else {
         pQuestData->nStateFlagPrev = 2;
       }
+    } else {
+      pQuestData->nStateFlagPrev = 1;
     }
 
     D2UnitStrc* pUnit = pQuestArgs->pPlayer;

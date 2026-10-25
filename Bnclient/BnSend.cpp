@@ -56,7 +56,7 @@ typedef void (__stdcall *pfnVoidNoArgCallback)();
 
 namespace Bnclient::BnSend {
 
-void __stdcall NET_SID_CLIENT_Send_0x1E_ClientId2() {
+int __stdcall NET_SID_CLIENT_Send_0x1E_ClientId2() {
     // Frame slots -1048..-1028 are ONE object: &dwRegVersion is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -82,7 +82,7 @@ void __stdcall NET_SID_CLIENT_Send_0x1E_ClientId2() {
     __frame0.bPadding0 = 0;
     __frame0.bPadding1 = 0;
     NET_SID_CLIENT_Send(0x1e, abPacketBuf, 0x16);
-    Fog::Debug::GuardStack();
+    return 1;
 }
 
 void __fastcall BNSEND_SetServerToken(uint32_t nServerToken) {
@@ -539,7 +539,6 @@ void __stdcall NET_SID_CLIENT_Send_0x21_DisplayAd() {
     uint8_t byPad0 = 0;
     uint8_t byPad1 = 0;
     NET_SID_CLIENT_Send(0x21, aGameTag, 0xe);
-    Fog::Debug::GuardStack();
 }
 
 void __fastcall NET_SID_CLIENT_Send_0x1C_StartAdVex3(char * szGameName, char * szGamePassword, char * szGameDescription, int32_t nFlags) {
@@ -614,7 +613,7 @@ void * __fastcall NET_SID_CLIENT_Send_0x09_GetAdvListEx(char * szText1, char * s
     char aPacketBufMid[18];
     char aPacketBufTail[237];
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    memset(aPacketHeader, 0, 12 * sizeof(aPacketHeader[0]));
+    for (int i = 0; i < 12; i++) aPacketHeader[i] = 0;
     aPacketHeader[0xc] = '\x19';
     aPacketHeader[0xd] = '\0';
     aPacketHeader[0xe] = '\0';
@@ -707,12 +706,10 @@ void * __fastcall NET_SID_CLIENT_Send_0x3E_LogonRealmEx(char * szRealmName, char
       if (0 <= nSendLen) {
         _net_sid::NET_SID_CLIENT_WaitForPacketId(0x3e);
         pvVar2 = gpBNetWriteUserData;
-        Fog::Debug::GuardStack();
         return pvVar2;
       }
     }
 
-    Fog::Debug::GuardStack();
     return nullptr;
 }
 
@@ -1203,8 +1200,7 @@ void __fastcall GetBnetIp(char * szText, int32_t nParam) {
     *szText = '\0';
     BNGatewayAccess::Load(&ActualRealmInfo);
     int32_t bHasRegistryOverride = nParam;
-    char* szDnsStr = BNGatewayAccess::DNS(&ActualRealmInfo, ActualRealmInfo.nCurGatewayIdx);
-    Storm::Source::SSTR::SStrCopy(szText, szDnsStr, bHasRegistryOverride);
+    Storm::Source::SSTR::SStrCopy(szText, BNGatewayAccess::DNS(&ActualRealmInfo, ActualRealmInfo.nCurGatewayIdx), bHasRegistryOverride);
     bHasRegistryOverride = Storm::Source::SReg::SRegLoadString("Diablo II", "BNETIP", 0, szRegistryBuf, 0x100);
     if (bHasRegistryOverride) {
       Storm::Source::SSTR::SStrCopy(szText, szRegistryBuf, nParam);
@@ -1240,19 +1236,21 @@ int __fastcall BNCLIENT_SendLogonRequest(char * szUsername, char * szPassword) {
 
 BOOL __stdcall BNCLIENT_WaitForLogonResponse() {
     BOOL bGotAnswer = _net_sid::SID_GetReadyFlag();
-    if (!bGotAnswer) {
+    if (bGotAnswer) {
+      BNMESSQUEUE_SetStateIfZero(0x12);
+    } else {
       DWORD DVar1;
       DVar1 = BNCLIENT_GetBNetClientToken();
-      if (!DVar1) {
+      switch (DVar1) {
+      case 0: {
         bGotAnswer = _net_sid::NET_SID_CLIENT_GetRequiredAnswer(0x3a);
         return bGotAnswer;
       }
-      if (DVar1 == 1) {
+      case 1: {
         bGotAnswer = _net_sid::NET_SID_CLIENT_GetRequiredAnswer(0x54);
         return bGotAnswer;
       }
-    } else {
-      BNMESSQUEUE_SetStateIfZero(0x12);
+      }
     }
 
     return 0;
@@ -1772,7 +1770,7 @@ static void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
                 nFDResult = __WSAFDIsSet(*(SOCKET*)(*(int*)pCandidateIter + 8), &fdExceptSet);
                 if (nFDResult) {
                   Fog::Src::Safesock::Free(*(D2NetDataStrc**)pCandidateIter);
-                  memset(pCandidateIter, 0, 4 * sizeof(pCandidateIter[0]));
+                  for (int i = 0; i < 4; i++) pCandidateIter[i] = 0;
                 }
               }
 
@@ -1825,7 +1823,7 @@ static void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
         pCandidate = *(D2NetDataStrc**)pCandidateIter;
         if (pCandidate && pCandidate != pNetData) {
           Fog::Src::Safesock::Free(pCandidate);
-          memset(pCandidateIter, 0, 4 * sizeof(pCandidateIter[0]));
+          for (int i = 0; i < 4; i++) pCandidateIter[i] = 0;
         }
 
         pCandidateIter += 0x108;
@@ -2431,11 +2429,7 @@ void __fastcall BNNEWS_ReallocateNewsTable(uint32_t * pNewsTable, uint32_t dwNew
         if ((int*)(pNewsTable[2] + nByteOffset)) {
           pSrc = (int*)(nByteOffset + (int)pObject);
           pDst = (int*)(pNewsTable[2] + nByteOffset);
-          for (nDwordsLeft = 0x102; nDwordsLeft; nDwordsLeft--) {
-            *pDst = *pSrc;
-            pSrc++;
-            pDst++;
-          }
+          memcpy(pDst, pSrc, 0x102 * sizeof(*pDst));
         }
 
         nByteOffset += 0x408;
@@ -3306,7 +3300,6 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
       uVar2 = BNSEND_GetServerToken();
       bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, uVar2, szOwnerCopy, &aClassicHashBuf);
       if (!bHash1Ok) {
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -3324,7 +3317,6 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
       uVar2 = BNSEND_GetServerToken();
       bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, uVar2, szOwnerCopy2, &aClassicHashBuf);
       if (!bHash1Ok) {
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -3347,7 +3339,6 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
       BNSEND_GetServerToken();
       bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, szOwnerCopy, &aClassicHashBuf);
       if (!bHash1Ok) {
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -3358,11 +3349,9 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
 
     bHash1Ok = NET_SID_CLIENT_Send(0x42, (char*)pSendData, nSizeNoHeader);
     if (-1 < bHash1Ok) {
-      Fog::Debug::GuardStack();
       return;
     }
 
-    Fog::Debug::GuardStack();
 }
 
 void __stdcall BNNEWS_DecodeCDKeys() {
@@ -3405,7 +3394,6 @@ void __stdcall BNNEWS_DecodeCDKeys() {
 
     cleanup:
     _net_sid::FreeKeys();
-    Fog::Debug::GuardStack();
 }
 
 // High-level CD key hash helper. Gets server token, retrieves CD key by type (0=classic, 1=expansion), and prepares hash structure for SID_AUTH_CHECK.

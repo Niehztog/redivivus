@@ -192,8 +192,7 @@ BOOL __fastcall INFERNO_BeginOrContinueChannel(::SGAMEDATA * pGame, D2UnitStrc *
       }
 
       nCalcDuration = pGame->dwGameFrame + nCalcDuration;
-      pSkill = D2Common::Units::GetCurrentSkill(pUnit);
-      D2Common::Skills::SKILL_SetParam1(pSkill, nCalcDuration);
+      D2Common::Skills::SKILL_SetParam1(D2Common::Units::GetCurrentSkill(pUnit), nCalcDuration);
     }
 
     D2StatListExStrc* pStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, STATE_inferno);
@@ -218,9 +217,7 @@ BOOL __fastcall INFERNO_BeginOrContinueChannel(::SGAMEDATA * pGame, D2UnitStrc *
       D2Common::Stats::StatsEx::STATLIST_SetExpireFunction(pStatList, SKILLSSOR_StatExpireCallback_ClearStateSetFlag);
       D2Common::Stats::StatsEx::SetState(pStatList, STATE_inferno);
       D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_inferno, 1);
-      nInitParam = 0;
-      pSkill = D2Common::Units::GetCurrentSkill(pUnit);
-      D2Common::Skills::SKILL_SetParam1(pSkill, nInitParam);
+      D2Common::Skills::SKILL_SetParam1(D2Common::Units::GetCurrentSkill(pUnit), 0);
       return 1;
     }
 
@@ -473,7 +470,7 @@ BOOL __fastcall Skills_SrvDoFunc_018_Armor(::SGAMEDATA * pGame, D2UnitStrc * pUn
     }
 
     D2SkillsTxt* pSkillTxt = sgptDataTable->pTxtSkills + eSkill;
-    if (!(pSkillTxt && -1 < pSkillTxt->aurastate && (int)pSkillTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
+    if (!(pSkillTxt && 0 <= pSkillTxt->aurastate && (int)pSkillTxt->aurastate < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
     if (pUnit) {
@@ -633,8 +630,7 @@ BOOL __fastcall Skills_SrvDoFunc_020_Static(::SGAMEDATA * pGame, D2UnitStrc * pU
 
     __frame0.nSynergyBonus = D2Common::Skills::SERVER_Synergy1(pUnit, eSkill, nSkillLvl, 1);
     eSkillEType eElemType = (eSkillEType)pSkillTxt->EType;
-    int32_t nRange = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->aurarangecalc, eSkill, nSkillLvl);
-    SkillsServer::SKILLS_ApplyAreaEffect(pGameSaved, pUnit, 0, 0, nRange, pSkillTxt->aurafilter, SKILLSOR_ApplyStaticFieldToUnit, &__frame0.nCalc1, 0, ".\\SKILLS\\SkillSor.cpp", 0x273);
+    SkillsServer::SKILLS_ApplyAreaEffect(pGameSaved, pUnit, 0, 0, D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->aurarangecalc, eSkill, nSkillLvl), pSkillTxt->aurafilter, SKILLSOR_ApplyStaticFieldToUnit, &__frame0.nCalc1, 0, ".\\SKILLS\\SkillSor.cpp", 0x273);
     return 1;
 }
 
@@ -1039,7 +1035,7 @@ BOOL __fastcall Skills_SrvDoFunc_025_Enchant(::SGAMEDATA * pGame, D2UnitStrc * p
     nAuraStatIdx = 6;
     do {
       D2UnitStrc* pCaster = pUnit;
-      if (-1 < *psAuraStat && (int)*psAuraStat < sgptDataTable->nTxtItemStatCostSize) {
+      if (0 <= *psAuraStat && (int)*psAuraStat < sgptDataTable->nTxtItemStatCostSize) {
         nValue = D2Common::Skills::D2GetSkillCalc(pCaster, *piStatCalc, eSkill, nSkillLvl);
         if (nValue) {
           D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatsEx, (int)*psAuraStat, nValue, 0);
@@ -1180,8 +1176,8 @@ static D2UnitStrc * __stdcall SKILLSOR_CreateMissileAtTarget(::SGAMEDATA * pGame
       return nullptr;
     }
 
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit2);
-    BOOL bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pRoom);
+    D2RoomStrc* pRoom;
+    BOOL bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(D2Common::Units::UNITS_GetRoom(pUnit2));
     if (bIsInTown) {
       return nullptr;
     }
@@ -1193,8 +1189,7 @@ static D2UnitStrc * __stdcall SKILLSOR_CreateMissileAtTarget(::SGAMEDATA * pGame
     }
 
     uint32_t nUnitY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    uint32_t nUnitX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit);
-    D2UnitStrc* pResult = SkillsServer::SKILLS_CreateMissileAtTarget(pGame, pUnit2, eSkill, nParam, eMissileId, nUnitX, nUnitY);
+    D2UnitStrc* pResult = SkillsServer::SKILLS_CreateMissileAtTarget(pGame, pUnit2, eSkill, nParam, eMissileId, D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), nUnitY);
     return pResult;
 }
 
@@ -1261,8 +1256,7 @@ BOOL __fastcall Skills_SrvDoFunc_029_ThunderStorm(::SGAMEDATA * pGame, D2UnitStr
     } else {
       uint32_t nPrevTargetGUID;
       nPrevTargetGUID = D2Common::Skills::SKILL_GetParam1(pSkill);
-      nAreaRange = GetTxtTableParam6(eSkill);
-      pThunderTarget = SkillsServer::SKILLS_FindNextUnitInAreaByGUID(pGameCtx, pUnit, 0, 0, nAreaRange, 3, nPrevTargetGUID, nullptr);
+      pThunderTarget = SkillsServer::SKILLS_FindNextUnitInAreaByGUID(pGameCtx, pUnit, 0, 0, GetTxtTableParam6(eSkill), 3, nPrevTargetGUID, nullptr);
       if (pThunderTarget) {
         eMissileId = (eMissilesId)SKILLSOR_CreateMissileAtTarget(pGameCtx, eMissileId, eSkill, nSkillLvl, pThunderTarget, pUnit);
         if ((D2UnitStrc*)eMissileId) {
@@ -1336,7 +1330,7 @@ BOOL __fastcall ITEMEVENT_SorAuraManaAbsorb(::SGAMEDATA * pGame, uint32_t nUnitE
     }
 
     short int eSkillAuraState = pSkillTxt->aurastate;
-    if (!(-1 < eSkillAuraState && (int)eSkillAuraState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= eSkillAuraState && (int)eSkillAuraState < sgptDataTable->nTxtStatesSize)) {
       return 0;
     }
 
@@ -1386,11 +1380,10 @@ BOOL __fastcall ITEMEVENT_SorAuraManaAbsorb(::SGAMEDATA * pGame, uint32_t nUnitE
 
     nCurMana = (int)nCurMana <= 0 ? 0 : nCurMana;
     D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_mana, nCurMana, 0);
-    if (pTarget && 0 < (int)eSkill && -1 < pSkillTxt->prgoverlay && (int)pSkillTxt->prgoverlay <= sgptDataTable->nTxtOverlaySize) {
+    if (pTarget && 0 < (int)eSkill && 0 <= pSkillTxt->prgoverlay && (int)pSkillTxt->prgoverlay <= sgptDataTable->nTxtOverlaySize) {
       int nDirection;
       nAbsorbPct = D2Client::Units::GetYPosFromDynamicPathUnit(pTarget);
-      nValue = D2Client::Units::GetXPosFromDynamicPathUnit(pTarget);
-      nDirection = D2Common::Units::GetDirectionToCoords(pUnit, nValue, nAbsorbPct);
+      nDirection = D2Common::Units::GetDirectionToCoords(pUnit, D2Client::Units::GetXPosFromDynamicPathUnit(pTarget), nAbsorbPct);
       bIsMerc = D2Common::Monsters::MONSTERS::MONSTERS_GetGfxOffsetTable2((uint8_t)nDirection);
       D2Common::Units::SetOverlay(pUnit, (int)pSkillTxt->prgoverlay + (bIsMerc & 0xff), 0);
     }

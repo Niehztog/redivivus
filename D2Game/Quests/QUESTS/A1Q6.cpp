@@ -440,8 +440,7 @@ static void __stdcall Q06_SetQuestCompletedAndReward(::SGAMEDATA * pQuestControl
     /* SetQuestState(RewardAwaits): flag reward pending so Warriv offers Act2
                          travel; SetClientStatus then unlocks act progress */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_SistersToTheSlaughter, QUESTSTATE_RewardAwaits);
     uint32_t nDifficulty = (uint32_t)pQuestControl->nDifficulty;
-    D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a1q6.cpp", 0x1c3);
-    GAME::Clients::SetClientStatus(pClient, 1, nDifficulty);
+    GAME::Clients::SetClientStatus(UNIT::SUnit::SUNIT_GetClient(pUnit, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a1q6.cpp", 0x1c3), 1, nDifficulty);
 }
 
 // A1Q6 per-player callback: if player record not Completed/FinishedInPreviousGame and player is in Catacombs Level 4, register them on all three NPC GUID lists (Cain/Akara/Kashya) and call Q06_SetQuestCompletedAndReward. Credits players present in the boss room when Andariel dies.
@@ -586,8 +585,7 @@ uint8_t __fastcall Q06_TimerSpawnPortalAndNotify(::SGAMEDATA * pGame, D2QuestDat
     if (pDVar1->nDeathEventCounter == 10) {
       D2UnitStrc* pCallbackArg;
       pfnCallback = Q06_SpawnReturnPortal;
-      pCallbackArg = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_MONSTER, pDVar1->nAndarielGUID);
-      UNIT::SUnit::IteratePlayerOrMonsterUnits(pGame, 0, pCallbackArg, pfnCallback);
+      UNIT::SUnit::IteratePlayerOrMonsterUnits(pGame, 0, UNIT::SUnit::FindUnitFromTable(pGame, UNIT_MONSTER, pDVar1->nAndarielGUID), pfnCallback);
     } else if (pDVar1->nDeathEventCounter == 0xc) {
       if (!(pQuestData->nStateFlagPrev != 3 && pQuestData->nStateFlagPrev != 0xd)) {
         return '\x01';

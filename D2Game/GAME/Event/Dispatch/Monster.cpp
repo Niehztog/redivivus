@@ -213,8 +213,7 @@ void __fastcall DropItemForVictim_Unused(::SGAMEDATA * pGame, D2ObjectOperateFnA
         eCollisionFlag = COLLISION_ITEMS;
         nY = D2Client::Units::GetYPosFromDynamicPathUnit(pVictim);
         nX = D2Client::Units::GetXPosFromDynamicPathUnit(pVictim);
-        pRoom = D2Common::Units::UNITS_GetRoom(pVictim);
-        eCollision = D2Common::Collision::CheckCollision_BlockPlayerMissile(pRoom, nX, nY, eCollisionFlag);
+        eCollision = D2Common::Collision::CheckCollision_BlockPlayerMissile(D2Common::Units::UNITS_GetRoom(pVictim), nX, nY, eCollisionFlag);
         if (eCollision != COLBIT_NONE) {
           return;
         }
@@ -524,7 +523,7 @@ void __stdcall MISSILE_SpawnFromMaggot(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
       }
 
       seedStrc = D2_SEED_NEXT_VAL(ullSeedStep);
-      if ((uint64_t)d2_bits_of(seedStrc) & 1) {
+      if (seedStrc.nSeedLow & 1) {
         nSpreadY = -nSpreadY;
       }
 
@@ -640,8 +639,7 @@ void __stdcall MONMODE_OwnerCastOrDie(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     int32_t nOwnerAlignment = 0x3c01;
     int32_t nOwnerSizeX = D2Common::Units::GetUnitSizeX(pOwner);
     POINT* pSpawnPoint = &ptSpawn;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pOwner);
-    D2RoomStrc* pFreeRoom = D2Common::Collision::GetFreeCoordinates_WithNeighboorRooms(pRoom, pSpawnPoint, nOwnerSizeX, nOwnerAlignment, bAllowNeighboorRooms);
+    D2RoomStrc* pFreeRoom = D2Common::Collision::GetFreeCoordinates_WithNeighboorRooms(D2Common::Units::UNITS_GetRoom(pOwner), pSpawnPoint, nOwnerSizeX, nOwnerAlignment, bAllowNeighboorRooms);
     nOwnerAlignment = D2Common::Stats::StatsEx::STATSEX_GetAlignment(pUnit);
     if (!nOwnerAlignment && pFreeRoom) {
       int32_t nCastResult;
@@ -702,8 +700,7 @@ BOOL __fastcall MONSTER_OnDeathDispatch(::SGAMEDATA * pGame, D2MonsterKillStrc *
       nClassId = pVictim->nUnitGUID;
     }
 
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pVictim);
-    D2Common::DUNGEON::Dungeon::SaveKilledUnitGUID(pRoom, nClassId);
+    D2Common::DUNGEON::Dungeon::SaveKilledUnitGUID(D2Common::Units::UNITS_GetRoom(pVictim), nClassId);
     if (!pVictim) {
       return 1;
     }
@@ -764,8 +761,7 @@ BOOL __fastcall MONSTER_OnDeathDispatch(::SGAMEDATA * pGame, D2MonsterKillStrc *
           nVictimClassIdForStats = pVictim->nClassId;
           pScaledStatsOut = &__frame1.nUnitFindArg;
           bRandDmgFlag = 1;
-          nMonsterLevel = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pVictim, UNITSTAT_level, 0);
-          D2Common::DATATBLS::MonsterTbls::MONSTER_CalculateLevelScaledStats(nVictimClassIdForStats, pGameSaved->eGameType, (uint32_t)pGameSaved->nDifficulty, nMonsterLevel, bRandDmgFlag, pScaledStatsOut);
+          D2Common::DATATBLS::MonsterTbls::MONSTER_CalculateLevelScaledStats(nVictimClassIdForStats, pGameSaved->eGameType, (uint32_t)pGameSaved->nDifficulty, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pVictim, UNITSTAT_level, 0), bRandDmgFlag, pScaledStatsOut);
           nCEDamageScaled = D2Client::Stats::D2ApplyPercent(__frame1.nMaxHpValue, pDifficultyLvl->MonsterCEDamagePercent, 100);
           if ((int)nCEDamageScaled < 0x100001) {
             nClassId = (int)(nCEDamageScaled * 0x3c) / 100;
@@ -814,7 +810,7 @@ void __fastcall MONMODE_HandleSpecialEndDeath(::SGAMEDATA * pGame, D2UnitStrc * 
     if (pMonStats->SplEndDeath == '\x01') {
       short int nMinionClassId;
       nMinionClassId = pMonStats->minion1;
-      if (-1 < nMinionClassId && (int)nMinionClassId <= sgptDataTable->nTxtMonStatsSize) {
+      if (0 <= nMinionClassId && (int)nMinionClassId <= sgptDataTable->nTxtMonStatsSize) {
         D2Game::Monster::MONSTER_TransformMonsterClass(pGame, pUnit, (int)nMinionClassId, 1);
         D2Game::Monster::MONSTERAI_TriggerMageThink(pGame, pUnit);
         return;

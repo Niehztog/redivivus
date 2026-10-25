@@ -15,7 +15,6 @@ namespace D2Game::Monsters::Umod {
 
 // Function declarations
 void __fastcall MONUMOD_RollNameSeed(struct D2UnitStrc * pUnit, int32_t nIndex, BOOL bUnknown);
-void UMOD_IncreaseMonsterHp(uint32_t nUmodConstant, struct D2UnitStrc * pUnit);
 void __fastcall MONUMOD_ApplyHpBonus(struct D2UnitStrc * pUnit, int32_t nIndex, BOOL bUnknown);
 void __fastcall MONUMOD_ApplyChampionLevelBonus(struct D2UnitStrc * pUnit, int32_t nIndex, BOOL bUnknown);
 // Applies champion-tier stat bonuses to a monster unit. Decrements level by 1, reduces XP by 40%, then adds difficulty-scaled damage percent (MonUmod[11].constants) and to-hit percent (MonUmod[10].constants) bonuses. Also adds a velocity bonus based on nIndex: 0x24 subtracts speed, 0x25 computes a formula from base Velocity, other values add a flat +20%. Skips Griswold (classId 0x76) with halved damage bonus.

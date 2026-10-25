@@ -300,8 +300,7 @@ template<> ::StringEntryNode * TSHashTable<StringEntryNode, HASHKEY_STRI>::Ptr(c
     ::HASHKEY_STRI* ppszKey = (::HASHKEY_STRI*)&szKey;
     nExState = 0;
     szKey = (char*)pDupStr;
-    uint32_t uHash = Storm::Source::SSTR::SStrHash(pszText, 0, 0);
-    ::StringEntryNode* pEntry = this->Ptr(uHash, ppszKey);
+    ::StringEntryNode* pEntry = this->Ptr(Storm::Source::SSTR::SStrHash(pszText, 0, 0), ppszKey);
     if (pDupStr) {
       Storm::SMem::SMemFree(pDupStr, "d:\\diablo2\\Diablo2\\3rdparty\\storm\\h\\stpl.h", 0x5e4, 0);
     }
@@ -817,8 +816,7 @@ template<> ::StringEntryNode * TSHashTable<StringEntryNode, HASHKEY_STRI>::New(c
     szKey = (char*)pObject;
     uint32_t dwSavedCompareArg2 = nExtraBytes;
     uint32_t dwFlags_00 = dwFlags;
-    uint32_t dwHash = Storm::Source::SSTR::SStrHash(pszText, 0, 0);
-    ::StringEntryNode* pEntry = this->New(dwHash, dwSavedCompareArg1, dwSavedCompareArg2, dwFlags_00);
+    ::StringEntryNode* pEntry = this->New(Storm::Source::SSTR::SStrHash(pszText, 0, 0), dwSavedCompareArg1, dwSavedCompareArg2, dwFlags_00);
     if (pObject) {
       Storm::SMem::SMemFree(pObject, "d:\\diablo2\\Diablo2\\3rdparty\\storm\\h\\stpl.h", 0x5e4, 0);
     }

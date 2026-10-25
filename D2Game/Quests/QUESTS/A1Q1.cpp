@@ -423,9 +423,7 @@ static void __fastcall Q01_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData
       }
     }
 
-    eD2LevelId eLevel = LEVEL_DenOfEvil;
-    eAct eDenAct = D2Common::Drlg::GetActNoFromLevelNumber(LEVEL_DenOfEvil);
-    nPopulatedRooms = D2Common::DUNGEON::Dungeon::GetNumberOfPopulatedRoomsInLevel(pQuestArgs->pGame->pAct[eDenAct], eLevel);
+    nPopulatedRooms = D2Common::DUNGEON::Dungeon::GetNumberOfPopulatedRoomsInLevel(pQuestArgs->pGame->pAct[D2Common::Drlg::GetActNoFromLevelNumber(LEVEL_DenOfEvil)], LEVEL_DenOfEvil);
     int nMonsterRegionRoomCount = pMonsterRegion->nRoomsCount;
     if (nPopulatedRooms <= nMonsterRegionRoomCount) {
       if (pMonsterRegion->dwMonKillCount == pMonsterRegion->dwMonSpawnCount) {

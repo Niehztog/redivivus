@@ -111,7 +111,6 @@ void __fastcall Q14_SendTombLevelInfo(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     }
 
     GAME::SCmd::NET_D2GS_SERVER_Send_0x50_QuestSpecial(pClient, (uint32_t*)&__frame0.byPacketId);
-    Fog::Debug::GuardStack();
 }
 
 // Q14 helper: returns the next "arcane" object classId to spawn (Tal Rasha sarcophagus/orifice decoy set: 0x133..0x139). On first call lazily fills a 6-entry ring (skipping the index matching the real tomb level), then cycles through it round-robin. Returns 0x133 if no tomb level is set yet. No quest-state transition.
@@ -264,8 +263,7 @@ uint8_t __fastcall Q14_TimerCreatePortal(::SGAMEDATA * pGame, D2QuestDataStrc * 
               } else {
                 D2Common::Units::SetupUpdateFlag(pUnit, 1);
                 bReset = 1;
-                pRoom = D2Common::Units::UNITS_GetRoom(pDVar1);
-                D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pRoom, bReset);
+                D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(D2Common::Units::UNITS_GetRoom(pDVar1), bReset);
                 D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pNearbyRoom, 1);
               }
             }

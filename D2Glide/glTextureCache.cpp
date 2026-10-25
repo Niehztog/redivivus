@@ -154,34 +154,34 @@ static int GLTEXCACHE_AllocateNode(GlTextureCacheStrc * pCache) {
     }
 
     int* pAllocNode = (int*)pCache->pFreeHead;
-    if (pAllocNode) {
-      uint8_t* pNewFreeHead;
-      pNewFreeHead = (uint8_t*)pAllocNode[5];
-      pCache->pFreeHead = pNewFreeHead;
-      if (!pNewFreeHead) {
-        pCache->pFreeTail = 0;
-      } else {
-        memset(pNewFreeHead + 24, 0, 4 * sizeof(pNewFreeHead[0]));
-      }
+    if (!pAllocNode) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc1);
+      exit(-1);
+    }
 
-      pAllocNode[5] = 0;
-      pAllocNode[6] = 0;
-      if (!pCache->pActiveHead) {
-        pCache->nUsedCount++;
-        pCache->pActiveHead = (uint8_t*)pAllocNode;
-        pCache->pActiveTail = (uint8_t*)pAllocNode;
-        return *pAllocNode + 1;
-      }
+    uint8_t* pNewFreeHead;
+    pNewFreeHead = (uint8_t*)pAllocNode[5];
+    pCache->pFreeHead = pNewFreeHead;
+    if (!pNewFreeHead) {
+      pCache->pFreeTail = 0;
+    } else {
+      for (int i = 24; i < 28; i++) pNewFreeHead[i] = 0;
+    }
 
-      *(int**)(pCache->pActiveTail + 0x14) = (int*)pAllocNode;
-      pAllocNode[6] = (int)pCache->pActiveTail;
+    pAllocNode[5] = 0;
+    pAllocNode[6] = 0;
+    if (!pCache->pActiveHead) {
       pCache->nUsedCount++;
+      pCache->pActiveHead = (uint8_t*)pAllocNode;
       pCache->pActiveTail = (uint8_t*)pAllocNode;
       return *pAllocNode + 1;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc1);
-    exit(-1);
+    *(int**)(pCache->pActiveTail + 0x14) = (int*)pAllocNode;
+    pAllocNode[6] = (int)pCache->pActiveTail;
+    pCache->nUsedCount++;
+    pCache->pActiveTail = (uint8_t*)pAllocNode;
+    return *pAllocNode + 1;
 }
 
 // Promotes a texture cache node to most-recently-used position (active list tail). Validates index range and ensures cache has multiple entries before relinking.
@@ -287,14 +287,14 @@ void __fastcall GLTEXCACHE_EnsureCapacity(GlTextureCacheStrc * pCache) {
           if (!pNextNode) {
             pCache->pActiveTail = 0;
           } else {
-            memset(pNextNode + 24, 0, 4 * sizeof(pNextNode[0]));
+            for (int i = 24; i < 28; i++) pNextNode[i] = 0;
           }
 
-          memset(pEvictNode + 20, 0, 8 * sizeof(pEvictNode[0]));
+          for (int i = 20; i < 28; i++) pEvictNode[i] = 0;
           if (*(int*)(pEvictNode + 8)) {
             *(uint32_t*)(*(int*)(pEvictNode + 8) + *(int*)(pEvictNode + 0xc) * 8) = 0;
             *(uint32_t*)(*(int*)(pEvictNode + 8) + 4 + *(int*)(pEvictNode + 0xc) * 8) = 0;
-            memset(pEvictNode + 8, 0, 4 * sizeof(pEvictNode[0]));
+            for (int i = 8; i < 12; i++) pEvictNode[i] = 0;
           }
           if (!pCache->pFreeHead) {
             pCache->pFreeHead = pEvictNode;

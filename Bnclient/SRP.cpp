@@ -127,7 +127,7 @@ void __stdcall SRP_HashBigNumToU32(BigData * * ppBigNum, uint32_t * pdwOut) {
     *pdwOut = (uint32_t)((uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)aHash[0] << 8 | (uint16_t)(uint8_t)aHash[1]) << 8 | (uint32_t)(uint8_t)aHash[2]) & 0xffffffu) << 8 | (uint32_t)(uint8_t)aHash[3]);
 }
 
-static int __fastcall SRP_ClientComputeSharedSecret(int32_t pSrp, BigData * * pPrivateKey, BigData * * pnParam1, BigData * * pnParam2, BigData * * pnParam3) {
+int __fastcall SRP_ClientComputeSharedSecret(int32_t pSrp, BigData * * pPrivateKey, BigData * * pnParam1, BigData * * pnParam2, BigData * * pnParam3) {
     BigData* pBase;
     uint32_t nMultiplierU;
     int32_t pThis = pSrp;
@@ -257,7 +257,6 @@ static void __stdcall SRP_ComputeServerProof(void * pParam1, void * pParam2, voi
     SHA::SHA1_Update(sha1Ctx, pParam2, 0x14);
     SHA::SHA1_Update(sha1Ctx, pParam3, 0x28);
     SHA::SHA1_Final((uint8_t*)nParam, sha1Ctx);
-    Fog::Debug::GuardStack();
 }
 
 static BOOL SRP_IsContextInitialized(D2Srp * pSrp) {
@@ -380,13 +379,11 @@ BOOL SRP_ClientKeyExchange(void * pThis, D2SrpCredentialsStrc * pContext, void *
         SHA::SHA1_HashWideString(pContext->aSessionKey_K, sessionKeyBytes, uVar3);
         SHA::SHA1_BigIntFree(pSharedSecretOut);
         SRP_ComputeClientProof(*(int32_t*)pThis, pContext->szUsername, pSalt, pContext->aClientPublicKey_A, pParam2, pContext->aSessionKey_K, (int32_t)pContext->aClientProof_M1);
-        Fog::Debug::GuardStack();
         return 1;
       }
     }
 
     SHA::SHA1_BigIntFree(pSharedSecret);
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -448,26 +445,14 @@ uint32_t __stdcall SRP_ParseChallenge(uint32_t * pContext, char * szText, uint32
     int i;
     Storm::Source::SSTR::SStrCopy((char*)(pContext + 0x10), szText, 0x7fffffff);
     uint32_t* pDst = pContext;
-    for (i = 8; i; i--) {
-      *pDst = *pModulusN;
-      pModulusN++;
-      pDst++;
-    }
+    memcpy(pDst, pModulusN, 8 * sizeof(*pDst));
 
     pDst = pContext + 8;
-    for (i = 8; i; i--) {
-      *pDst = *pGenerator;
-      pGenerator++;
-      pDst++;
-    }
+    memcpy(pDst, pGenerator, 8 * sizeof(*pDst));
 
     pDst = pServerPublicBBytes;
     uint32_t* pDst2 = pContext + 0x18;
-    for (i = 8; i; i--) {
-      *pDst2 = *pDst;
-      pDst++;
-      pDst2++;
-    }
+    memcpy(pDst2, pDst, 8 * sizeof(*pDst2));
 
     BigData* pServerPublicB = SHA::SHA1_FromBigIntBytes(pServerPublicBBytes, 0x20);
     int32_t nCompareResult = SHA::SHA1_BigIntCompareValue(pServerPublicB, 0);

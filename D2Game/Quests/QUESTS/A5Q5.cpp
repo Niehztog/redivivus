@@ -187,8 +187,7 @@ static bool Q35_KillAndRemoveAncient(::SGAMEDATA * pGame, DWORD dwParam) {
     GAME::Event::Dispatch::Monster::SetCurrentSkill(pAncientUnit, eD2MonsterAnimMode_ns::Dead, &sMonsterKill);
     GAME::Event::Dispatch::Monster::MONSTERAI_ExecuteLifecycleTransition(pGame, &sMonsterKill, 1);
     eD2UnitType eUnitType = UNIT_MONSTER;
-    pRoom = D2Common::Units::UNITS_GetRoom(pAncientUnit);
-    D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pRoom, eUnitType, dwParam);
+    D2Common::DUNGEON::Dungeon::AllocDrlgDelete(D2Common::Units::UNITS_GetRoom(pAncientUnit), eUnitType, dwParam);
     D2Common::Units::RemoveCollision_Vector(pAncientUnit);
     D2Common::Unit::RemoveUnitFromRoom(pAncientUnit);
     return true;
@@ -210,8 +209,7 @@ static BOOL __stdcall Q35_PrepareAncientsForBattle(D2QuestDataStrc * pQuestData,
       }
 
       bClearPortal = 0;
-      pRoom = D2Common::Units::UNITS_GetRoom(pStatue);
-      D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pRoom, bClearPortal);
+      D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(D2Common::Units::UNITS_GetRoom(pStatue), bClearPortal);
       nStatueIdx++;
       pStatueGUID++;
     } while (nStatueIdx < 3);
@@ -1365,8 +1363,7 @@ BOOL __fastcall OBJOP_A5Q5_WorldstonePortalActivate(D2ObjectOperateFnArg * pOper
     if (eAnimMode == Death) {
       D2Common::Units::SetupUpdateFlag(pUnit, 1);
       bQuestState = 0;
-      pRoom = D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim);
-      D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pRoom, bQuestState);
+      D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(D2Common::Units::UNITS_GetRoom(pOperation->sArg.pVictim), bQuestState);
       pGame = pOperation->sArg.pGame;
       GAME::Event::SetEvent(pGame, pOperation->sArg.pVictim, 1, (pObjectTxt->FrameCnt[1] >> 8) + pGame->dwGameFrame, 0, 0);
     } else if (eAnimMode == Walk) {

@@ -736,7 +736,7 @@ static BOOL __stdcall CUBE_ValidateRecipeInputs(::SGAMEDATA * pGame, D2CubeSetup
       return 0;
     }
 
-    memset(aItemUsedFlags, 0, 0xc0);
+    for (int i = 0; i < 0xc0; i++) aItemUsedFlags[i] = 0;
     int nInputSlotIndex = 0;
     do {
       _bInputMatched = CUBE_MatchInputDescriptorToCubeItems(pGame, pInventory, pRecipe, nInputSlotIndex, pMatchedItems, (int32_t)aItemUsedFlags);
@@ -1267,7 +1267,6 @@ void __fastcall CUBE_GenerateOutput(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2C
     }
 
     if (!bHasOutput) {
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -1317,7 +1316,6 @@ void __fastcall CUBE_GenerateOutput(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2C
       } while (bApplyMods < nExtractedItemCount);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 void __stdcall GetDateUnused(int * pnParam) {
@@ -1692,8 +1690,7 @@ void __fastcall SendRemoveItemDisplayPacket0x92(::SGAMEDATA * pGame, D2UnitStrc 
     }
 
     uint8_t byUnk = '\0';
-    D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x83b);
-    GAME::SCmd::NET_D2GS_SERVER_Send_CMD_BYTE_INT(pClient, 0x92, byUnk, nOtherGUID);
+    GAME::SCmd::NET_D2GS_SERVER_Send_CMD_BYTE_INT(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x83b), 0x92, byUnk, nOtherGUID);
 }
 
 void __fastcall TRADE_RestoreInventoryFromBackup(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
@@ -1713,21 +1710,21 @@ void __fastcall TRADE_RestoreInventoryFromBackup(::SGAMEDATA * pGame, D2UnitStrc
       } while (dwParam2 < 0xd);
 
       pTradeCopy = pPlayerData->pTradeCopyInventory;
-      if (pTradeCopy) {
-        GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_PERIODICSTATS, 0);
-        PlayerSave::PLRSAVE_DispatchItemLoadByFormat(pGame, pUnit, pTradeCopy->pSaveBuffer, 0x60, 0x2000, 0, &pSavePtr);
-        iInvPage = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
-        if (!(0 < iInvPage && pUnit->eAnimMode.ePlayerMode != Death && pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Dead)) {
-          return;
-        }
+      if (!pTradeCopy) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x888);
+        exit(-1);
+      }
 
-        UNIT::Party::ChangeGoldForPlayer(pUnit, UNITSTAT_gold, -iInvPage);
-        UNIT::Party::ChangeGoldForPlayer(pUnit, UNITSTAT_gold, pTradeCopy->nGold);
+      GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_PERIODICSTATS, 0);
+      PlayerSave::PLRSAVE_DispatchItemLoadByFormat(pGame, pUnit, pTradeCopy->pSaveBuffer, 0x60, 0x2000, 0, &pSavePtr);
+      iInvPage = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
+      if (!(0 < iInvPage && pUnit->eAnimMode.ePlayerMode != Death && pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Dead)) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x888);
-      exit(-1);
+      UNIT::Party::ChangeGoldForPlayer(pUnit, UNITSTAT_gold, -iInvPage);
+      UNIT::Party::ChangeGoldForPlayer(pUnit, UNITSTAT_gold, pTradeCopy->nGold);
+      return;
     }
 }
 
@@ -1813,13 +1810,9 @@ void __fastcall CheckIfCanStartTradeWithPlayer(::SGAMEDATA * pGame, D2UnitStrc *
             return;
           }
         } else {
-          pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-          eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-          _bIsTown = D2Common::DUNGEON::Dungeon::IsTownLevelId(eLevelId);
+          _bIsTown = D2Common::DUNGEON::Dungeon::IsTownLevelId(D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(D2Common::Units::UNITS_GetRoom(pUnit)));
           if (_bIsTown) {
-            pRoom = D2Common::Units::UNITS_GetRoom(pOtherUnit);
-            nLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-            _bIsTown = D2Common::DUNGEON::Dungeon::IsTownLevelId(nLevelId);
+            _bIsTown = D2Common::DUNGEON::Dungeon::IsTownLevelId(D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(D2Common::Units::UNITS_GetRoom(pOtherUnit)));
             if (_bIsTown) {
               if (!pOtherUnit) {
                 nGUID = -1;
@@ -1835,10 +1828,8 @@ void __fastcall CheckIfCanStartTradeWithPlayer(::SGAMEDATA * pGame, D2UnitStrc *
               }
 
               UNIT::SUnit::SetInteractInfo(pOtherUnit, UNIT_PLAYER, nGUID);
-              pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x947);
-              GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, 0);
-              pClient = UNIT::SUnit::SUNIT_GetClient(pOtherUnit, ".\\PLAYER\\PlrTrade.cpp", 0x948);
-              GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, 1);
+              GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x947), 0);
+              GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(UNIT::SUnit::SUNIT_GetClient(pOtherUnit, ".\\PLAYER\\PlrTrade.cpp", 0x948), 1);
               pDataSelf->dwTradeState = 1;
               pDataOther->dwTradeState = 2;
               return;
@@ -1872,10 +1863,8 @@ static void __stdcall SetStatsOnEar(BOOL bHardcore, D2UnitStrc * pUnit, D2UnitSt
     eD2ItemTypes eItemType = D2Common::ITEMS::Items::ITEM_GetItemData_wType(pOther);
     if (eItemType == ITEMTYPE_PlayerBodyPart) {
       uint8_t nEarLevel;
-      szPlayerName = D2Common::ITEMS::Items::ITEM_GetItemData_szPlayerName(pUnit);
-      D2Common::ITEMS::Items::ITEM_GetPlayerNameAkaNamedString(pOther, szPlayerName);
-      nEarLevel = D2Common::ITEMS::Items::ITEM_GetItemData_nEarLevel(pUnit);
-      D2Common::ITEMS::Items::ITEM_SetItemData_nEarLevel(pOther, nEarLevel);
+      D2Common::ITEMS::Items::ITEM_GetPlayerNameAkaNamedString(pOther, D2Common::ITEMS::Items::ITEM_GetItemData_szPlayerName(pUnit));
+      D2Common::ITEMS::Items::ITEM_SetItemData_nEarLevel(pOther, D2Common::ITEMS::Items::ITEM_GetItemData_nEarLevel(pUnit));
       D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pOther, ITEMFLAG_HARDCORE, bHardcore);
       return;
     }
@@ -2057,8 +2046,7 @@ void __fastcall SERVER_TradeTransferItemToCursor(::SGAMEDATA * pGame, D2UnitStrc
     D2UnknownStructure0x18* pTradeCopyOther;
     BOOL bHasInteract = UNIT::SUnit::GetInteractInfo(pUnit, &eInteractType2, &nInteractGUID);
     if (bHasInteract && eInteractType2 != UNIT_PLAYER) {
-      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xcdc);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, 0xc);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xcdc), 0xc);
       return;
     }
 
@@ -2089,26 +2077,20 @@ void __fastcall SERVER_TradeTransferItemToCursor(::SGAMEDATA * pGame, D2UnitStrc
       dwTick = GetTickCount();
       pDVar2->field5_0x14 = dwTick + 10000;
       pTradeCopyOther->field5_0x14 = dwTick + 10000;
-      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xcf9);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, 0xe);
-      pClient = UNIT::SUnit::SUNIT_GetClient(pOtherUnit, ".\\PLAYER\\PlrTrade.cpp", 0xcfa);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, 0xe);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xcf9), 0xe);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(UNIT::SUnit::SUNIT_GetClient(pOtherUnit, ".\\PLAYER\\PlrTrade.cpp", 0xcfa), 0xe);
       if (!(pDataSelf->dwTradeState == 4 || pPlayerData->dwTradeState == 4)) {
         return;
       }
 
       byGoldSide = '\0';
-      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xcff);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, byGoldSide);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xcff), 0, byGoldSide);
       byGoldSide = '\x01';
-      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xd00);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, byGoldSide);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xd00), 0, byGoldSide);
       byGoldSide = '\0';
-      pClient = UNIT::SUnit::SUNIT_GetClient(pOtherUnit, ".\\PLAYER\\PlrTrade.cpp", 0xd01);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, byGoldSide);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pOtherUnit, ".\\PLAYER\\PlrTrade.cpp", 0xd01), 0, byGoldSide);
       byGoldSide = '\x01';
-      pClient = UNIT::SUnit::SUNIT_GetClient(pOtherUnit, ".\\PLAYER\\PlrTrade.cpp", 0xd02);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, byGoldSide);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pOtherUnit, ".\\PLAYER\\PlrTrade.cpp", 0xd02), 0, byGoldSide);
       TRADE_SendTradeCompleteToPlayers(pUnit, pOtherUnit, pDataSelf, pPlayerData);
       return;
     }
@@ -2269,8 +2251,7 @@ void __fastcall RemoveTradeItemMabye(::SGAMEDATA * pGame, D2UnitStrc * pUnit, ui
     }
 
     uint8_t byPacketArg = '\0';
-    D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x84f);
-    GAME::SCmd::NET_D2GS_SERVER_Send_CMD_BYTE_INT(pClient, 0x92, byPacketArg, nSelfGUID);
+    GAME::SCmd::NET_D2GS_SERVER_Send_CMD_BYTE_INT(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x84f), 0x92, byPacketArg, nSelfGUID);
     UNIT::SUnit::IterateAllUnits(pGame, (fpSUnitIterateCallback)SendRemoveItemDisplayPacket0x92, pUnit);
     D2UnitStrc* pItemNode = D2Common::INVENTORY::Inventory::INVENTORY_GetFirstItem(pUnit->pInventory);
     while (pItemNode) {
@@ -2347,19 +2328,15 @@ static void __stdcall PLRTRADE_ResetTradeState(D2UnitDataPlayerStrc * pPlayerDat
     RemoveTradeItemMabye(pGame, pUnit2, 1);
     RemoveTradeItemMabye(pGame, pUnit, 1);
     uint8_t bySide = '\0';
-    D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit2, ".\\PLAYER\\PlrTrade.cpp", 0x991);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, bySide);
+    D2ClientStrc* pClient;
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pUnit2, ".\\PLAYER\\PlrTrade.cpp", 0x991), 0, bySide);
     bySide = '\x01';
-    pClient = UNIT::SUnit::SUNIT_GetClient(pUnit2, ".\\PLAYER\\PlrTrade.cpp", 0x992);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, bySide);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pUnit2, ".\\PLAYER\\PlrTrade.cpp", 0x992), 0, bySide);
     bySide = '\0';
-    pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x993);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, bySide);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x993), 0, bySide);
     bySide = '\x01';
-    pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x994);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, bySide);
-    pClient = UNIT::SUnit::SUNIT_GetClient(pUnit2, ".\\PLAYER\\PlrTrade.cpp", 0x995);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, 6);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x994), 0, bySide);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(UNIT::SUnit::SUNIT_GetClient(pUnit2, ".\\PLAYER\\PlrTrade.cpp", 0x995), 6);
     pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0x996);
     GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, 6);
     pPlayerData1->dwTradeState = 5;
@@ -2839,15 +2816,13 @@ void __fastcall PLRTRADE_AddItemToTrade(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
     D2UnitStrc* pSelf = pUnit;
     _bHasInteract = UNIT::SUnit::GetInteractInfo(pUnit, &eInteractType, &nInteractGUID);
     if (_bHasInteract && eInteractType != UNIT_PLAYER) {
-      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xc99);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, 0xc);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xc99), 0xc);
       return;
     }
 
     D2UnitStrc* pTradePartner = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_PLAYER, nInteractGUID);
     if (!pTradePartner) {
-      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xca1);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, 0xc);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xca1), 0xc);
       return;
     }
 
@@ -2900,26 +2875,18 @@ void __fastcall PLRTRADE_AddItemToTrade(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
         return;
       }
 
-      byGoldSide = '\0';
-      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit_00, ".\\PLAYER\\PlrTrade.cpp", 0xcc7);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, byGoldSide);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pUnit_00, ".\\PLAYER\\PlrTrade.cpp", 0xcc7), 0, '\0');
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pUnit_00, ".\\PLAYER\\PlrTrade.cpp", 0xcc8), 0, '\x01');
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pTradePartner, ".\\PLAYER\\PlrTrade.cpp", 0xcc9), 0, '\0');
       byGoldSide = '\x01';
-      pClient = UNIT::SUnit::SUNIT_GetClient(pUnit_00, ".\\PLAYER\\PlrTrade.cpp", 0xcc8);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, byGoldSide);
-      byGoldSide = '\0';
-      pClient = UNIT::SUnit::SUNIT_GetClient(pTradePartner, ".\\PLAYER\\PlrTrade.cpp", 0xcc9);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, byGoldSide);
-      byGoldSide = '\x01';
-      pClient = UNIT::SUnit::SUNIT_GetClient(pTradePartner, ".\\PLAYER\\PlrTrade.cpp", 0xcca);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, 0, byGoldSide);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(UNIT::SUnit::SUNIT_GetClient(pTradePartner, ".\\PLAYER\\PlrTrade.cpp", 0xcca), 0, byGoldSide);
       TRADE_SendTradeCompleteToPlayers(pUnit_00, pTradePartner, pPlayerData, pPartnerData);
       return;
     }
 
     ITEMS::Items::Drop::ITEM_DeleteItemAndFreeUnit(pGame, pClonedItem);
     pPlayerData = D2Common::Units::GetPlayerData(pSelf);
-    pPartnerData = D2Common::Units::GetPlayerData(pTradePartner);
-    PLRTRADE_CancelTradeAndCleanup(pGame, pSelf, pTradePartner, pPlayerData, pPartnerData, 9);
+    PLRTRADE_CancelTradeAndCleanup(pGame, pSelf, pTradePartner, pPlayerData, D2Common::Units::GetPlayerData(pTradePartner), 9);
 }
 
 // @sourcefile .\PLAYER\PlrTrade.cpp

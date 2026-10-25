@@ -292,19 +292,18 @@ void __stdcall CopyCharListToGlobal(char * pBytes, size_t nSize) {
             Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x244);
             exit(-1);
           } else {
-            if (*(uint16_t*)((int)D2Client::MCP::CharListPacket + 7) < 0x100) {
-              pszCursor = (char*)((int)D2Client::MCP::CharListPacket + 9);
-              for (nCharCount = (uint32_t)*(uint16_t*)((int)D2Client::MCP::CharListPacket + 7); nCharCount; nCharCount--) {
-                pszCursor += 4;
-                pszCursor = pszCursor + strlen(pszCursor) + 1;
-                pszCursor = pszCursor + strlen(pszCursor) + 1;
-              }
-
-              return;
+            if (!(*(uint16_t*)((int)D2Client::MCP::CharListPacket + 7) < 0x100)) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x245);
+              exit(-1);
             }
 
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x245);
-            exit(-1);
+            pszCursor = (char*)((int)D2Client::MCP::CharListPacket + 9);
+            for (nCharCount = (uint32_t)*(uint16_t*)((int)D2Client::MCP::CharListPacket + 7); nCharCount; nCharCount--) {
+              pszCursor += 4;
+              pszCursor = pszCursor + strlen(pszCursor) + 1;
+              pszCursor = pszCursor + strlen(pszCursor) + 1;
+            }
+            return;
           }
         }
       }
@@ -886,8 +885,7 @@ BOOL __fastcall NET_MCP_CLIENT_Incoming0x04(MCPPacketSrv0x04 * pBytes, size_t nS
     }
 
     int32_t nIpStringMaxLen = 0x12;
-    char* szGameIpString = Fog::Src::Safesock::NET_MakeIPV4AddressHumanFriendly((in_addr)pBytes->nGameIp);
-    Storm::Source::SSTR::SStrCopy(D2Client::MCP::D2GSConnectIp, szGameIpString, nIpStringMaxLen);
+    Storm::Source::SSTR::SStrCopy(D2Client::MCP::D2GSConnectIp, Fog::Src::Safesock::NET_MakeIPV4AddressHumanFriendly((in_addr)pBytes->nGameIp), nIpStringMaxLen);
     return 1;
 }
 
@@ -1205,22 +1203,21 @@ void __stdcall MCPCONNECT_SanitizeWideString(uint16_t * wszText) {
     uint16_t* wszMatch;
     int32_t nRemainingLen;
     int32_t nLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszText);
-    if (nLen < 500) {
-      uint16_t* wszToken;
-      wszToken = D2Lang::StrTable::strtable::GetLocaleString(0xf9a);
-      nLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszToken);
-      wszMatch = (uint16_t*)D2Lang::Unicode::UNISYS::UNICODE_FindSubstring((uint16_t*)wszText, (uint16_t*)wszToken);
-      while (wszMatch && wszMatch[nLen] != L'\0') {
-        nRemainingLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszMatch);
-        memmove(wszMatch, wszMatch + nLen + 1, (nRemainingLen - nLen) * 2);
-        wszMatch = (uint16_t*)D2Lang::Unicode::UNISYS::UNICODE_FindSubstring((uint16_t*)wszText, (uint16_t*)wszToken);
-      }
-
-      return;
+    if (!(nLen < 500)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x342);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x342);
-    exit(-1);
+    uint16_t* wszToken;
+    wszToken = D2Lang::StrTable::strtable::GetLocaleString(0xf9a);
+    nLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszToken);
+    wszMatch = (uint16_t*)D2Lang::Unicode::UNISYS::UNICODE_FindSubstring((uint16_t*)wszText, (uint16_t*)wszToken);
+    while (wszMatch && wszMatch[nLen] != L'\0') {
+      nRemainingLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszMatch);
+      memmove(wszMatch, wszMatch + nLen + 1, (nRemainingLen - nLen) * 2);
+      wszMatch = (uint16_t*)D2Lang::Unicode::UNISYS::UNICODE_FindSubstring((uint16_t*)wszText, (uint16_t*)wszToken);
+    }
+    return;
 }
 
 // MCP 0x05 reply handler = REALM GAMELIST entry (one game per packet) AND join-info.

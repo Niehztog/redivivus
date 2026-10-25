@@ -1084,23 +1084,22 @@ char * __fastcall GetPlayerRosterName(D2UnitStrc * pUnit) {
       exit(-1);
     } else {
       D2RosterStrc* pRoster;
-      if (pUnit->eUnitType == UNIT_PLAYER) {
-        pRoster = GetRosterPlayerByGUID(pUnit->nUnitGUID);
-        if (!pRoster) {
-          pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-          if (!pPlayerData) {
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5e5);
-            exit(-1);
-          }
-        } else {
-          pPlayerData = (D2UnitDataPlayerStrc*)pRoster->pRosterName;
-        }
-
-        return pPlayerData->szCharName;
+      if (pUnit->eUnitType != UNIT_PLAYER) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5dc);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5dc);
-      exit(-1);
+      pRoster = GetRosterPlayerByGUID(pUnit->nUnitGUID);
+      if (!pRoster) {
+        pPlayerData = D2Common::Units::GetPlayerData(pUnit);
+        if (!pPlayerData) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5e5);
+          exit(-1);
+        }
+      } else {
+        pPlayerData = (D2UnitDataPlayerStrc*)pRoster->pRosterName;
+      }
+      return pPlayerData->szCharName;
     }
 }
 

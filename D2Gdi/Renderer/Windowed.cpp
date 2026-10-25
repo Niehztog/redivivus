@@ -1076,27 +1076,27 @@ void __fastcall DrawRectEx(uint8_t * pRect, int nPaletteIndex) {
     } else {
       uint8_t byColorParam;
       __frame0.nY1 = *(int*)(pRect + 4);
-      if (__frame0.nY1 <= *(int*)(pRect + 0xc)) {
-        if (!(*(int*)(pRect + 8) != __frame0.nX1 && *(int*)(pRect + 0xc) != __frame0.nY1)) {
-          return;
-        }
+      if (!(__frame0.nY1 <= *(int*)(pRect + 0xc))) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x143);
+        exit(-1);
+      }
 
-        __frame0.nX2_save = *(int*)(pRect + 8);
-        __frame0.nY2_copy = *(uint32_t*)(pRect + 0xc);
-        byColorParam = (uint8_t)nPaletteIndex;
-        __frame0.nX1_copy = __frame0.nX1;
-        __frame0.nY2_save = __frame0.nY2_copy;
-        __frame0.nX2_copy = __frame0.nX2_save;
-        __frame0.nY1_copy = __frame0.nY1;
-        RENDERER_WINDOWED_DrawLineBresenham(&__frame0.nX2_copy, &__frame0.nX1_copy, byColorParam);
-        RENDERER_WINDOWED_DrawLineBresenham(&__frame0.nX2_save, &__frame0.nX2_copy, byColorParam);
-        RENDERER_WINDOWED_DrawLineBresenham(&__frame0.nX1, &__frame0.nX2_save, byColorParam);
-        RENDERER_WINDOWED_DrawLineBresenham(&__frame0.nX1_copy, &__frame0.nX1, byColorParam);
+      if (!(*(int*)(pRect + 8) != __frame0.nX1 && *(int*)(pRect + 0xc) != __frame0.nY1)) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x143);
-      exit(-1);
+      __frame0.nX2_save = *(int*)(pRect + 8);
+      __frame0.nY2_copy = *(uint32_t*)(pRect + 0xc);
+      byColorParam = (uint8_t)nPaletteIndex;
+      __frame0.nX1_copy = __frame0.nX1;
+      __frame0.nY2_save = __frame0.nY2_copy;
+      __frame0.nX2_copy = __frame0.nX2_save;
+      __frame0.nY1_copy = __frame0.nY1;
+      RENDERER_WINDOWED_DrawLineBresenham(&__frame0.nX2_copy, &__frame0.nX1_copy, byColorParam);
+      RENDERER_WINDOWED_DrawLineBresenham(&__frame0.nX2_save, &__frame0.nX2_copy, byColorParam);
+      RENDERER_WINDOWED_DrawLineBresenham(&__frame0.nX1, &__frame0.nX2_save, byColorParam);
+      RENDERER_WINDOWED_DrawLineBresenham(&__frame0.nX1_copy, &__frame0.nX1, byColorParam);
+      return;
     }
 }
 

@@ -790,9 +790,9 @@ static void DRLGPRESET_AddAndSetPresetUnits(D2RoomExStrc * pRoomEx) {
     bool _bInside;
     bool bInside;
     D2DrlgCoordsStrc roomCoords;
-    roomCoords.WorldPosition.y = pRoomEx->sCoords.WorldPosition.y;
-    roomCoords.WorldPosition.x = pRoomEx->sCoords.WorldPosition.x;
     D2DrlgMapStrc* pPresetRoomDataRaw = pRoomEx->pRoomExData.pRoomExDataPreset->pMap;
+    roomCoords.WorldPosition.x = pRoomEx->sCoords.WorldPosition.x;
+    roomCoords.WorldPosition.y = pRoomEx->sCoords.WorldPosition.y;
     roomCoords.WorldSize.x = pRoomEx->sCoords.WorldSize.x;
     roomCoords.WorldSize.y = pRoomEx->sCoords.WorldSize.y;
     int pMapDataRaw = (int)pPresetRoomDataRaw;
@@ -1256,64 +1256,63 @@ static void __stdcall DRLGPRESET_UpdatePopTiles(int nTickCount, D2RoomExStrc * p
     D2DrlgCoordsStrc searchBox;
     int nTileCount;
     uint8_t nFadeAlpha;
-    if (pRoomEx->pRoomTiles) {
-      uint32_t uVar1;
-      searchBox.WorldPosition.x = pPopLocation->WorldPosition.x - 1;
-      searchBox.WorldSize.x = pPopLocation->WorldSize.x + 2;
-      searchBox.WorldSize.y = pPopLocation->WorldSize.y + 2;
-      searchBox.WorldPosition.y = pPopLocation->WorldPosition.y - 1;
-      nTileCount = pRoomEx->pRoomTiles->nWallTilesMax;
-      if (0 >= nTileCount) {
-        return;
-      }
+    if (!pRoomEx->pRoomTiles) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xa3b);
+      exit(-1);
+    }
 
-      pTileFlags = &pRoomEx->pRoomTiles->pWallTiles->nFlags;
-      do {
-        if (!(*pTileFlags & 0x200U) || (_bInside = DrlgRoom::AreXYInsideCoordinates(&searchBox, pTileFlags[-3] + pRoomEx->sCoords.WorldPosition.x, pTileFlags[-2] + pRoomEx->sCoords.WorldPosition.y) , !_bInside)) {
-          if (!(*pTileFlags & 0x100U)) {
-            uVar1 = D2CMP::DUNGEON::Dungeon::GetIndex((D2TileLibraryEntryStrc*)pTileFlags[1]);
-            if (uVar1 == dwParam3) {
-              _bInside = DrlgRoom::AreXYInsideCoordinates(&searchBox, pTileFlags[-3] + pRoomEx->sCoords.WorldPosition.x, pTileFlags[-2] + pRoomEx->sCoords.WorldPosition.y);
-              if (_bInside) {
-                pTileFlags[4] |= 2;
-                nFadeAlpha = *(uint8_t*)(pTileFlags + 5);
-                if (!dwParam4) {
-                  *(uint8_t*)((int)pTileFlags + 0x15) = 0xff;
-                  *(uint8_t*)((int)pTileFlags + 0x16) = '\0';
-                  if (nFadeAlpha == 0xff) {
-                    pTileFlags[6] = nTickCount;
-                  } else {
-                    pTileFlags[6] = (int)((nFadeAlpha - 0xff) * 500) / 0xff + nTickCount;
-                  }
+    uint32_t uVar1;
+    searchBox.WorldPosition.x = pPopLocation->WorldPosition.x - 1;
+    searchBox.WorldSize.x = pPopLocation->WorldSize.x + 2;
+    searchBox.WorldSize.y = pPopLocation->WorldSize.y + 2;
+    searchBox.WorldPosition.y = pPopLocation->WorldPosition.y - 1;
+    nTileCount = pRoomEx->pRoomTiles->nWallTilesMax;
+    if (0 >= nTileCount) {
+      return;
+    }
+    pTileFlags = &pRoomEx->pRoomTiles->pWallTiles->nFlags;
+    do {
+      if (!(*pTileFlags & 0x200U) || (_bInside = DrlgRoom::AreXYInsideCoordinates(&searchBox, pTileFlags[-3] + pRoomEx->sCoords.WorldPosition.x, pTileFlags[-2] + pRoomEx->sCoords.WorldPosition.y) , !_bInside)) {
+        if (!(*pTileFlags & 0x100U)) {
+          uVar1 = D2CMP::DUNGEON::Dungeon::GetIndex((D2TileLibraryEntryStrc*)pTileFlags[1]);
+          if (uVar1 == dwParam3) {
+            _bInside = DrlgRoom::AreXYInsideCoordinates(&searchBox, pTileFlags[-3] + pRoomEx->sCoords.WorldPosition.x, pTileFlags[-2] + pRoomEx->sCoords.WorldPosition.y);
+            if (_bInside) {
+              pTileFlags[4] |= 2;
+              nFadeAlpha = *(uint8_t*)(pTileFlags + 5);
+              if (!dwParam4) {
+                *(uint8_t*)((int)pTileFlags + 0x15) = 0xff;
+                *(uint8_t*)((int)pTileFlags + 0x16) = '\0';
+                if (nFadeAlpha == 0xff) {
+                  pTileFlags[6] = nTickCount;
                 } else {
-                  *(uint8_t*)((int)pTileFlags + 0x15) = '\0';
-                  *(uint8_t*)((int)pTileFlags + 0x16) = 0xff;
-                  if (!nFadeAlpha) {
-                    pTileFlags[6] = nTickCount;
-                  } else {
-                    pTileFlags[6] = nTickCount - (uint32_t)nFadeAlpha * 500 / 0xff;
-                  }
+                  pTileFlags[6] = (int)((nFadeAlpha - 0xff) * 500) / 0xff + nTickCount;
+                }
+              } else {
+                *(uint8_t*)((int)pTileFlags + 0x15) = '\0';
+                *(uint8_t*)((int)pTileFlags + 0x16) = 0xff;
+                if (!nFadeAlpha) {
+                  pTileFlags[6] = nTickCount;
+                } else {
+                  pTileFlags[6] = nTickCount - (uint32_t)nFadeAlpha * 500 / 0xff;
                 }
               }
             }
           }
-        } else if (dwParam4) {
-          pTileFlags[4] |= 4;
-          pTileFlags[6] = nTickCount;
-        } else {
-          pTileFlags[4] &= -5;
-          *pTileFlags &= -9;
         }
+      } else if (dwParam4) {
+        pTileFlags[4] |= 4;
+        pTileFlags[6] = nTickCount;
+      } else {
+        pTileFlags[4] &= -5;
+        *pTileFlags &= -9;
+      }
 
-        pTileFlags += 0xc;
-        nTileCount--;
-      } while (nTileCount);
+      pTileFlags += 0xc;
+      nTileCount--;
+    } while (nTileCount);
 
-      return;
-    }
-
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xa3b);
-    exit(-1);
+    return;
 }
 
 // DRLG preset-area "POP" (preset-object population) updater. Given a RoomEx and an (nX,nY) world coordinate plus bOtherRoom flag: if the room is a preset (type 2), finds which POP bounds rectangle the point falls inside and notes its matched POP id. Then iterates the room's nearby preset RoomEx neighbors and, comparing POP tick deadlines, calls DRLGPRESET_UpdatePopTiles to refresh/expire POP tiles (a fresh GetTickCount+500 deadline for the matched POP, or the stored deadline otherwise). If any update occurred, does a second pass writing back the new deadlines (0 for non-matching POPs, the new deadline for the matched POP). No return. NOTE: pRoomExData POP sub-structure accessed via raw +0x40/+0x44/+0x4c/+0x50 offsets - shared struct lacks named fields here.
@@ -1538,7 +1537,30 @@ void __fastcall DRLGPRESET_AddPresetUnitToDrlgMap(D2PoolManagerStrc * pMemory, D
     nWorldY = pDrlgMap->nRealOffsetY;
     Transform::CoordsRoomToWorld(&nWorldX, &nWorldY);
     for (; pPresetUnit; pPresetUnit = pPresetUnit->pPresetUnitNext) {
-      if (pPresetUnit->eType == UNIT_MONSTER) {
+      if (pPresetUnit->eType != UNIT_MONSTER) {
+        if (pPresetUnit->eType != UNIT_OBJECT) {
+          goto add_preset_copy;
+        }
+        nTableSize = pPresetUnit->nClassId;
+        if (nTableSize != 0xc4 && nTableSize != 0x105) {
+          if (nTableSize == 0x245) {
+            roll_quarter_skip:
+            newSeed = D2_SEED_NEXT(*pSeed);
+            bInclude2 = !(newSeed.nSeedLow & 3);
+            commit_roll:
+            *pSeed = newSeed;
+            if (bInclude2) {
+              continue;
+            }
+          }
+          goto add_preset_copy;
+        }
+        newSeed = D2_SEED_NEXT(*pSeed);
+        *pSeed = newSeed;
+        if (!(newSeed.nSeedLow & 1)) {
+          goto add_preset_copy;
+        }
+      } else {
         nTableSize = sgptDataTable->nTxtMonStatsSize;
         nMonClassId = pPresetUnit->nClassId;
         if (nMonClassId < nTableSize) {
@@ -1569,18 +1591,21 @@ void __fastcall DRLGPRESET_AddPresetUnitToDrlgMap(D2PoolManagerStrc * pMemory, D
             if (nTableSize == 0x21) {
               goto roll_quarter_skip;
             }
-            if (nTableSize == 0x22) {
+            switch (nTableSize) {
+            case 0x22: {
               nSeedLowProduct = (uint64_t)pSeed->nSeedLow * 0x6ac690c5;
               newSeed = (D2SeedStrc)(nSeedLowProduct + (uint64_t)pSeed->nSeedHigh);
               bInclude2 = !((int)nSeedLowProduct + pSeed->nSeedHigh & 1);
               goto commit_roll;
             }
-            if (nTableSize == 0x23) {
+            case 0x23: {
               newSeed = D2_SEED_NEXT(*pSeed);
               *pSeed = newSeed;
-              if ((uint64_t)d2_bits_of(newSeed) & 3) {
+              if (newSeed.nSeedLow & 3) {
                 continue;
               }
+              break;
+            }
             }
           }
         }
@@ -1589,32 +1614,6 @@ void __fastcall DRLGPRESET_AddPresetUnitToDrlgMap(D2PoolManagerStrc * pMemory, D
         pCopiedUnit = CopyPresetUnit(pMemory, pPresetUnit, nWorldX, nWorldY);
         pCopiedUnit->pPresetUnitNext = pDrlgMap->pPresetUnit;
         pDrlgMap->pPresetUnit = pCopiedUnit;
-      } else {
-        if (pPresetUnit->eType != UNIT_OBJECT) {
-          goto add_preset_copy;
-        }
-
-        nTableSize = pPresetUnit->nClassId;
-        if (nTableSize != 0xc4 && nTableSize != 0x105) {
-          if (nTableSize == 0x245) {
-            roll_quarter_skip:
-            newSeed = D2_SEED_NEXT(*pSeed);
-            bInclude2 = !((uint64_t)d2_bits_of(newSeed) & 3);
-            commit_roll:
-            *pSeed = newSeed;
-            if (bInclude2) {
-              continue;
-            }
-          }
-
-          goto add_preset_copy;
-        }
-
-        newSeed = D2_SEED_NEXT(*pSeed);
-        *pSeed = newSeed;
-        if (!((uint64_t)d2_bits_of(newSeed) & 1)) {
-          goto add_preset_copy;
-        }
       }
     }
 }
@@ -1732,152 +1731,156 @@ static void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2Drl
           pDrlgMap->pPosLocation = pPosLocationArray;
         }
 
-        nPopsArrayBytes = (int)pPopsCount * 4;
-        memset(pDrlgMap->pPopsIndex, 0, nPopsArrayBytes);
-        memset(pDrlgMap->pPopsSubIndex, 0, nPopsArrayBytes);
-        memset(pDrlgMap->pPopsOrientation, 0, nPopsArrayBytes);
-        memset(pDrlgMap->pPosLocation, 0, (int)pPopsCount << 4);
-        pDrlgFile = pDrlgMap->pDrlgFile;
-        fileCoords.nPosX = 0;
-        tileGrid.nWidth = 0;
-        tileGrid.nHeight = 0;
-        wallGrid.nWidth = 0;
-        wallGrid.nHeight = 0;
-        wallGrid.bIsSubGrid = 0;
-        tileGrid.pCellsFlags = 0;
-        tileGrid.pCellsRowOffsets = 0;
-        fileCoords.nPosY = 0;
-        wallGrid.pCellsFlags = 0;
-        wallGrid.pCellsRowOffsets = 0;
-        tileGrid.bIsSubGrid = 0;
-        fileCoords.nWidth = pDrlgFile->nWidth + 1;
-        fileCoords.nHeight = pDrlgFile->nHeight + 1;
-        nWallLayerIndex = 0;
-        pFile = pDrlgFile;
-        if (0 < pDrlgFile->nWallLayers) {
-          pLayerEntry = pDrlgFile->pWallLayer;
-          do {
-            pLayerPtr = pLayerEntry;
-            DrlgGrid::FillExternalCellFlags(&wallGrid, (D2DrlgMapStrc*)pLayerEntry[-4], &fileCoords, pDrlgFile->nWidth + 1, aWallFlagsBuf);
-            DrlgGrid::FillExternalCellFlags(&tileGrid, (D2DrlgMapStrc*)*pLayerEntry, &fileCoords, pDrlgFile->nWidth + 1, aTileFlagsBuf);
-            nFlags = 0;
-            if (0 < pDrlgFile->nHeight) {
-              do {
-                nXIndex = 0;
-                if (0 < pFile->nWidth) {
-                  nPopPosOffset = nPopCount << 4;
-                  do {
-                    pMemoryOrXIndex = nXIndex;
-                    nCellFlags = DrlgGrid::GetGridFlags(&wallGrid, (int)nXIndex, nFlags);
-                    nFlagBit = DrlgGrid::GetGridFlags(&tileGrid, (int)pMemoryOrXIndex, nFlags);
-                    nPopSubIndex = nFlagBit >> 8 & 0xff;
-                    nTileType = nFlagBit >> 0x14 & 0x3f;
-                    if (nCellFlags == 0xb || nCellFlags == 10) {
-                      if (nScanMode && nTileType <= 7 && (!nPopSubIndex || nPopSubIndex == 4 || nFlagBit & 0x80000000)) {
-                        if (_bSingleRoom) {
-                          nCellFlags = 0;
-                          nErrLine = 0;
-                        } else {
-                          nCellFlags = (int)((int)pMemoryOrXIndex->pPools + (((int)pMemoryOrXIndex >> 0x1f & 7U) - 0x20)) >> 3;
-                          nErrLine = (int)(nFlags + (nFlags >> 0x1f & 7U)) >> 3;
-                        }
+      if (pPopsCount) {
+        pAllocatedArray = (int*)Fog::Memory::AllocServerMemory(pMemoryOrXIndex, (int)pPopsCount * 4, ".\\DRLG\\Preset.cpp", 0x8bf, 0);
+        pDrlgMap->pPopsIndex = pAllocatedArray;
+        pAllocatedArray = (int*)Fog::Memory::AllocServerMemory(pMemoryOrXIndex, (int)pPopsCount * 4, ".\\DRLG\\Preset.cpp", 0x8c0, 0);
+        pDrlgMap->pPopsSubIndex = pAllocatedArray;
+        pAllocatedArray = (int*)Fog::Memory::AllocServerMemory(pMemoryOrXIndex, (int)pPopsCount * 4, ".\\DRLG\\Preset.cpp", 0x8c1, 0);
+        pDrlgMap->pPopsOrientation = pAllocatedArray;
+        pPosLocationArray = (D2DrlgCoordStrc*)Fog::Memory::AllocServerMemory(pMemoryOrXIndex, (int)pPopsCount << 4, ".\\DRLG\\Preset.cpp", 0x8c2, 0);
+        pDrlgMap->pPosLocation = pPosLocationArray;
+      }
 
-                        DrlgGrid::AlterGridFlag(pDrlgGrid, nCellFlags, nErrLine, 1 << ((char)nTileType + 4U & 0x1f), 0);
+      nPopsArrayBytes = (int)pPopsCount * 4;
+      memset(pDrlgMap->pPopsIndex, 0, nPopsArrayBytes);
+      memset(pDrlgMap->pPopsSubIndex, 0, nPopsArrayBytes);
+      memset(pDrlgMap->pPopsOrientation, 0, nPopsArrayBytes);
+      memset(pDrlgMap->pPosLocation, 0, (int)pPopsCount << 4);
+      pDrlgFile = pDrlgMap->pDrlgFile;
+      fileCoords.nPosX = 0;
+      tileGrid.nWidth = 0;
+      tileGrid.nHeight = 0;
+      wallGrid.nWidth = 0;
+      wallGrid.nHeight = 0;
+      wallGrid.bIsSubGrid = 0;
+      tileGrid.pCellsFlags = 0;
+      tileGrid.pCellsRowOffsets = 0;
+      fileCoords.nPosY = 0;
+      wallGrid.pCellsFlags = 0;
+      wallGrid.pCellsRowOffsets = 0;
+      tileGrid.bIsSubGrid = 0;
+      fileCoords.nWidth = pDrlgFile->nWidth + 1;
+      fileCoords.nHeight = pDrlgFile->nHeight + 1;
+      nWallLayerIndex = 0;
+      pFile = pDrlgFile;
+      if (0 < pDrlgFile->nWallLayers) {
+        pLayerEntry = pDrlgFile->pWallLayer;
+        do {
+          pLayerPtr = pLayerEntry;
+          DrlgGrid::FillExternalCellFlags(&wallGrid, (D2DrlgMapStrc*)pLayerEntry[-4], &fileCoords, pDrlgFile->nWidth + 1, aWallFlagsBuf);
+          DrlgGrid::FillExternalCellFlags(&tileGrid, (D2DrlgMapStrc*)*pLayerEntry, &fileCoords, pDrlgFile->nWidth + 1, aTileFlagsBuf);
+          nFlags = 0;
+          if (0 < pDrlgFile->nHeight) {
+            do {
+              nXIndex = 0;
+              if (0 < pFile->nWidth) {
+                nPopPosOffset = nPopCount << 4;
+                do {
+                  pMemoryOrXIndex = nXIndex;
+                  nCellFlags = DrlgGrid::GetGridFlags(&wallGrid, (int)nXIndex, nFlags);
+                  nFlagBit = DrlgGrid::GetGridFlags(&tileGrid, (int)pMemoryOrXIndex, nFlags);
+                  nPopSubIndex = nFlagBit >> 8 & 0xff;
+                  nTileType = nFlagBit >> 0x14 & 0x3f;
+                  if (nCellFlags == 0xb || nCellFlags == 10) {
+                    if (nScanMode && nTileType <= 7 && (!nPopSubIndex || nPopSubIndex == 4 || nFlagBit & 0x80000000)) {
+                      if (_bSingleRoom) {
+                        nCellFlags = 0;
+                        nErrLine = 0;
+                      } else {
+                        nCellFlags = (int)((int)pMemoryOrXIndex->pPools + (((int)pMemoryOrXIndex >> 0x1f & 7U) - 0x20)) >> 3;
+                        nErrLine = (int)(nFlags + (nFlags >> 0x1f & 7U)) >> 3;
                       }
-                      if (pPopsConfig && nTileType - 8 <= 0x15) {
-                        nVisIndex = 0;
-                        if (0 < nPopCount) {
-                          pIndexIter = (uint32_t*)pDrlgMap->pPopsIndex;
-                          do {
-                            if (*pIndexIter == nTileType) {
-                              pDrlgMap->pPosLocation[nVisIndex].nWidth = (int)pMemoryOrXIndex;
-                              pDrlgMap->pPosLocation[nVisIndex].nHeight = nFlags;
-                              pMemoryOrXIndex = nXIndex;
-                              break;
-                            }
 
-                            nVisIndex++;
-                            pIndexIter++;
-                          } while (nVisIndex < nPopCount);
-                        }
-                        if (nVisIndex == nPopCount) {
-                          pDrlgMap->pPopsIndex[nPopCount] = nTileType;
-                          pDrlgMap->pPopsSubIndex[nPopCount] = nPopSubIndex;
-                          *(D2PoolManagerStrc**)((uintptr_t)&pDrlgMap->pPosLocation->nPosX + nPopPosOffset) = (D2PoolManagerStrc*)pMemoryOrXIndex;
-                          *(int32_t*)((uintptr_t)&pDrlgMap->pPosLocation->nPosY + nPopPosOffset) = nFlags;
-                          nPopPosOffset += 0x10;
-                          nPopCount++;
-                        }
+                      DrlgGrid::AlterGridFlag(pDrlgGrid, nCellFlags, nErrLine, 1 << ((char)nTileType + 4U & 0x1f), 0);
+                    }
+                    if (pPopsConfig && nTileType - 8 <= 0x15) {
+                      nVisIndex = 0;
+                      if (0 < nPopCount) {
+                        pIndexIter = (uint32_t*)pDrlgMap->pPopsIndex;
+                        do {
+                          if (*pIndexIter == nTileType) {
+                            pDrlgMap->pPosLocation[nVisIndex].nWidth = (int)pMemoryOrXIndex;
+                            pDrlgMap->pPosLocation[nVisIndex].nHeight = nFlags;
+                            pMemoryOrXIndex = nXIndex;
+                            break;
+                          }
+                          nVisIndex++;
+                          pIndexIter++;
+                        } while (nVisIndex < nPopCount);
                       }
-                      if (nScanMode && nTileType - 0x1e <= 3) {
-                        pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nX = (int)pMemoryOrXIndex->pPools + pDrlgMap->nRealOffsetX - 0x20;
-                        pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nY = pDrlgMap->nRealOffsetY + nFlags;
-                        switch (nTileType) {
-                          case 0x1e:
-                            pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nSpawnType = nPopSubIndex;
-                          break;
-                          case 0x1f:
-                            pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nSpawnType = nPopSubIndex + 5;
-                          break;
-                          case 0x20:
-                            pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nSpawnType = 10;
-                          break;
-                          case 0x21:
-                            pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nSpawnType = 0xb;
-                        }
-
-                        pLevel->nSpawnPointCount++;
+                      if (nVisIndex == nPopCount) {
+                        pDrlgMap->pPopsIndex[nPopCount] = nTileType;
+                        pDrlgMap->pPopsSubIndex[nPopCount] = nPopSubIndex;
+                        *(D2PoolManagerStrc**)((uintptr_t)&pDrlgMap->pPosLocation->nPosX + nPopPosOffset) = (D2PoolManagerStrc*)pMemoryOrXIndex;
+                        *(int32_t*)((uintptr_t)&pDrlgMap->pPosLocation->nPosY + nPopPosOffset) = nFlags;
+                        nPopPosOffset += 0x10;
+                        nPopCount++;
                       }
                     }
+                    if (nScanMode && nTileType - 0x1e <= 3) {
+                      pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nX = (int)pMemoryOrXIndex->pPools + pDrlgMap->nRealOffsetX - 0x20;
+                      pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nY = pDrlgMap->nRealOffsetY + nFlags;
+                      switch (nTileType) {
+                        case 0x1e:
+                          pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nSpawnType = nPopSubIndex;
+                        break;
+                        case 0x1f:
+                          pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nSpawnType = nPopSubIndex + 5;
+                        break;
+                        case 0x20:
+                          pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nSpawnType = 10;
+                        break;
+                        case 0x21:
+                          pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nSpawnType = 0xb;
+                      }
 
-                    nXIndex = (D2PoolManagerStrc*)((uintptr_t)&pMemoryOrXIndex->nPoolId + 1);
-                  } while ((int)nXIndex < pFile->nWidth);
-                }
+                      pLevel->nSpawnPointCount++;
+                    }
+                  }
 
-                nFlags++;
-                pDrlgFile = pFile;
-              } while (nFlags < pFile->nHeight);
-            }
-
-            DrlgGrid::ResetGrid(&tileGrid);
-            DrlgGrid::ResetGrid(&wallGrid);
-            pLayerEntry = pLayerPtr + 1;
-            nWallLayerIndex = (D2DrlgStrc*)((int)nWallLayerIndex + 1);
-            pPopsCount = pPopsConfig;
-            pLayerPtr = pLayerEntry;
-          } while ((int)nWallLayerIndex < pDrlgFile->nWallLayers);
-        }
-        if (pPopsCount) {
-          DRLGPRESET_InitDrlgMapPopLocations(nPopCount, pDrlgMap);
-        }
-        if (!nScanMode) {
-          return;
-        }
-
-        for (pPresetUnit = pDrlgFile->pPresetUnit; pPresetUnit; pPresetUnit = pPresetUnit->pPresetUnitNext) {
-          if (pPresetUnit->eType == UNIT_OBJECT && pPresetUnit->nClassId < 0x23d) {
-            pObjectsTxt = DATATBLS::ObjectTbls::TXT_Objects_GetLine(pPresetUnit->nClassId);
-            if (pObjectsTxt->SubClass & 0x40U) {
-              if (_bSingleRoom) {
-                nObjCellX = 0;
-                nErrLine = 0;
-              } else {
-                nVisIndex = pPresetUnit->nPosX / 5;
-                nWarpDestLevel = pPresetUnit->nPosY / 5;
-                nObjCellX = (int)(nVisIndex + (nVisIndex >> 0x1f & 7U)) >> 3;
-                nErrLine = (int)(nWarpDestLevel + (nWarpDestLevel >> 0x1f & 7U)) >> 3;
+                  nXIndex = (D2PoolManagerStrc*)((uintptr_t)&pMemoryOrXIndex->nPoolId + 1);
+                } while ((int)nXIndex < pFile->nWidth);
               }
 
-              DrlgGrid::AlterGridFlag(pDrlgGrid, nObjCellX, nErrLine, 0x30000, 0);
-            }
+              nFlags++;
+              pDrlgFile = pFile;
+            } while (nFlags < pFile->nHeight);
           }
-        }
 
+          DrlgGrid::ResetGrid(&tileGrid);
+          DrlgGrid::ResetGrid(&wallGrid);
+          pLayerEntry = pLayerPtr + 1;
+          nWallLayerIndex = (D2DrlgStrc*)((int)nWallLayerIndex + 1);
+          pPopsCount = pPopsConfig;
+          pLayerPtr = pLayerEntry;
+        } while ((int)nWallLayerIndex < pDrlgFile->nWallLayers);
+      }
+      if (pPopsCount) {
+        DRLGPRESET_InitDrlgMapPopLocations(nPopCount, pDrlgMap);
+      }
+      if (!nScanMode) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8ba);
-      exit(-1);
+      for (pPresetUnit = pDrlgFile->pPresetUnit; pPresetUnit; pPresetUnit = pPresetUnit->pPresetUnitNext) {
+        if (pPresetUnit->eType == UNIT_OBJECT && pPresetUnit->nClassId < 0x23d) {
+          pObjectsTxt = DATATBLS::ObjectTbls::TXT_Objects_GetLine(pPresetUnit->nClassId);
+          if (pObjectsTxt->SubClass & 0x40U) {
+            if (_bSingleRoom) {
+              nObjCellX = 0;
+              nErrLine = 0;
+            } else {
+              nVisIndex = pPresetUnit->nPosX / 5;
+              nWarpDestLevel = pPresetUnit->nPosY / 5;
+              nObjCellX = (int)(nVisIndex + (nVisIndex >> 0x1f & 7U)) >> 3;
+              nErrLine = (int)(nWarpDestLevel + (nWarpDestLevel >> 0x1f & 7U)) >> 3;
+            }
+            DrlgGrid::AlterGridFlag(pDrlgGrid, nObjCellX, nErrLine, 0x30000, 0);
+          }
+        }
+      }
+      return;
     }
 }
 

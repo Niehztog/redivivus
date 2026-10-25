@@ -106,24 +106,23 @@ static void __stdcall DRLGROOMTILE_SetWarpTileDirection(D2DrlgTileLinkStrc * pTi
     } else {
       D2DrlgTileDataStrc* pNewWarpEntry;
       pNewWarpEntry = pTileLink[1].pTileData;
-      if (pNewWarpEntry) {
-        nCurrentDir = (uint8_t)pNewWarpEntry->nFadeEndTime;
-        if (nCurrentDir == 0x62) {
-          return;
-        }
+      if (!pNewWarpEntry) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x274);
+        exit(-1);
+      }
 
-        nDirection = dwParam2 != 0xb ? 0x6c : 0x72;
-        if (nCurrentDir == nDirection) {
-          return;
-        }
-
-        pNewWarpEntry = (D2DrlgTileDataStrc*)DATATBLS::LvlTbls::TXT_LvlWarp_Setup(pNewWarpEntry->nScreenX, nDirection);
-        pTileLink[1].pTileData = pNewWarpEntry;
+      nCurrentDir = (uint8_t)pNewWarpEntry->nFadeEndTime;
+      if (nCurrentDir == 0x62) {
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x274);
-      exit(-1);
+      nDirection = dwParam2 != 0xb ? 0x6c : 0x72;
+      if (nCurrentDir == nDirection) {
+        return;
+      }
+      pNewWarpEntry = (D2DrlgTileDataStrc*)DATATBLS::LvlTbls::TXT_LvlWarp_Setup(pNewWarpEntry->nScreenX, nDirection);
+      pTileLink[1].pTileData = pNewWarpEntry;
+      return;
     }
 }
 

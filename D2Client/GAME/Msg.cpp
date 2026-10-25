@@ -1074,9 +1074,9 @@ void __fastcall NET_D2GS_CLIENT_Send_SHORT(uint8_t nPacketId, short nArg1) {
 
 void __fastcall NET_D2GS_CLIENT_Send_SHORT_SHORT(uint8_t nPacketId, int16_t nTargetX, int16_t nTargetY) {
     D2GSPacketClt_CMD_SHORT_SHORT packet;
-    packet.nArg2 = nTargetY;
     packet.nId = nPacketId;
     packet.nArg1 = nTargetX;
+    packet.nArg2 = nTargetY;
     NET_D2GS_CLIENT_Send(&packet.nId, 5);
 }
 
@@ -1108,9 +1108,9 @@ void __fastcall NET_D2GS_CLIENT_Send_INT(uint8_t nId, int32_t nParam) {
 
 void __fastcall NET_D2GS_CLIENT_Send_INT_INT(uint8_t nPacketId, int32_t nArg1, int32_t nArg2) {
     D2GSPacketClt_CMD_INT_INT local_10;
-    local_10.nArg2 = nArg2;
     local_10.nId = nPacketId;
     local_10.nArg1 = nArg1;
+    local_10.nArg2 = nArg2;
     NET_D2GS_CLIENT_Send(&local_10.nId, 9);
 }
 

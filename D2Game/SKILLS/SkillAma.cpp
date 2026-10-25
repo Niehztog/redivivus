@@ -136,7 +136,18 @@ static uint32_t __stdcall UseQuanityAndDurability(::SGAMEDATA * pGame, int32_t n
     }
 
     BOOL fIsStackableCheck = D2Common::ITEMS::Items::IsStackable(pUnit2);
-    if (!fIsStackableCheck) {
+    if (fIsStackableCheck) {
+      nResult = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit2, UNITSTAT_quantity, 0);
+      if (0 < (int)nResult) {
+        sNewSeed = D2_SEED_NEXT(pUnit->sSeed);
+        nResult = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) * 0x51eb851f);
+        pUnit->sSeed = sNewSeed;
+        if ((int)(sNewSeed.nSeedLow % 100) < nParam1) {
+          nResult = SkillsServer::RemoveQuanityOnUse(pGame, pUnit);
+          return nResult;
+        }
+      }
+    } else {
       int nCurrentDurability;
       bIsWeapon = D2Common::ITEMS::Items::ITEM_CheckIfItemHasDurability(pUnit2);
       nResult = 0;
@@ -152,24 +163,12 @@ static uint32_t __stdcall UseQuanityAndDurability(::SGAMEDATA * pGame, int32_t n
             wLayer = 0;
             nDurabilityStat = 0x48;
             bSendStatUpdate = true;
-            pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillAma.cpp", 0x9b);
-            GAME::SCmd::NET_D2GS_SERVER_Send_0x3E_UpdateItemStats(pClient, pUnit2, bSendStatUpdate, nDurabilityStat, nResult, wLayer);
+            GAME::SCmd::NET_D2GS_SERVER_Send_0x3E_UpdateItemStats(UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\SKILLS\\SkillAma.cpp", 0x9b), pUnit2, bSendStatUpdate, nDurabilityStat, nResult, wLayer);
             return nUpdateResult;
           }
 
           ITEMS::ItemMode::ITEMMODE_SendItemUpdate(pGame, pUnit, pUnit2);
           nResult = nRemoveResult;
-        }
-      }
-    } else {
-      nResult = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit2, UNITSTAT_quantity, 0);
-      if (0 < (int)nResult) {
-        sNewSeed = D2_SEED_NEXT(pUnit->sSeed);
-        nResult = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) * 0x51eb851f);
-        pUnit->sSeed = sNewSeed;
-        if ((int)(sNewSeed.nSeedLow % 100) < nParam1) {
-          nResult = SkillsServer::RemoveQuanityOnUse(pGame, pUnit);
-          return nResult;
         }
       }
     }
@@ -457,7 +456,7 @@ BOOL __fastcall Skills_SrvDoFunc_006_PhoenixStrikeAreaBolt(::SGAMEDATA * pGame, 
     }
 
     D2SkillsTxt* pSkillsTxt = sgptDataTable->pTxtSkills + eSkill;
-    if (!(pSkillsTxt && -1 < pSkillsTxt->auratargetstate && (int)pSkillsTxt->auratargetstate < sgptDataTable->nTxtStatesSize && -1 < pSkillsTxt->aurastat[0] && (int)pSkillsTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize)) {
+    if (!(pSkillsTxt && 0 <= pSkillsTxt->auratargetstate && (int)pSkillsTxt->auratargetstate < sgptDataTable->nTxtStatesSize && 0 <= pSkillsTxt->aurastat[0] && (int)pSkillsTxt->aurastat[0] < sgptDataTable->nTxtItemStatCostSize)) {
       return 0;
     }
 
@@ -585,7 +584,7 @@ BOOL __fastcall Skills_SrvDoFunc_008_MultipleShot(::SGAMEDATA * pGame, D2UnitStr
     nTargetY -= (int)(nDirY * nArrowSpread) / 2;
     eMissileId = (eMissilesId)pSkillTxt->srvmissilea;
     nWeaponClass = D2Common::Units::GetWeaponClass(pUnit);
-    if (nWeaponClass != 1 && -1 < pSkillTxt->srvmissileb) {
+    if (nWeaponClass != 1 && 0 <= pSkillTxt->srvmissileb) {
       eMissileId = (eMissilesId)pSkillTxt->srvmissileb;
     }
     if ((int)eMissileId < 0) {

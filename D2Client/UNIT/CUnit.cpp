@@ -271,11 +271,7 @@ static uint32_t __stdcall CUNIT_CalculateSpriteBounds(uint32_t nFrame, uint32_t 
     }
 
     memset(&spriteParams, 0, 0x48);
-    D2UnitStrc* pDVar6 = (D2UnitStrc*)-1;
-    int* pFrameCountOut = &__frame0.nFrameCountOut;
-    uint32_t nFrameLocal = nFrame;
-    uint8_t byDirection = D2Common::Units::GetDirection(pUnit);
-    int32_t nOffset = DC6_AssignParams(&spriteParams, pUnit, nullptr, (uint32_t)byDirection, nFrameLocal, pFrameCountOut, (uint8_t)nAnimMode, pDVar6);
+    int32_t nOffset = DC6_AssignParams(&spriteParams, pUnit, nullptr, (uint32_t)D2Common::Units::GetDirection(pUnit), nFrame, &__frame0.nFrameCountOut, (uint8_t)nAnimMode, (D2UnitStrc*)-1);
     if (!nOffset) {
       return 0;
     }
@@ -362,17 +358,16 @@ static uint32_t SKILL_CheckActiveSkillSelectProc(D2UnitStrc * pUnit, D2UnitStrc 
 
     int32_t nErrorLine = 0x68a;
     char* szSrcFile = ".\\UNIT\\CUnit.cpp";
-    D2SkillStrc* pSkill = D2Common::Units::GetLeftSkill(pUnit);
-    eD2Skills eSkillId = D2Common::Skills::GetSkillId(pSkill, szSrcFile, nErrorLine);
-    uint32_t nProcResult = SKILL_ExecuteSelectProc(pUnit, eSkillId, pTargetUnit);
+    D2SkillStrc* pSkill;
+    eD2Skills eSkillId;
+    uint32_t nProcResult = SKILL_ExecuteSelectProc(pUnit, D2Common::Skills::GetSkillId(D2Common::Units::GetLeftSkill(pUnit), szSrcFile, nErrorLine), pTargetUnit);
     if (nProcResult) {
       return 1;
     }
 
     int32_t nRightSkillLine = 0x68e;
     szSrcFile = ".\\UNIT\\CUnit.cpp";
-    pSkill = D2Common::Units::GetRightSkill(pUnit);
-    eSkillId = D2Common::Skills::GetSkillId(pSkill, szSrcFile, nRightSkillLine);
+    eSkillId = D2Common::Skills::GetSkillId(D2Common::Units::GetRightSkill(pUnit), szSrcFile, nRightSkillLine);
     uint32_t nRightProcResult = SKILL_ExecuteSelectProc(pUnit, eSkillId, pTargetUnit);
     return (uint32_t)(nRightProcResult != 0);
 }
@@ -471,8 +466,7 @@ void __fastcall CLIENT_TurnPlayerToFaceUnit(D2UnitStrc * pUnit) {
     eUnitType = pUnit->eUnitType;
     if (eUnitType != UNIT_OBJECT && ((int)eUnitType <= 3 || 5 < (int)eUnitType)) {
       if (pUnit->pPath.pDynamicPath) {
-        nTargetX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
-        D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pDynamicPath, nTargetX, nTargetY, 0);
+        D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pDynamicPath, D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath), nTargetY, 0);
         return;
       }
 
@@ -1370,87 +1364,81 @@ void __fastcall CLIENT_TeleportUnitToPosition(D2UnitStrc * pUnit, int32_t nX, in
       exit(-1);
     } else {
       D2RoomStrc* pCurrentRoom;
-      if (!nXSaved || !nY || pRoom) {
-        if (pUnit->eUnitFlags & UNITFLAG_ISDEAD) {
-          return;
-        }
-
-        eUnitAnimMode = pUnit->eAnimMode.ePlayerMode;
-        if (pUnit->eUnitType == UNIT_PLAYER) {
-          if (eUnitAnimMode == Death) {
-            return;
-          }
-          if (eUnitAnimMode == eD2PlayerAnimMode_ns::Dead) {
-            return;
-          }
-        } else if (pUnit->eUnitType == UNIT_MONSTER) {
-          if (eUnitAnimMode == Death) {
-            return;
-          }
-          if (eUnitAnimMode == Kick) {
-            return;
-          }
-        }
-        if (pUnit == pPlayer) {
-          pCurrentRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-          if (pCurrentRoom) {
-            pSkill = D2Common::Units::GetCurrentSkill(pUnit);
-            if (!pSkill || (pSkillsTxt = D2Common::Skills::GetSkillsTxt(pSkill) , !pSkillsTxt) || !pSkillsTxt->warp) {
-              if (bWarpFade) {
-                if (pUnit->eUnitType != UNIT_PLAYER) {
-                  Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x17d);
-                  exit(-1);
-                }
-
-                DRAW_WORLD_SetWarpFadeTimer();
-              }
-            } else {
-              bWarpFade = 0;
-            }
-          }
-          if (pRoom) {
-            D2Common::DUNGEON::Dungeon::UpdatePops(pRoom, nXSaved, nY, (uint32_t)(pCurrentRoom != pRoom));
-            eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-            bNoPerspective = D2Common::DATATBLS::LvlTbls::LVLTBLS_GetNoPer(eLevelId);
-            D2gfx::D2GFX::D2GFX_SetPerspectiveCapable((uint32_t)((char)bNoPerspective == '\0'));
-            if (pCurrentRoom) {
-              eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pCurrentRoom);
-              ptFreePos.y = (LONG)D2Common::DATATBLS::LvlTbls::TXT_Levels_GetLine(eLevelId);
-              eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-              pLevelsTxt = D2Common::DATATBLS::LvlTbls::TXT_Levels_GetLine(eLevelId);
-              if (*(char*)(ptFreePos.y + 2) != pLevelsTxt->Pal) {
-                D2Win::Src::D2WinPalette::D2WINPAL_LoadActPalette(pLevelsTxt->Pal);
-                D2CMP::Pallete::PALETTE_SetAct((uint32_t)(uint8_t)pLevelsTxt->Pal);
-              }
-            }
-          }
-        }
-
-        pDynamicPathCast = pDynamicPath;
-        nCollisionType = D2Common::PATH::Path::PATH_GetCollisionMaskAt(pDynamicPath, pUnit, pRoom, (uint16_t)nXSaved, (uint16_t)nY);
-        if (!nCollisionType) {
-          ptFreePos.x = nXSaved;
-          ptFreePos.y = nY;
-          nLine = D2Common::Units::GetUnitSizeX(pUnit);
-          D2Common::Collision::GetFreeCoordinates_WithNeighboorRooms(pRoom, &ptFreePos, nLine, 0x1c09, 1);
-          nLine = D2Common::PATH::Path::PATH_GetCollisionTypeAt((uint32_t*)pDynamicPathCast, pUnit, pRoom, (uint16_t)ptFreePos.x, (uint16_t)ptFreePos.y);
-          if (!nLine) {
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1a9);
-            exit(-1);
-          }
-        }
-
-        UI::Automap::AUTOMAP_SetRefreshDelay();
-        if (pUnit == pPlayer) {
-          Draw::Weather::WEATHER_ClearParticleArrays(bWarpFade);
-        }
-
-        Player::CLIENT_SendIdlePlayerMessage(pUnit);
+      if (!(!nXSaved || !nY || pRoom)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x168);
+        exit(-1);
+      }
+      if (pUnit->eUnitFlags & UNITFLAG_ISDEAD) {
         return;
       }
+      eUnitAnimMode = pUnit->eAnimMode.ePlayerMode;
+      if (pUnit->eUnitType == UNIT_PLAYER) {
+        if (eUnitAnimMode == Death) {
+          return;
+        }
+        if (eUnitAnimMode == eD2PlayerAnimMode_ns::Dead) {
+          return;
+        }
+      } else if (pUnit->eUnitType == UNIT_MONSTER) {
+        if (eUnitAnimMode == Death) {
+          return;
+        }
+        if (eUnitAnimMode == Kick) {
+          return;
+        }
+      }
+      if (pUnit == pPlayer) {
+        pCurrentRoom = D2Common::Units::UNITS_GetRoom(pUnit);
+        if (pCurrentRoom) {
+          pSkill = D2Common::Units::GetCurrentSkill(pUnit);
+          if (!pSkill || (pSkillsTxt = D2Common::Skills::GetSkillsTxt(pSkill) , !pSkillsTxt) || !pSkillsTxt->warp) {
+            if (bWarpFade) {
+              if (pUnit->eUnitType != UNIT_PLAYER) {
+                Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x17d);
+                exit(-1);
+              }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x168);
-      exit(-1);
+              DRAW_WORLD_SetWarpFadeTimer();
+            }
+          } else {
+            bWarpFade = 0;
+          }
+        }
+        if (pRoom) {
+          D2Common::DUNGEON::Dungeon::UpdatePops(pRoom, nXSaved, nY, (uint32_t)(pCurrentRoom != pRoom));
+          bNoPerspective = D2Common::DATATBLS::LvlTbls::LVLTBLS_GetNoPer(D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom));
+          D2gfx::D2GFX::D2GFX_SetPerspectiveCapable((uint32_t)((char)bNoPerspective == '\0'));
+          if (pCurrentRoom) {
+
+            ptFreePos.y = (LONG)D2Common::DATATBLS::LvlTbls::TXT_Levels_GetLine(D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pCurrentRoom));
+            eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
+            pLevelsTxt = D2Common::DATATBLS::LvlTbls::TXT_Levels_GetLine(eLevelId);
+            if (*(char*)(ptFreePos.y + 2) != pLevelsTxt->Pal) {
+              D2Win::Src::D2WinPalette::D2WINPAL_LoadActPalette(pLevelsTxt->Pal);
+              D2CMP::Pallete::PALETTE_SetAct((uint32_t)(uint8_t)pLevelsTxt->Pal);
+            }
+          }
+        }
+      }
+
+      pDynamicPathCast = pDynamicPath;
+      nCollisionType = D2Common::PATH::Path::PATH_GetCollisionMaskAt(pDynamicPath, pUnit, pRoom, (uint16_t)nXSaved, (uint16_t)nY);
+      if (!nCollisionType) {
+        ptFreePos.x = nXSaved;
+        ptFreePos.y = nY;
+        D2Common::Collision::GetFreeCoordinates_WithNeighboorRooms(pRoom, &ptFreePos, D2Common::Units::GetUnitSizeX(pUnit), 0x1c09, 1);
+        nLine = D2Common::PATH::Path::PATH_GetCollisionTypeAt((uint32_t*)pDynamicPathCast, pUnit, pRoom, (uint16_t)ptFreePos.x, (uint16_t)ptFreePos.y);
+        if (!nLine) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1a9);
+          exit(-1);
+        }
+      }
+      UI::Automap::AUTOMAP_SetRefreshDelay();
+      if (pUnit == pPlayer) {
+        Draw::Weather::WEATHER_ClearParticleArrays(bWarpFade);
+      }
+      Player::CLIENT_SendIdlePlayerMessage(pUnit);
+      return;
     }
 }
 
@@ -1715,9 +1703,7 @@ void __fastcall FaceTarget(D2UnitStrc * pUnit, int32_t nParam) {
       exit(-1);
     }
 
-    nTargetY = Units::GetYPosFromDynamicPathUnit(pTarget);
-    nTargetX = Units::GetXPosFromDynamicPathUnit(pTarget);
-    D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pDynamicPath, nTargetX, nTargetY, nParam);
+    D2Common::PATH::DynamicPath::PATH_SetDirectionToTarget(pDynamicPath, Units::GetXPosFromDynamicPathUnit(pTarget), Units::GetYPosFromDynamicPathUnit(pTarget), nParam);
 }
 
 // Determines whether pUnit may interact with / target pUnit2 (hostility & targetability check). Returns nonzero if interaction allowed, 0 if not. Resolves pets to their player owner via RosterPets::GetRosterOwnerGUID and charmed/owned units. In town: only allows player-vs-player when ROSTER_CheckPlayerCanLoot permits looting a dead party member. Out of town: rejects self/same-unit; player-vs-player uses loot rights then PlayerList party flag (8); against monsters consults MonStats2 alSel/noSel flags (always-selectable / never-selectable); players may always interact with items and objects; otherwise falls back to Path::IsAllyOf (returns true only if NOT an ally). Also blocks a player from interacting with an enemy pet they don't own.

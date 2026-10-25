@@ -223,7 +223,7 @@ int32_t __fastcall ITEMDROP_RollExceptionalItemClass(::SGAMEDATA * pGame, D2Seed
         } else {
           seedNext = D2_SEED_NEXT(*pSeedLocal);
           *pSeedLocal = seedNext;
-          nRandIndex = (uint32_t)(((uint64_t)d2_bits_of(seedNext) & 0xffffffff) % (uint64_t)nCandidateIdx);
+          nRandIndex = (uint32_t)(seedNext.nSeedLow % nCandidateIdx);
         }
 
         goto return_candidate;
@@ -358,7 +358,7 @@ int32_t __fastcall ITEMDROP_RollEliteItemClass(::SGAMEDATA * pGame, D2SeedStrc *
         } else {
           seedNext = D2_SEED_NEXT(*pSeed);
           *pSeed = seedNext;
-          nRandIndex = (uint32_t)(((uint64_t)d2_bits_of(seedNext) & 0xffffffff) % (uint64_t)nCandidateCount);
+          nRandIndex = (uint32_t)(seedNext.nSeedLow % nCandidateCount);
         }
 
         goto return_candidate;
@@ -1032,16 +1032,12 @@ static void ITEM_ApplySpecialTypePropertiesExp(D2UnitStrc * pUnit, D2ItemGenCont
     bTypeCheck = D2Common::ITEMS::Items::ITEMS_IsA(pUnit, ITEMTYPE_Scroll);
     if (bTypeCheck) {
       int32_t nScrollBookIdx;
-      nSuffixSlot = 0;
-      nScrollBookIdx = SKILLS::Items::ITEMMOD_GetScrollBookIndex(pUnit, 1);
-      D2Common::ITEMS::Items::SetMagicSuffix(pUnit, (int16_t)nScrollBookIdx, nSuffixSlot);
+      D2Common::ITEMS::Items::SetMagicSuffix(pUnit, (int16_t)SKILLS::Items::ITEMMOD_GetScrollBookIndex(pUnit, 1), 0);
     }
 
     bTypeCheck = D2Common::ITEMS::Items::ITEMS_IsA(pUnit, ITEMTYPE_Book);
     if (bTypeCheck) {
-      nIndex = 0;
-      nScrollIdx = SKILLS::Items::ITEMMOD_GetScrollBookIndex(pUnit, 0);
-      D2Common::ITEMS::Items::SetMagicSuffix(pUnit, (int16_t)nScrollIdx, nIndex);
+      D2Common::ITEMS::Items::SetMagicSuffix(pUnit, (int16_t)SKILLS::Items::ITEMMOD_GetScrollBookIndex(pUnit, 0), 0);
     }
 
     SKILLS::Items::StaffMod(pUnit, pItemGenContext);
@@ -1107,128 +1103,120 @@ static uint32_t __stdcall ITEM_RollItemQuality(D2UnitStrc * pUnit, D2ItemGenCont
         }
 
         pItemTxt = D2Common::DATATBLS::ItemTbls::TXT_Items_GetLine(nQualityThreshold);
-        if (pItemTxt) {
-          if (pItemTxt->bQuest) {
-            return 2;
-          }
-
-          nItemLevelAdj = pItemGenContext->nItemLevel;
-          nItemClassId = 0;
-          wVersionCheck = D2Common::ITEMS::Items::ITEM_GetItemData_wItemVersion(pUnit);
-          if (wVersionCheck) {
-            bIsMisc = D2Common::ITEMS::Items::ITEMS_IsA(pUnit, ITEMTYPE_Miscellaneous);
-            if (bIsMisc || (nItemLevelAdj -= (uint32_t)(uint8_t)pItemTxt->nLevel , nItemLevelAdj < 1)) {
-              nItemLevelAdj = 1;
-            }
-          }
-
-          eResultQuality = 1;
-          wVersionCheck = D2Common::ITEMS::Items::ITEM_GetItemData_wItemVersion(pUnit);
-          if (!wVersionCheck) {
-            nTierTableOffset = 0;
-            do {
-              switch ((uint32_t)gaItemQualityTierTable[nTierTableOffset]) {
-                case 2:
-                  nItemClassId = pQualityRatioRow[0xe];
-                nMFDivisor = nItemLevelAdj / pQualityRatioRow[0xf];
-                eResultQuality = 2;
-                nItemClassId -= nMFDivisor;
-                break;
-                case 3:
-                  nItemClassId = pQualityRatioRow[0xc];
-                nMFDivisor = nItemLevelAdj / pQualityRatioRow[0xd];
-                eResultQuality = 3;
-                nItemClassId -= nMFDivisor;
-                break;
-                case 4:
-                  nItemClassId = pQualityRatioRow[9];
-                nMFDivisor = nItemLevelAdj / pQualityRatioRow[10];
-                eResultQuality = 4;
-                nItemClassId -= nMFDivisor;
-                break;
-                case 5:
-                  nItemClassId = pQualityRatioRow[6] - nItemLevelAdj;
-                eResultQuality = 5;
-                break;
-                case 6:
-                  nItemClassId = pQualityRatioRow[3] - nItemLevelAdj;
-                eResultQuality = 6;
-                break;
-                case 7:
-                  nItemClassId = *pQualityRatioRow - nItemLevelAdj;
-                eResultQuality = 7;
-              }
-
-              if ((int)nItemClassId < 1) {
-                nItemClassId = 1;
-              }
-
-              pSeed = D2Common::ITEMS::Items::GetItemSeed(pUnit);
-              nQualityThreshold = D2Client::Archive::RANDOM_RandomNumberSelector(pSeed, nItemClassId);
-              if (!nQualityThreshold) {
-                return eResultQuality;
-              }
-
-              nTierTableOffset++;
-            } while (nTierTableOffset < 6);
-          } else {
-            nTierTableOffset = 0;
-            do {
-              switch ((uint32_t)gaItemQualityTierTable[nTierTableOffset]) {
-                case 2:
-                  iVar1 = pQualityRatioRow[0xe];
-                nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[0xf];
-                eResultQuality = 2;
-                break;
-                case 3:
-                  iVar1 = pQualityRatioRow[0xc];
-                nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[0xd];
-                eResultQuality = 3;
-                break;
-                case 4:
-                  iVar1 = pQualityRatioRow[9];
-                nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[10];
-                eResultQuality = 4;
-                break;
-                case 5:
-                  iVar1 = pQualityRatioRow[6];
-                nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[7];
-                eResultQuality = 5;
-                break;
-                case 6:
-                  iVar1 = pQualityRatioRow[3];
-                nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[4];
-                eResultQuality = 6;
-                break;
-                case 7:
-                  iVar1 = *pQualityRatioRow;
-                nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[1];
-                eResultQuality = 7;
-                break;
-                default:
-                  goto roll_quality_tier;
-              }
-
-              nItemClassId = iVar1 - nMFDivisorExp;
-              roll_quality_tier:
-              if ((int)nItemClassId < 1) {
-                return eResultQuality;
-              }
-              pSeed = D2Common::ITEMS::Items::GetItemSeed(pUnit);
-              nQualityThreshold = D2Client::Archive::RANDOM_RandomNumberSelector(pSeed, nItemClassId);
-              if (!nQualityThreshold) {
-                return eResultQuality;
-              }
-
-              nTierTableOffset++;
-            } while (nTierTableOffset < 6);
-          }
-
-          return ((uint8_t)(char)pItemGenContext->nFlags & 0x40 | 0x20) >> 5;
+        if (!pItemTxt) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x489);
+          exit(-1);
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x489);
-        exit(-1);
+        if (pItemTxt->bQuest) {
+          return 2;
+        }
+        nItemLevelAdj = pItemGenContext->nItemLevel;
+        nItemClassId = 0;
+        wVersionCheck = D2Common::ITEMS::Items::ITEM_GetItemData_wItemVersion(pUnit);
+        if (wVersionCheck) {
+          bIsMisc = D2Common::ITEMS::Items::ITEMS_IsA(pUnit, ITEMTYPE_Miscellaneous);
+          if (bIsMisc || (nItemLevelAdj -= (uint32_t)(uint8_t)pItemTxt->nLevel , nItemLevelAdj < 1)) {
+            nItemLevelAdj = 1;
+          }
+        }
+        eResultQuality = 1;
+        wVersionCheck = D2Common::ITEMS::Items::ITEM_GetItemData_wItemVersion(pUnit);
+        if (!wVersionCheck) {
+          nTierTableOffset = 0;
+          do {
+            switch ((uint32_t)gaItemQualityTierTable[nTierTableOffset]) {
+              case 2:
+                nItemClassId = pQualityRatioRow[0xe];
+              nMFDivisor = nItemLevelAdj / pQualityRatioRow[0xf];
+              eResultQuality = 2;
+              nItemClassId -= nMFDivisor;
+              break;
+              case 3:
+                nItemClassId = pQualityRatioRow[0xc];
+              nMFDivisor = nItemLevelAdj / pQualityRatioRow[0xd];
+              eResultQuality = 3;
+              nItemClassId -= nMFDivisor;
+              break;
+              case 4:
+                nItemClassId = pQualityRatioRow[9];
+              nMFDivisor = nItemLevelAdj / pQualityRatioRow[10];
+              eResultQuality = 4;
+              nItemClassId -= nMFDivisor;
+              break;
+              case 5:
+                nItemClassId = pQualityRatioRow[6] - nItemLevelAdj;
+              eResultQuality = 5;
+              break;
+              case 6:
+                nItemClassId = pQualityRatioRow[3] - nItemLevelAdj;
+              eResultQuality = 6;
+              break;
+              case 7:
+                nItemClassId = *pQualityRatioRow - nItemLevelAdj;
+              eResultQuality = 7;
+            }
+            if ((int)nItemClassId < 1) {
+              nItemClassId = 1;
+            }
+            pSeed = D2Common::ITEMS::Items::GetItemSeed(pUnit);
+            nQualityThreshold = D2Client::Archive::RANDOM_RandomNumberSelector(pSeed, nItemClassId);
+            if (!nQualityThreshold) {
+              return eResultQuality;
+            }
+            nTierTableOffset++;
+          } while (nTierTableOffset < 6);
+        } else {
+          nTierTableOffset = 0;
+          do {
+            switch ((uint32_t)gaItemQualityTierTable[nTierTableOffset]) {
+              case 2:
+                iVar1 = pQualityRatioRow[0xe];
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[0xf];
+              eResultQuality = 2;
+              break;
+              case 3:
+                iVar1 = pQualityRatioRow[0xc];
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[0xd];
+              eResultQuality = 3;
+              break;
+              case 4:
+                iVar1 = pQualityRatioRow[9];
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[10];
+              eResultQuality = 4;
+              break;
+              case 5:
+                iVar1 = pQualityRatioRow[6];
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[7];
+              eResultQuality = 5;
+              break;
+              case 6:
+                iVar1 = pQualityRatioRow[3];
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[4];
+              eResultQuality = 6;
+              break;
+              case 7:
+                iVar1 = *pQualityRatioRow;
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[1];
+              eResultQuality = 7;
+              break;
+              default:
+                goto roll_quality_tier;
+            }
+            nItemClassId = iVar1 - nMFDivisorExp;
+            roll_quality_tier:
+            if ((int)nItemClassId < 1) {
+              return eResultQuality;
+            }
+            pSeed = D2Common::ITEMS::Items::GetItemSeed(pUnit);
+            nQualityThreshold = D2Client::Archive::RANDOM_RandomNumberSelector(pSeed, nItemClassId);
+            if (!nQualityThreshold) {
+              return eResultQuality;
+            }
+            nTierTableOffset++;
+          } while (nTierTableOffset < 6);
+        }
+        return ((uint8_t)(char)pItemGenContext->nFlags & 0x40 | 0x20) >> 5;
       }
     }
 }
@@ -2838,10 +2826,10 @@ void __fastcall DROP_SpawnRandomItemInRoom(::SGAMEDATA * pGame, D2RoomStrc * pRo
     if (0x41 <= (int)nItemLevel) {
       nItemLevel = 0x40;
     }
-    if (!pRoom) {
-      pRoomSeed = 0;
-    } else {
+    if (pRoom) {
       pRoomSeed = &pRoom->sSeed;
+    } else {
+      pRoomSeed = 0;
     }
 
     int32_t nRolledClassId = ITEMDROP_RollItemClassByLevel(pGame, pRoomSeed, -1, 0, 0, nItemLevel);
@@ -2850,12 +2838,12 @@ void __fastcall DROP_SpawnRandomItemInRoom(::SGAMEDATA * pGame, D2RoomStrc * pRo
     pCoordsIn = (POINT*)(ptCandidatePos.x + 2);
     int nOffsetY = ptCandidatePos.y + 3;
     D2RoomStrc* pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, (int32_t)pCoordsIn, nOffsetY);
-    if (!pSpawnRoom) {
-      ptSpawnPos.x = ptCandidatePos.x;
-      ptSpawnPos.y = ptCandidatePos.y;
-    } else {
+    if (pSpawnRoom) {
       ptSpawnPos.x = (LONG)pCoordsIn;
       ptSpawnPos.y = nOffsetY;
+    } else {
+      ptSpawnPos.x = ptCandidatePos.x;
+      ptSpawnPos.y = ptCandidatePos.y;
     }
 
     pSpawnRoom = D2Common::Collision::GetFreeCoordinates_WithFieldCoords(pRoom, &ptSpawnPos, &ptCandidatePos, 1, 0x3e01, 0x801, 1);
@@ -2883,12 +2871,10 @@ void __fastcall DROP_SpawnRandomItemInRoom(::SGAMEDATA * pGame, D2RoomStrc * pRo
           ppUnitTable++;
         }
 
-        Fog::Debug::GuardStack();
         return;
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Spawns a gold item at or near pCoords in pRoom. Derives monster level from the room's level ID and game difficulty, resolves a nearby open tile via GetFreeCoordinates_WithFieldCoords (SPAWN_ITEM_COLLISION), then calls ITEM_CreateItemInstance with a fully populated D2ItemGenContextStrc (gold class ID, mode=3, quality=INVALID). Clears ITEMFLAG_NEW on the created unit.
@@ -2906,10 +2892,10 @@ void __fastcall DROP_SpawnGoldInRoom(::SGAMEDATA * pGame, D2RoomStrc * pRoom, PO
     if (1 < nMonsterLevel) {
       nMonsterLevel--;
     }
-    if (!pRoom) {
-      pRoomSeed = 0;
-    } else {
+    if (pRoom) {
       pRoomSeed = &pRoom->sSeed;
+    } else {
+      pRoomSeed = 0;
     }
     if (!gnGoldItemClassId) {
       D2Common::DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine(0x20646c67, (int*)&gnGoldItemClassId);
@@ -2920,12 +2906,12 @@ void __fastcall DROP_SpawnGoldInRoom(::SGAMEDATA * pGame, D2RoomStrc * pRoom, PO
     pCoordsIn = (POINT*)(ptCandidatePos.x + 2);
     int nOffsetY = ptCandidatePos.y + 3;
     D2RoomStrc* pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, (int32_t)pCoordsIn, nOffsetY);
-    if (!pSpawnRoom) {
-      ptSpawnPos.x = ptCandidatePos.x;
-      ptSpawnPos.y = ptCandidatePos.y;
-    } else {
+    if (pSpawnRoom) {
       ptSpawnPos.x = (LONG)pCoordsIn;
       ptSpawnPos.y = nOffsetY;
+    } else {
+      ptSpawnPos.x = ptCandidatePos.x;
+      ptSpawnPos.y = ptCandidatePos.y;
     }
 
     pSpawnRoom = D2Common::Collision::GetFreeCoordinates_WithFieldCoords(pRoom, &ptSpawnPos, &ptCandidatePos, 1, 0x3e01, 0x801, 1);
@@ -2934,9 +2920,9 @@ void __fastcall DROP_SpawnGoldInRoom(::SGAMEDATA * pGame, D2RoomStrc * pRoom, PO
       memset(&sItemGenCtx, 0, 0x84);
       sItemGenCtx.wItemFormat = pGame->wItemFormat;
       sItemGenCtx.pSeed = pRoomSeed;
-      sItemGenCtx.nItemClassid = gnGoldItemClassId;
       sItemGenCtx.nPosX = ptSpawnPos.x;
       sItemGenCtx.nPosY = ptSpawnPos.y;
+      sItemGenCtx.nItemClassid = gnGoldItemClassId;
       sItemGenCtx.pUnit = 0;
       sItemGenCtx.dwMode = 3;
       sItemGenCtx.usually_one = 1;
@@ -2949,11 +2935,9 @@ void __fastcall DROP_SpawnGoldInRoom(::SGAMEDATA * pGame, D2RoomStrc * pRoom, PO
         D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pUnit, ITEMFLAG_NEW, 0);
       }
 
-      Fog::Debug::GuardStack();
       return;
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Spawns an exceptional-tier item drop at the given map coordinates. Derives effective item level from the room's difficulty-adjusted monster level, rolls a class ID via ITEMDROP_RollExceptionalItemClass, finds the best free spawn tile near the coordinates, and calls ITEM_CreateItemInstance with the constructed D2ItemGenContextStrc.
@@ -2969,10 +2953,10 @@ void __fastcall DROP_SpawnExceptionalItem(::SGAMEDATA * pGame, D2RoomStrc * pRoo
     if (1 < nEffectiveItemLevel) {
       nEffectiveItemLevel -= LEVEL_RogueEncampment;
     }
-    if (!pRoom) {
-      pRoomSeed = 0;
-    } else {
+    if (pRoom) {
       pRoomSeed = &pRoom->sSeed;
+    } else {
+      pRoomSeed = 0;
     }
 
     int32_t nRolledClassId = ITEMDROP_RollExceptionalItemClass(pGame, pRoomSeed, nEffectiveItemLevel, nTCFilter, nMonsterLevel);
@@ -2987,9 +2971,9 @@ void __fastcall DROP_SpawnExceptionalItem(::SGAMEDATA * pGame, D2RoomStrc * pRoo
         sItemGenCtx.nFlags |= ITEMFLAG_ADDED;
         sItemGenCtx.pSeed = pRoomSeed;
         sItemGenCtx.pUnit = pSourceUnit;
+        sItemGenCtx.nItemClassid = nRolledClassId;
         sItemGenCtx.nPosX = ptSpawnPos.x;
         sItemGenCtx.nPosY = ptSpawnPos.y;
-        sItemGenCtx.nItemClassid = nRolledClassId;
         sItemGenCtx.dwMode = 3;
         sItemGenCtx.usually_one = 1;
         sItemGenCtx.eQuality = QUALITY_INVALID;
@@ -2997,12 +2981,10 @@ void __fastcall DROP_SpawnExceptionalItem(::SGAMEDATA * pGame, D2RoomStrc * pRoo
         sItemGenCtx.nItemLevel = nEffectiveItemLevel;
         sItemGenCtx.pDrlgRoom = pSpawnRoom;
         ITEM_CreateItemInstance(pGame, &sItemGenCtx, 0);
-        Fog::Debug::GuardStack();
         return;
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Spawns a normal-quality item drop in the world. Rolls an item class from the treasure-class system (up to 6 retries) using the room seed and effective monster level, finds a free collision-clear tile near the requested coordinates, populates a D2ItemGenContextStrc, and calls ITEM_CreateItemInstance. Silently returns (no item) if no valid class rolls or no free tile is found.
@@ -3021,10 +3003,10 @@ void __fastcall DROP_SpawnNormalItem(::SGAMEDATA * pGame, D2RoomStrc * pRoom, PO
     if (1 < nEffectiveMonLevel) {
       nEffectiveMonLevel--;
     }
-    if (!pRoom) {
-      pRoomSeed = 0;
-    } else {
+    if (pRoom) {
       pRoomSeed = &pRoom->sSeed;
+    } else {
+      pRoomSeed = 0;
     }
 
     uint32_t nRollRetry = 0;
@@ -3047,12 +3029,12 @@ void __fastcall DROP_SpawnNormalItem(::SGAMEDATA * pGame, D2RoomStrc * pRoom, PO
       pCoordsIn = (D2RoomStrc*)(ptCandidatePos.x + 2);
       nRollRetry = ptCandidatePos.y + 3;
       pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoomSaved, (int32_t)pCoordsIn, nRollRetry);
-      if (!pSpawnRoom) {
-        ptSpawnPos.x = ptCandidatePos.x;
-        ptSpawnPos.y = ptCandidatePos.y;
-      } else {
+      if (pSpawnRoom) {
         ptSpawnPos.x = (LONG)pCoordsIn;
         ptSpawnPos.y = nRollRetry;
+      } else {
+        ptSpawnPos.x = ptCandidatePos.x;
+        ptSpawnPos.y = ptCandidatePos.y;
       }
 
       pCoordsIn = D2Common::Collision::GetFreeCoordinates_WithFieldCoords(pRoomSaved, &ptSpawnPos, &ptCandidatePos, 1, 0x3e01, 0x801, 1);
@@ -3062,8 +3044,8 @@ void __fastcall DROP_SpawnNormalItem(::SGAMEDATA * pGame, D2RoomStrc * pRoom, PO
         sItemGenCtx.nFlags |= ITEMFLAG_ADDED;
         sItemGenCtx.pSeed = pRoomSeed;
         sItemGenCtx.pUnit = pUnit;
-        sItemGenCtx.nPosY = ptSpawnPos.y;
         sItemGenCtx.pDrlgRoom = pCoordsIn;
+        sItemGenCtx.nPosY = ptSpawnPos.y;
         sItemGenCtx.dwMode = 3;
         sItemGenCtx.nPosX = ptSpawnPos.x;
         sItemGenCtx.usually_one = 1;
@@ -3072,12 +3054,10 @@ void __fastcall DROP_SpawnNormalItem(::SGAMEDATA * pGame, D2RoomStrc * pRoom, PO
         sItemGenCtx.nItemLevel = nEffectiveMonLevel;
         sItemGenCtx.nItemClassid = nItemClassId;
         ITEM_CreateItemInstance(pGame, &sItemGenCtx, 0);
-        Fog::Debug::GuardStack();
         return;
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Spawns a single elite/special drop item into the world near pCoords in pRoom. Derives an effective item level from the room's level id (clamped, monster-level-for-difficulty, or 1 in town/no level), then rolls an item class via ITEMDROP_RollEliteItemClass (using the room seed, treasure-class filter nTCFilter, monster level, and whether pUnit is a monster). Finds a nearby better room and a free collision-clear coordinate (GetFreeCoordinates_WithFieldCoords); if a valid spawn spot is found, fills a D2ItemGenContextStrc (mode 3, quality invalid/auto, the rolled class id and item level) and creates the item instance via ITEM_CreateItemInstance. Uses Fog GuardStack as the tail epilogue. No return; side effect is the new world item.
@@ -3110,10 +3090,10 @@ void __fastcall DROP_SpawnEliteItem(::SGAMEDATA * pGame, D2RoomStrc * pRoom, POI
     nEffectiveMonLevel = 1;
     roll_and_spawn_item:
     bIsMonsterFlag = 0;
-    if (!pRoom) {
-      pRoomSeed = 0;
-    } else {
+    if (pRoom) {
       pRoomSeed = &pRoom->sSeed;
+    } else {
+      pRoomSeed = 0;
     }
     if (pSourceUnit && pSourceUnit->eUnitType == UNIT_MONSTER) {
       bIsMonsterFlag = 1;
@@ -3125,12 +3105,12 @@ void __fastcall DROP_SpawnEliteItem(::SGAMEDATA * pGame, D2RoomStrc * pRoom, POI
     int nOffsetX = ptCandidatePos.x + 2;
     pCoordsIn = (POINT*)(ptCandidatePos.y + 3);
     D2RoomStrc* pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nOffsetX, (int32_t)pCoordsIn);
-    if (!pSpawnRoom) {
-      ptSpawnPos.x = ptCandidatePos.x;
-      ptSpawnPos.y = ptCandidatePos.y;
-    } else {
+    if (pSpawnRoom) {
       ptSpawnPos.y = (LONG)pCoordsIn;
       ptSpawnPos.x = nOffsetX;
+    } else {
+      ptSpawnPos.x = ptCandidatePos.x;
+      ptSpawnPos.y = ptCandidatePos.y;
     }
 
     pSpawnRoom = D2Common::Collision::GetFreeCoordinates_WithFieldCoords(pRoom, &ptSpawnPos, &ptCandidatePos, 1, 0x3e01, 0x801, 1);
@@ -3138,9 +3118,9 @@ void __fastcall DROP_SpawnEliteItem(::SGAMEDATA * pGame, D2RoomStrc * pRoom, POI
       D2ItemGenContextStrc sItemGenCtx;
       memset(&sItemGenCtx, 0, 0x84);
       sItemGenCtx.wItemFormat = pGame->wItemFormat;
-      sItemGenCtx.pUnit = pSourceUnit;
       sItemGenCtx.nPosX = ptSpawnPos.x;
       sItemGenCtx.nPosY = ptSpawnPos.y;
+      sItemGenCtx.pUnit = pSourceUnit;
       sItemGenCtx.pSeed = pRoomSeed;
       sItemGenCtx.dwMode = 3;
       sItemGenCtx.usually_one = 1;
@@ -3150,11 +3130,9 @@ void __fastcall DROP_SpawnEliteItem(::SGAMEDATA * pGame, D2RoomStrc * pRoom, POI
       sItemGenCtx.nItemClassid = nRolledClassId;
       sItemGenCtx.pDrlgRoom = pSpawnRoom;
       ITEM_CreateItemInstance(pGame, &sItemGenCtx, 0);
-      Fog::Debug::GuardStack();
       return;
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Server-side: rolls and creates a reward/drop item instance to be dropped near a unit. Determines item level from the source unit (monster level, player level, or level-table mon level by difficulty/expansion; min 2) and writes it to *pnParam. If the unit carries a forced drop code, converts it to a class id; otherwise rolls an item class by level (for gold drops, retries up to 11 times until an Items.txt entry with the gold bitfield is found, then falls back to a normal class roll). Finds the best passable spawn spot in the unit's room, fills a D2ItemGenContextStrc (quality, position, level, class id) and calls ITEM_CreateItemInstance. If ppUnit is non-null, copies the 0x84-byte context out to it. Returns the created item unit (NULL on spawn-spot failure); halts with unrecoverable error on bad game ptr or bad item code.
@@ -3256,12 +3234,10 @@ D2UnitStrc * __fastcall ITEM_RewardItemToDrop(::SGAMEDATA * pGame, D2UnitStrc * 
           ppUnit++;
         }
 
-        Fog::Debug::GuardStack();
         return pDVar1;
       }
     }
 
-    Fog::Debug::GuardStack();
     return pDVar1;
 }
 
@@ -3547,8 +3523,7 @@ void __fastcall ITEM_DropEarOnPvpDeath(::SGAMEDATA * pGame, D2UnitStrc * pUnit) 
     int32_t nCreateFlags = 0;
     int32_t nModSeed = 0;
     int32_t nInitSeed = 0;
-    int nVictimLevel = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0);
-    D2UnitStrc* pUnit_00 = ITEM_CreateFromTemplate(pUnit, nEarClassId, pGame, 4, QUALITY_NORMAL, 1, 1, nVictimLevel, nInitSeed, nModSeed, nCreateFlags);
+    D2UnitStrc* pUnit_00 = ITEM_CreateFromTemplate(pUnit, nEarClassId, pGame, 4, QUALITY_NORMAL, 1, 1, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0), nInitSeed, nModSeed, nCreateFlags);
     if (!pUnit_00) {
       return;
     }
@@ -3615,8 +3590,7 @@ D2UnitStrc * __fastcall ITEM_CloneFromSerializedData(::SGAMEDATA * pGame, D2Unit
             nSocketSlot = 1;
             nSocketIdx = 0;
             pInventoryBuf = &__frame0.stInventoryBuf;
-            dwOwnerGUID = D2Client::UNIT::GetGUID(pClonedItem);
-            _bPutItemSuccess = ItemMode::PutItemInItem(__frame0.pGameSaved, pClonedItem, pSocketedGem->nUnitGUID, dwOwnerGUID, pInventoryBuf, nSocketIdx, nSocketSlot, nSocketPosX, nSocketPosY);
+            _bPutItemSuccess = ItemMode::PutItemInItem(__frame0.pGameSaved, pClonedItem, pSocketedGem->nUnitGUID, D2Client::UNIT::GetGUID(pClonedItem), pInventoryBuf, nSocketIdx, nSocketSlot, nSocketPosX, nSocketPosY);
             if (!_bPutItemSuccess) {
               Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdd4);
               exit(-1);
@@ -3904,7 +3878,7 @@ void __fastcall SERVER_ITEM_RollItemToDrop(::SGAMEDATA * pGame, D2UnitStrc * pUn
                 if (nTCWeightSum & nTCWeightSum - 1) {
                   sNewSeed = (D2SeedStrc)((uint64_t)uVar18 * 0x6ac690c5 + nSeedHighWide);
                   pUnit->sSeed = sNewSeed;
-                  uVar18 = (uint32_t)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) % (uint64_t)nTCWeightSum);
+                  uVar18 = (uint32_t)(sNewSeed.nSeedLow % nTCWeightSum);
                 } else {
                   sNewSeed = (D2SeedStrc)((uint64_t)uVar18 * 0x6ac690c5 + nSeedHighWide);
                   pUnit->sSeed = sNewSeed;
