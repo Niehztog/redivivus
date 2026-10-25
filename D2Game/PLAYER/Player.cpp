@@ -117,7 +117,7 @@ static void FreePartyData(::SGAMEDATA * pGame, D2UnitDataPlayerStrc * pPlayerDat
     while (pMemoryToFree) {
       D2PartyDataStrc* pPrevPartyData;
       pPrevPartyData = pMemoryToFree->pPrev;
-      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\PLAYER\\Player.cpp", 0x2b, 0);
       pMemoryToFree = pPrevPartyData;
     }
 

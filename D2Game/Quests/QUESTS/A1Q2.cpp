@@ -633,7 +633,7 @@ void __fastcall Q02_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A1Q2::aNpcGossipData;
     pQuestData->nQuestIdReal = QUEST_SistersBurialGrounds;
     pQuestData->bIsActive = true;
-    D2QuestDataA1Q2Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA1Q2Strc);
+    D2QuestDataA1Q2Strc* pQuestSpecificData = ((D2QuestDataA1Q2Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA1Q2Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a1q2.cpp", 0x27f, 0));
     pQuestData->fpStatusFilter = 0;
     pQuestData->pQuestSpecificData.pA1Q2 = pQuestSpecificData;
     pQuestData->fpActiveFilter = Q02_ActiveFilter;

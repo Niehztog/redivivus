@@ -705,7 +705,7 @@ void __fastcall Q03_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A1Q3::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nQuestIdReal = QUEST_ToolsOfTheTrade;
-    D2QuestDataA1Q3Strc* pQuestSpecificData = D2_NEW_POOL(pSVar1->pMemoryPool, D2QuestDataA1Q3Strc);
+    D2QuestDataA1Q3Strc* pQuestSpecificData = ((D2QuestDataA1Q3Strc*)Fog::Memory::AllocServerMemory(pSVar1->pMemoryPool, sizeof(D2QuestDataA1Q3Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a1q3.cpp", 0x3ae, 0));
     pQuestData->pQuestSpecificData.pA1Q3 = pQuestSpecificData;
     pQuestData->nStateFlag = 0;
     pQuestData->fpStatusFilter = Q03_StatusFilter;

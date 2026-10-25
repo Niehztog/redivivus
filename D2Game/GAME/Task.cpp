@@ -393,7 +393,7 @@ static void __stdcall TASK_GameTickCallback(uint32_t nParam, D2TaskNodeStrc * pT
 
       TASK_UnlinkTaskFromList(pSlotLink);
       TASK_LinkTaskToList(&gsTaskQueueListHead, pSlotLink);
-      D2_FREE(pTaskNode);
+      Fog::Memory::FreeClientMemory(pTaskNode, ".\\GAME\\Task.cpp", 0x309, 0);
     }
 
     gnTaskQueueTailIndex--;
@@ -447,7 +447,7 @@ uint32_t __stdcall TASK_AllocateTaskQueue() {
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(aTaskQueueCriticalSections + nSlotIndex);
     if (!gaTaskQueueHeadArray[nSlotIndex]) {
       D2LinkNodeStrc* pDVar1;
-      pNewSlot = D2_NEW_POOL(nullptr, D2TaskQueueSlotStrc);
+      pNewSlot = ((D2TaskQueueSlotStrc*)Fog::Memory::AllocServerMemory(nullptr, sizeof(D2TaskQueueSlotStrc), ".\\GAME\\Task.cpp", 0x3fb, 0));
       pNewSlot->nSlotIndex = nSlotIndex;
       pNewSlot->nTaskCount = 0;
       pDVar1 = &pNewSlot->sTaskList;

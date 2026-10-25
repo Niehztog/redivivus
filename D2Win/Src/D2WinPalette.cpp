@@ -216,8 +216,8 @@ BOOL __stdcall D2WINPAL_LoadPaletteFiles(char * szText1, char * szText2) {
 
     D2WINPALETTE_LoadPalettes();
     D2gfx::D2GFX::D2GFX_SetPalette(MostLikelyCurrentPalletePtr);
-    D2_FREE(pDatFileHandle);
-    D2_FREE(pMemoryToFree);
+    Fog::Memory::FreeClientMemory(pDatFileHandle, ".\\Src\\D2WinPalette.cpp", 0x96, 0);
+    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\D2WinPalette.cpp", 0x99, 0);
     return 1;
 }
 

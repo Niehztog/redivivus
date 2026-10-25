@@ -28,7 +28,7 @@ int __fastcall GLTEXCACHE_Initialize(GlTextureCacheStrc * pCache, int nVramStart
     pCache->dwEntrySize = dwTextureSize;
     size_t nAllocSize = nEntryCount * 0x1c;
     pCache->nMaxEntries = nEntryCount;
-    uint8_t* pNodeArray = (uint8_t*)D2_ALLOC(nAllocSize);
+    uint8_t* pNodeArray = (uint8_t*)Fog::Memory::AllocClientMemory(nAllocSize, ".\\Src\\glTextureCache.cpp", 0x2d, 0);
     pCache->pNodes = pNodeArray;
     memset(pNodeArray, 0, nAllocSize);
     int iNode = 0;
@@ -259,7 +259,7 @@ void __fastcall GLTEXCACHE_Destroy(GlTextureCacheStrc * pCacheData, GlTextureCac
       }
     }
     if (pCacheData->pNodes) {
-      D2_FREE(pCacheData->pNodes);
+      Fog::Memory::FreeClientMemory(pCacheData->pNodes, ".\\Src\\glTextureCache.cpp", 0x7f, 0);
       pCacheData->pNodes = 0;
     }
 

@@ -3545,7 +3545,7 @@ void __stdcall BigBuffer_Rand(BigBuffer * pnResult, BigBuffer * pnModulus, BigBu
         BigBuffer_Shr(pnWork, pnShiftTmp, 0x10);
         BigBuffer_Add(pnShiftTmp, pnWork, pnWork);
         uNeededCount = pnWork->nStartWord + 2;
-        if (uNeededCount > pnWork->nCount && uNeededCount > pnWork->nCapacity) {
+        if (pnWork->nCount < uNeededCount && pnWork->nCapacity < uNeededCount) {
           uNewLen = pnWork->nGrowStep;
           if (!uNewLen) {
             if (uNeededCount < 0x40) {

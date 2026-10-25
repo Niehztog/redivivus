@@ -107,8 +107,8 @@ BOOL __stdcall CHATDLG_OnPressUserListNextLine(D2ControlMsg * pControlMsg) {
 }
 
 // @sourcefile .\Src\ChatDlg.cpp
-D2ChatDlgUnknown_0x10 * __stdcall StoreChatMsg(LPRECT pRect, int32_t nParam, char * pString) {
-    D2ChatDlgUnknown_0x10* pNode = D2_NEW(D2ChatDlgUnknown_0x10);
+static D2ChatDlgUnknown_0x10 * __stdcall StoreChatMsg(LPRECT pRect, int32_t nParam, char * pString) {
+    D2ChatDlgUnknown_0x10* pNode = ((D2ChatDlgUnknown_0x10*)Fog::Memory::AllocClientMemory(sizeof(D2ChatDlgUnknown_0x10), ".\\Src\\ChatDlg.cpp", 0xc1d, 0));
     pNode->pszText = 0;
     pNode->lpRect = (LPRECT)0x0;
     pNode->nLength = 0;
@@ -124,7 +124,7 @@ D2ChatDlgUnknown_0x10 * __stdcall StoreChatMsg(LPRECT pRect, int32_t nParam, cha
     }
 
     uint32_t pszCopy = Storm::Source::SSTR::SStrLen(pString);
-    char* szBufferOutput = (char*)D2_ALLOC(pszCopy + 1);
+    char* szBufferOutput = (char*)Fog::Memory::AllocClientMemory(pszCopy + 1, ".\\Src\\ChatDlg.cpp", 0xc28, 0);
     pNode->pszText = szBufferOutput;
     if (szBufferOutput) {
       Storm::Source::SSTR::SStrCopy(szBufferOutput, pString, 0x7fffffff);
@@ -141,10 +141,10 @@ void CHATDLG_FreeChatMsgNode(void * * pParam) {
       return;
     }
     if (*pParam) {
-      D2_FREE(*pParam);
+      Fog::Memory::FreeClientMemory(*pParam, ".\\Src\\ChatDlg.cpp", 0xc38, 0);
     }
 
-    D2_FREE(pParam);
+    Fog::Memory::FreeClientMemory(pParam, ".\\Src\\ChatDlg.cpp", 0xc39, 0);
 }
 
 static void StoreData(LPRECT pRect, int32_t nParam, char * szText) {
@@ -187,11 +187,11 @@ void __stdcall CHATDLG_ProcessPendingMessages() {
       if ((char*)*pMemoryToFree) {
         Launcher::CHATDLG_AddMultiLineText(gpChatMessagesTextBox, 0, (char*)*pMemoryToFree, pMemoryToFree[1]);
         if ((void*)*pMemoryToFree) {
-          D2_FREE((void*)*pMemoryToFree);
+          Fog::Memory::FreeClientMemory((void*)*pMemoryToFree, ".\\Src\\ChatDlg.cpp", 0xc38, 0);
         }
       }
 
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\ChatDlg.cpp", 0xc39, 0);
       D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ScrollToLine(gpChatMessagesTextBox, 0);
     }
 }
@@ -241,7 +241,7 @@ void __fastcall CHATDLG_DisplayTimestampedMessage(uint32_t nUnixTime, int32_t ps
 
 // @sourcefile .\Src\ChatDlg.cpp
 void __stdcall CHATDLG_EnqueueClearMessage() {
-    uint32_t* pNode = (uint32_t*)D2_ALLOC(0x10);
+    uint32_t* pNode = (uint32_t*)Fog::Memory::AllocClientMemory(0x10, ".\\Src\\ChatDlg.cpp", 0xc1d, 0);
     *pNode = 0;
     pNode[1] = 0;
     pNode[2] = 0;
@@ -1041,7 +1041,7 @@ void __stdcall CHATDLG_FreePlayerNameList() {
     while (pMemoryToFree) {
       void* pvVar1;
       pvVar1 = *(void**)((int)pMemoryToFree + 0x204);
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\ChatDlg.cpp", 0x1c01, 0);
       pMemoryToFree = pvVar1;
     }
 
@@ -1898,7 +1898,7 @@ void __fastcall CHATDLG_StorePlayerName(uint32_t nPlayerId, uint32_t nDataLength
     bool bEmpty;
     bEmpty = !gpChatPlayerNameListHead;
     *(uint32_t*)(pNode + 0x200) = nPlayerId;
-    if (bEmpty || (pCur = pInsertAfter , *(int*)((int)pInsertAfter + 0x200) > (int)nPlayerId)) {
+    if (bEmpty || (pCur = pInsertAfter , (int)nPlayerId < *(int*)((int)pInsertAfter + 0x200))) {
       *(void**)(pNode + 0x204) = (void*)pInsertAfter;
       gpChatPlayerNameListHead = pNode;
     } else {

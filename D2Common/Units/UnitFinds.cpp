@@ -264,7 +264,7 @@ static void ExpandUnitFinds(D2UnitFindDataStrc * pUnitFindData, D2UnitStrc * pUn
     }
 
     int nNewSize = pUnitFindData->nUnitFindsSize + 0xf;
-    D2UnitFindsStrc* pNewArray = (D2UnitFindsStrc*)D2_REALLOC_POOL(pUnitFindData->pMemory, pUnitFindData->pUnitsArray, nNewSize * 4);
+    D2UnitFindsStrc* pNewArray = (D2UnitFindsStrc*)Fog::Memory::ReAllocServerMemory(pUnitFindData->pMemory, pUnitFindData->pUnitsArray, nNewSize * 4, ".\\UNITS\\UnitFinds.cpp", 0xc5, 0);
     pUnitFindData->nUnitFindsSize = nNewSize;
     pUnitFindData->pUnitsArray = pNewArray;
 }
@@ -276,7 +276,7 @@ void __stdcall InitializeUnitFindData(::SGAMEDATA * pMemPool, D2UnitFindDataStrc
       exit(-1);
     } else {
       D2UnitFindsStrc* pInitArray;
-      pInitArray = D2_NEW_POOL((D2PoolManagerStrc*)pMemPool, D2UnitFindsStrc);
+      pInitArray = ((D2UnitFindsStrc*)Fog::Memory::AllocServerMemory((D2PoolManagerStrc*)pMemPool, sizeof(D2UnitFindsStrc), ".\\UNITS\\UnitFinds.cpp", 0xe4, 0));
       pUnitFindData->pUnitsArray = pInitArray;
       if (!pInitArray) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe5);
@@ -304,7 +304,7 @@ void __stdcall FreeUnitFindData(D2UnitFindDataStrc * pUnitFindData) {
       return;
     }
 
-    D2_FREE_POOL(pUnitFindData->pMemory, pUnitFindData->pUnitsArray);
+    Fog::Memory::FreeServerMemory(pUnitFindData->pMemory, pUnitFindData->pUnitsArray, ".\\UNITS\\UnitFinds.cpp", 0xff, 0);
     pUnitFindData->pUnitsArray = 0;
 }
 

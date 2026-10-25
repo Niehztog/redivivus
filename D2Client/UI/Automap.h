@@ -124,10 +124,7 @@ void __stdcall AUTOMAP_RebalanceTreeLeft(struct D2AutomapCellStrc * * ppCell);
 // @sourcefile .\UI\automap.cpp
 struct D2AutomapCellStrc * __stdcall AUTOMAP_AllocCell();
 void __stdcall AUTOMAP_AddCellByCoords(int16_t nCellNo, int16_t nPixelX, int16_t nPixelY, struct D2AutomapCellStrc * pAutomapCell1, struct D2AutomapCellStrc * pAutomapCell2);
-void __stdcall AUTOMAP_AddCellForUnit(int32_t nParam, struct D2AutomapCellStrc * pAutomapCell, struct D2UnitStrc * pUnit);
 HANDLE __stdcall AUTOMAP_GetMapFileHandle();
-void AUTOMAP_SaveLayerToFile(struct D2AutomapFileEntryStrc * pEntry);
-void __fastcall AUTOMAP_CalcCellTreeSize(struct D2AutomapCellStrc * pAutomapCell, size_t * nSize);
 void __fastcall AUTOMAP_SerializeCellTree(struct D2AutomapCellStrc * pAutomapCell);
 void __stdcall AUTOMAP_SwitchLayer(struct D2AutomapLayerStrc * pAutomapLayer);
 // @sourcefile .\UI\automap.cpp

@@ -122,12 +122,10 @@ static void __stdcall SCMD_QueuePacketForClient(uint8_t * pBytes, size_t nSize, 
     if (0x200 < (int)(nOffset + nSize) || !pPacket) {
       pPacket = pClient->pEmpty;
       nOffset = 0;
-      if (!pPacket) {
-        pPacket = D2_NEW_POOL(nullptr, D2PacketListStrc);
-      } else {
+      if (pPacket) {
         pClient->pEmpty = pPacket->pNext;
       } else {
-        pPacket = (D2PacketListStrc*)Fog::Memory::AllocServerMemory(nullptr, 0x208, ".\\GAME\\SCmd.cpp", 0xa0, 0);
+        pPacket = ((D2PacketListStrc*)Fog::Memory::AllocServerMemory(nullptr, sizeof(D2PacketListStrc), ".\\GAME\\SCmd.cpp", 0xa0, 0));
       }
 
       memset(pPacket, 0, 0x208);
@@ -1010,7 +1008,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x94_SETALLSKILLS(D2ClientStrc * pClient, D
 
         pGame = Clients::CLIENT_GetGame(pClient);
         nAllocSize = nSkillCountIter * 3 + 6;
-        pPktBuf = (uint8_t*)D2_ALLOC_POOL(pGame->pMemoryPool, nAllocSize);
+        pPktBuf = (uint8_t*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, nAllocSize, ".\\GAME\\SCmd.cpp", 0x568, 0);
         pSkillEntryBuf = pPktBuf + 6;
         *pPktBuf = 0x94;
         if (nSkillCountIter < 0x100) {
@@ -1027,7 +1025,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x94_SETALLSKILLS(D2ClientStrc * pClient, D
           }
 
           SCMD_QueuePacketForClient(pPktBuf, nAllocSize, pClient);
-          D2_FREE_POOL(pGame->pMemoryPool, pPktBuf);
+          Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pPktBuf, ".\\GAME\\SCmd.cpp", 0x57e, 0);
           return;
         }
 
@@ -1076,7 +1074,7 @@ void __fastcall NET_D2GS_SERVER_Send_0x26_CHATSTART(D2ClientStrc * pClient, D2GS
     __frame0.dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     char* pSrcScan = pPacket->szMessage;
     pSrcScan = pSrcScan + strlen(pSrcScan) + 1;
-    if (0xff < (uint32_t)((int)pSrcScan - (int)(pPacket->szMessage + 1))) {
+    if (0x100 <= (uint32_t)((int)pSrcScan - (int)(pPacket->szMessage + 1))) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5ba);
       exit(-1);
     }
@@ -1348,7 +1346,7 @@ static BOOL __stdcall PLAYERDATA_AllocPartyData(D2UnitStrc * pUnit, int32_t nUni
       }
     }
 
-    pPartyData = D2_NEW_POOL(pGame->pMemoryPool, D2PartyDataStrc);
+    pPartyData = ((D2PartyDataStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2PartyDataStrc), ".\\GAME\\SCmd.cpp", 0x6fa, 0));
     if (!pPartyData) {
       return 0;
     }

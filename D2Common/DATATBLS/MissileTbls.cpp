@@ -1033,7 +1033,7 @@ void __fastcall TXT_AllocTxt_missiles(D2PoolManagerStrc * pMemory) {
 // @sourcefile .\DATATBLS\MissileTbls.cpp
 void __stdcall MISSILETBLS_FreeTxt() {
     if (sgtDataTable.pMissCode) {
-      D2_FREE_POOL(nullptr, sgtDataTable.pMissCode);
+      Fog::Memory::FreeServerMemory(nullptr, sgtDataTable.pMissCode, ".\\DATATBLS\\MissileTbls.cpp", 0x19e, 0);
       sgtDataTable.pMissCode = 0;
     }
 

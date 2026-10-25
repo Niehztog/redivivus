@@ -1466,7 +1466,7 @@ static void __stdcall CLIENT_SendMonsterMoveToRandomNearbyPosMessage(uint32_t nO
     UNIT::Monster::MonsterMessage(nSenderId, pUnit, &sMsg);
 }
 
-void __stdcall CLIENT_SendMonsterMoveToTargetMessage(int32_t nTargetX, int32_t nTargetY, int32_t nSenderId, int32_t nSkillLvl, D2UnitStrc * pUnit) {
+static void __stdcall CLIENT_SendMonsterMoveToTargetMessage(int32_t nTargetX, int32_t nTargetY, int32_t nSenderId, int32_t nSkillLvl, D2UnitStrc * pUnit) {
     D2ServerMessageHandleStrc sMsg;
     D2DynamicPathStrc* pDynamicPath = pUnit->pPath.pDynamicPath;
     sMsg.nTargetUnitType = 0;
@@ -1669,7 +1669,7 @@ static void __stdcall CLIENT_MonsterAi_IdleWanderBehavior(D2UnitStrc * pTarget, 
     CLIENT_SendMonsterMoveToRandomNearbyPosMessage(9, 1, 0, pUnit);
 }
 
-void CLIENT_MonsterIdleApproach(D2UnitStrc * pUnit) {
+static void CLIENT_MonsterIdleApproach(D2UnitStrc * pUnit) {
     int iVar2;
     int iVar3;
     int iVar4;
@@ -1694,32 +1694,32 @@ void CLIENT_MonsterIdleApproach(D2UnitStrc * pUnit) {
     *pnAiData = 1;
     D2SeedStrc sSeed = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = sSeed;
-    if (!((uint64_t)d2_bits_of(sSeed) & 1)) {
+    if (!(sSeed.nSeedLow & 1)) {
       sSeed = D2_SEED_NEXT_VAL(sSeed);
       pUnit->sSeed = sSeed;
-      local_c = sSeed.nSeedLow + (int)(((uint64_t)d2_bits_of(sSeed) & 0xffffffff) / 0x28) * -0x28;
+      local_c = sSeed.nSeedLow % 0x28;
       iVar4 = 0x28;
     } else {
       sSeed = D2_SEED_NEXT_VAL(sSeed);
       pUnit->sSeed = sSeed;
-      iVar4 = sSeed.nSeedLow + (int)(((uint64_t)d2_bits_of(sSeed) & 0xffffffff) / 0x28) * -0x28;
+      iVar4 = sSeed.nSeedLow % 0x28;
       local_c = 0x28;
     }
 
     sSeed = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = sSeed;
-    if ((uint64_t)d2_bits_of(sSeed) & 1) {
+    if (sSeed.nSeedLow & 1) {
       local_c = -local_c;
     }
 
     sSeed = D2_SEED_NEXT_VAL(sSeed);
     pUnit->sSeed = sSeed;
-    if ((uint64_t)d2_bits_of(sSeed) & 1) {
+    if (sSeed.nSeedLow & 1) {
       iVar4 = -iVar4;
     }
 
     eD2UnitType eVar1 = pTarget->eUnitType;
-    if (eVar1 == UNIT_OBJECT || 3 < (int)eVar1 && (int)eVar1 < 6) {
+    if (eVar1 == UNIT_OBJECT || 3 < (int)eVar1 && (int)eVar1 <= 5) {
       local_8 = pTarget->pPath.pStaticPath->nPosX;
     } else if (!pTarget->pPath.pDynamicPath) {
       local_8 = 0;
@@ -1728,31 +1728,31 @@ void CLIENT_MonsterIdleApproach(D2UnitStrc * pUnit) {
     }
 
     eVar1 = pTarget->eUnitType;
-    if (eVar1 == UNIT_OBJECT || 3 < (int)eVar1 && (int)eVar1 < 6) {
+    if (eVar1 == UNIT_OBJECT || 3 < (int)eVar1 && (int)eVar1 <= 5) {
       iVar2 = pTarget->pPath.pStaticPath->nPosY;
-    } else if (!pTarget->pPath.pDynamicPath) {
-      iVar2 = 0;
-    } else {
+    } else if (pTarget->pPath.pDynamicPath) {
       iVar2 = D2Common::PATH::DynamicPath::GetYPos(pTarget->pPath.pDynamicPath);
+    } else {
+      iVar2 = 0;
     }
 
     local_8 += local_c;
     eVar1 = pUnit->eUnitType;
-    if (eVar1 == UNIT_OBJECT || 3 < (int)eVar1 && (int)eVar1 < 6) {
+    if (eVar1 == UNIT_OBJECT || 3 < (int)eVar1 && (int)eVar1 <= 5) {
       local_c = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      local_c = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       local_c = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      local_c = 0;
     }
 
     eVar1 = pUnit->eUnitType;
-    if (eVar1 == UNIT_OBJECT || 3 < (int)eVar1 && (int)eVar1 < 6) {
+    if (eVar1 == UNIT_OBJECT || 3 < (int)eVar1 && (int)eVar1 <= 5) {
       iVar3 = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      iVar3 = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       iVar3 = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      iVar3 = 0;
     }
 
     D2Common::PATH::DynamicPath::OverwriteDistanceAndMaxDistance(pUnit->pPath.pDynamicPath, 0x5a);

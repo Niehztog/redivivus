@@ -303,7 +303,16 @@ void ARCHIVE_WriteMemoryCheckReport() {
         ppWalk++;
       }
 
-      if ((int)__frame0.pListPrev < 1 || (ppWalk = (int****)__frame0.pListPrev , (uintptr_t)__frame0.pListPrev[0x4b] < sHeapDetails.dwUnknown124)) {
+      if (!((int)__frame0.pListPrev < 1 || (ppWalk = (int****)__frame0.pListPrev , (uintptr_t)__frame0.pListPrev[0x4b] < sHeapDetails.dwUnknown124))) {
+        do {
+          ppInsertAfter = ppWalk;
+          ppWalk = (int****)ppInsertAfter[1];
+          if ((int)ppWalk < 1) {
+            break;
+          }
+        } while (sHeapDetails.dwUnknown124 < (uintptr_t)ppWalk[0x4b]);
+        ARCHIVE_LinkNode((int**)pNewRec, 1, (int**)ppInsertAfter, &__frame0.pListTail);
+      } else {
         pNextNode = *pNewRec;
         if (pNextNode) {
           pNextLink = pNewRec[1];
@@ -334,16 +343,6 @@ void ARCHIVE_WriteMemoryCheckReport() {
 
         *pInsertLink = (int)pNewRec;
         __frame0.pListPrev = (int***)pNewRec;
-      } else {
-        do {
-          ppInsertAfter = ppWalk;
-          ppWalk = (int****)ppInsertAfter[1];
-          if ((int)ppWalk < 1) {
-            break;
-          }
-        } while (sHeapDetails.dwUnknown124 < (uintptr_t)ppWalk[0x4b]);
-
-        ARCHIVE_LinkNode((int**)pNewRec, 1, (int**)ppInsertAfter, &__frame0.pListTail);
       }
 
       nResult = Storm::SMem::SMemFindNextHeap((uint32_t)pHeapEnum, (int*)&pHeapEnum, &sHeapDetails);

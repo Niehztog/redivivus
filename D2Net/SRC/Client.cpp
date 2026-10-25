@@ -507,7 +507,7 @@ void __stdcall NET_D2GS_ConnectToServer(eD2GSConnectionType neD2GSConnectionType
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ pD2PacketClient_to_0xAE = 0;
     pD2PacketClient_from_0xAF = 0;
     InitializeCriticalSection(&lpCriticalSection_00882ce8);
-    pD2PacketsClientBuffer = D2_NEW(D2PacketsClientStrc);
+    pD2PacketsClientBuffer = ((D2PacketsClientStrc*)Fog::Memory::AllocClientMemory(sizeof(D2PacketsClientStrc), ".\\SRC\\Client.cpp", 0xc8, 0));
     memset(pD2PacketsClientBuffer, 0, 0x7bc);
     ::D2Net::Game::Server::NET_D2GS_CLIENT_SetD2GSConnectionType(neD2GSConnectionType);
     BOOL BVar1 = ::D2Net::Game::Server::NET_D2GS_CLIENT_CheckIfConnectionTypeIsSinglePlayer();
@@ -524,7 +524,7 @@ void __stdcall NET_D2GS_ConnectToServer(eD2GSConnectionType neD2GSConnectionType
 void __stdcall NET_CLIENT_ShutdownConnection() {
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_00882ce8);
     if (pD2PacketsClientBuffer) {
-      D2_FREE(pD2PacketsClientBuffer);
+      Fog::Memory::FreeClientMemory(pD2PacketsClientBuffer, ".\\SRC\\Client.cpp", 0xda, 0);
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ pD2PacketsClientBuffer = 0;
@@ -559,7 +559,7 @@ size_t __stdcall NET_D2GS_CLIENT_ExtractPacketSize_from0xAE(char * pBytes, size_
 }
 
 // @sourcefile .\SRC\Client.cpp
-static int __stdcall NET_D2GS_CLIENT_ParseRecvBufferIntoPacketQueues() {
+int __stdcall NET_D2GS_CLIENT_ParseRecvBufferIntoPacketQueues() {
     size_t nPacketSizeResult;
     D2OnePacketClientStrc* pNewPacket;
     DWORD dwTickCount;
@@ -592,7 +592,7 @@ static int __stdcall NET_D2GS_CLIENT_ParseRecvBufferIntoPacketQueues() {
         break;
       }
 
-      pNewPacket = D2_NEW(D2OnePacketClientStrc);
+      pNewPacket = ((D2OnePacketClientStrc*)Fog::Memory::AllocClientMemory(sizeof(D2OnePacketClientStrc), ".\\SRC\\Client.cpp", 0x12c, 0));
       pNewPacket->nSize = nPacketSize;
       pNewPacket->nTickCount = 0;
       pNewPacket->pD2PacketClientNext = 0;
@@ -838,7 +838,7 @@ void __fastcall NET_D2GS_CLIENT_HandleIncomingBufferAndCreatePacket(char * pByte
         return;
       }
 
-      pNewPacket = D2_NEW(D2OnePacketClientStrc);
+      pNewPacket = ((D2OnePacketClientStrc*)Fog::Memory::AllocClientMemory(sizeof(D2OnePacketClientStrc), ".\\SRC\\Client.cpp", 0x1fd, 0));
       nSizeResult = ::D2Net::Game::Server::NET_D2GS_CLIENT_GetIncomingPacketSizeFromTableAndVariableSize(pBytes, pBytesSize, (size_t*)&nPacketSize);
       if (!nSizeResult) {
         return;

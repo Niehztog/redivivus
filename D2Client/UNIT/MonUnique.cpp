@@ -194,10 +194,10 @@ static void __fastcall DefineSuperMonster(D2UnitStrc * pUnit, int32_t eModifier,
     szSpace[0] = ' ';
     szSpace[1] = '\0';
     D2Lang::UTF8_ConvertToWideChar(gnMonsterUniqueNameBuffer, szSpace, 2);
-    if (!(!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataMonster)) {
-      nNameSeed = (uint32_t)pUnit->pUnitData.pUnitDataMonster->nNameSeed;
-    } else {
+    if (!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataMonster) {
       nNameSeed = 0;
+    } else {
+      nNameSeed = (uint32_t)pUnit->pUnitData.pUnitDataMonster->nNameSeed;
     }
     if (pUnit) {
       short int nBossNo;

@@ -1740,10 +1740,10 @@ void __stdcall DRAW_UI_Quest() {
     }
 
     D2Win::Src::D2WinFont::SetAndReturnLastFont(8);
-    if (gQuestLog.nQuestLogActiveAct != -1 && (int)gQuestLog.nQuestLogActiveAct < 6 && (int)gQuestLog.nQuestLogActiveAct < gQuestLog.nQuestLogQuestCount) {
+    if (gQuestLog.nQuestLogActiveAct != -1 && (int)gQuestLog.nQuestLogActiveAct < 6 && (int)gQuestLog.nQuestLogActiveAct < (int)gQuestLog.nQuestLogQuestCount) {
       uint16_t nParam;
       nQuestSlot = 0;
-      if (0 < gQuestLog.nQuestLogQuestCount) {
+      if (0 < (int)gQuestLog.nQuestLogQuestCount) {
         pQuestEntry = &gQuestLog.aQuestLogEntries[0].nQuestTableIndex;
         do {
           if (*pQuestEntry == gQuestLog.nQuestLogActiveAct) {
@@ -1764,8 +1764,8 @@ void __stdcall DRAW_UI_Quest() {
                   do {
                     D2Win::Src::D2WinFont::DRAW_text(pWordWrapList->wszLine, gnPanelOffsetX + gQuestUIDescInitD, nQuestSlot - gnPanelOffsetY + gQuestUIDescInitE, 0, 0);
                     pNextWrappedLine = pWordWrapList->pNext;
-                    D2_FREE(pWordWrapList->wszLine);
-                    D2_FREE(pWordWrapList);
+                    Fog::Memory::FreeClientMemory(pWordWrapList->wszLine, ".\\UI\\QuestLog.cpp", 0x8d1, 0);
+                    Fog::Memory::FreeClientMemory(pWordWrapList, ".\\UI\\QuestLog.cpp", 0x8d2, 0);
                     nQuestSlot += 0x14;
                     pWordWrapList = pNextWrappedLine;
                   } while (pNextWrappedLine);
@@ -1778,7 +1778,7 @@ void __stdcall DRAW_UI_Quest() {
 
           nQuestSlot++;
           pQuestEntry += 0x26a;
-        } while (nQuestSlot < gQuestLog.nQuestLogQuestCount);
+        } while ((int)nQuestSlot < (int)gQuestLog.nQuestLogQuestCount);
       }
     }
 

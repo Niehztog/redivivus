@@ -153,11 +153,11 @@ static void SUNITPROXY_InitNpcTradeItems(int32_t nParam1, ::SGAMEDATA * pGame, v
     }
 
     pParam[1] = (void*)gaNpcItemTables[nParam1].nTradeCount;
-    void* pAllocBuffer = D2_ALLOC_POOL(pGame->pMemoryPool, gaNpcItemTables[nParam1].nTradeCount * 0xc);
+    void* pAllocBuffer = Fog::Memory::AllocServerMemory(pGame->pMemoryPool, gaNpcItemTables[nParam1].nTradeCount * 0xc, ".\\UNIT\\sunitproxy.cpp", 0xa8, 0);
     *pParam = pAllocBuffer;
     memcpy(pAllocBuffer, gaNpcItemTables[nParam1].pTradeItems, gaNpcItemTables[nParam1].nTradeCount * 0xc);
     pParam[3] = (void*)gaNpcItemTables[nParam1].nQuestCount;
-    pAllocBuffer = D2_ALLOC_POOL(pGame->pMemoryPool, gaNpcItemTables[nParam1].nQuestCount * 4);
+    pAllocBuffer = Fog::Memory::AllocServerMemory(pGame->pMemoryPool, gaNpcItemTables[nParam1].nQuestCount * 4, ".\\UNIT\\sunitproxy.cpp", 0xab, 0);
     pParam[2] = pAllocBuffer;
     memcpy(pAllocBuffer, gaNpcItemTables[nParam1].pQuestItems, gaNpcItemTables[nParam1].nQuestCount * 4);
 }
@@ -482,10 +482,10 @@ void __fastcall SUNITPROXY_AllocNpcControl(::SGAMEDATA * pGame) {
     bool bFoundInControlTable;
     uint8_t byNpcControlFlags;
     D2GameNpcArrayStrc* pNpcArray;
-    pNpcArray = D2_NEW_POOL(pGame->pMemoryPool, D2GameNpcArrayStrc);
+    pNpcArray = ((D2GameNpcArrayStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2GameNpcArrayStrc), ".\\UNIT\\sunitproxy.cpp", 0xb7, 0));
     memset(pNpcArray, 0, 0x1100);
     D2GameNpcControlStrc* pNpcControl;
-    pNpcControl = D2_NEW_POOL(pGame->pMemoryPool, D2GameNpcControlStrc);
+    pNpcControl = ((D2GameNpcControlStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2GameNpcControlStrc), ".\\UNIT\\sunitproxy.cpp", 0xb9, 0));
     pNpcControl->pNpc = 0;
     pNpcControl->nNpcCount = 0;
     pNpcControl->nNpcCount2 = 0;
@@ -698,7 +698,7 @@ static void __stdcall SUNITPROXY_FreeNpcProxyData(D2GameNpcStrc * pNpcEntry, ::S
           pMemoryToFree->pInventory = 0;
         }
 
-        D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
+        Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\UNIT\\sunitproxy.cpp", 0x1e6, 0);
         pMemoryToFree = pNextTradeEntry;
       }
 
@@ -717,7 +717,7 @@ static void __stdcall SUNITPROXY_FreeNpcProxyData(D2GameNpcStrc * pNpcEntry, ::S
           ITEMS::Items::Drop::ITEM_DeleteItemAndFreeUnit(pGame, pTradeEntry->pUnit);
         }
 
-        D2_FREE_POOL(pGame->pMemoryPool, pTradeEntry);
+        Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pTradeEntry, ".\\UNIT\\sunitproxy.cpp", 0x204, 0);
         pTradeEntry = pDVar1;
       } while (pDVar1);
 
@@ -743,7 +743,7 @@ void __fastcall FreeNpcControl(::SGAMEDATA * pGame) {
         if (pNpcEntryPtr[-5]) {
           do {
             pNextInteraction = *(void**)((int)pInteractionEntry + 8);
-            D2_FREE_POOL(pGame->pMemoryPool, pInteractionEntry);
+            Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pInteractionEntry, ".\\UNIT\\sunitproxy.cpp", 0x21e, 0);
             pInteractionEntry = pNextInteraction;
           } while (pNextInteraction);
 
@@ -770,14 +770,14 @@ void __fastcall FreeNpcControl(::SGAMEDATA * pGame) {
       } while (iNpc < pNpcControl->nNpcCount);
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pNpcControl->pNpc);
-    D2_FREE_POOL(pGame->pMemoryPool, pNpcControl);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pNpcControl->pNpc, ".\\UNIT\\sunitproxy.cpp", 0x242, 0);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pNpcControl, ".\\UNIT\\sunitproxy.cpp", 0x243, 0);
     pGame->pNpcControl = 0;
 }
 
 // @sourcefile .\UNIT\sunitproxy.cpp
-void __stdcall SUNITPROXY_AddTradeQueueEntry(D2UnitStrc * pUnit, uint32_t dwTradeParam, int32_t nAction, ::SGAMEDATA * pGame, D2GameNpcStrc * pNpc) {
-    D2SUnitProxyStrc_Line0x85* pQueueEntry = D2_NEW_POOL(pGame->pMemoryPool, D2SUnitProxyStrc_Line0x85);
+static void __stdcall SUNITPROXY_AddTradeQueueEntry(D2UnitStrc * pUnit, uint32_t dwTradeParam, int32_t nAction, ::SGAMEDATA * pGame, D2GameNpcStrc * pNpc) {
+    D2SUnitProxyStrc_Line0x85* pQueueEntry = ((D2SUnitProxyStrc_Line0x85*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2SUnitProxyStrc_Line0x85), ".\\UNIT\\sunitproxy.cpp", 0x263, 0));
     pQueueEntry->pNext = pNpc->pProxyQueue;
     pQueueEntry->pUnit = pUnit;
     pQueueEntry->nEntryType = 0;
@@ -837,7 +837,7 @@ void __fastcall SUNITPROXY_RefreshGambleForAllNpcs(::SGAMEDATA * pThis, D2UnitSt
     uint8_t* pNpcEntryFlags = pNpcArrayBase + 0x20;
     do {
       if (pNpcEntryFlags[3] == 1 && *pNpcEntryFlags == 1 && *(int*)(pNpcEntryFlags - 4) == 1) {
-        pNewQueueEntry = (uint32_t*)D2_ALLOC_POOL(pThis->pMemoryPool, 0x14);
+        pNewQueueEntry = (uint32_t*)Fog::Memory::AllocServerMemory(pThis->pMemoryPool, 0x14, ".\\UNIT\\sunitproxy.cpp", 0x263, 0);
         pNewQueueEntry[4] = *(uint32_t*)(pNpcEntryFlags - 0xc);
         pNewQueueEntry[3] = 0;
         *pNewQueueEntry = (uint32_t)(uintptr_t)dwGameTick;
@@ -1047,7 +1047,7 @@ void __fastcall SUNITPROXY_RemovePlayerFromNpc(::SGAMEDATA * pGame, D2UnitStrc *
             pProxyEntry->pInventory = 0;
           }
 
-          D2_FREE_POOL(pGame->pMemoryPool, pProxyEntry);
+          Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pProxyEntry, ".\\UNIT\\sunitproxy.cpp", 0x48f, 0);
           break;
         }
 
@@ -1077,7 +1077,7 @@ void __fastcall SUNITPROXY_RemovePlayerFromNpc(::SGAMEDATA * pGame, D2UnitStrc *
       pNpc->pPlayerInteractions = pInteractionEntry->pNext;
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pInteractionEntry);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pInteractionEntry, ".\\UNIT\\sunitproxy.cpp", 0x4a7, 0);
 }
 
 D2InventoryStrc * __fastcall SUNITPROXY_GetPlayerProxyInventory(::SGAMEDATA * pGame, D2UnitStrc * pNpcUnit, D2UnitStrc * pPlayerUnit) {
@@ -1115,7 +1115,7 @@ int32_t __fastcall SUNITPROXY_AddPlayerInteraction(::SGAMEDATA * pGame, D2GameNp
     D2NpcPlayerInteractionStrc* pInteractionEntry = pNpcProxy->pPlayerInteractions;
     while (true) {
       if (!pInteractionEntry) {
-        pInteractionEntry = D2_NEW_POOL(pGame->pMemoryPool, D2NpcPlayerInteractionStrc);
+        pInteractionEntry = ((D2NpcPlayerInteractionStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2NpcPlayerInteractionStrc), ".\\UNIT\\sunitproxy.cpp", 0x4ed, 0));
         pInteractionEntry->nPlayerGUID = nPlayerGuid;
         pInteractionEntry->pNext = pNpcProxy->pPlayerInteractions;
         pNpcProxy->pPlayerInteractions = pInteractionEntry;
@@ -1146,7 +1146,7 @@ void __fastcall SUNITPROXY_ResetNpcProxy(::SGAMEDATA * pGame, D2GameNpcStrc * pN
 
 // One-time initialisation of the trade and quest item tables for a specific NPC vendor (by nNpcIndex). Guards against re-entry via gbaNpcItemTableBuilt. Scans the Items.txt table twice: first pass counts trade vs quest items for the NPC; allocates gpaNpcTradeItemTable (12 bytes/entry) and gpaNpcQuestItemTable (4 bytes/entry); second pass fills both tables with item class IDs, flags, and level data from the txt rows. Quest items (non-zero npcquest column) go to the quest table; all others to the trade table.
 // @sourcefile .\UNIT\sunitproxy.cpp
-static void __stdcall SUNITPROXY_BuildNpcItemTables(int32_t nNpcIndex) {
+void __stdcall SUNITPROXY_BuildNpcItemTables(int32_t nNpcIndex) {
     D2ItemsTxt* pDVar2;
     char* pItemRow;
     D2ItemsTableStrc* pItemTblSize = D2Common::DATATBLS::ItemTbls::TXT_Items_GetSize();
@@ -1178,11 +1178,11 @@ static void __stdcall SUNITPROXY_BuildNpcItemTables(int32_t nNpcIndex) {
       } while (iVar1);
     }
 
-    void* pAllocBuf = D2_ALLOC_POOL(nullptr, nTradeCountTmp * 0xc);
+    void* pAllocBuf = Fog::Memory::AllocServerMemory(nullptr, nTradeCountTmp * 0xc, ".\\UNIT\\sunitproxy.cpp", 0x523, 0);
     gaNpcItemTables[nNpcIndex].pTradeItems = pAllocBuf;
     memset(pAllocBuf, 0, nTradeCountTmp * 0xc);
     gaNpcItemTables[nNpcIndex].nTradeCount = nTradeCountTmp;
-    pAllocBuf = D2_ALLOC_POOL(nullptr, nQuestCount * 4);
+    pAllocBuf = Fog::Memory::AllocServerMemory(nullptr, nQuestCount * 4, ".\\UNIT\\sunitproxy.cpp", 0x528, 0);
     gaNpcItemTables[nNpcIndex].pQuestItems = pAllocBuf;
     memset(pAllocBuf, 0, nQuestCount * 4);
     gaNpcItemTables[nNpcIndex].nQuestCount = nQuestCount;
@@ -1311,11 +1311,11 @@ void __stdcall SUNITPROXY_FreeAllNpcItemTables() {
         pMemoryToFree = gaNpcItemTables[nNpcIdx].pTradeItems;
         gbaNpcItemTableBuilt[nNpcIdx] = 0;
         if (pMemoryToFree) {
-          D2_FREE_POOL(nullptr, pMemoryToFree);
+          Fog::Memory::FreeServerMemory(nullptr, pMemoryToFree, ".\\UNIT\\sunitproxy.cpp", 0x59d, 0);
           gaNpcItemTables[nNpcIdx].pTradeItems = 0;
         }
         if (gaNpcItemTables[nNpcIdx].pQuestItems) {
-          D2_FREE_POOL(nullptr, gaNpcItemTables[nNpcIdx].pQuestItems);
+          Fog::Memory::FreeServerMemory(nullptr, gaNpcItemTables[nNpcIdx].pQuestItems, ".\\UNIT\\sunitproxy.cpp", 0x5a2, 0);
           gaNpcItemTables[nNpcIdx].pQuestItems = 0;
         }
       }
@@ -1372,7 +1372,7 @@ void __fastcall SUNITPROXY_RemovePlayerProxyInventory(::SGAMEDATA * pGame, D2Uni
       pMemoryToFree->pInventory = 0;
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\UNIT\\sunitproxy.cpp", 0x5d0, 0);
 }
 
 // Refreshes all NPC proxies that belong to act nAct. When bResult==0 and 240 s have elapsed since last update, marks the proxy dirty. When bResult!=0, verifies the backing live monster still exists with the correct class; if not, resets the proxy inventory; if yes and no AI-counted monsters remain, resets via SUNITPROXY_ResetNpcProxy; otherwise marks proxy dirty. Iterates pGame->pNpcControl->pNpc using GetTickCount for time checks.

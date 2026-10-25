@@ -621,7 +621,7 @@ void __fastcall Q31_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A5Q1::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA5Q1Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA5Q1Strc);
+    D2QuestDataA5Q1Strc* pQuestSpecificData = ((D2QuestDataA5Q1Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA5Q1Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a5q1.cpp", 0x2d3, 0));
     pQuestData->pQuestSpecificData.pA5Q1 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_SiegeOnHaggorath;
     pQuestData->fpStatusFilter = Q31_StatusFilter;

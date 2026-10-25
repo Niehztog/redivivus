@@ -449,13 +449,13 @@ static void __stdcall DAMAGE_ApplyCold(D2UnitStrc * pUnit, int32_t nParam, D2Uni
 
     D2StatListExStrc* pColdStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit2, STATE_cold);
     ::SGAMEDATA* pGame = SUnit::GetGamePointer(pUnit);
-    if (!pUnit2 || pUnit2->eUnitType != UNIT_MONSTER || (nMonClassId = pUnit2->nClassId , nMonClassId < 0) || nMonClassId >= sgptDataTable->nTxtMonStatsSize || !(sgptDataTable->pTxtMonStats + nMonClassId)) {
-      local_8 = -0x32;
-    } else {
+    if (!(!pUnit2 || pUnit2->eUnitType != UNIT_MONSTER || (nMonClassId = pUnit2->nClassId , nMonClassId < 0) || nMonClassId >= sgptDataTable->nTxtMonStatsSize || !(sgptDataTable->pTxtMonStats + nMonClassId))) {
       local_8 = (int)sgptDataTable->pTxtMonStats[nMonClassId].aColdEffect[pGame->nDifficulty];
       if (!local_8) {
         return;
       }
+    } else {
+      local_8 = -0x32;
     }
     if (pUnit2 && pUnit2->eUnitType == UNIT_MONSTER && local_8 < 0) {
       D2DifficultyLevelsTxt* pDiffLevels;
@@ -743,7 +743,7 @@ static void DAMAGE_ApplyUndeadBonusDamage(int32_t nParam, D2UnitStrc * pUnit, D2
     *(int*)(nParam + 0xc) = *(int*)(nParam + 0xc) + iVar1 + nUndeadDmgPct;
 }
 
-void __stdcall DAMAGE_ApplyMonsterTypeBonusDamage(D2UnitStrc * pUnit, D2DamageStrc * pDamage, int * pnParam) {
+static void __stdcall DAMAGE_ApplyMonsterTypeBonusDamage(D2UnitStrc * pUnit, D2DamageStrc * pDamage, int * pnParam) {
     D2StatStrc anBonusValues[128];
     if (!(pnParam && *pnParam == 1)) {
       return;
@@ -770,7 +770,7 @@ void __stdcall DAMAGE_ApplyMonsterTypeBonusDamage(D2UnitStrc * pUnit, D2DamageSt
     do {
       uint32_t nMonTypeId;
       nMonTypeId = (uint32_t)(uint16_t)anBonusValues[i].wSubIndex;
-      if (nMonTypeId && (int)nMonTypeId < pDataTbl->nTxtMonTypeSize && 0 < nMonTypeCount && nMonTypeCount < pDataTbl->nTxtMonTypeSize && *(uint32_t*)(pDataTbl->pTxtMonTypeUnknown + (pDataTbl->nMonTypeEquivRowDwords * nMonTypeCount + ((int)nMonTypeId >> 5)) * 4) & gadwBitMasks[nMonTypeId & 0x1f]) {
+      if (nMonTypeId && (int)nMonTypeId < pDataTbl->nTxtMonTypeSize && 0 < nMonTypeCount && nMonTypeCount < pDataTbl->nTxtMonTypeSize && *(uint32_t*)((uint8_t*)pDataTbl->pTxtMonTypeUnknown + (pDataTbl->nMonTypeEquivRowDwords * nMonTypeCount + ((int)nMonTypeId >> 5)) * 4) & gadwBitMasks[nMonTypeId & 0x1f]) {
         pDamage->dwEnDmgPct += anBonusValues[i].nStatValue;
         pDataTbl = sgptDataTable;
       }
@@ -1870,7 +1870,7 @@ void __fastcall FreeCombat(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
           pPrevCombatEntry->pNext = pNextCombatEntry;
         }
 
-        D2_FREE_POOL(pGame->pMemoryPool, pCombatEntry);
+        Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pCombatEntry, ".\\UNIT\\SUnitDmg.cpp", 0x769, 0);
         pCurCombatEntry = pPrevCombatEntry;
       }
 
@@ -1899,7 +1899,7 @@ void __fastcall DAMAGE_RemoveDamageListEntry(::SGAMEDATA * pGame, int * pnParam,
           pPrevCombatEntry->pNext = pNextCombatEntry;
         }
 
-        D2_FREE_POOL(pGame->pMemoryPool, pCombatEntry);
+        Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pCombatEntry, ".\\UNIT\\SUnitDmg.cpp", 0x79f, 0);
         pCurCombatEntry = pPrevCombatEntry;
       }
 
@@ -1915,7 +1915,7 @@ static void __stdcall DAMAGE_AddDamageListEntry(int32_t nGamePtr, int * pnParam1
       return;
     }
 
-    D2CombatEntryStrc* pNewCombatEntry = D2_NEW_POOL(*(D2PoolManagerStrc**)(nGamePtr + 0x1c), D2CombatEntryStrc);
+    D2CombatEntryStrc* pNewCombatEntry = ((D2CombatEntryStrc*)Fog::Memory::AllocServerMemory(*(D2PoolManagerStrc**)(nGamePtr + 0x1c), sizeof(D2CombatEntryStrc), ".\\UNIT\\SUnitDmg.cpp", 0x7cb, 0));
     pNewCombatEntry->field_0 = nGamePtr;
     pNewCombatEntry->eAttackerType = *pnParam2;
     pNewCombatEntry->nAttackerGUID = pnParam2[3];
@@ -2856,19 +2856,19 @@ BOOL __fastcall DAMAGE_RollAttackHit(D2UnitStrc * pUnit, D2UnitStrc * pUnit2, in
     iVar1 = nToHitBonusStat * iVar2 * 2 / (iVar2 + iVar1);
     if (iVar1 < 6) {
       iVar1 = 5;
-    } else if (0x5e < iVar1) {
+    } else if (0x5f <= iVar1) {
       iVar1 = 0x5f;
     }
 
     sSeedResult = D2_SEED_NEXT(pUnit->sSeed);
     pUnit->sSeed = sSeedResult;
-    nDexBonus = sSeedResult.nSeedLow + (int)(((uint64_t)d2_bits_of(sSeedResult) & 0xffffffff) / 100) * -100;
+    nDexBonus = sSeedResult.nSeedLow % 100;
     pActiveWeapon = pDefender;
     nAcTotal = iVar1;
     iVar2 = nDexBonus;
     SUnit::GetGamePointer(pUnit);
     D2Game::nullsub(pActiveWeapon, nAcTotal, iVar2);
-    if (iVar1 <= nDexBonus) {
+    if (nDexBonus >= iVar1) {
       return 0;
     }
 

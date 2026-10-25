@@ -344,7 +344,19 @@ int __stdcall PLRSAVE_RestoreEquippedItem(::SGAMEDATA * pGame, D2UnknownItemRela
 
     eD2PlayerAnimMode eItemMode;
     eItemMode = pItem->eAnimMode.ePlayerMode;
-    if (eItemMode != Death) {
+    if (eItemMode == Death) {
+      D2Common::Units::SetupUpdateFlag(pItem, 4);
+      nBodyLocId = pItemUnknownStructure->nPosY;
+      D2Common::Units::SetXForStaticUnit(pItem, pItemUnknownStructure->nPosX);
+      D2Common::Units::SetYForStaticUnit(pItem, nBodyLocId);
+      nItemGUID = pItem->nUnitGUID;
+      pInventory = 0;
+      nSendUpdate = 0;
+      nParam1 = 0;
+      nUnitPosY = D2Client::Units::GetYPosFromDynamicPathUnit(pItem);
+      nUnitPosX = D2Client::Units::GetXPosFromDynamicPathUnit(pItem);
+      nPlaceResult = ITEMS::ItemMode::SERVER_ItemToInventory(".\\PLAYER\\PlrSave.cpp", 0x1c2, pGame, pUnit, nItemGUID, nUnitPosX, nUnitPosY, nParam1, nSendUpdate, pInventory);
+    } else {
       uint32_t uVar1;
       if (eItemMode == eD2PlayerAnimMode_ns::Neutral) {
         pCurInventory = pUnit->pInventory;
@@ -396,18 +408,6 @@ int __stdcall PLRSAVE_RestoreEquippedItem(::SGAMEDATA * pGame, D2UnknownItemRela
       }
 
       nPlaceResult = ITEMS::ItemMode::PutItemInItem(pGame, pUnit, pItem->nUnitGUID, dwContainerGUID, (int32_t*)&pCurInventory, 0, 1, 0, 0);
-    } else {
-      D2Common::Units::SetupUpdateFlag(pItem, 4);
-      nBodyLocId = pItemUnknownStructure->nPosY;
-      D2Common::Units::SetXForStaticUnit(pItem, pItemUnknownStructure->nPosX);
-      D2Common::Units::SetYForStaticUnit(pItem, nBodyLocId);
-      nItemGUID = pItem->nUnitGUID;
-      pInventory = 0;
-      nSendUpdate = 0;
-      nParam1 = 0;
-      nUnitPosY = D2Client::Units::GetYPosFromDynamicPathUnit(pItem);
-      nUnitPosX = D2Client::Units::GetXPosFromDynamicPathUnit(pItem);
-      nPlaceResult = ITEMS::ItemMode::SERVER_ItemToInventory(".\\PLAYER\\PlrSave.cpp", 0x1c2, pGame, pUnit, nItemGUID, nUnitPosX, nUnitPosY, nParam1, nSendUpdate, pInventory);
     }
     if (!nPlaceResult) {
       return 0xd;
@@ -529,14 +529,14 @@ static int __stdcall PLRSAVE_RestoreItemToBodyLoc(D2UnitStrc * pUnit, ::SGAMEDAT
 int32_t __stdcall SAVE_SerializeItemIfValid(D2UnitStrc * pUnit, char * szText, size_t nSize, int32_t nParam1, int32_t nParam2, int32_t nParam3) {
     BOOL bTaskResult;
     int32_t nSerializeResult;
-    if (!pUnit || pUnit->eUnitFlagsEx >> 0xf & 1 || !nParam1 && nParam2 && !nParam3 && (bTaskResult = GAME::Task::TASK_ReturnTrue() , !bTaskResult)) {
-      nSerializeResult = 0;
-    } else {
+    if (!(!pUnit || pUnit->eUnitFlagsEx >> 0xf & 1 || !nParam1 && nParam2 && !nParam3 && (bTaskResult = GAME::Task::TASK_ReturnTrue() , !bTaskResult))) {
       nSerializeResult = D2Common::ITEMS::Items::SerializeItem(pUnit, (uint8_t*)szText, nSize, (D2StatListExStrc*)0x1, 1, 0);
       if (!nSerializeResult) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x75c);
         exit(-1);
       }
+    } else {
+      nSerializeResult = 0;
     }
 
     return nSerializeResult;
@@ -2553,7 +2553,7 @@ int32_t __fastcall SERVER_LoadPlayerFromSaveFile(::SGAMEDATA * pGame, D2ClientSt
     return nResult;
 }
 
-int32_t __fastcall CLIENT_ReadAndLoadSaveFile(D2ClientStrc * pClient, D2RoomStrc * dwParam, D2UnitStrc * * ppUnit, ::SGAMEDATA * pGame, char * charName, uint32_t nX, uint32_t nY) {
+static int32_t __fastcall CLIENT_ReadAndLoadSaveFile(D2ClientStrc * pClient, D2RoomStrc * dwParam, D2UnitStrc * * ppUnit, ::SGAMEDATA * pGame, char * charName, uint32_t nX, uint32_t nY) {
     // Frame -9724..-1532 is ONE object: a call writes 8192 literal bytes starting at &saveBuffer.
     // Separate locals let the compiler reorder them, and the write would run off the frame.
     struct __frame0_t {
@@ -2612,7 +2612,7 @@ static int32_t __fastcall CLIENT_LoadPlayerFromDisk(::SGAMEDATA * pGame, uint32_
     return nResult;
 }
 
-int32_t __stdcall CLIENT_LoadPlayerFromNetworkSave(::SGAMEDATA * pGame, D2ClientStrc * pClient, D2UnitStrc * * ppUnit, uint32_t dwParam1, uint32_t dwParam2, uint32_t dwParam3) {
+static int32_t __stdcall CLIENT_LoadPlayerFromNetworkSave(::SGAMEDATA * pGame, D2ClientStrc * pClient, D2UnitStrc * * ppUnit, uint32_t dwParam1, uint32_t dwParam2, uint32_t dwParam3) {
     *ppUnit = 0;
     D2SaveFileHeaderStrc* pSavegame = GAME::Clients::GetSaveGame(pClient);
     size_t nSaveGameSize = GAME::Clients::GetSaveGameSize(pClient);

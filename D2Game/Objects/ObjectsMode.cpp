@@ -943,15 +943,14 @@ static void OBJMODE_SpawnMonsterFromObject(eD2MonsterAnimMode eMonsterAnimMode, 
 
 void __fastcall OBJMODE_SpawnRandomMonsters(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     D2ObjectOperateFnArg sOperation;
-    D2Common::Units::UNITS_GetRoom(pUnit);
-    sOperation.pSeed = ObjectsRgn::GetObjectControlSeed(pGame);
+    sOperation.pSeed = ObjectsRgn::GetObjectControlSeed(pGame, D2Common::Units::UNITS_GetRoom(pUnit));
     D2SeedStrc seedNext = D2_SEED_NEXT(*sOperation.pSeed);
     *sOperation.pSeed = seedNext;
     int nSpawnCount = (seedNext.nSeedLow & 1) + 1;
     sOperation.sArg.pGame = pGame;
     sOperation.sArg.pVictim = pUnit;
     int32_t nMonClassId = ObjectsRgn::OBJECT_HandleObjectMode(&sOperation.sArg);
-    if (!(-1 < nMonClassId && nMonClassId < sgptDataTable->nTxtMonStatsSize)) {
+    if (!(0 <= nMonClassId && nMonClassId < sgptDataTable->nTxtMonStatsSize)) {
       return;
     }
 
@@ -2830,7 +2829,10 @@ BOOL __fastcall OBJOP_ActivatePortalObject(D2ObjectOperateFnArg * pOperation) {
     BOOL bAllowNeighboorRooms;
     int32_t nLine;
     D2UnitStrc* pVictim;
-    if (!(!pOperation->pAttacker || pOperation->pAttacker->eUnitType != UNIT_PLAYER)) {
+    if (!pOperation->pAttacker || pOperation->pAttacker->eUnitType != UNIT_PLAYER) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xfb3);
+      exit(-1);
+    } else {
       uint8_t byPortalFlags;
       byPortalFlags = D2Common::Units::GetObjectPortalFlags(pOperation->sArg.pVictim);
       dwPortalFlagsMerged = (uint32_t)((uint32_t)((uint32_t)d2_load24((char*)&dwPortalFlagsMerged + 1) & 0xffffffu) << 8 | (uint32_t)(uint8_t)byPortalFlags) | 5;
@@ -2876,9 +2878,6 @@ BOOL __fastcall OBJOP_ActivatePortalObject(D2ObjectOperateFnArg * pOperation) {
         return 0;
         return 0;
       }
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xfb3);
-      exit(-1);
     }
 }
 

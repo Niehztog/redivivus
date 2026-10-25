@@ -1155,17 +1155,17 @@ static BOOL __stdcall GetSourceLineWithRetry(HANDLE hProcess, DWORD nAddress, vo
 
 // @sourcefile .\Src\Exceptions.cpp
 // Frees a D2FogModuleNodeStrc list (next at +0x20c); both callers pass the module list from LoadSymbolsForAllModules/EnumerateModulesPsapi.
-static void __fastcall FOG_FreeModuleList(D2FogModuleNodeStrc * pModuleList) {
+void __fastcall FOG_FreeModuleList(D2FogModuleNodeStrc * pModuleList) {
     while (pModuleList) {
       D2FogModuleNodeStrc* pNextException;
       pNextException = pModuleList->pNext;
-      D2_FREE(pModuleList);
+      Fog::Memory::FreeClientMemory(pModuleList, ".\\Src\\Exceptions.cpp", 0x1f7, 0);
       pModuleList = pNextException;
     }
 }
 
 // @sourcefile .\Src\Exceptions.cpp
-static D2FogModuleNodeStrc * __stdcall EnumerateModulesToolhelp32(uint32_t dwProcessId) {
+D2FogModuleNodeStrc * __stdcall EnumerateModulesToolhelp32(uint32_t dwProcessId) {
     char* pszCopySrc;
     D2FogModuleNodeStrc* pDVar1;
     D2FogModuleNodeStrc* pPrevModule;
@@ -1221,7 +1221,7 @@ static D2FogModuleNodeStrc * __stdcall EnumerateModulesToolhelp32(uint32_t dwPro
         return pDVar1;
       }
 
-      pModuleNode = D2_NEW(D2FogModuleNodeStrc);
+      pModuleNode = ((D2FogModuleNodeStrc*)Fog::Memory::AllocClientMemory(sizeof(D2FogModuleNodeStrc), ".\\Src\\Exceptions.cpp", 0x253, 0));
       memset(pModuleNode, 0, 0x210);
       pszCopySrc = tModuleEntry.szExePath;
       bHasMore = (int)pModuleNode - (int)pszCopySrc;
@@ -1268,7 +1268,7 @@ static D2FogModuleNodeStrc * __stdcall EnumerateModulesToolhelp32(uint32_t dwPro
 
 // Enumerates process modules using PSAPI library. Loads PSAPI.DLL, queries module list, retrieves module paths and base names, constructs sorted list of module information for debugging.
 // @sourcefile .\Src\Exceptions.cpp
-static D2FogModuleNodeStrc * __stdcall EnumerateModulesPsapi(HANDLE hProcess) {
+D2FogModuleNodeStrc * __stdcall EnumerateModulesPsapi(HANDLE hProcess) {
     // Frame slots -564..-556 are ONE object: &pModuleBase is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -1778,7 +1778,7 @@ static int BuildSymbolSearchPath(char * szSearchPath) {
 }
 
 // @sourcefile .\Src\Exceptions.cpp
-static int __stdcall InitializeSymbolsWithRefcount() {
+int __stdcall InitializeSymbolsWithRefcount() {
     // Static local variables (originally global data)
     static char szDbgSymbolSearchPath[4096] = {
     0,
@@ -5916,7 +5916,7 @@ static int __stdcall InitializeSymbolsWithRefcount() {
         pModuleNode = LoadSymbolsForAllModules(hProcess, dwProcessId);
         while (pModuleNode) {
           pNextModule = pModuleNode->pNext;
-          D2_FREE(pModuleNode);
+          Fog::Memory::FreeClientMemory(pModuleNode, ".\\Src\\Exceptions.cpp", 0x1f7, 0);
           pModuleNode = pNextModule;
         }
       }
@@ -6406,7 +6406,7 @@ BOOL __fastcall LoadPreviousCrashDump(uint8_t * pOutBuffer, int * pnBufferSize) 
       if (!iVar2) {
         nFileSize = ftell(pFile);
         fseek(pFile, 0, 0);
-        pRecordCur = (D2CharSelCompStrc*)D2_ALLOC(nFileSize);
+        pRecordCur = (D2CharSelCompStrc*)Fog::Memory::AllocClientMemory(nFileSize, ".\\Src\\Exceptions.cpp", 0x75b, 0);
         fread(pRecordCur, 1, nFileSize, pFile);
         fclose(pFile);
         /* LPCSTR lpFileName for DeleteFileA */ DeleteFileA(szDumpPath);

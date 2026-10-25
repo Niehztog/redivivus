@@ -107,7 +107,7 @@ static void __stdcall DRLGROOM_RemoveClientFromRoom_HaltTail(int nLine);
 // @sourcefile .\DUNGEON\Dungeon.cpp
 D2DrlgActStrc * __stdcall AllocAct(BYTE nActNo, int32_t dwInitSeed, BOOL bClientSide, ::SGAMEDATA * pGame, BYTE nDifficulty, D2PoolManagerStrc * pMemory, eD2LevelId eLevel, fAutoMap pfAutoMap, fTownAutoMap pfTownAutoMap) {
     D2DrlgStrc* pDrlg;
-    D2DrlgActStrc* pAct = D2_NEW_POOL(pMemory, D2DrlgActStrc);
+    D2DrlgActStrc* pAct = ((D2DrlgActStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2DrlgActStrc), ".\\DUNGEON\\Dungeon.cpp", 0x19, 0));
     memset(pAct, 0, 0x60);
     pAct->dwInitSeed = dwInitSeed;
     pAct->bClientSide = bClientSide;
@@ -245,7 +245,7 @@ void __stdcall DRLGROOM_GetAdjacentRoomsList(D2RoomStrc * pRoom, D2RoomStrc * * 
 // Allocates and zero-initializes a D2RoomStrc (0x80 bytes) from the server memory pool.
 // @sourcefile .\DUNGEON\Dungeon.cpp
 D2RoomStrc * __fastcall DRLGROOM_AllocRoomStrc(D2PoolManagerStrc * pMemory) {
-    D2RoomStrc* pNewRoom = D2_NEW_POOL(pMemory, D2RoomStrc);
+    D2RoomStrc* pNewRoom = ((D2RoomStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2RoomStrc), ".\\DUNGEON\\Dungeon.cpp", 0xf5, 0));
     memset(pNewRoom, 0, 0x80);
     return pNewRoom;
 }
@@ -253,7 +253,7 @@ D2RoomStrc * __fastcall DRLGROOM_AllocRoomStrc(D2PoolManagerStrc * pMemory) {
 // @sourcefile .\DUNGEON\Dungeon.cpp
 static void __stdcall DRLGROOM_UpdateRoomsNearAndCount(D2PoolManagerStrc * pMemory, D2RoomStrc * pRoom) {
     int32_t nNearCount = Drlg::DrlgRoom::GetRoomsNearCount(pRoom->pRoomEx);
-    D2RoomStrc** ppRoomList = (D2RoomStrc**)D2_ALLOC_POOL(pMemory, nNearCount * 4);
+    D2RoomStrc** ppRoomList = (D2RoomStrc**)Fog::Memory::AllocServerMemory(pMemory, nNearCount * 4, ".\\DUNGEON\\Dungeon.cpp", 0x100, 0);
     pRoom->ppRoomList = ppRoomList;
     uint32_t uRealCount = Drlg::DrlgRoom::GetRealRoomsNearCount(pRoom->pRoomEx, ppRoomList);
     uint32_t i = 0;
@@ -287,7 +287,7 @@ D2RoomStrc * __fastcall AllocRoom(D2DrlgActStrc * pDrlgAct, D2RoomExStrc * pRoom
       exit(-1);
     }
 
-    D2RoomStrc* pDrlgRoom = D2_NEW_POOL(pDrlgAct->pMemory, D2RoomStrc);
+    D2RoomStrc* pDrlgRoom = ((D2RoomStrc*)Fog::Memory::AllocServerMemory(pDrlgAct->pMemory, sizeof(D2RoomStrc), ".\\DUNGEON\\Dungeon.cpp", 0xf5, 0));
     memset(pDrlgRoom, 0, 0x80);
     pDrlgRoom->eFlags = eFlags;
     D2Common::Seed::InitSeed_Param_666(&pDrlgRoom->sSeed, nInitSeed);
@@ -792,7 +792,7 @@ void __stdcall AllocDrlgDelete(D2RoomStrc * pRoom, eD2UnitType eUnitType, int32_
       return;
     }
 
-    D2DrlgDeleteStrc* pDrlgDelete = D2_NEW_POOL(pRoom->pDrlgAct->pMemory, D2DrlgDeleteStrc);
+    D2DrlgDeleteStrc* pDrlgDelete = ((D2DrlgDeleteStrc*)Fog::Memory::AllocServerMemory(pRoom->pDrlgAct->pMemory, sizeof(D2DrlgDeleteStrc), ".\\DUNGEON\\Dungeon.cpp", 0x384, 0));
     pDrlgDelete->eUnitType = eUnitType;
     pDrlgDelete->nUnitGUID = nUnitGUID;
     pDrlgDelete->pNext = pRoom->pDrlgDelete;
@@ -809,13 +809,10 @@ void __stdcall DRLGROOM_FreeDrlgDelete(D2RoomStrc * pRoom) {
       exit(-1);
     }
 
-      do {
-        pNext = pCurrent->pNext;
-        D2_FREE_POOL(pMemory, pCurrent);
-        pCurrent = pNext;
-      } while (pNext);
-
-      pRoom->pDrlgDelete = 0;
+    D2DrlgDeleteStrc* pCurrent;
+    pCurrent = pRoom->pDrlgDelete;
+    pMemory = pRoom->pDrlgAct->pMemory;
+    if (!pCurrent) {
       return;
     }
 
@@ -1049,17 +1046,9 @@ void __stdcall DRLGROOM_AddClientToRoom(D2RoomStrc * pRoom, int32_t nClientId) {
         exit(-1);
       } else {
         nClientsMaxSnapshot = pRoom->nClientsMax;
-        if ((uint32_t)pRoom->nClientsCount <= nClientsMaxSnapshot) {
-          if (pRoom->nClientsCount == nClientsMaxSnapshot) {
-            pRoom->nClientsMax = nClientsMaxSnapshot + 4;
-            pNewClients = (D2ClientStrc**)D2_REALLOC_POOL(pRoom->pDrlgAct->pMemory, pRoom->pClients, (nClientsMaxSnapshot + 4) * 4);
-            pRoom->pClients = pNewClients;
-          }
-
-          pRoom->pClients[pRoom->nClientsCount] = (D2ClientStrc*)nClientId;
-          pRoom->nClientsCount++;
-          DRLGROOM_SortClientList(pRoom);
-          return;
+        if (!((uint32_t)pRoom->nClientsCount <= nClientsMaxSnapshot)) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x477);
+          exit(-1);
         }
 
         if (pRoom->nClientsCount == nClientsMaxSnapshot) {
@@ -1181,11 +1170,11 @@ void __fastcall FreeRoom(D2PoolManagerStrc * pMemory, D2RoomStrc * pRoom) {
     Collision::FreeRoomCollisionGrid(pMemory, pRoom);
     DRLGROOM_FreeDrlgDelete(pRoom);
     if (pRoom->pClients) {
-      D2_FREE_POOL(pRoom->pDrlgAct->pMemory, pRoom->pClients);
+      Fog::Memory::FreeServerMemory(pRoom->pDrlgAct->pMemory, pRoom->pClients, ".\\DUNGEON\\Dungeon.cpp", 0x4e2, 0);
     }
 
-    D2_FREE_POOL(pMemory, pRoom->ppRoomList);
-    D2_FREE_POOL(pMemory, pRoom);
+    Fog::Memory::FreeServerMemory(pMemory, pRoom->ppRoomList, ".\\DUNGEON\\Dungeon.cpp", 0x4e4, 0);
+    Fog::Memory::FreeServerMemory(pMemory, pRoom, ".\\DUNGEON\\Dungeon.cpp", 0x4e5, 0);
 }
 
 // Sets pRoom->pRoomTiles to NULL; halts (Dungeon.cpp line 1260) on NULL.
@@ -1474,7 +1463,7 @@ void __stdcall GetPortalLevelArrayFromPortalFlags(D2PoolManagerStrc * pMemory, i
       } while (nBitIdx < nTotalLevels);
 
       if (nMatchCount) {
-        pAllocatedLevels = (int*)D2_ALLOC_POOL(pMemory, nMatchCount * 4);
+        pAllocatedLevels = (int*)Fog::Memory::AllocServerMemory(pMemory, nMatchCount * 4, ".\\DUNGEON\\Dungeon.cpp", 0x614, 0);
         *ppLevels = pAllocatedLevels;
         memcpy(pAllocatedLevels, anMatchedLevels, nMatchCount * 4);
         *pnLevels = nMatchCount;
@@ -1605,7 +1594,7 @@ void __stdcall FreeAct(D2DrlgActStrc * pDrlgAct) {
       pDrlgAct->pEnvironment = 0;
     }
 
-    /* Finally frees D2DrlgAct it self */ D2_FREE_POOL(pDrlgAct->pMemory, pDrlgAct);
+    /* Finally frees D2DrlgAct it self */ Fog::Memory::FreeServerMemory(pDrlgAct->pMemory, pDrlgAct, ".\\DUNGEON\\Dungeon.cpp", 0x52, 0);
 }
 
 D2RoomStrc * __stdcall SpawnUnit(D2DrlgActStrc * pDrlgAct, eD2LevelId eLevel, int32_t nParam, int * pnParam1, int * pnParam2, uint32_t nParam2) {

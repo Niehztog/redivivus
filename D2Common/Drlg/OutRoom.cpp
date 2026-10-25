@@ -48,7 +48,7 @@ void __fastcall DRLGOUTROOM_FreeDrlgOutdoorRoomData(D2RoomExStrc * pRoomEx) {
     DrlgGrid::DRLGGRID_FreeGrid(pMemory, &pGrid->pFloorGrid);
     DrlgGrid::DRLGGRID_FreeGrid(pMemory, &pGrid->pCellGrid);
     DrlgVer::DRLGVER_FreeVertices(pMemory, (D2DrlgVertexStrc**)&pGrid->pVertex);
-    D2_FREE_POOL(pMemory, pGrid);
+    Fog::Memory::FreeServerMemory(pMemory, pGrid, ".\\DRLG\\OutRoom.cpp", 0xad, 0);
     pRoomEx->pRoomExData.pRoomExDataMazeRoom = 0;
 }
 
@@ -68,7 +68,7 @@ void __fastcall DRLGOUTROOM_FreeOutRoomEx(D2RoomExStrc * pRoomEx) {
 
 // @sourcefile .\DRLG\OutRoom.cpp
 void __fastcall DRLGOUTROOM_AllocOutdoorRoomData(D2RoomExStrc * pRoomEx) {
-    D2DrlgRoomExDataMazeStrc* pRoomExDataOutRoom = D2_NEW_POOL(pRoomEx->pLevel->pDrlg->pMemoryPool, D2DrlgRoomExDataMazeStrc);
+    D2DrlgRoomExDataMazeStrc* pRoomExDataOutRoom = ((D2DrlgRoomExDataMazeStrc*)Fog::Memory::AllocServerMemory(pRoomEx->pLevel->pDrlg->pMemoryPool, sizeof(D2DrlgRoomExDataMazeStrc), ".\\DRLG\\OutRoom.cpp", 0xc5, 0));
     memset(pRoomExDataOutRoom, 0, 0x70);
     pRoomEx->pRoomExData.pRoomExDataMazeRoom = pRoomExDataOutRoom;
 }

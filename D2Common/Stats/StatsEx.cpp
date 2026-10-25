@@ -96,7 +96,7 @@ static int32_t STATLIST_BinarySearchInsertPos(int32_t nParam, int * pnParam) {
       int nEntryKey;
       nMid = (nCount - nLo) / 2 + nLo;
       nEntryKey = *(int*)(*pnParam + nMid * 8);
-      if (nEntryKey < nParam) {
+      if (nParam > nEntryKey) {
         nLo = nMid + 1;
         nMid = nCount;
       } else if (nEntryKey <= nParam) {
@@ -195,7 +195,7 @@ static int32_t STATLIST_BinarySearchChangedInsertPos(D2StatInfoStrc * pStatInfo,
       int nEntryKey;
       nMid = (nCount - nLo) / 2 + nLo;
       nEntryKey = *(int*)(&pStatInfo->pStatInfo->wSubIndex + nMid * 2);
-      if (nEntryKey < nParam) {
+      if (nParam > nEntryKey) {
         nLo = nMid + 1;
         nMid = nCount;
       } else if (nEntryKey <= nParam) {
@@ -340,10 +340,10 @@ static int32_t __stdcall STATLIST_CalcFullStatFromChildren(int32_t nStatId, D2It
     pChildStatArray = &pStatListEx->sStatList.sBaseStats;
     long int lVar3;
     lVar3 = Logging::STATLIST_BinarySearchStatById(nStatId, (int*)pChildStatArray);
-    if (!(lVar3 < 0 || (pDVar1 = pChildStatArray->pStatInfo + lVar3 , !pDVar1))) {
-      nTotalValue = pDVar1->nStatValue;
-    } else {
+    if (lVar3 < 0 || (pDVar1 = pChildStatArray->pStatInfo + lVar3 , !pDVar1)) {
       nTotalValue = 0;
+    } else {
+      nTotalValue = pDVar1->nStatValue;
     }
     if (!(pStatListEx->sStatList.nFlags & 0x80000000U)) {
       return nTotalValue;
@@ -460,7 +460,7 @@ void __stdcall STATLIST_SetFullStatValue(int32_t nParam1, int32_t nParam2, D2Ite
 
 // Allocates a simple D2StatListStrc (60 bytes). Used for child stat lists (item bonuses, buff overlays, aura effects). Does NOT allocate the extended fields (full stats, state flags).
 D2StatListStrc * __stdcall AllocStatList(D2PoolManagerStrc * pMemory, int32_t nFlags, int32_t nFrame, eD2UnitType eUnitType, int32_t dwUnitGUID) {
-    D2StatListStrc* pNewStatList = D2_NEW_POOL(pMemory, D2StatListStrc);
+    D2StatListStrc* pNewStatList = ((D2StatListStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2StatListStrc), ".\\Stats\\StatsEx.cpp", 0x56a, 0));
     memset(pNewStatList, 0, 0x3c);
     pNewStatList->eOwnerType = eUnitType;
     pNewStatList->pMemory = pMemory;
@@ -863,12 +863,12 @@ void __stdcall STATLIST_IterateChangedStats(D2UnitStrc * pUnit, D2UnitStrc * pUn
       D2StatStrc* pDVar1;
       nParam = pDVar2->sChangedStats.pChangedStatIds[nChangedIdx];
       lVar3 = Logging::STATLIST_BinarySearchStatById(nParam, (int*)&pDVar2->sStatList.sBaseStats);
-      if (!(lVar3 < 0 || (pDVar1 = pDVar2->sStatList.sBaseStats.pStatInfo + lVar3 , !pDVar1))) {
-        nSearchLo = pDVar1->nStatValue;
-        nStatId = pDVar1->wStatIndex;
-      } else {
+      if (lVar3 < 0 || (pDVar1 = pDVar2->sStatList.sBaseStats.pStatInfo + lVar3 , !pDVar1)) {
         nSearchLo = 0;
         nStatId = (uint16_t)((uint32_t)nParam >> 0x10);
+      } else {
+        nSearchLo = pDVar1->nStatValue;
+        nStatId = pDVar1->wStatIndex;
       }
 
       (*pfnCallback)(pUnit, nStatId, nSearchLo, pUnit2);
@@ -888,7 +888,7 @@ void __stdcall STATLIST_ClearChangedStatFlags(D2UnitStrc * pUnit) {
 
     int* pChangedStatIds = pStatsEx->sChangedStats.pChangedStatIds;
     if (pChangedStatIds) {
-      D2_FREE_POOL(pStatsEx->sStatList.pMemory, pChangedStatIds);
+      Fog::Memory::FreeServerMemory(pStatsEx->sStatList.pMemory, pChangedStatIds, ".\\Stats\\StatsEx.cpp", 0xa1e, 0);
       pStatsEx->sChangedStats.pChangedStatIds = 0;
     }
 
@@ -1263,7 +1263,7 @@ int __stdcall GetSkillLevel(D2StatListExStrc * pStatListEx) {
     return pStatListEx->sStatList.nSkillLevel;
 }
 
-int __stdcall STATLIST_CopyStatPairsByStatIndex(D2StatStrc * pOutStatPairs, uint32_t nParam, int32_t nParam2, D2StatListExStrc * pStatList) {
+static int __stdcall STATLIST_CopyStatPairsByStatIndex(D2StatStrc * pOutStatPairs, uint32_t nParam, int32_t nParam2, D2StatListExStrc * pStatList) {
     if (!pStatList) {
       return 0;
     }
@@ -1869,7 +1869,7 @@ void __fastcall FreeAnyStatList(D2StatListExStrc * pPlayerStatsEx) {
     STATLIST_DetachAndRecalc(pPlayerStatsEx);
     D2StatStrc* pStatInfoToFree = pPlayerStatsEx->sStatList.sBaseStats.pStatInfo;
     if (pStatInfoToFree) {
-      D2_FREE_POOL(pPlayerStatsEx->sStatList.pMemory, pStatInfoToFree);
+      Fog::Memory::FreeServerMemory(pPlayerStatsEx->sStatList.pMemory, pStatInfoToFree, ".\\Stats\\StatsEx.cpp", 0x4d8, 0);
     }
     if (pPlayerStatsEx->sStatList.nFlags & 0x80000000U) {
       int* pChangedStatIdsToFree;
@@ -1895,18 +1895,18 @@ void __fastcall FreeAnyStatList(D2StatListExStrc * pPlayerStatsEx) {
 
       pStatInfoToFree = pPlayerStatsEx->sFullStats.pStatInfo;
       if (pStatInfoToFree) {
-        D2_FREE_POOL(pPlayerStatsEx->sStatList.pMemory, pStatInfoToFree);
+        Fog::Memory::FreeServerMemory(pPlayerStatsEx->sStatList.pMemory, pStatInfoToFree, ".\\Stats\\StatsEx.cpp", 0x4f3, 0);
       }
 
       pChangedStatIdsToFree = pPlayerStatsEx->sChangedStats.pChangedStatIds;
       if (pChangedStatIdsToFree) {
-        D2_FREE_POOL(pPlayerStatsEx->sStatList.pMemory, pChangedStatIdsToFree);
+        Fog::Memory::FreeServerMemory(pPlayerStatsEx->sStatList.pMemory, pChangedStatIdsToFree, ".\\Stats\\StatsEx.cpp", 0x4f7, 0);
       }
 
-      D2_FREE_POOL(pPlayerStatsEx->sStatList.pMemory, pPlayerStatsEx->pStateFlags);
+      Fog::Memory::FreeServerMemory(pPlayerStatsEx->sStatList.pMemory, pPlayerStatsEx->pStateFlags, ".\\Stats\\StatsEx.cpp", 0x4fa, 0);
     }
 
-    D2_FREE_POOL(pPlayerStatsEx->sStatList.pMemory, pPlayerStatsEx);
+    Fog::Memory::FreeServerMemory(pPlayerStatsEx->sStatList.pMemory, pPlayerStatsEx, ".\\Stats\\StatsEx.cpp", 0x502, 0);
 }
 
 void __stdcall FreeStatList(D2StatListStrc * pStatList) {
@@ -1939,7 +1939,7 @@ D2StatListExStrc * __stdcall AllocStatListEx(D2UnitStrc * pUnit, uint32_t dwFlag
       pUnit->pStatsEx = 0;
     }
 
-    D2StatListExStrc* pStatsEx = D2_NEW_POOL(pUnit->pMemory, D2StatListExStrc);
+    D2StatListExStrc* pStatsEx = ((D2StatListExStrc*)Fog::Memory::AllocServerMemory(pUnit->pMemory, sizeof(D2StatListExStrc), ".\\Stats\\StatsEx.cpp", 0x586, 0));
     memset(pStatsEx, 0, 100);
     pStatsEx->sStatList.pMemory = pUnit->pMemory;
     pStatsEx->sStatList.eOwnerType = pUnit->eUnitType;
@@ -1950,7 +1950,7 @@ D2StatListExStrc * __stdcall AllocStatListEx(D2UnitStrc * pUnit, uint32_t dwFlag
     pStatsEx->pOwner = pUnit;
     int nStatesSizePadded = sgptDataTable->nTxtStatesSize + 0x1f;
     size_t nStateFlagsAllocSize = ((int)(nStatesSizePadded + (nStatesSizePadded >> 0x1f & 0x1fU)) >> 5) * 8;
-    int* pStateFlags = (int*)D2_ALLOC_POOL(pUnit->pMemory, nStateFlagsAllocSize);
+    int* pStateFlags = (int*)Fog::Memory::AllocServerMemory(pUnit->pMemory, nStateFlagsAllocSize, ".\\Stats\\StatsEx.cpp", 0x593, 0);
     pStatsEx->pStateFlags = pStateFlags;
     pStatsExAlloc = (D2StatListExStrc*)memset(pStateFlags, 0, nStateFlagsAllocSize);
     pUnit->pStatsEx = pStatsEx;

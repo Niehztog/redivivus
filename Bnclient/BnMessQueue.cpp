@@ -44,8 +44,8 @@ void __stdcall BNMESSQUEUE_Shutdown() {
     /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&lpCriticalSection_00882004);
 }
 
-void __fastcall BNMESSQUEUE_EnqueueBytes(int32_t nEventType, char * pBytes, size_t nSize) {
-    ::BnMessQueue* pNewMessage = D2_NEW(::BnMessQueue);
+int __fastcall BNMESSQUEUE_EnqueueBytes(int32_t nEventType, char * pBytes, size_t nSize) {
+    ::BnMessQueue* pNewMessage = ((::BnMessQueue*)Fog::Memory::AllocClientMemory(sizeof(::BnMessQueue), ".\\BnMessQueue.cpp", 0x37, 0));
     if (nSize < 0x121) {
       if (!nSize) {
         pNewMessage->bBuffer[0] = '\0';
@@ -76,12 +76,11 @@ void __fastcall BNMESSQUEUE_EnqueueBytes(int32_t nEventType, char * pBytes, size
     nLobbyChatQueueMessages = pNewMessage;
     LeaveCriticalSection(&lpCriticalSection_00882004);
     return 1;
-    return 1;
 }
 
 uint32_t __fastcall BNMESSQUEUE_EnqueueString(int32_t nEventType, char * szMessage) {
     char cCurrentChar;
-    ::BnMessQueue* pNewMessage = D2_NEW(::BnMessQueue);
+    ::BnMessQueue* pNewMessage = ((::BnMessQueue*)Fog::Memory::AllocClientMemory(sizeof(::BnMessQueue), ".\\BnMessQueue.cpp", 0x5c, 0));
     char* pDestBuffer = pNewMessage->bBuffer;
     Storm::Source::SSTR::SStrCopy(pDestBuffer, szMessage, 0x120);
     pDestBuffer = pDestBuffer + strlen(pDestBuffer) + 1;
@@ -116,7 +115,7 @@ size_t __fastcall BNMESSQUEUE_DequeueMessage(int * pMessageTypeOut, void * pBuff
       *pMessageTypeOut = pBVar2->nZero;
       sVar1 = pBVar2->nDataSize;
       pBVar2 = pBVar2->pNext;
-      D2_FREE(nLobbyChatCurrentMessage);
+      Fog::Memory::FreeClientMemory(nLobbyChatCurrentMessage, ".\\BnMessQueue.cpp", 0x86, 0);
       nLobbyChatCurrentMessage = pBVar2;
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00882004);
       return sVar1;
@@ -131,7 +130,7 @@ int __stdcall BNMESSQUEUE_ClearAll() {
     while (nLobbyChatCurrentMessage) {
       ::BnMessQueue* pBVar1;
       pBVar1 = nLobbyChatCurrentMessage->pNext;
-      D2_FREE(nLobbyChatCurrentMessage);
+      Fog::Memory::FreeClientMemory(nLobbyChatCurrentMessage, ".\\BnMessQueue.cpp", 0x9f, 0);
       nLobbyChatCurrentMessage = pBVar1;
     }
 

@@ -834,7 +834,7 @@ uint32_t __fastcall SKILL_CheckManaForCast(D2UnitStrc * pUnit) {
 // @sourcefile .\SKILLS\Skills.cpp
 D2UnitFindDataStrc * __fastcall SKILLS_FindUnitsInRange(int32_t nParam1, D2UnitStrc * pUnit, int32_t nRange, int32_t nX, int32_t nY) {
     D2UnitFindArgStrc sUnitFindArg;
-    D2UnitFindDataStrc* pUnitFindData = D2_NEW_POOL(*(D2PoolManagerStrc**)(nParam1 + 0x1c), D2UnitFindDataStrc);
+    D2UnitFindDataStrc* pUnitFindData = ((D2UnitFindDataStrc*)Fog::Memory::AllocServerMemory(*(D2PoolManagerStrc**)(nParam1 + 0x1c), sizeof(D2UnitFindDataStrc), ".\\SKILLS\\Skills.cpp", 0x44b, 0));
     memset(&sUnitFindArg, 0, 0x38);
     sUnitFindArg.nFlags = 1411;
     sUnitFindArg.nX = nX;
@@ -850,7 +850,7 @@ D2UnitFindDataStrc * __fastcall SKILLS_FindUnitsInRange(int32_t nParam1, D2UnitS
 // @sourcefile .\SKILLS\Skills.cpp
 void __fastcall SKILLS_FreeUnitFindData(int32_t nGame, D2UnitFindDataStrc * pUnitFindData) {
     D2Common::Units::UnitFinds::FreeUnitFindData(pUnitFindData);
-    D2_FREE_POOL(*(D2PoolManagerStrc**)(nGame + 0x1c), pUnitFindData);
+    Fog::Memory::FreeServerMemory(*(D2PoolManagerStrc**)(nGame + 0x1c), pUnitFindData, ".\\SKILLS\\Skills.cpp", 0x465, 0);
 }
 
 BOOL __fastcall SKILLS_SetSrvDoFuncAndAttackTarget(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwUnused) {

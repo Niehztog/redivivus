@@ -48,7 +48,7 @@ namespace D2Common::DATATBLS::AnimTbls {
 D2AnimDataStrc * __fastcall TXT_AllocTxt_AnimTbls(D2PoolManagerStrc * pMemory) {
     char szFilePath[260];
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    D2AnimDataStrc* pAnimTbls = D2_NEW_POOL(nullptr, D2AnimDataStrc);
+    D2AnimDataStrc* pAnimTbls = ((D2AnimDataStrc*)Fog::Memory::AllocServerMemory(nullptr, sizeof(D2AnimDataStrc), ".\\DATATBLS\\AnimTbls.cpp", 0x83, 0));
     memset(pAnimTbls, 0, 0x4a4);
     /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szFilePath, "%s\\AnimData.d2", "DATA\\GLOBAL");
     D2AnimDataBucketStrc* pArchive = (D2AnimDataBucketStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMemory, szFilePath, nullptr, ".\\DATATBLS\\AnimTbls.cpp", 0x8a);
@@ -76,8 +76,8 @@ void __fastcall ANIMDATA_FreeAnimDataRecord(void * * pParam) {
       return;
     }
 
-    D2_FREE(*pParam);
-    D2_FREE_POOL(nullptr, pParam);
+    Fog::Memory::FreeClientMemory(*pParam, ".\\DATATBLS\\AnimTbls.cpp", 0xbe, 0);
+    Fog::Memory::FreeServerMemory(nullptr, pParam, ".\\DATATBLS\\AnimTbls.cpp", 0xbf, 0);
 }
 
 // pdwName1 in EDI, pdwName2 in ESI: TRUE when both 8-byte names match as two dwords. Halts (AnimTbls.cpp lines 217/218, StringLength((LPCTSTR)pdwName2) <= 8) on a name longer than 8.

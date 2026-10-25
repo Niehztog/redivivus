@@ -46,7 +46,7 @@ void __stdcall IGNORELIST_ExtractPrefix(char * szText, char * pszDstBuf, int32_t
         pszDstBuf[nCharIdx] = '\0';
         return;
       }
-      if (nBufLen - 1U <= nCharIdx) {
+      if (nCharIdx >= nBufLen - 1U) {
         break;
       }
 
@@ -79,7 +79,7 @@ void __stdcall IGNORELIST_ExtractSuffix(char * szText, int32_t nDstBuf, int32_t 
       uint32_t nIdx;
       nIdx = 0;
       do {
-        if (0x10 < nIdx || nBufLen - 1U <= nLen) {
+        if (0x10 < nIdx || nLen >= nBufLen - 1U) {
           break;
         }
 
@@ -118,7 +118,6 @@ void __stdcall IGNORELIST_ParsePattern(char * szText1, char * szText2, int32_t n
     }
 
     Storm::Source::SSTR::SStrCopy(szText2, &__frame0.cPatternBuf, nParam);
-    Fog::Debug::GuardStack();
 }
 
 // @sourcefile .\Chat\Ignorelist.cpp

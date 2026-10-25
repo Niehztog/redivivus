@@ -885,7 +885,7 @@ void __fastcall Q36_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A5Q6::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA5Q6Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA5Q6Strc);
+    D2QuestDataA5Q6Strc* pQuestSpecificData = ((D2QuestDataA5Q6Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA5Q6Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a5q6.cpp", 0x329, 0));
     pQuestData->pQuestSpecificData.pA5Q6 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_EveOfDestruction;
     pQuestData->fpStatusFilter = 0;

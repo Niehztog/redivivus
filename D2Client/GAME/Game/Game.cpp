@@ -640,7 +640,7 @@ void __stdcall GAME_FreeClientSideStructures() {
     D2Client::Draw::Weather::Free();
     Fog::Memory::FreeMemoryPool(gClientGameData.gpClientPoolManager);
     memset(&gClientGameData, 0, 0x80);
-    D2_FREE(D2GameGame0x546);
+    Fog::Memory::FreeClientMemory(D2GameGame0x546, ".\\GAME\\Game.cpp", 0x599, 0);
 }
 
 void __fastcall GAMEDATA_SetDrawFunction(int32_t nDrawMode) {
@@ -1926,7 +1926,7 @@ void __fastcall CLIENT_AllocAct(int32_t nActNo, int32_t nMapSeed, int32_t nAutom
 
 // GAME_InitClientSide: reset globals, init client pool, view/UI, loading screen, send join packet for network games, init palette/weather/lighting/chat; set CurrentDrawFunction and flags.
 // @sourcefile .\GAME\Game.cpp
-static void __stdcall GAME_InitClientSide() {
+void __stdcall GAME_InitClientSide() {
     gLoadTimerDurationMs = 0;
     gLoadTimerStartTick = 0;
     gExitCutsceneState.cutscenePlayed = false;
@@ -1972,7 +1972,7 @@ static void __stdcall GAME_InitClientSide() {
     Source::ClientEngine::CLIENT_ClearActiveUnitSlotArray();
     D2Client::Draw::Weather::ENV_InitClientSide_NoOp();
     Source::ClientEngine::CLIENT_InitializeQuestStateGlobals();
-    D2GameGame0x546 = D2_NEW(D2Game_Line0x546);
+    D2GameGame0x546 = ((D2Game_Line0x546*)Fog::Memory::AllocClientMemory(sizeof(D2Game_Line0x546), ".\\GAME\\Game.cpp", 0x546, 0));
     UNIT::Player::CLIENT_ClearServerAndClientUnitLists();
     D2Client::Draw::LightMap::LIGHTMAP_ClearToBlack();
     D2Client::Draw::Weather::WEATHER_Init();

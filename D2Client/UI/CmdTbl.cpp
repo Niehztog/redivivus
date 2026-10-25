@@ -335,7 +335,7 @@ void __stdcall CMD_LoadDefaultKeyBindings(DWORD dwParam) {
         Fog::Source::SFile::thunk_ReadFile(hFile, aKeyBindFileBuf, 0x47a, &dwParam, (LPOVERLAPPED)0x0);
         Fog::Source::SFile::SFILE_Win32CloseHandle(hFile);
         if (dwParam == 0x47a) {
-          pKeyData = D2_NEW_POOL(nullptr, D2CmdTbl_Line0x50f);
+          pKeyData = ((D2CmdTbl_Line0x50f*)Fog::Memory::AllocServerMemory(nullptr, sizeof(D2CmdTbl_Line0x50f), ".\\UI\\CmdTbl.cpp", 0x50f, 0));
           pFileBufCursor = aKeyBindFileBuf;
           pDst = pKeyData;
           for (nCount = 0x11e; nCount; nCount--) {
@@ -374,7 +374,7 @@ void __stdcall CMD_LoadDefaultKeyBindings(DWORD dwParam) {
         return;
       }
 
-      D2_FREE(pKeyData);
+      Fog::Memory::FreeClientMemory(pKeyData, ".\\UI\\CmdTbl.cpp", 0x531, 0);
     }
 }
 

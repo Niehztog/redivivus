@@ -27,7 +27,7 @@ typedef uint8_t (__stdcall *pfnRGBToPaletteIndex)(uint8_t nRed, uint8_t nGreen, 
 
 namespace D2CMP::SRC::FastCmp {
 
-static void __stdcall FASTCMP_CompressToRLE(uint8_t * pSrcData, uint32_t nLineCount, uint8_t * pDirectionOrder, uint8_t * * ppRLEBuffer, uint8_t * * ppRLEEnd, uint8_t * pBaseData) {
+void __stdcall FASTCMP_CompressToRLE(uint8_t * pSrcData, uint32_t nLineCount, uint8_t * pDirectionOrder, uint8_t * * ppRLEBuffer, uint8_t * * ppRLEEnd, uint8_t * pBaseData) {
     int nColorRunLen;
     uint32_t nColorTailFlag;
     int nZeroTailFlag;
@@ -1882,7 +1882,7 @@ uint32_t __fastcall FASTCMP_DecompressRLEWithPaletteConversion(int32_t pDCCSrc, 
     uint32_t nFramesPerDir = *(uint32_t*)(pDCCSrc + 0x24) / *(uint32_t*)(pDCCSrc + 0x28);
     uint32_t nFrameCounter = 0;
     uint32_t nDirectionCount = *(uint32_t*)(pDCCSrc + 0x34);
-    for (nFrameInDir = (int)nDirectionCount <= 0 ? 0 : nDirectionCount; 0 < (int)nFrameInDir; nFrameInDir = *(uint32_t*)(nFrameInDir + 4)) {
+    for (nFrameInDir = (int)nDirectionCount < 1 ? 0 : nDirectionCount; 0 < (int)nFrameInDir; nFrameInDir = *(uint32_t*)(nFrameInDir + 4)) {
       FASTCMP_CompressToRLE(*(uint8_t**)(nFrameInDir + 0xc), *(uint32_t*)(nFrameInDir + 0x10), *(uint8_t**)(nFrameInDir + 8), &nCompressedSize, &pbCompressedData, *(uint8_t**)(nFrameInDir + 0x20));
       nCompressedDataSize = pbCompressedData;
       pNewFrame = (uint32_t*)D2_ALLOC((size_t)(pbCompressedData + 0x23));

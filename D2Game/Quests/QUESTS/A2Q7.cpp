@@ -829,7 +829,7 @@ void __fastcall Q15_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
     pQuestData->nStateFlagPrev = 0;
-    D2QuestDataA2Q7Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA2Q7Strc);
+    D2QuestDataA2Q7Strc* pQuestSpecificData = ((D2QuestDataA2Q7Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA2Q7Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q7.cpp", 0xc2, 0));
     pQuestData->pQuestSpecificData.pA2Q7 = pQuestSpecificData;
     pQuestSpecificData->bGossipAwaits = false;
     pQuestData->nQuestIdReal = QUEST_Act2Guard4Gossip;

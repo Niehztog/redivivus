@@ -16,7 +16,7 @@ namespace Bnclient::SHA {
 // Function declarations
 // SHA-1 compression round over one 512-bit block. blockWords points to 16 32-bit words, stateWords points to 5-word hash state.
 void SHA1_Transform(uint32_t * blockWords, uint32_t * stateWords);
-void SHA1_Init(uint32_t * pState);
+void __fastcall SHA1_Init(uint32_t * pState);
 void __fastcall SHA1_Update(uint32_t * pnParam, void * pParam, uint32_t nByteLen);
 void __fastcall SHA1_Final(uint8_t * pHashOut, uint32_t * pShaCtx);
 // Register params: pHashOut (ECX): uint8_t *, pWideStr (EDX): char *

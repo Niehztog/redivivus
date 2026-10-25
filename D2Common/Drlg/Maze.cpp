@@ -598,7 +598,7 @@ void __stdcall DRLGMAZE_ExpandRoomsWithPresets(D2DrlgLevelStrc * pLevel, uint32_
     D2LvlMazeTxt* pLvlMazeTxt;
     D2DrlgPresetRoomStrc* pRoomExData;
     D2PoolManagerStrc* pMemPool = pLevel->pDrlg->pMemoryPool;
-    D2RoomExStrc** pRoomPtrArray = (D2RoomExStrc**)D2_ALLOC_POOL(pMemPool, pLevel->nRoomExCount * 4);
+    D2RoomExStrc** pRoomPtrArray = (D2RoomExStrc**)Fog::Memory::AllocServerMemory(pMemPool, pLevel->nRoomExCount * 4, ".\\DRLG\\Maze.cpp", 0x271, 0);
     D2RoomExStrc* pRoomIter = pLevel->pRoomExFirst;
     int nRoomCount = pLevel->nRoomExCount;
     int nRoomIdx = 0;
@@ -643,7 +643,7 @@ void __stdcall DRLGMAZE_ExpandRoomsWithPresets(D2DrlgLevelStrc * pLevel, uint32_
       }
     }
 
-    D2_FREE_POOL(pMemPool, pRoomPtrArray);
+    Fog::Memory::FreeServerMemory(pMemPool, pRoomPtrArray, ".\\DRLG\\Maze.cpp", 0x288, 0);
 }
 
 // Initialises the Throne of Destruction (Baal's chamber) level layout. Advances the first room's seed to pick a random direction (0-3), looks up two preset IDs from the gaBaalChamberPresets table for that direction, allocates and assigns them via DRLGMAZE_AllocRoomExAndPickPreset, then expands surrounding rooms with presets.
@@ -1010,7 +1010,7 @@ void __fastcall ForAllButDenOfEvil(D2DrlgLevelStrc * pLevel) {
 
 // Selects a random preset file index for a maze level using the level's seed and LvlPrest table.
 // @sourcefile .\DRLG\Maze.cpp
-static int __stdcall DRLGMAZE_SelectRandomPresetFile(int nPresetFile, D2DrlgLevelStrc * pLevel, int * pState) {
+int __stdcall DRLGMAZE_SelectRandomPresetFile(int nPresetFile, D2DrlgLevelStrc * pLevel, int * pState) {
     int* pSelectedOffset;
     D2DrlgLevelLinkNodeStrc* pNode;
     eLvlTypes nLevelType;
@@ -1096,7 +1096,7 @@ static int __stdcall DRLGMAZE_SelectRandomPresetFile(int nPresetFile, D2DrlgLeve
       }
     }
 
-    pNode = D2_NEW_POOL(pLevel->pDrlg->pMemoryPool, D2DrlgLevelLinkNodeStrc);
+    pNode = ((D2DrlgLevelLinkNodeStrc*)Fog::Memory::AllocServerMemory(pLevel->pDrlg->pMemoryPool, sizeof(D2DrlgLevelLinkNodeStrc), ".\\DRLG\\Maze.cpp", 0x780, 0));
     pNode->dwData2 = 0;
     pNode->pNext = 0;
     pNode->dwData0 = nFirstFile;

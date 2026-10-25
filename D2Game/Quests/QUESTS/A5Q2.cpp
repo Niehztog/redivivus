@@ -801,7 +801,7 @@ void __fastcall Q32_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A5Q2::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA5Q2Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA5Q2Strc);
+    D2QuestDataA5Q2Strc* pQuestSpecificData = ((D2QuestDataA5Q2Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA5Q2Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a5q2.cpp", 0x323, 0));
     pQuestData->pQuestSpecificData.pA5Q2 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_RescueOnMountArreat;
     pQuestData->fpStatusFilter = 0;

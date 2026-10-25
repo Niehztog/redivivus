@@ -134,7 +134,7 @@ void __fastcall Q16_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
     pQuestData->nStateFlagPrev = 0;
-    D2QuestDataA2Q8Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA2Q8Strc);
+    D2QuestDataA2Q8Strc* pQuestSpecificData = ((D2QuestDataA2Q8Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA2Q8Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q8.cpp", 0x96, 0));
     pQuestData->pQuestSpecificData.pA2Q8 = pQuestSpecificData;
     pQuestSpecificData->field_0x0 = 0;
     pQuestSpecificData->field_0x1 = 0;

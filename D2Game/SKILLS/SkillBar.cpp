@@ -215,7 +215,7 @@ static uint32_t __stdcall SKILLAMZ_CreateLightningFuryBolts(int32_t nParam1, int
 
     eD2LevelId eLevel = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
     eAct eVar2 = D2Common::Drlg::GetActNoFromLevelNumber(eLevel);
-    if (eVar2 >= 5) {
+    if (eVar2 > 4) {
       return 0;
     }
 

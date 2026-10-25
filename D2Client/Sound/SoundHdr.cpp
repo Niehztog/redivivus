@@ -150,7 +150,7 @@ D2SoundEnvironTxt * __fastcall GetSoundEnvironLine(int32_t nSoundEnviron) {
 }
 
 // @sourcefile .\Sound\SoundHdr.cpp
-static void __stdcall TXT_AllocTxt_sounds_soundenviron() {
+void __stdcall TXT_AllocTxt_sounds_soundenviron() {
     D2PoolManagerStrc* pMpq;
     D2ArchiveStrc* pD2File;
     D2BinFieldExcelStrc* pBinExcel;
@@ -426,8 +426,7 @@ static void __stdcall TXT_AllocTxt_sounds_soundenviron() {
         nLine = 0x10d;
         szSourceFile = ".\\Sound\\SoundHdr.cpp";
         pFileSize = &nFileSize;
-        pMpq = D2Win::Src::D2WinArchive::ReturnZero();
-        pD2File = (D2ArchiveStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMpq, szPath, pFileSize, szSourceFile, nLine);
+        pD2File = (D2ArchiveStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(D2Win::Src::D2WinArchive::ReturnZero(), szPath, pFileSize, szSourceFile, nLine);
         pBinExcel = Fog::Src::Excel::STRUCT_CreateBinFieldExcelAndFillData(pD2File, nFileSize);
         nTxtSoundEnvironSize = Fog::Src::Excel::TXT_GetLinesCountFromBinFieldExcel(pBinExcel);
         pSoundEnviron = (D2SoundEnvironTxt*)D2_ALLOC(nTxtSoundEnvironSize * 0x58);
@@ -494,8 +493,7 @@ static void __stdcall TXT_AllocTxt_sounds_soundenviron() {
         }
 
         nMaxSong = (gnSoundIdRangeMax - gpSoundHdrGlobal + 1) * 4;
-        pSoundChannelDataArray = D2_ALLOC(nMaxSong);
-        memset(pSoundChannelDataArray, 0, nMaxSong);
+        memset(D2_ALLOC(nMaxSong), 0, nMaxSong);
         return;
       }
 
@@ -615,7 +613,7 @@ void __fastcall SOUNDHDR_FreeSoundBuffer(int32_t nSoundId) {
       return;
     }
 
-    D2_FREE(pSound->pSoundDataBuffer);
+    Fog::Memory::FreeClientMemory(pSound->pSoundDataBuffer, ".\\Sound\\SoundHdr.cpp", 0x272, 0);
     pSound->pSoundDataBuffer = 0;
     pSound->nLoadState = 0;
 }
@@ -842,7 +840,7 @@ void __fastcall SOUNDHDR_UpdateLRUTimestamp(int32_t nSoundId) {
 // @sourcefile .\Sound\SoundHdr.cpp
 void __stdcall SOUNDHDR_Shutdown() {
     if (pTxtSoundEnviron) {
-      D2_FREE(pTxtSoundEnviron);
+      Fog::Memory::FreeClientMemory(pTxtSoundEnviron, ".\\Sound\\SoundHdr.cpp", 0x181, 0);
       pTxtSoundEnviron = 0;
       nTxtSoundEnvironSize = 0;
     }
@@ -856,7 +854,7 @@ void __stdcall SOUNDHDR_Shutdown() {
         } while ((int)nSoundId < (int)nTxtSoundsSize);
       }
 
-      D2_FREE(pTxtSounds);
+      Fog::Memory::FreeClientMemory(pTxtSounds, ".\\Sound\\SoundHdr.cpp", 0x18e, 0);
       pTxtSounds = 0;
       nTxtSoundsSize = 0;
     }

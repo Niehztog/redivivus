@@ -5920,7 +5920,7 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
       __frame0.bVolumeEnabled = __frame0.bMasterVolOn;
       __frame0.pSoundsTxtLocal = pSoundsTxt;
       nFadeVolStart = SoundHdr::SOUNDHDR_GetGlobal0();
-      if (pChanEntry->nSoundId >= nFadeVolStart) {
+      if (nFadeVolStart <= pChanEntry->nSoundId) {
         nFadeVolStart = SoundHdr::SOUNDHDR_GetGlobal1();
         if (pChanEntry->nSoundId <= nFadeVolStart) {
           nFadeVolStart = D2Sound::Src::D2SoundFast::SOUND_GetMusicVolume();
@@ -6064,7 +6064,7 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
             if (__frame0.pSoundsTxtLocal->Defer_Inst || __frame0.pSoundsTxtLocal->Stop_Inst) {
               pTrackedUnit = (D2SoundChannelStrc*)SOUND_SetChannelProperties(__frame0.pSoundsTxtLocal->nGroupStartIndex, nStreamListKey, (int32_t)pChanEntry);
             }
-            if (nStreamListKey && 0xb76 <= pChanEntry->nSoundId && pChanEntry->nSoundId <= 0x1230) {
+            if (nStreamListKey && 0xb75 < pChanEntry->nSoundId && pChanEntry->nSoundId < 0x1231) {
               pTrackedUnit = SOUND_FindActiveStreamChannel(pChanEntry, nStreamListKey);
               pChanEntry = __frame0.pChanEntrySave;
               pSoundsTxt = __frame0.pSoundsTxtLocal;
@@ -6088,7 +6088,11 @@ void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime) {
 
             nFadeSize = 0;
             nGlobal3OrSortA = 0;
-            if (!nFadeVolStart) {
+            if (nFadeVolStart) {
+              nGlobal3OrSortA = 3;
+              nFadeSize = pChanEntry->nPriority;
+              pChanEntry->nPriority = 0;
+            } else {
               if (__frame0.pSoundsTxtLocal->Fade_In && !pChanEntry->bFadeActive && !(pChanEntry->nVolume & 2)) {
                 nGlobal3OrSortA = (uint32_t)__frame0.pSoundsTxtLocal->Fade_In;
                 nFadeSize = pChanEntry->nPriority;

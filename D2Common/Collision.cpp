@@ -1006,7 +1006,7 @@ void __fastcall FreeRoomCollisionGrid(D2PoolManagerStrc * pMemory, D2RoomStrc * 
       return;
     }
 
-    D2_FREE_POOL(pMemory, pDrlgRoomCollsionMap);
+    Fog::Memory::FreeServerMemory(pMemory, pDrlgRoomCollsionMap, ".\\COLLISN\\Collisn.cpp", 0x1c1, 0);
     DUNGEON::Dungeon::DRLGROOM_SetCollisionGridInRoom(pRoom, nullptr);
 }
 

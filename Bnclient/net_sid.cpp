@@ -1324,7 +1324,7 @@ void __stdcall NET_SID_CLIENT_FreeSRP() {
 // - Country abbreviation (3 bytes): From GetLocaleInfo(LOCALE_SABBREVCTRYNAME)
 // - Country name (null-terminated string): From GetLocaleInfo(LOCALE_SENGCOUNTRY)
 // Server responds with SID_AUTH_INFO containing version check challenge.
-void __stdcall NET_SID_CLIENT_Send_0x50_AuthInfo() {
+int __stdcall NET_SID_CLIENT_Send_0x50_AuthInfo() {
     // Frame slots -388..-8 are ONE object: &nSockAddrLen is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -1386,7 +1386,7 @@ void __stdcall NET_SID_CLIENT_Send_0x50_AuthInfo() {
     GetLocaleInfoA(0x400, 0x1002, __frame0.sAuthInfoPacket.szCountryName, 0x100);
     bGotLocalIp = Storm::Source::SSTR::SStrLen(__frame0.sAuthInfoPacket.szCountryName);
     BnSend::NET_SID_CLIENT_Send(0x50, (char*)&__frame0.sAuthInfoPacket, bGotLocalIp + 0x29);
-    Fog::Debug::GuardStack();
+    return 1;
 }
 
 // SID_AUTH_CHECK (0x51) packet sender - Version and CD key verification request
@@ -1586,7 +1586,7 @@ BOOL __fastcall NET_SID_CLIENT_Send_0x57_AuthAccountUpgrade(int32_t bIncrementFl
     return 1;
 }
 
-void __stdcall NET_SID_CLIENT_Send_0x58_AuthAccountUpgradeProof() {
+int __stdcall NET_SID_CLIENT_Send_0x58_AuthAccountUpgradeProof() {
     // Frame slots -380..-4 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -1611,7 +1611,7 @@ void __stdcall NET_SID_CLIENT_Send_0x58_AuthAccountUpgradeProof() {
     Storm::Source::SSystem::SMemCopy(__frame0.abSrpSaltCopy, &g_srpSaltVerifier, 0x40);
     Storm::Source::SSystem::SMemZero(&g_srpSaltVerifier, 0x40);
     BnSend::NET_SID_CLIENT_Send(0x58, (char*)&__frame0.dwClientToken, 0x58);
-    Fog::Debug::GuardStack();
+    return 0;
 }
 
 // Verifies the server's 20-byte SRP proof M2 = H(A, M1, K) against the locally computed expected value stored in g_srpCredentials. Called after receiving status 0 in the 0x54 logon proof response.

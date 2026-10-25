@@ -137,8 +137,6 @@ struct D2DamageStrc * __fastcall DAMAGE_FindCombatEntry(struct D2UnitStrc * pUni
 uint32_t __stdcall DAMAGE_RollMinMaxDamageRange(int32_t nParam, uint32_t * pnParam1, uint32_t * pnParam2);
 // Gives a monster defender the prevent-heal state when a player attacker has item_preventheal (stat 0x75): STATE 0x34 for 120000 frames on armorclass, through SKILLS_SetStateWithExpiryTime with no expire callback. Classes 0x2C0-0x2C5 are exempt. Register arguments: pDefender in ESI, pAttacker in EDI; nothing is returned.
 void DAMAGE_CheckPreventHealAndSetState(struct D2UnitStrc * pDefender, struct D2UnitStrc * pAttacker);
-// Applies three hit-chance modifiers from the attacker's (pUnit) stats to the in/out hit-chance (pnParam1) and armor-class (pnParam2) values. First, if the attacker has UNITSTAT_item_ignoretargetac and the defender is a non-boss, non-unique, non-merc monster, zeroes the AC. Second, reduces AC by the fractional-AC percent (halved vs. players/bosses/mercs, clamped 0-100). Third, adds demon/undead +to-hit bonuses to the attack rating.
-void __stdcall DAMAGE_ApplyIgnoreAndFractionalAC(int * pnHitChance, int * pnArmorClass, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 // TO-HIT CALCULATION: AR vs AC formula with level penalty.
 // Formula:
 //   AR_final = AR + (AR * ToHit_bonus%)

@@ -616,22 +616,12 @@ static uint32_t __stdcall PLRMODES_IsCorpseOwnedByPlayer(::SGAMEDATA * pGame, D2
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x38e);
       exit(-1);
     } else {
-      if (pUnit->eUnitType == UNIT_PLAYER) {
-        nPartyFlags = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID(pCorpseUnitRaw->pInventory);
-        if (pUnit->nUnitGUID == nPartyFlags) {
-          return 1;
-        }
-
-        pCorpseOwner = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_PLAYER, nPartyFlags);
-        if (!pCorpseOwner) {
-          return 0;
-        }
-
-        nPartyFlags = UNIT::PlayerList::PLAYERLIST_GetFlagsMasked(pCorpseOwner, pUnit, 1);
-        return nPartyFlags;
+      if (pUnit->eUnitType != UNIT_PLAYER) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x38f);
+        exit(-1);
       }
 
-      nPartyFlags = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID((D2UnitStrc*)pCorpseUnitRaw->pInventory);
+      nPartyFlags = D2Common::INVENTORY::Inventory::INVENTORY_GetCursorItemGUID(pCorpseUnitRaw->pInventory);
       if (pUnit->nUnitGUID == nPartyFlags) {
         return 1;
       }

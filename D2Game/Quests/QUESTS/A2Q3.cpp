@@ -926,7 +926,7 @@ void __fastcall Q11_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A2Q3::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA2Q3Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA2Q3Strc);
+    D2QuestDataA2Q3Strc* pQuestSpecificData = ((D2QuestDataA2Q3Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA2Q3Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q3.cpp", 0x323, 0));
     pQuestData->pQuestSpecificData.pA2Q3 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_TheTaintedSun;
     pQuestData->fpStatusFilter = 0;

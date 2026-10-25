@@ -178,7 +178,7 @@ int * __stdcall FindMpqFromDiskOrCd(char * pszMpqName, int * pnPriority, int * p
 // @sourcefile .\SRC\Archive.cpp
 D2FogArchiveStrc * __fastcall ARCHIVE_LoadMPQ(char * szMpqFileName, int32_t nZero, ::fpRequiredUserAction nfpRequiredUserAction, int32_t nTimeTBC) {
     BOOL BVar1;
-    D2FogArchiveStrc* pFogArchive = D2_NEW(D2FogArchiveStrc);
+    D2FogArchiveStrc* pFogArchive = ((D2FogArchiveStrc*)Fog::Memory::AllocClientMemory(sizeof(D2FogArchiveStrc), ".\\SRC\\Archive.cpp", 0x20a, 0));
     pFogArchive->hArchive = 0;
     while (true) {
       D2ArchiveStrc* pArchive;
@@ -202,7 +202,7 @@ D2FogArchiveStrc * __fastcall ARCHIVE_LoadMPQ(char * szMpqFileName, int32_t nZer
       }
     }
 
-    D2_FREE(pFogArchive);
+    Fog::Memory::FreeClientMemory(pFogArchive, ".\\SRC\\Archive.cpp", 0x21a, 0);
     return nullptr;
 }
 
@@ -213,7 +213,7 @@ void __fastcall ARCHIVE_FreeMpqFile(D2FogArchiveStrc * pFogArchive) {
     }
 
     pFogArchive->hArchive = 0;
-    D2_FREE(pFogArchive);
+    Fog::Memory::FreeClientMemory(pFogArchive, ".\\SRC\\Archive.cpp", 0x25c, 0);
 }
 
 } // namespace Fog::Archive

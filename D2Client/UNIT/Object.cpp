@@ -87,7 +87,7 @@ void __fastcall AllocObjectData(D2UnitStrc * pUnit, D2RoomStrc * pRoom, int32_t 
     BOOL nAutoLightResult;
     pUnit->uSideData.pClientSide.pLight = 0;
     pUnit->eAnimMode.ePlayerMode = nInitMode & 0xff;
-    D2UnitDataObjectStrc* pObjectData = D2_NEW(D2UnitDataObjectStrc);
+    D2UnitDataObjectStrc* pObjectData = ((D2UnitDataObjectStrc*)Fog::Memory::AllocClientMemory(sizeof(D2UnitDataObjectStrc), ".\\UNIT\\Object.cpp", 0x76, 0));
     pUnit->pUnitData.pUnitDataObject = pObjectData;
     memset(pObjectData, 0, 0x38);
     pUnit->pUnitData.pUnitDataPlayer->pQuestRecord[0] = 0;
@@ -201,7 +201,7 @@ void __fastcall FreeObjectData(D2UnitStrc * pUnit) {
       CUnit::FreeLightMap(pUnit);
     }
 
-    D2_FREE(pUnit->pUnitData.pUnitDataPlayer);
+    Fog::Memory::FreeClientMemory(pUnit->pUnitData.pUnitDataPlayer, ".\\UNIT\\Object.cpp", 0xfe, 0);
 }
 
 static void OBJECT_ToggleDoorState(D2UnitStrc * pUnit) {

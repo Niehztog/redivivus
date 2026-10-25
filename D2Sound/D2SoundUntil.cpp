@@ -19,7 +19,7 @@ namespace D2Sound::D2SoundUntil {
 
 // NOTE: Register params: pListHead (ECX): void *, pItem (EDX): void *
 void __fastcall SOUND_sD2SoundSmp_Alloc(void * pListHead, void * pItem) {
-    uint32_t* pNewNode = (uint32_t*)D2_ALLOC(8);
+    uint32_t* pNewNode = (uint32_t*)Fog::Memory::AllocClientMemory(8, ".\\Src\\D2SoundUtil.cpp", 0xd5, 0);
     *pNewNode = 0;
     pNewNode[1] = 0;
     uint32_t dwOldHead = *(uint32_t*)pListHead;
@@ -57,7 +57,7 @@ void __fastcall SOUND_sD2SoundSmp_Free(int * * ppListHead, int32_t nSearchValue)
       pPrev[1] = pMemoryToFree[1];
     }
 
-    D2_FREE(pMemoryToFree);
+    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\D2SoundUtil.cpp", 0xf1, 0);
 }
 
 BOOL __fastcall SOUNDUTIL_FindInLinkedList(int * pNode, int32_t nSearchValue) {
@@ -101,7 +101,7 @@ void __fastcall SOUNDUTIL_FreeLinkedList(int * * ppListHead) {
             pPrev[1] = pMemoryToFree[1];
           }
 
-          D2_FREE(pMemoryToFree);
+          Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\D2SoundUtil.cpp", 0xf1, 0);
           break;
         }
 
@@ -115,7 +115,7 @@ void __fastcall SOUNDUTIL_FreeLinkedList(int * * ppListHead) {
 
 void __fastcall SOUNDUTIL_AppendToLinkedList(void * * ppListHead, uint32_t dwNodeValue) {
     void* pTail;
-    uint32_t* pNewNode = (uint32_t*)D2_ALLOC(8);
+    uint32_t* pNewNode = (uint32_t*)Fog::Memory::AllocClientMemory(8, ".\\Src\\D2SoundUtil.cpp", 0x120, 0);
     pNewNode[1] = 0;
     *pNewNode = dwNodeValue;
     void* pNext = *ppListHead;

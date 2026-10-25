@@ -206,7 +206,7 @@ void * __stdcall GFX_LoadCofFile(void * pTextureCache, char * szPath) {
     int nCopyOffset;
     size_t* pSize;
     szFilename[0] = '\0';
-    memset(szFilename + 1, 0, 0x103);
+    for (int i = 0x1; i < 0x104; i++) szFilename[i] = 0;
     GFX_ExtractFilenameFromPath(dwUnused, szPath, szFilename);
     __strlwr(szFilename);
     void* pCached = GFX_FindTextureInCache(pTextureCache, szFilename);
@@ -216,7 +216,7 @@ void * __stdcall GFX_LoadCofFile(void * pTextureCache, char * szPath) {
 
     uint32_t* pEntry = (uint32_t*)D2_ALLOC(0x1c);
     *pEntry = 0;
-    memset(pEntry + 1, 0, 6 * sizeof(pEntry[0]));
+    for (int i = 1; i < 7; i++) pEntry[i] = 0;
     pEntry[1] |= 1;
     pcSrcFile = szFilename;
     nCopyOffset = 0xc - (int)pcSrcFile;
@@ -229,8 +229,7 @@ void * __stdcall GFX_LoadCofFile(void * pTextureCache, char * szPath) {
     nSrcLine = 0xe0;
     pcSrcFile = ".\\ENGINE\\Gfx.cpp";
     pSize = pEntry + 2;
-    pMPQ = D2Win::Src::D2WinArchive::ReturnZero();
-    pCached = Fog::Archive::D2FILE_AllocAndLoadD2File(pMPQ, szPath, pSize, pcSrcFile, nSrcLine);
+    pCached = Fog::Archive::D2FILE_AllocAndLoadD2File(D2Win::Src::D2WinArchive::ReturnZero(), szPath, pSize, pcSrcFile, nSrcLine);
     pEntry[5] = (uint32_t)(uintptr_t)pCached;
     if (!pCached) {
       return nullptr;
@@ -417,8 +416,8 @@ static int32_t GFX_FreeUnusedCofEntries(void * pCacheTable) {
         pNextEntry = (uint32_t*)*pMemoryToFree;
         if (*(uint8_t*)(pMemoryToFree + 1) & 1) {
           gbCofCacheLRUEnabled += -0x1c - pMemoryToFree[2];
-          D2_FREE((void*)pMemoryToFree[5]);
-          pCacheTable = (void*)D2_FREE(pMemoryToFree);
+          Fog::Memory::FreeClientMemory((void*)pMemoryToFree[5], ".\\ENGINE\\Gfx.cpp", 0xe3c, 0);
+          pCacheTable = (void*)Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0xe3d, 0);
         }
       }
 
@@ -434,7 +433,7 @@ void __fastcall GFX_FreePlayerCofCache(int32_t nParam) {
     GFX_FreeUnusedCofEntries(&gPlayerCofCache);
     gbCofCacheLRUEnabled -= gPlayerCofCache.nCacheEntryCount;
     if (gPlayerCofCache.pCacheMemory) {
-      D2_FREE(gPlayerCofCache.pCacheMemory);
+      Fog::Memory::FreeClientMemory(gPlayerCofCache.pCacheMemory, ".\\ENGINE\\Gfx.cpp", 0xe50, 0);
     }
 
     memset(&gPlayerCofCache, 0, 0x80c);
@@ -446,7 +445,7 @@ int32_t GFX_FreeMonsterCofCache() {
     GFX_FreeUnusedCofEntries(&gMonsterCofCache);
     gbCofCacheLRUEnabled -= gMonsterCofCache.nCacheEntryCount;
     if (gMonsterCofCache.pCacheMemory) {
-      D2_FREE(gMonsterCofCache.pCacheMemory);
+      Fog::Memory::FreeClientMemory(gMonsterCofCache.pCacheMemory, ".\\ENGINE\\Gfx.cpp", 0xe61, 0);
     }
 
     pCleared = memset(&gMonsterCofCache, 0, 0x80c);
@@ -1113,7 +1112,7 @@ void __fastcall GFX_InitCofSystem(int nSystemFlags) {
     memset(&gMonsterCofCache, 0, 0x80c);
     memset(gaSpriteLoadStatusTable, 0, 0x460);
     size_t nMonSpriteTableSize = sgptDataTable->nTxtMonStatsSize * 0xa0;
-    g_pMonsterSpriteCofStatusTable = (D2MonsterCofStatusEntryStrc*)D2_ALLOC_POOL(nullptr, nMonSpriteTableSize);
+    g_pMonsterSpriteCofStatusTable = (D2MonsterCofStatusEntryStrc*)Fog::Memory::AllocServerMemory(nullptr, nMonSpriteTableSize, ".\\ENGINE\\Gfx.cpp", 0x7e1, 0);
     memset(g_pMonsterSpriteCofStatusTable, 0, nMonSpriteTableSize);
     gnGfxDirectionCountCache = D2Win::Src::D2WinArchive::D2WINARCHIVE_GetArchiveHandle();
     GfxUtil::InitializeModeTokens();
@@ -1124,14 +1123,14 @@ void GFX_ShutdownCofSystem() {
     GFX_FreeUnusedCofEntries(&gPlayerCofCache);
     gbCofCacheLRUEnabled -= gPlayerCofCache.nCacheEntryCount;
     if (gPlayerCofCache.pCacheMemory) {
-      D2_FREE(gPlayerCofCache.pCacheMemory);
+      Fog::Memory::FreeClientMemory(gPlayerCofCache.pCacheMemory, ".\\ENGINE\\Gfx.cpp", 0xe50, 0);
     }
 
     memset(&gPlayerCofCache, 0, 0x80c);
     GFX_FreeUnusedCofEntries(&gMonsterCofCache);
     gbCofCacheLRUEnabled -= gMonsterCofCache.nCacheEntryCount;
     if (gMonsterCofCache.pCacheMemory) {
-      D2_FREE(gMonsterCofCache.pCacheMemory);
+      Fog::Memory::FreeClientMemory(gMonsterCofCache.pCacheMemory, ".\\ENGINE\\Gfx.cpp", 0xe61, 0);
     }
 
     memset(&gMonsterCofCache, 0, 0x80c);
@@ -1139,7 +1138,7 @@ void GFX_ShutdownCofSystem() {
       return;
     }
 
-    D2_FREE_POOL(nullptr, g_pMonsterSpriteCofStatusTable);
+    Fog::Memory::FreeServerMemory(nullptr, g_pMonsterSpriteCofStatusTable, ".\\ENGINE\\Gfx.cpp", 0x7f9, 0);
     g_pMonsterSpriteCofStatusTable = 0;
 }
 
@@ -1210,7 +1209,7 @@ void __fastcall GFX_AddOverlayToUnit(D2UnitStrc * pUnit, eOverlayId eOverlay, in
       GfxInfo::GFX_RemoveOverlayById(eOverlay, pUnit);
     }
 
-    D2GfxUnknown_0xa8* pOverlay = D2_NEW(D2GfxUnknown_0xa8);
+    D2GfxUnknown_0xa8* pOverlay = ((D2GfxUnknown_0xa8*)Fog::Memory::AllocClientMemory(sizeof(D2GfxUnknown_0xa8), ".\\ENGINE\\Gfx.cpp", 0xc48, 0));
     if (!pOverlay) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc49);
       exit(-1);

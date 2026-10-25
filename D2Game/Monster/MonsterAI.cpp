@@ -251,7 +251,7 @@ void __fastcall MERC_ApplyLevelStats(::SGAMEDATA * pGame, D2UnitStrc * pPlayer, 
 
 // @sourcefile .\MONSTER\MonsterAI.cpp
 D2MonsterAiStrc * __fastcall AllocMonsterAI(::SGAMEDATA * pGame) {
-    D2MonsterAiStrc* pMonsterAi = D2_NEW_POOL(pGame->pMemoryPool, D2MonsterAiStrc);
+    D2MonsterAiStrc* pMonsterAi = ((D2MonsterAiStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2MonsterAiStrc), ".\\MONSTER\\MonsterAI.cpp", 0x17b, 0));
     pMonsterAi->pAiSub = 0;
     return pMonsterAi;
 }
@@ -262,11 +262,11 @@ void __fastcall FreeMonsterAi(::SGAMEDATA * pGame, D2MonsterAiStrc * pMonster) {
     while (pMemoryToFree) {
       D2MonsterAiSubStrc* pNext;
       pNext = pMemoryToFree->pNext;
-      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\MONSTER\\MonsterAI.cpp", 0x188, 0);
       pMemoryToFree = pNext;
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pMonster);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMonster, ".\\MONSTER\\MonsterAI.cpp", 0x18b, 0);
 }
 
 // Initiates a player-NPC interaction on the server. Guards against double-interaction (checks existing pAiSub list and GetInteractedNpc), verifies the NPC is interactable (MonStats interact flag) and not in Death/Kick mode, and that the player is not already trading. Allocates a D2MonsterAiSubStrc to track the interaction participant, sends the mercenary hire list (SendMercForHireList, first-time flag), sets the interact info on the player unit, then sends 0x27 NPC-info and 0x28 player-quest-info packets. Also triggers QUEST_OnNpcInteraction for quest dialogue and 0x29 quest-log prep.
@@ -303,7 +303,7 @@ static uint32_t __stdcall NPC_BeginInteraction(::SGAMEDATA * pGame, D2MonsterAiS
     }
 
     D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pPlayer, ".\\MONSTER\\MonsterAI.cpp", 0x1c4);
-    D2MonsterAiSubStrc* pNewAiSub = D2_NEW_POOL(pGame->pMemoryPool, D2MonsterAiSubStrc);
+    D2MonsterAiSubStrc* pNewAiSub = ((D2MonsterAiSubStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2MonsterAiSubStrc), ".\\MONSTER\\MonsterAI.cpp", 0x1c7, 0));
     pNewAiSub->pUnit = pPlayer;
     D2MonsterAiSubStrc* pExistingAiSub = pAi->pAiSub;
     if (pExistingAiSub) {
@@ -411,7 +411,7 @@ void __fastcall FreeSpecificAiForUnit(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D
       pPrevSubAi->pNext = pChain->pNext;
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pChain);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pChain, ".\\MONSTER\\MonsterAI.cpp", 0x229, 0);
 }
 
 void __fastcall NpcState_MoveState0To1(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pTargetUnit, D2MonsterAiStrc * pMonsterAi) {
@@ -502,7 +502,7 @@ void __fastcall FreeAndResetAiSub(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Uni
             UNIT::SUnit::ClearInteractInfo(pUnit);
           }
 
-          D2_FREE_POOL(pGame->pMemoryPool, pSubAi);
+          Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pSubAi, ".\\MONSTER\\MonsterAI.cpp", 0x28b, 0);
           if (pMonsterAi->pAiSub) {
             return;
           }
@@ -522,7 +522,7 @@ void __fastcall FreeAndResetAiSub(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Uni
             UNIT::SUnit::ClearInteractInfo(pUnit);
           }
 
-          D2_FREE_POOL(pGame->pMemoryPool, pSubAi);
+          Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pSubAi, ".\\MONSTER\\MonsterAI.cpp", 0x2ae, 0);
           return;
         }
       }
@@ -664,7 +664,7 @@ void __fastcall ClearAISub(::SGAMEDATA * pGame, D2UnitStrc * pUnit, fpAiClear fp
         (*fpFunction)(pAiSub->pUnit);
       }
 
-      D2_FREE_POOL(pGame->pMemoryPool, pAiSub);
+      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pAiSub, ".\\MONSTER\\MonsterAI.cpp", 0x36b, 0);
       pAiSub = pNext;
     }
 

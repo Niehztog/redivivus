@@ -38,8 +38,8 @@ namespace D2Glide::glBlocks {
 
 // @sourcefile .\Src\glBlocks.cpp
 void __stdcall GLBLOCKS_AllocBlockBuffers() {
-    gpGlBlocksWallBuffer = D2_ALLOC(0x400);
-    gpGlBlocksFloorBuffer = D2_ALLOC(0x8000);
+    gpGlBlocksWallBuffer = Fog::Memory::AllocClientMemory(0x400, ".\\Src\\glBlocks.cpp", 0x33, 0);
+    gpGlBlocksFloorBuffer = Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glBlocks.cpp", 0x34, 0);
     g_GrTexInfoGlBlocks.data = gpGlBlocksWallBuffer;
     gTexInfoGlideSurfaceBlocks.data = gpGlBlocksFloorBuffer;
 }
@@ -47,14 +47,14 @@ void __stdcall GLBLOCKS_AllocBlockBuffers() {
 // @sourcefile .\Src\glBlocks.cpp
 void __stdcall GLBLOCKS_FreeBlockBuffers() {
     if (gpGlBlocksWallBuffer) {
-      D2_FREE(gpGlBlocksWallBuffer);
+      Fog::Memory::FreeClientMemory(gpGlBlocksWallBuffer, ".\\Src\\glBlocks.cpp", 0x3f, 0);
       gpGlBlocksWallBuffer = 0;
     }
     if (!gpGlBlocksFloorBuffer) {
       return;
     }
 
-    D2_FREE(gpGlBlocksFloorBuffer);
+    Fog::Memory::FreeClientMemory(gpGlBlocksFloorBuffer, ".\\Src\\glBlocks.cpp", 0x45, 0);
     gpGlBlocksFloorBuffer = 0;
 }
 

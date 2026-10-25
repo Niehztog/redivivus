@@ -683,7 +683,7 @@ void __fastcall Q34_SpawnNihlathakPortalTimer(::SGAMEDATA * pGame, D2UnitStrc * 
 
 // A5Q4 (Betrayal of Harrogath) quest-state-0xd handler. Intro path: forces nStateFlag=5 and, if the Halls of Pain waypoint is not yet found, flags field_0x89 for a deferred portal spawn. Active path: when not RewardAwaits, reads Step0x03/Step0x02 bits and advances group progression, broadcasting nStateFlag 2 or 3 via QUEST_SetStateAndBroadcast.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a5q4.cpp
-static void __fastcall Q34_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+void __fastcall Q34_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     bool _bHasWaypoint;
     ::SGAMEDATA* pSVar1;
     D2BitBufferStrc* pBitBuffer;
@@ -765,7 +765,7 @@ void __fastcall Q34_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A5Q4::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA5Q4Strc* pQuestSpecificData = D2_NEW_POOL(pSVar1->pMemoryPool, D2QuestDataA5Q4Strc);
+    D2QuestDataA5Q4Strc* pQuestSpecificData = ((D2QuestDataA5Q4Strc*)Fog::Memory::AllocServerMemory(pSVar1->pMemoryPool, sizeof(D2QuestDataA5Q4Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a5q4.cpp", 0x30d, 0));
     pQuestData->pQuestSpecificData.pA5Q4 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_BetrayalOfHaggorath;
     pQuestData->fpStatusFilter = Q34_StatusFilter;

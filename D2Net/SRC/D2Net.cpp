@@ -61,7 +61,7 @@ size_t __fastcall NET_D2GS_CLIENT_ExtractPacketSize(LPCRITICAL_SECTION * lpCriti
       memcpy(pBytes, pPacket, nSize);
       nPacketSize = pPacket->nSize;
       *pD2OnePacketClient = pPacket->pD2PacketClientNext;
-      D2_FREE(pPacket);
+      Fog::Memory::FreeClientMemory(pPacket, ".\\SRC\\D2Net.cpp", 0x46, 0);
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection((LPCRITICAL_SECTION)lpCriticalSection);
@@ -75,7 +75,7 @@ void __fastcall NET_D2GS_CLIENT_FreeAllClientD2Packets(LPCRITICAL_SECTION lpCrit
     while (pPacket) {
       pPacket = *pD2PacketClient;
       *pD2PacketClient = pPacket->pD2PacketClientNext;
-      D2_FREE(pPacket);
+      Fog::Memory::FreeClientMemory(pPacket, ".\\SRC\\D2Net.cpp", 0x5d, 0);
       pPacket = *pD2PacketClient;
     }
 

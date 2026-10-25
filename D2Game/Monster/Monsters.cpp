@@ -157,7 +157,7 @@ uint16_t __fastcall GetNameSeed(D2UnitStrc * pUnit) {
 }
 
 // 2022.01.09 - dzik
-uint32_t CheckMonsterType(D2UnitStrc * pUnit, uint16_t eMonsterType) {
+uint32_t __fastcall CheckMonsterType(D2UnitStrc * pUnit, uint16_t eMonsterType) {
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && pUnit->pUnitData.pUnitDataMonster)) {
       return 0;
     }
@@ -520,7 +520,7 @@ int32_t __stdcall MONUMOD_RollRandomModifier(D2UnitStrc * pUnit, uint8_t * pUsed
 
 // Rolls and assigns unique-modifier (UMod) enchantments to a newly spawned monster. If bResult is set, first rolls against the champion threshold (MonUMod.txt constants row 0) to potentially make the monster a champion instead; if champion, calls MONSTER_SelectChampionMod and returns. Otherwise rolls 1+difficulty extra UMod slots, calls MONUMOD_RollRandomModifier up to that count (avoiding already-assigned mods via a local dedup table), and appends each selected UMod ID to pUnitDataMonster->MonUModList. Guards against stack overflow via security cookie.
 // [override: patch]
-void MONSTER_RollAndAssignUMods(void * pThis, ::SGAMEDATA * pGame, BOOL bResult) {
+static void MONSTER_RollAndAssignUMods(void * pThis, ::SGAMEDATA * pGame, BOOL bResult) {
     int32_t nActiveUMods;
     uint32_t nRoll;
     int nSlotIdx;
@@ -604,10 +604,10 @@ static void __stdcall MONSTER_TransferEnchantments(D2UnitStrc * pDstUnit, BOOL b
     D2WaypointStrc** nDstOffset;
     uint8_t* pDstSlot;
     uint8_t byUmodId;
-    if (!pSrcUnit || pSrcUnit->eUnitType != UNIT_MONSTER || !pSrcUnit->pUnitData.pUnitDataMonster) {
-      pSrcEnchants = 0;
-    } else {
+    if (!(!pSrcUnit || pSrcUnit->eUnitType != UNIT_MONSTER || !pSrcUnit->pUnitData.pUnitDataMonster)) {
       pSrcEnchants = pSrcUnit->pUnitData.pUnitDataMonster->MonUModList;
+    } else {
+      pSrcEnchants = 0;
     }
     if (!pDstUnit || pDstUnit->eUnitType != UNIT_MONSTER || !pDstUnit->pUnitData.pUnitDataPlayer) {
       nDstOffset = 0;
@@ -977,7 +977,7 @@ static void __fastcall MONSTER_ApplyAmplifyDamageCurse(::SGAMEDATA * pGame, D2Un
     } while (pAttacker);
 }
 
-static void __fastcall MONSTER_OnDeathAmplifyDamageAura(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwUnused1, int32_t bShouldTrigger) {
+void __fastcall MONSTER_OnDeathAmplifyDamageAura(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwUnused1, int32_t bShouldTrigger) {
     if (!bShouldTrigger) {
       return;
     }
@@ -1214,10 +1214,10 @@ void __fastcall MONSTER_LightningUniqueDeathBolts(::SGAMEDATA * pGame, D2UnitStr
     if (!bShouldTrigger) {
       return;
     }
-    if (!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataMonster) {
-      nSkillLevel = 0;
-    } else {
+    if (!(!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataMonster)) {
       nSkillLevel = pUnit->pUnitData.pUnitDataMonster->nDurielUnk;
+    } else {
+      nSkillLevel = 0;
     }
 
     nSkillLevel = pGame->dwGameFrame - nSkillLevel;
@@ -1559,7 +1559,7 @@ void __fastcall UMOD_SetRandomElementalForMissile(int32_t nModifierLevel, D2Unit
 }
 
 // Server-side tick handler: when bShouldTrigger is set, rolls the unit's seed for a chance (>29/100) to find a player target, picks the first occupied belt slot, clones the item via serialized data, finds a drop spot near the owner, drops the clone, then consumes and removes the original belt item and re-sorts the belt column.
-static void __fastcall MONSTER_StealPotionFromBelt(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwUnused1, int32_t bShouldTrigger) {
+void __fastcall MONSTER_StealPotionFromBelt(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwUnused1, int32_t bShouldTrigger) {
     D2UnitStrc* pBeltItem;
     int32_t nBeltItemX;
     POINT ptOwnerPos;
@@ -1624,7 +1624,7 @@ static void __fastcall MONSTER_StealPotionFromBelt(::SGAMEDATA * pGame, D2UnitSt
 }
 
 // Routes a monster's death event to its boss-specific handler based on nClassId. Handles Bloodraven (ranged special), Radament (ring attack), Mephisto (death missile), Izual (melee skill), Andariel (ranged short), Overseer (ranged normal), Uber Mephisto/Baal/Diablo (loot drop check), and no-op uber variants. Only triggers the handler if the unit is actually in Death anim mode (except Overseer/Uber which check null too).
-static void __fastcall MONSTER_DispatchSpecialDeath(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwUnused1, uint32_t dwUnused2) {
+void __fastcall MONSTER_DispatchSpecialDeath(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t dwUnused1, uint32_t dwUnused2) {
     eD2MonsterClassId nMonClassId;
     if (!pUnit) {
       nMonClassId = ~MonsterUnitSkeleton1;
@@ -2179,7 +2179,7 @@ void __fastcall MONSTER_SuicideExplosion(::SGAMEDATA * pGame, D2UnitStrc * pUnit
     eD2UnitType eUnitType;
     uint32_t nSeedLow;
     D2SeedStrc sSeedNext;
-    if (!pUnit || (nClassId = pUnit->nClassId , nClassId < 0) || sgptDataTable->nTxtMonStatsSize <= nClassId) {
+    if (!pUnit || (nClassId = pUnit->nClassId , nClassId < 0) || nClassId >= sgptDataTable->nTxtMonStatsSize) {
       pMonStatsTxt = 0;
     } else {
       pMonStatsTxt = sgptDataTable->pTxtMonStats + nClassId;
@@ -2339,13 +2339,13 @@ void __fastcall FUN_005a4230(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint32_t d
 }
 
 // Dispatches an event to all of a unique/champion monster's unique-modifier (MonUMod) handlers. Reads the monster's MonUModList (up to 9 mod slots) and, for each active mod, looks up g_MonsterUModHandlerTable[modId] and calls the handler for the requested event: nParam==5 invokes the per-mod init handler (pfnHandlerInit), otherwise invokes pfnHandlerN indexed by nParam (the event/phase). Passes the mod id and a champion flag (derived from the monster's quest-record byte) to each handler. No-op for non-monster units or units with no mod list. Drives unique-monster modifier behavior (e.g. extra-strong, fire-enchanted) at various lifecycle points.
-void __stdcall MONSTER_DispatchUniqueModifiers(::SGAMEDATA * pGame, D2UnitStrc * dwParam, int32_t nParam, D2UnitStrc * pUnit) {
+static void __stdcall MONSTER_DispatchUniqueModifiers(::SGAMEDATA * pGame, D2UnitStrc * dwParam, int32_t nParam, D2UnitStrc * pUnit) {
     uint32_t nSecurityCookie;
     int nUModSlot = 0;
-    if (!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataPlayer) {
-      nSecurityCookie = 0;
-    } else {
+    if (!(!pUnit || pUnit->eUnitType != UNIT_MONSTER || !pUnit->pUnitData.pUnitDataPlayer)) {
       nSecurityCookie = *(uint8_t*)((int)pUnit->pUnitData.pUnitDataPlayer->pQuestRecord + 6) >> 3 & 1;
+    } else {
+      nSecurityCookie = 0;
     }
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && pUnit->pUnitData.pUnitDataMonster)) {
       return;
@@ -2544,10 +2544,10 @@ int * __fastcall MONSTER_SpawnWithUniqueModifiers(::SGAMEDATA * pGame, D2RoomStr
         }
       }
     }
-    if (pSpawnedUnit->eUnitType == UNIT_MONSTER && pSpawnedUnit->pUnitData.pUnitDataMonster) {
-      pUModList = pSpawnedUnit->pUnitData.pUnitDataMonster->MonUModList;
-    } else {
+    if (!(pSpawnedUnit->eUnitType == UNIT_MONSTER && pSpawnedUnit->pUnitData.pUnitDataMonster)) {
       pUModList = 0;
+    } else {
+      pUModList = pSpawnedUnit->pUnitData.pUnitDataMonster->MonUModList;
     }
 
     *pUModList = *pUModListSrc;
@@ -2750,7 +2750,7 @@ D2UnitStrc * __fastcall SPAWN_UniqueMonster(::SGAMEDATA * pGame, D2RoomStrc * pR
     } while (nGroupMin < 3);
 
     nDiffUModCount = 0;
-    if (pGame->nDifficulty) {
+    if ((uint32_t)pGame->nDifficulty > 0) {
       uint8_t byDifficulty;
       do {
         nUModCount = MONUMOD_RollRandomModifier(pUnit, abUsedUMods, pGame);

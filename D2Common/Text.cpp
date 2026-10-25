@@ -39,7 +39,7 @@ static void TEXT_FreeAllMessages(D2PoolManagerStrc * * ppPoolManager) {
     while (pMemoryToFree) {
       D2PoolManagerStrc* pNext;
       pNext = (D2PoolManagerStrc*)pMemoryToFree->pSync.LockCount;
-      D2_FREE_POOL(*ppPoolManager, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(*ppPoolManager, pMemoryToFree, ".\\Text\\Text.cpp", 0x3c, 0);
       pMemoryToFree = pNext;
     }
 
@@ -52,18 +52,18 @@ void __stdcall STRUCT_FreeTxtMessageForPacket0x27(D2GSPacketSrv0x27_TextStrc * p
     while (pMemoryToFree) {
       D2GSPacketSrv0x27_EntryStrc* pPrev;
       pPrev = pMemoryToFree->pPrev;
-      D2_FREE_POOL(pGSPacketSrv0x27_Text->pMemory, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(pGSPacketSrv0x27_Text->pMemory, pMemoryToFree, ".\\Text\\Text.cpp", 0x3c, 0);
       pMemoryToFree = pPrev;
     }
 
     pGSPacketSrv0x27_Text->nCount = 0;
-    D2_FREE_POOL(pGSPacketSrv0x27_Text->pMemory, pGSPacketSrv0x27_Text);
+    Fog::Memory::FreeServerMemory(pGSPacketSrv0x27_Text->pMemory, pGSPacketSrv0x27_Text, ".\\Text\\Text.cpp", 0x4c, 0);
 }
 
 // @sourcefile .\Text\Text.cpp
 void __stdcall AddNewGossipText(D2GossipTextStrc * pGossipText, int32_t nStringIndex, int32_t bMenu) {
     D2GossipTextStrc* pOldHead = pGossipText->pNext;
-    D2GossipTextStrc* psVar2 = D2_NEW_POOL(*(D2PoolManagerStrc**)pGossipText, D2GossipTextStrc);
+    D2GossipTextStrc* psVar2 = ((D2GossipTextStrc*)Fog::Memory::AllocServerMemory(*(D2PoolManagerStrc**)pGossipText, sizeof(D2GossipTextStrc), ".\\Text\\Text.cpp", 0x5a, 0));
     psVar2->pNext = pOldHead;
     psVar2->nStringIndex = (int16_t)nStringIndex;
     *(int32_t*)&psVar2->bMenu = bMenu;
@@ -89,10 +89,10 @@ void __stdcall TEXT_RemoveMessageById(D2PoolManagerStrc * * ppPoolManager, int16
       }
     }
 
-    if (!pDVar2) {
-      ppPoolManager[2] = (D2PoolManagerStrc*)pMemoryToFree->pSync.LockCount;
-    } else {
+    if (pDVar2) {
       pDVar2->pSync.LockCount = pMemoryToFree->pSync.LockCount;
+    } else {
+      ppPoolManager[2] = (D2PoolManagerStrc*)pMemoryToFree->pSync.LockCount;
     }
 
     D2_FREE_POOL(*ppPoolManager, pMemoryToFree);
@@ -205,26 +205,11 @@ void __stdcall StoreMessages(D2GSPacketSrv0x27_TextStrc * pGSPacketSrv0x27_Text,
           pCurPacket += 2;
         } while ((int)pGSPacketSrv0x27_Text < (int)(uint32_t)*pPacketData);
 
-      pGSPacketSrv0x27_Text = 0;
-      pCurPacket = (short int*)pPacketData;
-      if (!*pPacketData) {
         return;
       }
 
-      do {
-        pOldHead = pTxtMsg->pMessage;
-        nMsgCode = pCurPacket[2];
-        byMsgType = *(uint8_t*)(pCurPacket + 1);
-        pNewEntry = (D2GSPacketSrv0x27_EntryStrc*)Fog::Memory::AllocServerMemory(pTxtMsg->pMemory, 0xc, ".\\Text\\Text.cpp", 0x5a, 0);
-        pNewEntry->pPrev = pOldHead;
-        pNewEntry->nMessage = nMsgCode;
-        pNewEntry->nType = (uint32_t)byMsgType;
-        pTxtMsg->nCount++;
-        pTxtMsg->pMessage = pNewEntry;
-        pGSPacketSrv0x27_Text = (D2GSPacketSrv0x27_TextStrc*)((uintptr_t)&pGSPacketSrv0x27_Text->pMemory + 1);
-        pCurPacket += 2;
-      } while ((int)pGSPacketSrv0x27_Text < (int)(uint32_t)*pPacketData);
-      return;
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x112);
+      exit(-1);
     }
 }
 

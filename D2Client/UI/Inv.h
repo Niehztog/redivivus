@@ -110,15 +110,7 @@ namespace D2Client::UI::Inv {
 
 // Function declarations
 void __stdcall InitializeColors();
-void __stdcall DrawItemSolidBackground(uint8_t nGridX, uint8_t nGridY, int32_t nParam1, int32_t nColorIndex, int32_t nParam2, struct D2GridScreenCoordinates * pCoords);
-void INV_DrawBodySlotHighlight(int * pnParam, int32_t nColorIndex);
-BOOL IsInInventoryScreenRange(int32_t nX, int32_t nY);
-BOOL IsInTradepage1ScreenRange(int32_t nX, int32_t nY);
-BOOL IsInTradePage2ScreenRange(int32_t nX, int32_t nY);
-BOOL IsInBankPageScreenRange(int32_t nX, int32_t nY);
-BOOL IsInBankPageScreenRangeOpenTop(int32_t nX, int32_t nY);
-BOOL IsInTransmogrifyScreenRange(int32_t nX, int32_t nY);
-void __stdcall INV_DrawGridPlacementHighlight(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit, uint32_t byColor, int32_t nGridIndex, int32_t pGridCoords);
+BOOL __fastcall IsInInventoryScreenRange(int32_t nX, int32_t nY);
 BOOL __stdcall INV_IsPlayerInventoryMode();
 void InitInventory();
 // Formats weapon damage text for item tooltips, handling one-handed, two-handed, barbarian dual-wield, throwable, and missile potion damage display. Calculates min/max damage based on weapon type, applies color coding for modified stats, and formats elemental damage for missile potions with duration scaling.
@@ -131,11 +123,6 @@ int32_t __stdcall INV_GetGoldButtonY();
 // Returns whether the inventory is in an interactive (shop/stash/trade) mode. Thirty-three bytes that touch EAX only - a global load, a jump table and a return - so it preserves ECX. Declaring it __stdcall made the decompiler treat ECX as killed by the call, and ClickItemLeft carries a SETZ result in ECX across exactly this call. The lost register became an unassigned local, the pick-up branch was never taken, and clicking an inventory item stopped lifting it.
 BOOL INV_IsInteractiveMode();
 BOOL __stdcall INV_IsInteractiveModeEx();
-void __stdcall INV_CalcGridCellFromMouse(struct D2UnitStrc * pUnit, int32_t nMouseX, int32_t nMouseY, uint32_t * pnCol, uint32_t * pnRow, uint8_t * pGridLayout);
-int __stdcall INV_CheckActionThrottle();
-BOOL INV_IsMouseOverGoldButton(int32_t nX, int32_t nY);
-BOOL INV_IsMouseOverCloseButton(int32_t nParam1, int32_t nParam2);
-void __stdcall INV_HandleHighResDropClick(int32_t nMouseY, struct D2UIMouseMsgStrc * pMsg, int32_t nMouseX);
 void __stdcall INV_HandleInventoryRightClick(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INV_HandleMouseMove(struct D2UIMouseMsgStrc * pMsg);
 // Resets the shop/inventory panel UI state. Fifty-six bytes whose only writes are stores to globals through EAX, so it preserves ECX. Typed __stdcall, the decompiler treated ECX as killed by the call, and INV_HandleShopLeftClick carries its button-loop stride there across two calls to this function - the stride became an unassigned local and the shop button scan advanced by garbage.

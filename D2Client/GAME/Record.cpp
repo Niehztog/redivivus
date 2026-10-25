@@ -47,7 +47,7 @@ namespace D2Client::GAME::Record {
 
 // @sourcefile .\GAME\Record.cpp
 void __stdcall AllocGameRecord() {
-    D2GameRecordStrc* pRecord = D2_NEW(D2GameRecordStrc);
+    D2GameRecordStrc* pRecord = ((D2GameRecordStrc*)Fog::Memory::AllocClientMemory(sizeof(D2GameRecordStrc), ".\\GAME\\Record.cpp", 0x35, 0));
     pRecord->nEntrySize = 0;
     pRecord->nPlaybackIndex = 0;
     gpCurrentGameRecord->pNext = pRecord;
@@ -184,7 +184,7 @@ void __stdcall LoadGameRecordFromFile() {
       D2GameRecordStrc* pBlock;
       do {
         if (nBlockIndex) {
-          pBlock = D2_NEW(D2GameRecordStrc);
+          pBlock = ((D2GameRecordStrc*)Fog::Memory::AllocClientMemory(sizeof(D2GameRecordStrc), ".\\GAME\\Record.cpp", 0x35, 0));
           pBlock->nEntrySize = 0;
           pBlock->nPlaybackIndex = 0;
           gpCurrentGameRecord->pNext = pBlock;
@@ -216,7 +216,7 @@ void __stdcall FreeGameRecord() {
     while (pMemoryToFree) {
       D2GameRecordStrc* pNextRecord;
       pNextRecord = pMemoryToFree->pNext;
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\GAME\\Record.cpp", 0x120, 0);
       pMemoryToFree = pNextRecord;
     }
 }

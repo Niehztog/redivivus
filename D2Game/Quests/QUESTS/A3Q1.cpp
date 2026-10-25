@@ -810,7 +810,7 @@ void __fastcall Q18_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->fpActiveFilter = Q18_ActiveFilter;
     pQuestData->fpSequenceFilter = (QUESTSEQ)Q18_SequenceFilter;
     pQuestData->nSequenceQuestId = QUEST_BladeOfTheOldReligion;
-    D2QuestDataA3Q1Strc* pQuestSpecificData = D2_NEW_POOL(pQuestData->pGame->pMemoryPool, D2QuestDataA3Q1Strc);
+    D2QuestDataA3Q1Strc* pQuestSpecificData = ((D2QuestDataA3Q1Strc*)Fog::Memory::AllocServerMemory(pQuestData->pGame->pMemoryPool, sizeof(D2QuestDataA3Q1Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q1.cpp", 0x3ad, 0));
     pQuestData->pQuestSpecificData.pA3Q1 = pQuestSpecificData;
     pQuestData->sStateFunctions.fpQuestStateHandler[4] = Q18_Callback04_ItemPickedUp;
     pQuestData->sStateFunctions.fpQuestStateHandler[5] = Q18_Callback05_ItemDropped;

@@ -66,7 +66,7 @@ void __stdcall FreeRosterPet() {
     while (pMemoryToFree) {
       D2RosterPetStrc* pNextPet;
       pNextPet = pMemoryToFree->pNext;
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\GAME\\RosterPets.cpp", 0x2f, 0);
       pMemoryToFree = pNextPet;
     }
 
@@ -112,7 +112,7 @@ void __fastcall AddRosterPet(int32_t nRosterGUID, int32_t nOwnerGUID, int32_t nS
 
     while (true) {
       if (!pExisting) {
-        pRosterPet = D2_NEW(D2RosterPetStrc);
+        pRosterPet = ((D2RosterPetStrc*)Fog::Memory::AllocClientMemory(sizeof(D2RosterPetStrc), ".\\GAME\\RosterPets.cpp", 0x7a, 0));
         memset(pRosterPet, 0, 0x34);
         pRosterPet->nRosterGUID = nRosterGUID;
         pRosterPet->nOwnerGUID = nOwnerGUID;
@@ -228,7 +228,7 @@ void __fastcall RemoveRosterPet(int32_t nRosterGUID) {
       pRosterPet = pMemoryToFree->pNext;
     }
 
-    D2_FREE(pMemoryToFree);
+    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\GAME\\RosterPets.cpp", 0xd1, 0);
 }
 
 // Returns the ownership relation of a roster pet to the local player: 0=not found or different party, 1=owned by local player, 2=owned by same-party member, 3=pet type lacks the party-share flag (nFlags&0x10==0) or skill out of range. Looks up the pet by nRosterGUID, checks PetType txt flags, then compares party IDs.

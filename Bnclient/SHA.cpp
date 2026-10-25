@@ -407,7 +407,7 @@ void SHA1_Transform(uint32_t * blockWords, uint32_t * stateWords) {
     stateWords[4] += stateA;
 }
 
-void SHA1_Init(uint32_t * pState) {
+void __fastcall SHA1_Init(uint32_t * pState) {
     *pState = 0x67452301;
     pState[1] = 0xefcdab89;
     pState[2] = 0x98badcfe;
@@ -518,7 +518,7 @@ int32_t __fastcall SHA1_HashWideString(uint8_t * pHashOut, char * pWideStr, int3
     void* pTmpBuf = Storm::SMem::SMemAlloc(nHalfLen, ".\\SHA.cpp", 200, 0);
     uint32_t nByteIdx = 0;
     if (pTmpBuf) {
-      if ((uint32_t)nHalfLen > 0) {
+      if (nHalfLen) {
         do {
           *(char*)(nByteIdx + (int)pTmpBuf) = pWideStr[nByteIdx * 2];
           nByteIdx++;
@@ -535,7 +535,7 @@ int32_t __fastcall SHA1_HashWideString(uint8_t * pHashOut, char * pWideStr, int3
       } while (i < 0x14);
 
       i = 0;
-      if ((uint32_t)nHalfLen > 0) {
+      if (nHalfLen) {
         pOddSrcByte = pWideStr + 1;
         do {
           *(char*)(i + (int)pTmpBuf) = *pOddSrcByte;

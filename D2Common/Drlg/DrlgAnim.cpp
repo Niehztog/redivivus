@@ -193,7 +193,7 @@ void __fastcall DRLGANIM_AllocAnimatedTiles(D2DrlgGridStrc * pGrids, D2RoomExStr
               }
 
               nMatchCount = D2CMP::DUNGEON::Dungeon::TILEPROJECT_LookupTilesInAllProjects(pRoomExIter->apTiles, pTileEntryIter[1], (uint32_t)nOrientation, nIndex & 0xff, aTileResults, 0x28);
-              pAnimTileGrid = D2_NEW_POOL(pMemory, D2DrlgAnimTileGridStrc);
+              pAnimTileGrid = ((D2DrlgAnimTileGridStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2DrlgAnimTileGridStrc), ".\\DRLG\\DrlgAnim.cpp", 0x9b, 0));
               pAnimTileGrid->ppTileData = 0;
               pAnimTileGrid->nFrameStep = 0;
               pAnimTileGrid->pNext = 0;

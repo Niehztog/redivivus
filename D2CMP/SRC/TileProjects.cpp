@@ -71,7 +71,7 @@ void __stdcall Free() {
       pMemoryToFree->pTileLibrary = 0;
       FindTiles::FINDTILE_FreeHashTable(pMemoryToFree->pHash);
       pMemoryToFree->pHash = 0;
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\SRC\\TileProjects.cpp", 0x2a, 0);
       pMemoryToFree = pDVar1;
     }
 
@@ -121,7 +121,7 @@ D2TileLibraryHeaderStrc * __stdcall Alloc(D2TileLibraryHashStrc * * ppHash, char
     }
 
     size_t nFileSize = SpriteCache::SPRITECACHE_LoadFromFile(szFilename);
-    int* pTileBuffer = (int*)D2_ALLOC(nFileSize);
+    int* pTileBuffer = (int*)Fog::Memory::AllocClientMemory(nFileSize, ".\\SRC\\TileProjects.cpp", 0x6b, 0);
     if (!pTileBuffer) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6c);
       exit(-1);
@@ -133,22 +133,10 @@ D2TileLibraryHeaderStrc * __stdcall Alloc(D2TileLibraryHashStrc * * ppHash, char
       D2FILE_CloseFile(nullptr, pFile);
       Tilecmp::TILECMP_FixupMinimalPointers(pTileBuffer, (int**)&pTileData, szFilename);
       pNewHash = Tilecmp::TILECMP_RegisterTilesForLookup(pTileData);
-      pExistingNode = D2_NEW(D2TileProjectStrc);
-      if (pExistingNode) {
-        memset(pExistingNode, 0, 0x110);
-        pExistingNode->pNext = gpTileProjectListHead;
-        pExistingNode->pTileLibrary = pTileData;
-        pExistingNode->pHash = pNewHash;
-        nNameCopyOffset = (int)pExistingNode - (int)szFilename;
-        gpTileProjectListHead = pExistingNode;
-        do {
-          cNameChar = *szFilename;
-          szFilename[nNameCopyOffset] = cNameChar;
-          szFilename++;
-        } while (cNameChar != '\0');
-
-        *ppHash = pExistingNode->pHash;
-        return pTileData;
+      pExistingNode = ((D2TileProjectStrc*)Fog::Memory::AllocClientMemory(sizeof(D2TileProjectStrc), ".\\SRC\\TileProjects.cpp", 0x7b, 0));
+      if (!pExistingNode) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x7c);
+        exit(-1);
       }
 
       memset(pExistingNode, 0, 0x110);

@@ -398,7 +398,7 @@ void __stdcall SKILLS_FreeSkillList(D2UnitStrc * pUnit) {
       pMemoryToFree_00 = pNextSkill;
     }
 
-    D2_FREE_POOL(pUnit->pMemory, pMemoryToFree);
+    Fog::Memory::FreeServerMemory(pUnit->pMemory, pMemoryToFree, ".\\SKILLS\\Skills.cpp", 0x508, 0);
     pUnit->pSkillsList = 0;
 }
 
@@ -1994,7 +1994,7 @@ int32_t __stdcall SKILL_GetThrownWeaponBonus(D2UnitStrc * pUnit, D2UnitStrc * pU
         }
 
         nIdx++;
-      } while (nIdx < _bIsThrowable);
+      } while (_bIsThrowable > nIdx);
     }
     if (!pUnit2) {
       return nBestThrowBonus;
@@ -2046,7 +2046,7 @@ int32_t __stdcall SKILLS_GetItemBonusDamage(D2UnitStrc * pUnit, D2UnitStrc * pIt
 
     do {
       uStatId = ITEMS::Items::ITEMS_IsA(pItem, (eD2ItemTypes)(uint16_t)aBonusEntries[nIdx].wSubIndex);
-      if (uStatId && nBestBonus < aBonusEntries[nIdx].nStatValue) {
+      if (uStatId && aBonusEntries[nIdx].nStatValue > nBestBonus) {
         nBestBonus = aBonusEntries[nIdx].nStatValue;
       }
 
@@ -2242,20 +2242,20 @@ uint32_t __stdcall SKILL_FindTeleportPosition(D2UnitStrc * pUnit, D2UnitStrc * p
       eUnitTypeTmp = pUnit2->eUnitType;
       if (eUnitTypeTmp == UNIT_OBJECT || 3 < (int)eUnitTypeTmp && (int)eUnitTypeTmp <= 5) {
         nDestX = pUnit2->pPath.pStaticPath->nPosX;
-      } else if (!pUnit2->pPath.pDynamicPath) {
-        nDestX = 0;
-      } else {
+      } else if (pUnit2->pPath.pDynamicPath) {
         nDestX = PATH::DynamicPath::GetXPos(pUnit2->pPath.pDynamicPath);
+      } else {
+        nDestX = 0;
       }
 
       eUnitTypeTmp = pUnit2->eUnitType;
       ptFreeCoord.y = nDestX;
       if (eUnitTypeTmp == UNIT_OBJECT || 3 < (int)eUnitTypeTmp && (int)eUnitTypeTmp <= 5) {
         nRawTargetY = pUnit2->pPath.pStaticPath->nPosY;
-      } else if (!pUnit2->pPath.pDynamicPath) {
-        nRawTargetY = 0;
-      } else {
+      } else if (pUnit2->pPath.pDynamicPath) {
         nRawTargetY = PATH::DynamicPath::GetYPos(pUnit2->pPath.pDynamicPath);
+      } else {
+        nRawTargetY = 0;
       }
     } else {
       ptFreeCoord.y = PATH::DynamicPath::GetXSP1(pCaster->pPath.pDynamicPath);
@@ -3166,7 +3166,7 @@ static void __stdcall SKILLS_RemoveSkill(D2UnitStrc * pUnitStrc, eD2Skills dwPar
         pSkillList->pFirstSkill = pSkillToRemove->pNext;
       }
 
-      D2_FREE_POOL(pUnitStrc->pMemory, pSkillToRemove);
+      Fog::Memory::FreeServerMemory(pUnitStrc->pMemory, pSkillToRemove, ".\\SKILLS\\Skills.cpp", 0x4ac, 0);
       eSkillId = dwParam2;
     }
 
@@ -3218,7 +3218,7 @@ D2SkillStrc * __stdcall AllocSkill(D2UnitStrc * pUnit, eD2Skills eSkill) {
       return nullptr;
     }
 
-    D2SkillStrc* pNewSkill = D2_NEW_POOL(pSkillsList->pMemory, D2SkillStrc);
+    D2SkillStrc* pNewSkill = ((D2SkillStrc*)Fog::Memory::AllocServerMemory(pSkillsList->pMemory, sizeof(D2SkillStrc), ".\\SKILLS\\Skills.cpp", 0x539, 0));
     memset(pNewSkill, 0, 0x40);
     pNewSkill->pRecord = pSkillListStrc;
     if (pUnit->eUnitType == UNIT_MONSTER) {
@@ -3294,13 +3294,13 @@ void __stdcall SKILLS_AddOrRemoveItemSkill(D2UnitStrc * pUnit, int32_t nOwnerGUI
     if (pUnit->eUnitType != UNIT_PLAYER) {
       return;
     }
-    if (nLevel <= 0) {
+    if (nLevel < 1) {
       return;
     }
     if ((int)eSkill < 0) {
       return;
     }
-    if ((int)eSkill >= sgptDataTable->nTxtSkillsCount) {
+    if (sgptDataTable->nTxtSkillsCount <= (int)eSkill) {
       return;
     }
 
@@ -3350,7 +3350,7 @@ void __stdcall SKILLS_AddOrRemoveItemSkill(D2UnitStrc * pUnit, int32_t nOwnerGUI
         pCurSkill->pNext = pNewSkill->pNext;
       }
 
-      D2_FREE_POOL(pUnit->pMemory, pNewSkill);
+      Fog::Memory::FreeServerMemory(pUnit->pMemory, pNewSkill, ".\\SKILLS\\Skills.cpp", 0x5e7, 0);
       return;
     }
 
@@ -3373,7 +3373,7 @@ void __stdcall SKILLS_AddOrRemoveItemSkill(D2UnitStrc * pUnit, int32_t nOwnerGUI
       pIterSkill = (D2UnitStrc*)pPrevSkill->nClassId;
     }
 
-    pNewSkill = D2_NEW_POOL(pSkillsList->pMemory, D2SkillStrc);
+    pNewSkill = ((D2SkillStrc*)Fog::Memory::AllocServerMemory(pSkillsList->pMemory, sizeof(D2SkillStrc), ".\\SKILLS\\Skills.cpp", 0x5fe, 0));
     memset(pNewSkill, 0, 0x40);
     pNewSkill->pRecord = pSkillTxt;
     switch ((int)pSkillTxt->anim) {

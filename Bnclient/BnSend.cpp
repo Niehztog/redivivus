@@ -102,7 +102,7 @@ DWORD __stdcall BNCLIENT_GetBNetClientToken() {
     return g_nBNetClientToken;
 }
 
-void __fastcall NET_SID_CLIENT_Send_0x29_LogonResponse(char * szText1, char * szText2) {
+int __fastcall NET_SID_CLIENT_Send_0x29_LogonResponse(char * szText1, char * szText2) {
     // Frame slots -576..-4 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -134,7 +134,7 @@ void __fastcall NET_SID_CLIENT_Send_0x29_LogonResponse(char * szText1, char * sz
     return 1;
 }
 
-void __fastcall NET_SID_CLIENT_Send_0x3A_LogonResponse2(char * szText1, char * szText2) {
+int __fastcall NET_SID_CLIENT_Send_0x3A_LogonResponse2(char * szText1, char * szText2) {
     // Frame slots -576..-4 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -180,7 +180,7 @@ int __fastcall NET_SID_CLIENT_Send_0x3D_CreateAccount2(char * szText1, char * sz
     return 1;
 }
 
-void __fastcall NET_SID_CLIENT_Send_0x31_ChangePassword(char * szText1, char * szText2, char * szNewPassword) {
+int __fastcall NET_SID_CLIENT_Send_0x31_ChangePassword(char * szText1, char * szText2, char * szNewPassword) {
     // Frame slots -596..-4 are ONE object: &dwClientToken is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -354,7 +354,7 @@ void * __stdcall NET_SID_CLIENT_Send_0x40_QueryRealms2() {
 // @sourcefile .\BnSend.cpp
 void __stdcall BNSEND_FreeChannelListData() {
     if (g_pBNetChannelListData) {
-      D2_FREE(g_pBNetChannelListData);
+      Fog::Memory::FreeClientMemory(g_pBNetChannelListData, ".\\BnSend.cpp", 0x1ef, 0);
     }
 
     g_pBNetChannelListData = 0;
@@ -602,7 +602,7 @@ BOOL __fastcall BNCLIENT_GetEnterChatResponseFlags(uint32_t * pOutFlags) {
 // @sourcefile .\BnSend.cpp
 void __stdcall BNSEND_FreeGameListData() {
     if (g_pBNetGameListData) {
-      D2_FREE(g_pBNetGameListData);
+      Fog::Memory::FreeClientMemory(g_pBNetGameListData, ".\\BnSend.cpp", 0x36a, 0);
     }
 
     g_pBNetGameListData = 0;
@@ -660,11 +660,11 @@ void __fastcall NET_SID_CLIENT_Send_0x22_NotifyJoin(char * szText1, char * szTex
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreUserProfileData(uint8_t * pbProfileData, size_t nDataSize) {
     if (gpBNetWriteUserData) {
-      D2_FREE(gpBNetWriteUserData);
+      Fog::Memory::FreeClientMemory(gpBNetWriteUserData, ".\\BnSend.cpp", 0x3b2, 0);
     }
 
     gpBNetWriteUserData = 0;
-    gpBNetWriteUserData = D2_ALLOC(nDataSize + 4);
+    gpBNetWriteUserData = Fog::Memory::AllocClientMemory(nDataSize + 4, ".\\BnSend.cpp", 0x3bb, 0);
     *(size_t*)gpBNetWriteUserData = nDataSize;
     memcpy((void*)((int)gpBNetWriteUserData + 4), pbProfileData, nDataSize);
     if (!(nDataSize != 8 && 0x48 <= nDataSize)) {
@@ -780,7 +780,7 @@ uint32_t __fastcall NET_SID_CLIENT_Send_0x27_WriteUserData(char * szAccount, uin
       } while (nIdx);
     }
 
-    char* pPacketBuf = (char*)D2_ALLOC(iVar1 + 8);
+    char* pPacketBuf = (char*)Fog::Memory::AllocClientMemory(iVar1 + 8, ".\\BnSend.cpp", 0x7fffffff, 0);
     pPacketBuf[0] = '\x01';
     pPacketBuf[1] = '\0';
     pPacketBuf[2] = '\0';
@@ -808,17 +808,17 @@ uint32_t __fastcall NET_SID_CLIENT_Send_0x27_WriteUserData(char * szAccount, uin
 
     _net_sid::NET_SID_CLIENT_ResetRequireResponse(0x27);
     int32_t nSendResult = NET_SID_CLIENT_Send(0x27, pPacketBuf, (int)szBufferOutput - (int)pPacketBuf);
-    D2_FREE(pPacketBuf);
+    Fog::Memory::FreeClientMemory(pPacketBuf, ".\\BnSend.cpp", 0x4e0, 0);
     return (uint32_t)(-1 < nSendResult);
 }
 
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreReadUserData(uint8_t * pbReadData, size_t nSize) {
     if (g_pBNetReadUserData) {
-      D2_FREE(g_pBNetReadUserData);
+      Fog::Memory::FreeClientMemory(g_pBNetReadUserData, ".\\BnSend.cpp", 0x4ec, 0);
     }
 
-    g_pBNetReadUserData = D2_ALLOC(nSize);
+    g_pBNetReadUserData = Fog::Memory::AllocClientMemory(nSize, ".\\BnSend.cpp", 0x4ed, 0);
     memcpy(g_pBNetReadUserData, pbReadData, nSize);
 }
 
@@ -835,7 +835,7 @@ uint32_t __fastcall NET_SID_CLIENT_Send_0x26_ReadUserData(char * szAccount, uint
       } while (nIdx < nCount);
     }
 
-    char* pPacketBuf = (char*)D2_ALLOC(iVar1 + 0xc);
+    char* pPacketBuf = (char*)Fog::Memory::AllocClientMemory(iVar1 + 0xc, ".\\BnSend.cpp", 0x506, 0);
     pPacketBuf[0] = '\x01';
     pPacketBuf[1] = '\0';
     pPacketBuf[2] = '\0';
@@ -855,7 +855,7 @@ uint32_t __fastcall NET_SID_CLIENT_Send_0x26_ReadUserData(char * szAccount, uint
 
     _net_sid::NET_SID_CLIENT_ResetRequireResponse(0x26);
     int32_t nSendResult = NET_SID_CLIENT_Send(0x26, pPacketBuf, (int)szBufferOutput - (int)pPacketBuf);
-    D2_FREE(pPacketBuf);
+    Fog::Memory::FreeClientMemory(pPacketBuf, ".\\BnSend.cpp", 0x521, 0);
     return (uint32_t)(-1 < nSendResult);
 }
 
@@ -1009,33 +1009,33 @@ void __stdcall NET_SID_CLIENT_Send_0x5D_ReportCrash() {
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreRealmQueryData(uint8_t * pbRealmData, size_t nSize) {
     if (gpRealmQueryData) {
-      D2_FREE(gpRealmQueryData);
+      Fog::Memory::FreeClientMemory(gpRealmQueryData, ".\\BnSend.cpp", 0x19a, 0);
     }
 
     gpRealmQueryData = 0;
-    gpRealmQueryData = D2_ALLOC(nSize);
+    gpRealmQueryData = Fog::Memory::AllocClientMemory(nSize, ".\\BnSend.cpp", 0x16b, 0);
     memcpy(gpRealmQueryData, pbRealmData, nSize);
 }
 
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreChannelListData(uint8_t * pbChannelData, size_t nSize) {
     if (g_pBNetChannelListData) {
-      D2_FREE(g_pBNetChannelListData);
+      Fog::Memory::FreeClientMemory(g_pBNetChannelListData, ".\\BnSend.cpp", 0x1ef, 0);
     }
 
     g_pBNetChannelListData = 0;
-    g_pBNetChannelListData = D2_ALLOC(nSize);
+    g_pBNetChannelListData = Fog::Memory::AllocClientMemory(nSize, ".\\BnSend.cpp", 0x1e6, 0);
     memcpy(g_pBNetChannelListData, pbChannelData, nSize);
 }
 
 // @sourcefile .\BnSend.cpp
 void __fastcall BNSEND_StoreGameListData(uint8_t * pbGameData, size_t nSize) {
     if (g_pBNetGameListData) {
-      D2_FREE(g_pBNetGameListData);
+      Fog::Memory::FreeClientMemory(g_pBNetGameListData, ".\\BnSend.cpp", 0x36a, 0);
     }
 
     g_pBNetGameListData = 0;
-    g_pBNetGameListData = D2_ALLOC(nSize);
+    g_pBNetGameListData = Fog::Memory::AllocClientMemory(nSize, ".\\BnSend.cpp", 0x326, 0);
     memcpy(g_pBNetGameListData, pbGameData, nSize);
 }
 
@@ -2287,7 +2287,7 @@ DWORD __stdcall BNNEWS_RoundUpToMultiple(DWORD dwValue, DWORD dwMultiple) {
 }
 
 // @sourcefile .\BNNews.cpp
-static int __stdcall BNNEWS_SaveToCache() {
+void __stdcall BNNEWS_SaveToCache() {
     char* pStrScan;
     uint32_t nEntryIndex;
     char* pEntryText;
@@ -2315,7 +2315,7 @@ static int __stdcall BNNEWS_SaveToCache() {
         pStrScan = pEntryText;
         pStrScan = pStrScan + strlen(pStrScan) + 1;
         if (0x400 <= (int)pStrScan - (int)pStrScanEnd) {
-          return 0;
+          return;
         }
 
         nTotalSize = nTotalSize + 5 + ((int)pStrScan - (int)pStrScanEnd);
@@ -2326,9 +2326,9 @@ static int __stdcall BNNEWS_SaveToCache() {
     }
 
     nTotalSize = nAccumSize;
-    uint32_t* pMemoryToFree = (uint32_t*)D2_ALLOC(nAccumSize);
+    uint32_t* pMemoryToFree = (uint32_t*)Fog::Memory::AllocClientMemory(nAccumSize, ".\\BNNews.cpp", 0x154, 0);
     if (!pMemoryToFree) {
-      return 0;
+      return;
     }
 
     *pMemoryToFree = g_dwNewsTimestamp;
@@ -2365,7 +2365,7 @@ static int __stdcall BNNEWS_SaveToCache() {
     /* LPSYSTEMTIME lpSystemTime for GetSystemTime */ GetSystemTime(&stSystemTime);
     /* LPFILETIME lpFileTime for SystemTimeToFileTime */ /* SYSTEMTIME * lpSystemTime for SystemTimeToFileTime */ SystemTimeToFileTime(&stSystemTime, &ftWriteTime);
     Cache::CACHE_WriteData(szBnNewsChannelName, (LPCVOID)pMemoryToFree, nTotalSize, (uint32_t*)&ftWriteTime.dwLowDateTime, -1, -1);
-    D2_FREE(pMemoryToFree);
+    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\BNNews.cpp", 0x17b, 0);
 }
 
 static void __stdcall BNNEWS_InvokeCallbacks() {
@@ -3287,35 +3287,14 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
     dwTickCount = GetTickCount();
     gnBNetCDKeyHashSize += dwTickCount;
     bIsExpansion = BnSend::D2CheckExpansionGame();
-    if (!bIsExpansion) {
-      aExpansionHashBuf.abHash[8] = (uint8_t)gnBNetCDKeyHashSize;
-      aExpansionHashBuf.abHash[9] = *(uint8_t*)((char*)&gnBNetCDKeyHashSize + 1);
-      aExpansionHashBuf.abHash[10] = *(uint8_t*)((char*)&gnBNetCDKeyHashSize + 2);
-      aExpansionHashBuf.abHash[0xb] = *(uint8_t*)((char*)&gnBNetCDKeyHashSize + 3);
-      aExpansionHashBuf.abHash[0xc] = 1;
-      aExpansionHashBuf.abHash[0xd] = 0;
-      aExpansionHashBuf.abHash[0xe] = 0;
-      aExpansionHashBuf.abHash[0xf] = 0;
-      *(uint32_t*)((char*)&aExpansionHashBuf.abHash + 16) = nProductId;
-      uVar2 = BNSEND_GetServerToken();
-      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, uVar2, szOwnerCopy, &aClassicHashBuf);
+    if (bIsExpansion) {
+      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, BNSEND_GetServerToken(), szOwnerCopy, &aExpansionHashBuf);
       if (!bHash1Ok) {
         return;
       }
 
-      uVar2 = Storm::Source::SSTR::SStrCopy(szOwnerBuf, szOwner, 0x100);
-      nSizeNoHeader = uVar2 + 0x31;
-      pSendData = aExpansionHashBuf.abHash + 8;
-    } else {
-      uVar2 = BNSEND_GetServerToken();
-      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, uVar2, szOwnerCopy, &aExpansionHashBuf);
-      if (!bHash1Ok) {
-        Fog::Debug::GuardStack();
-        return;
-      }
 
-      uVar2 = BNSEND_GetServerToken();
-      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, uVar2, szOwnerCopy2, &aClassicHashBuf);
+      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, BNSEND_GetServerToken(), szOwnerCopy2, &aClassicHashBuf);
       if (!bHash1Ok) {
         return;
       }
@@ -3336,8 +3315,7 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
       aExpansionHashBuf.abHash[0xe] = 0;
       aExpansionHashBuf.abHash[0xf] = 0;
       *(uint32_t*)((char*)&aExpansionHashBuf.abHash + 16) = nProductId;
-      BNSEND_GetServerToken();
-      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, szOwnerCopy, &aClassicHashBuf);
+      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, BNSEND_GetServerToken(), szOwnerCopy, &aClassicHashBuf);
       if (!bHash1Ok) {
         return;
       }

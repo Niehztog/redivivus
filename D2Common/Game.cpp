@@ -24,7 +24,7 @@ namespace D2Common::Game {
 
 // @sourcefile .\Text\Text.cpp
 D2GSPacketSrv0x27_TextStrc * __stdcall STRUCT_AllocTxtMessageForPacket0x27(D2PoolManagerStrc * pMemory) {
-    D2GSPacketSrv0x27_TextStrc* pTxtMsg = D2_NEW_POOL(pMemory, D2GSPacketSrv0x27_TextStrc);
+    D2GSPacketSrv0x27_TextStrc* pTxtMsg = ((D2GSPacketSrv0x27_TextStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2GSPacketSrv0x27_TextStrc), ".\\Text\\Text.cpp", 0x2b, 0));
     pTxtMsg->pMemory = pMemory;
     pTxtMsg->pMessage = 0;
     pTxtMsg->nCount = 0;

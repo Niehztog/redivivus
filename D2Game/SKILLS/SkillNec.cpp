@@ -1711,7 +1711,7 @@ BOOL __fastcall Skills_SrvDoFunc_057_IronGolem(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     sPetCastParams.classId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, (int*)&sPetCastParams.pSkillTxt, nullptr, nullptr);
-    if (-1 >= sPetCastParams.classId) {
+    if (0 > sPetCastParams.classId) {
       return 0;
     }
 
@@ -1953,7 +1953,7 @@ BOOL __fastcall Skills_SrvDoFunc_060_SummonBoneWall(::SGAMEDATA * pGame, D2UnitS
     }
 
     sCastPetArgs.classId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl, &nSummonMode, nullptr, nullptr);
-    if (-1 >= sCastPetArgs.classId) {
+    if (0 > sCastPetArgs.classId) {
       return 0;
     }
 

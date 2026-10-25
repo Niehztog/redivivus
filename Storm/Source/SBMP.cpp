@@ -1224,7 +1224,6 @@ int __fastcall SBMP_DecodePcxFile(D2PoolManagerStrc * hFile, uint8_t * pixels, i
     }
     if (!pixels) {
       if (!bVar1) {
-        Fog::Debug::GuardStack();
         return 1;
       }
 
@@ -1238,12 +1237,6 @@ int __fastcall SBMP_DecodePcxFile(D2PoolManagerStrc * hFile, uint8_t * pixels, i
       SFile::SFileReadFile((D2MPQFileStrc*)hFile, src, nSize, nullptr, 0);
       SBMP_UncompressPcxImage(nParam, pixels, nSize - (iResult == 8), src, width, (uint32_t)sPcxHeader.wBytesPerLine, (uint32_t)sPcxHeader.byPlanes);
       SMem::SMemFree(src, ".\\SOURCE\\SBMP.CPP", 0x474, 0);
-    } else {
-      if (!bHasPalette) {
-        return 1;
-      }
-
-      SFile::SFileSetFilePointer((D2MPQFileStrc*)hFile, -0x300, nullptr, 2);
     }
     if (bVar1) {
       SFile::SFileReadFile((D2MPQFileStrc*)hFile, abPalette, 0x300, nullptr, 0);
@@ -1499,7 +1492,9 @@ uint32_t __stdcall SBmpAllocLoadImage(char * szText, void * pPalette, uint32_t *
     if (pnBpp) {
       *pnBpp = 0;
     }
-    if (!(*szText == '\0' || !szText || !ppOutputBuf)) {
+    if (*szText == '\0' || !szText || !ppOutputBuf) {
+      SErr::SErrSetLastError(0x57);
+    } else {
       int32_t iOpenResult;
       iOpenResult = SFile::SFileOpenFile(szText, &hArchiveFile);
       if (iOpenResult) {
@@ -1545,8 +1540,6 @@ uint32_t __stdcall SBmpAllocLoadImage(char * szText, void * pPalette, uint32_t *
         SMem::SMemFree(pOutputBuffer, ".\\SOURCE\\SBMP.CPP", 0x5f3, 0);
         return bSuccess;
       }
-    } else {
-      SErr::SErrSetLastError(0x57);
     }
 
     return 0;

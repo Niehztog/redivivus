@@ -1326,29 +1326,26 @@ void __fastcall ITEM_HandleUnsocketItems(D2UnitStrc * pUnit) {
             Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd5a);
             exit(-1);
           } else {
-            if (pNextItem == pCarriedItem) {
-              iVar1 = D2Common::INVENTORY::Inventory::ITEM_GetItemData_eD2InventoryGridType(pBodyItem);
-              if (iVar1 == 3) {
-                dwParam2 = D2Common::INVENTORY::Inventory::INVENTORY_IsItemLocationValid(pInventory, pCarriedItem);
-                D2Common::INVENTORY::Inventory::NullSub_2Arg(pInventory, dwParam2);
-              }
-
-              D2Common::ITEM_ProcessSetItemEquip(pUnit, pNextItem, 1, 1);
-              if (pUnit->eUnitType == UNIT_PLAYER) {
-                D2Common::INVENTORY::Inventory::GetEquipedWeapon(pUnit->pInventory);
-              }
-
-              bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pNextItem, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
-              if (!bIsBroken) {
-                D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pUnit, pNextItem);
-              }
-
-              ITEM_RecalcAllEquippedItems_EBX(pUnit);
-              continue;
+            if (pNextItem != pCarriedItem) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd5b);
+              exit(-1);
             }
 
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd5b);
-            exit(-1);
+            iVar1 = D2Common::INVENTORY::Inventory::ITEM_GetItemData_eD2InventoryGridType(pBodyItem);
+            if (iVar1 == 3) {
+              dwParam2 = D2Common::INVENTORY::Inventory::INVENTORY_IsItemLocationValid(pInventory, pCarriedItem);
+              D2Common::INVENTORY::Inventory::NullSub_2Arg(pInventory, dwParam2);
+            }
+            D2Common::ITEM_ProcessSetItemEquip(pUnit, pNextItem, 1, 1);
+            if (pUnit->eUnitType == UNIT_PLAYER) {
+              D2Common::INVENTORY::Inventory::GetEquipedWeapon(pUnit->pInventory);
+            }
+            bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pNextItem, ITEMFLAG_BROKEN, 0x96, ".\\UNIT\\Item.cpp");
+            if (!bIsBroken) {
+              D2Common::Stats::StatsEx::STATLIST_RemoveFromOwnerAndRecalc(pUnit, pNextItem);
+            }
+            ITEM_RecalcAllEquippedItems_EBX(pUnit);
+            continue;
           }
         }
 

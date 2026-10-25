@@ -99,7 +99,7 @@ int32_t __fastcall AllocObjectControl(::SGAMEDATA * pGame) {
       exit(-1);
     }
 
-    D2ObjectControlStrc* pObjectControl = D2_NEW_POOL(pGame->pMemoryPool, D2ObjectControlStrc);
+    D2ObjectControlStrc* pObjectControl = ((D2ObjectControlStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2ObjectControlStrc), ".\\OBJECTS\\objrgn.cpp", 0x2a, 0));
     pGame->pObjectControl = pObjectControl;
     D2Common::Seed::SEED_InitDefault(&pObjectControl->sSeed);
     D2SeedStrc sSeedNext = D2_SEED_NEXT(pGame->pGameSeed);
@@ -112,7 +112,7 @@ int32_t __fastcall AllocObjectControl(::SGAMEDATA * pGame) {
     if (1 < sgptDataTable->nTxtLevelsSize) {
       pShrinesRngIter = (D2ObjectRngShrines*)(pObjectControl->aLevelsRng + 1);
       do {
-        pLevelObjRng = D2_NEW_POOL(pGame->pMemoryPool, D2ObjectRngStrc);
+        pLevelObjRng = ((D2ObjectRngStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2ObjectRngStrc), ".\\OBJECTS\\objrgn.cpp", 0x36, 0));
         nShrinesTxtCount = (int32_t)D2Common::DATATBLS::LvlTbls::TXT_Levels_GetLine(eLevel);
         memset(pLevelObjRng, 0, 0x90);
         pLevelObjRng->nMonClassId = -1;
@@ -146,7 +146,7 @@ int32_t __fastcall AllocObjectControl(::SGAMEDATA * pGame) {
     do {
       if (0 < aShrineClassCounts[nShrineClassIdxLoop]) {
         nAllocSize = aShrineClassCounts[nShrineClassIdxLoop] * 4;
-        pShrineClassRng = (int*)D2_ALLOC_POOL(pGame->pMemoryPool, nAllocSize);
+        pShrineClassRng = (int*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, nAllocSize, ".\\OBJECTS\\objrgn.cpp", 0x54, 0);
         pShrinesRngIter->aShrinesRng[0] = (uint8_t*)pShrineClassRng;
         memset(pShrineClassRng, 0, nAllocSize);
       }
@@ -195,7 +195,7 @@ void __fastcall FreeObjectControl(::SGAMEDATA * pGame) {
     D2ObjectControlSub0x1110* pMemoryToFree = pObjectControl->pSub0x1110;
     while (pMemoryToFree) {
       pPrevSub = pMemoryToFree->pPrev;
-      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\OBJECTS\\objrgn.cpp", 0xc1, 0);
       pMemoryToFree = pPrevSub;
     }
 
@@ -205,7 +205,7 @@ void __fastcall FreeObjectControl(::SGAMEDATA * pGame) {
       ppLevelRng = pObjectControl->aLevelsRng;
       do {
         ppLevelRng++;
-        D2_FREE_POOL(pGame->pMemoryPool, *ppLevelRng);
+        Fog::Memory::FreeServerMemory(pGame->pMemoryPool, *ppLevelRng, ".\\OBJECTS\\objrgn.cpp", 0xe2, 0);
         iLevelIdx++;
       } while (iLevelIdx < sgptDataTable->nTxtLevelsSize);
     }
@@ -214,14 +214,14 @@ void __fastcall FreeObjectControl(::SGAMEDATA * pGame) {
     iLevelIdx = 8;
     do {
       if (*ppShrineRng) {
-        D2_FREE_POOL(pGame->pMemoryPool, *ppShrineRng);
+        Fog::Memory::FreeServerMemory(pGame->pMemoryPool, *ppShrineRng, ".\\OBJECTS\\objrgn.cpp", 0xe8, 0);
       }
 
       ppShrineRng++;
       iLevelIdx--;
     } while (iLevelIdx);
 
-    D2_FREE_POOL(pGame->pMemoryPool, pGame->pObjectControl);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pGame->pObjectControl, ".\\OBJECTS\\objrgn.cpp", 0xec, 0);
 }
 
 D2ObjectRngStrc * __fastcall GetObjectLevelRng(::SGAMEDATA * pGame, eD2LevelId eLevelId) {
@@ -290,7 +290,7 @@ void __fastcall Debug(::SGAMEDATA * pGame) {
 void __fastcall AllocObjectControlSub0x1110(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2RoomStrc * pRoom) {
     int32_t nCoord;
     D2ObjectControlStrc* pObjectControl = pGame->pObjectControl;
-    D2ObjectControlSub0x1110* pNewSub = D2_NEW_POOL(pGame->pMemoryPool, D2ObjectControlSub0x1110);
+    D2ObjectControlSub0x1110* pNewSub = ((D2ObjectControlSub0x1110*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2ObjectControlSub0x1110), ".\\OBJECTS\\objrgn.cpp", 0x177, 0));
     eD2UnitType eUnitType = pUnit->eUnitType;
     if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nCoord = pUnit->pPath.pStaticPath->nPosX;
@@ -343,7 +343,7 @@ void __fastcall Objects_InitFn17(D2ObjectInitFnArg * pInitArg) {
             GAME::Event::SetEvent(pInitArg->pGame, pInitArg->pObject, 1, (pObjectsTxt->FrameCnt[1] >> 8) + pInitArg->pGame->dwGameFrame, 0, 0);
           }
 
-          D2_FREE_POOL(pInitArg->pGame->pMemoryPool, pSub0x1110);
+          Fog::Memory::FreeServerMemory(pInitArg->pGame->pMemoryPool, pSub0x1110, ".\\OBJECTS\\objrgn.cpp", 0x19b, 0);
           pObjectControl->pSub0x1110 = 0;
           return;
         }

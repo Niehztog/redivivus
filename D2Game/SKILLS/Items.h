@@ -117,8 +117,6 @@ namespace D2Game::SKILLS::Items {
 // Appends one {affixIndex, affixTxt} pair to a weighted-roll candidate list and RETURNS THE NEW COUNT. Writes pAffixTxt at [pCandidatePairs + nCount*8 + 4] and nAffixIndex at [pCandidatePairs + nCount*8], then returns nCount + 1. At the 0x1ff cap it writes nothing and returns nCount unchanged.
 // The return is the count: nCount arrives in EAX and 005c0d14 ADD EAX,0x1 falls into the RET.
 int32_t __stdcall SKILLITEMS_GetDispatchTableRange(int32_t pDispatchTable, int32_t nParam1, int32_t nParam2);
-// Returns max(nValue * nPercent / 100, nMinimum): nValue in EAX, nMinimum in ESI, nPercent on the stack (RET 4); the throw-damage scaling of the crude-quality item mods. Was named SKILLITEMS_NoOp.
-int32_t __stdcall SKILLITEMS_ApplyPercentWithMinimum(int32_t nValue, int32_t nMinimum, int32_t nPercent);
 // Rolls 1-3 staff mod skills. Classic: tier-based (5 skills per tier). Expansion: type-restricted (skill.itypea1 must match item). Skill level: [1, 3]. Applies via STATLIST_AddStatValue(UNITSTAT_item_singleskill).
 eD2Skills __stdcall ITEMMOD_RollStaffModSkills(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillBaseId);
 // Staff mod entry point. Checks item eligibility (Staves, Orbs, Wands, Scepters, Javelins, Claws, Druid helms). Delegates to ITEMMOD_RollStaffModSkills for skill selection. Stores in separate stat list (flag 0x40).

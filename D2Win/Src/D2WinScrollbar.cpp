@@ -362,7 +362,7 @@ BOOL __fastcall Draw(::D2WinScrollbar * pScrollbar) {
 }
 
 ::D2WinScrollbar * __fastcall D2WinScrollbar(int32_t nPosX, int32_t nPosY, int32_t nSizeX, int32_t nSizeY, DC6 * pDC6, OnPress pfnOnPress) {
-    ::D2WinScrollbar* pNewScrollbar = D2_NEW(::D2WinScrollbar);
+    ::D2WinScrollbar* pNewScrollbar = ((::D2WinScrollbar*)Fog::Memory::AllocClientMemory(sizeof(::D2WinScrollbar), ".\\Src\\D2WinScrollbar.cpp", 0x1c, 0));
     memset(pNewScrollbar, 0, 0x60);
     pNewScrollbar->sControl.neD2FormType = FORM_Scrollbar;
     int* pStateField = &pNewScrollbar->sControl.dwState;

@@ -2087,8 +2087,7 @@ BOOL __fastcall Skills_SrvDoFunc_044_SummonBladeSentinel(::SGAMEDATA * pGame, D2
     D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit_00, UNITSTAT_level, D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_level, 0), nMonClassIdOrLevel);
     int32_t nRelocFlags = 0;
     nMonClassIdOrLevel = 0;
-    uint32_t nPosY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-    UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit_00, D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), nPosY, nMonClassIdOrLevel, nRelocFlags);
+    UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit_00, D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit), nMonClassIdOrLevel, nRelocFlags);
     local_2c.nUnused0 = 0;
     local_2c.nUnused1 = 0;
     local_2c.nCmdArg1 = 0;

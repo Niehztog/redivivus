@@ -52,7 +52,7 @@ void __stdcall DRLGVER_SetVertexFlags(D2DrlgVertexStrc * pVertex, int nFlag) {
 
 // DRLG room outline generation: walks a linked list of room-edge descriptors (pDrlgRoomData) and splits a 4-vertex rectangular boundary (pFirstVertex's linked ring) by inserting new vertices where each edge's coordinate range intersects the room. nDirection (case 0-3) selects which side/axis (Y top, X right, Y bottom, X left) and the sign of comparison; uses pDrlgCoord or an override coord on the descriptor. New vertices are allocated from the server memory pool (AllocServerMemory, 0x14 bytes), tagged with nDirection and dwFlags (bit0 always, bit1 if descriptor field at +8 is set), and spliced into the vertex list. Returns 0 / end-of-list pointer; halts via ErrorManager on an invalid direction case.
 // @sourcefile .\DRLG\DrlgVer.cpp
-static D2DrlgVertexStrc * __stdcall DRLGVER_CreateVerticesFromEdges(D2PoolManagerStrc * pMemory, D2DrlgVertexStrc * pFirstVertex, D2DrlgCoordStrc * pDrlgCoord, uint8_t nDirection, void * pDrlgRoomData) {
+D2DrlgVertexStrc * __stdcall DRLGVER_CreateVerticesFromEdges(D2PoolManagerStrc * pMemory, D2DrlgVertexStrc * pFirstVertex, D2DrlgCoordStrc * pDrlgCoord, uint8_t nDirection, void * pDrlgRoomData) {
     D2DrlgCoordStrc* pEffectiveCoord;
     int nEdgeMin;
     D2DrlgVertexStrc* pNewVertex;
@@ -134,7 +134,7 @@ static D2DrlgVertexStrc * __stdcall DRLGVER_CreateVerticesFromEdges(D2PoolManage
             pEdgeVertex->dwFlags |= 2;
           }
           if (nCoordMax * nEdgeVtxPos < nAnchorPos * nEdgeVtxPos) {
-            pNewVertex = D2_NEW_POOL(pMemory, D2DrlgVertexStrc);
+            pNewVertex = ((D2DrlgVertexStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2DrlgVertexStrc), ".\\DRLG\\DrlgVer.cpp", 0x13, 0));
             pNewVertex->nPosX = 0;
             pNewVertex->nPosY = 0;
             *(uint32_t*)&pNewVertex->nDirection = 0;
@@ -154,7 +154,7 @@ static D2DrlgVertexStrc * __stdcall DRLGVER_CreateVerticesFromEdges(D2PoolManage
           }
         }
       } else if (!(nEdgeMax - nAnchorPos * nEdgeVtxPos) || nEdgeMax < nAnchorPos * nEdgeVtxPos) {
-        pNewVertex = D2_NEW_POOL(pMemory, D2DrlgVertexStrc);
+        pNewVertex = ((D2DrlgVertexStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2DrlgVertexStrc), ".\\DRLG\\DrlgVer.cpp", 0x13, 0));
         pNewVertex->nPosX = 0;
         pNewVertex->nPosY = 0;
         *(uint32_t*)&pNewVertex->nDirection = 0;
@@ -196,7 +196,7 @@ void __fastcall DRLGVER_CreateRoomVertices(D2PoolManagerStrc * pMemory, D2DrlgVe
       (*pSizePtr)--;
     }
 
-    D2DrlgVertexStrc* pVertex = D2_NEW_POOL(pMemory, D2DrlgVertexStrc);
+    D2DrlgVertexStrc* pVertex = ((D2DrlgVertexStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2DrlgVertexStrc), ".\\DRLG\\DrlgVer.cpp", 0x13, 0));
     pVertex->nPosX = 0;
     pVertex->nPosY = 0;
     *(uint32_t*)&pVertex->nDirection = 0;
@@ -271,14 +271,14 @@ void __fastcall DRLGVER_FreeVertices(D2PoolManagerStrc * pMemory, D2DrlgVertexSt
       }
 
       pNext = pCurrent->pNext;
-      D2_FREE_POOL(pMemory, pCurrent);
+      Fog::Memory::FreeServerMemory(pMemory, pCurrent, ".\\DRLG\\DrlgVer.cpp", 0x114, 0);
       pCurrent = pNext;
     } while (pNext != *ppVertices);
 
     D2_FREE_POOL(pMemory, pNext);
     if (!pNext) {
       free_head:
-      D2_FREE_POOL(pMemory, *ppVertices);
+      Fog::Memory::FreeServerMemory(pMemory, *ppVertices, ".\\DRLG\\DrlgVer.cpp", 0x11f, 0);
     }
 
     *ppVertices = 0;

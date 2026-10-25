@@ -119,12 +119,12 @@ void __fastcall CRASH_FormatStackTrace(DWORD dwThreadId, void * * aFrameAddrs, i
       pszScan = __frame0.szLineBuffer;
       pszScan = pszScan + strlen(pszScan) + 1;
       nLineLen = (int)pszScan - (int)(__frame0.szLineBuffer + 1);
-      if (nLineLen < 0x3ff) {
-        __frame0.szLineBuffer[nLineLen] = '\n';
-        __frame0.szLineBuffer[nLineLen + 1] = '\0';
-      } else {
+      if (!(nLineLen < 0x3ff)) {
         __frame0.szLineBuffer[0x3fe] = '\n';
         __frame0.szLineBuffer[0x3ff] = '\0';
+      } else {
+        __frame0.szLineBuffer[nLineLen] = '\n';
+        __frame0.szLineBuffer[nLineLen + 1] = '\0';
       }
 
       (*pOutputCallback)(pReport, __frame0.szLineBuffer);

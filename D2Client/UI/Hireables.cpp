@@ -151,7 +151,7 @@ void __stdcall LoadClassIcons() {
     }
 
     size_t nAllocSize = sgptDataTable->nTxtPetTypeSize * 0x14;
-    gpHireablesList = (D2HireablesListStrc*)D2_ALLOC_POOL(nullptr, nAllocSize);
+    gpHireablesList = (D2HireablesListStrc*)Fog::Memory::AllocServerMemory(nullptr, nAllocSize, ".\\UI\\Hireables.cpp", 0x96, 0);
     memset(gpHireablesList, 0, nAllocSize);
 }
 
@@ -184,7 +184,7 @@ void __stdcall FreeHireablesList() {
       } while (nIconIdx < nIconCount);
     }
 
-    D2_FREE_POOL(nullptr, pMemoryToFree);
+    Fog::Memory::FreeServerMemory(nullptr, pMemoryToFree, ".\\UI\\Hireables.cpp", 0xb7, 0);
     gpHireablesList = 0;
 }
 

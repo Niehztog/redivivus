@@ -315,7 +315,7 @@ uint32_t PATH_CanMonsterPathInArea(D2UnitStrc * pUnit, uint16_t * pPathData) {
 }
 
 void __stdcall STRUCT_FreePath(D2PoolManagerStrc * pMemory, void * pPath) {
-    D2_FREE_POOL(pMemory, pPath);
+    Fog::Memory::FreeServerMemory(pMemory, pPath, ".\\PATH\\Path.cpp", 0x3d9, 0);
 }
 
 uint32_t __stdcall PATH_CalculateDistance(uint32_t nFromXfp, uint32_t nFromYfp, uint32_t nToXfp, uint32_t nToYfp) {

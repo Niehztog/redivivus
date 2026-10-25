@@ -612,7 +612,7 @@ void __fastcall Q01_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A1Q1::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 1;
-    D2QuestDataA1Q1Strc** pQuestSpecificData = (D2QuestDataA1Q1Strc**)D2_ALLOC_POOL(pGame->pMemoryPool, 0x8c);
+    D2QuestDataA1Q1Strc** pQuestSpecificData = (D2QuestDataA1Q1Strc**)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x8c, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a1q1.cpp", 0x2ee, 0);
     pQuestData->pQuestSpecificData.pA1Q1 = (D2QuestDataA1Q1Strc*)pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_DenOfEvil;
     pQuestData->nSubQuestId = QUEST_Respec;

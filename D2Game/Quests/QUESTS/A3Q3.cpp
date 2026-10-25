@@ -856,7 +856,7 @@ void __fastcall Q20_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->sStateFunctions.fpQuestStateHandler[0xd] = Q20_Callback13_PlayerStartedGame;
     pQuestData->sStateFunctions.fpQuestStateHandler[0xe] = Q20_Callback14_PlayerJoinedGame;
     pQuestData->sStateFunctions.fpQuestStateHandler[9] = Q20_Callback09_PlayerDroppedWithQuestItem;
-    D2QuestDataA3Q3Strc* pQuestSpecificData = D2_NEW_POOL(pSVar1->pMemoryPool, D2QuestDataA3Q3Strc);
+    D2QuestDataA3Q3Strc* pQuestSpecificData = ((D2QuestDataA3Q3Strc*)Fog::Memory::AllocServerMemory(pSVar1->pMemoryPool, sizeof(D2QuestDataA3Q3Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q3.cpp", 0x394, 0));
     pQuestData->pQuestSpecificData.pA3Q3 = pQuestSpecificData;
     memset(pQuestSpecificData, 0, 0x30);
     pQuestSpecificData->nQuestStage = 0;

@@ -471,7 +471,7 @@ void __stdcall INPUT_DialogPageDown(D2UIMouseMsgStrc * pMsg) {
     }
 }
 
-int DIALOG_HandleEnterKeyEvent(void * pDialog, uint32_t nKeyCode) {
+static int DIALOG_HandleEnterKeyEvent(void * pDialog, uint32_t nKeyCode) {
     uint16_t uVar1;
     if (*(int*)((int)pDialog + 0x20)) {
       return 0;
@@ -606,7 +606,7 @@ void __stdcall DIALOG_CleanupSystem() {
 
     while (pDialogNode) {
       pNextDialog = pDialogNode->pPrev;
-      D2_FREE(pDialogNode);
+      Fog::Memory::FreeClientMemory(pDialogNode, ".\\UI\\dialog.cpp", 0x333, 0);
       pDialogNode = pNextDialog;
     }
 
@@ -620,7 +620,7 @@ void __fastcall AllocDialogSub(D2DialogStrc * pDialog, void * pVtable, int32_t n
     }
 
     D2DialogSubStrc* pPrevSub = pDialog->pDialogSub;
-    D2DialogSubStrc* pNewSub = D2_NEW(D2DialogSubStrc);
+    D2DialogSubStrc* pNewSub = ((D2DialogSubStrc*)Fog::Memory::AllocClientMemory(sizeof(D2DialogSubStrc), ".\\UI\\dialog.cpp", 0x359, 0));
     pDialog->pDialogSub = pNewSub;
     pNewSub->pNext = pPrevSub;
     pDialog->pDialogSub->pWidget = (UIWidget*)pVtable;
@@ -666,7 +666,7 @@ D2DialogStrc * __fastcall AllocDialogStrcWithBackground(int32_t nX, int32_t nY, 
     }
 
     gnDialogCounter_b++;
-    D2DialogStrc* pDialog = D2_NEW(D2DialogStrc);
+    D2DialogStrc* pDialog = ((D2DialogStrc*)Fog::Memory::AllocClientMemory(sizeof(D2DialogStrc), ".\\UI\\dialog.cpp", 0x396, 0));
     memset(pDialog, 0, 0xb10);
     pDialog->pPrev = gpDialogActual;
     gpDialogActual = pDialog;
@@ -715,7 +715,8 @@ D2DialogStrc * __fastcall AllocDialogStrcWithBackground(int32_t nX, int32_t nY, 
       DIALOG_RegisterHandler();
       nHandler = 0xe;
       _Message::MESSAGE_RegisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), gsUIDialogFlagInit, nHandler);
-      _Message::MESSAGE_RegisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &g_UIFlagInitDialogMouseWheel, 1);
+      nHandler = 1;
+      _Message::MESSAGE_RegisterEventHandlerBatch(D2gfx::D2GFX::GetHwnd(), &g_UIFlagInitDialogMouseWheel, nHandler);
       gnDialogCounter++;
       if (gnDialogCounter_b == 1) {
         return pDialog;
@@ -738,7 +739,7 @@ D2DialogStrc * __fastcall AllocDialogStrc(int32_t nX, int32_t nY, fpDialogFunc f
     }
 
     gnDialogCounter_b++;
-    D2DialogStrc* pDialog = D2_NEW(D2DialogStrc);
+    D2DialogStrc* pDialog = ((D2DialogStrc*)Fog::Memory::AllocClientMemory(sizeof(D2DialogStrc), ".\\UI\\dialog.cpp", 0x3e7, 0));
     memset(pDialog, 0, 0xb10);
     pDialog->pPrev = gpDialogActual;
     gpDialogActual = pDialog;
@@ -807,7 +808,7 @@ void __stdcall FreeDialogStrc() {
       pSubNode = gpDialogActual->pDialogSub;
       while (pSubNode) {
         pNextSub = pSubNode->pNext;
-        D2_FREE(pSubNode);
+        Fog::Memory::FreeClientMemory(pSubNode, ".\\UI\\dialog.cpp", 0x425, 0);
         pSubNode = pNextSub;
       }
 
@@ -816,7 +817,7 @@ void __stdcall FreeDialogStrc() {
       }
 
       pPrevDialogNode = pCurrentDialog->pPrev;
-      D2_FREE(pCurrentDialog);
+      Fog::Memory::FreeClientMemory(pCurrentDialog, ".\\UI\\dialog.cpp", 0x430, 0);
       gpDialogActual = pPrevDialogNode;
       return;
     }

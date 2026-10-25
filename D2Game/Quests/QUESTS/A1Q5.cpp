@@ -1056,7 +1056,7 @@ void __fastcall Q05_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->nInitNo = 4;
     pQuestData->fpActiveFilter = Q05_ActiveFilter;
     pQuestData->fpSequenceFilter = (QUESTSEQ)Q05_SequenceFilter;
-    D2QuestDataA1Q5Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA1Q5Strc);
+    D2QuestDataA1Q5Strc* pQuestSpecificData = ((D2QuestDataA1Q5Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA1Q5Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a1q5.cpp", 0x40f, 0));
     pQuestData->pQuestSpecificData.pA1Q5 = pQuestSpecificData;
     pQuestData->nSequenceQuestId = QUEST_ToolsOfTheTrade;
     memset(pQuestSpecificData, 0, 0x120);

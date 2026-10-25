@@ -1635,8 +1635,8 @@ static bool InitCopyInventoryForTrade(::SGAMEDATA * pGame, D2UnitStrc * pUnitStr
       return false;
     }
 
-    D2UnknownStructure0x18* pCopy = D2_NEW_POOL(pGame->pMemoryPool, D2UnknownStructure0x18);
-    void* pSaveBuffer = D2_ALLOC_POOL(pGame->pMemoryPool, 0x2000);
+    D2UnknownStructure0x18* pCopy = ((D2UnknownStructure0x18*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2UnknownStructure0x18), ".\\PLAYER\\PlrTrade.cpp", 0x806, 0));
+    void* pSaveBuffer = Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x2000, ".\\PLAYER\\PlrTrade.cpp", 0x807, 0);
     pCopy->pSaveBuffer = pSaveBuffer;
     D2InventoryStrc* pCopyInventory = PlayerSave::GetCopyInventory(pGame, pUnitStrc, (uint16_t*)pSaveBuffer, 0x2000, 0, 0, 0);
     pCopy->pCopyInventory = pCopyInventory;
@@ -1663,17 +1663,17 @@ void __fastcall PLRTRADE_FreeTradeCopyInventory(::SGAMEDATA * pGame, D2UnitStrc 
       return;
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree_00->pSaveBuffer);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree_00->pSaveBuffer, ".\\PLAYER\\PlrTrade.cpp", 0x822, 0);
     D2UnknownStructure0xc* pTradeNode = pMemoryToFree_00->pUnknownStruct;
     while (pTradeNode) {
       D2UnknownStructure0xc* pNextNode;
       pNextNode = pTradeNode->pUnknownStruct;
-      D2_FREE_POOL(pGame->pMemoryPool, pTradeNode);
+      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pTradeNode, ".\\PLAYER\\PlrTrade.cpp", 0x827, 0);
       pTradeNode = pNextNode;
     }
 
     pMemoryToFree_00->pUnknownStruct = 0;
-    D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree_00);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree_00, ".\\PLAYER\\PlrTrade.cpp", 0x82b, 0);
     pPlayerData->pTradeCopyInventory = 0;
 }
 
@@ -2007,7 +2007,7 @@ static void __stdcall CreateStructure0xc(::SGAMEDATA * pGame, int nUID, uint32_t
       return;
     }
 
-    D2UnknownStructure0xc* pUnknown = D2_NEW_POOL(pGame->pMemoryPool, D2UnknownStructure0xc);
+    D2UnknownStructure0xc* pUnknown = ((D2UnknownStructure0xc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2UnknownStructure0xc), ".\\PLAYER\\PlrTrade.cpp", 0xc5b, 0));
     pUnknown->nUID = nUID;
     pUnknown->nUIDOther = nUIDOther;
     pUnknown->pUnknownStruct = pTradeCopyInv->pUnknownStruct;

@@ -312,7 +312,7 @@ static void INV_DrawBodySlotHighlight(int * pnParam, int32_t nColorIndex) {
     Engine::GfxInfo::D2GFX_DrawSolidRectExBySize(nStartX, nStartY, (uint32_t)*(uint8_t*)(pnParam + 4), (uint32_t)*(uint8_t*)((int)pnParam + 0x11), (uint32_t)gaInvHighlightColors[nColorIndex], DRAW_VERYTRANSPARENT);
 }
 
-BOOL IsInInventoryScreenRange(int32_t nX, int32_t nY) {
+BOOL __fastcall IsInInventoryScreenRange(int32_t nX, int32_t nY) {
     if (!(pInventoryScreenCoordinates.nLeft <= nX && nX < pInventoryScreenCoordinates.nRight && pInventoryScreenCoordinates.nTop <= nY && nY <= pInventoryScreenCoordinates.nBottom)) {
       return 0;
     }
@@ -1782,10 +1782,10 @@ static void __stdcall DRAW_UI_InventoryContent(D2UnitStrc * pUnit) {
           if (ePageCurrent == CurrentInventoryPage) {
             if (pItem == pItemToDescribe && gpInvItemUnderCursor) {
               nColorIndex = ui::GetItemType();
-              if (nColorIndex == 8 && (iVar1 = D2Common::ITEMS::Items::ITEM_CheckItemsTxt_bTransmogrify(pItemToDescribe) , !iVar1)) {
-                iVar1 = 0;
-              } else {
+              if (!(nColorIndex == 8 && (iVar1 = D2Common::ITEMS::Items::ITEM_CheckItemsTxt_bTransmogrify(pItemToDescribe) , !iVar1))) {
                 iVar1 = 1;
+              } else {
+                iVar1 = 0;
               }
 
               DrawItemSolidBackground(nItemHeight, nItemWidth, nX, iVar1, nY, pCoords);
@@ -3608,7 +3608,7 @@ static BOOL INV_IsMouseOverGoldButton(int32_t nX, int32_t nY) {
     return 1;
 }
 
-BOOL INV_IsMouseOverCloseButton(int32_t nParam1, int32_t nParam2) {
+static BOOL __fastcall INV_IsMouseOverCloseButton(int32_t nParam1, int32_t nParam2) {
     if (!(ScreenSizeX - gnPanelOffsetX - 0x12e <= nParam1 && nParam1 <= ScreenSizeX - gnPanelOffsetX - 0x10e && gnPanelOffsetY - 0x60 + ScreenSizeY <= nParam2 && nParam2 <= gnPanelOffsetY - 0x40 + ScreenSizeY)) {
       return 0;
     }
@@ -4582,7 +4582,7 @@ void __fastcall DRAW_UI_INVENTORY_Gold(int32_t nParam) {
       }
     }
 
-    memset(wszGoldText, 0, 20 * sizeof(wszGoldText[0]));
+    for (int i = 0; i < 20; i++) wszGoldText[i] = 0;
     Storm::Source::SSTR::SStrPrintf(szGoldAmountBuffer, 0x14, "%d", nGoldAmount);
     D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(wszGoldText, szGoldAmountBuffer, 0x13);
     if (nParam == 2) {
@@ -10911,7 +10911,7 @@ void __stdcall ClickItemHandler(D2UIMouseMsgStrc * pMsg) {
     nMouseY = (int32_t)pMsg->uLParam.sMousePos.nMouseY;
     int32_t nMouseX;
     nMouseX = (int32_t)pMsg->uLParam.sMousePos.nMouseX;
-    if (nMouseX > ScreenSizeX) {
+    if (ScreenSizeX < nMouseX) {
       pMsg->bHandled = 1;
       pMsg->dwResult = 0;
       Storm::SMsgBreakHandlerChain(pMsg);

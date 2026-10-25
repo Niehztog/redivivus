@@ -63,7 +63,7 @@ D2TimerStrc * * __stdcall _UnusedGetFromList(eD2UnitType eUnitType, uint32_t nPa
 // @sourcefile .\GAME\Event.cpp
 static D2TimerListStrc * EVENT_AllocTimerPool(::SGAMEDATA * pGame) {
     D2TimerStrc* pSlot;
-    D2TimerListStrc* pPool = D2_NEW_POOL(pGame->pMemoryPool, D2TimerListStrc);
+    D2TimerListStrc* pPool = ((D2TimerListStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2TimerListStrc), ".\\GAME\\Event.cpp", 0xa9, 0));
     if (!pPool) {
       return nullptr;
     }
@@ -209,11 +209,11 @@ void __fastcall EVENT_FreeTimerQueue(::SGAMEDATA * pGame) {
     while (pMemoryToFree_00) {
       D2TimerListStrc* pNextPool;
       pNextPool = pMemoryToFree_00->pNextList;
-      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree_00);
+      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree_00, ".\\GAME\\Event.cpp", 0x314, 0);
       pMemoryToFree_00 = pNextPool;
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\GAME\\Event.cpp", 0x317, 0);
     pGame->pTimerQueue = 0;
 }
 
@@ -225,7 +225,7 @@ void __fastcall EVENT_AllocTimerQueue(::SGAMEDATA * pGame) {
       EVENT_FreeTimerQueue(pGame);
     }
 
-    D2TimerQueueStrc* pNewQueue = D2_NEW_POOL(pGame->pMemoryPool, D2TimerQueueStrc);
+    D2TimerQueueStrc* pNewQueue = ((D2TimerQueueStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2TimerQueueStrc), ".\\GAME\\Event.cpp", 0x327, 0));
     memset(pNewQueue, 0, 0xa20);
     D2TimerListStrc* pTimerPool = EVENT_AllocTimerPool(pGame);
     pNewQueue->pTimerList = pTimerPool;

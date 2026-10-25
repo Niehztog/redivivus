@@ -4702,19 +4702,26 @@ void __fastcall MONSTERAI_CalculateCounterAttackDamage(::SGAMEDATA * pGame, D2Un
 
     memset(&sDamage, 0, 0x70);
     uint32_t uVar1 = sDamage.dwPhysDamage;
-    if (nDmgType == 1) {
+    switch (nDmgType) {
+    case 1: {
       sDamage.dwHitClass = 0x20;
       sDamage.dwFireDmg = nTrapDamageRoll;
-    } else if (nDmgType == 2) {
+      break;
+    }
+    case 2: {
       sDamage.dwHitClass = 0x40;
       sDamage.dwLtngDamage = nTrapDamageRoll;
-    } else {
+      break;
+    }
+    default: {
       uVar1 = nTrapDamageRoll;
       if (nDmgType == 3) {
         sDamage.dwHitClass = 0x30;
         uVar1 = sDamage.dwPhysDamage;
         sDamage.dwColdDmg = nTrapDamageRoll;
       }
+      break;
+    }
     }
 
     sDamage.dwPhysDamage = uVar1;
@@ -4730,7 +4737,7 @@ void __fastcall MONSTERAI_CalculateCounterAttackDamage(::SGAMEDATA * pGame, D2Un
 }
 
 // Schedules a convert event (event type 7, UNITMOD 0x15) for all neutral monsters within radius 0x583 of pUnit. Filters by nUnitType; if bUndeadOnly is set, skips non-undead monsters. Skips class 0x14d. For each eligible monster picks a random game-frame delay in [nMinDelay, nMaxDelay) from pUnit's seed via RANDOM_RandomNumberSelector, then calls SetEvent. Asserts nMinDelay &lt; nMaxDelay != 0; halts on assertion failure. Used by Decrepify/Conversion-style AI effects.
-void __stdcall MONSTERAI_ConvertMonstersInRadius(int32_t nUnitType, int32_t nMinDelay, int32_t nMaxDelay, int32_t bUndeadOnly, D2UnitStrc * pUnit, ::SGAMEDATA * pGame) {
+static void __stdcall MONSTERAI_ConvertMonstersInRadius(int32_t nUnitType, int32_t nMinDelay, int32_t nMaxDelay, int32_t bUndeadOnly, D2UnitStrc * pUnit, ::SGAMEDATA * pGame) {
     uint32_t nRandDelay;
     bool bIsNeutral;
     D2UnitFindArgStrc sUnitFindArg;
@@ -4749,43 +4756,40 @@ void __stdcall MONSTERAI_ConvertMonstersInRadius(int32_t nUnitType, int32_t nMin
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       sUnitFindArg.nY = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      sUnitFindArg.nY = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       sUnitFindArg.nY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      sUnitFindArg.nY = 0;
     }
     if (!nMaxDelay) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x20);
       exit(-1);
     } else {
       BOOL BVar1;
-      if (nMinDelay < nMaxDelay) {
-        memset(&sUnitFindArg, 0, 0x38);
-        sUnitFindArg.nX = nPosX;
-        sUnitFindArg.nDistance = nUnitType;
-        sUnitFindArg.nFlags = 0x583;
-        sUnitFindArg.pAttacker = pUnit;
-        D2Common::Units::UnitFinds::InitializeUnitFindData((::SGAMEDATA*)pGame->pMemoryPool, &sUnitFindData, pRoom, nPosX, sUnitFindArg.nY, nUnitType, nullptr, &sUnitFindArg);
-        D2Common::Units::UnitFinds::UNITFINDS_FindCullRange(&sUnitFindData);
-        nPosX = 0;
-        if (0 < sUnitFindData.nCountedUnits) {
-          do {
-            pUnit_00 = sUnitFindData.pUnitsArray->aFoundUnitsList[nPosX];
-            if (pUnit_00 && pUnit_00->eUnitType == UNIT_MONSTER) {
-              nErrorLine = D2Common::Stats::StatsEx::STATSEX_GetAlignment(pUnit_00);
-              bIsNeutral = !nErrorLine;
-              if (bUndeadOnly) {
-                BVar1 = D2Common::Monsters::MONSTERS::MONSTER_IsMonsterUndead(pUnit_00);
-                if (!BVar1) {
-                  bIsNeutral = false;
-                }
-              }
-              if (pUnit_00->nClassId != 0x14d && bIsNeutral) {
-                nRandDelay = D2Client::Archive::RANDOM_RandomNumberSelector(&pUnit->sSeed, nMaxDelay - nMinDelay);
-                GAME::Event::SetEvent(pGame, pUnit_00, 7, pGame->dwGameFrame + nRandDelay + nMinDelay, 0, 0);
-                Monsters::InitUmods(pGame, pUnit_00, 0x15, 0);
+      if (!(nMinDelay < nMaxDelay)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x21);
+        exit(-1);
+      }
+      memset(&sUnitFindArg, 0, 0x38);
+      sUnitFindArg.nX = nPosX;
+      sUnitFindArg.nDistance = nUnitType;
+      sUnitFindArg.nFlags = 0x583;
+      sUnitFindArg.pAttacker = pUnit;
+      D2Common::Units::UnitFinds::InitializeUnitFindData((::SGAMEDATA*)pGame->pMemoryPool, &sUnitFindData, pRoom, nPosX, sUnitFindArg.nY, nUnitType, nullptr, &sUnitFindArg);
+      D2Common::Units::UnitFinds::UNITFINDS_FindCullRange(&sUnitFindData);
+      nPosX = 0;
+      if (0 < sUnitFindData.nCountedUnits) {
+        do {
+          pUnit_00 = sUnitFindData.pUnitsArray->aFoundUnitsList[nPosX];
+          if (pUnit_00 && pUnit_00->eUnitType == UNIT_MONSTER) {
+            nErrorLine = D2Common::Stats::StatsEx::STATSEX_GetAlignment(pUnit_00);
+            bIsNeutral = !nErrorLine;
+            if (bUndeadOnly) {
+              BVar1 = D2Common::Monsters::MONSTERS::MONSTER_IsMonsterUndead(pUnit_00);
+              if (!BVar1) {
+                bIsNeutral = false;
               }
             }
             if (pUnit_00->nClassId != 0x14d && bIsNeutral) {
@@ -4795,15 +4799,11 @@ void __stdcall MONSTERAI_ConvertMonstersInRadius(int32_t nUnitType, int32_t nMin
             }
           }
 
-            nPosX++;
-          } while (nPosX < sUnitFindData.nCountedUnits);
-        }
-
-        D2Common::Units::UnitFinds::FreeUnitFindData(&sUnitFindData);
-        return;
+          nPosX++;
+        } while (nPosX < sUnitFindData.nCountedUnits);
       }
 
-      D2Common::Units::UnitFinds::FreeUnitFindData(&local_38);
+      D2Common::Units::UnitFinds::FreeUnitFindData(&sUnitFindData);
       return;
     }
 }
@@ -8826,8 +8826,7 @@ void __fastcall AI_Fn1_GenericSpawner(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D
           pAiGeneral->dwArg0 = pGame->dwGameFrame;
           nDistToTarget = sgptDataTable->nTxtMonStatsSize;
           bSpawnOk = 0;
-          nUnitY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-          BVar2 = MONSTERAI_CanSpawnMonsterAt(0x210 < nDistToTarget ? 0x210 : -1, D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), nUnitY, bSpawnOk);
+          BVar2 = MONSTERAI_CanSpawnMonsterAt(0x210 < nDistToTarget ? 0x210 : -1, D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit), bSpawnOk);
           if (BVar2) {
             pAiGeneral->dwArg1++;
             MONSTERAI_CommandSkillSequence(pGame, pUnit, SKILL_Nest, pTarget, 0, 0);
@@ -10258,13 +10257,13 @@ void __fastcall AITHINK_Fn1_SpecialTerror(::SGAMEDATA * pGame, D2UnitStrc * pUni
     }
 
     short int nVelocity = pAiParam->pMonStats->Velocity;
-    if (!(nVelocity <= 0 || (nDistToTarget = pAiParam->pMonStats->Run * 100 / (int)nVelocity , nDistToTarget < 100))) {
+    if (nVelocity <= 0 || (nDistToTarget = pAiParam->pMonStats->Run * 100 / (int)nVelocity , nDistToTarget < 100)) {
+      nClassId = 0;
+    } else {
       nClassId = nDistToTarget - 100;
       if (0x78 < nClassId) {
         nClassId = 0x78;
       }
-    } else {
-      nClassId = 0;
     }
     if (!pAiGeneral->dwArg2) {
       pAiGeneral->dwArg2 = 1;
@@ -10537,10 +10536,10 @@ int32_t __fastcall AI_Diablo_DecideAction(D2AiGeneralStrc * pDiabloAiCtx, D2Unit
       eUnitType = pDiabloUnit->eUnitType;
       if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         nWeightedDist = pDiabloUnit->pPath.pStaticPath->nPosY;
-      } else if (pDiabloUnit->pPath.pDynamicPath) {
-        nWeightedDist = D2Common::PATH::DynamicPath::GetYPos(pDiabloUnit->pPath.pDynamicPath);
-      } else {
+      } else if (!pDiabloUnit->pPath.pDynamicPath) {
         nWeightedDist = 0;
+      } else {
+        nWeightedDist = D2Common::PATH::DynamicPath::GetYPos(pDiabloUnit->pPath.pDynamicPath);
       }
 
       eUnitType = pDiabloUnit->eUnitType;
@@ -10670,7 +10669,7 @@ int32_t __fastcall AI_Diablo_DecideAction(D2AiGeneralStrc * pDiabloAiCtx, D2Unit
       aActionWeightTemplate[4] = 0;
       aActionWeightTemplate[6] = 0x18;
       aActionWeightTemplate[8] = 0xf;
-      memset(aActionWeightTemplate + 9, 0, 8 * sizeof(aActionWeightTemplate[0]));
+      for (int i = 9; i < 17; i++) aActionWeightTemplate[i] = 0;
       piVar5 = aActionWeightTemplate;
       pWeightDst = aActionWeights;
       for (i = 0x11; i; i--) {
@@ -10711,12 +10710,12 @@ int32_t __fastcall AI_Diablo_DecideAction(D2AiGeneralStrc * pDiabloAiCtx, D2Unit
         aActionWeightTemplate[6] = 0x19;
         aActionWeightTemplate[9] = 0x14;
         aActionWeightTemplate[0xc] = 0x14;
-        memset(aActionWeightTemplate, 0, 5 * sizeof(aActionWeightTemplate[0]));
+        for (int i = 0; i < 5; i++) aActionWeightTemplate[i] = 0;
         aActionWeightTemplate[7] = 0;
         aActionWeightTemplate[8] = 0xf;
         aActionWeightTemplate[10] = 10;
         aActionWeightTemplate[0xb] = 0;
-        memset(aActionWeightTemplate + 13, 0, 4 * sizeof(aActionWeightTemplate[0]));
+        for (int i = 13; i < 17; i++) aActionWeightTemplate[i] = 0;
         piVar5 = aActionWeightTemplate;
         pWeightDst = aActionWeights;
         for (i = 0x11; i; i--) {
@@ -10785,7 +10784,7 @@ int32_t __fastcall AI_Diablo_DecideAction(D2AiGeneralStrc * pDiabloAiCtx, D2Unit
       }
     } else {
       if (!bVar1) {
-        memset(aActionWeightTemplate, 0, 4 * sizeof(aActionWeightTemplate[0]));
+        for (int i = 0; i < 4; i++) aActionWeightTemplate[i] = 0;
         aActionWeightTemplate[4] = 5;
         aActionWeightTemplate[5] = 0;
         aActionWeightTemplate[6] = 0x19;
@@ -10795,7 +10794,7 @@ int32_t __fastcall AI_Diablo_DecideAction(D2AiGeneralStrc * pDiabloAiCtx, D2Unit
         aActionWeightTemplate[10] = 0;
         aActionWeightTemplate[0xb] = 0;
         aActionWeightTemplate[0xc] = 0x19;
-        memset(aActionWeightTemplate + 13, 0, 4 * sizeof(aActionWeightTemplate[0]));
+        for (int i = 13; i < 17; i++) aActionWeightTemplate[i] = 0;
         piVar5 = aActionWeightTemplate;
         pWeightDst = aActionWeights;
         for (i = 0x11; i; i--) {
@@ -11235,13 +11234,13 @@ void __fastcall AITHINK_Fn1_Diablo(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Ai
       nDistToHomePt = MONSTERAI_GetDistanceToCoords(pUnit, nSkillIdx, (int32_t)pMonStat);
       pMonAi = 0;
       nAiParam = 0x0;
-      if (nSkillIdx > (int)nTargetRisk) {
+      if ((int)nTargetRisk < nSkillIdx) {
         pMonAi = (D2MonsterAiCmdStrc*)-1;
       }
       if (nSkillIdx < (int)nTargetRisk) {
         pMonAi = (D2MonsterAiCmdStrc*)0x1;
       }
-      if ((int)pMonStat > nTargetPosY) {
+      if (nTargetPosY < (int)pMonStat) {
         nAiParam = -1;
       }
       if ((int)pMonStat < nTargetPosY) {
@@ -11259,9 +11258,7 @@ void __fastcall AITHINK_Fn1_Diablo(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Ai
       nDecision = 2;
       goto idle;
       case 0xf:
-        if (!pTarget || pTarget->eUnitType != UNIT_PLAYER) {
-          nDecision = 3;
-        } else {
+        if (!(!pTarget || pTarget->eUnitType != UNIT_PLAYER)) {
           nPlayerGUID = PLAYER::Player::GetPlayerUniqueId(pTarget);
           pTarget = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_OBJECT, nPlayerGUID);
           if (!pTarget) {
@@ -11276,6 +11273,8 @@ void __fastcall AITHINK_Fn1_Diablo(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Ai
             pAiGeneral->dwArg0 = 0;
             return;
           }
+        } else {
+          nDecision = 3;
         }
       goto idle;
       case 0x10:
@@ -11453,7 +11452,7 @@ int32_t __fastcall AI_BAAL_ChooseCombatAction(int nAiContext, D2UnitStrc * pUnit
       aActionWeightTemplate[0] = 0;
       aActionWeightTemplate[1] = 0;
       aActionWeightTemplate[4] = 0;
-      memset(aActionWeightTemplate + 9, 0, 8 * sizeof(aActionWeightTemplate[0]));
+      for (int i = 9; i < 17; i++) aActionWeightTemplate[i] = 0;
       aActionWeightTemplate[3] = 0x46;
       aActionWeightTemplate[5] = 0x4b;
       aActionWeightTemplate[6] = 0x18;
@@ -11494,60 +11493,59 @@ int32_t __fastcall AI_BAAL_ChooseCombatAction(int nAiContext, D2UnitStrc * pUnit
     }
     if (!nGuidOrCollisionDist) {
       if (!i) {
-        anActionWeights[0] = i;
-        anActionWeights[1] = i;
-        anActionWeights[2] = i;
-        anActionWeights[3] = i;
-        anActionWeights[4] = 5;
-        anActionWeights[5] = i;
-        anActionWeights[6] = 0x19;
-        anActionWeights[7] = i;
-        anActionWeights[8] = 0x19;
-        anActionWeights[9] = 0x28;
-        anActionWeights[10] = i;
-        anActionWeights[0xb] = i;
-        anActionWeights[0xc] = 0x19;
-        anActionWeights[0xd] = i;
-        anActionWeights[0xe] = i;
-        anActionWeights[0xf] = i;
-        anActionWeights[0x10] = i;
-        pWeightEntry = anActionWeights;
-        pWeightDst = anActionWeights + 0x11;
+        aActionWeightTemplate[0] = i;
+        aActionWeightTemplate[1] = i;
+        aActionWeightTemplate[2] = i;
+        aActionWeightTemplate[3] = i;
+        aActionWeightTemplate[4] = 5;
+        aActionWeightTemplate[5] = i;
+        aActionWeightTemplate[6] = 0x19;
+        aActionWeightTemplate[7] = i;
+        aActionWeightTemplate[8] = 0x19;
+        aActionWeightTemplate[9] = 0x28;
+        aActionWeightTemplate[10] = i;
+        aActionWeightTemplate[0xb] = i;
+        aActionWeightTemplate[0xc] = 0x19;
+        aActionWeightTemplate[0xd] = i;
+        aActionWeightTemplate[0xe] = i;
+        aActionWeightTemplate[0xf] = i;
+        aActionWeightTemplate[0x10] = i;
+        piVar2 = aActionWeightTemplate;
+        pWeightDst = aActionWeights;
         for (i = 0x11; i; i--) {
-          *pWeightDst = *pWeightEntry;
-          pWeightEntry++;
+          *pWeightDst = *piVar2;
+          piVar2++;
           pWeightDst++;
         }
         if (nDifficultyContext < 2) {
-          nFireWeightAdj += -5;
-          anActionWeights[0x12] = 0x19;
-          nLightningWeight = 0;
-          nRangeBias = 0;
+          aActionWeights[8] += -5;
+          aActionWeights[1] = 0x19;
+          aActionWeights[6] = 0;
+          aActionWeights[9] = 0;
         }
         if (bTargetHasFearedSkill) {
-          if (!bTargetOutsideArena) {
-            nColdWeight = 0xf;
-          } else {
+          if (bVar20) {
             far_target_blocked_path:
-            anActionWeights[0x12] = 0x3c;
-            nSkillWeight = 0xf;
-            nColdWeight = 0x19;
-            if (!nRangeBias) {
-              nRangeBias = 0x14;
+            aActionWeights[1] = 0x3c;
+            aActionWeights[0xc] = 0xf;
+            aActionWeights[0xd] = 0x19;
+            if (!aActionWeights[9]) {
+              aActionWeights[9] = 0x14;
             }
             if (nDifficultyContext < 2) {
-              nRangeBias += -5;
+              aActionWeights[9] += -5;
             }
+          } else {
+            aActionWeights[0xd] = 0xf;
           }
-        } else if (bTargetOutsideArena) {
+        } else if (bVar20) {
           goto far_target_blocked_path;
         }
-        if (bTargetFarOutsideArena) {
-          anActionWeights[0x12] = 0x3c;
+        if (bVar21) {
+          aActionWeights[1] = 0x3c;
         }
-        pUnit = pUnitCopy;
-        if (bTargetInArena) {
-          nArenaTargetWeight = 0x14;
+        if (bVar1) {
+          aActionWeights[0xf] = 0x14;
         }
       }
     } else {
@@ -11633,64 +11631,6 @@ int32_t __fastcall AI_BAAL_ChooseCombatAction(int nAiContext, D2UnitStrc * pUnit
         }
 
         goto pick_weighted_action;
-      }
-    } else {
-      if (!i) {
-        aActionWeightTemplate[0] = i;
-        aActionWeightTemplate[1] = i;
-        aActionWeightTemplate[2] = i;
-        aActionWeightTemplate[3] = i;
-        aActionWeightTemplate[4] = 5;
-        aActionWeightTemplate[5] = i;
-        aActionWeightTemplate[6] = 0x19;
-        aActionWeightTemplate[7] = i;
-        aActionWeightTemplate[8] = 0x19;
-        aActionWeightTemplate[9] = 0x28;
-        aActionWeightTemplate[10] = i;
-        aActionWeightTemplate[0xb] = i;
-        aActionWeightTemplate[0xc] = 0x19;
-        aActionWeightTemplate[0xd] = i;
-        aActionWeightTemplate[0xe] = i;
-        aActionWeightTemplate[0xf] = i;
-        aActionWeightTemplate[0x10] = i;
-        piVar2 = aActionWeightTemplate;
-        pWeightDst = aActionWeights;
-        for (i = 0x11; i; i--) {
-          *pWeightDst = *piVar2;
-          piVar2++;
-          pWeightDst++;
-        }
-
-        if (nDifficultyContext < 2) {
-          aActionWeights[8] += -5;
-          aActionWeights[1] = 0x19;
-          aActionWeights[6] = 0;
-          aActionWeights[9] = 0;
-        }
-        if (bTargetHasFearedSkill) {
-          if (bVar20) {
-            far_target_blocked_path:
-            aActionWeights[1] = 0x3c;
-            aActionWeights[0xc] = 0xf;
-            aActionWeights[0xd] = 0x19;
-            if (!aActionWeights[9]) {
-              aActionWeights[9] = 0x14;
-            }
-            if (nDifficultyContext < 2) {
-              aActionWeights[9] += -5;
-            }
-          } else {
-            aActionWeights[0xd] = 0xf;
-          }
-        } else if (bVar20) {
-          goto far_target_blocked_path;
-        }
-        if (bVar21) {
-          aActionWeights[1] = 0x3c;
-        }
-        if (bVar1) {
-          aActionWeights[0xf] = 0x14;
-        }
       }
     }
 
@@ -15107,7 +15047,7 @@ void __fastcall AITHINK_AncientTalic(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2
       if (bInMeleeRange) {
         seedNext = D2_SEED_NEXT(pUnit->sSeed);
         pUnit->sSeed = seedNext;
-        if ((int)(seedNext.nSeedLow + (int)(((uint64_t)d2_bits_of(seedNext) & 0xffffffff) / 100) * -100) < (int)eAuraState->aip[3][pGame->nDifficulty]) {
+        if ((int)(seedNext.nSeedLow % 100) < (int)eAuraState->aip[3][pGame->nDifficulty]) {
           bAttacked = WalkTowardsUnitOffset(pGame, pUnit, pTarget, (uint8_t)eAuraState->aip[4][pGame->nDifficulty], 1);
           if (bAttacked) {
             RestartAiThink(pGame, pUnit, 0x19);
@@ -15133,7 +15073,7 @@ void __fastcall AITHINK_AncientTalic(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2
       if (nCollisionDist < eAuraState->aip[0][pGame->nDifficulty]) {
         seedNext = D2_SEED_NEXT(pUnit->sSeed);
         pUnit->sSeed = seedNext;
-        if ((int)(seedNext.nSeedLow + (int)(((uint64_t)d2_bits_of(seedNext) & 0xffffffff) / 100) * -100) < (int)eAuraState->aip[1][pGame->nDifficulty]) {
+        if ((int)(seedNext.nSeedLow % 100) < (int)eAuraState->aip[1][pGame->nDifficulty]) {
           bAttacked = AI_ChangeModeAndTargetUnit(pGame, pUnit, 4, pTarget);
           if (bAttacked) {
             return;
@@ -16281,13 +16221,13 @@ void __fastcall AITHINK_Fn1_Baboon(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Ai
     pSeed = &pUnit->sSeed;
     int32_t nLifePct;
     nLifePct = D2Common::Units::GetCurrentLifePercentage(pUnit);
-    if (!(pMonStats->Velocity <= 0 || (nRunSpeedBonus = pMonStats->Run * 100 / (int)pMonStats->Velocity , nRunSpeedBonus < 100))) {
+    if (pMonStats->Velocity <= 0 || (nRunSpeedBonus = pMonStats->Run * 100 / (int)pMonStats->Velocity , nRunSpeedBonus < 100)) {
+      nRunSpeedBonus = 0;
+    } else {
       nRunSpeedBonus += -100;
       if (0x78 < nRunSpeedBonus) {
         nRunSpeedBonus = 0x78;
       }
-    } else {
-      nRunSpeedBonus = 0;
     }
     if (pMonsterAiGeneral->dwArg0) {
       int nRunWalkRatio;
@@ -16579,12 +16519,12 @@ void __fastcall AITHINK_Fn1_FallenShaman(::SGAMEDATA * pGame, D2UnitStrc * pUnit
     sRevivalParams.nMaxScanRadius = nScanRadius * nScanRadius;
     uint32_t nMonsterTypeFlag;
     nMonsterTypeFlag = Monsters::CheckMonsterType(pUnit, 8);
-    if (!nMonsterTypeFlag || (nMonsterTypeFlag = Monsters::CheckMonsterType(pUnit, 4) , nMonsterTypeFlag != 0)) {
-      nForEachSearchMode = 9;
-      pfnForEach = 0;
-    } else {
+    if (!(!nMonsterTypeFlag || (nMonsterTypeFlag = Monsters::CheckMonsterType(pUnit, 4) , nMonsterTypeFlag != 0))) {
       nForEachSearchMode = 1;
       pfnForEach = MONSTERAI_FindFallenForRevival;
+    } else {
+      nForEachSearchMode = 9;
+      pfnForEach = 0;
     }
 
     ForEach(pGame, pUnit, &sRevivalParams, pfnForEach, nForEachSearchMode);
@@ -17693,12 +17633,12 @@ void __fastcall AITHINK_Fn1_Vulture(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2A
 
           nLandingDist = MONSTERAI_GetDistanceToCoords(pUnit, nLandingX, nLandingY);
           while (nLandingDist < (int)pTargetCopy) {
-            if (nUnitPosX > nLandingX) {
+            if (nLandingX < nUnitPosX) {
               nLandingX--;
             } else if (nUnitPosX < nLandingX) {
               nLandingX++;
             }
-            if ((int)nUnitPosY > nLandingY) {
+            if (nLandingY < (int)nUnitPosY) {
               nLandingY--;
             } else if ((int)nUnitPosY < nLandingY) {
               nLandingY++;
@@ -19385,8 +19325,7 @@ void __fastcall AITHINK_Fn1_FoulCrowNest(::SGAMEDATA * pGame, D2UnitStrc * pUnit
       pMonsterAiGeneral->dwArg0 = pGame->dwGameFrame;
       nFramesSinceLastSpawn = sgptDataTable->nTxtMonStatsSize;
       bCanSpawn = 0;
-      nUnitY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-      BVar1 = MONSTERAI_CanSpawnMonsterAt(0xce < nFramesSinceLastSpawn ? 0xce : -1, D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), nUnitY, bCanSpawn);
+      BVar1 = MONSTERAI_CanSpawnMonsterAt(0xce < nFramesSinceLastSpawn ? 0xce : -1, D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit), bCanSpawn);
       if (BVar1) {
         pMonsterAiGeneral->dwArg1++;
         SERVER_UNIT_CastSkill(pGame, pUnit, pMonStats->aSkMode[0], (int)pMonStats->aSkill[0], pAttacker, 0, 0);
@@ -19484,8 +19423,7 @@ void __fastcall AITHINK_Fn1_Sarcophagus(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
       int32_t nUnitY;
       nFramesSinceLastSpawn = sgptDataTable->nTxtMonStatsSize;
       bCanSpawn = 0;
-      nUnitY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit);
-      BVar1 = MONSTERAI_CanSpawnMonsterAt(0xe4 < nFramesSinceLastSpawn ? 0xe4 : -1, D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), nUnitY, bCanSpawn);
+      BVar1 = MONSTERAI_CanSpawnMonsterAt(0xe4 < nFramesSinceLastSpawn ? 0xe4 : -1, D2Common::Units::UNITS_GetRoom(pUnit), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit), bCanSpawn);
       if (BVar1) {
         nFramesSinceLastSpawn = pGame->dwGameFrame;
         pMonsterAiGeneral->dwArg1++;

@@ -646,7 +646,7 @@ static void __stdcall AUTOMAP_AddCellForUnit(int32_t nParam, D2AutomapCellStrc *
     }
 }
 
-static HANDLE __stdcall AUTOMAP_GetMapFileHandle() {
+HANDLE __stdcall AUTOMAP_GetMapFileHandle() {
     // Frame slots -812..-552 are ONE object: &szRealmPath is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -757,7 +757,7 @@ static HANDLE __stdcall AUTOMAP_GetMapFileHandle() {
     return hFile;
 }
 
-void AUTOMAP_SaveLayerToFile(D2AutomapFileEntryStrc * pEntry) {
+static void AUTOMAP_SaveLayerToFile(D2AutomapFileEntryStrc * pEntry) {
     // Frame -416..-16 is ONE object: a call writes 400 literal bytes starting at &dwHeader.
     // Separate locals let the compiler reorder them, and the write would run off the frame.
     struct __frame0_t {
@@ -895,7 +895,7 @@ void __stdcall AUTOMAP_SaveCurrentLayer() {
         return;
       }
     } else {
-      pClientAutomapCellActual = D2_ALLOC(sEntry.dwFloorDataSize);
+      pClientAutomapCellActual = Fog::Memory::AllocClientMemory(sEntry.dwFloorDataSize, ".\\UI\\automap.cpp", 0x4ea, 0);
       sEntry.pFloorData = pClientAutomapCellActual;
       AUTOMAP_SerializeCellTree(sgpAutomapLayerEx->pFloors);
       if (sEntry.dwWallDataSize) {
@@ -920,23 +920,23 @@ void __stdcall AUTOMAP_SaveCurrentLayer() {
     write_and_free:
     AUTOMAP_SaveLayerToFile(&sEntry);
     if (sEntry.pFloorData) {
-      D2_FREE(sEntry.pFloorData);
+      Fog::Memory::FreeClientMemory(sEntry.pFloorData, ".\\UI\\automap.cpp", 0x509, 0);
     }
     if (sEntry.pWallData) {
-      D2_FREE(sEntry.pWallData);
+      Fog::Memory::FreeClientMemory(sEntry.pWallData, ".\\UI\\automap.cpp", 0x50a, 0);
     }
     if (sEntry.pObjectData) {
-      D2_FREE(sEntry.pObjectData);
+      Fog::Memory::FreeClientMemory(sEntry.pObjectData, ".\\UI\\automap.cpp", 0x50b, 0);
     }
     if (!sEntry.pExtraData) {
       return;
     }
 
-    D2_FREE(sEntry.pExtraData);
+    Fog::Memory::FreeClientMemory(sEntry.pExtraData, ".\\UI\\automap.cpp", 0x50c, 0);
 }
 
 // @sourcefile .\UI\automap.cpp
-static void __stdcall AUTOMAP_FreeCurrentLayerCells() {
+void __stdcall AUTOMAP_FreeCurrentLayerCells() {
     D2AutomapLayerStrc* pSavedLayer = sgpAutomapLayerEx;
     D2AutomapStrc* pMemoryToFree = sgpAutomapCellList;
     if (!sgpAutomapLayerEx) {
@@ -951,7 +951,7 @@ static void __stdcall AUTOMAP_FreeCurrentLayerCells() {
       }
 
       pNextCell = pMemoryToFree->pNext;
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\UI\\automap.cpp", 0x51e, 0);
       pSavedLayer = sgpAutomapLayerEx;
       pMemoryToFree = pNextCell;
     }
@@ -979,7 +979,7 @@ static void __stdcall AUTOMAP_InvalidateLayerEntry(int32_t nEntryOffset, HANDLE 
 }
 
 // @sourcefile .\UI\automap.cpp
-static void __stdcall AUTOMAP_LoadLayerFromFile() {
+void __stdcall AUTOMAP_LoadLayerFromFile() {
     // Frame -480..-80 is ONE object: a call writes 400 literal bytes starting at &nNextFilePos.
     // Separate locals let the compiler reorder them, and the write would run off the frame.
     struct __frame0_t {
@@ -1059,7 +1059,7 @@ static void __stdcall AUTOMAP_LoadLayerFromFile() {
           return;
         }
         if (sFileEntry.dwFloorDataSize) {
-          pCellData = D2_ALLOC(sFileEntry.dwFloorDataSize);
+          pCellData = Fog::Memory::AllocClientMemory(sFileEntry.dwFloorDataSize, ".\\UI\\automap.cpp", 0x575, 0);
           nWordCount = sFileEntry.dwFloorDataSize >> 1;
           __frame1.nWordLimit = nWordCount;
           Fog::Source::SFile::thunk_ReadFile(hFileHandle, pCellData, sFileEntry.dwFloorDataSize, &dwBytesRead, (LPOVERLAPPED)0x0);
@@ -1095,7 +1095,7 @@ static void __stdcall AUTOMAP_LoadLayerFromFile() {
           hMapFile = hFileHandle;
         }
         if (sFileEntry.dwWallDataSize) {
-          pCellData = D2_ALLOC(sFileEntry.dwWallDataSize);
+          pCellData = Fog::Memory::AllocClientMemory(sFileEntry.dwWallDataSize, ".\\UI\\automap.cpp", 0x58a, 0);
           nWordCount = sFileEntry.dwWallDataSize >> 1;
           __frame1.nWordLimit = nWordCount;
           Fog::Source::SFile::thunk_ReadFile(hFileHandle, pCellData, sFileEntry.dwWallDataSize, &dwBytesRead, (LPOVERLAPPED)0x0);
@@ -1105,7 +1105,7 @@ static void __stdcall AUTOMAP_LoadLayerFromFile() {
           }
 
           nWordIndex = 0;
-          if (nWordCount) {
+          if ((uint32_t)nWordCount > 0) {
             do {
               wCellNo = *(uint16_t*)((int)pCellData + nWordIndex * 2);
               if ((short int)wCellNo >= nAutoMapDC6FrameCount[0]) {
@@ -1127,12 +1127,12 @@ static void __stdcall AUTOMAP_LoadLayerFromFile() {
             } while (nWordIndex < __frame1.nWordLimit);
           }
 
-          D2_FREE(pCellData);
+          Fog::Memory::FreeClientMemory(pCellData, ".\\UI\\automap.cpp", 0x59b, 0);
           hMapFile = hFileHandle;
         }
         if (sFileEntry.dwObjectDataSize) {
           if (sFileEntry.nMapType == D2GameGame0x546->nAutomap) {
-            pCellData = D2_ALLOC(sFileEntry.dwObjectDataSize);
+            pCellData = Fog::Memory::AllocClientMemory(sFileEntry.dwObjectDataSize, ".\\UI\\automap.cpp", 0x5a2, 0);
             nWordCount = sFileEntry.dwObjectDataSize >> 1;
             __frame1.nWordLimit = nWordCount;
             Fog::Source::SFile::thunk_ReadFile(hFileHandle, pCellData, sFileEntry.dwObjectDataSize, &dwBytesRead, (LPOVERLAPPED)0x0);
@@ -1142,7 +1142,7 @@ static void __stdcall AUTOMAP_LoadLayerFromFile() {
             }
 
             nWordIndex = 0;
-            if (nWordCount) {
+            if ((uint32_t)nWordCount > 0) {
               do {
                 wCellNo = *(uint16_t*)((int)pCellData + nWordIndex * 2);
                 if ((short int)wCellNo >= nAutoMapDC6FrameCount[0]) {
@@ -1164,7 +1164,7 @@ static void __stdcall AUTOMAP_LoadLayerFromFile() {
               } while (nWordIndex < __frame1.nWordLimit);
             }
 
-            D2_FREE(pCellData);
+            Fog::Memory::FreeClientMemory(pCellData, ".\\UI\\automap.cpp", 0x5b3, 0);
             hMapFile = hFileHandle;
           } else {
             Fog::Source::SFile::SFILE_Win32SetFilePointer(hMapFile, sFileEntry.dwObjectDataSize, (PLONG)0x0, 1);
@@ -1173,7 +1173,7 @@ static void __stdcall AUTOMAP_LoadLayerFromFile() {
 
         nCurrentEntryPos = __frame1.nNextPos;
         if (sFileEntry.dwExtraDataSize) {
-          pCellData = D2_ALLOC(sFileEntry.dwExtraDataSize);
+          pCellData = Fog::Memory::AllocClientMemory(sFileEntry.dwExtraDataSize, ".\\UI\\automap.cpp", 0x5bd, 0);
           nWordCount = sFileEntry.dwExtraDataSize >> 1;
           __frame1.nWordLimit = nWordCount;
           Fog::Source::SFile::thunk_ReadFile(hFileHandle, pCellData, sFileEntry.dwExtraDataSize, &dwBytesRead, (LPOVERLAPPED)0x0);
@@ -1183,7 +1183,7 @@ static void __stdcall AUTOMAP_LoadLayerFromFile() {
           }
 
           nWordIndex = 0;
-          if (nWordCount) {
+          if ((uint32_t)nWordCount > 0) {
             do {
               wCellNo = *(uint16_t*)((int)pCellData + nWordIndex * 2);
               if ((int)(short int)wCellNo >= nAutoMapDC6FrameCount[sFileEntry.nTileCount]) {
@@ -1205,7 +1205,7 @@ static void __stdcall AUTOMAP_LoadLayerFromFile() {
             } while (nWordIndex < __frame1.nWordLimit);
           }
 
-          D2_FREE(pCellData);
+          Fog::Memory::FreeClientMemory(pCellData, ".\\UI\\automap.cpp", 0x5ce, 0);
           hMapFile = hFileHandle;
           nCurrentEntryPos = __frame1.nNextPos;
         }
@@ -1245,7 +1245,7 @@ static D2AutomapLayerStrc * AUTOMAP_AddLayer(int32_t nLayer) {
       }
     }
 
-    pLayer = D2_NEW(D2AutomapLayerStrc);
+    pLayer = ((D2AutomapLayerStrc*)Fog::Memory::AllocClientMemory(sizeof(D2AutomapLayerStrc), ".\\UI\\automap.cpp", 0x5ed, 0));
     pLayer->fSaved = 0;
     pLayer->pFloors = 0;
     pLayer->pWalls = 0;
@@ -1958,7 +1958,7 @@ static void __stdcall AUTOMAP_DrawMap() {
 // Returns 1 if unit should be drawn, 0 to skip.
 // Source: .\\UI\\automap.cpp
 // @sourcefile .\UI\automap.cpp
-static uint32_t AUTOMAP_GetUnitColor(D2UnitStrc * pUnit, uint8_t * pbColorOut) {
+uint32_t AUTOMAP_GetUnitColor(D2UnitStrc * pUnit, uint8_t * pbColorOut) {
     int16_t nMyPartyId;
     int16_t nUnitPartyId;
     D2RoomStrc* pRoom;
@@ -2102,21 +2102,16 @@ static uint32_t AUTOMAP_GetUnitColor(D2UnitStrc * pUnit, uint8_t * pbColorOut) {
             *pbColorOut = nAutoMapColorShrine;
             return 1;
           }
-          switch (eOwnership) {
-          case 0x3c: {
+          if (eOwnership == 0x3c) {
             pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
             eLevel = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
             if (eLevel != LEVEL_Abaddon && eLevel != LEVEL_PitOfAcheron && eLevel != LEVEL_InfernalPit && eLevel != LEVEL_FrigidHighlands && eLevel != LEVEL_ArreatPlateau && eLevel != LEVEL_FrozenTundra) {
               *pbColorOut = nAutoMapColorShrine;
               return 1;
             }
-            break;
-          }
-          case 0x10b: {
+          } else if (eOwnership == 0x10b) {
             *pbColorOut = '\0';
             return 1;
-            break;
-          }
           }
 
           break;
@@ -2487,7 +2482,7 @@ void __stdcall AUTOMAP_Free() {
     while (pMemoryToFree) {
       D2AutomapLayerStrc* pNextLayer;
       pNextLayer = pMemoryToFree->pNext;
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\UI\\automap.cpp", 0xc06, 0);
       pMemoryToFree = pNextLayer;
     }
 

@@ -968,7 +968,28 @@ static void __fastcall Q27_Callback_08_KillHandler(D2QuestDataStrc * pQuestData,
     bool bKillerNotCompleted;
     ::SGAMEDATA* pGame;
     D2QuestDataA4Q2Strc* pQuestSpecificData = pQuestData->pQuestSpecificData.pA4Q2;
-    if (!(!pQuestArgs->pTarget || pQuestArgs->pTarget->nClassId != 0xf3)) {
+    if (!pQuestArgs->pTarget || pQuestArgs->pTarget->nClassId != 0xf3) {
+      int iSealIdx;
+      pQuestSpecificData->nSealBossKillCount++;
+      if (pQuestSpecificData->nSealBossKillCount == 3) {
+        iSealIdx = 0;
+        do {
+          if (!pQuestSpecificData->abSealActivated[iSealIdx]) {
+            return;
+          }
+          iSealIdx++;
+        } while (iSealIdx < 5);
+        Q27_ActivateAllSealsKillChaos((int*)pQuestSpecificData, pQuestData->pGame);
+        if (!pQuestSpecificData->bDiabloSpawnStarted) {
+          pQuestSpecificData->nDiabloKillTick = 0;
+          pQuestSpecificData->bWaitingForDiabloSpawn = 1;
+          pQuestSpecificData->bDiabloKilled = 0;
+          pQuestSpecificData->bDiabloSpawnStarted = 1;
+          AddQuestTimer(pQuestData, QuitGameAfterDia, 1);
+          return;
+        }
+      }
+    } else {
       if (!pQuestData->pGame->bExpansion) {
         NotifyPlayersAboutEvent(pQuestData->pGame, 0xd);
       }
@@ -1019,27 +1040,6 @@ static void __fastcall Q27_Callback_08_KillHandler(D2QuestDataStrc * pQuestData,
           }
         }
       }
-    } else {
-      int iSealIdx;
-      pQuestSpecificData->nSealBossKillCount++;
-      if (pQuestSpecificData->nSealBossKillCount == 3) {
-        iSealIdx = 0;
-        do {
-          if (!pQuestSpecificData->abSealActivated[iSealIdx]) {
-            return;
-          }
-          iSealIdx++;
-        } while (iSealIdx < 5);
-        Q27_ActivateAllSealsKillChaos((int*)pQuestSpecificData, pQuestData->pGame);
-        if (!pQuestSpecificData->bDiabloSpawnStarted) {
-          pQuestSpecificData->nDiabloKillTick = 0;
-          pQuestSpecificData->bWaitingForDiabloSpawn = 1;
-          pQuestSpecificData->bDiabloKilled = 0;
-          pQuestSpecificData->bDiabloSpawnStarted = 1;
-          AddQuestTimer(pQuestData, QuitGameAfterDia, 1);
-          return;
-        }
-      }
     }
 }
 
@@ -1062,7 +1062,7 @@ void __fastcall Q27_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->nInitNo = 4;
     pQuestData->fpStatusFilter = 0;
     pQuestData->fpActiveFilter = Q27_ActiveFilter;
-    D2QuestDataA4Q2Strc* pQuestSpecificData = D2_NEW_POOL(pSVar1->pMemoryPool, D2QuestDataA4Q2Strc);
+    D2QuestDataA4Q2Strc* pQuestSpecificData = ((D2QuestDataA4Q2Strc*)Fog::Memory::AllocServerMemory(pSVar1->pMemoryPool, sizeof(D2QuestDataA4Q2Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a4q2.cpp", 0x418, 0));
     pQuestData->pQuestSpecificData.pA4Q2 = pQuestSpecificData;
     pQuestData->fpSequenceFilter = (QUESTSEQ)Q27_SequenceFilter;
     memset(pQuestSpecificData, 0, 0x4c);

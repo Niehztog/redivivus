@@ -395,7 +395,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
       i = *(int*)pCursor2;
       pFile->nSubstGroups = i;
       pCursor2 += 4;
-      pSubstGroups = (D2DrlgSubstGroupStrc*)D2_ALLOC_POOL(nullptr, i * 0x18);
+      pSubstGroups = (D2DrlgSubstGroupStrc*)Fog::Memory::AllocServerMemory(nullptr, i * 0x18, ".\\DRLG\\Preset.cpp", 0x476, 0);
       i = 0;
       pFile->pSubstGroups = pSubstGroups;
       if (0 < pFile->nSubstGroups) {
@@ -436,9 +436,9 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
       if (nPathNodeCount) {
         for (pPreset = pFile->pPresetUnit; pPreset; pPreset = pPreset->pPresetUnitNext) {
           if (pPreset->nPosX == *(int*)pCursor && pPreset->nPosY == *(int*)pClassId) {
-            pPathNodes = D2_NEW_POOL(nullptr, D2MapAIStrc);
+            pPathNodes = ((D2MapAIStrc*)Fog::Memory::AllocServerMemory(nullptr, sizeof(D2MapAIStrc), ".\\DRLG\\Preset.cpp", 0x4a8, 0));
             pPreset->pMapAI = pPathNodes;
-            pDVar1 = (D2PathPosStrc*)D2_ALLOC_POOL(nullptr, (int)nPathNodeCount * 0xc);
+            pDVar1 = (D2PathPosStrc*)Fog::Memory::AllocServerMemory(nullptr, (int)nPathNodeCount * 0xc, ".\\DRLG\\Preset.cpp", 0x4a9, 0);
             pPreset->pMapAI->pPosition = pDVar1;
             pPreset->pMapAI->nSize = (size_t)nPathNodeCount;
             if (0 < (int)nPathNodeCount) {
@@ -496,8 +496,8 @@ void __fastcall AllocDrlgFile(D2DrlgFileStrc * * ppDrlgFile, D2PoolManagerStrc *
       pCacheName = pCacheNode;
       pName = (uint8_t*)szFile;
       if (!pCacheNode) {
-        pCacheNodeNew = D2_NEW_POOL(nullptr, D2DrlgFileCacheNodeStrc);
-        pDrlgFile = D2_NEW_POOL(nullptr, D2DrlgFileStrc);
+        pCacheNodeNew = ((D2DrlgFileCacheNodeStrc*)Fog::Memory::AllocServerMemory(nullptr, sizeof(D2DrlgFileCacheNodeStrc), ".\\DRLG\\Preset.cpp", 0x4e0, 0));
+        pDrlgFile = ((D2DrlgFileStrc*)Fog::Memory::AllocServerMemory(nullptr, sizeof(D2DrlgFileStrc), ".\\DRLG\\Preset.cpp", 0x4e1, 0));
         *ppDrlgFile = pDrlgFile;
         memset(pDrlgFile, 0, 0x5c);
         pSrc = szFile;
@@ -531,12 +531,12 @@ void __fastcall AllocDrlgFile(D2DrlgFileStrc * * ppDrlgFile, D2PoolManagerStrc *
 // @sourcefile .\DRLG\Preset.cpp
 // Deep-copies a preset unit's D2MapAIStrc path (8-byte header + nSize*12-byte D2PathPosStrc).
 D2MapAIStrc * __fastcall DRLGPRESET_CopyMapAI(D2PoolManagerStrc * pMemory, D2MapAIStrc * pSrcMapAI) {
-    D2MapAIStrc* pNewMapAI = D2_NEW_POOL(pMemory, D2MapAIStrc);
+    D2MapAIStrc* pNewMapAI = ((D2MapAIStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2MapAIStrc), ".\\DRLG\\Preset.cpp", 0x574, 0));
     pNewMapAI->nSize = 0;
     pNewMapAI->pPosition = 0;
     size_t nMode = pSrcMapAI->nSize;
     pNewMapAI->nSize = nMode;
-    D2PathPosStrc* pData = (D2PathPosStrc*)D2_ALLOC_POOL(pMemory, nMode * 0xc);
+    D2PathPosStrc* pData = (D2PathPosStrc*)Fog::Memory::AllocServerMemory(pMemory, nMode * 0xc, ".\\DRLG\\Preset.cpp", 0x579, 0);
     pNewMapAI->pPosition = pData;
     memcpy(pData, pSrcMapAI->pPosition, pNewMapAI->nSize * 0xc);
     return pNewMapAI;
@@ -555,8 +555,8 @@ D2MapAIStrc * __fastcall DRLGPRESET_TransferMapAI(D2MapAIStrc * * ppSrcMapAI, D2
 
 // @sourcefile .\DRLG\Preset.cpp
 void __fastcall DRLGPRESET_FreeSpawnPointList(D2PoolManagerStrc * pMemory, D2AiGeneralStrc * pAiGeneral) {
-    D2_FREE_POOL(pMemory, (void*)pAiGeneral->fpFunction);
-    D2_FREE_POOL(pMemory, pAiGeneral);
+    Fog::Memory::FreeServerMemory(pMemory, (void*)pAiGeneral->fpFunction, ".\\DRLG\\Preset.cpp", 0x597, 0);
+    Fog::Memory::FreeServerMemory(pMemory, pAiGeneral, ".\\DRLG\\Preset.cpp", 0x598, 0);
 }
 
 void __stdcall CreatePresetObject_Unused(int32_t nParam1, int32_t nParam2, D2PoolManagerStrc * pMemory, int32_t nParam3, int32_t nParam4) {
@@ -735,10 +735,10 @@ void __fastcall DRLGROOMEX_FreeRoomExDataPresetArea(D2RoomExStrc * pRoomEx) {
 
     DRLGPRESET_FreePresetRoomGrids(pRoomEx, pMemory_00);
     if (pMemoryToFree->pNavigationPoints) {
-      D2_FREE_POOL(pMemory_00, pMemoryToFree->pNavigationPoints);
+      Fog::Memory::FreeServerMemory(pMemory_00, pMemoryToFree->pNavigationPoints, ".\\DRLG\\Preset.cpp", 0x6f7, 0);
     }
 
-    D2_FREE_POOL(pMemory_00, pMemoryToFree);
+    Fog::Memory::FreeServerMemory(pMemory_00, pMemoryToFree, ".\\DRLG\\Preset.cpp", 0x6fa, 0);
     pRoomEx->pRoomExData.pRoomExDataMazeRoom = 0;
 }
 
@@ -752,7 +752,7 @@ void __fastcall DRLGPRESET_FreePresetRoomGridsFromRoomEx(D2RoomExStrc * pRoomEx)
 
 // @sourcefile .\DRLG\Preset.cpp
 void __fastcall DRLGROOMEX_AllocRoomExDataPresetArea(D2RoomExStrc * pRoomEx) {
-    D2DrlgPresetRoomStrc* pPresetData = D2_NEW_POOL(pRoomEx->pLevel->pDrlg->pMemoryPool, D2DrlgPresetRoomStrc);
+    D2DrlgPresetRoomStrc* pPresetData = ((D2DrlgPresetRoomStrc*)Fog::Memory::AllocServerMemory(pRoomEx->pLevel->pDrlg->pMemoryPool, sizeof(D2DrlgPresetRoomStrc), ".\\DRLG\\Preset.cpp", 0x70f, 0));
     memset(pPresetData, 0, 0xf8);
     pRoomEx->pRoomExData.pRoomExDataPreset = pPresetData;
 }
@@ -922,7 +922,7 @@ static void DRLGROOMEX_AllocRoomExData_WorldPointsBurialGrounds(D2PoolManagerStr
     }
 
     D2DrlgPresetRoomStrc* pRoomData = pRoomExData;
-    void* pNavPoints = D2_ALLOC_POOL(pMemory, 0x30);
+    void* pNavPoints = Fog::Memory::AllocServerMemory(pMemory, 0x30, ".\\DRLG\\Preset.cpp", 0x7ac, 0);
     pRoomExData->pNavigationPoints = (POINT*)pNavPoints;
     int nOffsetY = 0;
     if (0 < pRoomEx->sCoords.WorldSize.y) {
@@ -1161,7 +1161,7 @@ static void __stdcall DRLGPRESET_InitDrlgMapPopLocations(int32_t nPopCount, D2Dr
       nX0 = *pPos;
       nPopIndex++;
       *pPos = ((int)(nX0 + (nX0 >> 0x1f & 3U)) >> 2) - 1;
-    } while (nPopCount > nPopIndex);
+    } while (nPopIndex < nPopCount);
 }
 
 void __fastcall DRLGPRESET_SetPickedFileInDrlgMap(D2DrlgMapStrc * pDrlgMap, int32_t nPickedFile) {
@@ -1176,7 +1176,7 @@ D2DrlgMapStrc * __fastcall DRLGPRESET_AllocDrlgMap(D2DrlgLevelStrc * pLevel, int
     uint32_t nFileSelector;
     int64_t seedProduct;
     D2SeedStrc newSeed;
-    D2DrlgMapStrc* pDrlgMap = D2_NEW_POOL(pLevel->pDrlg->pMemoryPool, D2DrlgMapStrc);
+    D2DrlgMapStrc* pDrlgMap = ((D2DrlgMapStrc*)Fog::Memory::AllocServerMemory(pLevel->pDrlg->pMemoryPool, sizeof(D2DrlgMapStrc), ".\\DRLG\\Preset.cpp", 0x9ad, 0));
     memset(pDrlgMap, 0, 0x58);
     D2LvlPrestTxt* pLvlPrest = DATATBLS::LvlTbls::TXT_LvlPrest_GetLine(nLvlPrestId);
     pDrlgMap->pTxtLevelPrest = pLvlPrest;
@@ -1436,7 +1436,7 @@ void __fastcall UpdatePops(D2RoomExStrc * pRoomEx, int32_t nX, int32_t nY, BOOL 
 // @sourcefile .\DRLG\Preset.cpp
 void __fastcall DRLGLEVEL_InitializeWithPresetArea(D2DrlgLevelStrc * pLevel) {
     uint32_t nRandomFile;
-    D2DrlgLevelDataPresetArea* pDrlgLevelPresetData = D2_NEW_POOL(pLevel->pDrlg->pMemoryPool, D2DrlgLevelDataPresetArea);
+    D2DrlgLevelDataPresetArea* pDrlgLevelPresetData = ((D2DrlgLevelDataPresetArea*)Fog::Memory::AllocServerMemory(pLevel->pDrlg->pMemoryPool, sizeof(D2DrlgLevelDataPresetArea), ".\\DRLG\\Preset.cpp", 0xaf9, 0));
     D2LvlPrestTxt* pLvlPrest = DATATBLS::LvlTbls::TXT_LvlPrest_FindLineByLevelId(pLevel->eD2LevelId);
     if (!pLvlPrest) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xafb);
@@ -1464,7 +1464,7 @@ void __fastcall DRLGPRESET_FreePresetLevelData(D2DrlgLevelStrc * pLevel, BOOL bK
       return;
     }
 
-    D2_FREE_POOL(pLevel->pDrlg->pMemoryPool, pLevel->pDrlgLevelData.pDrlgLevelPresetData);
+    Fog::Memory::FreeServerMemory(pLevel->pDrlg->pMemoryPool, pLevel->pDrlgLevelData.pDrlgLevelPresetData, ".\\DRLG\\Preset.cpp", 0xb5a, 0);
     pLevel->pDrlgLevelData.pDrlgLevelPresetData = 0;
 }
 
@@ -1513,11 +1513,11 @@ D2PresetUnitStrc * __fastcall CopyPresetUnit(D2PoolManagerStrc * pMemory, D2Pres
 void __fastcall DRLGPRESETUNIT_FreeDrlgPresetUnit(D2PoolManagerStrc * pMemory, D2PresetUnitStrc * pPresetUnit) {
     D2MapAIStrc* pMemoryToFree = pPresetUnit->pMapAI;
     if (pMemoryToFree) {
-      D2_FREE_POOL(pMemory, pMemoryToFree->pPosition);
-      D2_FREE_POOL(pMemory, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(pMemory, pMemoryToFree->pPosition, ".\\DRLG\\Preset.cpp", 0x597, 0);
+      Fog::Memory::FreeServerMemory(pMemory, pMemoryToFree, ".\\DRLG\\Preset.cpp", 0x598, 0);
     }
 
-    D2_FREE_POOL(pMemory, pPresetUnit);
+    Fog::Memory::FreeServerMemory(pMemory, pPresetUnit, ".\\DRLG\\Preset.cpp", 0x56b, 0);
 }
 
 // Copies preset units from the DS1 into the drlg map list, with RNG-gated inclusion for specific monster/object class ids. Converts room offset to world coords before copying and prepends each new unit to pDrlgMap->pPresetUnit.
@@ -1714,22 +1714,12 @@ static void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2Drl
     AllocDrlgFile(&pDrlgMap->pDrlgFile, nWallLayerIndex->pDS1MemPool, pLvlPrest->File[pDrlgMap->nRandomMapFileSelector]);
     D2PoolManagerStrc* pMemoryOrXIndex = nXIndex;
     DRLGPRESET_AddPresetUnitToDrlgMap(nXIndex, pDrlgMap, &pLevel->sSeed);
-    if (pDrlgMap->pDrlgFile->nWidth != pDrlgMap->nSizeX) {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8b9);
-      exit(-1);
-    } else {
+    if (pDrlgMap->pDrlgFile->nWidth == pDrlgMap->nSizeX) {
       int* pAllocatedArray;
-      if (pDrlgMap->pDrlgFile->nHeight == pDrlgMap->nSizeY) {
-        if (pPopsCount) {
-          pAllocatedArray = (int*)D2_ALLOC_POOL(pMemoryOrXIndex, (int)pPopsCount * 4);
-          pDrlgMap->pPopsIndex = pAllocatedArray;
-          pAllocatedArray = (int*)D2_ALLOC_POOL(pMemoryOrXIndex, (int)pPopsCount * 4);
-          pDrlgMap->pPopsSubIndex = pAllocatedArray;
-          pAllocatedArray = (int*)D2_ALLOC_POOL(pMemoryOrXIndex, (int)pPopsCount * 4);
-          pDrlgMap->pPopsOrientation = pAllocatedArray;
-          pPosLocationArray = (D2DrlgCoordStrc*)D2_ALLOC_POOL(pMemoryOrXIndex, (int)pPopsCount << 4);
-          pDrlgMap->pPosLocation = pPosLocationArray;
-        }
+      if (pDrlgMap->pDrlgFile->nHeight != pDrlgMap->nSizeY) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8ba);
+        exit(-1);
+      }
 
       if (pPopsCount) {
         pAllocatedArray = (int*)Fog::Memory::AllocServerMemory(pMemoryOrXIndex, (int)pPopsCount * 4, ".\\DRLG\\Preset.cpp", 0x8bf, 0);
@@ -1881,6 +1871,9 @@ static void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2Drl
         }
       }
       return;
+    } else {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8b9);
+      exit(-1);
     }
 }
 
@@ -2067,10 +2060,10 @@ void __fastcall DRLGPRESET_InitializeRoomEx(D2DrlgLevelStrc * pLevel) {
 void __fastcall DRLGPRESET_FreeDrlgFile(D2DrlgFileStrc * pDrlgFile) {
     D2MapAIStrc* pPath;
     if (pDrlgFile->pDS1File) {
-      D2_FREE(pDrlgFile->pDS1File);
+      Fog::Memory::FreeClientMemory(pDrlgFile->pDS1File, ".\\DRLG\\Preset.cpp", 0x4f8, 0);
     }
     if (pDrlgFile->pSubstGroups) {
-      D2_FREE_POOL(nullptr, pDrlgFile->pSubstGroups);
+      Fog::Memory::FreeServerMemory(nullptr, pDrlgFile->pSubstGroups, ".\\DRLG\\Preset.cpp", 0x4f9, 0);
     }
 
     D2PresetUnitStrc* pPresetUnit = pDrlgFile->pPresetUnit;
@@ -2079,15 +2072,15 @@ void __fastcall DRLGPRESET_FreeDrlgFile(D2DrlgFileStrc * pDrlgFile) {
       pPath = pPresetUnit->pMapAI;
       pNext = pPresetUnit->pPresetUnitNext;
       if (pPath) {
-        D2_FREE_POOL(nullptr, pPath->pPosition);
-        D2_FREE_POOL(nullptr, pPath);
+        Fog::Memory::FreeServerMemory(nullptr, pPath->pPosition, ".\\DRLG\\Preset.cpp", 0x597, 0);
+        Fog::Memory::FreeServerMemory(nullptr, pPath, ".\\DRLG\\Preset.cpp", 0x598, 0);
       }
 
-      D2_FREE_POOL(nullptr, pPresetUnit);
+      Fog::Memory::FreeServerMemory(nullptr, pPresetUnit, ".\\DRLG\\Preset.cpp", 0x56b, 0);
       pPresetUnit = pNext;
     }
 
-    D2_FREE_POOL(nullptr, pDrlgFile);
+    Fog::Memory::FreeServerMemory(nullptr, pDrlgFile, ".\\DRLG\\Preset.cpp", 0x505, 0);
 }
 
 // Decrements the ref-count on the global DS1 file cache entry for *ppDrlgFile under a critical section. If the count drops below 1, unlinks the node from gpDrlgFileCache, frees the DS1 data via DRLGPRESET_FreeDrlgFile, frees the cache node, and nulls *ppDrlgFile. No-op if *ppDrlgFile is already null.
@@ -2125,7 +2118,7 @@ void __fastcall DRLGPRESET_ReleaseDrlgFile(D2DrlgFileStrc * * ppDrlgFile) {
 
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_0096d610);
       DRLGPRESET_FreeDrlgFile(*ppDrlgFile);
-      D2_FREE_POOL(nullptr, pCacheEntry);
+      Fog::Memory::FreeServerMemory(nullptr, pCacheEntry, ".\\DRLG\\Preset.cpp", 0x538, 0);
       *ppDrlgFile = 0;
       return;
     }
@@ -2150,28 +2143,28 @@ void __fastcall DRLGPRESET_FreeDrlgMapList(D2PoolManagerStrc * pMemory, D2DrlgMa
         pPath = pPresetUnit->pMapAI;
         pNextPresetUnit = pPresetUnit->pPresetUnitNext;
         if (pPath) {
-          D2_FREE_POOL(pMemory, pPath->pPosition);
-          D2_FREE_POOL(pMemory, pPath);
+          Fog::Memory::FreeServerMemory(pMemory, pPath->pPosition, ".\\DRLG\\Preset.cpp", 0x597, 0);
+          Fog::Memory::FreeServerMemory(pMemory, pPath, ".\\DRLG\\Preset.cpp", 0x598, 0);
         }
 
-        D2_FREE_POOL(pMemory, pPresetUnit);
+        Fog::Memory::FreeServerMemory(pMemory, pPresetUnit, ".\\DRLG\\Preset.cpp", 0x56b, 0);
         pPresetUnit = pNextPresetUnit;
       }
 
       if (pDrlgMap->pPopsIndex) {
-        D2_FREE_POOL(pMemory, pDrlgMap->pPopsIndex);
+        Fog::Memory::FreeServerMemory(pMemory, pDrlgMap->pPopsIndex, ".\\DRLG\\Preset.cpp", 0x9fa, 0);
       }
       if (pDrlgMap->pPopsSubIndex) {
-        D2_FREE_POOL(pMemory, pDrlgMap->pPopsSubIndex);
+        Fog::Memory::FreeServerMemory(pMemory, pDrlgMap->pPopsSubIndex, ".\\DRLG\\Preset.cpp", 0x9fb, 0);
       }
       if (pDrlgMap->pPopsOrientation) {
-        D2_FREE_POOL(pMemory, pDrlgMap->pPopsOrientation);
+        Fog::Memory::FreeServerMemory(pMemory, pDrlgMap->pPopsOrientation, ".\\DRLG\\Preset.cpp", 0x9fc, 0);
       }
       if (pDrlgMap->pPosLocation) {
-        D2_FREE_POOL(pMemory, pDrlgMap->pPosLocation);
+        Fog::Memory::FreeServerMemory(pMemory, pDrlgMap->pPosLocation, ".\\DRLG\\Preset.cpp", 0x9fd, 0);
       }
 
-      D2_FREE_POOL(pMemory, pDrlgMap);
+      Fog::Memory::FreeServerMemory(pMemory, pDrlgMap, ".\\DRLG\\Preset.cpp", 0x9ff, 0);
       pDrlgMap = pNext;
     }
 }

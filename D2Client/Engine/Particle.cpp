@@ -43,7 +43,7 @@ namespace D2Client::Engine::Particle {
 void __stdcall AllocParticle(D2UnitStrc * pUnit) {
     D2ParticleStrc* pParticle = GfxInfo::GetParticleFromUnit(pUnit);
     if (!pParticle) {
-      pParticle = D2_NEW(D2ParticleStrc);
+      pParticle = ((D2ParticleStrc*)Fog::Memory::AllocClientMemory(sizeof(D2ParticleStrc), ".\\ENGINE\\Particle.cpp", 0x48, 0));
       if (!pParticle) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4a);
         exit(-1);
@@ -61,7 +61,7 @@ void __stdcall FreeParticle(D2UnitStrc * pUnit) {
       return;
     }
 
-    D2_FREE(pParticle);
+    Fog::Memory::FreeClientMemory(pParticle, ".\\ENGINE\\Particle.cpp", 0x64, 0);
     GfxInfo::SetParticle(pUnit, nullptr);
 }
 

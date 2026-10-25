@@ -482,7 +482,9 @@ void __fastcall Q10_Callback04_ItemPickedUp(D2QuestDataStrc * pQuestData, D2Ques
     }
 
     int iVar1 = pItemTxt->dwCode;
-    if (!(iVar1 == 0x20317274 && !bStep0x03Set)) {
+    if (iVar1 == 0x20317274 && !bStep0x03Set) {
+      pQuestData->nStateFlagPrev = 1;
+    } else {
       if (iVar1 != 0x20706976 && iVar1 != 0x20786f62) {
         if (iVar1 != 0x2066736d) {
           return;
@@ -502,8 +504,6 @@ void __fastcall Q10_Callback04_ItemPickedUp(D2QuestDataStrc * pQuestData, D2Ques
       } else {
         pQuestData->nStateFlagPrev = 2;
       }
-    } else {
-      pQuestData->nStateFlagPrev = 1;
     }
 
     D2UnitStrc* pUnit = pQuestArgs->pPlayer;
@@ -1057,7 +1057,7 @@ void __fastcall Q10_InitData(D2QuestDataStrc * pQuestData) {
     memset(&pQuestData->sStateFunctions, 0, 0x3c);
     pQuestData->pNpcMessages = &A2Q2::aNpcGossipData;
     pQuestData->bIsActive = true;
-    D2QuestDataA2Q2Strc* pQuestSpecificData = D2_NEW_POOL(pQuestData->pGame->pMemoryPool, D2QuestDataA2Q2Strc);
+    D2QuestDataA2Q2Strc* pQuestSpecificData = ((D2QuestDataA2Q2Strc*)Fog::Memory::AllocServerMemory(pQuestData->pGame->pMemoryPool, sizeof(D2QuestDataA2Q2Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q2.cpp", 0x3ed, 0));
     pQuestData->pQuestSpecificData.pA2Q2 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_TheHoradricStaff;
     pQuestData->fpStatusFilter = Q10_StatusFilter;

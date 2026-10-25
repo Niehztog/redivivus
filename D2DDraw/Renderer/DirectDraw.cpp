@@ -1359,7 +1359,7 @@ void Release() {
     }
     if (RENDERER_SelectedRendererCore) {
       /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&RENDERER_SelectedRendererCore->sLock);
-      D2_FREE(RENDERER_SelectedRendererCore);
+      Fog::Memory::FreeClientMemory(RENDERER_SelectedRendererCore, ".\\Src\\ddCore.cpp", 0x125, 0);
       RENDERER_SelectedRendererCore = 0;
     }
 
@@ -1417,7 +1417,7 @@ BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc
 
     atexit(DirectDraw::thunk_Release);
     gnDDrawSurfaceHeight = 1;
-    RENDERER_SelectedRendererCore = D2_NEW(D2RendererCoreStrc);
+    RENDERER_SelectedRendererCore = ((D2RendererCoreStrc*)Fog::Memory::AllocClientMemory(sizeof(D2RendererCoreStrc), ".\\Src\\ddCore.cpp", 0xf6, 0));
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ InitializeCriticalSection(&RENDERER_SelectedRendererCore->sLock);
     return 1;
 }
@@ -1737,7 +1737,7 @@ void __stdcall D2ddDebugFont_Alloc() {
     /* COLORREF color for SetBkColor */ /* HDC hdc for SetBkColor */ SetBkColor(hdc, gnD2ddDebugFontBkColor);
     /* int mode for SetBkMode */ /* HDC hdc for SetBkMode */ SetBkMode(hdc, 2);
     /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&rcCharRect, 0, 0, 8, 0x10);
-    D2ddDebugFont* pDVar1 = D2_NEW(D2ddDebugFont);
+    D2ddDebugFont* pDVar1 = ((D2ddDebugFont*)Fog::Memory::AllocClientMemory(sizeof(D2ddDebugFont), ".\\Src\\ddDebugFont.cpp", 0x3a, 0));
     int nFontDataOffset = 0;
     int nCharCode = 0x20;
     uint32_t* pCharOffsetEntry = gaD2ddDebugFontCharOffsets;
@@ -1782,7 +1782,7 @@ void __stdcall D2ddDebugFont_Free() {
       return;
     }
 
-    D2_FREE(gpD2ddDebugFont);
+    Fog::Memory::FreeClientMemory(gpD2ddDebugFont, ".\\Src\\ddDebugFont.cpp", 0x5d, 0);
     gpD2ddDebugFont = 0;
 }
 

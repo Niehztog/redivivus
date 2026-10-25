@@ -1006,7 +1006,7 @@ void __fastcall BNDOWNLOAD_InitiateFileDownload(D2BnetDownloadStateStrc * pDownl
 }
 
 // Processes downloaded BNFTP files: version info, cache files, ads, bnserver.ini, and ExtraWork DLLs. Handles extraction, loading, and cleanup.
-static void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t nOpcode, FILETIME * pModTime, LPCSTR szSourcePath, char * szDestPath, uint32_t * pPoolMgr, size_t nSize, int32_t bDeleteSource, int32_t bIsExtraWork) {
+void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t nOpcode, FILETIME * pModTime, LPCSTR szSourcePath, char * szDestPath, uint32_t * pPoolMgr, size_t nSize, int32_t bDeleteSource, int32_t bIsExtraWork) {
     // Frame slots -4672..-4644 are ONE object: &dwStackPad5 is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -1189,7 +1189,7 @@ static void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t 
           }
 
           Storm::Source::SFile::SFileAuthenticateArchive(pArchiveHandle, &__frame0.dwAuthResult);
-          if (!__frame0.dwAuthResult || 5 <= __frame0.dwAuthResult) {
+          if (!__frame0.dwAuthResult || 4 < __frame0.dwAuthResult) {
             bCopyDllOk = NET_CopyDllFromArchive(pArchiveHandle, szDestPath, &__frame3.cTempDllPath);
             if (!(uint32_t)((uint32_t)((uint32_t)bCopyExtended & 0xffffffu) << 8 | (uint32_t)(uint8_t)bCopyDllOk)) {
               Debug::DEBUG_UnusedDebugFunction("<ERROR: Failed to extract ExtraWork DLL!>");

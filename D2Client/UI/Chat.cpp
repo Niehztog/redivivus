@@ -394,7 +394,7 @@ void __stdcall CHAT_ShutdownIME() {
       return;
     }
 
-    D2_FREE(gpIMECandidateList);
+    Fog::Memory::FreeClientMemory(gpIMECandidateList, ".\\UI\\chat.cpp", 0x29d, 0);
     gpIMECandidateList = (LPCANDIDATELIST)0x0;
 }
 
@@ -1048,7 +1048,7 @@ void __stdcall CHAT_ProcessBattleNetMessage() {
     wszMessageW[0x153] = L'\0';
     int32_t nLenMessage = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszMessageW);
     int32_t nLenPrefix = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszPrefixW);
-    if (0x153 < nLenMessage + nLenPrefix) {
+    if (0x154 <= nLenMessage + nLenPrefix) {
       nLenMessage = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszPrefixW);
       if (nLenMessage < 0x153) {
         wszMessageW[0x153 - nLenMessage] = L'\0';
@@ -1236,7 +1236,7 @@ static void __stdcall CHAT_ExtractCommandParameter(int32_t nMaxLength, char * sz
 
 // Process chat commands (/fps, /framerate, /players, /nopickup, /ignore, /unignore, /filtermsg, /msg, /help, etc.). Parses command, checks game state, executes handler or sends message via NET_D2GS_CLIENT_Send_Chat.
 // Stack[0x8] nInputOffset is reused as the parse cursor: it is overwritten with pszInputBase + nInputOffset (asm 0047c44c..45b); the caller passes the count of leading spaces it skipped.
-static void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * pszInputBase, int32_t nInputOffset) {
+void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * pszInputBase, int32_t nInputOffset) {
     // Frame slots -368..-365 are ONE object: &byChatPacketType is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -1467,7 +1467,10 @@ static void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * psz
         D2Lang::UTF8_ConvertToWideChar(wszAccountName, szExtractedAccount, 0x22);
         ppIgnoreList = D2Common::Chat::Ignorelist::MISC_GetIgnorelist();
         nCmpResult = ppIgnoreList->_vfptr->RemoveByPattern(ppIgnoreList, szExtractedAccount);
-        if (!nCmpResult) {
+        if (nCmpResult) {
+          pwLocaleString = wszAccountName;
+          pwFormatArg = D2Lang::StrTable::strtable::GetLocaleString(0x2ba5);
+        } else {
           wStringId = 0x2ba6;
           format_ignore_error:
           pwLocaleString = wszAccountName;

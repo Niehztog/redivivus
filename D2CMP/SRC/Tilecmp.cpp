@@ -792,36 +792,10 @@ void __fastcall TILECMP_DeserializeAndFixup(int32_t pThis, void * pTileSetData, 
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2e0);
         exit(-1);
       } else {
-        pDstBlock = D2_ALLOC(nCalcSize);
-        if (pDstBlock) {
-          memset(pDstBlock, 0, nCalcSize);
-          *ppDstBuffer = pDstBlock;
-          *pSizeOut = nCalcSize;
-          memcpy(pDstBlock, pTileSetData, 0x114);
-          nCalcSize = *(int*)((int)pTileSetData + 0x10c) * 0x60;
-          pDstTileSetArray = (void*)((int)pDstBlock + 0x114);
-          memcpy(pDstTileSetArray, *(void**)((int)pTileSetData + 0x110), nCalcSize);
-          *(int*)((int)pDstBlock + 0x110) = (int)pDstTileSetArray - (int)pDstBlock;
-          pWriteCursor = (void*)((int)pDstTileSetArray + nCalcSize);
-          nSizeOut = 0x0;
-          if (0 < *(int*)((int)pTileSetData + 0x10c)) {
-            pDstTileSetEntry = (int*)((int)pDstBlock + 0x15c);
-            do {
-              nSrcTileSetOffset = *(int*)((int)pTileSetData + 0x110);
-              pDstTileSetEntry[3] = 0;
-              nCalcSize = TILECMP_CopyTileNodes(pWriteCursor, (int)pDstTileSetEntry + nSrcTileSetOffset + (-0x48 - (int)pDstTileSetArray));
-              nSrcTileSetOffset = (int)pWriteCursor - (int)pDstBlock;
-              pDstTileSetEntry[1] = nCalcSize;
-              pWriteCursor = (void*)((int)pWriteCursor + nCalcSize);
-              *pDstTileSetEntry = nSrcTileSetOffset;
-              nSizeOut++;
-              pDstTileSetEntry += 0x18;
-            } while (nSizeOut < *(int*)((int)pTileSetData + 0x10c));
-          }
-
-          *(uint32_t*)((int)pTileSetData + 4) |= 2;
-          *(uint32_t*)((int)pDstBlock + 4) |= 6;
-          return;
+        pDstBlock = Fog::Memory::AllocClientMemory(nCalcSize, ".\\SRC\\Tilecmp.cpp", 0x2e3, 0);
+        if (!pDstBlock) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2e4);
+          exit(-1);
         }
 
         memset(pDstBlock, 0, nCalcSize);

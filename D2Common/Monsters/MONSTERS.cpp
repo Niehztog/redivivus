@@ -362,7 +362,7 @@ void __fastcall SetSuperUniqueName(D2UnitStrc * pUnit, uint16_t * wszText) {
     }
 
     int32_t nStrLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszText);
-    uint16_t* pNameBuf = (uint16_t*)D2_ALLOC(nStrLen * 2 + 2);
+    uint16_t* pNameBuf = (uint16_t*)Fog::Memory::AllocClientMemory(nStrLen * 2 + 2, ".\\Monsters\\MONSTERS.CPP", 0xc3, 0);
     pUnit->pUnitData.pUnitDataPlayer->nPortalFlags = (int32_t)pNameBuf;
     D2Lang::Unicode::UNISYS::STRING_CopyWideString((uint16_t*)pUnit->pUnitData.pUnitDataPlayer->nPortalFlags, wszText);
 }
@@ -671,7 +671,10 @@ void __stdcall MONSTERS_GetUpgradeSkillsAndCount(D2UnitStrc * pUnit, uint32_t * 
     }
 };
 
-    if (!(!pUnit || pUnit->eUnitType != UNIT_MONSTER)) {
+    if (!pUnit || pUnit->eUnitType != UNIT_MONSTER) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 700);
+      exit(-1);
+    } else {
       DATATBLS::MonsterTbls::MONSTERTBLS_GetUpgradeDataByMonStatsId(pUnit->nClassId, nullptr, (eD2Skills*)&pUnit);
       if (!((int)pUnit < 4)) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2c8);
@@ -686,9 +689,6 @@ void __stdcall MONSTERS_GetUpgradeSkillsAndCount(D2UnitStrc * pUnit, uint32_t * 
         *pdwValidFlags = gdwMonStatAnimFlagsTable[(int)pUnit].dwValidFlags;
         return;
       }
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 700);
-      exit(-1);
     }
 }
 
@@ -751,8 +751,7 @@ void __stdcall MONSTER_ApplyDifficultyScaling(D2UnitStrc * pUnit, int32_t nParam
       }
 
       nStatLayer = 0;
-      nValue = D2Client::Stats::D2ApplyPercent(nCurrentStatVal, nPercent, nDivisor);
-      Stats::StatsEx::STATLIST_SetUnitStat(pUnit, (*(int (*)[5])(pScalingEntry - 2))[0], nValue, nStatLayer);
+      Stats::StatsEx::STATLIST_SetUnitStat(pUnit, (*(int (*)[5])(pScalingEntry - 2))[0], D2Client::Stats::D2ApplyPercent(nCurrentStatVal, nPercent, nDivisor), nStatLayer);
       pScalingEntry += 5;
       nEntriesLeft--;
     } while (nEntriesLeft);

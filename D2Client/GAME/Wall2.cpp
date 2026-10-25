@@ -595,11 +595,11 @@ static void WALL2_AllocDrawList(D2GameViewStrc * pGameView) {
         goto store_grid_dims;
       }
       if (pPrevWall2) {
-        D2_FREE(pPrevWall2);
+        Fog::Memory::FreeClientMemory(pPrevWall2, ".\\GAME\\Wall2.cpp", 0x3a, 0);
       }
     }
 
-    pPrevWall2 = (D2Wall2CellStrc*)D2_ALLOC(nGridCellCount * 0x24);
+    pPrevWall2 = (D2Wall2CellStrc*)Fog::Memory::AllocClientMemory(nGridCellCount * 0x24, ".\\GAME\\Wall2.cpp", 0x3d, 0);
     pGameView->sWall2.pWall2 = pPrevWall2;
     pGameView->sWall2.nWall2CellCount = nGridCellCount;
     store_grid_dims:
@@ -619,7 +619,7 @@ void __fastcall ResetWall2Data(D2GameViewStrc * pGameView) {
 void __fastcall FreeWall2(D2GameViewStrc * pGameView) {
     D2Wall2CellStrc* pMemoryToFree = pGameView->sWall2.pWall2;
     if (pMemoryToFree) {
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\GAME\\Wall2.cpp", 0x55, 0);
     }
 
     pGameView->sWall2.pWall2 = 0;

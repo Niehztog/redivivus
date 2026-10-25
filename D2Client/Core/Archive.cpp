@@ -115,7 +115,7 @@ void __fastcall DC6_FreeAndDelete(DC6 * pDC6) {
       return;
     }
 
-    D2_FREE(pDC6);
+    Fog::Memory::FreeClientMemory(pDC6, ".\\CORE\\ARCHIVE.CPP", 0x7a, 0);
 }
 
 } // namespace D2Client::Core::Archive

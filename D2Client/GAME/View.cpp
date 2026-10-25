@@ -394,7 +394,7 @@ void __stdcall VIEW_FreeLookupTables() {
 // @sourcefile .\GAME\View.cpp
 void __fastcall FreeGameView(D2GameViewStrc * pGameView) {
     Wall2::FreeWall2(pGameView);
-    D2_FREE(pGameView);
+    Fog::Memory::FreeClientMemory(pGameView, ".\\GAME\\View.cpp", 0x141, 0);
 }
 
 void __fastcall SetFlag0x1(D2GameViewStrc * pGameView) {
@@ -930,24 +930,12 @@ D2GameViewStrc * __stdcall AllocGameView() {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x11a);
       exit(-1);
     } else {
-      if (gpViewPalByteTable16x32) {
-        pGameView = D2_NEW(D2GameViewStrc);
-        /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&pGameView->pView, 0, 0, 0, 0);
-        pPalByteTable16x32 = gpViewPalByteTable16x32;
-        pPalByteTable32x16 = gpViewPalByteTable32x16;
-        pPalPointerTable = gpViewPalPointerTable32x8;
-        pGameView->nFlags = 0;
-        pGameView->pPalPointerTable32x8 = pPalPointerTable;
-        pGameView->pPalByteTable32x16 = pPalByteTable32x16;
-        pGameView->pPalByteTable16x32 = pPalByteTable16x32;
-        Wall2::WALL2_OnAllocGameView_NoOp();
-        Wall2::ResetWall2Data(pGameView);
-        pGameView->nFlags |= 1;
-        gnLastLightmapUpdateFrame = 0;
-        return pGameView;
+      if (!gpViewPalByteTable16x32) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x11b);
+        exit(-1);
       }
 
-      pGameView = (D2GameViewStrc*)Fog::Memory::AllocClientMemory(0xeabc, ".\\GAME\\View.cpp", 0x11d, 0);
+      pGameView = ((D2GameViewStrc*)Fog::Memory::AllocClientMemory(sizeof(D2GameViewStrc), ".\\GAME\\View.cpp", 0x11d, 0));
       /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&pGameView->pView, 0, 0, 0, 0);
       pPalByteTable16x32 = gpViewPalByteTable16x32;
       pPalPointerTable = gpViewPalPointerTable32x8;

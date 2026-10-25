@@ -222,7 +222,7 @@ static void __stdcall DRAW_CenteredText(int32_t nFontId, int32_t nY, DWORD dwCol
     D2Win::Src::D2WinFont::SetAndReturnLastFont(nPrevFont);
 }
 
-static void __stdcall DRAW_MonsterUnderCursorImmunites() {
+void __stdcall DRAW_MonsterUnderCursorImmunites() {
     D2UnitStrc* pSelected = GAME::Select::GetSelectedUnit();
     if (!(pSelected && pSelected->eUnitType == UNIT_MONSTER)) {
       return;
@@ -688,7 +688,7 @@ static void __stdcall DRAW_UnitUModsUnderCursor() {
     DRAW_CenteredText(6, nFontHeight + 0x27, dwColor, (uint16_t*)&gnMonsterHealthBarValue);
 }
 
-static void __stdcall DRAW_Overlay_EnteringAreaX() {
+void __stdcall DRAW_Overlay_EnteringAreaX() {
     // Static local variables (originally global data)
     static D2QuestAreaIntroStrc gnQuestAreaIntroLevelId_0[2] = {
     {

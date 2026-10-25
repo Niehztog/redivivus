@@ -26,7 +26,7 @@ void __fastcall CELDATAHASH_UnlinkEntry(int32_t nParam, int * pnParam, D2PoolMan
       *(int*)(nParam + 0x800 + *pnParam * 4) = pnParam[0xb];
     }
 
-    D2_FREE_POOL(pMemory, pnParam);
+    Fog::Memory::FreeServerMemory(pMemory, pnParam, ".\\SRC\\CelDataHash.cpp", 0x3a, 0);
 }
 
 void __fastcall CELDATAHASH_InitHashTable(void * pParam) {
@@ -46,7 +46,7 @@ void __fastcall GFX_FreeAllCacheEntries(D2PoolManagerStrc * pMemory, int32_t nPa
           *(int**)(nParam + 0x800 + *pCurEntry * 4) = (int*)pNextEntry;
         }
 
-        D2_FREE_POOL(pMemory, pCurEntry);
+        Fog::Memory::FreeServerMemory(pMemory, pCurEntry, ".\\SRC\\CelDataHash.cpp", 0x3a, 0);
         pCurEntry = pNextEntry;
       }
 
@@ -128,7 +128,7 @@ void __fastcall GFX_RemoveCacheEntry(D2PoolManagerStrc * pMemory, void * pHashTa
       *(int*)((int)pHashTable + *pEntry * 4 + 0x800) = pEntry[0xb];
     }
 
-    D2_FREE_POOL(pMemory, pEntry);
+    Fog::Memory::FreeServerMemory(pMemory, pEntry, ".\\SRC\\CelDataHash.cpp", 0x3a, 0);
 }
 
 } // namespace D2CMP::SRC::CelDataHash

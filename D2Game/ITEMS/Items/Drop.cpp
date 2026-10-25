@@ -951,7 +951,7 @@ static void ITEM_ApplyEthereal(D2UnitStrc * pUnit, D2ItemGenContextStrc * pItemG
 }
 
 // Applies item-type-specific post-generation properties to a newly dropped item. Switch on wType: PlayerBodyPart/BodyPart sets file index from ctx; Charm rolls forced magic affix; Book/Scroll sets magic suffix from scroll-book index. Falls through to StaffMod roll and socket count roll for all other types.
-void __stdcall ITEM_ApplySpecialTypeProperties(D2UnitStrc * pUnit, ::SGAMEDATA * pGame, D2ItemGenContextStrc * pItemGenContext) {
+static void __stdcall ITEM_ApplySpecialTypeProperties(D2UnitStrc * pUnit, ::SGAMEDATA * pGame, D2ItemGenContextStrc * pItemGenContext) {
     uint32_t dwFileIndex_00;
     uint32_t dwFileIndex;
     int32_t nScrollBookIdx;

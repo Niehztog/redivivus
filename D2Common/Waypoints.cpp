@@ -122,7 +122,7 @@ void __stdcall EnableWaypoint(D2WaypointStrc * pWaypoint, uint16_t nWaypointId) 
 
 // @sourcefile .\WayPoint\Waypoint.cpp
 D2WaypointStrc * __stdcall Alloc(D2PoolManagerStrc * pMemory) {
-    D2WaypointStrc* pWaypoint = D2_NEW_POOL(pMemory, D2WaypointStrc);
+    D2WaypointStrc* pWaypoint = ((D2WaypointStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2WaypointStrc), ".\\WayPoint\\Waypoint.cpp", 0xfc, 0));
     pWaypoint->nSignature = 0;
     memset(pWaypoint->aWaypointBits, 0, 7 * sizeof(pWaypoint->aWaypointBits[0]));
     pWaypoint->nSignature = 0x102;
@@ -158,7 +158,7 @@ void __stdcall Free(D2PoolManagerStrc * pMemory, D2WaypointStrc * pWaypoint) {
       pWaypoint->nSignature = 0x102;
     }
 
-    D2_FREE_POOL(pMemory, pWaypoint);
+    Fog::Memory::FreeServerMemory(pMemory, pWaypoint, ".\\WayPoint\\Waypoint.cpp", 0x121, 0);
 }
 
 void __stdcall CopyWaypointBits(D2WaypointStrc * pWaypoint, uint8_t * nWaypointBits) {

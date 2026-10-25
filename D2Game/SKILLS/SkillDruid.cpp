@@ -590,7 +590,7 @@ uint32_t __fastcall SKILLDRUID_CreateSummon(::SGAMEDATA * pGame, D2UnitStrc * pU
 
     ::SGAMEDATA* pGameSaved = pGame;
     sPetCast.classId = SkillsServer::SKILLS_GetSummonMonsterClassId(pUnit, 0, eSkill, nSkillLvl2, &sPetCast.nPetType, nullptr, nullptr);
-    if (-1 >= sPetCast.classId) {
+    if (0 > sPetCast.classId) {
       return 0;
     }
 
@@ -895,9 +895,9 @@ static void __stdcall SKILLDRUID_GetSummonDamageBonus(D2SkillsTxt * pSkillTxt, :
     UNIT::SUnitDmg::DAMAGE_ProcessCombatQueueEntry(pGame, pUnit2, pUnit, 0);
 }
 
-void __stdcall SKILLDRUID_CreateAuraMissile(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pTargetUnit, int32_t nDuration, int32_t nSkillLvl, eD2Skills eSkill) {
+static void __stdcall SKILLDRUID_CreateAuraMissile(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pTargetUnit, int32_t nDuration, int32_t nSkillLvl, eD2Skills eSkill) {
     D2SkillArgStrc sSkillArg;
-    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return;
     }
 

@@ -63,7 +63,7 @@ int __stdcall FIELDTBLS_InitFieldData(D2ArchiveStrc * pArchive, uint32_t dwUnuse
     uint32_t nHeight = *(uint32_t*)((uintptr_t)&pArchive->pPrevLink + 2);
     uint32_t nWidth = *(uint32_t*)((uintptr_t)&pArchive->pNext + 2);
     size_t nAllocSize = nWidth * nHeight;
-    void* pFieldData = D2_ALLOC_POOL(nullptr, nAllocSize);
+    void* pFieldData = Fog::Memory::AllocServerMemory(nullptr, nAllocSize, ".\\DATATBLS\\FieldTbls.cpp", 0x3e, 0);
     if (!pFieldData) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x40);
       exit(-1);
@@ -86,6 +86,7 @@ int __stdcall FIELDTBLS_InitFieldData(D2ArchiveStrc * pArchive, uint32_t dwUnuse
     gnFieldDataTableHeight = nHeight;
     gnFieldDataTableSize = nAllocSize;
     D2_FREE(pArchive);
+    return 1;
 }
 
 // Frees the global field table data and zeroes all field dimensions/offsets.
@@ -93,7 +94,7 @@ int __stdcall FIELDTBLS_InitFieldData(D2ArchiveStrc * pArchive, uint32_t dwUnuse
 // @sourcefile .\DATATBLS\FieldTbls.cpp
 int __stdcall FIELDTBLS_FreeFieldData() {
     if (gpFieldDataTable) {
-      D2_FREE_POOL(nullptr, gpFieldDataTable);
+      Fog::Memory::FreeServerMemory(nullptr, gpFieldDataTable, ".\\DATATBLS\\FieldTbls.cpp", 0x5b, 0);
     }
 
     gpFieldDataTable = 0;
@@ -117,7 +118,7 @@ void __stdcall FIELDTBLS_GetFieldCenterOffsets(uint32_t * pdwHalfWidth, uint32_t
 // allocates its own storage and returns it.
 // @sourcefile .\DATATBLS\FieldTbls.cpp
 POINT * __stdcall FIELDTBLS_AllocPoint() {
-    POINT* pPoint = D2_NEW_POOL(nullptr, POINT);
+    POINT* pPoint = ((POINT*)Fog::Memory::AllocServerMemory(nullptr, sizeof(POINT), ".\\DATATBLS\\FieldTbls.cpp", 0x87, 0));
     if (!pPoint) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x88);
       exit(-1);
@@ -138,7 +139,7 @@ void __stdcall FIELDTBLS_FreePoint(POINT * pPoint) {
       exit(-1);
     }
 
-    D2_FREE_POOL(nullptr, pPoint);
+    Fog::Memory::FreeServerMemory(nullptr, pPoint, ".\\DATATBLS\\FieldTbls.cpp", 0x94, 0);
 }
 
 void __stdcall SetXY(POINT * pPoint, LONG nX, LONG nY) {

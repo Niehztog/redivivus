@@ -137,7 +137,7 @@ void __stdcall STRUCT_CreateDataItem(D2PoolManagerStrc * pMemory, D2UnitStrc * p
       return;
     }
 
-    D2UnitDataItemStrc* pUnitDataItem = D2_NEW_POOL(pMemory, D2UnitDataItemStrc);
+    D2UnitDataItemStrc* pUnitDataItem = ((D2UnitDataItemStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2UnitDataItemStrc), ".\\ITEMS\\Items.cpp", 0xd2, 0));
     if (!pUnitDataItem) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd5);
       exit(-1);
@@ -159,7 +159,7 @@ void __stdcall ITEMDATA_Free(D2PoolManagerStrc * pMemory, D2UnitStrc * pUnit) {
       return;
     }
 
-    D2_FREE_POOL(pMemory, pUnit->pUnitData.pUnitDataPlayer);
+    Fog::Memory::FreeServerMemory(pMemory, pUnit->pUnitData.pUnitDataPlayer, ".\\ITEMS\\Items.cpp", 0x10a, 0);
 }
 
 eD2BodyLoc __stdcall GetBodyLocation(D2UnitStrc * pUnit) {
@@ -277,7 +277,7 @@ void __stdcall SetAutoMagic(D2UnitStrc * pUnit, int16_t wAutoMagic) {
 }
 
 // Returns magic suffix ID at nIndex (offset 0x3E + nIndex*2) from D2UnitDataItemStrc. Returns 0 if unit is null, not an item, or has no item data.
-int GetMagicSuffix(D2UnitStrc * pUnit, int nIndex) {
+int __stdcall GetMagicSuffix(D2UnitStrc * pUnit, int nIndex) {
     if (!(pUnit && pUnit->eUnitType == UNIT_ITEM)) {
       return (uint32_t)pUnit & -65536;
     }
@@ -331,7 +331,7 @@ void __stdcall SetRareSuffix(D2UnitStrc * pUnit, int16_t wRareSuffix) {
     pUnit->pUnitData.pUnitDataItem->wRareSuffix = wRareSuffix;
 }
 
-BOOL CheckItemFlag(D2UnitStrc * pUnit, eD2ItemFlag neD2ItemFlag, int32_t nParam, char * szText) {
+BOOL __stdcall CheckItemFlag(D2UnitStrc * pUnit, eD2ItemFlag neD2ItemFlag, int32_t nParam, char * szText) {
     if (!(pUnit && pUnit->eUnitType == UNIT_ITEM && pUnit->pUnitData.pUnitDataItem)) {
       return 0;
     }
@@ -416,7 +416,7 @@ eD2ItemCmd __stdcall ITEM_GetItemData_eD2ItemCmd(D2UnitStrc * pUnit) {
     return pUnit->pUnitData.pUnitDataItem->eItemCmd;
 }
 
-int32_t ITEM_GetItemData_nItemLevel(D2UnitStrc * pUnit) {
+int32_t __stdcall ITEM_GetItemData_nItemLevel(D2UnitStrc * pUnit) {
     if (!(pUnit && pUnit->eUnitType == UNIT_ITEM)) {
       return 1;
     }
@@ -1028,12 +1028,12 @@ int32_t __fastcall ITEMS_CalcChargedSkillPriceModifier(D2UnitStrc * pUnit, int32
       nSkillLevel = (int)(uint32_t)(uint16_t)aStatValues[nStatIdx].wSubIndex >> ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
       uVar2 = aStatValues[nStatIdx].nStatValue & 0xff;
       nMaxCharges = aStatValues[nStatIdx].nStatValue >> 8;
-      if ((int)uVar2 < nMaxCharges && -1 < nSkillLevel && nSkillLevel < sgptDataTable->nTxtSkillsCount) {
+      if ((int)uVar2 < nMaxCharges && 0 <= nSkillLevel && nSkillLevel < sgptDataTable->nTxtSkillsCount) {
         pSkillsTxt = sgptDataTable->pTxtSkills + nSkillLevel;
         if (pSkillsTxt) {
           nSkillLevel = (sgptDataTable->dwChargedSkillLevelMask & (uint32_t)(uint16_t)aStatValues[nStatIdx].wSubIndex) + 2 + (int)pSkillsTxt->reqlevel / 6 * 2;
           nCostTmp = nSkillLevel * nMultiplier;
-          if (nCostTmp < 0x10000 || !pSkillsTxt->costmult) {
+          if (nCostTmp <= 0xffff || !pSkillsTxt->costmult) {
             nSkillLevel = pSkillsTxt->costmult * nSkillLevel * nMultiplier;
             nSkillLevel = (int)((nSkillLevel >> 0x1f & 0x3ffU) + nSkillLevel) >> 10;
           } else {
@@ -2259,10 +2259,7 @@ int __stdcall ITEM_CalcWeaponAttackSpeed(D2UnitStrc * pUnit, D2UnitStrc * pItem)
     int iVar2;
     uint32_t nTrigger;
     __frame0.nSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    if (!pItem || pItem->eUnitType != UNIT_ITEM) {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x151d);
-      exit(-1);
-    } else {
+    if (!(!pItem || pItem->eUnitType != UNIT_ITEM)) {
       _bIsWeapon = ITEMS_IsA(pItem, ITEMTYPE_Weapon);
       if (!_bIsWeapon) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x151e);
@@ -2291,6 +2288,9 @@ int __stdcall ITEM_CalcWeaponAttackSpeed(D2UnitStrc * pUnit, D2UnitStrc * pItem)
         iVar1 = __frame0.nFrames << 8;
         return iVar1 / (iVar2 / 100);
       }
+    } else {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x151d);
+      exit(-1);
     }
 }
 
@@ -2339,7 +2339,7 @@ BOOL __stdcall ITEMS_CheckChargedSkillFullyCharged(D2UnitStrc * pItem, bool * pO
     return _bResult;
 }
 
-uint32_t ITEM_GetItemData_eD2ItemFlag_IsEthereal(D2UnitStrc * pUnit) {
+uint32_t __stdcall ITEM_GetItemData_eD2ItemFlag_IsEthereal(D2UnitStrc * pUnit) {
     if (!(pUnit && pUnit->eUnitType == UNIT_ITEM && pUnit->pUnitData.pUnitDataItem)) {
       return 0;
     }
@@ -3016,7 +3016,7 @@ void __stdcall ITEM_ValidateAndGetClass(D2UnitStrc * pUnit) {
 }
 
 // Computes the effective required character level to use an item (pUnit), optionally relative to a player (pUnit2) for class-specific affix requirements. Takes the max over: the item-quality contribution (magic prefix/suffix/automagic, set/unique/crafted lvlReq, rare affix level requirements using classlevelreq when the affix is class-restricted and matches the player class), the base Items.txt level requirement, the requirements of all socketed/contained items (recursive), the reqlevel of any +skill stats on the item (stat 0x6b) and +skilltab stats (stat 0x61, +6 unless the tab matches the player's class), plus the item_levelreq stat bonus. Returns the clamped (>=0) result. __fastcall, recursive over inventory contents.
-static uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     uint16_t wPrefix;
     eD2ItemQuality uAffix;
     D2MagicAffixTxt* pAffixTxt;
@@ -3292,7 +3292,7 @@ static uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc
     }
 
     nIdx = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_levelreq, 0);
-    return nMaxLvlReq + nIdx < 1 ? 0 : nMaxLvlReq + nIdx;
+    return nMaxLvlReq + nIdx <= 0 ? 0 : nMaxLvlReq + nIdx;
 }
 
 uint32_t __stdcall ITEM_GetRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
@@ -6009,7 +6009,7 @@ static void __stdcall ITEMS_CalcStaffModsPriceModifier(int * pBuy, int * pSell, 
           pSkillTxt = sgptDataTable->pTxtSkills + (uint16_t)aSkillBonusBuf[i].wSubIndex;
           if (pSkillTxt) {
             nSkillLvlMult = aSkillBonusBuf[i].nStatValue * 2 - 1;
-            if (*pBuy < 0x10000 || !pSkillTxt->costmult) {
+            if (*pBuy <= 0xffff || !pSkillTxt->costmult) {
               nSkillCostMult = pSkillTxt->costmult;
               nCostAdd = pSkillTxt->costadd;
               nCostMult = nSkillCostMult * *pBuy;
@@ -6721,7 +6721,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     uint32_t nBitValue;
     nBitValue = (uint32_t)(uint16_t)pItemUnit->pUnitData.pUnitDataItem->wItemVersion;
     nBitValue = nBitValue ? nBitValue : 0;
-    if (0x3ff <= nBitValue) {
+    if (0x3fe < nBitValue) {
       nBitValue = 0x3ff;
     }
 
@@ -6779,7 +6779,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
 
       Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, 4);
       eUnitType = pItemUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
         nStatValue = pItemUnit->pPath.pStaticPath->nPosX;
         clamp_grid_x:
         if (!nStatValue || (nBitValue = D2Client::Units::GetXPosFromDynamicPathUnit(pItemUnit) , nBitValue < 0xf)) {
@@ -6866,7 +6866,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, uTmpBits, 0x20);
     nBitValue = ITEMS_CountContainerItems(pItemUnit);
     nBitValue = nBitValue ? nBitValue : 0;
-    if (7 <= nBitValue) {
+    if (6 < nBitValue) {
       nBitValue = 7;
     }
 
@@ -6902,7 +6902,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     }
 
     nBitValue = nBitValue ? nBitValue : 0;
-    if (0x7f <= nBitValue) {
+    if (0x7e < nBitValue) {
       nBitValue = 0x7f;
     }
 
@@ -6931,7 +6931,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
       }
 
       nBitValue = nBitValue ? nBitValue : 0;
-      if (7 <= nBitValue) {
+      if (6 < nBitValue) {
         nBitValue = 7;
       }
 
@@ -6947,7 +6947,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     } else {
       wAutoMagic = 0;
     }
-    if ((int)(uint32_t)wAutoMagic > nStatValue) {
+    if (nStatValue < (int)(uint32_t)wAutoMagic) {
       wAutoMagic -= (short int)nStatValue;
     }
 
@@ -6955,7 +6955,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, (uint32_t)(wAutoMagic != 0), 1);
     if (wAutoMagic) {
       nBitValue = wAutoMagic ? (uint32_t)wAutoMagic : 0;
-      if (0x7ff <= nBitValue) {
+      if (0x7fe < nBitValue) {
         nBitValue = 0x7ff;
       }
 
@@ -7140,10 +7140,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
         }
 
         Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, nErrLine);
-        if (!(pItemUnit->eUnitType == UNIT_ITEM && pItemUnit->pUnitData.pUnitDataPlayer && (wAutoMagic = *(uint16_t*)(pItemUnit->pUnitData.pUnitDataPlayer->szCharName + nStatValue) , wAutoMagic != 0))) {
-          nErrLine = 1;
-          nBitValue = 0;
-        } else {
+        if (pItemUnit->eUnitType == UNIT_ITEM && pItemUnit->pUnitData.pUnitDataPlayer && (wAutoMagic = *(uint16_t*)(pItemUnit->pUnitData.pUnitDataPlayer->szCharName + nStatValue) , wAutoMagic != 0)) {
           Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, 1, 1);
           nBitValue = wAutoMagic ? (uint32_t)wAutoMagic : 0;
           if (0x7fe < nBitValue) {
@@ -7151,6 +7148,9 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
           }
 
           nErrLine = 0xb;
+        } else {
+          nErrLine = 1;
+          nBitValue = 0;
         }
 
         Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, nErrLine);
@@ -7192,7 +7192,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
       }
 
       nBitValue = nBitValue ? nBitValue : 0;
-      if (0xffff <= nBitValue) {
+      if (0xfffe < nBitValue) {
         nBitValue = 0xffff;
       }
 
@@ -7230,14 +7230,14 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
       }
 
       nBitValue = nBitValue ? nBitValue : 0;
-      if (0x7f <= nBitValue) {
+      if (0x7e < nBitValue) {
         nBitValue = 0x7f;
       }
 
       Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, 7);
       do {
         nBitValue = (int)*szPlayerName ? (int)*szPlayerName : 0;
-        if (0x7f <= nBitValue) {
+        if (0x7e < nBitValue) {
           nBitValue = 0x7f;
         }
 
@@ -7260,7 +7260,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
 
         do {
           nBitValue = (int)*szPlayerName ? (int)*szPlayerName : 0;
-          if (0x7f <= nBitValue) {
+          if (0x7e < nBitValue) {
             nBitValue = 0x7f;
           }
 

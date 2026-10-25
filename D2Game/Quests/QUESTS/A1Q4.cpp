@@ -658,9 +658,9 @@ static void __stdcall Q04_SpawnDeckardCainNpc(D2RoomStrc * pRoom, ::SGAMEDATA * 
 
         FindSpawnableLocation(pSpawnRoomOut, &ptCainSpawnPos, 2, 0x100, &pSpawnRoomOut, 2, 100);
         if (!pSpawnRoomOut) {
+          pSpawnRoomOut = pRoom;
           ptCainSpawnPos.x = nX;
           ptCainSpawnPos.y = nY;
-          pSpawnRoomOut = pRoom;
         }
 
         iRetry++;
@@ -1313,14 +1313,14 @@ void __fastcall Objects_InitFn06(uint32_t * pdwParam) {
         D2Common::Units::SetupUpdateFlag((D2UnitStrc*)pdwParam[1], 2);
         return;
       }
-      if (*(uint8_t*)((uintptr_t)&pObject->nAnimSpeed + 1) == '\0' && *(char*)&pObject->pAnimData == '\0') {
+      if (!(*(uint8_t*)((uintptr_t)&pObject->nAnimSpeed + 1) == '\0' && *(char*)&pObject->pAnimData == '\0')) {
+        D2Common::Units::SetupUpdateFlag(pObjectUnit, 2);
+      } else {
         if (pObject->unk0x19[nClassId + 0x32] == 1) {
           pObject->unk0x19[nClassId + 0x32] = 0;
           D2Common::Units::SetupUpdateFlag((D2UnitStrc*)pdwParam[1], 0);
           return;
         }
-      } else {
-        D2Common::Units::SetupUpdateFlag(pObjectUnit, 2);
       }
     } else {
       pA1Q1Data = (D2QuestDataA1Q1Strc*)pdwParam[1];
@@ -2346,13 +2346,13 @@ void Q04_SetCainUnitGUID(void * pThis, int32_t nCainGUID) {
 static void __stdcall Q04_ActivateCairnStonesAndTree(char cParam1, char cParam2, D2QuestDataStrc * pQuestData, D2UnitStrc * pUnit) {
     D2UnitStrc* pTreeUnit;
     D2QuestDataA1Q4Strc* pA1Q4Sub = pQuestData->pQuestSpecificData.pA1Q4;
-    if (!(pA1Q4Sub->sSub.bCairnStonesObjectSaved && (pTreeUnit = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, pA1Q4Sub->sSub.nCairnStonesObjectGUID) , pTreeUnit != 0) && pTreeUnit->nClassId == 0x1a)) {
-      pA1Q4Sub->sSub.nCairnAnimState = 3;
-    } else {
+    if (pA1Q4Sub->sSub.bCairnStonesObjectSaved && (pTreeUnit = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, pA1Q4Sub->sSub.nCairnStonesObjectGUID) , pTreeUnit != 0) && pTreeUnit->nClassId == 0x1a) {
       if (pTreeUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Run) {
         D2Common::Units::SetupUpdateFlag(pTreeUnit, 3);
         pA1Q4Sub->sSub.nCairnAnimState = 3;
       }
+    } else {
+      pA1Q4Sub->sSub.nCairnAnimState = 3;
     }
     if (pA1Q4Sub->sSub.bTreeObjectSaved) {
       pTreeUnit = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, pA1Q4Sub->sSub.nTreeObjectGUID);
@@ -2639,7 +2639,7 @@ void __fastcall Q04_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->sStateFunctions.fpQuestStateHandler[0xd] = Q04_Callback13_PlayerStartedGame;
     pQuestData->fpSequenceFilter = (QUESTSEQ)Q04_SequenceFilter;
     pQuestData->nSequenceQuestId = QUEST_ToolsOfTheTrade;
-    D2QuestDataA1Q4Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA1Q4Strc);
+    D2QuestDataA1Q4Strc* pQuestSpecificData = ((D2QuestDataA1Q4Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA1Q4Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a1q4.cpp", 0x95f, 0));
     pQuestData->pQuestSpecificData.pA1Q4 = pQuestSpecificData;
     memset(pQuestSpecificData, 0, 0x1bc);
     pQuestSpecificData->nScrollActivationStep = 0;

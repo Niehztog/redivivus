@@ -81,7 +81,7 @@ void __stdcall AllocMissileData(D2UnitStrc * pUnit) {
       return;
     }
 
-    D2UnitDataMissileStrc* pUnitDataMissile = D2_NEW_POOL(pUnit->pMemory, D2UnitDataMissileStrc);
+    D2UnitDataMissileStrc* pUnitDataMissile = ((D2UnitDataMissileStrc*)Fog::Memory::AllocServerMemory(pUnit->pMemory, sizeof(D2UnitDataMissileStrc), ".\\UNITS\\Missile.cpp", 0x22, 0));
     memset(pUnitDataMissile, 0, 0x34);
     pUnitDataMissile->nOwnerGUID = -1;
     pUnit->pUnitData.pUnitDataMissile = pUnitDataMissile;
@@ -93,7 +93,7 @@ void __stdcall FreeMissileData(D2UnitStrc * pUnit) {
       return;
     }
 
-    D2_FREE_POOL(pUnit->pMemory, pUnit->pUnitData.pUnitDataPlayer);
+    Fog::Memory::FreeServerMemory(pUnit->pMemory, pUnit->pUnitData.pUnitDataPlayer, ".\\UNITS\\Missile.cpp", 0x3e, 0);
     pUnit->pUnitData.pUnitDataPlayer = 0;
 }
 
@@ -142,7 +142,7 @@ void __stdcall SetSkill(D2UnitStrc * pUnit, eD2Skills eSkill) {
     pUnit->pUnitData.pUnitDataMissile->nSkillNo = (int16_t)eClampedSkill;
 }
 
-eD2Skills GetSkillId(D2UnitStrc * pUnit) {
+eD2Skills __stdcall GetSkillId(D2UnitStrc * pUnit) {
     if (!(pUnit && pUnit->eUnitType == UNIT_MISSILE && pUnit->pUnitData.pUnitDataMissile)) {
       return SKILL_Attack;
     }
@@ -1159,7 +1159,7 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
     }
 
     short int sVar1 = pMissileTxt->Skill;
-    if (sVar1 < 1 && !pMissileTxt->MissileSkill) {
+    if (sVar1 <= 0 && !pMissileTxt->MissileSkill) {
       nSourceDamage = (uint32_t)(uint8_t)pMissileTxt->SrcDamage;
       nSrcMissDmgPct = (uint32_t)(uint8_t)pMissileTxt->SrcMissDmg;
       nCalcMinDmg = GetMinDamage(pMissile, pUnit, nMissileId, nParam);
@@ -1178,7 +1178,7 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
       nSkillId = (int)sVar1;
       if (pMissileTxt->MissileSkill) {
         nSkillId = Missile::GetSkillId(pMissile);
-        if (nSkillId < 1) {
+        if (nSkillId <= 0) {
           nSkillId = (int)sVar1;
         }
       }
@@ -1289,7 +1289,10 @@ void __stdcall EvaluateMissileFormula(D2MissileDamageDataStrc * pMissileDamageDa
         }
 
         nMasteryElemMin = ITEMS::Items::ITEM_GetTxtItemTypes_throwable((D2UnitStrc*)nSkillId);
-        if (!nMasteryElemMin) {
+        if (nMasteryElemMin) {
+          nMissileId = Stats::StatsEx::STATSEX_GetCurrentStat(pOwner, UNITSTAT_item_throw_mindamage, 0);
+          eUnitStat = UNITSTAT_item_throw_maxdamage;
+        } else {
           if (!pOwner->pInventory || (nMissileId = INVENTORY::Inventory::INVENTORY_GetWeaponHandedness(pOwner, pOwner->pInventory) , nMissileId != 2)) {
             nMissileId = Stats::StatsEx::STATSEX_GetCurrentStat(pOwner, UNITSTAT_mindamage, 0);
             eUnitStat = UNITSTAT_maxdamage;

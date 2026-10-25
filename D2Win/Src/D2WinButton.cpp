@@ -539,7 +539,7 @@ BOOL __stdcall D2WINBUTTON_HandleHotkey(D2ControlMsg * pControlMsg) {
 // @sourcefile .\Src\D2WinButton.cpp
 ::D2WinButton * __fastcall D2WinButton(int32_t nPosX, int32_t nPosY, int32_t nSizeX, int32_t nSizeY, DC6 * pDC6, OnPress pfnOnPress, int32_t nHotkeyVK, int32_t nInitialImageIndex, int32_t nButtonFlags, int32_t wLabelStringId, ::Mouse pMouse) {
     int nTileFrames;
-    ::D2WinButton* pNewButton = D2_NEW(::D2WinButton);
+    ::D2WinButton* pNewButton = ((::D2WinButton*)Fog::Memory::AllocClientMemory(sizeof(::D2WinButton), ".\\Src\\D2WinButton.cpp", 0x24, 0));
     memset(pNewButton, 0, 0x274);
     pNewButton->sControl.neD2FormType = FORM_Button;
     int* pDwState = &pNewButton->sControl.dwState;

@@ -168,7 +168,7 @@ void __fastcall Q08_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->nQuestIdReal = QUEST_SpokeToJerhyn;
     pQuestData->fpStatusFilter = Q08_StatusFilter;
     pQuestData->fpActiveFilter = Q08_ActiveFilter;
-    D2QuestDataA2Q0Strc* pQuestSpecificData = D2_NEW_POOL(pSVar1->pMemoryPool, D2QuestDataA2Q0Strc);
+    D2QuestDataA2Q0Strc* pQuestSpecificData = ((D2QuestDataA2Q0Strc*)Fog::Memory::AllocServerMemory(pSVar1->pMemoryPool, sizeof(D2QuestDataA2Q0Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q0.cpp", 0xac, 0));
     pQuestData->pQuestSpecificData.pA2Q0 = pQuestSpecificData;
     QUESTGUID_SetPlayerCountToZero(&pQuestSpecificData->sQuestGUID);
 }

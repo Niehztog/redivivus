@@ -158,12 +158,12 @@ static eD2PlayerClassID eD2PlayerClassID_00712f00 = CLASS_SORCERESS;
 // @sourcefile .\CORE\WINMAIN.CPP
 BOOL __stdcall WINMAIN_TestMemoryAccess(CMDPARAMS * pParams, char * szCmdLine) {
     uint8_t* pPage;
-    uint8_t* pMemory = (uint8_t*)D2_ALLOC(0x6000000);
+    uint8_t* pMemory = (uint8_t*)Fog::Memory::AllocClientMemory(0x6000000, ".\\CORE\\WINMAIN.CPP", 0x121, 0);
     for (pPage = pMemory; pPage < pMemory + 0x6000000; pPage += 0x1000) {
       *pPage = 0;
     }
 
-    D2_FREE(pMemory);
+    Fog::Memory::FreeClientMemory(pMemory, ".\\CORE\\WINMAIN.CPP", 0x124, 0);
     return 1;
 }
 
@@ -4223,7 +4223,7 @@ uint32_t __fastcall WARDEN_DecryptModule(uint32_t * * ppInput, uint32_t nInputSi
           __frame0.nRelocationCount = 0;
           while (true) {
             __frame0.pModuleBase = *ppuVar1;
-            if (__frame0.pModuleBase[3] <= __frame0.nRelocationCount) {
+            if (__frame0.nRelocationCount >= __frame0.pModuleBase[3]) {
               break;
             }
 

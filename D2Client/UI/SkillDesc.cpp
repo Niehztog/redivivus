@@ -1030,10 +1030,10 @@ static BOOL __stdcall ItemStatCost_DescFunc_DGrpFunc(D2UnitStrc * pUnit, D2StatL
     uint32_t nSecondaryStringId;
     nSecondaryStringId = (uint32_t)pStatCostLine->descstr2;
     if (!nGroupMatchResult) {
-      if (!(nGroupValue < 0)) {
-        wStrId = pStatCostLine->descstrpos;
-      } else {
+      if (nGroupValue < 0) {
         wStrId = pStatCostLine->descstrneg;
+      } else {
+        wStrId = pStatCostLine->descstrpos;
       }
     } else {
       byDescFunc = pStatCostLine->dgrpfunc;
@@ -5051,7 +5051,7 @@ void __fastcall SKILLDESC_DrawSkillDmgKick(D2UnitStrc * pUnit, D2SkillStrc * pSk
     if (nMinDmgStat < 2) {
       nMinDmgStat = 1;
     }
-    if (nHandedness <= 2) {
+    if (nHandedness < 3) {
       nHandedness = 2;
     }
     if (nHandedness < nMinDmgStat) {
@@ -5151,10 +5151,10 @@ void __fastcall SKILLDESC_DrawSkillDmgTrap(D2UnitStrc * pUnit, D2SkillStrc * pSk
     int32_t nElemType = 0;
     SKILLDESC_CalcWeaponDamageRange(pUnit, &nMinDmgAccum, (int*)&pSkillsTxt, &nElemType, 0, pSkill, 0, nullptr, 0, 0);
     eD2Skills eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\UI\\SkillDesc.cpp", 0xd40);
-    if ((int)eSkillId < 0 || (int)eSkillId >= sgptDataTable->nTxtSkillsCount || !(sgptDataTable->pTxtSkills + eSkillId)) {
-      nTrapDmgBonus = 0;
-    } else {
+    if (!((int)eSkillId < 0 || (int)eSkillId >= sgptDataTable->nTxtSkillsCount || !(sgptDataTable->pTxtSkills + eSkillId))) {
       nTrapDmgBonus = sgptDataTable->pTxtSkills[eSkillId].Param[4];
+    } else {
+      nTrapDmgBonus = 0;
     }
 
     nMinDmgAccum += nTrapDmgBonus * nMinDmgAccum / 100;

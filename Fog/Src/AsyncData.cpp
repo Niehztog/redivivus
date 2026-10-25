@@ -100,7 +100,7 @@ void __stdcall STRUCT_FreeAsyncData() {
         } while (nIndex < gnAsyncDataHandleBufferSize);
       }
 
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\AsyncData.cpp", 0xae, 0);
       pD2AsyncDataStrc = 0;
       gnAsyncDataHandleBufferSize = 0;
     }
@@ -131,7 +131,7 @@ void __fastcall ASYNCDATA_CancelAndCleanup(D2AsyncData_Line0x128 * pAsyncData) {
       return;
     }
 
-    D2_FREE_POOL(pAsyncData->pMemory, pAsyncData->pReadBuffer);
+    Fog::Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0xd7, 0);
     sVar2 = pAsyncData->tCallback.nResultSize;
     pAsyncData->pReadBuffer = pAsyncData->tCallback.pResultBuffer;
     pAsyncData->nReadSize = sVar2;
@@ -196,7 +196,7 @@ D2AsyncData_Line0x128 * __fastcall STRUCT_AllocAsyncData_Line0x128(D2PoolManager
     int i;
     D2AsyncDataCallbackStrc* pCallbackTable;
     D2AsyncDataCallbackStrc* pCallbackDst;
-    D2AsyncData_Line0x128* pAsyncData = D2_NEW_POOL(pMemory, D2AsyncData_Line0x128);
+    D2AsyncData_Line0x128* pAsyncData = ((D2AsyncData_Line0x128*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2AsyncData_Line0x128), ".\\Src\\AsyncData.cpp", 0x128, 0));
     memset(pAsyncData, 0, 0x54);
     pAsyncData->nFlags = 0x41737960;
     int32_t nErrorLine = Source::SFile::ARCHIVE_OpenD2FileWrap(szText1, &pAsyncData->pFile);
@@ -261,7 +261,7 @@ D2AsyncData_Line0x128 * __fastcall STRUCT_AllocAsyncData_Line0x128(D2PoolManager
         pAsyncData->pFile = 0;
       }
       if (pAsyncData->nFlags & 2) {
-        D2_FREE_POOL(pMemory, pAsyncData->pReadBuffer);
+        Fog::Memory::FreeServerMemory(pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x135, 0);
       }
 
       nErrorLine = 0x186;
@@ -443,17 +443,7 @@ void __fastcall ASYNCDATA_SetResult(D2AsyncData_Line0x128 * pAsyncData, void * p
     if (!pAsyncData) {
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x27e);
       exit(-1);
-    } else if ((pAsyncData->nFlags & 0xfffffff0U) == 0x41737960) {
-      if (pAsyncData->nFlags & 1U) {
-        D2_FREE_POOL(pAsyncData->pMemory, pAsyncData->pReadBuffer);
-        pAsyncData->pReadBuffer = pNewBuffer;
-        pAsyncData->nReadSize = nNewSize;
-        return;
-      }
-
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x281);
-      exit(-1);
-    } else {
+    } else if ((pAsyncData->nFlags & 0xfffffff0U) != 0x41737960) {
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x27f);
       exit(-1);
     } else {
@@ -462,7 +452,7 @@ void __fastcall ASYNCDATA_SetResult(D2AsyncData_Line0x128 * pAsyncData, void * p
         exit(-1);
       }
 
-      Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x284, 0);
+      Fog::Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x284, 0);
       pAsyncData->pReadBuffer = pNewBuffer;
       pAsyncData->nReadSize = nNewSize;
       return;
@@ -476,38 +466,9 @@ void __fastcall ASYNCDATA_Free(D2AsyncData_Line0x128 * pAsyncData) {
       exit(-1);
     } else {
       D2AsyncData_Line0x128** ppListEntry;
-      if ((pAsyncData->nFlags & 0xfffffff0U) == 0x41737960) {
-        if (pAsyncData->nFlags & 8U) {
-          ppListEntry = &gpAsyncDataDeferredList;
-          do {
-            if (*ppListEntry == pAsyncData) {
-              *ppListEntry = pAsyncData->pNextDeferred;
-              break;
-            }
-
-            ppListEntry = &(*ppListEntry)->pNextDeferred;
-          } while (ppListEntry);
-        }
-
-        bIsComplete = ASYNCDATA_IsComplete(pAsyncData);
-        if (!bIsComplete) {
-          Storm::Source::SFile::SFILE_CancelAsyncRequestNoReturn((int32_t)pAsyncData->pReadBuffer);
-          /* DWORD dwMilliseconds for WaitForSingleObject */ /* HANDLE hHandle for WaitForSingleObject */ WaitForSingleObject(pAsyncData->pSlot->pHandle[0], -1);
-          ASYNCDATA_CancelAndCleanup(pAsyncData);
-        }
-        if (pAsyncData->nFlags & 2) {
-          if (!pAsyncData->pReadBuffer) {
-            ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x2c3);
-            exit(-1);
-          }
-
-          D2_FREE_POOL(pAsyncData->pMemory, pAsyncData->pReadBuffer);
-          pAsyncData->nFlags &= 0xf;
-          pAsyncData->pReadBuffer = 0;
-        }
-
-        D2_FREE_POOL(pAsyncData->pMemory, pAsyncData);
-        return;
+      if ((pAsyncData->nFlags & 0xfffffff0U) != 0x41737960) {
+        ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x291);
+        exit(-1);
       }
 
       if (pAsyncData->nFlags & 8U) {
@@ -532,12 +493,12 @@ void __fastcall ASYNCDATA_Free(D2AsyncData_Line0x128 * pAsyncData) {
           exit(-1);
         }
 
-        Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x2c6, 0);
+        Fog::Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x2c6, 0);
         pAsyncData->nFlags &= 0xf;
         pAsyncData->pReadBuffer = 0;
       }
 
-      Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData, ".\\Src\\AsyncData.cpp", 0x2cd, 0);
+      Fog::Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData, ".\\Src\\AsyncData.cpp", 0x2cd, 0);
       return;
     }
 }

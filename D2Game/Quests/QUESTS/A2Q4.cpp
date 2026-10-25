@@ -993,7 +993,7 @@ void __fastcall Q12_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->sStateFunctions.fpQuestStateHandler[0xd] = Q12_Callback13_PlayerStartedGame;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA2Q4Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA2Q4Strc);
+    D2QuestDataA2Q4Strc* pQuestSpecificData = ((D2QuestDataA2Q4Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA2Q4Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q4.cpp", 0x3dd, 0));
     pQuestData->pQuestSpecificData.pA2Q4 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_TheArcaneSanctuary;
     pQuestData->fpStatusFilter = 0;

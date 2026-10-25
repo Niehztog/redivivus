@@ -128,7 +128,7 @@ void __fastcall SUNITNPC_InitNpcInventory(::SGAMEDATA * pGame, int32_t nParam, u
       return;
     }
 
-    void* pNpcDataBlock = D2_ALLOC_POOL(pGame->pMemoryPool, 0x450);
+    void* pNpcDataBlock = Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0x450, ".\\UNIT\\SUNITNPC.CPP", 0x6e, 0);
     *(void**)(nHirelingCount + 0x10) = (void*)pNpcDataBlock;
     memset(pNpcDataBlock, 0, 0x450);
     D2SeedStrc* pNpcControl = (D2SeedStrc*)sunitproxy::SUNITPROXY_GetNpcControl(pGame);
@@ -908,7 +908,7 @@ void __fastcall SUNITNPC_DeductGoldForPurchase(::SGAMEDATA * pGame, D2UnitStrc *
 
 // Checks the hireling slot array for an NPC (indexed by nNpcClassId via D2HirelingTxt name range). If all slots with valid entries are unfilled (count==0), frees the slot array, clears the pointer and a flags byte, then re-initialises the NPC's hireling inventory via SUNITNPC_InitNpcInventory. Halts if the hireling entry or name range is invalid.
 // @sourcefile .\UNIT\SUNITNPC.CPP
-static void __fastcall ResetNpcHireListIfEmpty(::SGAMEDATA * pGame, int32_t nNpcClassId, uint32_t nFilledSlots) {
+void __fastcall ResetNpcHireListIfEmpty(::SGAMEDATA * pGame, int32_t nNpcClassId, uint32_t nFilledSlots) {
     int nNameRange;
     int32_t nLine;
     uint32_t pNpcData = nFilledSlots;
@@ -938,7 +938,7 @@ static void __fastcall ResetNpcHireListIfEmpty(::SGAMEDATA * pGame, int32_t nNpc
           }
         }
 
-        D2_FREE_POOL(pGame->pMemoryPool, *(void**)(pNpcData + 0x10));
+        Fog::Memory::FreeServerMemory(pGame->pMemoryPool, *(void**)(pNpcData + 0x10), ".\\UNIT\\SUNITNPC.CPP", 0x63d, 0);
         *(uint32_t*)(pNpcData + 0x10) = 0;
         *(uint8_t*)(pNpcData + 0x21) = 0;
         SUNITNPC_InitNpcInventory(pGame, nNpcClassId, pNpcData);
@@ -2161,7 +2161,7 @@ void __fastcall GAMBLE_GenerateGambleInventory(::SGAMEDATA * pGame, D2UnitStrc *
     }
 
     uint32_t* pGambleEntry;
-    pGambleEntry = (uint32_t*)D2_ALLOC_POOL(pGame->pMemoryPool, 0xc);
+    pGambleEntry = (uint32_t*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, 0xc, ".\\UNIT\\SUNITNPC.CPP", 0xd94, 0);
     if (!pGambleEntry) {
       return;
     }
@@ -3354,8 +3354,7 @@ int __fastcall UseMenu(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2QuestState pQ
       SUNITNPC_HandleTradeAction(pGame, pUnit, pClonedItem, (int32_t)__frame0.pClient, 0);
       return 0;
     }
-    switch (pQState) {
-    case QUESTSTATE_Step0x02: {
+    if (pQState == QUESTSTATE_Step0x02) {
       nNpcClassId = pClonedItem->nClassId;
       if (nNpcClassId <= 0x195) {
         if (nNpcClassId != 0x195 && nNpcClassId != 0x93 && nNpcClassId != 199) {
@@ -3373,14 +3372,13 @@ int __fastcall UseMenu(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2QuestState pQ
       SUNITNPC_HandleTradeAction(pGame, pUnit, pClonedItem, (int32_t)__frame0.pClient, 1);
       return 0;
     }
-    case QUESTSTATE_Step0x03: {
+    if (pQState == QUESTSTATE_Step0x03) {
       pMonsterAI = sunitproxy::GetMonsterAI(pClonedItem);
       nMercCount = D2Game::Monster::MonsterAI::CountMonstersByAi(pMonsterAI);
       nNpcClassId = (uint32_t)(nMercCount < 2);
       bSingleAiMonster = SUnit::SUNIT_GetClient(pUnit, ".\\UNIT\\SUNITNPC.CPP", 0xb50);
       SendMercForHireList(pGame, bSingleAiMonster, pClonedItem, nNpcClassId);
       return 0;
-    }
     }
 
     __frame0.byGuidHigh = (uint8_t)(guid >> 0x18);

@@ -1245,7 +1245,7 @@ static int __stdcall CLIENT_CheckIfApplicationModeIsInCommandLineAndSetItToArgum
     char* pszModeStr;
     char* pszCmdToken = szText;
     pszCmdToken = pszCmdToken + strlen(pszCmdToken) + 1;
-    char* szCmdLineCopy = (char*)D2_ALLOC((size_t)(pszCmdToken + (1 - (int)(szText + 1))));
+    char* szCmdLineCopy = (char*)Fog::Memory::AllocClientMemory((size_t)(pszCmdToken + (1 - (int)(szText + 1))), ".\\Main.cpp", 0x1ba, 0);
     Storm::Source::SSTR::SStrCopy(szCmdLineCopy, szText, (int32_t)(pszCmdToken + (1 - (int)(szText + 1))));
     pszCmdToken = strtok(szCmdLineCopy, "-");
     while (pszCmdToken) {
@@ -1266,7 +1266,8 @@ static int __stdcall CLIENT_CheckIfApplicationModeIsInCommandLineAndSetItToArgum
       pszCmdToken = strtok(nullptr, "-");
     }
 
-    D2_FREE(szCmdLineCopy);
+    Fog::Memory::FreeClientMemory(szCmdLineCopy, ".\\Main.cpp", 0x1e0, 0);
+    return 1;
 }
 
 // lpHandlerProc parameter of RegisterServiceCtrlHandlerA

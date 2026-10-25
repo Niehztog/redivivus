@@ -1200,18 +1200,18 @@ int __fastcall OOGUTIL_SendChatMessage(char * szText, int32_t bUseChannelPrefix)
     uint16_t nTitleStrId;
     char cFirstChar = *szText;
     Storm::Source::SSystem::SMemZero(gszOogChatInputBuffer, 0x200);
-    if (!(!bUseChannelPrefix || cFirstChar == '/' || !gpCurrentChatRoomContext)) {
-      char* pszChannelName;
-      pszSrc = szText;
-      pszChannelName = OOGUTIL_GetAccountName((char*)((int)gpCurrentChatRoomContext + 4));
-      sprintf(gszOogChatInputBuffer, "/whisper *%s %s", pszChannelName, pszSrc);
-    } else {
+    if (!bUseChannelPrefix || cFirstChar == '/' || !gpCurrentChatRoomContext) {
       pszSrc = szText;
       do {
         cFirstChar = *pszSrc;
         pszSrc[(int)gszOogChatInputBuffer - (int)szText] = cFirstChar;
         pszSrc++;
       } while (cFirstChar != '\0');
+    } else {
+      char* pszChannelName;
+      pszSrc = szText;
+      pszChannelName = OOGUTIL_GetAccountName((char*)((int)gpCurrentChatRoomContext + 4));
+      sprintf(gszOogChatInputBuffer, "/whisper *%s %s", pszChannelName, pszSrc);
     }
 
     BOOL nMatch = ChatDlg::CHATDLG_FindSubstringMatch(*(int32_t*)D2IniData_multiplayer->padding_0x3C3, *(int32_t*)(D2IniData_multiplayer->padding_0x3C3 + 4), szText);

@@ -36,7 +36,6 @@ void __fastcall ChangeGoldForPlayer(struct D2UnitStrc * pUnit, eD2UnitStat eUnit
 void __fastcall AllocPartyControl(::SGAMEDATA * pGame);
 // @sourcefile .\UNIT\Party.cpp
 void __fastcall FreePartyControl(::SGAMEDATA * pGame);
-uint16_t PARTY_UpdateNextPartyId(::SGAMEDATA * pGame);
 // @sourcefile .\UNIT\Party.cpp
 int16_t __fastcall AllocPartyControlSub0x4(::SGAMEDATA * pGame);
 // Removes a party sub-record matching nPartyId from the game's party control linked list and frees its members. Walks the pSub chain, unlinks the matching entry by patching the predecessor's pPrev pointer (or updating pPartyControl->pSub for the head), then calls PARTY_FreePartyMembers. Halts with an internal error if pPartyControl is null.

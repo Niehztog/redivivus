@@ -423,7 +423,7 @@ static D2UnitStrc * __stdcall MONSTER_SpawnMonsterGroup(::SGAMEDATA * pGame, D2R
     return pUnit;
 }
 
-void __stdcall SPAWN_SpawnMonsterFormation(::SGAMEDATA * pGame, int32_t nClassId, D2RoomStrc * pRoom, int * pGroupOffsetTable) {
+static void __stdcall SPAWN_SpawnMonsterFormation(::SGAMEDATA * pGame, int32_t nClassId, D2RoomStrc * pRoom, int * pGroupOffsetTable) {
     bool _bSuccess;
     bool bSuccess;
     int32_t nOffsetX;
@@ -983,14 +983,7 @@ void __fastcall MONSTER_SpawnRoomMonsters(::SGAMEDATA * pGame, D2RoomStrc * pRoo
               if (iVar1 == 1) {
                 iVar1 = 2;
               }
-              if (!iVar1) {
-                dwClassId = SKILLS::SkillItem::MONREGION_RollRandomMonsterType(pGame, pMonsterRegion, pRoom, &pMonStatLine, 0, 1);
-                pSpawnedUnit = SpawnUniquePack(pGame, pRoom, pCoordListIter, dwClassId, 1, 0, 0, 1);
-                if (pSpawnedUnit) {
-                  MONSTER_SetMinionsForBoss(pCoordListIter, dwClassId, pGame, pSpawnedUnit);
-                  bDidSpawn = true;
-                }
-              } else {
+              if (iVar1) {
                 if (iVar1 == 1) {
                   pGroupOffsetTable = SKILLS::SkillItem::RollRoomSeed(pRoom);
                   SPAWN_SpawnMonsterFormation(pGame, (int32_t)nMonstatId, pRoom, pGroupOffsetTable);
@@ -1014,6 +1007,13 @@ void __fastcall MONSTER_SpawnRoomMonsters(::SGAMEDATA * pGame, D2RoomStrc * pRoo
                   pSpawnedUnit = SPAWN_SpawnMonsterWithMinions(pGame, pRoom, pCoordListIter, (uint8_t)nMinGrp, (uint8_t)nMaxGrp, (uint32_t)nMonstatId);
                 }
                 if (pSpawnedUnit) {
+                  bDidSpawn = true;
+                }
+              } else {
+                dwClassId = SKILLS::SkillItem::MONREGION_RollRandomMonsterType(pGame, pMonsterRegion, pRoom, &pMonStatLine, 0, 1);
+                pSpawnedUnit = SpawnUniquePack(pGame, pRoom, pCoordListIter, dwClassId, 1, 0, 0, 1);
+                if (pSpawnedUnit) {
+                  MONSTER_SetMinionsForBoss(pCoordListIter, dwClassId, pGame, pSpawnedUnit);
                   bDidSpawn = true;
                 }
               }

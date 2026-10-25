@@ -538,7 +538,7 @@ static int32_t DRLGOUTDOOR_AllocPresetFileTracker(int32_t nLevelPrestId, D2DrlgL
 
     D2LvlPrestTxt* pLvlPrest;
     pLvlPrest = DATATBLS::LvlTbls::TXT_LvlPrest_GetLine(nLevelPrestId);
-    pNode = D2_NEW_POOL(pMemory, D2DrlgLevelLinkNodeStrc);
+    pNode = ((D2DrlgLevelLinkNodeStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2DrlgLevelLinkNodeStrc), ".\\DRLG\\Outdoors.cpp", 0xf9, 0));
     pNode->dwData0 = 0;
     pNode->dwData1 = 0;
     pNode->dwData2 = 0;
@@ -849,7 +849,9 @@ BOOL __fastcall SpawnRandomOutdoorDS1(D2DrlgLevelStrc * pLevel, int32_t nLvlPres
       nGridWidthM2 = nTotalCells;
       if (0 < (int)nTotalCells) {
         do {
-          if (!((int)nTotalCells <= 0)) {
+          if ((int)nTotalCells <= 0) {
+            nRandIdxA = 0;
+          } else {
             nRandIdxA = pLevel->sSeed.nSeedLow;
             if (!(nTotalCells & nTotalCells - 1)) {
               DVar1 = D2_SEED_NEXT(pLevel->sSeed);
@@ -860,8 +862,6 @@ BOOL __fastcall SpawnRandomOutdoorDS1(D2DrlgLevelStrc * pLevel, int32_t nLvlPres
               pLevel->sSeed = DVar1;
               nRandIdxA = (uint32_t)(DVar1.nSeedLow % nTotalCells);
             }
-          } else {
-            nRandIdxA = 0;
           }
           if ((int)nTotalCells <= 0) {
             nRandIdxB = 0;
@@ -1135,7 +1135,9 @@ void __fastcall SpawnAct12Shrines(D2DrlgLevelStrc * pLevel, int32_t nShrines) {
       nShuffleIdx = nTotalCells;
       if (0 < (int)nTotalCells) {
         do {
-          if (!((int)nTotalCells <= 0)) {
+          if ((int)nTotalCells <= 0) {
+            nRandIdxA = 0;
+          } else {
             nRandIdxA = pLevel->sSeed.nSeedLow;
             if (!(nTotalCells & nTotalCells - 1)) {
               sNewSeed = D2_SEED_NEXT(pLevel->sSeed);
@@ -1146,8 +1148,6 @@ void __fastcall SpawnAct12Shrines(D2DrlgLevelStrc * pLevel, int32_t nShrines) {
               pLevel->sSeed = sNewSeed;
               nRandIdxA = (uint32_t)(sNewSeed.nSeedLow % nTotalCells);
             }
-          } else {
-            nRandIdxA = 0;
           }
           if ((int)nTotalCells <= 0) {
             nRandIdxB = 0;
@@ -1230,7 +1230,7 @@ static void DRLGOUTDOOR_SimplifyOutdoorPoints(D2PoolManagerStrc * pMemory, int *
         pPoint[4] = pNextPoint[4];
         pPoint[3] |= pNextPoint[3];
         *(char*)(pPoint + 2) = (char)pNextPoint[2];
-        D2_FREE_POOL(pMemory, pNextPoint);
+        Fog::Memory::FreeServerMemory(pMemory, pNextPoint, ".\\DRLG\\Outdoors.cpp", 0x2cb, 0);
       }
 
       pPoint = (int*)pPoint[4];
@@ -1337,7 +1337,7 @@ void __fastcall DRLGLEVEL_InitializeWithWildernessLevel(D2DrlgLevelStrc * pLevel
     D2TraceFmt("WILD-ALLOC drlg=%08X level=%d size=%dx%d", (unsigned)(uintptr_t)pLevel->pDrlg, (int)pLevel->eD2LevelId,
                (int)pLevel->sCoordinatesAndSize.WorldSize.x,
                (int)pLevel->sCoordinatesAndSize.WorldSize.y);
-    D2DrlgLevelDataWildernessLevel* pDrlgLevelOutdoorsData = D2_NEW_POOL(pLevel->pDrlg->pMemoryPool, D2DrlgLevelDataWildernessLevel);
+    D2DrlgLevelDataWildernessLevel* pDrlgLevelOutdoorsData = ((D2DrlgLevelDataWildernessLevel*)Fog::Memory::AllocServerMemory(pLevel->pDrlg->pMemoryPool, sizeof(D2DrlgLevelDataWildernessLevel), ".\\DRLG\\Outdoors.cpp", 0x34c, 0));
     pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData = pDrlgLevelOutdoorsData;
     memset(pDrlgLevelOutdoorsData, 0, 0x268);
 }
@@ -1427,7 +1427,7 @@ void __fastcall DRLGOUTDOOR_FreeOutdoorLevelData(D2DrlgLevelStrc * pLevel, BOOL 
     }
 
     DrlgRoom::FreeRoomData(pMemory, pDVar1->pOrthData);
-    D2_FREE_POOL(pMemory, pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData);
+    Fog::Memory::FreeServerMemory(pMemory, pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData, ".\\DRLG\\Outdoors.cpp", 0x3ac, 0);
     pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData = 0;
 }
 

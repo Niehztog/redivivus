@@ -1002,7 +1002,7 @@ void __fastcall Q19_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->sStateFunctions.fpQuestStateHandler[0xd] = Q19_Callback13_PlayerStartedGame;
     pQuestData->sStateFunctions.fpQuestStateHandler[10] = Q19_Callback10_PlayerLeavesGame;
     pQuestData->sStateFunctions.fpQuestStateHandler[4] = Q19_Callback04_ItemPickedUp;
-    D2QuestDataA3Q2Strc* pQuestSpecificData = D2_NEW_POOL(pQuestDataInternal->pMemoryPool, D2QuestDataA3Q2Strc);
+    D2QuestDataA3Q2Strc* pQuestSpecificData = ((D2QuestDataA3Q2Strc*)Fog::Memory::AllocServerMemory(pQuestDataInternal->pMemoryPool, sizeof(D2QuestDataA3Q2Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q2.cpp", 0x39b, 0));
     pQuestData->pQuestSpecificData.pA3Q2 = pQuestSpecificData;
     memset(pQuestSpecificData, 0, 0xb0);
     pQuestSpecificData->nOrbUpdateMode = 0;

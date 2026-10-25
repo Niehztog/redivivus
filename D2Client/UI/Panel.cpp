@@ -1131,7 +1131,7 @@ void __stdcall DRAW_EquipmentNeedArrows() {
                 }
                 if ((uint32_t)*pWarningEntry < nTotalQuantity) {
                   if ((uint32_t)pWarningEntry[-1] < nTotalQuantity) {
-                    if ((uint32_t)pWarningEntry[-2] < nTotalQuantity) {
+                    if (nTotalQuantity > (uint32_t)pWarningEntry[-2]) {
                       goto next_warning_entry;
                     }
 

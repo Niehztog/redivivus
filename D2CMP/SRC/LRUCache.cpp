@@ -36,7 +36,7 @@ void __fastcall LRUCACHE_Init(D2LRUCacheStrc * pCache, D2PoolManagerStrc * pMemo
     pCache->nMaxCount = nMaxCount;
     pCache->pAllocator = pMemory;
     pCache->nBytesUsed = 0;
-    D2LRUCacheNodeStrc* pEntryArray = (D2LRUCacheNodeStrc*)D2_ALLOC_POOL(pMemory, nMaxCount * 0x14);
+    D2LRUCacheNodeStrc* pEntryArray = (D2LRUCacheNodeStrc*)Fog::Memory::AllocServerMemory(pMemory, nMaxCount * 0x14, ".\\SRC\\LRUCache.cpp", 0x30, 0);
     pCache->pNodeBuffer = pEntryArray;
     memset(pEntryArray, 0, nMaxCount * 0x14);
     uint32_t nEntryIdx = 0;
@@ -210,7 +210,7 @@ void __fastcall LRUCACHE_FreeEntry(D2LRUCacheStrc * pCache, D2LRUCacheNodeStrc *
         pCache->pfnFreeEntry(pNode);
       }
       if (pNode->pBuf) {
-        D2_FREE_POOL((D2PoolManagerStrc*)pCache->pAllocator, pNode->pBuf);
+        Fog::Memory::FreeServerMemory((D2PoolManagerStrc*)pCache->pAllocator, pNode->pBuf, ".\\SRC\\LRUCache.cpp", 0xc8, 0);
         pNode->pBuf = 0;
         pNode->nBufSize = 0;
         pNode->pUserData = 0;
@@ -266,7 +266,7 @@ void __fastcall LRUCACHE_FreeAll(D2LRUCacheStrc * pCache) {
       return;
     }
 
-    D2_FREE_POOL((D2PoolManagerStrc*)pCache->pAllocator, pCache->pNodeBuffer);
+    Fog::Memory::FreeServerMemory((D2PoolManagerStrc*)pCache->pAllocator, pCache->pNodeBuffer, ".\\SRC\\LRUCache.cpp", 0x63, 0);
     pCache->pNodeBuffer = 0;
 }
 
@@ -286,7 +286,7 @@ D2LRUCacheNodeStrc * __fastcall LRUCACHE_GetOrAlloc(D2LRUCacheStrc * pCache, uin
         ppAllocEntry = LRUCACHE_AllocEntry(pCache, nEntrySize);
       }
 
-      pAllocBuf = D2_ALLOC_POOL((D2PoolManagerStrc*)pCache->pAllocator, nEntrySize);
+      pAllocBuf = Fog::Memory::AllocServerMemory((D2PoolManagerStrc*)pCache->pAllocator, nEntrySize, ".\\SRC\\LRUCache.cpp", 0x84, 0);
       ppAllocEntry->pBuf = pAllocBuf;
       if (!pAllocBuf) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x85);

@@ -136,7 +136,7 @@ void __fastcall SpawnRandomPreset(D2DrlgLevelStrc * pLevel, int32_t nLevelPrestI
     }
 
     void* pMemoryToFree;
-    pMemoryToFree = D2_ALLOC_POOL(pMemory, nTotalCells * 8);
+    pMemoryToFree = Fog::Memory::AllocServerMemory(pMemory, nTotalCells * 8, ".\\DRLG\\OutJung.cpp", 0xcb, 0);
     nLevelPrestId2 = 0;
     if (0 < (int)nTotalCells) {
       do {

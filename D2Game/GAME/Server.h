@@ -322,9 +322,6 @@ uint32_t __stdcall ParamIsOne(int32_t nParam);
 uint32_t __fastcall QSERVER_TestGameFlags(int32_t pQServer, uint32_t nFlags);
 BOOL __fastcall QSERVER_HasActiveTaskQueue(int32_t pQServer);
 void * __fastcall QSERVER_GetTaskQueuePointer(int32_t pQServer);
-// GAME_SendSaveFileChunk - Sends save file to client in 255-byte chunks via 0xB3 packet. Iterates save buffer with offset tracking.
-// @sourcefile .\GAME\Game.cpp
-void __stdcall NET_D2GS_SERVER_Send_0xB3_SendSaveFile(::SGAMEDATA * pGame, struct D2ClientStrc * pClient);
 void __fastcall SendSaveFileToClient(::SGAMEDATA * pGame);
 void __fastcall FlushAllClientPackets(::SGAMEDATA * pGame);
 // Destroys a game by token using lock escalation. Locks csGameHash, looks up game, optionally notifies BattleNet service (fpCloseGame callback with player count and game time in seconds), acquires per-game lock, calls GAME_DestroyGame to tear down all units/rooms/quests, then frees game from hash-map and releases all locks.

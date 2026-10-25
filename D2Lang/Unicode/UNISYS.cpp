@@ -1079,8 +1079,7 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
     char* pFileData = (char*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMemory, szFilename, nullptr, ".\\Unicode\\UNISYS.CPP", 0x61);
     int nOffset = strncmp(pFileData, "KAMAP\n", 5);
     if (nOffset) {
-      D2_FREE(pFileData);
-      Fog::Debug::GuardStack();
+      Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0x65, 0);
       return;
     }
 
@@ -1092,9 +1091,8 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
       } else {
         bFoundMarker = true;
       }
-      if (0x27 < nOffset) {
-        D2_FREE(pFileData);
-        Fog::Debug::GuardStack();
+      if (0x28 <= nOffset) {
+        Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0x79, 0);
         return;
       }
     } while (!bFoundMarker);
@@ -1110,8 +1108,7 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
 
     g_pUnicodeKamapTable = Storm::SMem::SMemAlloc((uint32_t)(uint8_t)*pGroupCount * 2, "new[]", -1, 0);
     if (!g_pUnicodeKamapTable) {
-      D2_FREE(pFileData);
-      Fog::Debug::GuardStack();
+      Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0x91, 0);
       return;
     }
 
@@ -1125,7 +1122,6 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
     gpUnicodeKamapToCodeTable = pAllocBuf;
     if (!pAllocBuf) {
       D2_FREE(pFileData);
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -1146,7 +1142,6 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
     gpUnicodeCodeToMapTable = pwCodeToMapTable;
     if (!pwCodeToMapTable) {
       D2_FREE(pFileData);
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -1168,8 +1163,7 @@ void __fastcall UNICODE_LoadKamapFile(D2PoolManagerStrc * pMemory, char * szFile
       nOffset++;
     } while (cTmp);
 
-    D2_FREE(pFileData);
-    Fog::Debug::GuardStack();
+    Fog::Memory::FreeClientMemory(pFileData, ".\\Unicode\\UNISYS.CPP", 0xbe, 0);
 }
 
 uint32_t __fastcall UNICODE_MapCharacterToCode(uint32_t dwParam, uint16_t wChar) {
@@ -1324,7 +1318,15 @@ uint8_t * __fastcall UNICODE_ConvertWideToMultiByte(uint8_t * pParam, uint16_t *
 
         nIsControl = nSize;
         pArgSave = nParam;
-        if (wChar < 0x20) {
+        if (!(wChar < 0x20)) {
+          wCharBuf = wChar;
+          pFoundEntry = (uint16_t*)bsearch(abSearchKey, gpUnicodeKamapToCodeTable, (uint32_t)gnUnicodeKamapEntryCount, 4, UNICODE_CompareKamapEntry);
+          if (pFoundEntry) {
+            wChar = *pFoundEntry;
+            nIsControl = nEcxSave;
+            goto store_multibyte_char;
+          }
+        } else {
           store_multibyte_char:
           {
             if (wChar & 0xff00 || (nIsControl = UNICODE_IsControlChar(nIsControl, (uint8_t)wChar) , nIsControl != 0)) {
@@ -1334,14 +1336,6 @@ uint8_t * __fastcall UNICODE_ConvertWideToMultiByte(uint8_t * pParam, uint16_t *
 
             pParam[i] = (uint8_t)wChar;
             i++;
-          }
-        } else {
-          wCharBuf = wChar;
-          pFoundEntry = (uint16_t*)bsearch(abSearchKey, gpUnicodeKamapToCodeTable, (uint32_t)gnUnicodeKamapEntryCount, 4, UNICODE_CompareKamapEntry);
-          if (pFoundEntry) {
-            wChar = *pFoundEntry;
-            nIsControl = nEcxSave;
-            goto store_multibyte_char;
           }
         }
 

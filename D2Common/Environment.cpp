@@ -168,7 +168,7 @@ static void DRLGENV_InitEnvironmentCycle(D2DrlgEnvironmentStrc * pDrlgEnvironmen
 }
 
 D2DrlgEnvironmentStrc * __fastcall DRLGENV_AllocEnvironment(D2PoolManagerStrc * pMemory) {
-    D2DrlgEnvironmentStrc* pEnv = D2_NEW_POOL(pMemory, D2DrlgEnvironmentStrc);
+    D2DrlgEnvironmentStrc* pEnv = ((D2DrlgEnvironmentStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2DrlgEnvironmentStrc), ".\\ENVIRONMENT\\Env.cpp", 0x12a, 0));
     memset(pEnv, 0, 0x38);
     pEnv->nTimeIndex = 2;
     uint32_t nTimeRate = gnTimeRates[pEnv->nTimeRateIndex];
@@ -190,7 +190,7 @@ D2DrlgEnvironmentStrc * __fastcall DRLGENV_AllocEnvironment(D2PoolManagerStrc * 
 }
 
 void __fastcall DRLGENV_FreeEnvironment(D2PoolManagerStrc * pMemory, D2DrlgEnvironmentStrc * pDrlgEnvironment) {
-    D2_FREE_POOL(pMemory, pDrlgEnvironment);
+    Fog::Memory::FreeServerMemory(pMemory, pDrlgEnvironment, ".\\ENVIRONMENT\\Env.cpp", 0x13f, 0);
 }
 
 // Advances the day/night environment cycle by one tick. Act 2 and 3 have accelerated cycle rates. Updates phase index and intensity when thresholds are crossed.

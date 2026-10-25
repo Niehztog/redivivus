@@ -1335,7 +1335,7 @@ void __fastcall Q33_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A5Q3::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA5Q3Strc* pQuestSpecificData = D2_NEW_POOL(pGameTmp->pMemoryPool, D2QuestDataA5Q3Strc);
+    D2QuestDataA5Q3Strc* pQuestSpecificData = ((D2QuestDataA5Q3Strc*)Fog::Memory::AllocServerMemory(pGameTmp->pMemoryPool, sizeof(D2QuestDataA5Q3Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a5q3.cpp", 0x5ca, 0));
     pQuestData->pQuestSpecificData.pA5Q3 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_PrisonOfIce;
     pQuestData->fpStatusFilter = Q33_StatusFilter;

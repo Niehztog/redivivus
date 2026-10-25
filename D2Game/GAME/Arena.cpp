@@ -63,7 +63,7 @@ bool __stdcall ARENA_TestFlag(::SGAMEDATA * pGame, uint32_t nParam) {
 
 // @sourcefile .\GAME\Arena.cpp
 void AllocArenaControl(void * pThis, eD2ArenaFlags eArenaFlags, uint8_t nTemplate) {
-    D2ArenaControlStrc* pArenaCtrl = D2_NEW_POOL(*(D2PoolManagerStrc**)((int)pThis + 0x1c), D2ArenaControlStrc);
+    D2ArenaControlStrc* pArenaCtrl = ((D2ArenaControlStrc*)Fog::Memory::AllocServerMemory(*(D2PoolManagerStrc**)((int)pThis + 0x1c), sizeof(D2ArenaControlStrc), ".\\GAME\\Arena.cpp", 0x32, 0));
     pArenaCtrl->eLevelId = LEVEL_None;
     pArenaCtrl->nArenaTxtRecord = 0;
     pArenaCtrl->nTemplateLevel = 0;
@@ -78,13 +78,13 @@ void __fastcall FreeArenaControl(::SGAMEDATA * pGame) {
       return;
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pGame->pArenaCtrl);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pGame->pArenaCtrl, ".\\GAME\\Arena.cpp", 0x40, 0);
     pGame->pArenaCtrl = 0;
 }
 
 // @sourcefile .\GAME\Arena.cpp
 void __fastcall AllocPlayerArena(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
-    D2UnitDataPlayerArenaStrc* pArena = D2_NEW_POOL(pGame->pMemoryPool, D2UnitDataPlayerArenaStrc);
+    D2UnitDataPlayerArenaStrc* pArena = ((D2UnitDataPlayerArenaStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2UnitDataPlayerArenaStrc), ".\\GAME\\Arena.cpp", 0x47, 0));
     pArena->nScore = 0;
     pArena->bScoreDirty = 0;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
@@ -107,7 +107,7 @@ void __fastcall FreePlayerArena(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
       return;
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pPlayerData->pArena);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pPlayerData->pArena, ".\\GAME\\Arena.cpp", 0x57, 0);
     pPlayerData->pArena = 0;
 }
 
@@ -138,7 +138,9 @@ void __stdcall ARENA_ApplyScoreModifier(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
     D2ArenaTxt* pArenaTxt;
     D2UnitDataPlayerArenaStrc* pArenaData;
     eD2ArenaFlags* peArenaFlags;
-    if (!(!pUnit2 || pUnit2->eUnitType != UNIT_PLAYER)) {
+    if (!pUnit2 || pUnit2->eUnitType != UNIT_PLAYER) {
+      dwParam = 0x73;
+    } else {
       D2UnitDataPlayerStrc* pPlayerData;
       pPlayerData = D2Common::Units::GetPlayerData(pUnit2);
       pArenaData = pPlayerData->pArena;
@@ -180,8 +182,6 @@ void __stdcall ARENA_ApplyScoreModifier(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
           dwParam = 0x94;
         }
       }
-    } else {
-      dwParam = 0x73;
     }
 
     Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), dwParam);
@@ -406,7 +406,10 @@ void __fastcall SERVER_ARENA_KillHandler(::SGAMEDATA * pGame, D2UnitStrc * pUnit
 
 // Clears bScoreDirty flag on player's D2UnitDataPlayerArenaStrc. Halts if unit is null, not player type, or has no arena data.
 void __fastcall ARENA_ClearScoreDirty(::SGAMEDATA * pGameStrc, D2UnitStrc * pUnit) {
-    if (!(!pUnit || pUnit->eUnitType != UNIT_PLAYER)) {
+    if (!pUnit || pUnit->eUnitType != UNIT_PLAYER) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc5);
+      exit(-1);
+    } else {
       D2UnitDataPlayerStrc* pPlayerData;
       pPlayerData = D2Common::Units::GetPlayerData(pUnit);
       if (!pPlayerData->pArena) {
@@ -416,9 +419,6 @@ void __fastcall ARENA_ClearScoreDirty(::SGAMEDATA * pGameStrc, D2UnitStrc * pUni
 
       pPlayerData->pArena->bScoreDirty = 0;
       return;
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc5);
-      exit(-1);
     }
 }
 

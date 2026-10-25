@@ -92,7 +92,7 @@ static uint16_t * __stdcall STRTABLE_GetStringByIndex(D2StringTableTblFileStrc *
 
 // @sourcefile .\StrTable\strtable.cpp
 void __fastcall STRTABLE_FreeMemory(void * pParam) {
-    D2_FREE(pParam);
+    Fog::Memory::FreeClientMemory(pParam, ".\\StrTable\\strtable.cpp", 0x121, 0);
 }
 
 uint32_t __stdcall STRTABLE_HashString(char * szText, uint32_t nBucketCount) {
@@ -160,12 +160,12 @@ static uint16_t * __fastcall STRTABLE_GetTranslatedString(uint8_t * pbParam) {
     uint32_t* pCacheNode = (uint32_t*)gpUntranslatedStringCacheHead;
     do {
       if (!pCacheNode) {
-        pCacheNode = (uint32_t*)D2_ALLOC(0xc);
+        pCacheNode = (uint32_t*)Fog::Memory::AllocClientMemory(0xc, ".\\StrTable\\strtable.cpp", 0x259, 0);
         pCacheNode[2] = (uint32_t)(uintptr_t)gpUntranslatedStringCacheHead;
         pbSrc = pbParam;
         pbSrc = pbSrc + strlen((char*)pbSrc) + 1;
         gpUntranslatedStringCacheHead = pCacheNode;
-        pbKeyCopy = (uint8_t*)D2_ALLOC((size_t)(pbSrc + (1 - (int)(pbParam + 1))));
+        pbKeyCopy = (uint8_t*)Fog::Memory::AllocClientMemory((size_t)(pbSrc + (1 - (int)(pbParam + 1))), ".\\StrTable\\strtable.cpp", 0x26c, 0);
         pCacheNode[1] = (uint32_t)(uintptr_t)pbKeyCopy;
         pbSrc = pbParam;
         do {
@@ -212,10 +212,10 @@ static uint16_t * __fastcall STRTABLE_GetTranslatedString(uint8_t * pbParam) {
         }
 
         pcKeyEnd = Unicode::UNISYS::UNICODE_GetWideCharCount(pcFormatted, pcKeyEnd + (int)(pbKeyCopy + (-(int)s__not_xlated_call_ken_w_00730520 - (int)pbSrc)));
-        wszText = (uint16_t*)D2_ALLOC((int)pcKeyEnd * 2 + 2);
+        wszText = (uint16_t*)Fog::Memory::AllocClientMemory((int)pcKeyEnd * 2 + 2, ".\\StrTable\\strtable.cpp", 0x271, 0);
         *pCacheNode = (uint32_t)(uintptr_t)wszText;
         UTF8_ConvertToWideChar(wszText, pcFormatted, (int32_t)pcKeyEnd);
-        D2_FREE(pcFormatted);
+        Fog::Memory::FreeClientMemory(pcFormatted, ".\\StrTable\\strtable.cpp", 0x277, 0);
         return (uint16_t*)*pCacheNode;
       }
 
@@ -326,31 +326,31 @@ void __stdcall STRINGTABLE_FreeStringTables() {
       return;
     }
     if (gpStringIndexBase) {
-      D2_FREE(gpStringBufferBase);
+      Fog::Memory::FreeClientMemory(gpStringBufferBase, ".\\StrTable\\strtable.cpp", 0x329, 0);
       gpStringBufferBase = 0;
-      D2_FREE(gpStringIndexBase);
+      Fog::Memory::FreeClientMemory(gpStringIndexBase, ".\\StrTable\\strtable.cpp", 0x32e, 0);
       gpStringIndexBase = 0;
     }
 
-    D2_FREE(gpStringTableBase);
+    Fog::Memory::FreeClientMemory(gpStringTableBase, ".\\StrTable\\strtable.cpp", 0x121, 0);
     gpStringTableBase = 0;
     if (gpStringIndexPatchD2) {
-      D2_FREE(gpStringIndexPatchD2);
+      Fog::Memory::FreeClientMemory(gpStringIndexPatchD2, ".\\StrTable\\strtable.cpp", 0x33c, 0);
       gpStringIndexPatchD2 = 0;
     }
     if (gpStringBufferPatchD2) {
-      D2_FREE(gpStringBufferPatchD2);
+      Fog::Memory::FreeClientMemory(gpStringBufferPatchD2, ".\\StrTable\\strtable.cpp", 0x341, 0);
       gpStringBufferPatchD2 = 0;
     }
 
-    D2_FREE(gpStringTablePatchD2);
+    Fog::Memory::FreeClientMemory(gpStringTablePatchD2, ".\\StrTable\\strtable.cpp", 0x121, 0);
     gpStringTablePatchD2 = 0;
     if (gpStringIndexExpansion) {
-      D2_FREE(gpStringIndexExpansion);
+      Fog::Memory::FreeClientMemory(gpStringIndexExpansion, ".\\StrTable\\strtable.cpp", 0x34a, 0);
       gpStringIndexExpansion = 0;
     }
     if (gpStringBufferExpansion) {
-      D2_FREE(gpStringBufferExpansion);
+      Fog::Memory::FreeClientMemory(gpStringBufferExpansion, ".\\StrTable\\strtable.cpp", 0x34f, 0);
       gpStringBufferExpansion = 0;
     }
 
@@ -371,9 +371,9 @@ void __stdcall STRINGTABLE_FreeStringTables() {
       }
 
       ppvVar1 = (uint32_t*)pMemoryToFree[2];
-      D2_FREE((void*)*pMemoryToFree);
-      D2_FREE((void*)pMemoryToFree[1]);
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory((void*)*pMemoryToFree, ".\\StrTable\\strtable.cpp", 0x377, 0);
+      Fog::Memory::FreeClientMemory((void*)pMemoryToFree[1], ".\\StrTable\\strtable.cpp", 0x378, 0);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\StrTable\\strtable.cpp", 0x379, 0);
       pMemoryToFree = ppvVar1;
       pDVar1 = gpStringTableExpansion;
     }
@@ -465,7 +465,7 @@ uint32_t __stdcall MISC_GetLanguageCode() {
     uint8_t* pMemoryToFree = (uint8_t*)Fog::Archive::D2FILE_AllocAndLoadD2File((D2PoolManagerStrc*)MPQ_d2data, "data\\local\\use", nullptr, ".\\StrTable\\strtable.cpp", 1099);
     if (pMemoryToFree) {
       gnLanguageCode = (uint32_t)*pMemoryToFree;
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\StrTable\\strtable.cpp", 0x450, 0);
     }
     if (0xe > (int)gnLanguageCode) {
       return gnLanguageCode;
@@ -1224,7 +1224,7 @@ int __fastcall TABLES_LoadStrings(D2PoolManagerStrc * pPoolManager, char * szTex
     }
 
     int* pEntryData = &pTblFile->nNodeCount;
-    gpStringIndexBase = (uint16_t**)D2_ALLOC(pTblFile->nNodeCount * 4);
+    gpStringIndexBase = (uint16_t**)Fog::Memory::AllocClientMemory(pTblFile->nNodeCount * 4, ".\\StrTable\\strtable.cpp", 0x18f, 0);
     memset(gpStringIndexBase, 0, *pEntryData * 4);
     gnStringTableRefCount++;
     char* nWideCharCount = 0;
@@ -1287,7 +1287,7 @@ int __fastcall TABLES_LoadStrings(D2PoolManagerStrc * pPoolManager, char * szTex
 
       pEntryData = nEntryIdx;
     POOLPROBE("patch-count-loop-done");
-      gpStringBufferPatchD2 = (uint16_t*)D2_ALLOC((int)nWideCharCount * 2);
+      gpStringBufferPatchD2 = (uint16_t*)Fog::Memory::AllocClientMemory((int)nWideCharCount * 2, ".\\StrTable\\strtable.cpp", 0x1a9, 0);
       i = 0;
       k = gpStringBufferPatchD2;
       if (0 < *pEntryData) {
@@ -1314,7 +1314,7 @@ int __fastcall TABLES_LoadStrings(D2PoolManagerStrc * pPoolManager, char * szTex
 
         pEntryData = &gpStringTableExpansion->nNodeCount;
     POOLPROBE("expansion-index-alloc");
-        gpStringIndexExpansion = (uint16_t**)D2_ALLOC(gpStringTableExpansion->nNodeCount * 4);
+        gpStringIndexExpansion = (uint16_t**)Fog::Memory::AllocClientMemory(gpStringTableExpansion->nNodeCount * 4, ".\\StrTable\\strtable.cpp", 0x1c5, 0);
         memset(gpStringIndexExpansion, 0, *pEntryData * 4);
         nEntryIdx = &gpStringTableExpansion->nNodeCount;
         i = 0;
@@ -1332,7 +1332,7 @@ int __fastcall TABLES_LoadStrings(D2PoolManagerStrc * pPoolManager, char * szTex
 
         pEntryData = nEntryIdx;
     POOLPROBE("expansion-count-loop-done");
-        gpStringBufferExpansion = (uint16_t*)D2_ALLOC((int)nWideCharCount * 2);
+        gpStringBufferExpansion = (uint16_t*)Fog::Memory::AllocClientMemory((int)nWideCharCount * 2, ".\\StrTable\\strtable.cpp", 0x20f, 0);
         i = 0;
         k = gpStringBufferExpansion;
         if (0 < *pEntryData) {

@@ -77,11 +77,11 @@ void __fastcall FreeDrlgCoordList(D2RoomExStrc * pRoomEx) {
     while (pRoomCoordList) {
       D2RoomCoordListStrc* pNextCoord;
       pNextCoord = pRoomCoordList->pNext;
-      D2_FREE_POOL(pMemory, pRoomCoordList);
+      Fog::Memory::FreeServerMemory(pMemory, pRoomCoordList, ".\\DRLG\\DrlgLogic.cpp", 0x101, 0);
       pRoomCoordList = pNextCoord;
     }
 
-    D2_FREE_POOL(pMemory, pDrlgCoordList);
+    Fog::Memory::FreeServerMemory(pMemory, pDrlgCoordList, ".\\DRLG\\DrlgLogic.cpp", 0x106, 0);
     pRoomEx->pDrlgCoordList = 0;
 }
 
@@ -231,7 +231,7 @@ void __stdcall DRLGLOGIC_FillTileGridFlags(D2RoomExStrc * pRoomEx) {
 
 // DRLG level-generation pass that partitions a RoomEx's orientation grid into maximal rectangular regions of equal orientation flags. Inits a parallel coord-index grid, then scans cell-by-cell: for each unclaimed cell it grows a rectangle right then down over cells sharing the low 28 orientation bits, allocates a D2RoomCoordListStrc (index = orientation value, bNode set from flag 0x20000000), marks the covered cells claimed, translates the box into world coordinates, clamps the resulting rect to the room bounds (zeroing it if it falls outside), and prepends it to pCoordList->pCoord. Side effects only; no return.
 // @sourcefile .\DRLG\DrlgLogic.cpp
-static void __stdcall DRLGLOGIC_BuildCoordRegions(D2RoomExStrc * pRoomEx, D2DrlgCoordListStrc * pCoordList) {
+void __stdcall DRLGLOGIC_BuildCoordRegions(D2RoomExStrc * pRoomEx, D2DrlgCoordListStrc * pCoordList) {
     uint32_t nOrientFlags;
     uint32_t nOrientFlagsLow;
     int nRowY;
@@ -258,7 +258,7 @@ static void __stdcall DRLGLOGIC_BuildCoordRegions(D2RoomExStrc * pRoomEx, D2Drlg
           nOrientFlagsLow = nOrientFlags & 0xfffffff;
           nRowY = DrlgGrid::GetGridFlags(&pCoordList->sCoordIndexGrid, iCellX, nCellY);
           if (!nRowY) {
-            _Dst = D2_NEW_POOL(pMemory, D2RoomCoordListStrc);
+            _Dst = ((D2RoomCoordListStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2RoomCoordListStrc), ".\\DRLG\\DrlgLogic.cpp", 0x201, 0));
             memset(_Dst, 0, 0x30);
             _Dst->nIndex = nOrientFlagsLow;
             _Dst->bNode = (uint32_t)((nOrientFlags & 0x20000000) == 0x20000000);
@@ -366,13 +366,13 @@ void __fastcall AllocDrlgCoordList(D2RoomExStrc * pRoomEx) {
     D2RoomCoordListStrc* pCoord;
     D2DrlgLevelStrc* pLevel = pRoomEx->pLevel;
     D2PoolManagerStrc* pMemory = pLevel->pDrlg->pMemoryPool;
-    D2DrlgCoordListStrc* pCoordList = D2_NEW_POOL(pMemory, D2DrlgCoordListStrc);
+    D2DrlgCoordListStrc* pCoordList = ((D2DrlgCoordListStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2DrlgCoordListStrc), ".\\DRLG\\DrlgLogic.cpp", 0xdf, 0));
     memset(pCoordList, 0, 0x34);
     pRoomEx->pDrlgCoordList = pCoordList;
     pCoordList->eFlags |= 1;
     pLevel->nLastRoomExCoordsIndex = 1;
     pCoordList->nListSize = 1;
-    pCoord = D2_NEW_POOL(pMemory, D2RoomCoordListStrc);
+    pCoord = ((D2RoomCoordListStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2RoomCoordListStrc), ".\\DRLG\\DrlgLogic.cpp", 0xe9, 0));
     pCoordList->pCoord = pCoord;
     memset(pCoord, 0, pCoordList->nListSize * 0x30);
     pCoordList->pCoord->nIndex = pLevel->nLastRoomExCoordsIndex;
@@ -588,7 +588,7 @@ void __fastcall DRLGLOGIC_BuildRoomCoordList(D2RoomExStrc * pRoomEx, int nOrient
     __frame0.pMemory = pLevel->pDrlg->pMemoryPool;
     int nOrientGridFlagsSave = nOrientGridFlags;
     D2DrlgLevelStrc* pLevelCtx = pLevel;
-    D2DrlgCoordListStrc* pCoordListStrc = D2_NEW_POOL(__frame0.pMemory, D2DrlgCoordListStrc);
+    D2DrlgCoordListStrc* pCoordListStrc = ((D2DrlgCoordListStrc*)Fog::Memory::AllocServerMemory(__frame0.pMemory, sizeof(D2DrlgCoordListStrc), ".\\DRLG\\DrlgLogic.cpp", 0xdf, 0));
     memset(pCoordListStrc, 0, 0x34);
     pRoomEx->pDrlgCoordList = pCoordListStrc;
     DRLGLOGIC_SetGridDoorFlags(pGrid, pRoomEx);

@@ -111,7 +111,6 @@ void __stdcall INPUT_DialogNavigateUp(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_DialogNavigateDown(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_DialogPageUp(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_DialogPageDown(struct D2UIMouseMsgStrc * pMsg);
-int DIALOG_HandleEnterKeyEvent(void * pDialog, uint32_t nKeyCode);
 void __stdcall INPUT_DialogEnterKey(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_DialogKeyHandler(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall DIALOG_InitializeSystem();

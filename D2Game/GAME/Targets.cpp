@@ -55,7 +55,7 @@ void __fastcall TARGETS_AddTargetToTrackingList(::SGAMEDATA * pGame, D2UnitStrc 
       return;
     }
 
-    D2UnitNodeStrc* pTrackingNode = D2_NEW_POOL(pGame->pMemoryPool, D2UnitNodeStrc);
+    D2UnitNodeStrc* pTrackingNode = ((D2UnitNodeStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2UnitNodeStrc), ".\\GAME\\Targets.cpp", 0x39, 0));
     if (!pTrackingNode) {
       return;
     }
@@ -85,7 +85,7 @@ D2UnitNodeStrc * __fastcall CreateUnitNode(::SGAMEDATA * pGame, D2UnitStrc * pUn
       return pNode;
     }
 
-    pNode = D2_NEW_POOL(pGame->pMemoryPool, D2UnitNodeStrc);
+    pNode = ((D2UnitNodeStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2UnitNodeStrc), ".\\GAME\\Targets.cpp", 0x6c, 0));
     if (!pNode) {
       return pNode;
     }
@@ -112,7 +112,7 @@ void __fastcall AddNodeToTable(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2NodeUn
     }
 
     D2UnitNodeStrc* pPrevHead = pGame->pUnitNodes[nNodeTableIndex];
-    D2UnitNodeStrc* pNode = D2_NEW_POOL(pGame->pMemoryPool, D2UnitNodeStrc);
+    D2UnitNodeStrc* pNode = ((D2UnitNodeStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2UnitNodeStrc), ".\\GAME\\Targets.cpp", 0xa1, 0));
     if (!pNode) {
       return;
     }
@@ -149,7 +149,7 @@ void __fastcall UNIT_FreeUnitNodes(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
         pMemoryToFree->pUnit->nNodeTableIndex = 0xb;
       }
 
-      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\GAME\\Targets.cpp", 0xe8, 0);
       pMemoryToFree = pPrev;
     }
 
@@ -223,7 +223,7 @@ void __fastcall MONSTER_FreeUnitNodes(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
       }
     }
 
-    D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
+    Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\GAME\\Targets.cpp", 0x142, 0);
     pUnit->nNodeTableIndex = 0xb;
 }
 

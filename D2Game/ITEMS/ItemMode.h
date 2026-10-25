@@ -128,7 +128,7 @@ void __fastcall ITEMMODE_GetItemCursorMode(::SGAMEDATA * pGame, struct D2UnitStr
 void __fastcall ITEMMODE_IsItemOnCursor(int32_t nParam, struct D2UnitStrc * pUnit, struct D2UnitStrc * pOwner);
 // Recharges all charged-skill stats (stat 0xCC) on an item that are below their maximum charge count. For each under-charged skill, calls ITEMMOD_SetChargedSkillCharges and sends a 0x3E UpdateItemStats packet to the owning player's client. Returns 1 if any charge was restored, 0 otherwise.
 // @sourcefile .\ITEMS\ItemMode.cpp
-int __fastcall ITEMMODE_HandleCursorItem(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem);
+void __fastcall ITEMMODE_HandleCursorItem(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem);
 // Server-side: moves the item identified by nItemGUID into pUnit's (or pInventory's) inventory grid, either at explicit coords (nParam1==0, via INVENTORY_PlaceItemAtCoords) or auto-placed into a free grid slot (INVENTORY_PlaceItemInGrid). Validates the item is a UNIT_ITEM in GetHit mode, computes source/dest inventory pages, then PutItemInInventory and, unless the source was the stash, ITEMMODE_ApplyItemToOwner. Clears the targetable flag, applies socketed/charm effects, optionally (nParam2) tags the item for an INVENTORY_PUT_ITEM client update + reload/un-disable, refreshes inventory, and adds merc-page items to the active trade. Returns 1 on success, 0 on failure.
 // @sourcefile .\ITEMS\ItemMode.cpp
 // Stack-slot reuse: the low byte of the pUnit slot holds eSrcPage (ITEM_GetContainingInventoryPage of the item) for the rest of the function.

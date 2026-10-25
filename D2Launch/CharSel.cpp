@@ -276,7 +276,7 @@ void __stdcall CHARSEL_DestroySelectedChar() {
       D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, 1);
     }
 
-    D2_FREE(gpCharSelPendingEntry);
+    Fog::Memory::FreeClientMemory(gpCharSelPendingEntry, ".\\Src\\CharSel.cpp", 0x2a1, 0);
     gpCharSelPendingEntry = 0;
 }
 
@@ -731,7 +731,7 @@ BOOL __stdcall SAVEFILE_ParseSaveData(char * szRealmName, char * szCharacterName
     uint8_t* pbCur;
     char local_104[256];
     D2CharSelStrc* pNewCharSel;
-    pNewCharSel = D2_NEW(D2CharSelStrc);
+    pNewCharSel = ((D2CharSelStrc*)Fog::Memory::AllocClientMemory(sizeof(D2CharSelStrc), ".\\Src\\CharSel.cpp", 0x414, 0));
     pNewCharSel->ftLastWriteTimeLow = ftLastWriteTime.dwLowDateTime;
     pNewCharSel->ftLastWriteTimeHigh = ftLastWriteTime.dwHighDateTime;
     pNewCharSel->dwRealmParam = dwRealmParam;
@@ -929,7 +929,7 @@ void __stdcall CHARSEL_DestroyAllCharEntries() {
       D2CharSelStrc* pDVar1;
       pDVar1 = pMemoryToFree->pNext;
       D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)pMemoryToFree->pCharSelCompStrc, 1);
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\CharSel.cpp", 0x518, 0);
       pMemoryToFree = pDVar1;
     }
 
@@ -944,7 +944,7 @@ void __stdcall CHARSEL_DestroyAllCharEntries() {
       D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, 1);
     }
 
-    D2_FREE(gpCharSelPendingEntry);
+    Fog::Memory::FreeClientMemory(gpCharSelPendingEntry, ".\\Src\\CharSel.cpp", 0x2a1, 0);
     gpCharSelPendingEntry = 0;
 }
 
@@ -1341,7 +1341,7 @@ BOOL __stdcall CHARSEL_UpdateSelectedCharDisplay() {
 
     int nSlotIndex;
     nSlotIndex = D2Client::CharScreen::nSelectedCharIndex - g_nCharSelNavigationIndex;
-    if (D2Client::CharScreen::TotalCurrentChars < 1 || D2Client::CharScreen::nSelectedCharIndex <= gnCharSelLoadMoreEntryIndex || D2Client::CharScreen::nSelectedCharIndex == gnCharSelLoadingEntryIndex) {
+    if (D2Client::CharScreen::TotalCurrentChars < 1 || (int)D2Client::CharScreen::nSelectedCharIndex <= (int)gnCharSelLoadMoreEntryIndex || D2Client::CharScreen::nSelectedCharIndex == gnCharSelLoadingEntryIndex) {
       bControlState = 0;
     } else {
       bControlState = 1;
@@ -1393,11 +1393,11 @@ BOOL __stdcall CHARSEL_UpdateSelectedCharDisplay() {
         D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, 1);
       }
 
-      D2_FREE(gpCharSelPendingEntry);
+      Fog::Memory::FreeClientMemory(gpCharSelPendingEntry, ".\\Src\\CharSel.cpp", 0x5de, 0);
       gpCharSelPendingEntry = 0;
     }
 
-    gpCharSelPendingEntry = D2_NEW(D2CharSelStrc);
+    gpCharSelPendingEntry = ((D2CharSelStrc*)Fog::Memory::AllocClientMemory(sizeof(D2CharSelStrc), ".\\Src\\CharSel.cpp", 0x5e2, 0));
     Storm::Source::SSystem::SMemCopy(gpCharSelPendingEntry, pSelectedChar, 0x350);
     D2CharSelStrc* pCharSelCopy = gpCharSelPendingEntry;
     gpCharSelPendingEntry->pNext = 0;
@@ -2051,7 +2051,7 @@ BOOL __stdcall CHARSEL_InitRealmSelection() {
 // @sourcefile .\Src\CharSel.cpp
 int __stdcall CHARSEL_CreateCharEntry(uint16_t * wszCharName, uint16_t * wszCommandString, int32_t nEntryType, bool ePlayerClass) {
     int nAnimMode;
-    D2CharSelStrc* pCharSel = D2_NEW(D2CharSelStrc);
+    D2CharSelStrc* pCharSel = ((D2CharSelStrc*)Fog::Memory::AllocClientMemory(sizeof(D2CharSelStrc), ".\\Src\\CharSel.cpp", 0xbaf, 0));
     D2Lang::WideCharToUTF8(pCharSel->szCharname, wszCharName, 0x100);
     D2Lang::Unicode::UNISYS::STRING_CopyWideString((uint16_t*)pCharSel->szCommandStringTable, wszCommandString);
     memset(pCharSel->abEquipSlot1, 0, 16 * sizeof(pCharSel->abEquipSlot1[0]));
@@ -2131,7 +2131,7 @@ void __stdcall CHARSEL_ClearCharDetailUI() {
         D2Win::Src::D2Comp::D2COMP_DestroyCompositeUnit((D2CharSelStrc*)gpCharSelPendingEntry->pCharSelCompStrc, 1);
       }
 
-      D2_FREE(gpCharSelPendingEntry);
+      Fog::Memory::FreeClientMemory(gpCharSelPendingEntry, ".\\Src\\CharSel.cpp", 0x2a1, 0);
       gpCharSelPendingEntry = 0;
     }
 

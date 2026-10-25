@@ -330,7 +330,7 @@ void __fastcall D3DSUBTILE_Free(D3DSubtileCacheStrc * pCache, BOOL bInvalidateAl
         }
       }
       if (pCache->pNodeBuffer) {
-        D2_FREE(pCache->pNodeBuffer);
+        Fog::Memory::FreeClientMemory(pCache->pNodeBuffer, ".\\Src\\d3dSubtileCache.cpp", 0x82, 0);
         pCache->pNodeBuffer = 0;
       }
 

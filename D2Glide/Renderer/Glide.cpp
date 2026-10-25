@@ -722,7 +722,7 @@ void Release() {
     }
     if (RENDERER_SelectedRendererCore) {
       /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&RENDERER_SelectedRendererCore->sLock);
-      D2_FREE(RENDERER_SelectedRendererCore);
+      Fog::Memory::FreeClientMemory(RENDERER_SelectedRendererCore, ".\\Src\\glCore.cpp", 0x30d, 0);
       RENDERER_SelectedRendererCore = 0;
     }
     if (!lpGLIDE3x_dll) {
@@ -830,7 +830,7 @@ BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc
     RENDERER_GLIDE_InitPerspectiveTables();
     RENDERER_GLIDE_InitGroundTileVertices();
     GLSMACK_AllocBuffers();
-    RENDERER_SelectedRendererCore = D2_NEW(D2RendererCoreStrc);
+    RENDERER_SelectedRendererCore = ((D2RendererCoreStrc*)Fog::Memory::AllocClientMemory(sizeof(D2RendererCoreStrc), ".\\Src\\glCore.cpp", 0x2d5, 0));
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ InitializeCriticalSection(&RENDERER_SelectedRendererCore->sLock);
     return 1;
 }
@@ -838,14 +838,14 @@ BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc
 // @sourcefile .\Src\glSprite.cpp
 void __stdcall RENDERER_GLIDE_FreeSpriteBuffers() {
     if (gpGlideSpriteBuffer) {
-      D2_FREE(gpGlideSpriteBuffer);
+      Fog::Memory::FreeClientMemory(gpGlideSpriteBuffer, ".\\Src\\glSprite.cpp", 0x74, 0);
       gpGlideSpriteBuffer = 0;
     }
     if (!gpGlideSpritePixelBuffer) {
       return;
     }
 
-    D2_FREE(gpGlideSpritePixelBuffer);
+    Fog::Memory::FreeClientMemory(gpGlideSpritePixelBuffer, ".\\Src\\glSprite.cpp", 0x7a, 0);
     gpGlideSpritePixelBuffer = 0;
 }
 
@@ -1732,15 +1732,10 @@ void __stdcall RENDERER_GLIDE_InitSpriteCache() {
       exit(-1);
     } else {
       BOOL bIsPerspective;
-      if (!gpGlideSpritePixelBuffer) {
-        gpGlideSpriteBuffer = D2_ALLOC(0x10000);
-        gpGlideSpritePixelBuffer = D2_ALLOC(0x10000);
-        D2CMP::SRC::CelCmp::CELCMP_SetPixelDataFreeCallback(GLIDE_PixelDataFreeCallback_ClearCacheNodes);
-        gnGlideTMUIndex = (uint32_t)(1 < gnGlideTextureMemoryUsed);
-        gnGlideSpriteSecondaryTMUEnabled = 0;
-        if (1 >= gnGlideTextureMemoryUsed) {
-          return;
-        }
+      if (gpGlideSpritePixelBuffer) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4b);
+        exit(-1);
+      }
 
       gpGlideSpriteBuffer = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\glSprite.cpp", 0x4c, 0);
       gpGlideSpritePixelBuffer = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\glSprite.cpp", 0x4d, 0);
@@ -1789,7 +1784,7 @@ int32_t __fastcall RENDERER_GLIDE_InitDebugFont(FxU32 nParam2, int32_t nParam) {
       nParam2 = (nSizeMask | nParam2) + 1;
     }
 
-    uint32_t* pTexBuf = (uint32_t*)D2_ALLOC(0x80);
+    uint32_t* pTexBuf = (uint32_t*)Fog::Memory::AllocClientMemory(0x80, ".\\Src\\glDebugFont.cpp", 0x62, 0);
     int nGlyphOffset = 0;
     uint32_t* pTexStartAddr = gaGlideDebugFontTexStartAddrs;
     gTexInfoDebugFontGlide.data = pTexBuf;
@@ -1864,7 +1859,7 @@ void __stdcall RENDERER_GLIDE_GenerateDebugFont() {
       exit(-1);
     }
 
-    gpGlideDebugFontTexture = D2_ALLOC(0x3000);
+    gpGlideDebugFontTexture = Fog::Memory::AllocClientMemory(0x3000, ".\\Src\\glDebugFont.cpp", 0x99, 0);
     int nGlyphIndex = 0;
     int nTexOffset = 0;
     do {
@@ -1904,7 +1899,7 @@ void __stdcall RENDERER_GLIDE_FreeDebugFont() {
       return;
     }
 
-    D2_FREE(gpGlideDebugFontTexture);
+    Fog::Memory::FreeClientMemory(gpGlideDebugFontTexture, ".\\Src\\glDebugFont.cpp", 0xfb, 0);
     gpGlideDebugFontTexture = 0;
 }
 
@@ -2861,7 +2856,7 @@ BOOL __fastcall RENDERER_GLIDE_DrawWallTileSimple(int32_t nScreenPanels, D2TileL
 }
 
 // Draw wall tile with perspective projection in Glide renderer. Calculates 4 corner positions, tests screen bounds, applies color averaging and texturing. Returns 1 if tile was drawn, 0 otherwise.
-int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, D2TileLibraryEntryStrc * pTile, int nScreenX, int nScreenY, int pColorTable) {
+static int32_t __stdcall RENDERER_GLIDE_DrawWallTilePerspective(int32_t nScreenPanels, D2TileLibraryEntryStrc * pTile, int nScreenX, int nScreenY, int pColorTable) {
     // Frame slots -100..-4 are ONE object: &nBoundsXMin is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -3213,7 +3208,7 @@ BOOL __fastcall DrawGroundTile(D2TileLibraryEntryStrc * pTile, D2GfxLightExStrc 
 }
 
 void __stdcall RENDERER_GLIDE_AllocLightingTable() {
-    gpGlideLightingTable = (uint8_t*)D2_ALLOC(0x10000);
+    gpGlideLightingTable = (uint8_t*)Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\glVertex.cpp", 0x17, 0);
 }
 
 void __stdcall RENDERER_GLIDE_FreeLightingTable() {
@@ -3221,7 +3216,7 @@ void __stdcall RENDERER_GLIDE_FreeLightingTable() {
       return;
     }
 
-    D2_FREE(gpGlideLightingTable);
+    Fog::Memory::FreeClientMemory(gpGlideLightingTable, ".\\Src\\glVertex.cpp", 0x1e, 0);
     gpGlideLightingTable = 0;
 }
 
@@ -3260,7 +3255,7 @@ void __fastcall RENDERER_GLIDE_ApplyColorLighting(uint32_t * pVertexColor, uint3
 
 // @sourcefile .\Src\glPerspective.cpp
 void __stdcall RENDERER_GLIDE_AllocPerspectiveLUT() {
-    gpPerspectiveLookupTable = D2_ALLOC(0x8000);
+    gpPerspectiveLookupTable = Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glPerspective.cpp", 0x38, 0);
 }
 
 // @sourcefile .\Src\glPerspective.cpp
@@ -3269,7 +3264,7 @@ void __stdcall RENDERER_GLIDE_FreePerspectiveLUT() {
       return;
     }
 
-    D2_FREE(gpPerspectiveLookupTable);
+    Fog::Memory::FreeClientMemory(gpPerspectiveLookupTable, ".\\Src\\glPerspective.cpp", 0x3f, 0);
     gpPerspectiveLookupTable = 0;
 }
 
@@ -3344,7 +3339,7 @@ void SetDefaultPerspectiveFactor() {
 }
 
 // @sourcefile .\Src\glSmack.cpp
-static void __stdcall GLSMACK_AllocBuffers() {
+void __stdcall GLSMACK_AllocBuffers() {
     // Static local variables (originally global data)
     static unsigned int gfGlideSmackerVertex0Oow;
     static unsigned int gfGlideSmackerVertex1Oow;
@@ -3355,26 +3350,26 @@ static void __stdcall GLSMACK_AllocBuffers() {
     gfGlideSmackerVertex1Oow = -1;
     gfGlideSmackerVertex2Oow = -1;
     gfGlideSmackerVertex3Oow = -1;
-    gpGlideSmackerTexBuf0 = (D2Row_uint8_t_32768*)D2_ALLOC(0x8000);
-    gpGlideSmackerTexBuf1 = (D2Row_uint8_t_32768*)D2_ALLOC(0x8000);
-    gpGlideSmackerTexBuf2 = (D2Row_uint8_t_32768*)D2_ALLOC(0x8000);
+    gpGlideSmackerTexBuf0 = (D2Row_uint8_t_32768*)Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glSmack.cpp", 0x47, 0);
+    gpGlideSmackerTexBuf1 = (D2Row_uint8_t_32768*)Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glSmack.cpp", 0x48, 0);
+    gpGlideSmackerTexBuf2 = (D2Row_uint8_t_32768*)Fog::Memory::AllocClientMemory(0x8000, ".\\Src\\glSmack.cpp", 0x49, 0);
 }
 
 // @sourcefile .\Src\glSmack.cpp
 void __stdcall GLSMACK_FreeBuffers() {
     if (gpGlideSmackerTexBuf0) {
-      D2_FREE(gpGlideSmackerTexBuf0);
+      Fog::Memory::FreeClientMemory(gpGlideSmackerTexBuf0, ".\\Src\\glSmack.cpp", 0x56, 0);
       gpGlideSmackerTexBuf0 = 0;
     }
     if (gpGlideSmackerTexBuf1) {
-      D2_FREE(gpGlideSmackerTexBuf1);
+      Fog::Memory::FreeClientMemory(gpGlideSmackerTexBuf1, ".\\Src\\glSmack.cpp", 0x5b, 0);
       gpGlideSmackerTexBuf1 = 0;
     }
     if (!gpGlideSmackerTexBuf2) {
       return;
     }
 
-    D2_FREE(gpGlideSmackerTexBuf2);
+    Fog::Memory::FreeClientMemory(gpGlideSmackerTexBuf2, ".\\Src\\glSmack.cpp", 0x60, 0);
     gpGlideSmackerTexBuf2 = 0;
 }
 

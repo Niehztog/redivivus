@@ -42,7 +42,7 @@ D2HoverTextStrc * __stdcall Alloc(D2PoolManagerStrc * pMemory, char * szMessage,
       nClampedLen = nMsgLen;
     }
 
-    D2HoverTextStrc* pHover = D2_NEW_POOL(pMemory, D2HoverTextStrc);
+    D2HoverTextStrc* pHover = ((D2HoverTextStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2HoverTextStrc), ".\\Chat\\Chat.cpp", 0x32, 0));
     nMsgLen = nClampedLen * 8 + 0x7d;
     pHover->nStartFrame = nMsgLen;
     pHover->nExpireFrame = nMsgLen + nDuration;
@@ -60,7 +60,7 @@ void __stdcall Free(D2PoolManagerStrc * pMemory, D2HoverTextStrc * pHoverText) {
       return;
     }
 
-    D2_FREE_POOL(pMemory, pHoverText);
+    Fog::Memory::FreeServerMemory(pMemory, pHoverText, ".\\Chat\\Chat.cpp", 0x44, 0);
 }
 
 uint32_t __stdcall CHAT_GetChatField(uint32_t * pdwParam) {

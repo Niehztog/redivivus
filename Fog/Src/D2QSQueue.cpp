@@ -32,7 +32,7 @@ void __fastcall Free(D2PoolManagerStrc * pPoolManager) {
     size_t sVar1 = pPoolManager->nPools;
     while (sVar1) {
       sVar1 = *(size_t*)(sVar1 + 4);
-      D2_FREE((void*)pPoolManager->nPools);
+      Fog::Memory::FreeClientMemory((void*)pPoolManager->nPools, ".\\Src\\D2QSQueue.cpp", 0x27, 0);
       pPoolManager->nPools = sVar1;
     }
 
@@ -55,7 +55,7 @@ void __fastcall FOG_EnqueueMessage(D2QSQueueStrc * pClientSideData, void * pPara
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&pClientSideData->csLock);
-    D2QSQueueEntryStrc* puMsgEntry = (D2QSQueueEntryStrc*)D2_ALLOC(wMsgSize + 8);
+    D2QSQueueEntryStrc* puMsgEntry = (D2QSQueueEntryStrc*)Fog::Memory::AllocClientMemory(wMsgSize + 8, ".\\Src\\D2QSQueue.cpp", 0x4e, 0);
     puMsgEntry->wMsgSize = wMsgSize;
     puMsgEntry->pNext = 0;
     memcpy(puMsgEntry + 1, pParam, (uint32_t)wMsgSize);
@@ -83,7 +83,7 @@ uint32_t __fastcall D2QSQUEUE_Dequeue(D2QSQueueStrc * pdwParam, void * pParam, i
       }
 
       iNextEntry = iNextEntry->pNext;
-      D2_FREE(pdwParam->pHead);
+      Fog::Memory::FreeClientMemory(pdwParam->pHead, ".\\Src\\D2QSQueue.cpp", 0x78, 0);
       pdwParam->pHead = iNextEntry;
       if (!iNextEntry) {
         pdwParam->pTail = 0;

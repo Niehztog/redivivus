@@ -103,7 +103,7 @@ void __fastcall SFILE_CopyStreamBuffer4(uint32_t * pDest, uint32_t * pSrc) {
 uint32_t SFILE_DecompressLzw_BufferRead(void * pDstBuf, uint32_t * pnBytesRequested, void * pReadState) {
     uint32_t nAvail = *(int*)((int)pReadState + 0x10) - *(int*)((int)pReadState + 4);
     uint32_t nReadLen = *pnBytesRequested;
-    if (nAvail <= *pnBytesRequested) {
+    if (*pnBytesRequested >= nAvail) {
       nReadLen = nAvail;
     }
 
@@ -2411,16 +2411,16 @@ static int __fastcall SFILE_SearchFileInArchives(D2ArchiveStrc * pArchive, D2MPQ
         if (nHashIndex != -1) {
           nRet = 1;
           pBlockEntry = SFILE_GetBlockTableEntry(pSearchArchive, nHashIndex);
-          if ((int)pBlockEntry->dwFlags < 0 && (!(bSearchFlags & 4) || !(pBlockEntry->dwFlags & 0x1ff00))) {
+          if (!((int)pBlockEntry->dwFlags < 0 && (!(bSearchFlags & 4) || !(pBlockEntry->dwFlags & 0x1ff00)))) {
+            nRet = 0;
+            SErr::SErrSetLastError(0x3ee);
+          } else {
             if (ppArchiveOut) {
               *ppArchiveOut = pSearchArchive;
             }
             if (ppBlockEntryOut) {
               *ppBlockEntryOut = pBlockEntry;
             }
-          } else {
-            nRet = 0;
-            SErr::SErrSetLastError(0x3ee);
           }
 
           return nRet;
@@ -4711,7 +4711,7 @@ int __stdcall SFileReadFileEx2(D2MPQFileStrc * pFileHandle, void * pOutputBuffer
 
             nChunkOffset += nChunkCount;
             nChunkIndex++;
-          } while (nChunkBytes > nChunkIndex);
+          } while (nChunkIndex < nChunkBytes);
         }
 
         /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);

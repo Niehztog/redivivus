@@ -372,7 +372,7 @@ void __fastcall SOUND_LoadWavFile(char * szText) {
       return;
     }
 
-    void* pWavEntry = D2_ALLOC(0x60);
+    void* pWavEntry = Fog::Memory::AllocClientMemory(0x60, ".\\Src\\D2SoundFast.cpp", 0x85, 0);
     *(void**)((int)pWavEntry + 0x5c) = (void*)gpWavFileCacheListHead;
     *(int**)((int)pWavEntry + 0x50) = (int*)pArchive;
     *(size_t*)((int)pWavEntry + 0x54) = nAllocSize;
@@ -502,10 +502,10 @@ void __stdcall SOUND_FreeSoundEffectBuffers() {
       void* nNextCacheEntry;
       nNextCacheEntry = *(void**)((int)gpWavFileCacheListHead + 0x5c);
       if (*(void**)((int)gpWavFileCacheListHead + 0x50)) {
-        D2_FREE(*(void**)((int)gpWavFileCacheListHead + 0x50));
+        Fog::Memory::FreeClientMemory(*(void**)((int)gpWavFileCacheListHead + 0x50), ".\\Src\\D2SoundFast.cpp", 0x62, 0);
       }
 
-      D2_FREE(gpWavFileCacheListHead);
+      Fog::Memory::FreeClientMemory(gpWavFileCacheListHead, ".\\Src\\D2SoundFast.cpp", 0x63, 0);
       gpWavFileCacheListHead = nNextCacheEntry;
     }
 

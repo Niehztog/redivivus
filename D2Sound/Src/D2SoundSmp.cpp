@@ -54,7 +54,7 @@ D2SoundSmpStrc * __fastcall CallSounds(uint32_t nSoundFlags, uint32_t dwSamplePa
       return nullptr;
     }
 
-    D2SoundSmpStrc* pSoundSmp = D2_NEW(D2SoundSmpStrc);
+    D2SoundSmpStrc* pSoundSmp = ((D2SoundSmpStrc*)Fog::Memory::AllocClientMemory(sizeof(D2SoundSmpStrc), ".\\Src\\D2SoundSmp.cpp", 0x1d9, 0));
     memset(pSoundSmp, 0, 0x60);
     BOOL bCreated = SOUNDSMP_CreateSoundBuffer(nSoundFlags, pSoundSmp);
     if (bCreated) {
@@ -528,7 +528,7 @@ void __fastcall SOUNDSMP_Destroy(D2SoundSmpStrc * pSoundSmp) {
     SOUNDSMP_ReleaseInterfaces(pSoundSmp);
     D2SoundUntil::SOUND_sD2SoundSmp_Free(&gpSoundSampleList, (int32_t)pSoundSmp);
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&gSoundSmpCs);
-    D2_FREE(pSoundSmp);
+    Fog::Memory::FreeClientMemory(pSoundSmp, ".\\Src\\D2SoundSmp.cpp", 0x21d, 0);
 }
 
 void __fastcall SOUNDSMP_Reset(D2SoundSmpStrc * pSoundSmp) {

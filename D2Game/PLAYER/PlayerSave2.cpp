@@ -1467,7 +1467,7 @@ D2UnitStrc * __fastcall LoadMerc(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Merc
     }
 
     sMercSave.wNameIndex += pHirelingTxt->nNameFirst;
-    if ((uint16_t)pHirelingTxt->nNameLast < sMercSave.wNameIndex) {
+    if (sMercSave.wNameIndex > (uint16_t)pHirelingTxt->nNameLast) {
       sMercSave.wNameIndex = pHirelingTxt->nNameFirst;
     }
 

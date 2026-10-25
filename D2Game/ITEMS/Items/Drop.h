@@ -106,8 +106,6 @@ uint32_t __fastcall ITEM_IsUniqueAlreadyDropped(::SGAMEDATA * pGame, struct D2Un
 // below 0x21. On success sets ITEMFLAG_SOCKETED and calls the D2Common ITEM_RollSocketCount with
 // modseed % max + 1 (versioned items) or the max capped at 3, 2 for helms (version 0). No return value.
 void __stdcall ITEM_RollSocketCount(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2ItemGenContextStrc * pItemGenContext);
-// Applies item-type-specific post-generation properties to a newly dropped item. Switch on wType: PlayerBodyPart/BodyPart sets file index from ctx; Charm rolls forced magic affix; Book/Scroll sets magic suffix from scroll-book index. Falls through to StaffMod roll and socket count roll for all other types.
-void __stdcall ITEM_ApplySpecialTypeProperties(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, struct D2ItemGenContextStrc * pItemGenContext);
 // Apply quality tier to item and generate affixes based on quality type (magic/rare/set/unique/superior)
 int __fastcall ITEM_ApplyQualityAndAffixes(::SGAMEDATA * pGame, struct D2UnitStrc * * ppItem, struct D2ItemGenContextStrc * pItemGenContext);
 void ITEM_RollVariantGraphic(struct D2UnitStrc * pUnit);

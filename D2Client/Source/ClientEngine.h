@@ -58,28 +58,6 @@ int32_t __fastcall CLIENT_ForEachUnitInAdjacentRooms(struct D2UnitStrc * pUnit, 
 int __fastcall CLIENT_FindClosestDeadUnitCallback(struct D2UnitStrc * pSourceUnit, struct D2UnitStrc * pCandidate, struct D2UnitStrc * * ppBestUnit, int * pnBestDistance);
 void __fastcall CLIENT_RegisterActiveUnitInSlot(int32_t nUnitId);
 void __fastcall CLIENT_UnregisterActiveUnitFromSlot(int32_t nUnitId);
-struct D2UnitStrc * __stdcall CLIENT_FindClosestTrackedUnit(struct D2UnitStrc * pUnit, int * pnClosestDist);
-// Sends a monster message whose target is pTarget's unit type and GUID (6 / -1 when pTarget is NULL); asm 0046c77c..0046c795.
-void __stdcall CLIENT_SendMonsterMoveToUnitMessage(int32_t nSenderId, int32_t nSkillLvl, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
-uint32_t __stdcall MONSTER_TryMoveTowardTarget(struct D2UnitStrc * pUnit, uint8_t bMoveStep, int32_t nSenderId, int32_t dwAnimMode, struct D2UnitStrc * pTarget);
-void __stdcall CLIENT_SendMonsterMoveToRandomNearbyPosMessage(uint32_t nOffsetRange, int32_t nSenderId, int32_t nSkillLvl, struct D2UnitStrc * pUnit);
-void __stdcall CLIENT_SendMonsterMoveToTargetMessage(int32_t nTargetX, int32_t nTargetY, int32_t nSenderId, int32_t nSkillLvl, struct D2UnitStrc * pUnit);
-void CLIENT_SendMonsterAttackMessage(struct D2UnitStrc * pUnit);
-void CLIENT_SendMonsterWanderMessage(struct D2UnitStrc * pUnit);
-// Parameter 2 was typed D2MonsterAiStrc - a struct passed by value in EAX. It is a scalar. The body
-// clamps it against 199 and stores it through GetMonsterAi into the monster data's AI slot (+0x30), which the client uses as a frame countdown, not a pointer: 0046d780 tests it with a signed compare and decrements it, and sets it to 25 when no
-// target is found.
-void CLIENT_SetMonsterAiTimer(struct D2UnitStrc * pUnit, int32_t sMonsterAi);
-uint32_t CLIENT_CheckIfUnitPositionsMatch(struct D2UnitStrc * pnUnit1, struct D2UnitStrc * pnUnit2);
-void MONSTER_FindAndChaseNearestEnemy(struct D2UnitStrc * pUnit);
-void __stdcall CLIENT_MonsterAi_IdleWanderBehavior(struct D2UnitStrc * pTarget, uint32_t nTargetDistance, struct D2UnitStrc * pUnit);
-void CLIENT_MonsterIdleApproach(struct D2UnitStrc * pUnit);
-void __stdcall CLIENT_MonsterThinkBehavior(struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
-void __stdcall CLIENT_MonsterAi_CorpseSeekerBehavior(uint32_t nTargetDistance, struct D2UnitStrc * pTarget, struct D2UnitStrc * pUnit);
-void __stdcall CLIENT_MonsterAi_BasicChaseBehavior(uint32_t nTargetDistance, struct D2UnitStrc * pTarget, struct D2UnitStrc * pUnit);
-void CLIENT_MonsterSeekCorpse(struct D2UnitStrc * pUnit);
-void CLIENT_SpawnWorldstoneChipDebris(struct D2UnitStrc * pUnit);
-void MONSTER_ProcessPathCallback(struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 void __stdcall CLIENT_ClearActiveUnitSlotArray();
 // CLIENT-SIDE AI BEHAVIOR DISPATCHER:
 // Similar to server-side 4-stage pipeline but simpler

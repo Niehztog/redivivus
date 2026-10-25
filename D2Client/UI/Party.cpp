@@ -118,7 +118,7 @@ void __stdcall FreeAllUiParty() {
     while (pMemoryToFree) {
       D2UiPartyStrc* pDVar1;
       pDVar1 = pMemoryToFree->pNext;
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\UI\\Party.cpp", 0x108, 0);
       pMemoryToFree = pDVar1;
     }
 
@@ -185,7 +185,7 @@ static void AllocUiPartyFromRoster(D2RosterStrc * pRoster, int32_t nPositionY) {
     D2UiPartyStrc* pUiParty;
     char cChar;
     D2UiPartyStrc* pUiPartyGlobal = Party::pUiParty;
-    pUiParty = D2_NEW(D2UiPartyStrc);
+    pUiParty = ((D2UiPartyStrc*)Fog::Memory::AllocClientMemory(sizeof(D2UiPartyStrc), ".\\UI\\Party.cpp", 0x14d, 0));
     memset(pUiParty, 0, 0xd1);
     SetupPartyButtons(pRoster, pUiParty, nPositionY);
     char* pRosterName = GAME::Roster::GetRosterName(pRoster);
@@ -374,7 +374,7 @@ void __stdcall UI_DrawPartyLeaveButton() {
     D2Win::Src::D2WinFont::SetAndReturnLastFont(1);
 }
 
-static void __stdcall UI_DrawPlayerNameInParty() {
+void __stdcall UI_DrawPlayerNameInParty() {
     char cChar;
     D2UnitStrc* pUnit = UNIT::Player::GetPlayerUnit_UI();
     if (!pUnit) {
@@ -400,11 +400,11 @@ static void __stdcall UI_DrawPlayerNameInParty() {
       D2Win::Src::D2WinFont::SetAndReturnLastFont(nLen);
     }
 
-    uint16_t* wszMessage = (uint16_t*)D2_ALLOC(nLenPlus1 * 2);
+    uint16_t* wszMessage = (uint16_t*)Fog::Memory::AllocClientMemory(nLenPlus1 * 2, ".\\UI\\Party.cpp", 0x211, 0);
     D2Lang::UTF8_ConvertToWideChar(wszMessage, pszName, nLenPlus1);
     ui::UI_DrawTextCentered(gnPanelOffsetX + 0x14, 0x1f - gnPanelOffsetY, gnPanelOffsetX + 0xbe, wszMessage, 0);
     D2Win::Src::D2WinFont::SetAndReturnLastFont(0);
-    D2_FREE(wszMessage);
+    Fog::Memory::FreeClientMemory(wszMessage, ".\\UI\\Party.cpp", 0x21a, 0);
 }
 
 int32_t __stdcall ResetPartyUi() {

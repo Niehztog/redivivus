@@ -337,13 +337,12 @@ D2QSSocketStrc * __stdcall STRUCT_D2QSSocket_Init(char * szIpAddress, int nPort,
       char* pszScan;
       pszScan = szIpAddress;
       pszScan = pszScan + strlen(pszScan) + 1;
-      if ((uint32_t)((int)pszScan - (int)(szIpAddress + 1)) < 0x103) {
-        pD2QSSocket = D2_NEW(D2QSSocketStrc);
-        if (!pD2QSSocket) {
-          return pD2QSSocket;
-        }
+      if (!((uint32_t)((int)pszScan - (int)(szIpAddress + 1)) < 0x103)) {
+        ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x243);
+        exit(-1);
+      }
 
-      pD2QSSocket = (D2QSSocketStrc*)Memory::AllocClientMemory(0x194, ".\\Src\\D2QSSocket.cpp", 0x245, 0);
+      pD2QSSocket = ((D2QSSocketStrc*)Fog::Memory::AllocClientMemory(sizeof(D2QSSocketStrc), ".\\Src\\D2QSSocket.cpp", 0x245, 0));
       if (!pD2QSSocket) {
         return pD2QSSocket;
       }
@@ -379,7 +378,7 @@ void __stdcall FreeD2QSSocket(D2QSSocketStrc * pSocket) {
       pSocket->pSafesock = 0;
     }
 
-    D2_FREE(pSocket);
+    Fog::Memory::FreeClientMemory(pSocket, ".\\Src\\D2QSSocket.cpp", 0x27c, 0);
 }
 
 void __stdcall QSSOCKET_WaitForEvent(D2QSSocketStrc * pQSSocket, DWORD dwTimeout) {

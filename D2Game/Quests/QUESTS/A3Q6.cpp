@@ -921,7 +921,7 @@ void __fastcall Q23_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->nInitNo = 6;
     pQuestData->fpStatusFilter = 0;
     pQuestData->fpActiveFilter = Q23_ActiveFilter;
-    D2QuestDataA3Q6Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA3Q6Strc);
+    D2QuestDataA3Q6Strc* pQuestSpecificData = ((D2QuestDataA3Q6Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA3Q6Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q6.cpp", 0x380, 0));
     pQuestData->pQuestSpecificData.pA3Q6 = pQuestSpecificData;
     memset(pQuestSpecificData, 0, 0x34);
 }

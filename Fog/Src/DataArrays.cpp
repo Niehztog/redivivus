@@ -28,7 +28,7 @@ void FOG_ClearStruct12Bytes(uint32_t * pdwParam) {
 
 // @sourcefile .\Src\DataArrays.cpp
 D2DataArrayStrc * __fastcall FOG_CreateDataArray(char * pszName, int numObjects, int nObjectSize) {
-    D2DataArrayStrc* local_EAX_31 = (D2DataArrayStrc*)D2_ALLOC(numObjects * nObjectSize + 0x120);
+    D2DataArrayStrc* local_EAX_31 = (D2DataArrayStrc*)Fog::Memory::AllocClientMemory(numObjects * nObjectSize + 0x120, ".\\Src\\DataArrays.cpp", 0x34, 0);
     if (!local_EAX_31) {
       return local_EAX_31;
     }
@@ -45,7 +45,7 @@ D2DataArrayStrc * __fastcall FOG_CreateDataArray(char * pszName, int numObjects,
 // @sourcefile .\Src\DataArrays.cpp
 void __fastcall FreeWeatherPointer(void * pParam) {
     memset(pParam, 0, 0x120);
-    D2_FREE(pParam);
+    Fog::Memory::FreeClientMemory(pParam, ".\\Src\\DataArrays.cpp", 0x4c, 0);
 }
 
 void __fastcall FOG_InitDataArray(D2DataArrayStrc * pDataArray) {

@@ -1016,7 +1016,7 @@ void __fastcall Q35_InitData(D2QuestDataStrc * pQuestData) {
     pQuestData->pNpcMessages = &A5Q5::aNpcGossipData;
     pQuestData->bIsActive = true;
     pQuestData->nStateFlag = 0;
-    D2QuestDataA5Q5Strc* pQuestSpecificData = D2_NEW_POOL(pGame->pMemoryPool, D2QuestDataA5Q5Strc);
+    D2QuestDataA5Q5Strc* pQuestSpecificData = ((D2QuestDataA5Q5Strc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2QuestDataA5Q5Strc), "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a5q5.cpp", 0x41d, 0));
     pQuestData->pQuestSpecificData.pA5Q5 = pQuestSpecificData;
     pQuestData->nQuestIdReal = QUEST_RiteOfPassage;
     pQuestData->fpStatusFilter = 0;

@@ -156,8 +156,8 @@ static BOOL __stdcall BeginAsyncReadForClient(D2QServerStrc * pQServer, D2QServe
     }
 }
 
-D2QServerClientPacketStrc * __stdcall NET_QServerClientPacket_CreateStructAndCopyBytesThere(D2QServerClientConnectionStrc * pQServerClient, size_t nSize, char * pBytes) {
-    D2QServerClientPacketStrc* pNewPacket = (D2QServerClientPacketStrc*)D2_ALLOC(nSize + 8);
+static D2QServerClientPacketStrc * __stdcall NET_QServerClientPacket_CreateStructAndCopyBytesThere(D2QServerClientConnectionStrc * pQServerClient, size_t nSize, char * pBytes) {
+    D2QServerClientPacketStrc* pNewPacket = (D2QServerClientPacketStrc*)Fog::Memory::AllocClientMemory(nSize + 8, ".\\Src\\QServer\\QServerNT.cpp", 0x440, 0);
     memcpy(&pNewPacket->pBytes, pBytes, nSize);
     pNewPacket->nPacketSize = nSize;
     pNewPacket->pQServerClientPacketNext = 0;
@@ -336,12 +336,12 @@ int __stdcall PopAndFreeCompletedSendPacket(D2QServerClientConnectionStrc * pCli
       return 1;
     }
 
-    D2_FREE(pMemoryToFree);
+    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\Src\\QServer\\QServerNT.cpp", 0x578, 0);
     return 1;
 }
 
 // Accept thread entry point for QServer network listener. Polls listening socket with select(), accepts incoming client connections via AcceptConnection(), and periodically sweeps expired hacklist entries to enforce IP-based rate limiting. Telemetry tracks performance of each accept operation substage (hacklist check, connection limit, IP rate, IOCP attachment, initial recv).
-static DWORD __stdcall AcceptThreadMain(void * lpThreadParam) {
+DWORD __stdcall AcceptThreadMain(void * lpThreadParam) {
     DWORD dwNextSweepTick;
     uint32_t dwQpcDelta;
     bool bRngCarry;
@@ -357,7 +357,7 @@ static DWORD __stdcall AcceptThreadMain(void * lpThreadParam) {
     pQServer = *(D2QServerStrc**)lpThreadParam;
     int nWorkerIndex;
     nWorkerIndex = *(int*)((int)lpThreadParam + 4);
-    D2_FREE(lpThreadParam);
+    Fog::Memory::FreeClientMemory(lpThreadParam, ".\\Src\\QServer\\QServerNT.cpp", 0x10d, 0);
     DWORD dwSleepMs;
     dwSleepMs = GetTickCount();
     int nStopFlag;
@@ -495,7 +495,7 @@ BOOL __fastcall SendToClientLocal(D2QServerStrc * pQServer, D2QServerClientConne
 }
 
 // NOTE: Register params: pQServer (ECX): D2QServerStrc *, nWorkerIndex (EDX): int
-static int __fastcall PumpIoCompletionQueueForWorker(D2QServerStrc * pQServer, int nWorkerIndex, uint32_t dwTimeoutMs) {
+int __fastcall PumpIoCompletionQueueForWorker(D2QServerStrc * pQServer, int nWorkerIndex, uint32_t dwTimeoutMs) {
     // Frame slots -20..-12 are ONE object: &dwBytesTransferred is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -636,20 +636,10 @@ static int __fastcall PumpIoCompletionQueueForWorker(D2QServerStrc * pQServer, i
 DWORD __stdcall IoWorkerThreadMain(void * lpThreadParam) {
     D2QServerStrc* pQServer = *(D2QServerStrc**)lpThreadParam;
     int nWorkerIndex = *(int*)((int)lpThreadParam + 4);
-    D2_FREE(lpThreadParam);
-    if (pQServer->bUseDedicatedIoWorkers) {
-      int iVar1;
-      iVar1 = pQServer->aIoWorkerStopFlags[nWorkerIndex];
-      while (!iVar1) {
-        PumpIoCompletionQueueForWorker(pQServer, nWorkerIndex, 0x32);
-        iVar1 = pQServer->aIoWorkerStopFlags[nWorkerIndex];
-      }
-
-      /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&pQServer->csClientLifecycle);
-      /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ pQServer->aIoWorkerStopFlags[nWorkerIndex] = 0;
-      LeaveCriticalSection(&pQServer->csClientLifecycle);
-      ErrorManager::StubHook2();
-      return 1;
+    Fog::Memory::FreeClientMemory(lpThreadParam, ".\\Src\\QServer\\QServerNT.cpp", 0x2ae, 0);
+    if (!pQServer->bUseDedicatedIoWorkers) {
+      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x2af);
+      exit(-1);
     }
 
     int iVar1;
@@ -744,14 +734,14 @@ SOCKET __fastcall StartListening(D2QServerStrc * pQServer, uint32_t nPort) {
         pQServer->aListenPorts[nResult] = (u_short)nPortLocal;
         pQServer->aListenSockets[nResult] = hListenSocket;
         pQServer->aWorkerSlotValues[nResult] = 1;
-        pThreadArgs = (uint32_t*)D2_ALLOC(8);
+        pThreadArgs = (uint32_t*)Fog::Memory::AllocClientMemory(8, ".\\Src\\QServer\\QServerNT.cpp", 0xa2, 0);
         /* LPDWORD lpThreadId for CreateThread */ /* DWORD dwCreationFlags for CreateThread */ /* LPVOID lpParameter for CreateThread */ /* LPTHREAD_START_ROUTINE lpStartAddress for CreateThread */ /* SIZE_T dwStackSize for CreateThread */ /* LPSECURITY_ATTRIBUTES lpThreadAttributes for CreateThread */ *pThreadArgs = (uint32_t)(uintptr_t)pQServer;
         pThreadArgs[1] = nResult;
         hThread = CreateThread((LPSECURITY_ATTRIBUTES)0x0, 0, (LPTHREAD_START_ROUTINE)AcceptThreadMain, pThreadArgs, 0, (LPDWORD)(pQServer->aAcceptThreadIds + nResult));
         pQServer->aAcceptThreadHandles[nResult] = hThread;
         ErrorManager::StubHook1();
         if (pQServer->bUseDedicatedIoWorkers) {
-          pThreadArgs = (uint32_t*)D2_ALLOC(8);
+          pThreadArgs = (uint32_t*)Fog::Memory::AllocClientMemory(8, ".\\Src\\QServer\\QServerNT.cpp", 0xb5, 0);
           pIocp = (int32_t)(pQServer->aIoWorkerThreadIds + nResult);
           /* LPDWORD lpThreadId for CreateThread */ /* DWORD dwCreationFlags for CreateThread */ /* LPVOID lpParameter for CreateThread */ /* LPTHREAD_START_ROUTINE lpStartAddress for CreateThread */ /* SIZE_T dwStackSize for CreateThread */ /* LPSECURITY_ATTRIBUTES lpThreadAttributes for CreateThread */ *pThreadArgs = (uint32_t)(uintptr_t)pQServer;
           pThreadArgs[1] = nResult;

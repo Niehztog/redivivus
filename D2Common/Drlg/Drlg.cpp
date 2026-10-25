@@ -215,7 +215,7 @@ static void __stdcall DRLGLEVEL_FreeLevelSubStructs(D2PoolManagerStrc * pMemory,
     pLevel->nSpawnPointCount = 0;
     memset(&pLevel->sWarpCoordinates, 0, 0x4c);
     if (!bFreeSubStructs && pLevel->pAutomapEx) {
-      D2_FREE_POOL(pMemory, pLevel->pAutomapEx);
+      Fog::Memory::FreeServerMemory(pMemory, pLevel->pAutomapEx, ".\\DRLG\\Drlg.cpp", 0xb7, 0);
       pLevel->pAutomapEx = 0;
     }
 
@@ -226,7 +226,7 @@ static void __stdcall DRLGLEVEL_FreeLevelSubStructs(D2PoolManagerStrc * pMemory,
 
     do {
       pNextLinkNode = pMemoryToFree->pNext;
-      D2_FREE_POOL(pMemory, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(pMemory, pMemoryToFree, ".\\DRLG\\Drlg.cpp", 0xc5, 0);
       pMemoryToFree = pNextLinkNode;
     } while (pNextLinkNode);
 
@@ -241,7 +241,7 @@ void __fastcall DRLGACT_FreeDrlgActMisc(D2DrlgStrc * pDrlg) {
       do {
         pNextLevel = pLevel->pLevelNext;
         DRLGLEVEL_FreeLevelSubStructs(pDrlg->pMemoryPool, 0, pLevel);
-        D2_FREE_POOL(pDrlg->pMemoryPool, pLevel);
+        Fog::Memory::FreeServerMemory(pDrlg->pMemoryPool, pLevel, ".\\DRLG\\Drlg.cpp", 0xdd, 0);
         pLevel = pNextLevel;
       } while (pNextLevel);
 
@@ -252,14 +252,14 @@ void __fastcall DRLGACT_FreeDrlgActMisc(D2DrlgStrc * pDrlg) {
     if (pDrlg->pWarpsInfo) {
       do {
         pNextWarpsInfo = pWarpsInfo->pNext;
-        D2_FREE_POOL(pDrlg->pMemoryPool, pWarpsInfo);
+        Fog::Memory::FreeServerMemory(pDrlg->pMemoryPool, pWarpsInfo, ".\\DRLG\\Drlg.cpp", 0xec, 0);
         pWarpsInfo = pNextWarpsInfo;
       } while (pNextWarpsInfo);
 
       pDrlg->pWarpsInfo = 0;
     }
 
-    D2_FREE_POOL(pDrlg->pMemoryPool, pDrlg);
+    Fog::Memory::FreeServerMemory(pDrlg->pMemoryPool, pDrlg, ".\\DRLG\\Drlg.cpp", 0xf2, 0);
 }
 
 eD2LevelId __fastcall GetHoradricStaffTombLevelId(D2DrlgStrc * pDrlg) {
@@ -607,7 +607,7 @@ D2DrlgActWarpsInfoStrc * __fastcall DRLGACT_AllocWarpsInfo(D2DrlgStrc * pDrlg, e
     while (true) {
       if (!pExistingWarpsInfo) {
         pLevelDefs = DATATBLS::LvlTbls::TXT_LevelDefs_GetLine(eLevel);
-        pWarpsInfo = D2_NEW_POOL(pDrlg->pMemoryPool, D2DrlgActWarpsInfoStrc);
+        pWarpsInfo = ((D2DrlgActWarpsInfoStrc*)Fog::Memory::AllocServerMemory(pDrlg->pMemoryPool, sizeof(D2DrlgActWarpsInfoStrc), ".\\DRLG\\Drlg.cpp", 0x3e0, 0));
         pWarpsInfo->nLevelId = eLevel;
         pWarpsInfo->nTargetArea[0] = pLevelDefs->Vis[0];
         pWarpsInfo->nWarpId[0] = pLevelDefs->Warp[0];
@@ -745,7 +745,7 @@ D2DrlgLevelStrc * __fastcall DRLGACTMISC_AllocDrlgLevel(D2DrlgStrc * pDrlg, eD2L
                (unsigned)(uintptr_t)__builtin_return_address(0),
                (unsigned)(uintptr_t)__builtin_return_address(1),
                (unsigned)(uintptr_t)__builtin_return_address(2));
-    D2DrlgLevelStrc* pLevel = D2_NEW_POOL(pDrlg->pMemoryPool, D2DrlgLevelStrc);
+    D2DrlgLevelStrc* pLevel = ((D2DrlgLevelStrc*)Fog::Memory::AllocServerMemory(pDrlg->pMemoryPool, sizeof(D2DrlgLevelStrc), ".\\DRLG\\Drlg.cpp", 0x1a8, 0));
     memset(pLevel, 0, 0x230);
     pLevel->pDrlg = pDrlg;
     pLevel->eD2LevelId = eLevel;
@@ -1034,7 +1034,7 @@ void __fastcall ChangeActiveRoomBetweenLevels(D2RoomExStrc * pRoomEx, D2RoomExSt
 }
 
 // Frees room tile data and near-room arrays for neighboring level rooms.
-static BOOL __stdcall DRLG_FreeAdjacentLevelRoomData(D2DrlgLevelStrc * pLevel) {
+BOOL __stdcall DRLG_FreeAdjacentLevelRoomData(D2DrlgLevelStrc * pLevel) {
     D2DrlgLevelStrc* pVisLevel;
     eD2LevelId* pVisLevelIds2;
     uint32_t dwNeighborFlags;
@@ -1106,7 +1106,7 @@ static BOOL __stdcall DRLG_FreeAdjacentLevelRoomData(D2DrlgLevelStrc * pLevel) {
             if (pRoomEx->eRoomExFlags & dwNeighborFlags) {
               DrlgRoom::DRLGROOMEX_FreeDrlgRoomTile(pMemory, pRoomEx);
               if (pRoomEx->ppDrlgRoomsExNear) {
-                D2_FREE_POOL(pMemory, pRoomEx->ppDrlgRoomsExNear);
+                Fog::Memory::FreeServerMemory(pMemory, pRoomEx->ppDrlgRoomsExNear, ".\\DRLG\\Drlg.cpp", 0x16f, 0);
                 pRoomEx->ppDrlgRoomsExNear = 0;
                 pRoomEx->nDrlgRoomsExNearCount = 0;
               }
@@ -4349,13 +4349,13 @@ D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D
         if ((uint16_t)nDirDelta < pAStarCtx->nMinX) {
           return pCurNode;
         }
-        if (pAStarCtx->nMaxX < (uint16_t)nDirDelta) {
+        if ((uint16_t)nDirDelta > pAStarCtx->nMaxX) {
           return pCurNode;
         }
         if ((uint16_t)nParam2Packed < pAStarCtx->nMinY) {
           return pCurNode;
         }
-        if (pAStarCtx->nMaxY < (uint16_t)nParam2Packed) {
+        if ((uint16_t)nParam2Packed > pAStarCtx->nMaxY) {
           return pCurNode;
         }
 
@@ -4404,7 +4404,7 @@ D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D
       }
 
       nMinDelta = nHashIdx;
-      if (nDirIndex <= nHashIdx) {
+      if (nHashIdx >= nDirIndex) {
         nMinDelta = nDirIndex;
         if (nDirIndex < nHashIdx) {
           nDirIndex = nHashIdx;
@@ -4451,9 +4451,7 @@ D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D
       nDirIndex = Path::DRLGPATH_GetPathDirectionPacked(nPackedNeighbor, nTargetPacked);
       nHashIdx = *(int*)((int)pCurNode->pParent + 0x10);
       pCurNode->pSeedPtr = gnDrlgLevelSeed + (nDirIndex - nHashIdx & 7U) * 8;
-      if (!pAStarCtx->bRandomizeDirection) {
-        pCurNode->nDirection = *(int*)((int)pCurNode->pParent + 0x10) + gnDrlgLevelSeed[(nDirIndex - nHashIdx & 7U) * 8] & 7;
-      } else {
+      if (pAStarCtx->bRandomizeDirection) {
         pChildSlotBase = (short int*)pAStarCtx->pSeed;
         lSeedNext = (uint64_t)*(uint32_t*)pChildSlotBase * 0x6ac690c5 + (uint64_t)*(uint32_t*)(pChildSlotBase + 2);
         *(int64_t*)pChildSlotBase = lSeedNext;
@@ -6314,7 +6312,7 @@ int * __stdcall DRLGOUTROOM_PathSearchStep(int * * ppNodeList, int32_t nMaxFCost
         }
 
         nHMin = nFCost;
-        if (nHCost <= nFCost) {
+        if (nFCost >= nHCost) {
           nHMin = nHCost;
           if (nHCost < nFCost) {
             nHCost = nFCost;

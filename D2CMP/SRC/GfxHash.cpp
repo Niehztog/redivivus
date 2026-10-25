@@ -36,7 +36,7 @@ namespace D2CMP::SRC::GfxHash {
 // Unlinks hash entry pEntry from its bucket (pHashTable + 0x8000 + [pEntry+0]*4 -> [pEntry+0x2c]), frees the cache block's
 // async frame buffer (+0x20 -> tDecode) and the entry itself. The entry node struct (+0 hash, +0x20 cache block, +0x28/+0x2c links) is untyped.
 // @sourcefile .\SRC\GfxHash.cpp
-static void __fastcall GFXHASH_UnlinkCacheEntry(int32_t pHashTable, D2PoolManagerStrc * pMemory, int * pEntry) {
+void __fastcall GFXHASH_UnlinkCacheEntry(int32_t pHashTable, D2PoolManagerStrc * pMemory, int * pEntry) {
     int* pPixelData;
     pfnCelPixelDataFree pFreeCallback;
     int* pFrameData;
@@ -77,7 +77,7 @@ static void __fastcall GFXHASH_UnlinkCacheEntry(int32_t pHashTable, D2PoolManage
           } while (nFrameIdx < (uint32_t)pCacheBlock->tDecode.nFramesPerDir * (uint32_t)pCacheBlock->tDecode.nDirCount);
         }
         if (pMemoryToFree) {
-          D2_FREE_POOL(pMemory, pMemoryToFree);
+          Fog::Memory::FreeServerMemory(pMemory, pMemoryToFree, ".\\SRC\\GfxHash.cpp", 0x82, 0);
         }
       }
 
@@ -85,7 +85,7 @@ static void __fastcall GFXHASH_UnlinkCacheEntry(int32_t pHashTable, D2PoolManage
       pCacheBlock->tDecode.pAsyncData = 0;
     }
 
-    D2_FREE_POOL(pMemory, pEntry);
+    Fog::Memory::FreeServerMemory(pMemory, pEntry, ".\\SRC\\GfxHash.cpp", 0x8e, 0);
 }
 
 void __fastcall GFXHASH_InitHashTable(void * pParam) {
@@ -171,9 +171,7 @@ static uint32_t GFXHASH_CalcHashKey(D2GfxDataStrc * pGfxData, uint32_t * pnParam
     uint32_t nDirIdx = GFXHASH_CalcDirectionIndex((int32_t)pGfxData, pnParam1, pCelEntry);
     *pnParam2 = nDirIdx;
     eD2UnitType eUnitType = pGfxData->eUnitType;
-    if (!(eUnitType == UNIT_COUNT && pGfxData->dwFlags & 2 || eUnitType == UNIT_MISSILE || eUnitType == UNIT_ITEM)) {
-      nHashAccum = pGfxData->nWeaponClass + pGfxData->nModeToken + pGfxData->nArmorToken + pGfxData->nCompositToken + pGfxData->nUnitToken + nDirIdx;
-    } else {
+    if (eUnitType == UNIT_COUNT && pGfxData->dwFlags & 2 || eUnitType == UNIT_MISSILE || eUnitType == UNIT_ITEM) {
       if (!pGfxData->szFilename) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2c);
         exit(-1);
@@ -181,6 +179,8 @@ static uint32_t GFXHASH_CalcHashKey(D2GfxDataStrc * pGfxData, uint32_t * pnParam
 
       nDirIdx = Storm::Source::SSTR::SStrHash(pGfxData->szFilename, 1, 0);
       nHashAccum = nDirIdx + *pnParam2;
+    } else {
+      nHashAccum = pGfxData->nWeaponClass + pGfxData->nModeToken + pGfxData->nArmorToken + pGfxData->nCompositToken + pGfxData->nUnitToken + nDirIdx;
     }
 
     return ((nHashAccum >> 8 ^ nHashAccum) >> 0x10 ^ nHashAccum >> 8 ^ nHashAccum) & 0x1fff;
@@ -237,7 +237,7 @@ int32_t __fastcall GFXHASH_FindEntryByGfxData(void * pHashTable, D2GfxDataStrc *
 
 // @sourcefile .\SRC\GfxHash.cpp
 uint32_t * __fastcall GFX_AllocCacheEntry(D2PoolManagerStrc * pMemory, void * pHashTable, uint32_t nDirIdxOut, D2GfxDataStrc * pGfxData, D2CelFileCacheEntryStrc * pCelEntry) {
-    uint32_t* pNewEntry = (uint32_t*)D2_ALLOC_POOL(pMemory, 0x30);
+    uint32_t* pNewEntry = (uint32_t*)Fog::Memory::AllocServerMemory(pMemory, 0x30, ".\\SRC\\GfxHash.cpp", 0xef, 0);
     D2GfxDataStrc* nGfxDataSaved = pGfxData;
     pNewEntry[8] = nDirIdxOut;
     nDirIdxOut = 0;

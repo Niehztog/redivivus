@@ -122,7 +122,7 @@ void __fastcall IMAGE_FreeImage(DC6 * pDC6) {
       return;
     }
 
-    D2_FREE(pDC6);
+    Fog::Memory::FreeClientMemory(pDC6, ".\\Src\\D2WinArchive.cpp", 0x5c, 0);
 }
 
 BOOL MessageBoxA_InsertExpansionDisc() {

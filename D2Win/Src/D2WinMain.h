@@ -93,7 +93,7 @@ BOOL __stdcall D2WINMAIN_SetFocusedControl(struct D2ControlStrc * pControl);
 BOOL __stdcall FORMS_AddControlToGlobalList(struct D2ControlStrc * pControl);
 BOOL __fastcall FORMS_AppendFormToDestroyQueue(struct D2ControlStrc * pControl);
 // @sourcefile .\Src\D2WinMain.cpp
-int __stdcall D2WINMAIN_FreeLeadingFormControls();
+void __stdcall D2WINMAIN_FreeLeadingFormControls();
 void __stdcall FORMS_DestroyControl(struct D2ControlStrc * pControl);
 struct D2ControlStrc * __stdcall FORMS_CreateAnyForm(struct FORMS_PredefinedFormStrc * pForm);
 void __stdcall FORMS_DestroyAnyForm(struct D2ControlStrc * * pForm);

@@ -1665,10 +1665,10 @@ BOOL __fastcall UpdateSaveFileToExpansion(char * szCharname) {
     }
 
     Fog::Source::SFile::thunk_ReadFile(hFile, &__frame0.sSaveHeader, 0x2000, &__frame1.dwBytesRead, (LPOVERLAPPED)0x0);
-    if (!(7 < __frame1.dwBytesRead && __frame0.sSaveHeader.dwHeader == 0xaa55aa55)) {
+    if (!(8 <= __frame1.dwBytesRead && __frame0.sSaveHeader.dwHeader == 0xaa55aa55)) {
       return 0;
     }
-    if (__frame0.sSaveHeader.dwFileVersion < 0x5c) {
+    if (__frame0.sSaveHeader.dwFileVersion <= 0x5b) {
       if (__frame1.dwBytesRead < 0x82) {
         return 0;
       }

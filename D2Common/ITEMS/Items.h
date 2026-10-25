@@ -80,19 +80,19 @@ void __stdcall SetMagixPrefix(struct D2UnitStrc * pUnit, int16_t wMagicPrefix, i
 int __stdcall GetAutoMagic(struct D2UnitStrc * pUnit);
 void __stdcall SetAutoMagic(struct D2UnitStrc * pUnit, int16_t wAutoMagic);
 // Returns magic suffix ID at nIndex (offset 0x3E + nIndex*2) from D2UnitDataItemStrc. Returns 0 if unit is null, not an item, or has no item data.
-int GetMagicSuffix(struct D2UnitStrc * pUnit, int nIndex);
+int __stdcall GetMagicSuffix(struct D2UnitStrc * pUnit, int nIndex);
 void __stdcall SetMagicSuffix(struct D2UnitStrc * pUnit, int16_t wMagicSuffix, int32_t nIndex);
 int16_t __stdcall GetRarePrefix(struct D2UnitStrc * pUnit);
 void __stdcall SetRarePrefix(struct D2UnitStrc * pUnit, int16_t wRarePrefix);
 int16_t __stdcall GetRareSuffix(struct D2UnitStrc * pUnit);
 void __stdcall SetRareSuffix(struct D2UnitStrc * pUnit, int16_t wRareSuffix);
-BOOL CheckItemFlag(struct D2UnitStrc * pUnit, eD2ItemFlag neD2ItemFlag, int32_t nParam, char * szText);
+BOOL __stdcall CheckItemFlag(struct D2UnitStrc * pUnit, eD2ItemFlag neD2ItemFlag, int32_t nParam, char * szText);
 bool __stdcall ITEM_EditItemData_eItemFlag(struct D2UnitStrc * pUnit, eD2ItemFlag eItemFlag, BOOL bSet);
 eD2ItemFlag __stdcall ITEM_GetItemData_eD2ItemFlag(struct D2UnitStrc * pUnit);
 uint32_t __stdcall ITEM_CheckItemData_eD2ItemCmd(struct D2UnitStrc * pUnit, eD2ItemCmd eItemCmd);
 void __stdcall ITEM_EditItemData_eD2ItemCmd(struct D2UnitStrc * pUnit, eD2ItemCmd eItemCmd, BOOL bRemove);
 eD2ItemCmd __stdcall ITEM_GetItemData_eD2ItemCmd(struct D2UnitStrc * pUnit);
-int32_t ITEM_GetItemData_nItemLevel(struct D2UnitStrc * pUnit);
+int32_t __stdcall ITEM_GetItemData_nItemLevel(struct D2UnitStrc * pUnit);
 void __stdcall ITEM_SetItemData_nItemLevel(struct D2UnitStrc * pUnit, int32_t nLevel);
 eInventoryPage __stdcall ITEM_GetContainingInventoryPage(struct D2UnitStrc * pUnit);
 void __stdcall ITEM_SetItemData_ePage(struct D2UnitStrc * pUnit, eInventoryPage ePage);
@@ -203,8 +203,7 @@ void __stdcall ITEM_SetItemData_wItemVersion(struct D2UnitStrc * pUnit, int16_t 
 int __stdcall ITEM_CalcWeaponAttackSpeed(struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem);
 // Checks whether all charged-skill stats (stat 0xCC) on pItem are at full charges. Returns true if the item has at least one charged stat and all are fully charged. Optionally writes a 4-byte result struct to pOutFullyCharged: byte[0]=hasChargedSkills, byte[1..3]=false if any charge is depleted.
 BOOL __stdcall ITEMS_CheckChargedSkillFullyCharged(struct D2UnitStrc * pItem, bool * pOutFullyCharged);
-uint32_t ITEM_GetItemData_eD2ItemFlag_IsEthereal(struct D2UnitStrc * pUnit);
-int32_t ITEMS_CountContainerItems(struct D2UnitStrc * pItem);
+uint32_t __stdcall ITEM_GetItemData_eD2ItemFlag_IsEthereal(struct D2UnitStrc * pUnit);
 // Deserializes an item's header from a bit-buffer (save/network item blob) into pItem. Reads the 10-bit item version, a 3-bit location code (3/5 = absolute X/Y world coords for ground/static placement, else body-loc + grid X/Y + inventory page), and the owner/flags. For normal items reads a 4-char item code (resolving nClassId), special-cases gold (12- or 32-bit amount stat) and identified scrolls; for ear/personalized items reads the inscribed player name. For file versions > 0x5c attaches a quest-item-difficulty stat when the item is a quest item with diff-check. Optionally reads ground-placement seeds (ver > 0x56/0x5d). Resets seed/init-seed state. Returns 1 on success, -1 if the item code can't be resolved (uses custom register args: pItem in EAX, pBitBuffer in EDI).
 int __stdcall ITEMS_DeserializeItemHeader(int32_t bIsOnGround, uint32_t nFileVersion, struct D2UnitStrc * pItem, struct D2BitBufferStrc * pBitBuffer);
 // Deserializes the header fields of a D2 item from a packed bit-stream into a D2UnitDataItemDetailsStrc. Reads flags (32 bits), skips 10 bits (version + destination prefix), decodes the 3-bit destination: if stored/socketed (3 or 5) reads 16-bit x/y grid coords; otherwise reads body-loc, x, y, and inventory page. Handles the BODYPART (ear) special case for the item code tag, applies a legacy "nec " -> "neg " fixup for saves pre-version 0x5D, converts the 4-char code to a classId, and reads the socket count for non-compact non-crude items.

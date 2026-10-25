@@ -291,7 +291,7 @@ D2InventoryStrc * __stdcall STRUCT_CreatePlayerInventory(D2PoolManagerStrc * pMe
       pMemory = pUnit->pMemory;
     }
 
-    D2InventoryStrc* pInventoryStrc = D2_NEW_POOL(pMemory, D2InventoryStrc);
+    D2InventoryStrc* pInventoryStrc = ((D2InventoryStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2InventoryStrc), ".\\INVENTORY\\Inventory.cpp", 0x22d, 0));
     if (!pInventoryStrc) {
       return nullptr;
     }
@@ -335,7 +335,7 @@ void __stdcall STRUCT_FreeInventory(D2InventoryStrc * pInventory) {
       do {
         pInventoryGrid = *(D2InventoryGridStrc**)&pInventory->pGrids[nGridOffset].pGridCells;
         if (pInventoryGrid) {
-          D2_FREE_POOL(pInventory->pMemory, pInventoryGrid);
+          Fog::Memory::FreeServerMemory(pInventory->pMemory, pInventoryGrid, ".\\INVENTORY\\Inventory.cpp", 0x261, 0);
         }
 
         nGridIdx++;
@@ -343,7 +343,7 @@ void __stdcall STRUCT_FreeInventory(D2InventoryStrc * pInventory) {
       } while (nGridIdx < pInventory->nGridCount);
     }
     if (pInventory->pGrids) {
-      D2_FREE_POOL(pInventory->pMemory, pInventory->pGrids);
+      Fog::Memory::FreeServerMemory(pInventory->pMemory, pInventory->pGrids, ".\\INVENTORY\\Inventory.cpp", 0x267, 0);
     }
     if (pInventory->pOwner) {
       pInventory->pOwner->pInventory = 0;
@@ -352,18 +352,18 @@ void __stdcall STRUCT_FreeInventory(D2InventoryStrc * pInventory) {
     D2InventoryToBeUpdatedStrc* pUpdates = pInventory->pUpdates;
     while (pUpdates) {
       pNextUpdate = pUpdates->pNext;
-      D2_FREE_POOL(pInventory->pMemory, pUpdates);
+      Fog::Memory::FreeServerMemory(pInventory->pMemory, pUpdates, ".\\INVENTORY\\Inventory.cpp", 0x273, 0);
       pUpdates = pNextUpdate;
     }
 
     D2CorpseStrc* pCorpse = pInventory->pCorpse;
     while (pCorpse) {
       pNextCorpse = pCorpse->pNext;
-      D2_FREE_POOL(pInventory->pMemory, pCorpse);
+      Fog::Memory::FreeServerMemory(pInventory->pMemory, pCorpse, ".\\INVENTORY\\Inventory.cpp", 0x27b, 0);
       pCorpse = pNextCorpse;
     }
 
-    D2_FREE_POOL(pInventory->pMemory, pInventory);
+    Fog::Memory::FreeServerMemory(pInventory->pMemory, pInventory, ".\\INVENTORY\\Inventory.cpp", 0x27f, 0);
 }
 
 BOOL __stdcall INVENTORY_CheckDoItemBelongToInventory(D2InventoryStrc * pInventory, D2UnitStrc * pUnit) {
@@ -413,7 +413,7 @@ static D2InventoryGridInfoStrc * __stdcall ReinitializeInventoryGrid(D2Inventory
           pGridInfo->bWidth = pInventorySize->Width;
           byWidth = pInventorySize->Height;
           pGridInfo->bHeight = byWidth;
-          pNewGrid = (D2UnitStrc**)D2_ALLOC_POOL(pInventory->pMemory, (uint32_t)pGridInfo->bWidth * (uint32_t)byWidth * 4);
+          pNewGrid = (D2UnitStrc**)Fog::Memory::AllocServerMemory(pInventory->pMemory, (uint32_t)pGridInfo->bWidth * (uint32_t)byWidth * 4, ".\\INVENTORY\\Inventory.cpp", 0x2d1, 0);
           pGridInfo->pGridCells = pNewGrid;
           memset(pNewGrid, 0, (uint32_t)pGridInfo->bWidth * (uint32_t)pGridInfo->bHeight * 4);
         }
@@ -427,7 +427,7 @@ static D2InventoryGridInfoStrc * __stdcall ReinitializeInventoryGrid(D2Inventory
         return nullptr;
       }
 
-      pGridInfo = (D2InventoryGridInfoStrc*)D2_REALLOC_POOL(pInventory->pMemory, pInventory->pGrids, nNewGridSize * 0x10 + 0x10);
+      pGridInfo = (D2InventoryGridInfoStrc*)Fog::Memory::ReAllocServerMemory(pInventory->pMemory, pInventory->pGrids, nNewGridSize * 0x10 + 0x10, ".\\INVENTORY\\Inventory.cpp", 0x2e4, 0);
       pInventory->pGrids = pGridInfo;
       memset(pGridInfo + pInventory->nGridCount, 0, (nNewGridSize - pInventory->nGridCount + 1) * 0x10);
       pInventory->nGridCount = nNewGridSize + 1;
@@ -436,7 +436,7 @@ static D2InventoryGridInfoStrc * __stdcall ReinitializeInventoryGrid(D2Inventory
       pGridInfo->bWidth = byWidth;
       byHeight = pInventorySize->Height;
       pGridInfo->bHeight = byHeight;
-      pNewGrid = (D2UnitStrc**)D2_ALLOC_POOL(pInventory->pMemory, (uint32_t)byWidth * (uint32_t)byHeight * 4);
+      pNewGrid = (D2UnitStrc**)Fog::Memory::AllocServerMemory(pInventory->pMemory, (uint32_t)byWidth * (uint32_t)byHeight * 4, ".\\INVENTORY\\Inventory.cpp", 0x2eb, 0);
       pGridInfo->pGridCells = pNewGrid;
       memset(pNewGrid, 0, (uint32_t)pGridInfo->bWidth * (uint32_t)pGridInfo->bHeight * 4);
     }
@@ -2152,7 +2152,7 @@ void __stdcall FreeUpdatesFromInventory(D2InventoryStrc * pInventory) {
     while (pMemoryToFree) {
       D2InventoryToBeUpdatedStrc* pvVar1;
       pvVar1 = pMemoryToFree->pNext;
-      D2_FREE_POOL(pInventory->pMemory, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(pInventory->pMemory, pMemoryToFree, ".\\INVENTORY\\Inventory.cpp", 0xcbb, 0);
       pMemoryToFree = pvVar1;
     }
 
@@ -2186,7 +2186,7 @@ void __stdcall UpsertToUpdateList(D2InventoryStrc * pInventory, D2UnitStrc * pIt
       return;
     }
 
-    D2InventoryToBeUpdatedStrc* pNewUpdate = D2_NEW_POOL(pInventory->pMemory, D2InventoryToBeUpdatedStrc);
+    D2InventoryToBeUpdatedStrc* pNewUpdate = ((D2InventoryToBeUpdatedStrc*)Fog::Memory::AllocServerMemory(pInventory->pMemory, sizeof(D2InventoryToBeUpdatedStrc), ".\\INVENTORY\\Inventory.cpp", 0xd09, 0));
     if (!pNewUpdate) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd0a);
       exit(-1);
@@ -2837,7 +2837,7 @@ void __stdcall INVENTORY_AddCorpse(D2InventoryStrc * pInventory, int32_t nUnitGU
       return;
     }
 
-    D2CorpseStrc* pCorpse = D2_NEW_POOL(pInventory->pMemory, D2CorpseStrc);
+    D2CorpseStrc* pCorpse = ((D2CorpseStrc*)Fog::Memory::AllocServerMemory(pInventory->pMemory, sizeof(D2CorpseStrc), ".\\INVENTORY\\Inventory.cpp", 0xfea, 0));
     pCorpse->eUnitType = eUnitType;
     pCorpse->nUnitGUID = nUnitGUID;
     pCorpse->dwFlags = dwFlags;
@@ -2895,7 +2895,7 @@ BOOL __stdcall INVENTORY_RemoveCorpse(D2InventoryStrc * pInventory, int32_t nGUI
       pInventory->nCorpseCount--;
     }
 
-    D2_FREE_POOL(pInventory->pMemory, pMemoryToFree);
+    Fog::Memory::FreeServerMemory(pInventory->pMemory, pMemoryToFree, ".\\INVENTORY\\Inventory.cpp", 0x1034, 0);
     return 1;
 }
 
@@ -2917,7 +2917,7 @@ void __stdcall INVENTORY_FreeNotifications(int * pnParam) {
     while (pMemoryToFree) {
       void* pNextNotification;
       pNextNotification = *(void**)((int)pMemoryToFree + 0xc);
-      D2_FREE_POOL((D2PoolManagerStrc*)pnParam[1], pMemoryToFree);
+      Fog::Memory::FreeServerMemory((D2PoolManagerStrc*)pnParam[1], pMemoryToFree, ".\\INVENTORY\\Inventory.cpp", 0x1071, 0);
       pMemoryToFree = pNextNotification;
     }
 
@@ -4738,10 +4738,10 @@ static BOOL __stdcall INVENTORY_CanTransferMercItems(D2UnitStrc * pUnit, D2Inven
         pCurrentItem = (D2UnitStrc*)(pNextItem->eUnitType != UNIT_ITEM ? 0 : (uint32_t)pNextItem);
         if (pNextItem->eUnitType == UNIT_ITEM) {
           pItemUnitData = pNextItem->pUnitData.pUnitDataItem;
-          if (!pItemUnitData || pItemUnitData == (D2UnitDataItemStrc*)-92) {
-            pNextItem = 0;
-          } else {
+          if (!(!pItemUnitData || pItemUnitData == (D2UnitDataItemStrc*)-92)) {
             pNextItem = pItemUnitData->pNextItem;
+          } else {
+            pNextItem = 0;
           }
         } else {
           pNextItem = 0;
@@ -4768,7 +4768,7 @@ BOOL __stdcall CreateCopyOfInventoryForTrading(D2PoolManagerStrc * pMemory, D2Un
     D2InventoryStrc* pInventory2;
     D2PoolManagerStrc* pMemory_00 = pMemory;
     _bSuccess = 0;
-    D2InventoryStrc* pInventoryCopy = D2_NEW_POOL(pMemory, D2InventoryStrc);
+    D2InventoryStrc* pInventoryCopy = ((D2InventoryStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2InventoryStrc), ".\\INVENTORY\\Inventory.cpp", 0x22d, 0));
     if (!pInventoryCopy) {
       pInventory2 = 0;
     } else {
@@ -4779,7 +4779,7 @@ BOOL __stdcall CreateCopyOfInventoryForTrading(D2PoolManagerStrc * pMemory, D2Un
       pInventory2 = pInventoryCopy;
     }
 
-    D2InventoryStrc* pInventory = D2_NEW_POOL(pMemory_00, D2InventoryStrc);
+    D2InventoryStrc* pInventory = ((D2InventoryStrc*)Fog::Memory::AllocServerMemory(pMemory_00, sizeof(D2InventoryStrc), ".\\INVENTORY\\Inventory.cpp", 0x22d, 0));
     if (!pInventory) {
       pInventory = 0;
     } else {

@@ -1680,7 +1680,7 @@ BOOL __stdcall DRLGPATH_RaycastBresenhamLine(uint32_t nPackedSrc, uint32_t * pnP
     uint16_t nDstX = (uint16_t)nPackedDst;
     uint16_t nDstY = (uint16_t)(nPackedDst >> 0x10);
     uint16_t nIterCoord = nDstY;
-    if (nStepsY < nStepsX) {
+    if (nStepsX > nStepsY) {
       if (!nDeltaX) {
         if (nCurY != nDstY) {
           while (true) {
@@ -1865,7 +1865,7 @@ int32_t __fastcall DRLGPATH_SmoothPathPoints(D2PathTypeArg * pPathTypeArg) {
       int nIterCount;
       D2DynamicPathStrc* pPathStrc;
       bool bWaypointAdded;
-      uint8_t __pad37[3];
+      struct { uint8_t e0, e1, e2; } __pad37;
       uint32_t nPackedDst;
       int nWaypointCount;
       D2PathPointStrc nPackedSrc;
@@ -2198,7 +2198,7 @@ uint32_t __fastcall DRLGPATH_IsPositionInBounds(int32_t pThis, uint32_t nPackedP
 }
 
 // Advances a path node's direction by stepping through its direction delta table. Optionally applies a random perturbation from the seed. Used during A* node expansion.
-void DRLGPATH_AdvanceNodeDirection(D2DrlgRoomAStarNodeStrc * pNode, D2DrlgAStarContextStrc * pAStarCtx) {
+static void DRLGPATH_AdvanceNodeDirection(D2DrlgRoomAStarNodeStrc * pNode, D2DrlgAStarContextStrc * pAStarCtx) {
     D2SeedStrc lSeedNext;
     if (pAStarCtx->bRandomizeDirection) {
       D2SeedStrc* pDVar1;

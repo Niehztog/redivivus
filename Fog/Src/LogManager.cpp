@@ -1004,7 +1004,7 @@ D2CharSelCompStrc * __fastcall ReadLogFileRange(uint8_t * szFileName, int32_t nS
     _SYSTEMTIME localTime;
     size_t nAllocSize = nEndOffset - nStartOffset + 1;
     int32_t nSavedStart = nStartOffset;
-    D2CharSelCompStrc* pBuffer = (D2CharSelCompStrc*)D2_ALLOC(nAllocSize);
+    D2CharSelCompStrc* pBuffer = (D2CharSelCompStrc*)Fog::Memory::AllocClientMemory(nAllocSize, ".\\Src\\LogManager.cpp", 0x10a, 0);
     memset(pBuffer, 0, nAllocSize);
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&gLogFileCS);
     CloseLogFileByName(szFileName);

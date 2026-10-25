@@ -533,8 +533,7 @@ BOOL __fastcall Skills_SrvDoFunc_129_AttachOrDetachFromHost(::SGAMEDATA * pGame,
     }
 
     int32_t bRelocateSucceeded = 1;
-    uint32_t nPosX = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit_00);
-    bIsDead = UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, D2Common::Units::UNITS_GetRoom(pUnit_00), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00), nPosX, bRelocateSucceeded, bIsDead);
+    bIsDead = UNIT::SUnit::SUNIT_RelocateUnit(pGame, pUnit, D2Common::Units::UNITS_GetRoom(pUnit_00), D2Client::Units::GetXPosFromDynamicPathUnit(pUnit_00), D2Client::Units::GetYPosFromDynamicPathUnit(pUnit_00), bRelocateSucceeded, bIsDead);
     if (!bIsDead) {
       return 0;
     }
@@ -616,9 +615,9 @@ BOOL __fastcall Skills_SrvDoFunc_130_SpawnSubMissiles(::SGAMEDATA * pGame, D2Uni
     return 1;
 }
 
-void __stdcall SKILLEMONST_ApplyAuraBuff(D2UnitStrc * pUnit, D2UnitStrc * pTarget, eD2Skills eSkill, int32_t nSkillLvl) {
+static void __stdcall SKILLEMONST_ApplyAuraBuff(D2UnitStrc * pUnit, D2UnitStrc * pTarget, eD2Skills eSkill, int32_t nSkillLvl) {
     D2StateExArgStrc sStateExArg;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return;
     }
 
@@ -732,7 +731,7 @@ BOOL __fastcall Skills_SrvDoFunc_131_ConditionalTransformOrBuff(::SGAMEDATA * pG
       if (nBaseId == 0x1c5) {
         nBaseId = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillRecord->calc[0], eSkill, nSkillLvl);
         nRandPct = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 100);
-        if ((int)nRandPct >= nBaseId) {
+        if (nBaseId <= (int)nRandPct) {
           eTargetState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit_00, (int)pSkillRecord->auratargetstate);
           if (eTargetState == STATE_none) {
             SKILLEMONST_TransformMonsterClass(pUnit, nSkillLvl, pGame, pUnit_00, eSkill);

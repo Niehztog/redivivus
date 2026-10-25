@@ -2641,9 +2641,7 @@ void __fastcall PLAYER_ProcessPlayerModeSimulation(D2UnitStrc * pUnit) {
         pUnit->dwLastHitClass = 0;
         UnitMode::UNITMODE_SetAnimMode(pUnit, eD2PlayerAnimMode_ns::GetHit);
         Path::PATH_MoveUnitToPoint(pUnit, nX, nPosX, 1, 0, 0);
-      } else if (pUnit->eUnitType == UNIT_PLAYER && (pPlayerData = pUnit->pUnitData.pUnitDataPlayer , pPlayerData != 0) && pPlayerData->eQueuedSkillId) {
-        pPlayerData->bHasPendingInteract = 1;
-      } else {
+      } else if (!(pUnit->eUnitType == UNIT_PLAYER && (pPlayerData = pUnit->pUnitData.pUnitDataPlayer , pPlayerData != 0) && pPlayerData->eQueuedSkillId)) {
         pLightMap = D2Common::Skills::SwapLightMap(pUnit, nullptr);
         if (pLightMap) {
           Draw::LightMap::FreeLightMap(pLightMap);
@@ -2664,6 +2662,8 @@ void __fastcall PLAYER_ProcessPlayerModeSimulation(D2UnitStrc * pUnit) {
         CUnit::IsAttackable(pUnit);
         pUnit->eUnitFlags |= UNITFLAG_TARGETABLE;
         UnitMode::UNITMODE_SetAnimMode(pUnit, (_bHasDmgState ? 4 : 0) + eD2PlayerAnimMode_ns::Neutral);
+      } else {
+        pPlayerData->bHasPendingInteract = 1;
       }
     }
 

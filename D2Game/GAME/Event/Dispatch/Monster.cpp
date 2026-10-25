@@ -116,13 +116,20 @@ void __stdcall SERVER_ITEM_DecideDrops(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
         nLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pDrlgRoom);
         D2Common::Drlg::GetActNoFromLevelNumber(nLevelId);
         nMonClassId = pUnit->nClassId;
-        if (-1 < nMonClassId && nMonClassId < sgptDataTable->nTxtMonStatsSize) {
+        if (0 <= nMonClassId && nMonClassId < sgptDataTable->nTxtMonStatsSize) {
           pMonStats = sgptDataTable->pTxtMonStats + nMonClassId;
           if (pMonStats) {
             nDifficulty = (uint32_t)pGame->nDifficulty;
             nVictimLevel = ITEMS::Items::Drop::GetLevel(pUnit, nLevelId);
             nTcIndex = Monsters::MONSTER_GetBossNo(pGame, pUnit);
-            if (nTcIndex == -1) {
+            if (nTcIndex != -1) {
+              pSuperUniquesTxt = D2Common::DATATBLS::MonsterTbls::TXT_SuperUniques_GetLine(nTcIndex);
+              if (!pSuperUniquesTxt) {
+                nSelectedTC_00 = pMonStats->TreasureClass[nDifficulty].TreasureClass3;
+              } else {
+                nSelectedTC_00 = pSuperUniquesTxt->TC[nDifficulty];
+              }
+            } else {
               bIsChamp = Monsters::CheckMonsterType(pUnit, 4);
               if (!bIsChamp) {
                 bIsUnique = Monsters::CheckMonsterType(pUnit, 8);
@@ -133,13 +140,6 @@ void __stdcall SERVER_ITEM_DecideDrops(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
                 }
               } else {
                 nSelectedTC_00 = pMonStats->TreasureClass[nDifficulty].TreasureClass2;
-              }
-            } else {
-              pSuperUniquesTxt = D2Common::DATATBLS::MonsterTbls::TXT_SuperUniques_GetLine(nTcIndex);
-              if (!pSuperUniquesTxt) {
-                nSelectedTC_00 = pMonStats->TreasureClass[nDifficulty].TreasureClass3;
-              } else {
-                nSelectedTC_00 = pSuperUniquesTxt->TC[nDifficulty];
               }
             }
             if (pMonStats->TCQuestId != '\0' && pMonStats->TreasureClass[nDifficulty].TreasureClass4 && pUnitKill) {

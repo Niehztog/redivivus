@@ -1487,7 +1487,7 @@ void __fastcall UNITS_UpdateRoomClientVisibility(::SGAMEDATA * pGame, D2UnitStrc
 
         pClient = ppCurrentClientList[nOldClientIdx];
         pClient_00 = (D2ClientStrc*)pRoom->nLastDeadGUIDs[nNewClientIdx - 0xe];
-        if (pClient_00 > pClient) {
+        if (pClient < pClient_00) {
           pOwnerUnit = GAME::Clients::CLIENTS_GetControlUnit(pClient, 0);
           if (pUnit != pOwnerUnit) {
             SUnitMsg::SERVER_SendInitUnitPacket(pGame, pUnit, ppCurrentClientList[nOldClientIdx]);
@@ -2066,7 +2066,7 @@ D2UnitStrc * __fastcall CreateUnit(eD2UnitType eUnitType, int32_t nClassId, int3
                          @sourcefile .\UNIT\SUnit.cpp
                          @sourcefile-basis Blizzard __FILE__ literal referenced from inside self
                          function's body (1 site: 005553b4). First-party 1.14d evidence, not inferred
-                         and not from D2R. */ pObjectData = D2_NEW_POOL(pGame->pMemoryPool, D2UnitDataObjectStrc);
+                         and not from D2R. */ pObjectData = ((D2UnitDataObjectStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2UnitDataObjectStrc), ".\\UNIT\\SUnit.cpp", 0x264, 0));
         pAllocUnit->pUnitData.pUnitDataObject = pObjectData;
         memset(pObjectData, 0, 0x38);
         pDVar1 = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(nClassId);
@@ -2249,26 +2249,6 @@ void __fastcall FreeServerUnit(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
         D2Common::ITEMS::Items::ITEMDATA_Free(pGame->pMemoryPool, pUnit);
         case UNIT_WARP:
           D2Common::Units::FreeStaticPath(pUnit);
-          D2_FREE_POOL(pGame->pMemoryPool, pUnit->pUnitData.pUnitDataPlayer);
-          break;
-          case UNIT_MISSILE:
-            if (pUnit->pPath.pStaticPath) {
-              D2Common::PATH::Path::STRUCT_FreePath(pGame->pMemoryPool, pUnit->pPath.pStaticPath);
-              pUnit->pPath.pStaticPath = 0;
-            }
-          MISSILES::Missiles::ClearMissileUnitData(pGame, pUnit);
-          break;
-          case UNIT_ITEM:
-            ITEMS::Items::Drop::ITEM_FreeItemInventoryAndTimers(pGame, pUnit);
-          D2Common::ITEMS::Items::ITEMDATA_Free(pGame->pMemoryPool, pUnit);
-          case UNIT_WARP:
-            D2Common::Units::FreeStaticPath(pUnit);
-        }
-
-        SUnitEvent::UNITEVENT_FreeAllEvents(pGame, pUnit);
-        SUnitMsg::SERVER_UnitQueuePacketFree(pUnit);
-        D2Common::Units::Free(pUnit);
-        return;
       }
 
       SUnitEvent::UNITEVENT_FreeAllEvents(pGame, pUnit);

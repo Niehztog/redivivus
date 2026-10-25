@@ -2114,7 +2114,7 @@ void Release() {
     }
     if (RENDERER_SelectedRendererCore) {
       /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&RENDERER_SelectedRendererCore->sLock);
-      D2_FREE(RENDERER_SelectedRendererCore);
+      Fog::Memory::FreeClientMemory(RENDERER_SelectedRendererCore, ".\\Src\\d3dCore.cpp", 0x71d, 0);
       RENDERER_SelectedRendererCore = 0;
     }
 
@@ -2331,23 +2331,23 @@ BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc
     RENDERER_D3D_InitPerspectiveTransformTable();
     RENDERER_D3D_InitPerspectiveVertexBuffer();
     RENDERER_D3D_InitSmackerVertexBuffer();
-    RENDERER_SelectedRendererCore = D2_NEW(D2RendererCoreStrc);
+    RENDERER_SelectedRendererCore = ((D2RendererCoreStrc*)Fog::Memory::AllocClientMemory(sizeof(D2RendererCoreStrc), ".\\Src\\d3dCore.cpp", 0x6ea, 0));
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ InitializeCriticalSection(&RENDERER_SelectedRendererCore->sLock);
     return 1;
 }
 
-static void __stdcall RENDERER_D3D_ReleaseTexturePools() {
+void __stdcall RENDERER_D3D_ReleaseTexturePools() {
     IDirect3DTexture2* pSpriteTexture;
     if (g_pD3DSpriteQuadVB) {
       g_pD3DSpriteQuadVB->lpVtbl->Release(g_pD3DSpriteQuadVB);
       g_pD3DSpriteQuadVB = 0;
     }
     if (gpD3DTextureSpritePoolMemory0) {
-      D2_FREE(gpD3DTextureSpritePoolMemory0);
+      Fog::Memory::FreeClientMemory(gpD3DTextureSpritePoolMemory0, ".\\Src\\d3dSprite.cpp", 0x88, 0);
       gpD3DTextureSpritePoolMemory0 = 0;
     }
     if (gpD3DTextureSpritePoolMemory1) {
-      D2_FREE(gpD3DTextureSpritePoolMemory1);
+      Fog::Memory::FreeClientMemory(gpD3DTextureSpritePoolMemory1, ".\\Src\\d3dSprite.cpp", 0x8e, 0);
       gpD3DTextureSpritePoolMemory1 = 0;
     }
 
@@ -3190,8 +3190,8 @@ void __stdcall RENDERER_D3D_InitializeTexturePools() {
     } else {
       DWORD dwParam;
       if (!gpD3DTextureSpritePoolMemory1) {
-        gpD3DTextureSpritePoolMemory0 = D2_ALLOC(0x10000);
-        gpD3DTextureSpritePoolMemory1 = D2_ALLOC(0x10000);
+        gpD3DTextureSpritePoolMemory0 = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\d3dSprite.cpp", 0x57, 0);
+        gpD3DTextureSpritePoolMemory1 = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\d3dSprite.cpp", 0x58, 0);
         nErrorLine = RENDERER_D3D_CreateSystemMemoryTexture(gpD3DSpriteSystemSurface0, gpD3DSpriteSystemTexture0, 0x100, 0x100);
         if (!nErrorLine) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5e);
@@ -3223,6 +3223,9 @@ void __stdcall RENDERER_D3D_InitializeTexturePools() {
             return;
           }
         }
+      } else {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x56);
+        exit(-1);
       }
     }
 }
@@ -4432,7 +4435,7 @@ BOOL __fastcall DrawWallTile(D2TileLibraryEntryStrc * pTile, int nPosX, int nPos
 }
 
 // Creates ground tile vertex buffer (6x6 grid = 36 vertices) and index buffer (60 indices for 5x5 tile strips) for perspective tile rendering. Calculates texture coordinates based on window dimensions (gnD3DTextureCacheBlockSize, gnD3DTextureCacheCount). Each vertex has position adjustment flags at corners (±1 in X/Y) for isometric diamond shape. Index buffer stored at gaD3DGroundTileIndexBuffer.
-static void __stdcall RENDERER_D3D_InitGroundTileCache() {
+void __stdcall RENDERER_D3D_InitGroundTileCache() {
     // Static local variables (originally global data)
     static unsigned short gaD3DGroundTileIndexBuffer;
 
@@ -4801,7 +4804,7 @@ void SetDefaultPerspectiveFactor() {
 }
 
 // Initializes Smacker video subsystem. Allocates 64KB decode buffer at pSmackerDecodeBuffer, clears it to zero. Sets 4 corner vertex colors to 0xFFFFFFFF (white with full alpha) at offsets 0x00989760, 0x00989780, 0x009897a0, 0x009897c0.
-static void __stdcall RENDERER_D3D_InitSmackerVertexBuffer() {
+void __stdcall RENDERER_D3D_InitSmackerVertexBuffer() {
     // Static local variables (originally global data)
     static unsigned int gdwD3DSmackerVertex1Color;
     static unsigned int gdwD3DSmackerVertex2Color;
@@ -4812,7 +4815,7 @@ static void __stdcall RENDERER_D3D_InitSmackerVertexBuffer() {
     gdwD3DSmackerVertex2Color = -1;
     gdwD3DSmackerVertex3Color = -1;
     gdwD3DSmackerVertex4Color = -1;
-    pSmackerDecodeBuffer = D2_ALLOC(0x10000);
+    pSmackerDecodeBuffer = Fog::Memory::AllocClientMemory(0x10000, ".\\Src\\d3dSmack.cpp", 0x38, 0);
     memset(pSmackerDecodeBuffer, 0, 0x10000);
 }
 
@@ -4856,7 +4859,7 @@ void __stdcall RENDERER_D3D_ReleaseSmackerBuffer() {
       return;
     }
 
-    D2_FREE(pSmackerDecodeBuffer);
+    Fog::Memory::FreeClientMemory(pSmackerDecodeBuffer, ".\\Src\\d3dSmack.cpp", 0x5e, 0);
     pSmackerDecodeBuffer = 0;
 }
 
@@ -5205,7 +5208,7 @@ int __fastcall RENDERER_D3D_InitializeTextureCachePool(D3DTextureCacheStrc * pCa
     }
 
     pCache->nMaxNodes = nNodeIndex;
-    D3DTextureCacheNodeStrc* _Dst = (D3DTextureCacheNodeStrc*)D2_ALLOC(nNodeIndex << 5);
+    D3DTextureCacheNodeStrc* _Dst = (D3DTextureCacheNodeStrc*)Fog::Memory::AllocClientMemory(nNodeIndex << 5, ".\\Src\\d3dTextureCache.cpp", 0x37, 0);
     pCache->pNodeBuffer = _Dst;
     memset(_Dst, 0, nNodeIndex << 5);
     nNodeIndex = 0;

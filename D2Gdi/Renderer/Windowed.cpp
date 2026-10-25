@@ -48,7 +48,7 @@ namespace D2Gdi::Renderer::Windowed {
 BOOL __fastcall InitPerspective(D2GfxSettingsStrc * pSettings, ::D2GfxHelperStrc * pHelpers) {
     pD2GFXRenderedDataStrc = pSettings;
     D2GfxRendereInitFunctionsStrc = pHelpers;
-    RENDERER_SelectedRendererCore = D2_NEW(D2RendererCoreStrc);
+    RENDERER_SelectedRendererCore = ((D2RendererCoreStrc*)Fog::Memory::AllocClientMemory(sizeof(D2RendererCoreStrc), ".\\Src\\gdiCore.cpp", 0x4b, 0));
     /* LPCRITICAL_SECTION lpCriticalSection for InitializeCriticalSection */ InitializeCriticalSection(&RENDERER_SelectedRendererCore->sLock);
     return 1;
 }
@@ -60,7 +60,7 @@ BOOL Release() {
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for DeleteCriticalSection */ DeleteCriticalSection(&RENDERER_SelectedRendererCore->sLock);
-    D2_FREE(RENDERER_SelectedRendererCore);
+    Fog::Memory::FreeClientMemory(RENDERER_SelectedRendererCore, ".\\Src\\gdiCore.cpp", 0x59, 0);
     RENDERER_SelectedRendererCore = 0;
     return 1;
 }

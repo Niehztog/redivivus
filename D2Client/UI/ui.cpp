@@ -1836,8 +1836,8 @@ void __fastcall UI_ShowGoldTransactionDialog(int32_t nTransactionType) {
           while (pWordWrapLine) {
             Dialog::AddStringData(Dialog::gpDialog, pWordWrapLine->wszLine, 0x18, 0, 4, 1, nullptr, 0);
             pNextWordWrapLine = pWordWrapLine->pNext;
-            D2_FREE(pWordWrapLine->wszLine);
-            D2_FREE(pWordWrapLine);
+            Fog::Memory::FreeClientMemory(pWordWrapLine->wszLine, ".\\UI\\ui.cpp", 0x1827, 0);
+            Fog::Memory::FreeClientMemory(pWordWrapLine, ".\\UI\\ui.cpp", 0x1828, 0);
             pWordWrapLine = pNextWordWrapLine;
             nTransactionType = (int32_t)pAllocCtx;
           }
@@ -1994,7 +1994,7 @@ void * __fastcall UI_LoadFileToMemory(LPCSTR szFilename, size_t * pSize) {
     DWORD dwFileSize = GetFileSize(hFile, (LPDWORD)0x0);
     size_t* pSizeTmp = __frame0.pSizeOut;
     *__frame0.pSizeOut = dwFileSize;
-    void* pBuffer = D2_ALLOC(dwFileSize);
+    void* pBuffer = Fog::Memory::AllocClientMemory(dwFileSize, ".\\UI\\ui.cpp", 0x18ad, 0);
     memset(pBuffer, 0, *pSizeTmp);
     /* LPOVERLAPPED lpOverlapped for ReadFile */ /* LPDWORD lpNumberOfBytesRead for ReadFile */ /* DWORD nNumberOfBytesToRead for ReadFile */ /* LPVOID lpBuffer for ReadFile */ /* HANDLE hFile for ReadFile */ ReadFile(hFile, pBuffer, *pSizeTmp, &__frame0.dwBytesRead, (LPOVERLAPPED)0x0);
     /* HANDLE hObject for CloseHandle */ CloseHandle(hFile);
@@ -4292,7 +4292,7 @@ static int32_t UI_GetStatDescriptionStringId(int32_t nUnit) {
       uint32_t bIsOfType;
       eItemType = (eD2ItemTypes)(uint16_t)aBonusStringIds[i].wSubIndex;
       nCandidateStringId = aBonusStringIds[i].nStatValue;
-      if (eItemType == ITEMTYPE_None1 || (pLeftHandItem && (bIsOfType = D2Common::ITEMS::Items::ITEMS_IsA(pLeftHandItem, eItemType) , bIsOfType != 0) || pRightHandItem && (bIsOfType = D2Common::ITEMS::Items::ITEMS_IsA(pRightHandItem, eItemType) , bIsOfType != 0)) && nBestStringId < nCandidateStringId) {
+      if (eItemType == ITEMTYPE_None1 || (pLeftHandItem && (bIsOfType = D2Common::ITEMS::Items::ITEMS_IsA(pLeftHandItem, eItemType) , bIsOfType != 0) || pRightHandItem && (bIsOfType = D2Common::ITEMS::Items::ITEMS_IsA(pRightHandItem, eItemType) , bIsOfType != 0)) && nCandidateStringId > nBestStringId) {
         nBestStringId = nCandidateStringId;
       }
 

@@ -114,7 +114,7 @@ static int __stdcall D2COMP_FindOrAllocCOFCacheEntry(int32_t nPlayerClassId, cha
       }
     }
 
-    int* pCacheNode = (int*)D2_ALLOC(0x20);
+    int* pCacheNode = (int*)Fog::Memory::AllocClientMemory(0x20, ".\\Src\\D2Comp.cpp", 0x437, 0);
     *pCacheNode = 0;
     memset(pCacheNode + 3, 0, 5 * sizeof(pCacheNode[0]));
     (*pCacheNode)++;
@@ -156,7 +156,7 @@ static void __stdcall D2COMP_ReleaseCOFCacheEntry(int32_t nParam, int * pnParam)
     int32_t pNextNode = pnParam[7];
     void* pPrevNode = (void*)pnParam[6];
     if (nParam) {
-      D2_FREE((void*)pnParam[5]);
+      Fog::Memory::FreeClientMemory((void*)pnParam[5], ".\\Src\\D2Comp.cpp", 0x461, 0);
       pnParam[5] = 0;
     }
     if (!pNextNode) {
@@ -171,7 +171,7 @@ static void __stdcall D2COMP_ReleaseCOFCacheEntry(int32_t nParam, int * pnParam)
       *(int32_t*)((int)pPrevNode + 0x1c) = pNextNode;
     }
 
-    D2_FREE(pnParam);
+    Fog::Memory::FreeClientMemory(pnParam, ".\\Src\\D2Comp.cpp", 0x47a, 0);
 }
 
 static void __stdcall D2COMP_BuildCOFFilePath(int32_t nAnimMode, uint32_t dwWeaponClassToken, char * pszDestPath, int32_t nPlayerClassId) {
@@ -266,7 +266,7 @@ static int32_t __stdcall D2COMP_GetOrLoadCOF(int * * ppCOFList, int32_t nPlayerC
         return 0;
       }
 
-      pCOFEntry = (int*)D2_ALLOC(8);
+      pCOFEntry = (int*)Fog::Memory::AllocClientMemory(8, ".\\Src\\D2Comp.cpp", 0x4d8, 0);
       if (!pCOFEntry) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4d9);
         exit(-1);
@@ -1255,13 +1255,13 @@ void __fastcall D2COMP_UnlinkCompositeUnit(D2CharSelStrc * pCharSel) {
       gpCompositeUnitListHead = nPrev;
       if (nPrev) {
         nPrev->pPrev = 0;
-        D2_FREE(pCharSel);
+        Fog::Memory::FreeClientMemory(pCharSel, ".\\Src\\D2Comp.cpp", 0x85a, 0);
         return;
       }
     } else {
       if (!nPrev) {
         nNext->pNext = 0;
-        D2_FREE(pCharSel);
+        Fog::Memory::FreeClientMemory(pCharSel, ".\\Src\\D2Comp.cpp", 0x85a, 0);
         return;
       }
 
@@ -1269,11 +1269,11 @@ void __fastcall D2COMP_UnlinkCompositeUnit(D2CharSelStrc * pCharSel) {
       nPrev->pPrev = nNext;
     }
 
-    D2_FREE(pCharSel);
+    Fog::Memory::FreeClientMemory(pCharSel, ".\\Src\\D2Comp.cpp", 0x85a, 0);
 }
 
 void __stdcall D2COMP_AllocSmallClientBlock() {
-    uint32_t* pAllocated = (uint32_t*)D2_ALLOC(4);
+    uint32_t* pAllocated = (uint32_t*)Fog::Memory::AllocClientMemory(4, ".\\Src\\D2Comp.cpp", 0x866, 0);
     if (!pAllocated) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x867);
       exit(-1);
@@ -1291,24 +1291,18 @@ void __stdcall D2COMP_DestroyCompositeUnit(D2CharSelStrc * pCharSel, int32_t bUn
     } else {
       uint32_t* pCOFListHead;
       pCOFListHead = *(uint32_t**)(pCharSel->szCharname + 0xb8);
-      if (pCOFListHead) {
-        pCOFNode = (uint32_t*)*pCOFListHead;
-        while (pCOFNode) {
-          pNextCOFNode = (uint32_t*)pCOFNode[1];
-          D2COMP_ReleaseCOFCacheEntry(1, (int*)*pCOFNode);
-          D2_FREE(pCOFNode);
-          pCOFNode = pNextCOFNode;
-        }
+      if (!pCOFListHead) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x87b);
+        exit(-1);
+      }
 
-        *pCOFListHead = 0;
-        D2_FREE(pCOFListHead);
-        if (*(DC6**)(pCharSel->szCharname + 0xbc)) {
-          D2WinArchive::IMAGE_FreeImage(*(DC6**)(pCharSel->szCharname + 0xbc));
-          memset(pCharSel->szCharname + 188, 0, 4 * sizeof(pCharSel->szCharname[0]));
-        }
-        if (!bUnlink) {
-          return;
-        }
+      pCOFNode = (uint32_t*)*pCOFListHead;
+      while (pCOFNode) {
+        pNextCOFNode = (uint32_t*)pCOFNode[1];
+        D2COMP_ReleaseCOFCacheEntry(1, (int*)*pCOFNode);
+        Fog::Memory::FreeClientMemory(pCOFNode, ".\\Src\\D2Comp.cpp", 0x883, 0);
+        pCOFNode = pNextCOFNode;
+      }
 
       *pCOFListHead = 0;
       Fog::Memory::FreeClientMemory(pCOFListHead, ".\\Src\\D2Comp.cpp", 0x889, 0);
@@ -1425,26 +1419,15 @@ void * __stdcall LoadTxt(D2PoolManagerStrc * pMemory, char * szTxtName, D2BinFie
       /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szFilePath, "%s\\%s%s", "DATA\\GLOBAL\\EXCEL", szTxtName, ".bin");
       pArchive = (D2ArchiveStrc*)Fog::Archive::D2FILE_AllocAndLoadD2File(pMemory, szFilePath, &nFileSize, ".\\Src\\D2Comp.cpp", 0x958);
     }
-    if (pArchive) {
-      if (!gbLoadBinFiles) {
-        pBinFieldExcel = Fog::Src::Excel::STRUCT_CreateBinFieldExcelAndFillData(pArchive, nFileSize);
-        pRowCountOrData = (D2ArchiveStrc*)Fog::Src::Excel::TXT_GetLinesCountFromBinFieldExcel(pBinFieldExcel);
-        pRecord = (D2ArchiveStrc**)D2_ALLOC_POOL(nullptr, (int)pRowCountOrData * nLineLength);
-        memset(pRecord, 0, (int)pRowCountOrData * nLineLength);
-        Fog::Src::Excel::TXT_ParseDataAndPutIntoStructure(pBinFieldExcel, pBinFields, (char*)pRecord, (size_t)pRowCountOrData, nLineLength);
-        Fog::Src::Excel::TXT_FreeBinFieldExcel(pBinFieldExcel);
-      } else {
-        pRowCountOrData = pArchive->pPrevLink;
-        pRecord = &pArchive->pNext;
-      }
-      if (!pSize) {
-        return pRecord;
-      }
+    if (!pArchive) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9e3);
+      exit(-1);
+    }
 
     if (!gbLoadBinFiles) {
       pBinFieldExcel = Fog::Src::Excel::STRUCT_CreateBinFieldExcelAndFillData(pArchive, nFileSize);
       pRowCountOrData = (D2ArchiveStrc*)Fog::Src::Excel::TXT_GetLinesCountFromBinFieldExcel(pBinFieldExcel);
-      pRecord = (D2ArchiveStrc**)Fog::Memory::AllocServerMemory(nullptr, (int)pRowCountOrData * nLineLength, ".\\Src\\D2Comp.cpp", 0x9fa, 0);
+      pRecord = (D2ArchiveStrc**)D2_ALLOC_POOL(nullptr, (int)pRowCountOrData * nLineLength);
       memset(pRecord, 0, (int)pRowCountOrData * nLineLength);
       Fog::Src::Excel::TXT_ParseDataAndPutIntoStructure(pBinFieldExcel, pBinFields, (char*)pRecord, (size_t)pRowCountOrData, nLineLength);
       Fog::Src::Excel::TXT_FreeBinFieldExcel(pBinFieldExcel);
@@ -1930,77 +1913,19 @@ void __stdcall D2COMP_CreateCompositeUnit(uint32_t * pCompUnit, uint32_t nPlayer
       exit(-1);
     } else {
       int32_t* pCofCacheEntry;
-      pCofCacheEntry = (int32_t*)D2_ALLOC(4);
-      if (pCofCacheEntry) {
-        *pCofCacheEntry = 0;
-        pCompUnit[0x2e] = (uint32_t)pCofCacheEntry;
-        pCompUnit[7] = nPlayerClassId;
-        if (nPlayerClassId < 7) {
-          nWeaponClass = D2COMP_ResolveWeaponClass(nPlayerClassId, pbyEquipSlots);
-          pCompUnit[9] = nWeaponClass;
-          if (!nWeaponClass) {
-            return;
-          }
-        } else {
-          pCompUnit[9] = 1;
-        }
+      pCofCacheEntry = (int32_t*)Fog::Memory::AllocClientMemory(4, ".\\Src\\D2Comp.cpp", 0x866, 0);
+      if (!pCofCacheEntry) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x867);
+        exit(-1);
+      }
 
-        pCompUnit[8] = nAnimMode;
-        *pCompUnit |= 1;
-        nWeaponClass = *pCompUnit;
-        nSlot = 0;
-        *pCompUnit = nWeaponClass | 2;
-        pSlotCode = pCompUnit + 0xe;
-        *pCompUnit = nWeaponClass | 6;
-        do {
-          pSlotCode[0x10] = 1;
-          if (!*pbyEquipSlots || *pbyEquipSlots == 0xff) {
-            *pSlotCode = 0;
-          } else {
-            D2COMP_ValidateEquippedItemForClass(nSlot, pbyEquipSlots);
-            *pSlotCode = gaCompCharacterCompositeItems[*pbyEquipSlots].nItemCode;
-            pSlotCode[0x10] = gaCompCharacterCompositeItems[*pbyEquipSlots].nItemTypeIndex;
-          }
-
-          nSlot++;
-          pbyEquipSlots++;
-          pSlotCode++;
-        } while (nSlot < 0x10);
-
-        pCodeDst = (char*)((int)pCompUnit + 0x29);
-        nCofResult = 4;
-        do {
-          cCodeByte = *szText;
-          pCodeDst[-1] = cCodeByte;
-          if (cCodeByte != -1) {
-            pCodeDst[-1] = cCodeByte - 1;
-          }
-
-          cCodeByte = szText[1];
-          *pCodeDst = cCodeByte;
-          if (cCodeByte != -1) {
-            *pCodeDst = cCodeByte - 1;
-          }
-
-          cCodeByte = szText[2];
-          pCodeDst[1] = cCodeByte;
-          if (cCodeByte != -1) {
-            pCodeDst[1] = cCodeByte - 1;
-          }
-
-          cCodeByte = szText[3];
-          pCodeDst[2] = cCodeByte;
-          if (cCodeByte != -1) {
-            pCodeDst[2] = cCodeByte - 1;
-          }
-
-          pCodeDst += 4;
-          szText += 4;
-          nCofResult--;
-        } while (nCofResult);
-
-        BVar1 = D2COMP_ValidateAndLoadCOFForUnit((D2CharSelCompStrc*)pCompUnit);
-        if (!BVar1) {
+      *pCofCacheEntry = 0;
+      pCompUnit[0x2e] = (uint32_t)pCofCacheEntry;
+      pCompUnit[7] = nPlayerClassId;
+      if (nPlayerClassId < 7) {
+        nWeaponClass = D2COMP_ResolveWeaponClass(nPlayerClassId, pbyEquipSlots);
+        pCompUnit[9] = nWeaponClass;
+        if (!nWeaponClass) {
           return;
         }
       } else {
@@ -2072,7 +1997,7 @@ void __stdcall D2COMP_FreeAllCompositeUnits() {
       D2CharSelStrc* pDVar1;
       pDVar1 = *(D2CharSelStrc**)(pCharSel->szCharname + 0xc4);
       D2COMP_DestroyCompositeUnit(pCharSel, 0);
-      D2_FREE(pCharSel);
+      Fog::Memory::FreeClientMemory(pCharSel, ".\\Src\\D2Comp.cpp", 0xd38, 0);
       pCharSel = pDVar1;
     }
 
@@ -3066,13 +2991,13 @@ D2CharSelCompStrc * __stdcall AllocCharSelectComponent(uint32_t nPlayerClassId, 
     char cTransform;
     D2CharSelCompFlags eFlagsCopy;
     int32_t nErrorLine;
-    D2CharSelCompStrc* pCharSelComp = D2_NEW(D2CharSelCompStrc);
+    D2CharSelCompStrc* pCharSelComp = ((D2CharSelCompStrc*)Fog::Memory::AllocClientMemory(sizeof(D2CharSelCompStrc), ".\\Src\\D2Comp.cpp", 0xc70, 0));
     if (!pCharSelComp) {
       nErrorLine = 0xc71;
     } else {
       int* pCofCache;
       memset(pCharSelComp, 0, 0x234);
-      pCofCache = (int*)D2_ALLOC(4);
+      pCofCache = (int*)Fog::Memory::AllocClientMemory(4, ".\\Src\\D2Comp.cpp", 0x866, 0);
       if (pCofCache) {
         *pCofCache = 0;
         pCharSelComp->ppCofCacheEntries = (int**)pCofCache;

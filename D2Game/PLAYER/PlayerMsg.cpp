@@ -215,7 +215,9 @@ void __fastcall SendUnitCast0x4d(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Clie
     nSubType = 0;
     wPad = 0;
     dwPathCoord = D2Common::PATH::DynamicPath::GetYSP1(pUnit->pPath.pDynamicPath);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x4D_SKILL_XY(pClient, 0, dwCasterGUID, (uint16_t)D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath), (uint16_t)dwPathCoord, eSkillId, wPad, skillLevel, nSubType);
+    wTargetY = (uint16_t)dwPathCoord;
+    dwPathCoord = D2Common::PATH::DynamicPath::GetXSP1(pUnit->pPath.pDynamicPath);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x4D_SKILL_XY(pClient, 0, dwCasterGUID, (uint16_t)dwPathCoord, wTargetY, eSkillId, wPad, skillLevel, nSubType);
 }
 
 // Sends the appropriate movement packet to pClient for pUnit's current move-mode (index nModeIndex into gaPlayerModeNetMsgTable). If pUnit has a target entity visible to the client, sends 0x10 (CharToObj); otherwise sends 0x0F (PlayerMove) with the unit's current tile position and path sub-step target coordinates. Skips self-movement (pUnit == client's own player).
@@ -2078,7 +2080,6 @@ eD2ServerIncomingStatus __fastcall SCMD_0x15_ChatMessage(::SGAMEDATA * pGame, D2
 
               pSenderClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0xa46);
               GAME::SCmd::NET_D2GS_SERVER_Send_0x26_CHATSTART(pSenderClient, &local_37c);
-              Fog::Debug::GuardStack();
               return SERVERSTATUS_OK;
             }
 
@@ -4589,65 +4590,9 @@ void __fastcall PLAYERMSG_BroadcastPlayerSlain(::SGAMEDATA * pGame, D2UnitStrc *
     D2Packet0x5aEventStructure packet0x5a;
     char szKillerNameTmp[16];
     uint32_t dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    if (pVictim && pVictim->eUnitType == UNIT_PLAYER) {
-      if (pUnit && pUnit->eUnitType == UNIT_MONSTER) {
-        pOwnerUnit = Ai::AiGeneral::GetOwnerUnit(pUnit);
-        if (pOwnerUnit && pOwnerUnit->eUnitType == UNIT_PLAYER) {
-          pUnit = pOwnerUnit;
-        }
-      }
-
-      memset(packet0x5a.szName1, 0, 16 * sizeof(packet0x5a.szName1[0]));
-      memset(packet0x5a.szName2 + 4, 0, 12 * sizeof(packet0x5a.szName2[0]));
-      packet0x5a.nPacketId = 'Z';
-      packet0x5a.nMessageType = '\x06';
-      packet0x5a.nColor = '\x04';
-      if (!pUnit) {
-        packet0x5a.nArg = -1;
-      } else {
-        packet0x5a.nArg = pUnit->nClassId;
-      }
-
-      packet0x5a.nArgTypes = '\x06';
-      if (pUnit) {
-        packet0x5a.nArgTypes = (uint8_t)pUnit->eUnitType;
-      }
-
-      memset(packet0x5a.szName2, 0, 4 * sizeof(packet0x5a.szName2[0]));
-      pClient = UNIT::SUnit::SUNIT_GetClient(pVictim, ".\\PLAYER\\PlrMsg.cpp", 0x19c9);
-      szCharName = GAME::Clients::GetCharName(pClient);
-      pVictimNameEnd = Storm::Source::SSTR::SStrLen(szCharName);
-      if (!pVictimNameEnd) {
-        *(uint32_t*)(char*)&packet0x5a.szName1 &= -256;
-      } else {
-        Storm::Source::SSTR::SStrCopy(packet0x5a.szName1, szCharName, 0x10);
-      }
-
-      eKillerType = UNIT_COUNT;
-      if (pUnit) {
-        eKillerType = pUnit->eUnitType;
-      }
-      if (eKillerType == UNIT_PLAYER) {
-        nAddress = 0x10;
-        pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrMsg.cpp", 0x19db);
-        szCharName = GAME::Clients::GetCharName(pClient);
-        Storm::Source::SSTR::SStrCopy(szKillerNameTmp, szCharName, nAddress);
-        pVictimNameEnd = Storm::Source::SSTR::SStrLen(szKillerNameTmp);
-        if (pVictimNameEnd) {
-          Storm::Source::SSTR::SStrCopy(packet0x5a.szName2, szKillerNameTmp, 0x10);
-        }
-      } else if (eKillerType == UNIT_MONSTER) {
-        pVictimNameEnd = Monsters::CheckMonsterType(pUnit, 2);
-        if (pVictimNameEnd) {
-          nBossNo = Monsters::GetBossNo(pUnit);
-          packet0x5a.szName2[0] = (char)nBossNo;
-          packet0x5a.szName2[1] = (char)((uint16_t)nBossNo >> 8);
-        }
-      }
-
-      BroadcastEventMessage(pGame, &packet0x5a.nPacketId);
-      Fog::Debug::GuardStack();
-      return;
+    if (!(pVictim && pVictim->eUnitType == UNIT_PLAYER)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x19b4);
+      exit(-1);
     }
 
     if (pUnit && pUnit->eUnitType == UNIT_MONSTER) {
@@ -4656,29 +4601,28 @@ void __fastcall PLAYERMSG_BroadcastPlayerSlain(::SGAMEDATA * pGame, D2UnitStrc *
         pUnit = pOwnerUnit;
       }
     }
-    memset(szVictimNameBuf, 0, 4 * sizeof(szVictimNameBuf[0]));
-    memset(szKillerNameBuf + 2, 0, 6 * sizeof(szKillerNameBuf[0]));
-    __frame0.byMsgOpcode = 0x5a;
-    __frame0.byMsgField1 = 6;
-    __frame0.byMsgField2 = 4;
+    memset(packet0x5a.szName1, 0, 16 * sizeof(packet0x5a.szName1[0]));
+    memset(packet0x5a.szName2 + 4, 0, 12 * sizeof(packet0x5a.szName2[0]));
+    packet0x5a.nPacketId = 'Z';
+    packet0x5a.nMessageType = '\x06';
+    packet0x5a.nColor = '\x04';
     if (!pUnit) {
-      __frame0.nKillerClassId = -1;
+      packet0x5a.nArg = -1;
     } else {
-      __frame0.nKillerClassId = pUnit->nClassId;
+      packet0x5a.nArg = pUnit->nClassId;
     }
-    __frame0.byKillerUnitType = 6;
+    packet0x5a.nArgTypes = '\x06';
     if (pUnit) {
-      __frame0.byKillerUnitType = (uint8_t)pUnit->eUnitType;
+      packet0x5a.nArgTypes = (uint8_t)pUnit->eUnitType;
     }
-    szKillerNameBuf[0] = 0;
-    szKillerNameBuf[1] = 0;
+    memset(packet0x5a.szName2, 0, 4 * sizeof(packet0x5a.szName2[0]));
     pClient = UNIT::SUnit::SUNIT_GetClient(pVictim, ".\\PLAYER\\PlrMsg.cpp", 0x19c9);
     szCharName = GAME::Clients::GetCharName(pClient);
     pVictimNameEnd = Storm::Source::SSTR::SStrLen(szCharName);
     if (pVictimNameEnd) {
-      Storm::Source::SSTR::SStrCopy((char*)szVictimNameBuf, szCharName, 0x10);
+      Storm::Source::SSTR::SStrCopy(packet0x5a.szName1, szCharName, 0x10);
     } else {
-      szVictimNameBuf[0] &= -256;
+      *(uint32_t*)(char*)&packet0x5a.szName1 &= -256;
     }
     eKillerType = UNIT_COUNT;
     if (pUnit) {
@@ -4691,16 +4635,17 @@ void __fastcall PLAYERMSG_BroadcastPlayerSlain(::SGAMEDATA * pGame, D2UnitStrc *
       Storm::Source::SSTR::SStrCopy(szKillerNameTmp, szCharName, nAddress);
       pVictimNameEnd = Storm::Source::SSTR::SStrLen(szKillerNameTmp);
       if (pVictimNameEnd) {
-        Storm::Source::SSTR::SStrCopy((char*)szKillerNameBuf, szKillerNameTmp, 0x10);
+        Storm::Source::SSTR::SStrCopy(packet0x5a.szName2, szKillerNameTmp, 0x10);
       }
     } else if (eKillerType == UNIT_MONSTER) {
       pVictimNameEnd = Monsters::CheckMonsterType(pUnit, 2);
       if (pVictimNameEnd) {
         nBossNo = Monsters::GetBossNo(pUnit);
-        szKillerNameBuf[0] = nBossNo;
+        packet0x5a.szName2[0] = (char)nBossNo;
+        packet0x5a.szName2[1] = (char)((uint16_t)nBossNo >> 8);
       }
     }
-    BroadcastEventMessage(pGame, &__frame0.byMsgOpcode);
+    BroadcastEventMessage(pGame, &packet0x5a.nPacketId);
     return;
 }
 

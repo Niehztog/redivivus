@@ -1426,16 +1426,16 @@ void __stdcall SPELLSEL_DrawTabHighlight(int32_t nParam) {
         if (nParam != 2) {
           if (nParam == 3) {
             nCurMouseX = gnPanelOffsetY - 0x9c + ScreenSizeY;
-            if (!(nCurMouseX < nCurMouseY || (nTabBoundY = gnPanelOffsetY - 0x108 + ScreenSizeY , nCurMouseY < nTabBoundY))) {
-              bMiddleTabHovered = true;
-              bTopTabHovered = true;
-              nHighlightY = nTabBoundY;
-            } else {
+            if (nCurMouseX < nCurMouseY || (nTabBoundY = gnPanelOffsetY - 0x108 + ScreenSizeY , nCurMouseY < nTabBoundY)) {
               if (nCurMouseY <= gnPanelOffsetY - 0x30 + ScreenSizeY && nCurMouseX <= nCurMouseY) {
                 bBottomTabHovered = true;
                 bTopTabHovered = true;
                 nHighlightY = nCurMouseX;
               }
+            } else {
+              bMiddleTabHovered = true;
+              bTopTabHovered = true;
+              nHighlightY = nTabBoundY;
             }
           }
 

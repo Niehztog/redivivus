@@ -274,7 +274,7 @@ void __fastcall FreeClientList(::SGAMEDATA * pGame) {
     while (pMemoryToFree) {
       D2ClientStrc* pNextClient;
       pNextClient = pMemoryToFree->pNext;
-      D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
+      Fog::Memory::FreeServerMemory(pGame->pMemoryPool, pMemoryToFree, ".\\GAME\\Clients.cpp", 0x617, 0);
       pMemoryToFree = pNextClient;
     }
 }
@@ -1285,7 +1285,7 @@ int __fastcall CLIENT_AccumulateSaveData(uint32_t nClientId, void * buffer, size
       }
       if (pClient->nClientNo == nClientId) {
         if (!pClient->nSaveOpenSize) {
-          pSaveBuffer = (D2SaveFileHeaderStrc*)D2_ALLOC_POOL(pClient->pGame->pMemoryPool, nTotalSize);
+          pSaveBuffer = (D2SaveFileHeaderStrc*)Fog::Memory::AllocServerMemory(pClient->pGame->pMemoryPool, nTotalSize, ".\\GAME\\Clients.cpp", 0xb2a, 0);
           pClient->pSaveGame = pSaveBuffer;
         } else {
           pSaveBuffer = (D2SaveFileHeaderStrc*)(pClient->pSaveGame->szCharacterName + pClient->nSaveOpenSize - 0x14);
@@ -1342,10 +1342,10 @@ void __fastcall CopySafeBuffer(D2ClientStrc * pClient, void * pSaveBuffer, size_
     }
     if (pClient->nSaveOpenSize != nSaveSize || pClient->pSaveGame) {
       if (pClient->pSaveGame) {
-        D2_FREE_POOL(pClient->pGame->pMemoryPool, pClient->pSaveGame);
+        Fog::Memory::FreeServerMemory(pClient->pGame->pMemoryPool, pClient->pSaveGame, ".\\GAME\\Clients.cpp", 0xb6e, 0);
       }
 
-      pNewSaveGame = (D2SaveFileHeaderStrc*)D2_ALLOC_POOL(pClient->pGame->pMemoryPool, nSaveSize);
+      pNewSaveGame = (D2SaveFileHeaderStrc*)Fog::Memory::AllocServerMemory(pClient->pGame->pMemoryPool, nSaveSize, ".\\GAME\\Clients.cpp", 0xb70, 0);
       pClient->pSaveGame = pNewSaveGame;
       pClient->nSaveOpenSize = nSaveSize;
     }
@@ -1360,7 +1360,7 @@ void __fastcall DeleteCurrentSave(D2ClientStrc * pClient) {
       exit(-1);
     }
     if (pClient->pSaveGame) {
-      D2_FREE_POOL(pClient->pGame->pMemoryPool, pClient->pSaveGame);
+      Fog::Memory::FreeServerMemory(pClient->pGame->pMemoryPool, pClient->pSaveGame, ".\\GAME\\Clients.cpp", 0xb80, 0);
       pClient->pSaveGame = 0;
     }
 
@@ -1834,7 +1834,7 @@ int32_t __fastcall CLIENT_LoadCharacterAndSendGameData(D2ClientStrc * pClient, :
       do {
         wSkillId = pHotKey->wSkillId;
         if (0 <= wSkillId && (int)wSkillId < sgptDataTable->nTxtSkillsCount) {
-          SCmd::NET_D2GS_SERVER_Send_0x7B_SYNCHOTKEYS(pClient, (int)wSkillId, (uint32_t)pHotKey->byHand, pHotKey->nItemGUID, dwHotkeyUnused);
+          SCmd::NET_D2GS_SERVER_Send_0x7B_SYNCHOTKEYS(pClient, (uint8_t)nHotkeyIdx, (int)wSkillId, (uint32_t)pHotKey->byHand, pHotKey->nItemGUID);
         }
 
         nHotkeyIdx++;
@@ -1860,13 +1860,8 @@ int32_t __fastcall CLIENT_LoadCharacterAndSendGameData(D2ClientStrc * pClient, :
           byUnitType = (uint8_t)pPlayerUnitOut->eUnitType;
         }
 
-        nHotkeyIdx = 0;
-        pHotKey = pClient->pHotKeys;
-        do {
-          wSkillId = pHotKey->wSkillId;
-          if (-1 < wSkillId && (int)wSkillId < sgptDataTable->nTxtSkillsCount) {
-            SCmd::NET_D2GS_SERVER_Send_0x7B_SYNCHOTKEYS(pClient, (uint8_t)nHotkeyIdx, (int)wSkillId, (uint32_t)pHotKey->byHand, pHotKey->nItemGUID);
-          }
+        SCmd::NET_D2GS_SERVER_Send_0x23_SetSkill(pClient, byUnitType, uPortalFlags, '\0', (short int)pPlayerData->eRightSkillId, pPlayerData->nRightSkillOwnerGUID);
+      }
 
       D2Common::Stats::StatsEx::STATLIST_IterateChangedStats(pPlayerUnitOut, pPlayerUnitOut, PLAYER::PlayerMsg::SendAttributeUpdate);
       PLAYER::PlayerMsg::NET_D2GS_SERVER_Send_LifeManaStaminaLocationUpdate(pPlayerUnitOut, pPlayerUnitOut, 1);
@@ -1888,7 +1883,7 @@ D2ClientStrc * __fastcall CreateClient(::SGAMEDATA * pGame, uint32_t nClientId, 
       return nullptr;
     }
 
-    D2ClientStrc* pClient = D2_NEW_POOL(pGame->pMemoryPool, D2ClientStrc);
+    D2ClientStrc* pClient = ((D2ClientStrc*)Fog::Memory::AllocServerMemory(pGame->pMemoryPool, sizeof(D2ClientStrc), ".\\GAME\\Clients.cpp", 0x347, 0));
     memset(pClient, 0, 0x518);
     pClient->nClientNo = nClientId;
     DWORD dwTick = GetTickCount();
@@ -2255,7 +2250,7 @@ void __fastcall CleanUpClient(::SGAMEDATA * pGame, uint32_t nClientId, int32_t b
         CLIENT_RemoveFromAdjacentRooms(pRemovedClient->pRoom, (int32_t)pRemovedClient);
       }
       if (pRemovedClient->pSaveGame) {
-        D2_FREE_POOL(pRemovedClient->pGame->pMemoryPool, pRemovedClient->pSaveGame);
+        Fog::Memory::FreeServerMemory(pRemovedClient->pGame->pMemoryPool, pRemovedClient->pSaveGame, ".\\GAME\\Clients.cpp", 0x5f5, 0);
         pRemovedClient->pSaveGame = 0;
       }
 
@@ -2263,11 +2258,11 @@ void __fastcall CleanUpClient(::SGAMEDATA * pGame, uint32_t nClientId, int32_t b
       while (pDVar5) {
         pDVar5 = pRemovedClient->pEmpty;
         pRemovedClient->pEmpty = pDVar5->pNext;
-        D2_FREE_POOL(nullptr, pDVar5);
+        Fog::Memory::FreeServerMemory(nullptr, pDVar5, ".\\GAME\\Clients.cpp", 0x605, 0);
         pDVar5 = pRemovedClient->pEmpty;
       }
 
-      D2_FREE_POOL(pRemovedClient->pGame->pMemoryPool, pRemovedClient);
+      Fog::Memory::FreeServerMemory(pRemovedClient->pGame->pMemoryPool, pRemovedClient, ".\\GAME\\Clients.cpp", 0x608, 0);
       pGame->nClientsCount--;
     }
 

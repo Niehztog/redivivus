@@ -72,7 +72,7 @@ D2LightMapStrc * __fastcall AllocLightMap(D2UnitStrc * pUnit, int32_t nLightType
     }
 
     nLightMapSize++;
-    D2LightMapStrc* pLightMap = D2_NEW(D2LightMapStrc);
+    D2LightMapStrc* pLightMap = ((D2LightMapStrc*)Fog::Memory::AllocClientMemory(sizeof(D2LightMapStrc), ".\\DRAW\\dLightMap.cpp", 0xff, 0));
     eD2UnitType eUnitType = UNIT_COUNT;
     if (pUnit) {
       eUnitType = pUnit->eUnitType;
@@ -159,7 +159,7 @@ void __fastcall LIGHTMAP_SetRadius(D2LightMapStrc * pLightMap, int32_t nParam) {
 
     pLightMap->bPixelMapReady = 0;
     if (pLightMap->pPixelMap) {
-      D2_FREE(pLightMap->pPixelMap);
+      Fog::Memory::FreeClientMemory(pLightMap->pPixelMap, ".\\DRAW\\dLightMap.cpp", 0x14a, 0);
     }
 
     pLightMap->pPixelMap = 0;
@@ -202,19 +202,9 @@ void __fastcall FreeLightMap(D2LightMapStrc * pLightMap) {
         exit(-1);
       }
       if (pDVar1 == pLightMap) {
-        if (pDVar1) {
-          if (!pPrevLightMap) {
-            gpLightMap = pDVar1->pPrev;
-          } else {
-            pPrevLightMap->pPrev = pDVar1->pPrev;
-          }
-          if (pLightMap->pPixelMap) {
-            D2_FREE(pLightMap->pPixelMap);
-          }
-
-          D2_FREE(pLightMap);
-          nFreedLightMapsCounter++;
-          return;
+        if (!pDVar1) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x17a);
+          exit(-1);
         }
 
         if (!pPrevLightMap) {
@@ -1071,7 +1061,7 @@ static void __stdcall LIGHTMAP_UpdateSingleLight(int nQuality, D2LightMapStrc * 
       if (pLightMap->nLightType == 2) {
         pLightMap->bPixelMapReady = 0;
         if (pLightMap->pPixelMap) {
-          D2_FREE(pLightMap->pPixelMap);
+          Fog::Memory::FreeClientMemory(pLightMap->pPixelMap, ".\\DRAW\\dLightMap.cpp", 0x4cc, 0);
         }
 
         pLightMap->pPixelMap = 0;
@@ -1260,10 +1250,10 @@ void __stdcall LIGHTMAP_FreeAll() {
       D2LightMapStrc* pNextNode;
       pNextNode = pMemoryToFree->pPrev;
       if (pMemoryToFree->pPixelMap) {
-        D2_FREE(pMemoryToFree->pPixelMap);
+        Fog::Memory::FreeClientMemory(pMemoryToFree->pPixelMap, ".\\DRAW\\dLightMap.cpp", 0x57d, 0);
       }
 
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\DRAW\\dLightMap.cpp", 0x57f, 0);
       pMemoryToFree = pNextNode;
     }
 

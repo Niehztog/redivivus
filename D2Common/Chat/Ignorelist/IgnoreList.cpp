@@ -123,12 +123,14 @@ int32_t RemoveByPattern(::IgnoreList * pThis, char * szPattern) {
           if (pEntry) {
             pThis->tIgnoredPatterns.Unlink(pEntry);
             IgnoreList::SaveToFile(pThis);
+            Fog::Debug::GuardStack();
             return 1;
           }
         }
       }
     }
 
+    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -222,9 +224,9 @@ int32_t CheckIgnored(::IgnoreList * pThis, char * szPlayerName) {
       _bIsEnabled = pThis->_vfptr->GetPersistentSetting(pThis);
       if (_bIsEnabled) {
         szSuffix[0] = '\0';
-        memset(szSuffix + 1, 0, 0xff);
+        for (int i = 0x1; i < 0x100; i++) szSuffix[i] = 0;
         szPrefix[0] = '\0';
-        memset(szPrefix + 1, 0, 0xff);
+        for (int i = 0x1; i < 0x100; i++) szPrefix[i] = 0;
         IGNORELIST_ExtractPrefix(szPlayerName, szPrefix, 0x100);
         pThis->_vfptr->GetMappedValue(pThis, szPrefix, szSuffix, 0x100);
         if (szSuffix[0] == '\0') {
@@ -297,11 +299,13 @@ int32_t AddByPattern(::IgnoreList * pThis, char * szPattern) {
             AppendLineToFile(pThis, szParsedPattern);
           }
 
+          Fog::Debug::GuardStack();
           return 1;
         }
       }
     }
 
+    Fog::Debug::GuardStack();
     return 0;
 }
 

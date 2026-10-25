@@ -120,7 +120,7 @@ void __stdcall GFX_RemoveOverlayFromUnit(D2UnitStrc * pUnit, int * pOverlay) {
       Gfx::GFX_RemoveStateOverlayAndReprioritize(pUnit, (int32_t)pGfxInfo, (int32_t)pMemoryToFree);
     }
 
-    D2_FREE(pMemoryToFree);
+    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0x1e1, 0);
 }
 
 BOOL __fastcall GFX_HasOverlayOfType(D2UnitStrc * pUnit, int32_t nOverlayType) {
@@ -450,7 +450,7 @@ static BOOL GFX_FreeGfxInfoEntry(D2UnitStrc * pUnit, D2GfxInfoUnkStrc * pGfxInfo
     }
 
     pCur = pMemoryToFree->pNext;
-    D2_FREE(pMemoryToFree);
+    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0x3d0, 0);
     if (pPrev) {
       pPrev->pNext = pCur;
       return 1;
@@ -550,7 +550,7 @@ int __stdcall GFX_LoadCompositCof(int * pnOutCofData, uint32_t nAnimMode, D2Unit
 
     BVar1 = GFX_FindOrEvictGfxInfoEntry(nWeaponParam, (D2GfxInfoUnkStrc**)&pnOutCofData, pnOutCofData, pUnit, nAnimModeCopy);
     if (BVar1) {
-      pNewEntry = D2_NEW(D2GfxInfoUnkStrc);
+      pNewEntry = ((D2GfxInfoUnkStrc*)Fog::Memory::AllocClientMemory(sizeof(D2GfxInfoUnkStrc), ".\\ENGINE\\Gfx.cpp", 0x434, 0));
       if (!pNewEntry) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x435);
         exit(-1);
@@ -686,16 +686,9 @@ static void __stdcall GFX_FreeAllGfxInfoEntries(int32_t nComponentCount, D2UnitS
       } while (nComponent < 0x10);
 
       pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
-      if (pGfxInfo) {
-        pMemoryToFree = pGfxInfo->pGfxInfoUnk;
-        while (pMemoryToFree) {
-          pNext = pMemoryToFree->pNext;
-          D2_FREE(pMemoryToFree);
-          pMemoryToFree = pNext;
-        }
-
-        pGfxInfo->pGfxInfoUnk = 0;
-        return;
+      if (!pGfxInfo) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x668);
+        exit(-1);
       }
 
       pMemoryToFree = pGfxInfo->pGfxInfoUnk;
@@ -722,14 +715,14 @@ static void GFX_FreeOverlayList(int32_t pGfxInfo) {
         Draw::LightMap::FreeLightMap(*(D2LightMapStrc**)((int)pMemoryToFree + 0x40));
       }
 
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0x690, 0);
       pMemoryToFree = pNext;
     }
 }
 
 // @sourcefile .\ENGINE\Gfx.cpp
 D2GfxInfoStrc * __stdcall AllocGfxInfo() {
-    D2GfxInfoStrc* pGfxInfo = D2_NEW(D2GfxInfoStrc);
+    D2GfxInfoStrc* pGfxInfo = ((D2GfxInfoStrc*)Fog::Memory::AllocClientMemory(sizeof(D2GfxInfoStrc), ".\\ENGINE\\Gfx.cpp", 0x804, 0));
     if (!pGfxInfo) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x805);
       exit(-1);
@@ -753,12 +746,12 @@ void __fastcall FreeGfxInfo(D2UnitStrc * pUnit) {
     D2GfxInfoUnkStrc* pMemoryToFree = pGfxInfo->pGfxInfoUnk;
     while (pMemoryToFree) {
       pNext = pMemoryToFree->pNext;
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0x81a, 0);
       pMemoryToFree = pNext;
     }
 
     GFX_FreeOverlayList((int32_t)pGfxInfo);
-    D2_FREE(pGfxInfo);
+    Fog::Memory::FreeClientMemory(pGfxInfo, ".\\ENGINE\\Gfx.cpp", 0x820, 0);
 }
 
 // @sourcefile .\ENGINE\Gfx.cpp
@@ -773,7 +766,7 @@ void __fastcall GFX_FreeUnitGfxInfoList(D2UnitStrc * pUnit) {
     D2GfxInfoUnkStrc* pMemoryToFree = pGfxInfo->pGfxInfoUnk;
     while (pMemoryToFree) {
       pNext = pMemoryToFree->pNext;
-      D2_FREE(pMemoryToFree);
+      Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0x830, 0);
       pMemoryToFree = pNext;
     }
 
@@ -785,31 +778,9 @@ void __fastcall GFX_FreeNonBaseGfxInfoEntries(D2UnitStrc * pUnit) {
     D2GfxInfoUnkStrc* pNext;
     D2GfxInfoUnkStrc* pPrev;
     D2GfxInfoStrc* pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
-    if (pGfxInfo) {
-      D2GfxInfoUnkStrc* pMemoryToFree;
-      pNext = pGfxInfo->pGfxInfoUnk;
-      pMemoryToFree = 0;
-      while (true) {
-        pPrev = pMemoryToFree;
-        pMemoryToFree = pNext;
-        if (!pMemoryToFree) {
-          break;
-        }
-
-        pNext = pMemoryToFree->pNext;
-        if (pMemoryToFree->nAnimMode && pMemoryToFree->nAnimMode != 0x11) {
-          D2_FREE(pMemoryToFree);
-          if (!pPrev) {
-            pGfxInfo->pGfxInfoUnk = pNext;
-            pMemoryToFree = pPrev;
-          } else {
-            pPrev->pNext = pNext;
-            pMemoryToFree = pPrev;
-          }
-        }
-      }
-
-      return;
+    if (!pGfxInfo) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x83d);
+      exit(-1);
     }
 
     D2GfxInfoUnkStrc* pMemoryToFree;

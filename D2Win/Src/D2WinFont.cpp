@@ -91,7 +91,7 @@ static void InitFontCache(int32_t nFontIndex) {
     char szFontTablePath[80];
     GetFontTablePath(0x4f, nFontIndex, szFontTablePath);
     if (gaFontCache[nFontIndex].pFontTable) {
-      D2_FREE(gaFontCache[nFontIndex].pFontTable);
+      Fog::Memory::FreeClientMemory(gaFontCache[nFontIndex].pFontTable, ".\\Src\\D2WinFont.cpp", 0xb3, 0);
     }
 
     int32_t nAllocLine = 0xb5;
@@ -112,7 +112,7 @@ void __stdcall D2WINFONT_FreeFontCache() {
         ((D2FontCacheEntryStrc*)(ppFontTable - 1))->pFontDC6 = 0;
       }
       if (*ppFontTable) {
-        D2_FREE(*ppFontTable);
+        Fog::Memory::FreeClientMemory(*ppFontTable, ".\\Src\\D2WinFont.cpp", 0x135, 0);
         *ppFontTable = 0;
       }
 
@@ -180,16 +180,16 @@ int32_t __fastcall D2WINFONT_GetStringPixelWidthN(uint16_t * pwszString, int32_t
         nCharPos++;
         nColorCodeLen++;
       } else {
-        if (!(nColorCodeLen >= nMaxChars || 0xff < wCharCode || wCharCode != 0xff || pwszString[1] != 99 || pwszString[2] < 0x30 || 0x37 <= pwszString[2])) {
-          pwszString += 3;
-          nCharPos += 3;
-          nColorCodeLen += 3;
-        } else {
+        if (nColorCodeLen >= nMaxChars || 0xff < wCharCode || wCharCode != 0xff || pwszString[1] != 99 || pwszString[2] < 0x30 || 0x37 <= pwszString[2]) {
           pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
           nWidth += (uint32_t)pGlyphEntry->abUnverified[1];
           pwszString++;
           nCharPos++;
           nColorCodeLen++;
+        } else {
+          pwszString += 3;
+          nCharPos += 3;
+          nColorCodeLen += 3;
         }
       }
 
@@ -255,7 +255,11 @@ static int32_t TEXT_CalculateTextWidth(uint16_t * szBuffer) {
         nCurLineWidth = 0;
         szBuffer++;
       } else {
-        if (!(0x100 <= (uint16_t)wCharCode || wCharCode != L'ÿ')) {
+        if (0x100 <= (uint16_t)wCharCode || wCharCode != L'ÿ') {
+          pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
+          nCurLineWidth += (uint32_t)pGlyphEntry->abUnverified[1];
+          szBuffer++;
+        } else {
           nColorCmpResult = D2Lang::Unicode::UNISYS::UNICODE_CompareWideStringsNNoCase((uint16_t*)(szBuffer + 1), gnFontTableCharWidthCache, 1);
           if (!nColorCmpResult) {
             pGlyphEntry = (*gpfnFontGetCharWidth)(gnFontTableCharWidthCache[0]);
@@ -264,10 +268,6 @@ static int32_t TEXT_CalculateTextWidth(uint16_t * szBuffer) {
 
           szBuffer += 3;
           nCharPos += 2;
-        } else {
-          pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
-          nCurLineWidth += (uint32_t)pGlyphEntry->abUnverified[1];
-          szBuffer++;
         }
       }
 
@@ -305,11 +305,7 @@ static int32_t D2WINFONT_GetFirstLinePixelWidth(uint16_t * pwszString) {
       if (wCharCode == 10) {
         return nLineWidth;
       }
-      if (!(wCharCode < 0x100 && wCharCode == 0xff)) {
-        pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
-        nLineWidth += (uint32_t)pGlyphEntry->abUnverified[1];
-        pwszString++;
-      } else {
+      if (wCharCode < 0x100 && wCharCode == 0xff) {
         nColorCmpResult = D2Lang::Unicode::UNISYS::UNICODE_CompareWideStringsNNoCase(pwszString + 1, gnFontTableCharWidthCache, 1);
         if (!nColorCmpResult) {
           pGlyphEntry = (*gpfnFontGetCharWidth)(gnFontTableCharWidthCache[0]);
@@ -318,6 +314,10 @@ static int32_t D2WINFONT_GetFirstLinePixelWidth(uint16_t * pwszString) {
 
         nCharPos += 2;
         pwszString += 3;
+      } else {
+        pGlyphEntry = (*gpfnFontGetCharWidth)(wCharCode);
+        nLineWidth += (uint32_t)pGlyphEntry->abUnverified[1];
+        pwszString++;
       }
 
       nCharPos++;
@@ -1031,15 +1031,15 @@ void __fastcall D2WINFONT_FreeWordWrapList(void * * ppNodeList) {
     while (ppNodeList) {
       void** ppvVar1;
       ppvVar1 = (void**)ppNodeList[1];
-      D2_FREE(*ppNodeList);
-      D2_FREE(ppNodeList);
+      Fog::Memory::FreeClientMemory(*ppNodeList, ".\\Src\\D2WinFont.cpp", 0x579, 0);
+      Fog::Memory::FreeClientMemory(ppNodeList, ".\\Src\\D2WinFont.cpp", 0x57a, 0);
       ppNodeList = ppvVar1;
     }
 }
 
 // @sourcefile .\Src\D2WinFont.cpp
 D2TextLineStrc * __stdcall D2WINFONT_AllocWordWrapNode(uint16_t * pwszText, size_t nSize, int32_t bTrimLeadingSpace) {
-    D2TextLineStrc* pNode = D2_NEW(D2TextLineStrc);
+    D2TextLineStrc* pNode = ((D2TextLineStrc*)Fog::Memory::AllocClientMemory(sizeof(D2TextLineStrc), ".\\Src\\D2WinFont.cpp", 0x588, 0));
     if (bTrimLeadingSpace && (uint16_t)*pwszText < 0x100) {
       int bIsSpace;
       bIsSpace = isspace((uint32_t)(uint16_t)*pwszText);
@@ -1049,7 +1049,7 @@ D2TextLineStrc * __stdcall D2WINFONT_AllocWordWrapNode(uint16_t * pwszText, size
       }
     }
 
-    uint16_t* pNodeText = (uint16_t*)D2_ALLOC(nSize * 2 + 2);
+    uint16_t* pNodeText = (uint16_t*)Fog::Memory::AllocClientMemory(nSize * 2 + 2, ".\\Src\\D2WinFont.cpp", 0x591, 0);
     pNode->wszLine = pNodeText;
     pNode->pNext = 0;
     D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pNodeText, pwszText, nSize);
@@ -1079,9 +1079,9 @@ D2TextLineStrc * __fastcall D2WINFONT_WordWrapString(uint16_t * wszText, int * p
     nTextPixelWidth = D2WINFONT_GetStringPixelWidthN((uint16_t*)wszText, nStrLen);
     if (nTextPixelWidth <= nMaxWidth) {
       *pnLineCount = 1;
-      pNode = D2_NEW(D2TextLineStrc);
+      pNode = ((D2TextLineStrc*)Fog::Memory::AllocClientMemory(sizeof(D2TextLineStrc), ".\\Src\\D2WinFont.cpp", 0x588, 0));
       nSegLen = nStrLen + 1;
-      pNodeText = (uint16_t*)D2_ALLOC(nStrLen + 3 + nSegLen);
+      pNodeText = (uint16_t*)Fog::Memory::AllocClientMemory(nStrLen + 3 + nSegLen, ".\\Src\\D2WinFont.cpp", 0x591, 0);
       pNode->wszLine = pNodeText;
       pNode->pNext = 0;
       D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pNodeText, wszText, nSegLen);
@@ -1142,7 +1142,7 @@ D2TextLineStrc * __fastcall D2WINFONT_WordWrapString(uint16_t * wszText, int * p
           } while (nSegStart < nSegEnd);
         }
 
-        pNode = D2_NEW(D2TextLineStrc);
+        pNode = ((D2TextLineStrc*)Fog::Memory::AllocClientMemory(sizeof(D2TextLineStrc), ".\\Src\\D2WinFont.cpp", 0x588, 0));
         pNodeText = wszText + nSegStart;
         nSegLen = nSegEnd - nSegStart + 1;
         if ((uint16_t)*pNodeText < 0x100) {
@@ -1153,7 +1153,7 @@ D2TextLineStrc * __fastcall D2WINFONT_WordWrapString(uint16_t * wszText, int * p
           }
         }
 
-        pDestination = (uint16_t*)D2_ALLOC(nSegLen * 2 + 2);
+        pDestination = (uint16_t*)Fog::Memory::AllocClientMemory(nSegLen * 2 + 2, ".\\Src\\D2WinFont.cpp", 0x591, 0);
         pNode->wszLine = pDestination;
         pNode->pNext = 0;
         D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(pDestination, pNodeText, nSegLen);
@@ -1170,7 +1170,7 @@ D2TextLineStrc * __fastcall D2WINFONT_WordWrapString(uint16_t * wszText, int * p
 
         goto next_segment;
       }
-      if (nMaxWidth < nFitPixelWidth) {
+      if (nFitPixelWidth > nMaxWidth) {
         nSegEnd = nStrLen;
         if (nSegStart < nStrLen) {
           do {

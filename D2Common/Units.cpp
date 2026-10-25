@@ -167,7 +167,7 @@ D2SkillStrc * __stdcall GetCurrentSkill(D2UnitStrc * pUnit) {
 
 // @sourcefile .\UNITS\Units.cpp
 D2UnitStrc * __stdcall AllocUnit(D2PoolManagerStrc * pMemory, eD2UnitType eUnitType) {
-    D2UnitStrc* pUnit = D2_NEW_POOL(pMemory, D2UnitStrc);
+    D2UnitStrc* pUnit = ((D2UnitStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2UnitStrc), ".\\UNITS\\Units.cpp", 0x66e, 0));
     memset(pUnit, 0, 0xf4);
     pUnit->eUnitType = eUnitType;
     pUnit->pMemory = pMemory;
@@ -175,7 +175,7 @@ D2UnitStrc * __stdcall AllocUnit(D2PoolManagerStrc * pMemory, eD2UnitType eUnitT
       return pUnit;
     }
 
-    D2UnitDataMonsterStrc* local_EAX_79 = D2_NEW_POOL(pMemory, D2UnitDataMonsterStrc);
+    D2UnitDataMonsterStrc* local_EAX_79 = ((D2UnitDataMonsterStrc*)Fog::Memory::AllocServerMemory(pMemory, sizeof(D2UnitDataMonsterStrc), ".\\UNITS\\Units.cpp", 0x67b, 0));
     pUnit->pUnitData.pUnitDataMonster = local_EAX_79;
     memset(local_EAX_79, 0, 0x60);
     return pUnit;
@@ -190,12 +190,12 @@ void __stdcall Free(D2UnitStrc * pUnit) {
     Stats::StatsEx::STATLIST_FreeStatListMemory(pUnit);
     Skills::SKILLS_FreeSkillList(pUnit);
     if (pUnit->eUnitType == UNIT_MONSTER) {
-      D2_FREE_POOL(pUnit->pMemory, pUnit->pUnitData.pUnitDataPlayer);
+      Fog::Memory::FreeServerMemory(pUnit->pMemory, pUnit->pUnitData.pUnitDataPlayer, ".\\UNITS\\Units.cpp", 0x69a, 0);
     }
 
     pUnit->eUnitType = UNIT_COUNT;
     pUnit->nUnitGUID = -1;
-    D2_FREE_POOL(pUnit->pMemory, pUnit);
+    Fog::Memory::FreeServerMemory(pUnit->pMemory, pUnit, ".\\UNITS\\Units.cpp", 0x6a4, 0);
 }
 
 void __fastcall UNITS_SetWarpStaticPathCoords(D2UnitStrc * pUnit, int32_t nPosX, int32_t nPosY, int32_t nUnkX, int32_t nUnkY) {
@@ -1343,7 +1343,10 @@ BOOL __stdcall HasCollision(D2UnitStrc * pUnit) {
 
 D2SkillStrc * __stdcall GetSkillFromSkillId(D2UnitStrc * pUnit, eD2Skills eSkill) {
     D2SkillsTxt* pSkillsTxt;
-    if (!((int)eSkill < 0 || (int)eSkill >= sgptDataTable->nTxtSkillsCount || (pSkillsTxt = sgptDataTable->pTxtSkills , !(pSkillsTxt + eSkill)))) {
+    if ((int)eSkill < 0 || (int)eSkill >= sgptDataTable->nTxtSkillsCount || (pSkillsTxt = sgptDataTable->pTxtSkills , !(pSkillsTxt + eSkill))) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdfb);
+      exit(-1);
+    } else {
       D2SkillStrc* pSkillIter;
       if (!pUnit) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x638);
@@ -1363,9 +1366,6 @@ D2SkillStrc * __stdcall GetSkillFromSkillId(D2UnitStrc * pUnit, eD2Skills eSkill
       }
 
       return pSkillIter;
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdfb);
-      exit(-1);
     }
 }
 
@@ -1583,7 +1583,10 @@ void __stdcall SetOverlay(D2UnitStrc * pUnit, uint32_t nOverlay, int32_t nParam)
 }
 
 int32_t __stdcall GetBeltType(D2UnitStrc * pUnit) {
-    if (!(!pUnit || pUnit->eUnitType != UNIT_ITEM)) {
+    if (!pUnit || pUnit->eUnitType != UNIT_ITEM) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf20);
+      exit(-1);
+    } else {
       D2ItemsTxt* pItemsTxt;
       pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
       if (!pItemsTxt) {
@@ -1592,9 +1595,6 @@ int32_t __stdcall GetBeltType(D2UnitStrc * pUnit) {
       }
 
       return (uint32_t)pItemsTxt->bBelt;
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf20);
-      exit(-1);
     }
 }
 
@@ -1630,30 +1630,12 @@ void __stdcall AllocPlayerData(D2UnitStrc * pUnit) {
       exit(-1);
     } else {
       D2UnitDataPlayerStrc* pUnitDataPlayer;
-      if (!pUnit->pUnitData.pUnitDataPlayer) {
-        pUnitDataPlayer = D2_NEW_POOL(pUnit->pMemory, D2UnitDataPlayerStrc);
-        pUnit->pUnitData.pUnitDataPlayer = pUnitDataPlayer;
-        memset(pUnitDataPlayer, 0, 0x16c);
-        pUnit->pUnitData.pUnitDataPlayer->szCharName[0] = '\0';
-        iActIdx = 0x1c;
-        do {
-          pMemPool = D2Client::UNIT::CUnitEvent::GetMemPool(pUnit);
-          pQuestBuf = QuestRecord::CreateBitBuffer(pMemPool);
-          *(D2BitBufferStrc**)(pUnit->pUnitData.pUnitDataPlayer->szCharName + iActIdx - 0xc) = (D2BitBufferStrc*)pQuestBuf;
-          pMemPool = D2Client::UNIT::CUnitEvent::GetMemPool(pUnit);
-          pWaypoint = Waypoints::Alloc(pMemPool);
-          *(D2WaypointStrc**)(pUnit->pUnitData.pUnitDataPlayer->szCharName + iActIdx) = (D2WaypointStrc*)pWaypoint;
-          iActIdx += 4;
-        } while (iActIdx < 0x28);
-
-        nLine = DUNGEON::Dungeon::GetPortalFlagFromLevelId(LEVEL_RogueEncampment);
-        pUnit->pUnitData.pUnitDataPlayer->nPortalFlags = nLine;
-        pUnit->pUnitData.pUnitDataPlayer->dwTradeTick = 0;
-        Txt::Cube::FIELDTBLS_AllocPlayerData_NoOp(pUnit);
-        return;
+      if (pUnit->pUnitData.pUnitDataPlayer) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf51);
+        exit(-1);
       }
 
-      pUnitDataPlayer = (D2UnitDataPlayerStrc*)Fog::Memory::AllocServerMemory(pUnit->pMemory, 0x16c, ".\\UNITS\\Units.cpp", 0xf52, 0);
+      pUnitDataPlayer = ((D2UnitDataPlayerStrc*)Fog::Memory::AllocServerMemory(pUnit->pMemory, sizeof(D2UnitDataPlayerStrc), ".\\UNITS\\Units.cpp", 0xf52, 0));
       pUnit->pUnitData.pUnitDataPlayer = pUnitDataPlayer;
       memset(pUnitDataPlayer, 0, 0x16c);
       pUnit->pUnitData.pUnitDataPlayer->szCharName[0] = '\0';
@@ -1682,18 +1664,9 @@ void __stdcall FreePlayerData(D2PoolManagerStrc * pMemory, D2UnitStrc * pUnit) {
       exit(-1);
     } else {
       int iActIdx;
-      if (pUnit->pUnitData.pUnitDataPlayer) {
-        iActIdx = 0x1c;
-        do {
-          QuestRecord::FreeQuestRecordPool(pMemory, *(D2BitBufferStrc**)(pUnit->pUnitData.pUnitDataPlayer->szCharName + iActIdx - 0xc));
-          Waypoints::Free(pMemory, *(D2WaypointStrc**)(pUnit->pUnitData.pUnitDataPlayer->szCharName + iActIdx));
-          iActIdx += 4;
-        } while (iActIdx < 0x28);
-
-        Txt::Cube::FIELDTBLS_FreePlayerData_STUB();
-        D2_FREE_POOL(pMemory, pUnit->pUnitData.pUnitDataPlayer);
-        pUnit->pUnitData.pUnitDataPlayer = 0;
-        return;
+      if (!pUnit->pUnitData.pUnitDataPlayer) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf6d);
+        exit(-1);
       }
 
       iActIdx = 0x1c;
@@ -2693,7 +2666,7 @@ void __stdcall AllocStaticPath(D2UnitStrc * pUnit) {
       return;
     }
 
-    D2StaticPathStrc* pPathStrc = D2_NEW_POOL(pUnit->pMemory, D2StaticPathStrc);
+    D2StaticPathStrc* pPathStrc = ((D2StaticPathStrc*)Fog::Memory::AllocServerMemory(pUnit->pMemory, sizeof(D2StaticPathStrc), ".\\UNITS\\Units.cpp", 0x151e, 0));
     pUnit->pPath.pStaticPath = pPathStrc;
     pPathStrc->pRoom = 0;
     pPathStrc->nScreenX = 0;
@@ -2714,7 +2687,7 @@ void __stdcall FreeStaticPath(D2UnitStrc * pUnit) {
       return;
     }
 
-    D2_FREE_POOL(pUnit->pMemory, pUnit->pPath.pStaticPath);
+    Fog::Memory::FreeServerMemory(pUnit->pMemory, pUnit->pPath.pStaticPath, ".\\UNITS\\Units.cpp", 0x152b, 0);
 }
 
 BOOL __stdcall CanDualWield(D2UnitStrc * pUnit) {
@@ -2893,8 +2866,7 @@ void __stdcall RemoveCollision_Vector(D2UnitStrc * pUnit) {
     }
 
     int32_t eCollisionFlag = D2Common::Units::GetCollisionType(pUnit);
-    uint32_t nVectorY = GetUnitSizeY(pUnit);
-    Collision::RemoveCollision_Vector(UNITS_GetRoom(pUnit), nX, nY, GetUnitSizeX(pUnit), nVectorY, eCollisionFlag);
+    Collision::RemoveCollision_Vector(UNITS_GetRoom(pUnit), nX, nY, GetUnitSizeX(pUnit), GetUnitSizeY(pUnit), eCollisionFlag);
 }
 
 // Returns the current facing direction (0–15) for a unit based on its path. For objects/portals uses the static path position; for units with a dynamic path, compares current XY to the next-step waypoint (SP1). If both X and Y match (unit is at its next waypoint), falls back to DynamicPath::UpdateDirection. Otherwise calls GetDirectionToCoords toward the next SP1 position.

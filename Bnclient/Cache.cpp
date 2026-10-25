@@ -322,7 +322,18 @@ BOOL __fastcall CACHE_ReadData(char * szKey, uint32_t * pCrc32Out, uint32_t * * 
         /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00881894);
       } else {
         nCrc32Computed = *(uint32_t*)(gpCacheBufferPoolFirst + nHashSlot * 0x10 + 0xc);
-        if (nCrc32Computed < gpCacheFileHeader->nBlockTableSize) {
+        if (!(nCrc32Computed < gpCacheFileHeader->nBlockTableSize)) {
+          __frame0.nRebuildReason = 1;
+          rebuild_corrupt_cache:
+          Bnet::BnetLog_WriteLine("bncache.dat is corrupt (%d) - rebuilding archive", __frame0.nRebuildReason);
+          CACHE_Rebuild();
+          discard_output:
+          if (*ppDataBuf) {
+            Storm::SMem::SMemFree(*ppDataBuf, ".\\CACHE.CPP", 0x2de, 0);
+            *ppDataBuf = 0;
+          }
+          *pDataSizeOut = 0;
+        } else {
           memset(&__frame0.entryHeader, 0, 0x144);
           nBlockEntryOffset = nCrc32Computed * 0x10;
           nHashSlot = __frame0.entryHeader.dwHeaderCrc32;
@@ -355,7 +366,11 @@ BOOL __fastcall CACHE_ReadData(char * szKey, uint32_t * pCrc32Out, uint32_t * * 
                 }
 
                 __frame0.nRebuildReason = 4;
+              } else {
+                __frame0.nRebuildReason = 3;
               }
+            } else {
+              __frame0.nRebuildReason = 2;
             }
 
             goto rebuild_corrupt_cache;
@@ -622,7 +637,9 @@ BOOL __fastcall CACHE_WriteData(char * szCacheKey, LPCVOID pDataToWrite, uint32_
         __frame0.abEntryHeader.dwHeaderCrc32 = ~nBlockIdx;
         /* DWORD dwMoveMethod for SetFilePointer */ /* PLONG lpDistanceToMoveHigh for SetFilePointer */ /* LONG lDistanceToMove for SetFilePointer */ /* HANDLE hFile for SetFilePointer */ SetFilePointer(ghCacheFileHandle, *(LONG*)(nBlockEntryOffset + (int)gpCacheBlockTable), (PLONG)0x0, 0);
         /* LPOVERLAPPED lpOverlapped for WriteFile */ /* LPDWORD lpNumberOfBytesWritten for WriteFile */ /* DWORD nNumberOfBytesToWrite for WriteFile */ /* LPCVOID lpBuffer for WriteFile */ /* HANDLE hFile for WriteFile */ WriteFile(ghCacheFileHandle, (LPCVOID)&__frame0.abEntryHeader, 0x144, &__frame0.nBytesReadWrite, (LPOVERLAPPED)0x0);
-        if (__frame0.nBytesReadWrite == 0x144) {
+        if (__frame0.nBytesReadWrite != 0x144) {
+          nRebuildReason = 0xd;
+        } else {
           /* LPOVERLAPPED lpOverlapped for WriteFile */ /* LPDWORD lpNumberOfBytesWritten for WriteFile */ /* DWORD nNumberOfBytesToWrite for WriteFile */ /* LPCVOID lpBuffer for WriteFile */ /* HANDLE hFile for WriteFile */ WriteFile(ghCacheFileHandle, pDataToWrite, nDataSize, &__frame0.nBytesReadWrite, (LPOVERLAPPED)0x0);
           if (__frame0.nBytesReadWrite == nDataSize) {
             nBlockIdx = gpCacheFileHeader->nHashTableSize;
@@ -687,6 +704,8 @@ BOOL __fastcall CACHE_WriteData(char * szCacheKey, LPCVOID pDataToWrite, uint32_
               Storm::SMem::SMemFree(pBlockEntry, ".\\CACHE.CPP", 0x39d, 0);
               nRebuildReason = 0xf;
             }
+          } else {
+            nRebuildReason = 0xe;
           }
         }
       } else {

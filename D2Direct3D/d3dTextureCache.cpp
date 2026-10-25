@@ -249,7 +249,7 @@ void __fastcall D3DTEXCACHE_Free(D3DTextureCacheStrc * pCache, BOOL bInvalidateA
         }
       }
       if (pCache->pNodeBuffer) {
-        D2_FREE(pCache->pNodeBuffer);
+        Fog::Memory::FreeClientMemory(pCache->pNodeBuffer, ".\\Src\\d3dTextureCache.cpp", 0x94, 0);
         pCache->pNodeBuffer = 0;
       }
 

@@ -1112,7 +1112,7 @@ void __fastcall FreeMonster(D2UnitStrc * pUnit) {
       return;
     }
 
-    D2_FREE(pMonData->pPathParamOrName.wszMonsterName);
+    Fog::Memory::FreeClientMemory(pMonData->pPathParamOrName.wszMonsterName, ".\\UNIT\\Monster.cpp", 0x66, 0);
     pMonData->pPathParamOrName.wszMonsterName = 0;
 }
 
@@ -1166,7 +1166,7 @@ void __fastcall MONSTER_TransformToClassId(D2UnitStrc * pUnit, int32_t nClassId)
     if (pUnit->eUnitType == UNIT_MONSTER) {
       pMonData = pUnit->pUnitData.pUnitDataMonster;
       if (pMonData && pMonData->pPathParamOrName.wszMonsterName) {
-        D2_FREE(pMonData->pPathParamOrName.wszMonsterName);
+        Fog::Memory::FreeClientMemory(pMonData->pPathParamOrName.wszMonsterName, ".\\UNIT\\Monster.cpp", 0x66, 0);
         pMonData->pPathParamOrName.wszMonsterName = 0;
       }
     }
