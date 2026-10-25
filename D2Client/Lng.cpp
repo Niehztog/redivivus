@@ -13,7 +13,7 @@
 
 namespace D2Client::Lng {
 
-BOOL __stdcall LNG_FormatErrorMessageWithFallback(DWORD dwErrorCode, char * szBuffer, DWORD dwBufferSize) {
+static BOOL __stdcall LNG_FormatErrorMessageWithFallback(DWORD dwErrorCode, char * szBuffer, DWORD dwBufferSize) {
     if (!ghLngLibrary) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x81);
       exit(-1);

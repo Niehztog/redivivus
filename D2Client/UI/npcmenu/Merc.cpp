@@ -108,10 +108,10 @@ void __fastcall NPCMENU_HandleMercListPacket(int32_t nParam) {
       Sound::SOUND_PlaySound(0x11ff, pUnit, 0, 0, 0);
       return;
     }
-    if (!_Interaction::bInteractingWithNpc) {
-      pInteractedNpc = 0;
-    } else {
+    if (!(!_Interaction::bInteractingWithNpc)) {
       pInteractedNpc = UNIT::Player::UNITS_FindClientSideUnit(_Interaction::nCurrentInteractedNpcGUID, UNIT_MONSTER);
+    } else {
+      pInteractedNpc = 0;
     }
     if (pUnit == pInteractedNpc) {
       return;

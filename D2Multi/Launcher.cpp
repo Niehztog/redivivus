@@ -500,7 +500,7 @@ void LAUNCHER_AllocCharSelectComponent(int32_t pCharInfo) {
     D2Win::Src::D2Comp::D2COMP_SetCurrentFrame(gpChatDlgCharSelCompositeUnit, 0);
 }
 
-void LAUNCHER_GetDifficultyNameStringId(int32_t nDifficulty, uint16_t * wszText) {
+static void LAUNCHER_GetDifficultyNameStringId(int32_t nDifficulty, uint16_t * wszText) {
     uint16_t* pwszLocaleStr;
     switch (nDifficulty) {
       case 0:

@@ -71,14 +71,8 @@ namespace D2Common::Txt::Cube {
 
 // Function declarations
 // Pads item code strings with spaces to 4 characters. Copies input string to output buffer and fills remaining characters with spaces (0x20). Used when parsing cube recipe item codes from CubMain.txt to normalize them for comparison.
-void CUBE_PadItemCodeString(char * szText1, char * szText2);
 // Tokenizes a comma-delimited string and parses the first token as an integer. Updates the input pointer to point past the parsed token. Used for parsing multi-value cube output fields.
 int32_t CUBE_TokenizeAndParseInt(char * szText, char * * ppszText);
-// Parses one cube-recipe input-item token from cubemain.txt into a D2CubeInputStrc. Strips quotes, splits the leading code on the type-flag delimiters, and resolves it in order: "any" (wildcard, classid 0xffff), an item-type via GetClassIdFromName, an item code via ConvertItemCodeToClassIdAndGetItemsTxtLine, else a unique/set item by link-table lookup (sets quality 7/5 and nUniqueItemId). Then iterates the remaining comma/flag-separated tokens setting nQuality (low/nor/hiq/mag/set/rar/uni/crf/tmp = 1..9), quantity ("qty"=N), and the wFlagsAndUpgrade bitmask (nos/sock/noe/eth/upg/bas/exc/eli/nru). Returns 1 on success, 0 if the code cannot be resolved. Custom convention: pszField in EAX, pInput on stack.
-void __stdcall CUBE_ParseInputItem(char * pszField, struct D2CubeInputStrc * pInput);
-// CUBE_ParseOutputItem
-// Parses cubeserver output token into D2CubeOutputStrc (portals/useitem/usetype/item code, qty, pre/suf, quality, flags: eth/sock/mod/uns/rem/reg/exc/eli/rep/rch).
-void __stdcall CUBE_ParseOutputItem(struct D2CubeOutputStrc * pOutput, char * pszField);
 // Wrapper for parsing a single input item field from CubMain.txt. Calls CUBE_ParseInputItem to populate a D2CubeInputStrc at the specified index in the recipe's pInputItem array. Used during CubMain.txt loading.
 void __fastcall CUBE_ParseInputItemField(char * pszField, struct D2CubeMainTxt * pLine, int32_t index, uint32_t dwUnused1, uint32_t dwUnused2, uint32_t dwUnused3);
 // Wrapper for parsing a single output item field from CubMain.txt. Calls CUBE_ParseOutputItem to populate a D2CubeOutputStrc at the specified index in the recipe's pOutputItem array. Used during CubMain.txt loading.

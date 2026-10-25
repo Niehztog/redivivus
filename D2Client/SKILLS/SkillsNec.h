@@ -19,8 +19,6 @@ namespace D2Client::SKILLS::SkillsNec {
 BOOL __fastcall Skills_CltStFunc_SpawnCltMissileC(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 // Client-side do-function for Necromancer curse skills that emit a streaming AoE center missile (e.g. Amplify Damage, Decrepify). Creates a MISSILE_Cursecenter at the target coordinates, frees its existing light map and allocates a new one, then sets the stream missile type and range (from aurarangecalc, clamped to min 2) so the missile fans out stream missiles over its radius. Returns TRUE on success.
 BOOL __fastcall Skills_CltDoFunc_Nec_CurseCenter_StreamMissile(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
-// Client-side: spawns a single Bone Wall/Prison missile segment at the correct orientation. Gets target coords via GetCooordinates, computes delta from caster to target and distance, calculates a normalized direction for the wall segment. Fills D2SkillArgStrc with the given eMissileId, eSkill, nParam (as nToHit), nFlags=3, and perpendicular velocity components. After MakeMissile, sets the missile's facing via PATH_SetNewDirection to point toward the target. Returns 1 on success, 0 if coords unavailable or missile allocation failed.
-uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam, eMissilesId eMissileId, struct D2UnitStrc * pUnit);
 BOOL __fastcall Skills_CltStFunc_SetBoneWallGraphics(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall Skills_CltStFunc_CheckCorpseSetPositionParams(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall Skills_CltDoFunc_Nec_TargetedMissileAtParam(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);

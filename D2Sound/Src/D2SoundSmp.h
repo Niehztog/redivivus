@@ -89,14 +89,9 @@ void __fastcall SOUNDSMP_CancelStream(struct D2SoundSmpStrc * ppnParam);
 void __fastcall SOUNDSMP_Stop(struct D2SoundSmpStrc * ppnParam);
 void __fastcall CleanupSoundBuffer(uint32_t nParam);
 void __fastcall SOUNDSMP_CheckBufferLost(struct D2SoundSmpStrc * ppnParam);
-// The local holding the EAX interface was typed IUnknown *. It is IKsPropertySet *, the declared type
-// of D2SoundSmpStrc.pEaxInterface, which is what the assignment reads.
-void SOUNDSMP_ReleaseInterfaces(struct D2SoundSmpStrc * ppnParam);
 // @sourcefile .\Src\D2SoundSmp.cpp
 void __fastcall SOUNDSMP_Destroy(struct D2SoundSmpStrc * pSoundSmp);
 void __fastcall SOUNDSMP_Reset(struct D2SoundSmpStrc * pSoundSmp);
-// lpStartAddress parameter of CreateThread
-DWORD __stdcall D2SOUNDSMP_SoundUpdateThreadProc(void * lpThreadParam);
 void __stdcall SOUNDSMP_CreateSoundThread();
 float __stdcall SOUNDSMP_LogVolumeToLinear(float dwVolume);
 float __stdcall SOUNDSMP_LinearToLogVolume(float dwLinearValue, float dwScale);
@@ -105,7 +100,6 @@ float SOUNDSMP_LinearToLogNoParam(float fValue, float fValue2);
 // No register arguments: EAX is first written by FNSTSW AX at 00516607 and only carries the x87 status word (1.14d asm).
 float __stdcall SOUNDSMP_ClampVolume(float fValue, float fParam2, float fParam3);
 float __stdcall SOUNDSMP_ClampAttenuation(float fParam);
-int * __stdcall SOUNDSMP_FindWavChunk(uint32_t * pRemainingSize, uint32_t * pChunkSize, int32_t nChunkId, int * pChunkHeader);
 void __fastcall SOUNDSMP_InitWaveFormat(WAVEFORMATEX * pWaveFormat, WORD nChannels);
 int * __fastcall SOUNDSMP_ParseWavHeader(int * pWavData, uint32_t * pDataSize, short * pWavFormat);
 void __fastcall SOUNDSMP_CalculateVolumeAndPan(uint32_t * pnVolume, uint32_t * pnPan, float fDeltaX, float fDeltaY, float fDeltaZ);

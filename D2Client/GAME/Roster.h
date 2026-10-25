@@ -44,10 +44,6 @@ namespace D2Client::GAME::Roster {
 // Function declarations
 struct D2RosterStrc * GetRosterPlayerByGUID(int32_t nRosterGUID);
 struct D2RosterStrc * __stdcall GetPlayerRoster();
-// Searches the global gpRosterPlayers linked list for a roster entry matching either nRosterGUID or szPlayerName. For each node, first checks the GUID (fast path); if it differs, performs a two-bytes-at-a-time strcmp on szRosterName. Returns the matching D2RosterStrc* on success, or null if the list is exhausted.
-struct D2RosterStrc * GetRosterByGuidOrName(char * szPlayerName, int32_t nRosterGUID);
-// Writes identity/party/guild fields into a D2RosterStrc. 004793c4..004793c6 read EAX, EDI and EBX without ever loading them: the roster, the player name and the clan tag all arrive in registers. Modelled as locals, the reconstruction wrote the roster through an uninitialised pointer.
-void __stdcall ROSTER_InitializeFields(struct D2RosterStrc * pRoster, char * szPlayerName, char * szClanTag, int32_t nRosterGUID, int32_t nCharType, int16_t nUnitLevel, int16_t nPartyId, int32_t bInParty, int16_t nGuildFlags, char * szGuildTag);
 // @sourcefile .\GAME\Roster.cpp
 void FreeRosterLinkList(struct D2RosterStrc * pRoster);
 // Frees and NULLs every node in both gpRosterPlayers and gpRosterOther linked lists, releasing each roster's pPlayerList (via FreePlayerList) and pRosterLinkList chain (via FreeClientMemory) before freeing the D2RosterStrc itself. Leaves both globals as NULL.
@@ -61,19 +57,10 @@ struct D2RosterStrc * __stdcall ROSTER_SortByName(struct D2RosterStrc * pRoster)
 struct D2RosterStrc * ROSTER_SortByLevel(struct D2RosterStrc * pRoster);
 // @sourcefile .\GAME\Roster.cpp
 void AllocRosterPartyList(int16_t nPartyId);
-// @sourcefile .\GAME\Roster.cpp
-void __stdcall FreeRosterPartyList();
-struct D2RosterStrc * ROSTER_CollectPartiesIntoPartyList(struct D2RosterPartyListStrc * pRosterPartyList);
 // Insertion-sorts the global pRosterPartyList singly-linked list ascending by nPartyId. Rebuilds the list in-place by relinking pNext pointers and reassigns the global head when done. No allocation; operates on the existing D2RosterPartyListStrc chain.
 void __stdcall ROSTER_SortPartyListsByPartyId();
-// Promotes the party entry matching nPartyId to the front of pRosterPartyList, then within that party's pOwner chain promotes the roster node matching nRosterGUID to the front. Used to prioritize a specific player in the party display order. No-ops if nPartyId is -1 or the entries are not found.
-void __stdcall ROSTER_MoveRosterPlayerToFrontOfParty(int16_t nPartyId, int32_t nRosterGUID);
-// @sourcefile .\GAME\Roster.cpp
-void __stdcall ROSTER_GroupPlayersIntoParties();
 void __stdcall ROSTER_SortAllParties();
 void __stdcall ROSTER_FlattenPartyListsIntoSingleRosterChain();
-void ROSTER_MoveRosterPlayerToFront(int32_t nRosterGUID);
-void __stdcall ROSTER_RebuildPlayerParty();
 // Sets arena score on roster entry by GUID. Score is uint16 from packet 0x65, sign-extended if bit 15 set (negative scores). Triggers party UI rebuild.
 void __fastcall ROSTER_SetArenaScore(int32_t nRosterGUID, uint16_t nArenaScore);
 // Returns arena score from roster entry field 0x18. Returns 0 if roster is null.
@@ -88,13 +75,11 @@ uint32_t __fastcall ROSTER_GetListenFlag(struct D2RosterStrc * pRoster);
 uint32_t __fastcall ROSTER_GetMuteFlag(struct D2RosterStrc * pRoster);
 int __fastcall ROSTER_GetHostileFlag(struct D2RosterStrc * pRoster);
 BOOL __fastcall GetRosterInPartyBool(struct D2RosterStrc * pRoster);
-void ROSTER_TogglePlayerFlag(struct D2RosterStrc * pRoster, int16_t nFlags);
 void __fastcall ROSTER_ToggleLootAndSend(struct D2RosterStrc * pRoster);
 void __fastcall ROSTER_ToggleListenAndSend(struct D2RosterStrc * pRoster);
 void __fastcall ROSTER_ToggleMuteAndSend(struct D2RosterStrc * pRoster);
 // Handles a UI party-button click for a roster entry. Transitions bInParty state: 0→4 sends invite (NET 0x5E action 6), 4→0 cancels invite (action 7), 2/3 send accept/decline actions (8/9). State 1 (pending) is an internal error that halts. Always calls ROSTER_RebuildPlayerParty and ResetPartyUi after any state change.
 void __fastcall ClickParty_i(struct D2RosterStrc * pRoster);
-struct D2RosterStrc * __stdcall ROSTER_LeaveParty();
 void __stdcall LeaveParty();
 void __fastcall ROSTER_ToggleHostileAndSend(struct D2RosterStrc * pRoster);
 uint32_t __fastcall CheckRostersArePartied(int32_t nRoster1GUID, int32_t nRoster2GUID);

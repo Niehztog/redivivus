@@ -82,7 +82,7 @@ int __fastcall inflateReset2(z_stream * pStream, uint32_t nWindowBits) {
         nWindowBits &= 0xf;
       }
     }
-    if (!(!nWindowBits || 7 < (int)nWindowBits && (int)nWindowBits < 0x10)) {
+    if (!(!nWindowBits || 8 <= (int)nWindowBits && (int)nWindowBits <= 0xf)) {
       return -2;
     }
     if (pState->window && pState->wbits != nWindowBits) {
@@ -157,7 +157,7 @@ uint32_t __fastcall inflatePrime(z_stream * pStream, int32_t nBits, uint32_t nVa
       pState->bits = 0;
       return 0;
     }
-    if (nBits >= 0x11) {
+    if (nBits > 0x10) {
       return -2;
     }
 
@@ -179,7 +179,7 @@ void __fastcall fixedtables(inflate_state * state) {
     state->distbits = 5;
 }
 
-BOOL __stdcall updatewindow(uint32_t nCopy, uint8_t * pEnd, z_stream * pStream) {
+static BOOL __stdcall updatewindow(uint32_t nCopy, uint8_t * pEnd, z_stream * pStream) {
     size_t nWrapLen;
     inflate_state* pState = (inflate_state*)pStream->state;
     if (!pState->window) {
@@ -197,7 +197,7 @@ BOOL __stdcall updatewindow(uint32_t nCopy, uint8_t * pEnd, z_stream * pStream) 
     }
 
     uint32_t nDist = pState->wsize;
-    if (nDist <= nCopy) {
+    if (nCopy >= nDist) {
       memcpy(pState->window, pEnd - nDist, nDist);
       pState->wnext = 0;
       pState->whave = pState->wsize;
@@ -205,7 +205,7 @@ BOOL __stdcall updatewindow(uint32_t nCopy, uint8_t * pEnd, z_stream * pStream) 
     }
 
     nDist -= pState->wnext;
-    if (nCopy < nDist) {
+    if (nDist > nCopy) {
       nDist = nCopy;
     }
 
@@ -351,7 +351,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
                   eState = (pHere & 0xf) + 8;
                   if (!pState->wbits) {
                     pState->wbits = eState;
-                  } else if (pState->wbits < eState) {
+                  } else if (eState > pState->wbits) {
                     pInflateStream->msg = "invalid window size";
                     nHold = pHere;
                     pState->mode = 0x1d;
@@ -629,7 +629,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
             }
           } else {
             eState = pState->length;
-            if (nAvailIn < pState->length) {
+            if (pState->length > nAvailIn) {
               eState = nAvailIn;
             }
             if (eState) {
@@ -639,7 +639,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
                   nHeadHave = pState->head->extra_len - pState->length;
                   nScratch = pState->head->extra_max;
                   uVar4 = eState;
-                  if (nScratch < nHeadHave + eState) {
+                  if (nHeadHave + eState > nScratch) {
                     uVar4 = nScratch - nHeadHave;
                   }
 
@@ -666,7 +666,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
         pInflateStream->avail_in = nAvailIn;
         pState->hold = nHold;
         pState->bits = nBits;
-        if (!pState->wsize && (nAvailOutStart == pInflateStream->avail_out || 0x1c < pState->mode || 0x19 < pState->mode && nFlush == 4) || (nTmp = updatewindow(nAvailOutStart - pInflateStream->avail_out, pInflateStream->next_out, pInflateStream) , !nTmp)) {
+        if (!pState->wsize && (nAvailOutStart == pInflateStream->avail_out || 0x1d <= pState->mode || 0x1a <= pState->mode && nFlush == 4) || (nTmp = updatewindow(nAvailOutStart - pInflateStream->avail_out, pInflateStream->next_out, pInflateStream) , !nTmp)) {
           nInConsumed = nIn - pInflateStream->avail_in;
           nAvailOutStart -= pInflateStream->avail_out;
           pInflateStream->total_in += nInConsumed;
@@ -842,10 +842,10 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
           pState->mode = 0xb;
           break;
         }
-        if (nAvailIn < nCopy) {
+        if (nCopy > nAvailIn) {
           nCopy = nAvailIn;
         }
-        if (nAvailOut < nCopy) {
+        if (nCopy > nAvailOut) {
           nCopy = nAvailOut;
         }
         if (nCopy) {
@@ -936,7 +936,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
           pNextInCur = pNextIn;
         while (pState->have < pState->ndist + pState->nlen) {
           eState = *(uint32_t*)((int)pState->lencode + ((1 << ((uint8_t)pState->lenbits & 0x1f)) - 1U & nHold) * 4);
-          while (nBits < (eState >> 8 & 0xff)) {
+          while ((eState >> 8 & 0xff) > nBits) {
             pNextIn = pNextInCur;
             if (!nAvailIn) {
               goto inf_leave;
@@ -1036,7 +1036,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
               nBits += nHeadHave - eState;
               nLenVal = 0;
             }
-            if (pState->ndist + pState->nlen < pState->have + nCopy) {
+            if (pState->have + nCopy > pState->ndist + pState->nlen) {
               pInflateStream->msg = "invalid bit length repeat";
               nHold = pHere;
               pState->mode = 0x1d;
@@ -1088,7 +1088,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
           case_LEN_:
           pState->mode = 0x14;
         case 0x14:
-          if (5 < nAvailIn && 0x101 < nAvailOut) {
+          if (6 <= nAvailIn && 0x102 <= nAvailOut) {
             pInflateStream->avail_out = nAvailOut;
             pInflateStream->next_out = pNextOut;
             pInflateStream->avail_in = nAvailIn;
@@ -1111,7 +1111,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
           }
         pState->back = 0;
         pHere = *(uint32_t*)((int)pState->lencode + ((1 << ((uint8_t)pState->lenbits & 0x1f)) - 1U & nHold) * 4);
-        while (nBits < (pHere >> 8 & 0xff)) {
+        while ((pHere >> 8 & 0xff) > nBits) {
           if (!nAvailIn) {
             goto inf_leave;
           }
@@ -1129,7 +1129,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
         if (byOp != '\0' && !(pHere & 0xf0)) {
           bVar5 = (uint8_t)(pHere >> 8);
           eState = *(uint32_t*)((int)pState->lencode + ((((1 << (byOp + bVar5 & 0x1f)) - 1U & nHold) >> (bVar5 & 0x1f)) + (pHere >> 0x10)) * 4);
-          while (nBits < (eState >> 8 & 0xff) + (pHere >> 8 & 0xff)) {
+          while ((eState >> 8 & 0xff) + (pHere >> 8 & 0xff) > nBits) {
             if (!nAvailIn) {
               goto inf_leave;
             }
@@ -1198,7 +1198,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
         pState->mode = 0x16;
         case_DIST:
         pHere = *(uint32_t*)((int)pState->distcode + ((1 << ((uint8_t)pState->distbits & 0x1f)) - 1U & nHold) * 4);
-        while (nBits < (pHere >> 8 & 0xff)) {
+        while ((pHere >> 8 & 0xff) > nBits) {
           if (!nAvailIn) {
             goto inf_leave;
           }
@@ -1215,7 +1215,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
         if (!(pHere & 0xf0)) {
           bVar5 = (uint8_t)(pHere >> 8);
           eState = *(uint32_t*)((int)pState->distcode + ((((1 << ((char)pHere + bVar5 & 0x1f)) - 1U & nHold) >> (bVar5 & 0x1f)) + (pHere >> 0x10)) * 4);
-          while (nBits < (eState >> 8 & 0xff) + (pHere >> 8 & 0xff)) {
+          while ((eState >> 8 & 0xff) + (pHere >> 8 & 0xff) > nBits) {
             if (!nAvailIn) {
               goto inf_leave;
             }
@@ -1275,16 +1275,16 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
         case_MATCH:
         if (nAvailOut) {
           nCopy = pState->offset_val;
-          if (nAvailOutStart - nAvailOut < nCopy) {
+          if (nCopy > nAvailOutStart - nAvailOut) {
             nCopy -= nAvailOutStart - nAvailOut;
-            if (pState->whave < nCopy && pState->sane) {
+            if (nCopy > pState->whave && pState->sane) {
               pInflateStream->msg = "invalid distance too far back";
               pState->mode = 0x1d;
               break;
             }
 
             eState = pState->wnext;
-            if (eState < nCopy) {
+            if (nCopy > eState) {
               nCopy -= eState;
               nHeadHave = pState->wsize - nCopy;
             } else {
@@ -1293,7 +1293,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
 
             pFrom = pState->window + nHeadHave;
             nFrom = pState->length;
-            if (nFrom < nCopy) {
+            if (nCopy > nFrom) {
               nCopy = nFrom;
             }
           } else {
@@ -1504,20 +1504,20 @@ int __fastcall inflateGetHeader(z_stream * pStream, gz_header * pHead) {
     return 0;
 }
 
-uint32_t __stdcall syncsearch(uint32_t * pnMatchState, uint32_t nLen, uint8_t * pBuf) {
+static uint32_t __stdcall syncsearch(uint32_t * pnMatchState, uint32_t nLen, uint8_t * pBuf) {
     uint32_t nGot = *pnMatchState;
     uint32_t i = 0;
     if (nLen) {
       do {
-        if (3 < nGot) {
+        if (4 <= nGot) {
           break;
         }
         if ((uint32_t)pBuf[i] == (nGot < 2 ? -255 : 0) + 0xff) {
           nGot++;
-        } else if (!pBuf[i]) {
-          nGot = 4 - nGot;
-        } else {
+        } else if (pBuf[i]) {
           nGot = 0;
+        } else {
+          nGot = 4 - nGot;
         }
 
         i++;

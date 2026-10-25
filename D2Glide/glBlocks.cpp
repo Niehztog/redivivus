@@ -58,7 +58,7 @@ void __stdcall GLBLOCKS_FreeBlockBuffers() {
     gpGlBlocksFloorBuffer = 0;
 }
 
-void GLBLOCKS_DecodeRLEBlock(uint8_t * pbSrc, uint8_t * pbDstRow) {
+static void GLBLOCKS_DecodeRLEBlock(uint8_t * pbSrc, uint8_t * pbDstRow) {
     uint8_t bySkip;
     int nRowsLeft = 0x20;
     memset(pbDstRow, 0, 0x400);
@@ -104,7 +104,28 @@ void __stdcall GLBLOCKS_RenderTileSubBlocks(D2TileLibraryEntryStrc * pTileEntry,
       psVar1 = &pTileEntry->pSubTiles[nSubBlockIdx].nOffsetX;
       pbDstRow = pbDstBuf + (int)*psVar1 + psVar1[1] * 0x100;
       if (psVar1[4] & 1U) {
-        if (!(psVar1[4] & 4U)) {
+        if (psVar1[4] & 4U) {
+          pbSrc = *(uint8_t**)(psVar1 + 8);
+          nRleRowsLeft = 0xf;
+          pbRleRowStart = pbDstRow;
+          do {
+            bySkip = *pbSrc;
+            byRunLen = pbSrc[1];
+            pbSrc += 2;
+            if (!bySkip && !byRunLen) {
+              nRleRowsLeft--;
+              pbDstRow = pbRleRowStart + 0x100;
+              pbRleRowStart = pbDstRow;
+            } else {
+              pbDstRow += bySkip;
+              for (; byRunLen; byRunLen--) {
+                *pbDstRow = *pbSrc;
+                pbDstRow++;
+                pbSrc++;
+              }
+            }
+          } while (nRleRowsLeft);
+        } else {
           pIsomSrc = *(void**)(psVar1 + 8);
           pbDstRow += 0xe;
           nCopyWidth = 4;
@@ -131,27 +152,6 @@ void __stdcall GLBLOCKS_RenderTileSubBlocks(D2TileLibraryEntryStrc * pTileEntry,
 
             nIsomRow++;
           } while (nIsomRow < 0xf);
-        } else {
-          pbSrc = *(uint8_t**)(psVar1 + 8);
-          nRleRowsLeft = 0xf;
-          pbRleRowStart = pbDstRow;
-          do {
-            bySkip = *pbSrc;
-            byRunLen = pbSrc[1];
-            pbSrc += 2;
-            if (!bySkip && !byRunLen) {
-              nRleRowsLeft--;
-              pbDstRow = pbRleRowStart + 0x100;
-              pbRleRowStart = pbDstRow;
-            } else {
-              pbDstRow += bySkip;
-              for (; byRunLen; byRunLen--) {
-                *pbDstRow = *pbSrc;
-                pbDstRow++;
-                pbSrc++;
-              }
-            }
-          } while (nRleRowsLeft);
         }
       }
 
@@ -182,7 +182,7 @@ BOOL __fastcall GLBLOCKS_LoadFloorTileTexture(D2TileLibraryEntryStrc * pTileLibr
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe5);
         exit(-1);
       }
-      if ((int)gGlideFloorTextureCache.nMaxEntries <= iVar1) {
+      if (iVar1 >= (int)gGlideFloorTextureCache.nMaxEntries) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe6);
         exit(-1);
       }
@@ -226,17 +226,17 @@ void __fastcall GLBLOCKS_LoadWallSubtileTexture(D2GroundSubTileStrc * pSubTile) 
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x112);
         exit(-1);
       } else {
-        if (nNodeIdx0 < (int)gGlideSubtileTextureCache.nMaxEntries) {
-          gGlideSubtileTextureCache.pNodes[nCacheSlot - 1].pSubTile = pSubTile;
-          startAddress = gGlideSubtileTextureCache.pNodes[pSubTile->nTextureCacheIndex - 1].dwAddress;
-          (*GLIDEDLL_grTexDownloadMipMap_16)(gnGlideTMUId, startAddress, 3, &g_GrTexInfoGlBlocks);
-          (*GLIDEDLL_grTexSource_16)(gnGlideTMUId, startAddress, 3, &g_GrTexInfoGlBlocks);
-          Renderer::Glide::RENDERER_GLIDE_SetTextureMode(gnGlideTMUId);
-          return;
+        if (!(nNodeIdx0 < (int)gGlideSubtileTextureCache.nMaxEntries)) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x113);
+          exit(-1);
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x113);
-        exit(-1);
+        gGlideSubtileTextureCache.pNodes[nCacheSlot - 1].pSubTile = pSubTile;
+        startAddress = gGlideSubtileTextureCache.pNodes[pSubTile->nTextureCacheIndex - 1].dwAddress;
+        (*GLIDEDLL_grTexDownloadMipMap_16)(gnGlideTMUId, startAddress, 3, &g_GrTexInfoGlBlocks);
+        (*GLIDEDLL_grTexSource_16)(gnGlideTMUId, startAddress, 3, &g_GrTexInfoGlBlocks);
+        Renderer::Glide::RENDERER_GLIDE_SetTextureMode(gnGlideTMUId);
+        return;
       }
     }
 }
@@ -369,14 +369,19 @@ void __fastcall GLBLOCKS_PlayBinkVideo(char * szFileName, int32_t nAudioChannel,
               /* DWORD dwMilliseconds for Sleep */ Sleep(1);
             }
           } else {
-            if (msg.message < 0x202) {
+            if (msg.message <= 0x201) {
               if (msg.message == 0x201) {
                 goto request_skip;
               }
-              if (msg.message == 0x12) {
+              switch (msg.message) {
+              case 0x12: {
                 g_bGlideBinkVideoQuitRequested = 1;
-              } else if (msg.message == 0x102) {
+                break;
+              }
+              case 0x102: {
                 goto request_skip;
+                break;
+              }
               }
             } else {
               if (!(msg.message != 0x204 && msg.message != 0x207)) {

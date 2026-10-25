@@ -41,7 +41,6 @@ BOOL __stdcall StartUp() {
     WSADATA wsaData;
     uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     int nResult = WSAStartup(0x101, &wsaData);
-    Debug::GuardStack();
     return (uint32_t)!nResult;
 }
 
@@ -161,7 +160,6 @@ D2NetDataStrc * __fastcall Create(char * szHostName, u_short nPort, LPTHREAD_STA
       pSafesockStrc->hSocketThread = hThread;
     }
 
-    Debug::GuardStack();
     return pSafesockStrc;
 }
 
@@ -204,7 +202,7 @@ int32_t __fastcall WSASocket2_Read(D2NetDataStrc * pNetData, char * pBuffer, siz
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&pNetData->pSync);
     int nBytesRead = recv(pNetData->hSocket, pBuffer, nSize, 0);
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&pNetData->pSync);
-    if (nBytesRead >= 1) {
+    if (nBytesRead > 0) {
       return nBytesRead;
     }
 
@@ -357,7 +355,6 @@ char * __stdcall NET_GetLocalIp() {
     char* pcVar3 = inet_ntoa((in_addr)uLocalInAddr.S_un_b);
     sprintf(cp_0075d040, "%s", pcVar3);
     WSACleanup();
-    Debug::GuardStack();
     return cp_0075d040;
 }
 

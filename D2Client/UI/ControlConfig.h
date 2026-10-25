@@ -16,8 +16,6 @@ namespace D2Client::UI::ControlConfig {
 // Function declarations
 // Control config mouse handler. Tracks g_nControlConfigMouseButtonState array for each UI region (scroll up/down, list drag, buttons). Dispatches scroll/selection based on mouse state. Main mouse logic for config UI.
 void __stdcall UI_UpdateConfigControlsState(int32_t nMouseXStack, int32_t nMouseYStack);
-// UI controls config: returns text color index for a control entry based on binding state. Returns 3 (highlighted) if selected and not in bind mode, 5 (bound) or 4 (unbound) based on whether keys are assigned via CMD_IsCommandBound.
-int32_t UI_GetConfigControlTextColor(int32_t nColumn, int32_t nRow);
 void __stdcall CONTROLCONFIG_CalculateColumnBounds();
 void __stdcall CONTROLCONFIG_Initialize();
 void __stdcall CONTROLCONFIG_Cleanup();

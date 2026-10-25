@@ -44,13 +44,9 @@ BOOL __fastcall Q24_GetDarkWandererSpawnCoords(::SGAMEDATA * pGame, struct D2Uni
 // class 0x170 there with SpawnMonsterAtRoomPos. If the spawn succeeds it clears bQuestCompleted.
 // It always sets bHasSpawnCoords (+0) so that Q24_GetDarkWandererSpawnCoords can answer.
 void __fastcall Objects_InitFn43(struct D2ObjectInitFnArg * pInitArg);
-// A3Q7 secondary slot QUESTINT_UnknownDuplicate1. Q24_Callback_13: quest state-handler installed at sStateFunctions[0xd] (the JustCompleted slot) by Q24_InitData. Reads the firing player's per-difficulty QuestRecord: if QUEST_UnknownDuplicate1 is Completed in the record, promote the live quest to JustCompleted and clear bQuestCompleted (one-shot completion latch syncing record->live state).
-void __fastcall Q24_Callback13_PlayerStartedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A3Q7 quest-table REGISTRATION/init for slot QUESTINT_TheGuardian (referenced from quest-descriptor table @0x731750). Q24_InitData(pQuestData): zero the 0x3c-byte state-fn block; install Q24_Callback_13 at sStateFunctions[0xd] (JustCompleted handler); mark quest active, nStateFlag=0; alloc 0x14-byte quest-specific block (from "a3q7.cpp":0xb9) and zero its fields; set nQuestIdReal = QUEST_SpokeToHratli (the external id this slot reports); install Q24_StatusFilter/Q24_ActiveFilter; set bQuestCompleted=true as the initial latch. This is the per-game setup entry for the Mephisto/Act3-final + Act4-transition quest slot.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q7.cpp
 void __fastcall Q24_InitData(struct D2QuestDataStrc * pQuestData);
-// A3Q7 secondary slot QUESTINT_UnknownDuplicate1. Q24_TimerCallback_SpawnPortals(pGame,pQuestData): quest-timer cb (armed by Q24_StartDarkWandererPortalTimer). One-shot (bTomePickedUp gate): grant all party members the AbleGoToAct4 flag (IteratePlayerOrMonsterUnits + Q24_PartyMember_SetAbleGoToAct4), advance the quest control seed, then spawn up to 8 town-portal objects (CreateUnit UNIT_OBJECT type 0x83) around the trigger unit at offsets from the gnA3Q7ArchonState* coord tables, each placement validated via FindSpawnableLocation. This is the red Mephisto->Act4 portal burst. No GetQuestState/SetQuestState calls.
-uint8_t __fastcall Q24_TimerCallback_SpawnPortals(::SGAMEDATA * pGame, struct D2QuestDataStrc * pQuestData);
 // Arms the portal-spawn timer once, using the A3Q7 data of quest slot
 // QUESTINT_UnknownDuplicate1. If the quest data exists and both bPortalsSpawned (+0xC) and
 // bTimerStarted (+0xD) are false, it sets bTimerStarted, stores pUnit's GUID (-1 if no unit) in

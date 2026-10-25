@@ -111,7 +111,7 @@ void __fastcall D3D_PlayBinkVideo(char * szVideoPath, int nAudioMode, fnBinkFram
         dwTickStart = GetTickCount();
         do {
           while (true) {
-            if (gbBinkVideoShouldStop && (dwTickNow = GetTickCount() , dwTickStart + 500 <= dwTickNow) || gnRenderState || msgWindow.pt.y) {
+            if (gbBinkVideoShouldStop && (dwTickNow = GetTickCount() , dwTickNow >= dwTickStart + 500) || gnRenderState || msgWindow.pt.y) {
               if (gpBinkVideoD3D) {
                 D2Sound::Src::D2SoundSmp::SOUNDSMP_SetGlobalVolume(0);
                 BinkClose(gpBinkVideoD3D);

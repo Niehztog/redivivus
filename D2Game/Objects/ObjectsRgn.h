@@ -53,7 +53,6 @@ struct D2ObjectRngStrc * __fastcall GetObjectLevelRng(::SGAMEDATA * pGame, eD2Le
 struct D2SeedStrc * __fastcall GetObjectControlSeed(::SGAMEDATA * pGame);
 struct D2ObjectRngShrines * __fastcall GetShrinesRng(::SGAMEDATA * pGame);
 void __fastcall Send_0x26_Chat(struct D2ClientStrc * pClient, char * * ppMessage);
-void SendDebugMessageToEveryone(void * pThis, char * pMessage);
 void __fastcall Debug(::SGAMEDATA * pGame);
 // @sourcefile .\OBJECTS\objrgn.cpp
 void __fastcall AllocObjectControlSub0x1110(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2RoomStrc * pRoom);

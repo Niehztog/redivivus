@@ -51,7 +51,6 @@ namespace D2Common::Drlg::Path {
 
 // Function declarations
 // DRLGPATH_UpdateUnitRoom - Checks if a unit's current position is still within its room's bounds. If not, finds the correct room via DRLGROOM_FindBetterNearbyRoom and transfers the unit to the new room.
-void __stdcall DRLGPATH_UpdateUnitRoom(struct D2RoomStrc * pRoom, struct D2DynamicPathStrc * pDynamicPath);
 // DRLGPATH_SetPathPosition - Sets the world position of a dynamic path, converts to screen coordinates via DRLG_MapWorldToScreenCoords, and triggers room transfer if the unit has moved to a different room.
 void __stdcall DRLGPATH_SetPathPosition(uint32_t nOffsetX, uint32_t nOffsetY, struct D2RoomStrc * pRoom, struct D2DynamicPathStrc * pDynamicPath);
 // DRLGPATH_ClearPathPosition - Zeroes out a dynamic path's world and screen coordinates, resets path points, removes the unit from its room, and sets the pending-room-change flag (0x2).
@@ -72,12 +71,6 @@ int32_t __fastcall DRLGPATH_GetApproxDistance(int32_t nY1, int32_t nY2, int32_t 
 // Each uint32 encodes x in low 16 bits and y in high 16 bits.
 // Same heuristic as DRLGPATH_GetApproxDistance: min(|dx|,|dy|) + max(|dx|,|dy|) * 2.
 int32_t __stdcall DRLGPATH_GetApproxDistancePacked(uint32_t nPackedCoord1, uint32_t nPackedCoord2);
-// Core direction index computation from two points given as separate coordinates.
-// Clamps the ratio of dx/dy into a 5x5 grid producing an index 0-24.
-// The index is used to look up direction bytes and path vectors from static tables
-// at 0x6f1648 (3-byte direction entries) and 0x6f1518 (12-byte path vector entries).
-// Takes params via fastcall: ECX=y2, EDX=x1, stack=y1, stack=x2.
-int32_t __stdcall DRLGPATH_GetDirectionIndex(int32_t nY2, int32_t nY1, int32_t nX2, int32_t nX1);
 // Core direction index computation from two packed coordinate points.
 // Each uint32 encodes x in low 16 bits and y in high 16 bits.
 // Same 5x5 grid clamping logic as DRLGPATH_GetDirectionIndex, producing index 0-24
@@ -184,8 +177,6 @@ short * __stdcall DRLGPATH_FindNodeInClosedList(int32_t nOpenListBase, uint32_t 
 void DRLGPATH_InsertNodeSorted(int32_t nParam, struct D2DrlgPathNodeStrc * pNode);
 // Removes the best (lowest f-cost) node from the open priority list and moves it to the closed list hash table. This is the standard A* open list pop operation.
 int32_t * DRLGPATH_PopBestNodeFromOpenList(int32_t nOpenListBase);
-// Propagates improved path costs through the A* node graph. When a shorter path is found to a node, updates its g-cost and recursively updates all 8 directional neighbors that could benefit from the shorter path.
-void DRLGPATH_PropagateNodeCosts(uint32_t nNewGCost, struct D2DrlgPathNodeStrc * pStartNode, int32_t nParam);
 // Allocates a new path node from the pre-allocated node pool (max 200 nodes). Returns NULL if the pool is exhausted. Each node is 0x38 bytes and is zero-initialized.
 void * __fastcall DRLGPATH_AllocPathNode(int32_t nPathCtx);
 // Attempts to expand a neighbor node in the A* search. Checks if the node exists in open or closed lists, creates new nodes as needed, and updates costs if a better path is found. Links the node as a child of the parent (up to 8 children).

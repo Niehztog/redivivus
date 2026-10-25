@@ -190,7 +190,7 @@ typedef void (__stdcall *grGlideShutdown)();
 
 namespace D2Client::Renderer::Glide {
 
-BOOL __stdcall RENDERER_GLIDE_LoadLibrarySymbols() {
+static BOOL __stdcall RENDERER_GLIDE_LoadLibrarySymbols() {
     // Static local variables (originally global data)
     static grEnable GLIDEDLL_grEnable_4;
     static grGetString GLIDEDLL_grGetString_4;

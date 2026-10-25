@@ -33,7 +33,7 @@
 namespace D2Game::GAME::CCmd {
 
 // Checks if the given server token represents the first game in a session. Returns status code (0=success, 6=error).
-int __stdcall IsTokenFirstGame(int nMode, int nParam, char * szCharName) {
+static int __stdcall IsTokenFirstGame(int nMode, int nParam, char * szCharName) {
     D2ClientStrc* pClient;
     int32_t nStrCmpResult;
     char* pGameNameCursor;
@@ -59,7 +59,7 @@ int __stdcall IsTokenFirstGame(int nMode, int nParam, char * szCharName) {
       Server::Unlock(pGame);
       return 0x10;
     }
-    if (7 < pGame->nClientsCount) {
+    if (8 <= pGame->nClientsCount) {
       Server::Unlock(pGame);
       return 0xf;
     }
@@ -137,7 +137,6 @@ void __fastcall NET_D2GS_SERVER_ProcessClientMessage_GameSetup(D2GSClientMsgEnve
         /* D2GS_GAMELOGON_SP */ bFindMeCheckResult = Server::SetupGameChecks(nClientId, &pPacket->uMsg.sGameLogonSP);
       if (bFindMeCheckResult) {
         Server::GAME_CreateSingleplayerGame(nClientId, pPacket->uMsg.sGameLogonSP.szGameName, pPacket->uMsg.sGameLogonSP.eHostGameType, pPacket->uMsg.sGameLogonSP.ePlayerClass, pPacket->uMsg.sGameLogonSP.szCharName, pPacket->uMsg.sGameLogonSP.field_0x25, pPacket->uMsg.sGameLogonSP.eArenaFlags, pPacket->uMsg.sGameLogonSP.nTemplate, pPacket->uMsg.sGameLogonSP.field_0x2b, pPacket->uMsg.sGameLogonSP.field_0x2c, pPacket->uMsg.sGameLogonSP.nDifficulty, pPacket->uMsg.sGameLogonSP.nLanguageCode, 0, 0);
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -166,7 +165,6 @@ void __fastcall NET_D2GS_SERVER_ProcessClientMessage_GameSetup(D2GSClientMsgEnve
         /* D2GS_LEAVEGAME */ bAllowed = Server::NET_IsClientAllowedToLeave(nClientId);
       if (bAllowed) {
         Server::NET_D2GS_SERVER_LeaveServer(nClientId, 1);
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -175,7 +173,6 @@ void __fastcall NET_D2GS_SERVER_ProcessClientMessage_GameSetup(D2GSClientMsgEnve
         /* D2GS_REQUESTHOSTEDGAMES */ bFindMeCheckResult = Server::Return1_GameSetup_0();
       if (bFindMeCheckResult) {
         Server::NET_RequestHostedGames(nClientId);
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -184,13 +181,12 @@ void __fastcall NET_D2GS_SERVER_ProcessClientMessage_GameSetup(D2GSClientMsgEnve
         /* D2GS_JOINGAME */ bAllowed = Server::NET_IsClientAllowedToJoin(nClientId);
       if (bAllowed) {
         Server::NET_D2GS_SERVER_SrvJoinAct(nClientId);
-        Fog::Debug::GuardStack();
         return;
       }
 
       break;
       case 'l':
-        /* D2GS_UPLOADSAVE */ if (0x1fff < pPacket->uMsg.sUploadSave.nTotalSize) {
+        /* D2GS_UPLOADSAVE */ if (0x2000 <= pPacket->uMsg.sUploadSave.nTotalSize) {
           /* Does self mean an entire game server crashes if you simply send a packet 0x6c
                          00 00 00 00 FF FF FF FF */ nLine = 0x1a8;
           bReturn1Result = Fog::Src::ErrorManager::GetInstructionPointer();
@@ -200,20 +196,17 @@ void __fastcall NET_D2GS_SERVER_ProcessClientMessage_GameSetup(D2GSClientMsgEnve
       bFindMeCheckResult = Server::Return1_GameSetup_1();
       if (bFindMeCheckResult) {
         Server::CLIENT_ReceiveUploadedSave(nClientId, &pPacket->uMsg.sUploadSave);
-        Fog::Debug::GuardStack();
         return;
       }
 
       break;
       case 'm':
         /* D2GS_PING */ Server::NET_SendPong(nClientId, pPacket->uMsg.sPing.nPingTime, pPacket->uMsg.sPing.nSeqNum, 0);
-      Fog::Debug::GuardStack();
       return;
       case 'n':
         /* D2GS_FINDME_6E */ bFindMeCheckResult = Server::FindMe_6E_Handler(nClientId);
       if (bFindMeCheckResult) {
         Server::QServer_AlternativeDisconnect(nClientId, 0);
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -223,12 +216,10 @@ void __fastcall NET_D2GS_SERVER_ProcessClientMessage_GameSetup(D2GSClientMsgEnve
       if (pClient) {
         pClient->tQServerExt.nForceTimeoutDisconnect = 1;
         Clients::LeaveCriticalSection_ClientById();
-        Fog::Debug::GuardStack();
         return;
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // IN-GAME PACKET HANDLER: Processes player actions (movement, skills, items).

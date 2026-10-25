@@ -39,9 +39,7 @@ namespace D2Direct3D::d3dFloorCache {
 // Function declarations
 int __fastcall D3DFLOOR_Initialize(struct D3DFloorCacheStrc * pCache, int nBaseMemoryUsed, int nAvailableMemory, uint32_t dwTextureSize);
 void __fastcall D3DFLOOR_SetPalette(struct D3DFloorCacheStrc * pCache, void * pPalette);
-void __fastcall D3DFLOOR_InsertNodeAtTail(struct D3DFloorCacheNodeStrc * pNode, struct D3DFloorCacheStrc * pCache);
 struct D3DFloorCacheNodeStrc * __fastcall D3DFLOOR_RemoveNodeByIndex(struct D3DFloorCacheStrc * pCache, int nIndex);
-int __stdcall D3DFLOOR_AllocateNodeFromFreeList(struct D3DFloorCacheStrc * pCache);
 // Moves the floor-cache node for the 1-based nIndex to the most-recently-used end: returns at once if
 // fewer than 2 nodes are in use, otherwise D3DFLOOR_RemoveNodeByIndex(nIndex-1) then
 // D3DFLOOR_InsertNodeAtTail. Halts on line 199 (nIndex 0), 200 (nIndex > nMaxNodes) or 0xc9 (negative).
@@ -61,8 +59,6 @@ void __fastcall D3DFLOOR_Free(struct D3DFloorCacheStrc * pCache, BOOL bInvalidat
 int32_t __fastcall D3DFLOOR_EnsureAvailableNode(struct D3DFloorCacheStrc * pCache);
 void __stdcall D3D_CreateSystemMemoryTexturesForTiles();
 void __stdcall D3D_FreeSystemMemoryTexturesForTiles();
-void __fastcall D3D_DecompressRLESubtileToBuffer(uint8_t * pDest, uint8_t * pSrc);
-void __stdcall D3D_RenderTileComponentsToPixelBuffer(struct D2TileLibraryEntryStrc * pTileEntry, uint16_t * pwDstPixels, int nPitchPixels);
 BOOL __fastcall D3D_RenderFloorTileToTexture(struct D2TileLibraryEntryStrc * pTileLibraryEntry);
 void __fastcall D3D_RenderSubtileToTexture(struct D2GroundSubTileStrc * pSubTile);
 void __fastcall D3D_InvalidateTileCachesForEntry(struct D2TileLibraryEntryStrc * pTile);

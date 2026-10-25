@@ -1349,13 +1349,10 @@ void __stdcall NET_D2GS_ConnectToServer(eD2GSConnectionType neD2GSConnectionType
 void __stdcall NET_CLIENT_ShutdownConnection();
 size_t __stdcall NET_D2GS_CLIENT_ExtractPacketSize_to0xAE(char * pBytes, size_t nSize);
 size_t __stdcall NET_D2GS_CLIENT_ExtractPacketSize_from0xAE(char * pBytes, size_t nSize);
-// @sourcefile .\SRC\Client.cpp
-int __stdcall NET_D2GS_CLIENT_ParseRecvBufferIntoPacketQueues();
 // lpStartAddress parameter of CreateThread
 DWORD __stdcall ThreadClientToServer(void * lpThreadParam);
 // Sends packet to server. Validates packet size <= 0x204 bytes, forwards to NET_SendPacketToClient (misnomer in callee name).
 void __fastcall NET_CLIENT_SendPacketToServer(void * pUnused, uint16_t nPacketSize, char * pPacket);
-int32_t NET_SendPacketToD2GSOnline(char * pBytes, size_t * nSize);
 uint32_t __stdcall NET_D2GS_CLIENT_SendPacketAfterChecks(size_t nSize, int32_t Unused, char * pBytes);
 // @sourcefile .\SRC\Client.cpp
 void __fastcall NET_D2GS_CLIENT_HandleIncomingBufferAndCreatePacket(char * pBytes, size_t pBytesSize);

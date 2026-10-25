@@ -17,7 +17,7 @@ uint32_t __fastcall RNG_GetRandomInRange(uint32_t * pSeed, int32_t nMax) {
 
 int32_t __fastcall RollBetweenMinAndMax(D2SeedStrc * pSeed, int32_t nMin, uint32_t nMax) {
     D2SeedStrc sNewSeed;
-    if ((int)nMax < 1) {
+    if ((int)nMax <= 0) {
       return nMin;
     }
     if (nMax & nMax - 1) {

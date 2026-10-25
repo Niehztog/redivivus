@@ -53,7 +53,7 @@ uint32_t __stdcall IsWindowMode() {
 }
 
 // Debug overlay that queries sprite-cache and floor/subtile/sprite-cache render statistics and prints them as formatted strings to the screen via D2GFX_DrawString. Displays tile cache KB size, miss rate, and percent utilization; floor cache, subtile cache, and three sprite cache tiers if their sizes are nonzero.
-void __stdcall DrawRenderStats() {
+static void __stdcall DrawRenderStats() {
     char szStatLine[1024];
     size_t nCacheSize;
     uint32_t nPercentUtilized;
@@ -161,7 +161,7 @@ void __stdcall DRAW_UI_FPSStats() {
       gnFPSFrameCounterAccum = 0;
       gdwFPSStatsStartTick = dwTick;
     }
-    if (dwTick - gdwFPSLastSecondTick < 0x3e9) {
+    if (dwTick - gdwFPSLastSecondTick <= 0x3e8) {
       gnFPSFrameCounter++;
       gnFPSFrameCounterAccum++;
     } else {

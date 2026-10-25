@@ -77,25 +77,9 @@ struct D2RoomStrc * __fastcall DRLGWARP_GetWarpDestinationRoom(struct D2RoomExSt
 void __fastcall DRLGWARP_SetAllWarpTilesSelectValue(int32_t pRoomEx, uint32_t nSelectValue);
 void __fastcall DRLGWARP_UpdateWarpRoomExSelect(struct D2RoomExStrc * pRoomEx, eD2LevelId eLevel);
 void __fastcall DRLGWARP_UpdateWarpRoomExDeselect(struct D2RoomExStrc * pRoomEx, eD2LevelId eLevel);
-// Picks a random spawn point from the level's preset unit array.
-// Counts entries matching the given type (or its group via gaSpawnPointGroupTable),
-// rolls a seeded random index, then outputs the X/Y coordinates.
-// Also initializes the room at those coordinates.
-// Called by DRLGSPAWN_FindSpawnLocationInLevel.
-struct D2RoomExStrc * __fastcall DRLGSPAWN_GetRandomPresetSpawnPoint(int32_t nSpawnType, int * pnOutX, int * pnOutY, struct D2DrlgLevelStrc * pLevel);
-// Finds a waypoint room in a level. Iterates rooms checking waypoint flags,
-// then scans preset units for UNIT_OBJECT with SubClass waypoint bit (0x40).
-// Outputs waypoint world coordinates into pX/pY.
-// Called by DRLGSPAWN_FindSpawnLocationInLevel.
-struct D2RoomExStrc * __stdcall DRLGSPAWN_FindWaypointRoomAndCoords(int * pX, int * pY, struct D2DrlgLevelStrc * pLevel);
 // Gets the room at the level's center position offset by (nOffsetX, nOffsetY).
 // Computes center as (WorldPos + WorldSize/2 - 2) plus the offsets.
 void __fastcall DRLGSPAWN_GetRoomAtLevelCenterOffset(int32_t nOffsetX, int32_t nOffsetY, struct D2DrlgLevelStrc * pLevel);
-// Selects a random room from the level's room list.
-// Asserts that the level and its room list are non-null.
-// Uses RANDOM_RandomNumberSelector with the level seed and room count.
-// Called by DRLGSPAWN_FindSpawnLocationInLevel as fallback.
-struct D2RoomExStrc * DRLGSPAWN_GetRandomRoomFromLevel(struct D2DrlgLevelStrc * pLevel);
 // Returns warp-id array for a level. Prefer pDrlg->pWarpsInfo override list; otherwise use LevelDefs.txt Warp[]. Halts if warps list exists but lacks terminator.
 int * __fastcall DRLGACTMISC_GetWarpsIdIfExists(struct D2DrlgStrc * pDrlg, eD2LevelId eLevel);
 // Fetches warp-id array for level and calls TXT_LvlWarp_Setup(warpId, nDirection). Return value appears to be warpId (decompiler shows uninitialized temp).
@@ -106,8 +90,6 @@ struct D2LvlWarpTxt * __fastcall DRLGROOM_GetLvlWarpTxtForWarpUnit(struct D2Room
 int DRLGWARP_FindNthVisEntryForLevel(struct D2DrlgStrc * pDrlg, eD2LevelId eLevelIdVis, eD2LevelId eLevelId, int nOccurrenceIndex);
 // Ensure both levels are allocated+initialized. For each matching visibility-slot pair between eLevel and eLevelTarget, find a room in each level with the corresponding warp flag bit (slot+4), init both rooms, and locate UNIT_WARP preset units. Repeats up to 8 pairs; returns if no matching vis slots.
 void __fastcall DRLGWARP_InitWarpConnectionsBetweenLevels(struct D2DrlgStrc * pDrlg, uint8_t nActNo, eD2LevelId eLevel, eD2LevelId eLevelTarget);
-// Validates that warp flags on room tiles match the vis array entries for the level. Iterates room extensions checking warp tile destinations against expected vis connections.
-int DRLGWARP_ValidateWarpFlagsAgainstVis(struct D2DrlgLevelStrc * pLevel);
 // Main entry point for finding a spawn location in a level.
 // Strategy depends on LevelDefs Position field:
 // - If Position != 0: uses waypoint room (type 0xD) or random preset spawn.
@@ -136,7 +118,6 @@ void __fastcall DRLGROOMEX_FindReplaceAndFreeSub00VsTargetRoomEx(struct D2PoolMa
 void __fastcall DRLGROOMEX_FindReplaceAndFreeSub00ForBothRoomEx(struct D2PoolManagerStrc * pMemory, struct D2RoomExStrc * pRoomEx, struct D2RoomExStrc * pDrlgRoomExB);
 // Sorting comparator: compares orths by direction first, then by coordinate for that direction.
 BOOL __fastcall DRLGORTH_CompareByDirectionAndCoord(struct D2DrlgOrthStrc * pOrth1, struct D2DrlgOrthStrc * pOrth2);
-void __stdcall DRLGROOMEX_ReplaceSub00(struct D2RoomExStrc * pRoomEx, struct D2DrlgOrthStrc * pOrth);
 // Allocates a D2DrlgOrthStrc (nType=0, level link) connecting pRoomEx to another level. The orth node stores pLevel pointer, direction, and a pointer to the level's sCoordinatesAndSize. Inserts into pRoomEx->pOrth sorted linked list via DRLGROOMEX_ReplaceSub00.
 // @sourcefile .\DRLG\DrlgRoom.cpp
 void __fastcall AllocDrlgOrth(struct D2RoomExStrc * pRoomEx, struct D2DrlgLevelStrc * pLevel, eDrlgDirection neDrlgDirection, BOOL bIsDrlgTypePresetArea);
@@ -164,7 +145,6 @@ eD2LevelId __fastcall DRLGWARP_GetWarpDestinationLevel(struct D2RoomExStrc * pRo
 eD2LevelId __fastcall GetLevelIdFromPopulatedRoomEx(struct D2RoomExStrc * pRoomEx);
 BOOL __fastcall HasWaypoint(struct D2RoomExStrc * pRoomEx);
 char * __fastcall GetPickedLevelPrestFilePathFromRoomEx(struct D2RoomExStrc * pRoomEx);
-void ReorderNearRoomList(int nRoomCount, struct D2RoomStrc * * ppRoomList);
 // Builds the ppDrlgRoomsExNear neighbour list for a single RoomEx. Iterates all rooms in the level and collects those whose world bounding box lies within 6 tiles (X and Y) of pRoomEx. Passes the raw list through ReorderNearRoomList, then allocates server memory for the final pointer array and copies it into pRoomEx->ppDrlgRoomsExNear / nDrlgRoomsExNearCount.
 // @sourcefile .\DRLG\DrlgRoom.cpp
 void __stdcall DefineRoomsNear(struct D2PoolManagerStrc * pMemory, struct D2RoomExStrc * pRoomEx);
@@ -172,12 +152,6 @@ int32_t __fastcall GetRoomsNearCount(struct D2RoomExStrc * pRoomEx);
 int32_t __fastcall GetRealRoomsNearCount(struct D2RoomExStrc * pRoomEx, struct D2RoomStrc * * ppRoomList);
 // If this room’s level is not a town, check adjacent RoomEx list; if any neighbor is in a town level, set eRoomExFlags bit 0x800000.
 void DRLGROOM_FlagRoomExBorderingTown(struct D2RoomExStrc * pRoomEx);
-// Grows pDrlgRoomEx->ppDrlgRoomsExNear by 1, appends pRoom, and reorders the near-room list. Halts on realloc failure.
-// @sourcefile .\DRLG\DrlgRoom.cpp
-void __stdcall DRLGROOMEX_ResizeArrayAndAddNewNearRoom(struct D2RoomExStrc * pDrlgRoomEx, struct D2PoolManagerStrc * pMemory, struct D2RoomExStrc * pRoomExStrc, struct D2RoomExStrc * pRoom);
-// Allocates a tile-grid link for pSrcRoomEx that points to pLinkedRoomEx. Stores warp id for visSlot via DRLGLEVEL_GetWarpsIdIfExistsAndSetup, then prepends the new tile grid entry.
-// @sourcefile .\DRLG\DrlgRoom.cpp
-void __stdcall DRLGROOMEX_AllocRoomTile(struct D2RoomExStrc * pLinkedRoomEx, uint8_t visSlot, struct D2RoomExStrc * pSrcRoomEx);
 // Searches dst level rooms for a matching warp flag bit (dstVisSlot+4). If warpDestLevel is valid, immediately link rooms and allocate a room tile. Otherwise, link only if room bounding boxes are within 6 tiles in X/Y. Returns 1 if link added, else 0.
 BOOL __stdcall DRLGROOMEX_LinkNearRoomByDirection(uint8_t dstVisSlot, struct D2RoomExStrc * pRoomEx, struct D2PoolManagerStrc * pMemory, uint8_t srcVisSlot, int32_t warpDestLevel, struct D2RoomExStrc * pDstRoomExIter);
 // Allocates a D2PresetUnitStrc, initializes fields, and optionally links it into pRoomEx->pPresetUnit list.

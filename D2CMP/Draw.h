@@ -45,9 +45,6 @@ namespace D2CMP::Draw {
 
 // Function declarations
 void __fastcall DRAW_ConvertPaletteRGBtoHSL(struct D2HSLColorStrc * pHSLOut, uint8_t * pRGBIn);
-// No register arguments: EAX is first written by FNSTSW AX at 00604fee and only carries the x87 status word (1.14d asm).
-double DRAW_GetHueSector(double m1, double m2, double dHue);
-void DRAW_ConvertPaletteHSLtoRGB(struct D2HSLColorStrc * pHSLIn, uint8_t * pRGBOut);
 void __stdcall thunk_D2MEM_VirtualFree(LPVOID pParam);
 uint32_t __stdcall D2GFX_GetColorWithAlphaFromPallete(LPPALETTEENTRY pPallete, uint32_t nAlpha, int32_t nRed, int32_t Green, int32_t nBlue);
 uint8_t __stdcall DRAW_FindFarthestPaletteColor(uint8_t * pPalette, int nPaletteSize, int nRed, int nGreen, int nBlue);
@@ -55,12 +52,10 @@ void __stdcall DRAW_SetTransparentColorRGB(uint32_t nRGB);
 BOOL __fastcall DRAW_LoadPaletteFromPCX(LPCSTR szFilePath);
 BOOL __stdcall DRAW_InitPalette(LPCSTR szPaletteFile, int nStartIndex, int nEndIndex);
 void __stdcall DRAW_SetTransparentColorEnabled(BOOL bEnabled);
-uint8_t __stdcall DRAW_FindNearestPaletteColor(uint8_t nRed, uint8_t nGreen, uint8_t nBlue);
 void __stdcall DRAW_ConvertRGBAToIndexed(uint8_t * pRGBAIn, uint8_t * pIndexedOut, int nPixelCount, pfnRGBToPaletteIndex pfnCustomColorFinder);
 void __stdcall DRAW_SetDarkThresholdEnabled(BOOL bEnabled);
 void __stdcall DRAW_SetPaletteMask(uint8_t * pMaskData);
 void __stdcall DRAW_BuildAlphaBlendTables(LPPALETTEENTRY pPalette);
-void __stdcall DRAW_BuildAdditiveBlendTable(LPPALETTEENTRY pPalette);
 void __stdcall PALETTE_BuildAdditiveBlendTable_Callback(LPPALETTEENTRY pPalette, int unused);
 void __stdcall DRAW_BuildMultiplicativeBlendTable(LPPALETTEENTRY pPalette);
 void __stdcall DRAW_BuildScreenBlendAndDesatTable(LPPALETTEENTRY pPalette);

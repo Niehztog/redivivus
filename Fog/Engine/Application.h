@@ -43,7 +43,6 @@ uint32_t DEBUG_ParsePEDebugDirectory(short * * pOutput, uint32_t * pnSize, int *
 bool __stdcall DEBUG_IsValidDebugDirectorySize(uint32_t nDirSize);
 uint32_t __fastcall DEBUG_ParseDebugInfoFromMemory(uint32_t nDataSize, uint32_t * pDebugData, int pModuleInfoOut);
 uint32_t __stdcall DEBUG_ParseDebugDataDirectory(uint32_t nCount, int32_t nBaseAddress, int32_t pDirEntries, int32_t pOutput);
-uint32_t __stdcall DEBUG_ParseModuleHeaders(short * * ppModuleBase, short * pModuleBase);
 // Adds a loaded module to the crash dump module list by parsing PE headers
 bool __stdcall DEBUG_AddModuleToList(int * pModuleList, LPCWSTR szModulePath, int32_t nPathLength, short * pModuleBase);
 bool __stdcall DEBUG_EnumerateModulesViaPsapi(int * pnParam);
@@ -54,8 +53,6 @@ bool __fastcall DEBUG_EnumerateModulesViaPEB(int * pnParam);
 bool __stdcall DEBUG_EnumerateModules(int * pModuleList);
 void __stdcall DEBUG_ExtractDebugDirectory64(uint32_t dwParam, uint32_t * pnRVA, uint32_t * pnSize, int32_t pOptHeader);
 void __stdcall DEBUG_ExtractDebugDirectory32(uint32_t dwParam, uint32_t * pnRVA, uint32_t * pnSize, int32_t pOptHeader);
-uint32_t DEBUG_ParseNB01DebugInfo(void * pDebugRecord, int32_t pModuleInfo);
-uint32_t DEBUG_ParseRSDSDebugInfo(void * pDebugRecord, int32_t pModuleInfo);
 // Unwinds stack frames for crash dumps. Walks EBP chain up to 128 frames, validates stack pointers, skips first N frames. Captures EIP, ESP, EBP for each frame. Handles current thread or remote thread via OpenThread/SuspendThread.
 int __stdcall DEBUG_UnwindStackFrames(DWORD dwThreadId, int pFrameArray, uint32_t nSkipFrames, CONTEXT * pContext);
 void __stdcall DEBUG_FormatAddressInfo(uint32_t nAddress, char * pOutput);
@@ -63,22 +60,15 @@ void __stdcall DEBUG_FormatAddressInfo(uint32_t nAddress, char * pOutput);
 // The CRT and std scalar deleting destructors call it, so it is the linked global operator delete.
 void MISC_OperatorDeleteShim(void * p);
 void * MISC_OperatorNewShim(uint32_t nSize);
-void __stdcall MISC_GetValueFromD2Ini(struct D2IniConfigStrc * pD2IniData);
 int32_t __stdcall INI_FindConfigValueIndex(uint8_t * pbArgName);
 uint32_t __fastcall INI_IsDelimiterChar(char cChar);
-void INI_StripDelimiters(char * szText);
-int __fastcall INI_ParseCommandLineArg(uint8_t * pbArgName, char * szCmdLine, int32_t pOutValue);
 void __stdcall CloseDiablo();
-void __fastcall MISC_ParseCommandLineAndPutIntoD2IniData(struct D2IniConfigStrc * pD2IniData, char * szText);
 void __fastcall MISC_InitD2IniAndIgnorelist(struct D2IniConfigStrc * D2IniData, char * szCommandLine);
 // Dispatch current app mode via ApplicationBootstrapArray: init -> run -> shutdown for selected mode.
 int32_t __stdcall ApplicationRunCurrentMode(struct D2IniConfigStrc * pD2IniData);
 void __stdcall SystemSurvey_WriteProductLanugageToLocaleFile();
 BOOL __stdcall ReturnTrue();
-void __stdcall CreateRegedit();
 uint32_t __stdcall ERRORMANAGER_TryGetProcAddress(HMODULE hModule, FARPROC * ppfnProc, LPCSTR szText);
-// @sourcefile .\Main.cpp
-void __stdcall CLIENT_CheckIfApplicationModeIsInCommandLineAndSetItToArgument(eD2ApplicationMode * eAppMode, char * szText);
 // lpHandlerProc parameter of RegisterServiceCtrlHandlerA
 void __stdcall ERRORMANAGER_ServiceControlHandler(int32_t nServiceControl);
 // Early app bootstrap: set log path, parse cmdline/registry for app mode, init INI, then ApplicationMain.

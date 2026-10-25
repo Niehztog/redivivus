@@ -741,7 +741,7 @@ int32_t __fastcall TILECMP_CalculateCacheSize(int32_t nUnused, int32_t pTileCmpH
     exit(-1);
 }
 
-size_t TILECMP_CopyTileNodes(void * pDstBuf, int32_t pTileSetEntry) {
+static size_t TILECMP_CopyTileNodes(void * pDstBuf, int32_t pTileSetEntry) {
     size_t nCumSize = *(int*)(pTileSetEntry + 0x50) * 0x14;
     memcpy(pDstBuf, *(void**)(pTileSetEntry + 0x54), nCumSize);
     void* pWritePtr = (void*)((int)pDstBuf + nCumSize);

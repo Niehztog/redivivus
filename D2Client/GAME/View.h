@@ -38,13 +38,6 @@ void __fastcall SetCenterXY(struct D2GameViewStrc * pGameView, uint32_t x, uint3
 void __fastcall GetCenterXY(struct D2GameViewStrc * pGameView, int * nCenterX, int * nCenterY);
 void __fastcall VIEW_ConvertViewCoordsToIsometric(struct D2GameViewStrc * pGameView, int32_t nOffsetX, int32_t nOffsetY, int * pOutX, int * pOutY);
 void __fastcall GAMEVIEW_PrepareScene(struct D2GameViewStrc * pGameView, uint32_t nFlags);
-void __stdcall VIEW_GenerateRandomViewParams(int32_t nStarIndex, int32_t bRespawn);
-// Renders the animated star-field overlay used in the Arcane Sanctuary. On first call, seeds a PRNG from SHAKE_StartTickcount, generates 8 brightness-graduated palette entries into gaArcaneStarColorTable, then calls VIEW_GenerateRandomViewParams for each of the 256 stars. Each frame, draws all 256 stars as single-pixel lines using D2GFX_DrawLine. Every 40 ms (tick delta > 0x28), advances each star's X position by its velocity; stars that fall off-screen are re-randomised via VIEW_GenerateRandomViewParams.
-void __stdcall DRAW_Overlay_ArcaneStars();
-// Draws Ancients arena background with parallax scrolling summit (summit01.dc6, 4-tile wrap) and animated clouds (cloud01.dc6, 10 instances with RNG positions/velocities). Cloud positions stored in gAncientsBackgroundCellPtrs array. Scroll offset calculated from player X position delta divided by 8. Supports 800x600 and higher resolutions.
-void DRAW_Background_Ancients(struct D2UnitStrc * pPlayerUnit);
-// Adjusts the looping screen-shake rumble sound (SOUND_BABOONDEMON_HIT_4) to match the current shake intensity. Converts nShakeIntensity (0–20) to a 0–255 target volume, starts the channel if not already playing, stops it if volume reaches 0, otherwise ramps the current volume toward the target by ±6 per call via SOUND_SetChannelPriority.
-void SHAKE_UpdateShakeSoundVolume(int32_t nShakeIntensity);
 void __fastcall SetShake(int32_t nAmplitude, int32_t nArg3, int32_t nArg1, int32_t nArg2);
 BOOL __fastcall SHAKE_GetShake(int * pShakeX, int * pShakeY);
 void __stdcall SHAKE_Reset();

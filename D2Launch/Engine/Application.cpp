@@ -307,7 +307,6 @@ void __fastcall D2INIT_CheckCommandLineOrLoadItFromRegistry(char * * ppszText) {
       *ppszText = REGISTRY_CmdLine;
     }
 
-    Fog::Debug::GuardStack();
 }
 
 } // namespace D2Launch::Engine::Application

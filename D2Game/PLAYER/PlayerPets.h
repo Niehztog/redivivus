@@ -61,20 +61,12 @@ namespace D2Game::PLAYER::PlayerPets {
 // Function declarations
 // @sourcefile .\PLAYER\PlayerPets.cpp
 void __fastcall Send0x7aSummonLog(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2PetPacketArgumentsStrc * pPetArgs);
-void KillHandlerPet(DWORD nUid, ::SGAMEDATA * pGame);
-struct D2PetListStrc * __stdcall GetPetListFromId(struct D2UnitDataPlayerPetsStrc * pPet, int32_t nMinionId);
 // Iterates a player's pet list performing free or kill operations on each entry. If nParam1==0 calls KillHandlerPet (kill path); otherwise locates the pet monster, broadcasts a 0x7A summon-log packet, removes it from the DRLG room, and either frees the server unit (nParam2==0) or executes a Death lifecycle transition and sends a 0x9B merc-revive-cost packet to the client. Decrements nPets2/nMax and frees the D2PetStrc node from the game memory pool on removal.
 // @sourcefile .\PLAYER\PlayerPets.cpp
 void __stdcall PETS_FreeOrKillPetList(struct D2UnitStrc * pUnit, struct D2PetListStrc * pPetList, int32_t nParam1, int32_t nParam2, ::SGAMEDATA * pGame);
 // Releases all pet tracking memory for a player unit. Iterates every pet type list (skipping index 0), calling PETS_FreeOrKillPetList for each (type 7 = merc gets special kill flag). Frees the pet list array and the D2UnitDataPlayerPetsStrc itself from the game memory pool, then nulls pPets. Halts on missing player data.
 // @sourcefile .\PLAYER\PlayerPets.cpp
 void __fastcall FreePets(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-int32_t GetPetUidByIndex(int32_t nIndex, struct D2UnitStrc * pUnit);
-// Removes a single pet entry (by GUID) from a D2PetListStrc and handles its death. Unlinks the node from the linked list, broadcasts a 0x7A summon-log packet to all units, then either clears the ISREVIVE flag (nParam=0) or actively kills the pet unit. Frees the node memory and decrements the pet count; halts if count goes negative.
-// @sourcefile .\PLAYER\PlayerPets.cpp
-void __stdcall KillingPets(uint32_t nTargetGUID, struct D2PetListStrc * pPetList, int32_t nParam, ::SGAMEDATA * pGame);
-// @sourcefile .\PLAYER\PlayerPets.cpp
-void __fastcall SummonAndAssign(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2PetSummonAndAssignOwner * pSummonArgs);
 void __fastcall PETS_UpdatePetData(struct D2UnitStrc * pUnit, int32_t nParam, int32_t nTargetPetGUID, int * pNewPetData);
 // Returns the pet-type index (1..nTxtPetTypeSize-1) that owns the monster with the given GUID in the player's pet lists, or 0 if not found. Halts fatally if player data is null. Used to classify whether a unit is a summoned pet and of which type (e.g. 7 = merc).
 int32_t __fastcall GetOwnersPetType(struct D2UnitStrc * pUnit, int32_t nUnitGUID);
@@ -82,11 +74,6 @@ int32_t __fastcall GetOwnersPetType(struct D2UnitStrc * pUnit, int32_t nUnitGUID
 void __fastcall PETS_ResummonPetByUnit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pPetUnit);
 // Searches all of a player's pet-type lists for a pet matching nPetGUID and returns a pointer to its D2PetDataStrc (holds seed, name ID, etc.). Returns null if not found or if pPets is uninitialised. Halts fatally if player data is null.
 struct D2PetDataStrc * __fastcall GetPlayersPetData(struct D2UnitStrc * pUnit, int32_t nPetGUID);
-// @sourcefile .\PLAYER\PlayerPets.cpp
-void __stdcall PLAYERPETS_FreeAllPetsInList(struct D2PetListStrc * pParam, ::SGAMEDATA * pGame);
-// Instantly relocates a pet monster unit to the target room and tile position. Updates collision, act assignment, pDrlgAct pointer, and client visibility if the room changed. Sets UNITFLAGEX_TELEPORTED and switches collision type back to COLLIDE_MONSTER if the unit is alive. Also triggers mage-AI rethink.
-void __stdcall PETS_TeleportToRoom(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, uint16_t wPosX, uint16_t wPosY, struct D2RoomStrc * pRoom);
-void __stdcall ROOM_SpawnPetsFromSaveData(struct D2RoomStrc * pRoom, uint16_t wPosX, ::SGAMEDATA * pGame, uint8_t * * pbParam, uint16_t wPosY);
 // Iterates every live pet unit across all pet-type lists for a player and invokes pfnCallback(pPetUnit, pCallbackArg) for each. Resolves GUIDs to actual D2UnitStrc pointers via FindUnitFromTable; skips flagged-dead nodes (bit 0 set). Validates the callback pointer with IsBadCodePtr and halts if invalid.
 void __fastcall PetsForEach(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, pfnPetForEachCallback pfnCallback, struct D2UnitStrc * pCallbackArg);
 struct D2UnitStrc * __fastcall SERVER_GetUnitPetByTypeId(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, ePetType nePetType, int32_t bIncludeDead);
@@ -101,12 +88,8 @@ void __fastcall RemovePetByGuidAndNotify(::SGAMEDATA * pGame, struct D2UnitStrc 
 void __fastcall SERVERUNIT_RemovePetFromUnit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pPet);
 // Called when a pet dies. Looks up the dead pet's GUID from pKillData, removes it from the owner's pet list via RemovePetByGuidAndNotify (unless pet type 7), then returns non-null if the GUID still appears in the pet list (i.e. was tracked). Returns null if owner has no pet data or no pets of that type.
 struct D2UnitDataPlayerPetsStrc * __fastcall PETS_HandleDeadPet(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2MonsterKillStrc * pKillData);
-// Iterates the player's pet list (pbParam) and removes any pet whose distance from pUnit exceeds nParam tiles. For each live, non-disabled pet node, looks up the monster unit by GUID, computes the 2D distance from the player, and calls RemovePetByGuidAndNotify if too far. Called with custom convention: pGame/pUnit/nParam on stack, pbParam in EAX.
-void __stdcall PETS_RemoveDistantPets(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nParam, uint8_t * * pbParam);
 // Iterates all TxtPetType rows (index 1..n) and dispatches per-type management: if the type has the "spawn from save" flag (bit 0), calls ROOM_SpawnPetsFromSaveData near (wPosX, wPosY); if "remove distant" (bit 1), calls PETS_RemoveDistantPets with range 0x640; otherwise frees all pets in the list. Used when a player enters a room/game.
 void __fastcall PETS_ManagePetsByType(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint16_t wPosX, uint16_t wPosY);
-// Scans every pet across all pet types (except type 7) in the player's pet list; for each pet, looks it up in the monster unit table and removes it via RemovePetByGuidAndNotify if the monster unit is missing or in death mode 0. Cleans up stale pet references after kills or disconnects.
-void __stdcall PETS_RemoveDeadPets(struct D2UnitStrc * pUnit, struct D2UnitDataPlayerPetsStrc * pUnitDataPlayerPets, ::SGAMEDATA * pGame);
 // Sends ally/party automap info packets (0x7F/0x90) to the client for each pet that has the "show on automap" TxtPetType flag (bit 2) and is alive. First prunes dead pets via PETS_RemoveDeadPets. Called to refresh the client's party/automap overlay with current pet positions.
 // @sourcefile .\PLAYER\PlayerPets.cpp
 void __fastcall SendAllyInfo(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
@@ -121,9 +104,6 @@ void __fastcall PETS_ResetAllPetLimitsToBase(::SGAMEDATA * pGame, struct D2UnitS
 void __fastcall AllocPets(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 // Frees/kills every pet in every TxtPetType slot for the given player. For type 7 (iron golem-style), passes flags to PETS_FreeOrKillPetList to kill rather than just free. After all types are cleared, recalculates all pet limits via PETS_RecalculateAllPetLimits. Halts on missing player data.
 void __fastcall PETS_FreeAllPetsByType(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-// Enforces the per-type pet cap when the player recasts a summoning skill. If pPetList->nMax is 0, recalculates limits first; if still 0, kills the given minion (or all pets if null). If at cap, kills the oldest pet in the list (FIFO). Otherwise allocates a new D2PetStrc node from the game memory pool, fills it from pPetArgs and pMinion's GUID, and appends it to pPetList. Halts with an internal error if the count exceeds nMax after insertion.
-// @sourcefile .\PLAYER\PlayerPets.cpp
-BOOL __stdcall KillPetOnRecast(struct D2UnitStrc * pUnit, struct D2UnitStrc * pMinion, struct D2PetArguments * pPetArgs, struct D2PetListStrc * pPetList, ::SGAMEDATA * pGame);
 // Handles re-cast of a summoning skill onto an existing pet unit (pPet may be null for a fresh summon). Removes conflicting pets by group, trims excess via PETS_SetMaxAndTrimExcess, checks for valid recast via KillPetOnRecast, then iterates all units calling SummonAndAssign to bind the new/existing minion to the owner. pPet==null summons a fresh minion; non-null re-assigns the specified monster.
 void __fastcall SKILL_ResummonPet(::SGAMEDATA * pGame, struct D2UnitStrc * pOwner, struct D2UnitStrc * pPet, int32_t nPetTypeId, int32_t nSkillCalc);
 // Re-summons a pet of nPetType for pPlayer, replacing the existing pPet. Validates player data and pet list bounds, calls KillPetOnRecast to despawn the old pet, then iterates all units via IterateAllUnits/SummonAndAssign to spawn and register the new minion with the saved seed/nameId/type arguments from pPetArgs. Aborts with a fatal error if pPlayerData is null.

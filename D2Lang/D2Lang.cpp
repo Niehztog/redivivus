@@ -45,7 +45,7 @@ void __stdcall UI_FormatNumberWithCommas(uint16_t * wszText, int32_t nParam1, in
     int nDigitCount = (int)pcDigitPtr - (int)(__frame0.aDigitBuffer + 1);
     if (nDigitCount) {
       nFormattedLen = (nDigitCount - 1) / 3 + nDigitCount;
-      if (0 < nFormattedLen && nFormattedLen < nParam2 - 1) {
+      if (1 <= nFormattedLen && nFormattedLen < nParam2 - 1) {
         wszText[nFormattedLen] = L'\0';
         while (nFormattedLen) {
           nDigitIdx = nDigitCount - 1;
@@ -67,7 +67,6 @@ void __stdcall UI_FormatNumberWithCommas(uint16_t * wszText, int32_t nParam1, in
 
           nFormattedLen = nWritePos;
           if (!nDigitCount) {
-            Fog::Debug::GuardStack();
             return;
           }
         }
@@ -80,7 +79,6 @@ void __stdcall UI_FormatNumberWithCommas(uint16_t * wszText, int32_t nParam1, in
     __frame0.nCommaCounter = 0;
     UTF8_ConvertToWideChar((uint16_t*)&__frame0.nCommaCounter, "*", 2);
     Unicode::UNISYS::STRING_CopyWideString(wszText, (uint16_t*)&__frame0.nCommaCounter);
-    Fog::Debug::GuardStack();
 }
 
 // Decodes next UTF-8 character from byte stream. Multi-byte decoding using table at gaUtf8DecodeTable. Returns character width in bytes or -1 on error. Validates continuation bytes (0x80 mask).
@@ -146,7 +144,7 @@ int32_t __stdcall EncodeUTF8CodePoint(uint16_t nParam, uint8_t * pbParam) {
 
     int nShiftBits = (int)(short int)gaUtf8DecodeTable[nByteWidth - 1].wShift;
     *pbParam = (uint8_t)((int)uCodePt >> ((uint8_t)gaUtf8DecodeTable[nByteWidth - 1].wShift & 0x1f)) | (uint8_t)gaUtf8DecodeTable[nByteWidth - 1].wExpect;
-    if (nShiftBits < 1) {
+    if (nShiftBits <= 0) {
       return nByteWidth;
     }
 
@@ -212,10 +210,7 @@ int32_t __fastcall UTF8_GetStringLength(char * szUtf8, int32_t nMaxBytes) {
     while (*szUtf8) {
       int32_t nWidth;
       nWidth = UTF8_GetNextCharWidth((uint8_t*)szUtf8, nMaxBytes);
-      if (nWidth == -1) {
-        szUtf8++;
-        nBytesRead = -1;
-      } else {
+      if (nWidth != -1) {
         nBytesRead = 0;
         if (0 < nWidth) {
           do {
@@ -231,6 +226,9 @@ int32_t __fastcall UTF8_GetStringLength(char * szUtf8, int32_t nMaxBytes) {
 
         nCharCount++;
         nBytesRead = -nWidth;
+      } else {
+        szUtf8++;
+        nBytesRead = -1;
       }
 
       nMaxBytes += nBytesRead;
@@ -291,7 +289,7 @@ char * __fastcall WideCharToUTF8(char * pDest, uint16_t * pSrc, int nMaxBytes) {
     int nBytesWritten = 0;
     while (*pSrc != L'\0') {
       int32_t nEncBytes;
-      if (nMaxBytes - 1 <= nBytesWritten) {
+      if (nBytesWritten >= nMaxBytes - 1) {
         break;
       }
 

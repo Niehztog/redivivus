@@ -216,7 +216,7 @@ template<> void TSGrowableArray<TSExplicitList<StringEntryNode, -572662307>>::Re
 template<> ::StringEntryNode * TSHashTable<StringEntryNode, HASHKEY_STRI>::Ptr(uint32_t dwHashVal, ::HASHKEY_STRI * pKey) {
     int32_t nCmpResult;
     uint32_t uFirstEntry = this->tSlotListArray.m_data[dwHashVal & this->nSlotMask].m_terminator.m_next;
-    ::StringEntryNode* pEntry = (::StringEntryNode*)((int)uFirstEntry < 1 ? 0 : uFirstEntry);
+    ::StringEntryNode* pEntry = (::StringEntryNode*)((int)uFirstEntry <= 0 ? 0 : uFirstEntry);
     while (true) {
       if ((int)pEntry < 1) {
         return nullptr;
@@ -273,7 +273,7 @@ template<> void TSGrowableArray<TSExplicitList<StringEntryNode, -572662307>>::De
 
 template<> void TSGrowableArray<TSExplicitList<StringEntryNode, -572662307>>::Reserve(uint32_t nCount, int32_t bRound) {
     uint32_t uNewCount = nCount + this->m_count;
-    if (this->m_alloc >= uNewCount) {
+    if (uNewCount <= this->m_alloc) {
       return;
     }
     if (bRound) {
@@ -330,7 +330,7 @@ template<> void TSGrowableArray<TSExplicitList<StringEntryNode, -572662307>>::Se
     uint32_t* pBucketLink;
     if (this->m_count < nCount) {
       uint32_t uGranularity;
-      if (this->m_alloc < nCount) {
+      if (nCount > this->m_alloc) {
         uGranularity = this->m_chunk;
         if (!uGranularity) {
           uGranularity = this->CalcChunkSize(nCount);
@@ -428,14 +428,14 @@ template<> void TSHashTable<StringEntryNode, HASHKEY_STRI>::Destructor() {
 
 template<> ::StringEntryNode * TSExplicitList<StringEntryNode, -572662307>::NewNode(uint32_t nLocation, uint32_t nExtraBytes, uint32_t dwFlags) {
     ::StringEntryNode* pNode = (::StringEntryNode*)Storm::SMem::SMemAlloc(nExtraBytes + 0x18, s___AUStringEntryNode___0074364c, -2, dwFlags | 8);
-    if (!pNode) {
-      pNode = 0;
-    } else {
+    if (pNode) {
       pNode->m_linktoslot.m_prevlink = 0;
       pNode->m_linktoslot.m_next = 0;
       pNode->m_linktofull.m_prevlink = 0;
       pNode->m_linktofull.m_next = 0;
       pNode->m_key.szString = 0;
+    } else {
+      pNode = 0;
     }
     if (!nLocation) {
       return pNode;
@@ -721,7 +721,7 @@ template<> TSHashTable<::StringEntryNode, ::HASHKEY_STRI>* TSHashTable<StringEnt
 // Check load factor and rehash the string entry hash table if chain length exceeds threshold
 template<> int32_t TSHashTable<StringEntryNode, HASHKEY_STRI>::MonitorFullness(uint32_t nSlot) {
     TSLink<::StringEntryNode>* pTVar1;
-    if (0x3fe < this->nSlotMask) {
+    if (0x3ff <= this->nSlotMask) {
       return 0;
     }
     if (this->nFullnessIndicator < 4) {
@@ -731,10 +731,10 @@ template<> int32_t TSHashTable<StringEntryNode, HASHKEY_STRI>::MonitorFullness(u
     }
 
     uint32_t uEntry = this->tSlotListArray.m_data[nSlot].m_terminator.m_next;
-    uEntry = (int)uEntry < 1 ? 0 : uEntry;
+    uEntry = (int)uEntry <= 0 ? 0 : uEntry;
     while (true) {
       TSExplicitList<::StringEntryNode, -572662307>* pChainLink;
-      if ((int)uEntry < 1) {
+      if ((int)uEntry <= 0) {
         return 0;
       }
 
@@ -744,10 +744,10 @@ template<> int32_t TSHashTable<StringEntryNode, HASHKEY_STRI>::MonitorFullness(u
       }
 
       pChainLink = this->tSlotListArray.m_data + nSlot;
-      if (!uEntry) {
-        pTVar1 = &pChainLink->m_terminator;
-      } else {
+      if (uEntry) {
         pTVar1 = (TSLink<::StringEntryNode>*)(pChainLink->m_linkoffset + uEntry);
+      } else {
+        pTVar1 = &pChainLink->m_terminator;
       }
 
       uEntry = pTVar1->m_next;
@@ -767,10 +767,10 @@ template<> ::StringEntryNode * TSHashTable<StringEntryNode, HASHKEY_STRI>::New(u
     }
 
     ::StringEntryNode* pEntry = this->pVtable->InternalNew(this, this->tSlotListArray.m_data + nBucketIdx, nExtraBytes, dwFlags);
-    if (!pEntry) {
-      pListNode = &this->tFullList.m_terminator;
-    } else {
+    if (pEntry) {
       pListNode = (TSLink<::StringEntryNode>*)((uintptr_t)&pEntry->m_hashval + this->tFullList.m_linkoffset);
+    } else {
+      pListNode = &this->tFullList.m_terminator;
     }
 
     TSLink<::StringEntryNode>* pTVar1 = pListNode->m_prevlink;

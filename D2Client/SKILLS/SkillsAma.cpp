@@ -48,7 +48,7 @@
 namespace D2Client::SKILLS::SkillsAma {
 
 int32_t __fastcall GetTxtSkillParam5(int32_t nParam) {
-    if (!(-1 < nParam && nParam < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + nParam)) {
+    if (!(0 <= nParam && nParam < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + nParam)) {
       return 0;
     }
 
@@ -76,7 +76,7 @@ BOOL __fastcall Skills_CltStFunc_CheckAmmoFindClosestTarget(D2UnitStrc * pUnit, 
     if (!bHasAmmo) {
       return 0;
     }
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -101,7 +101,7 @@ BOOL __fastcall Skills_CltStFunc_CheckAmmoFindClosestTarget(D2UnitStrc * pUnit, 
 
     D2UnitStrc* nMaxCount = (D2UnitStrc*)D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->calc[2], eSkill, nSkillLvl);
     D2UnitStrc* nCalcMin = (D2UnitStrc*)D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt->calc[0], eSkill, nSkillLvl);
-    if ((int)nCalcMin < (int)nMaxCount) {
+    if ((int)nMaxCount > (int)nCalcMin) {
       nMaxCount = nCalcMin;
     }
 
@@ -160,22 +160,22 @@ BOOL __fastcall Skills_CltStFunc_FindClosestMeleeTargetSetParams(D2UnitStrc * pU
     }
 
     D2UnitStrc* nCalcMaxRange = (D2UnitStrc*)D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt[eSkill].calc[0], eSkill, nSkillLvl);
-    if ((int)nCalcMaxRange <= (int)pFoundTarget) {
+    if ((int)pFoundTarget >= (int)nCalcMaxRange) {
       pFoundTarget = nCalcMaxRange;
     }
 
     D2Common::Skills::SKILL_SetParam1(pSkill, (int32_t)pFoundTarget);
     eD2UnitType eUnitType = pConfirmedTarget->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nSkillLvl = pConfirmedTarget->pPath.pStaticPath->nPosY;
-    } else if (!pConfirmedTarget->pPath.pDynamicPath) {
-      nSkillLvl = 0;
-    } else {
+    } else if (pConfirmedTarget->pPath.pDynamicPath) {
       nSkillLvl = D2Common::PATH::DynamicPath::GetYPos(pConfirmedTarget->pPath.pDynamicPath);
+    } else {
+      nSkillLvl = 0;
     }
 
     eUnitType = pConfirmedTarget->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nTargetX = pConfirmedTarget->pPath.pStaticPath->nPosX;
     } else if (!pConfirmedTarget->pPath.pDynamicPath) {
       nTargetX = 0;
@@ -219,7 +219,7 @@ BOOL __fastcall Skills_CltStFunc_FindMeleeTargetSetCalcParam(D2UnitStrc * pUnit,
     nMeleeRange = D2Common::Skills::D2GetSkillCalc(pUnit, pSkillTxt[eSkill].calc[0], eSkill, nSkillLvl);
     D2Common::Skills::SKILL_SetParam1(pSkill, nMeleeRange);
     eD2UnitType eUnitType = pConfirmedTarget->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nSkillLvl = pConfirmedTarget->pPath.pStaticPath->nPosY;
     } else if (!pConfirmedTarget->pPath.pDynamicPath) {
       nSkillLvl = 0;
@@ -228,7 +228,7 @@ BOOL __fastcall Skills_CltStFunc_FindMeleeTargetSetCalcParam(D2UnitStrc * pUnit,
     }
 
     eUnitType = pConfirmedTarget->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nTargetX = pConfirmedTarget->pPath.pStaticPath->nPosX;
     } else if (!pConfirmedTarget->pPath.pDynamicPath) {
       nTargetX = 0;
@@ -249,7 +249,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_PlayDoSound(D2UnitStrc * pUnit, eD2Skills e
     if ((int)eSkill < 0) {
       return 0;
     }
-    if (sgptDataTable->nTxtSkillsCount <= (int)eSkill) {
+    if ((int)eSkill >= sgptDataTable->nTxtSkillsCount) {
       return 0;
     }
 
@@ -276,7 +276,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_MultiShotArrows(D2UnitStrc * pUnit, eD2Skil
     if (pUnit) {
       pUnit->eUnitFlags |= UNITFLAG_SKSRVDOFUNC;
     }
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -290,7 +290,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_MultiShotArrows(D2UnitStrc * pUnit, eD2Skil
     if (nWeaponClass != 1 && -1 < pSkillTxt->cltmissileb) {
       eCltMissileId = (eMissilesId)pSkillTxt->cltmissileb;
     }
-    if (!(-1 < (int)eCltMissileId && (int)eCltMissileId < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)eCltMissileId && (int)eCltMissileId < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
 
@@ -338,7 +338,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_GuidedArrow(D2UnitStrc * pUnit, eD2Skills e
     int nTargetY;
     int nTargetX;
     int32_t nTargetMode;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
     if (pUnit) {
@@ -351,7 +351,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_GuidedArrow(D2UnitStrc * pUnit, eD2Skills e
     }
 
     sSkillArg.nMissileTxtNo = SkillsAss::SKILLSASS_GetCltMissileByAuraLevel(pUnit, eSkill);
-    if (!(-1 < (int)sSkillArg.nMissileTxtNo && (int)sSkillArg.nMissileTxtNo < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)sSkillArg.nMissileTxtNo && (int)sSkillArg.nMissileTxtNo < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
 
@@ -389,7 +389,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_GuidedArrow(D2UnitStrc * pUnit, eD2Skills e
 // Client DoFunc for Amazon linear missile spray skills (e.g. Multiple Shot variant). Validates skill/missile indices, resolves the confirmed target position, evaluates calc[0] for missile count, then fires that many missiles in a line from caster toward target using SKILLSMON_SetMissilePathLinear. Returns TRUE if any missiles were launched.
 BOOL __fastcall Skills_CltDoFunc_Ama_LinearMissileSpray(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
     D2SkillArgStrc sSkillArg;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -404,7 +404,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_LinearMissileSpray(D2UnitStrc * pUnit, eD2S
     }
 
     sSkillArg.nMissileTxtNo = SkillsAss::SKILLSASS_GetCltMissileByAuraLevel(pUnit, eSkill);
-    if (!(-1 < (int)sSkillArg.nMissileTxtNo && (int)sSkillArg.nMissileTxtNo < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)sSkillArg.nMissileTxtNo && (int)sSkillArg.nMissileTxtNo < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
 
@@ -447,7 +447,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_Strafe(D2UnitStrc * pUnit, eD2Skills eSkill
     if ((int)eSkill < 0) {
       return 0;
     }
-    if (sgptDataTable->nTxtSkillsCount <= (int)eSkill) {
+    if ((int)eSkill >= sgptDataTable->nTxtSkillsCount) {
       return 0;
     }
 
@@ -485,7 +485,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_Strafe(D2UnitStrc * pUnit, eD2Skills eSkill
     if (nWeaponClass == 1 || (eVar1 = (int)pSkillsTxt->cltmissileb , pSkillsTxt->cltmissileb < 0)) {
       eVar1 = nPrevTargetGUID;
     }
-    if (!(-1 < (int)eVar1 && (int)eVar1 < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)eVar1 && (int)eVar1 < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
 
@@ -504,10 +504,10 @@ BOOL __fastcall Skills_CltDoFunc_Ama_Strafe(D2UnitStrc * pUnit, eD2Skills eSkill
     if (0 >= nShotsLeft - 1) {
       return 1;
     }
-    if (!pTargetUnit) {
-      pCltMissileId = -1;
-    } else {
+    if (pTargetUnit) {
       pCltMissileId = pTargetUnit->nUnitGUID;
+    } else {
+      pCltMissileId = -1;
     }
 
     D2UnitStrc* pNextTarget = Skills::SKILL_FindClosestTargetWithStats(pUnit, 0, 0, nAuraRange, 3, pCltMissileId, nullptr);
@@ -531,7 +531,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_Strafe(D2UnitStrc * pUnit, eD2Skills eSkill
 BOOL __fastcall Skills_CltDoFunc_Ama_Impale(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
     BOOL bInMeleeRange;
     int nExcludeGUID;
-    if ((int)eSkill < 0 || sgptDataTable->nTxtSkillsCount <= (int)eSkill || !(sgptDataTable->pTxtSkills + eSkill)) {
+    if ((int)eSkill < 0 || (int)eSkill >= sgptDataTable->nTxtSkillsCount || !(sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
 
@@ -588,7 +588,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_Impale(D2UnitStrc * pUnit, eD2Skills eSkill
 // Client DoFunc for Amazon piercing shot skill. Finds the confirmed primary target, then searches within calc[0] range for a secondary target nearby (excluding the primary by GUID). If a secondary is found, spawns a missile aimed at the secondary with a pierce-range of calc[1] set via SetTargetX. Returns TRUE on success.
 BOOL __fastcall Skills_CltDoFunc_Ama_PiercingShot(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
     D2SkillArgStrc sSkillArg;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -598,7 +598,7 @@ BOOL __fastcall Skills_CltDoFunc_Ama_PiercingShot(D2UnitStrc * pUnit, eD2Skills 
     }
 
     eMissilesId eCltMissileId = SkillsAss::SKILLSASS_GetCltMissileByAuraLevel(pUnit, eSkill);
-    if (!(-1 < (int)eCltMissileId && (int)eCltMissileId < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)eCltMissileId && (int)eCltMissileId < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
 

@@ -35,12 +35,12 @@ namespace D2CMP::SRC::FindTiles {
 // Computes a 0-127 hash byte in AL/EAX (masked and range-checked before the halt-on-overflow guard); the caller reads it as a hash-table index (nHashIdx).
 int __fastcall FINDTILE_ComputeHash(char cParam1, char cParam2, char cTileSubType) {
     uint32_t uVar1 = (uint8_t)(cParam1 * '\x02' - cTileSubType + cParam2) & 0x8000007f;
-    if (0x7f >= (uint8_t)uVar1) {
-      return uVar1;
+    if (!(0x80 > (uint8_t)uVar1)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1e);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1e);
-    exit(-1);
+    return uVar1;
     return uVar1;
 }
 
@@ -90,7 +90,7 @@ void __fastcall FINDTILE_FreeHashTable(D2TileLibraryHashStrc * pHashTable) {
 
 // Adds pTileData to the hash node's tile-ref chain unless it is already there: walks pHashNode->pRef by pNext, otherwise allocates an 8-byte D2TileLibraryHashRefStrc (FindTiles.cpp line 0x6e, halts on line 0x6f if the allocation fails) and links it in front of the old head.
 // Provenance: 1.14d asm 0060cea0..0060cef5.
-void FINDTILE_AddTileToChain(D2TileLibraryHashNodeStrc * pHashNode, D2TileLibraryEntryStrc * pTileData) {
+static void FINDTILE_AddTileToChain(D2TileLibraryHashNodeStrc * pHashNode, D2TileLibraryEntryStrc * pTileData) {
     D2TileLibraryHashRefStrc* pDVar1;
     for (pDVar1 = pHashNode->pRef; pDVar1; pDVar1 = pDVar1->pNext) {
       if (pDVar1->pTile == pTileData) {
@@ -107,8 +107,11 @@ void FINDTILE_AddTileToChain(D2TileLibraryHashNodeStrc * pHashNode, D2TileLibrar
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6f);
-    exit(-1);
+    pNewEntry->pNext = 0;
+    pNewEntry->pTile = pTileData;
+    pNewEntry->pNext = pHashNode->pRef;
+    pHashNode->pRef = pNewEntry;
+    return;
 }
 
 // Allocates a 0x14-byte D2TileLibraryHashNodeStrc for pTileData's (nIndex, nSubIndex, nOrientation) key, links it in front of the bucket head *ppHashSlot, and gives it a one-entry tile-ref chain holding pTileData. Halts on line 0x83 or 0x8f if an allocation fails.
@@ -138,8 +141,10 @@ void FINDTILE_AllocHashEntry(D2TileLibraryEntryStrc * pTileData, D2TileLibraryHa
         return;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8f);
-      exit(-1);
+      pChainEntry->pNext = 0;
+      pChainEntry->pTile = pTileData;
+      pHashEntry->pRef = pChainEntry;
+      return;
     }
 }
 

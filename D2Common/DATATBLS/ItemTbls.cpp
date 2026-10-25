@@ -60,14 +60,14 @@ static D2MagicAffixTableStrc pTxtMagicAffixes = {};
 static D2RareAffixTableStrc pTxtRareAffixes = {};
 static D2BooksTableStrc pTxtBooks = {};
 
-int32_t __fastcall ITEMTBLS_ParseItemStatCostOrBase(char * szFieldValue, int32_t * pResultType, int32_t nFieldType, int32_t nTableId) {
+static int32_t __fastcall ITEMTBLS_ParseItemStatCostOrBase(char * szFieldValue, int32_t * pResultType, int32_t nFieldType, int32_t nTableId) {
     int32_t nStatId;
     if (!(nFieldType == 1 && nTableId == 3)) {
       return 0;
     }
     if (sgtDataTable.pTxtItemStatCostLink) {
       nStatId = Fog::Src::Excel::GetLinkNodeIndex(sgtDataTable.pTxtItemStatCostLink, szFieldValue, 0);
-      if (-1 < nStatId) {
+      if (0 <= nStatId) {
         *pResultType = 1;
         return nStatId;
       }
@@ -90,7 +90,7 @@ int32_t __fastcall ITEMTBLS_ParseItemStatCostOrBase(char * szFieldValue, int32_t
     return 0;
 }
 
-void __fastcall ITEMTBLS_CompileItemCodeExpression(char * szExpression, char * pRecord, int32_t nOffset, int32_t nSize, int32_t nTxtRow, int32_t nTxtColumn) {
+static void __fastcall ITEMTBLS_CompileItemCodeExpression(char * szExpression, char * pRecord, int32_t nOffset, int32_t nSize, int32_t nTxtRow, int32_t nTxtColumn) {
     size_t nParsedLen;
     int32_t nFieldLen;
     uint8_t szWorkBuf[1024];
@@ -1163,28 +1163,28 @@ D2ItemsTableStrc * __stdcall TXT_Items_GetSize() {
 }
 
 uint32_t __stdcall TXT_Items_GetVersion(int32_t nItemClassId) {
-    if (!(nItemClassId < gsItemsTable.nSize && -1 < nItemClassId)) {
+    if (!(nItemClassId < gsItemsTable.nSize && 0 <= nItemClassId)) {
       return -1;
     }
-    if (pTxtItemsVersion) {
-      return (uint32_t)(uint16_t)pTxtItemsVersion[nItemClassId];
+    if (!pTxtItemsVersion) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1e2);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1e2);
-    exit(-1);
+    return (uint32_t)(uint16_t)pTxtItemsVersion[nItemClassId];
     return (uint32_t)(uint16_t)pTxtItemsVersion[nItemClassId];
 }
 
 D2ItemsTxt * __stdcall TXT_Items_GetLine(uint32_t nItemClassId) {
-    if ((uint32_t)gsItemsTable.nSize <= nItemClassId) {
+    if (nItemClassId >= (uint32_t)gsItemsTable.nSize) {
       return nullptr;
     }
-    if (gsItemsTable.pItems) {
-      return gsItemsTable.pItems + nItemClassId;
+    if (!gsItemsTable.pItems) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1ef);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1ef);
-    exit(-1);
+    return gsItemsTable.pItems + nItemClassId;
     return gsItemsTable.pItems + nItemClassId;
 }
 
@@ -1205,7 +1205,7 @@ int32_t __stdcall TXT_Items_ConvertItemCodeToItemClassId(uint32_t szTag) {
 }
 
 // TXT field linker: resolves a string value to an integer ID by trying in order: numeric parse, skills.txt lookup, monstypes.txt lookup, states.txt lookup. Writes the resolved ID (or 0 on failure) to nRecordBase+nFieldOffset. Used when a skills.txt/itemtypes.txt field can reference any of those three tables.
-void __fastcall ITEMTBLS_ParseSkillMonTypeOrStateId(char * szValue, char * pRecord, int32_t nOffset, int32_t nSize, int32_t nTxtRow, int32_t nTxtColumn) {
+static void __fastcall ITEMTBLS_ParseSkillMonTypeOrStateId(char * szValue, char * pRecord, int32_t nOffset, int32_t nSize, int32_t nTxtRow, int32_t nTxtColumn) {
     char cFirstChar;
     if (!pRecord) {
       return;
@@ -1221,14 +1221,14 @@ void __fastcall ITEMTBLS_ParseSkillMonTypeOrStateId(char * szValue, char * pReco
         }
         if (sgtDataTable.pTxtSkillsLink) {
           nId = Fog::Src::Excel::GetLinkNodeIndex(sgtDataTable.pTxtSkillsLink, szValue, 0);
-          if (-1 < nId) {
+          if (0 <= nId) {
             *(int32_t*)(pRecord + nOffset) = nId;
             return;
           }
         }
         if (sgtDataTable.pTxtMonTypeLink) {
           nId = Fog::Src::Excel::GetLinkNodeIndex(sgtDataTable.pTxtMonTypeLink, szValue, 0);
-          if (-1 < nId) {
+          if (0 <= nId) {
             *(int32_t*)(pRecord + nOffset) = nId;
             return;
           }
@@ -1651,12 +1651,12 @@ int32_t __stdcall TXT_RareAffixes_GetLine(int32_t nIndex) {
     if (!(nIndex <= gsRareAffixTable.nSize && 0 < nIndex)) {
       return 0;
     }
-    if (gsRareAffixTable.pTable) {
-      return (int32_t)(gsRareAffixTable.pTable + nIndex - 1);
+    if (!gsRareAffixTable.pTable) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 799);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 799);
-    exit(-1);
+    return (int32_t)(gsRareAffixTable.pTable + nIndex - 1);
     return (int32_t)(gsRareAffixTable.pTable + nIndex - 1);
 }
 
@@ -2017,7 +2017,7 @@ void __stdcall TXT_AllocTxt_uniqueitems() {
     uniqueitems[0x43].fpLinker = 0;
     sgtDataTable.pTxtUniqueItemsLink = Fog::Src::Excel::STRUCT_CreateTxtLinkStrc(".\\DATATBLS\\ItemTbls.cpp", 0x37a);
     sgtDataTable.pTxtUniqueItems = (D2UniqueItemsTxt*)DataTbls::CompileTxt((D2PoolManagerStrc*)__frame0.nByteOffset, "uniqueitems", uniqueitems, &sgtDataTable.nTxtUniqueItemsSize, 0x14c);
-    if (0x7ffe < sgtDataTable.nTxtUniqueItemsSize) {
+    if (0x7fff <= sgtDataTable.nTxtUniqueItemsSize) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x37c);
       exit(-1);
     }
@@ -3404,6 +3404,8 @@ void __fastcall TXT_AllocTxt_books(D2PoolManagerStrc * pMemory) {
     books[3].nSize = 0;
     books[3].fpLinker = 0;
     books[4].nSize = 0;
+    books[1].eType = FIELDTYPE_RAW4;
+    books[2].eType = FIELDTYPE_RAW4;
     books[5].nSize = 0;
     books[6].nSize = 0;
     books[6].fpLinker = 0;
@@ -3415,8 +3417,6 @@ void __fastcall TXT_AllocTxt_books(D2PoolManagerStrc * pMemory) {
     books[9].nSize = 0;
     books[9].nOffset = 0;
     books[9].fpLinker = 0;
-    books[1].eType = FIELDTYPE_RAW4;
-    books[2].eType = FIELDTYPE_RAW4;
     books[0].szName = "name";
     books[0].eType = FIELDTYPE_KEY_WORD;
     books[0].fpLinker = (void*)DataTbls::DATATBLS_LookupStringId;
@@ -4551,14 +4551,14 @@ int * __stdcall GetGambleTableSize() {
 }
 
 // Breadth-first traversal of the itemtypes.txt equiv1/equiv2 parent-type tree to test whether nItemTypeId is a subtype of nTargetTypeId. Returns 1 if nTargetTypeId &lt; 1 (wildcard), 1 if target found in the type hierarchy, 0 if out-of-range or stack depth exceeds 124. Used by item-type membership checks.
-BOOL ITEMTBLS_CheckItemTypeRecursive(int32_t nItemTypeId, int32_t nTargetTypeId) {
+static BOOL ITEMTBLS_CheckItemTypeRecursive(int32_t nItemTypeId, int32_t nTargetTypeId) {
     int nNewStackSize;
     int anTypeStack[128];
     short int wEquiv2;
-    if (nTargetTypeId < 1) {
+    if (nTargetTypeId <= 0) {
       return 1;
     }
-    if (nItemTypeId < 1 || sgtDataTable.nTxtItemTypesSize <= nItemTypeId) {
+    if (nItemTypeId <= 0 || nItemTypeId >= sgtDataTable.nTxtItemTypesSize) {
       return 0;
     }
 
@@ -4571,7 +4571,7 @@ BOOL ITEMTBLS_CheckItemTypeRecursive(int32_t nItemTypeId, int32_t nTargetTypeId)
       if (nTargetTypeId == nCurTypeId) {
         return 1;
       }
-      if (sgtDataTable.nTxtItemTypesSize <= nCurTypeId) {
+      if (nCurTypeId >= sgtDataTable.nTxtItemTypesSize) {
         return 0;
       }
       if (0x7c < nNewStackSize) {
@@ -4835,19 +4835,17 @@ void __stdcall ITEMTBLS_FreeItemTypes() {
     Fog::Src::Excel::STRUCT_FreeTxtLink(sgtDataTable.pTxtItemTypesLink);
 }
 
-BOOL __stdcall ITEMTBLS_CheckIfDataFileExists(char * szFileExt, D2PoolManagerStrc * pPoolManagerStrc, char * szFileName) {
+static BOOL __stdcall ITEMTBLS_CheckIfDataFileExists(char * szFileExt, D2PoolManagerStrc * pPoolManagerStrc, char * szFileName) {
     D2MPQFileStrc* pFile;
     char szFilePath[260];
     uint32_t nStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szFilePath, "%s\\%s%s", "DATA\\GLOBAL\\EXCEL", szFileName, szFileExt);
     BOOL fFileExistsCheck = DataTbls::CheckIfFileExists(pPoolManagerStrc, szFilePath, &pFile, 1);
     if (!fFileExistsCheck) {
-      Fog::Debug::GuardStack();
       return 0;
     }
 
     D2FILE_CloseFile(pPoolManagerStrc, pFile);
-    Fog::Debug::GuardStack();
     return 1;
 }
 
@@ -5100,10 +5098,16 @@ void __fastcall TXT_AllocTxt_runes(D2PoolManagerStrc * pMemory) {
     aFieldDefs[0x2f].fpLinker = 0;
     sgtDataTable.pTxtRunesLink = Fog::Src::Excel::STRUCT_CreateTxtLinkStrc(".\\DATATBLS\\ItemTbls.cpp", 0x8ff);
     BOOL bSrvBinExists = ITEMTBLS_CheckIfDataFileExists(".txt", pMemory, "runessrv");
-    if (!bSrvBinExists) {
+    if (bSrvBinExists) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x904);
+      exit(-1);
+    } else {
       uint32_t nStringId;
       bSrvBinExists = ITEMTBLS_CheckIfDataFileExists(".bin", pMemory, "runessrv");
-      if (!bSrvBinExists) {
+      if (bSrvBinExists) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x908);
+        exit(-1);
+      } else {
         bSrvBinExists = ITEMTBLS_CheckIfDataFileExists(".xls", pMemory, "runessrv");
         if (!bSrvBinExists) {
           pTxtRunes = (int*)DataTbls::CompileTxt(pMemory, "runes", aFieldDefs, &nTxtRunesSize, 0x120);
@@ -5125,13 +5129,7 @@ void __fastcall TXT_AllocTxt_runes(D2PoolManagerStrc * pMemory) {
 
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x90c);
         exit(-1);
-      } else {
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x908);
-        exit(-1);
       }
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x904);
-      exit(-1);
     }
 }
 

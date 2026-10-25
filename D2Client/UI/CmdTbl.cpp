@@ -282,26 +282,26 @@ void __fastcall CMD_InvokeCallbackByParam(int32_t nParam) {
       }
 
       /* FARPROC lpfn for IsBadCodePtr */ bIsBadPtr = IsBadCodePtr((FARPROC)gpfnScrollDownButtonHandler);
-      if (!bIsBadPtr) {
-        (*gpfnScrollDownButtonHandler)();
-        return;
+      if (bIsBadPtr) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x38b);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x38b);
-      exit(-1);
+      (*gpfnScrollDownButtonHandler)();
+      return;
     } else {
       if (!gpfnScrollUpButtonHandler) {
         return;
       }
 
       /* FARPROC lpfn for IsBadCodePtr */ bIsBadPtr = IsBadCodePtr((FARPROC)gpfnScrollUpButtonHandler);
-      if (!bIsBadPtr) {
-        (*gpfnScrollUpButtonHandler)();
-        return;
+      if (bIsBadPtr) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 899);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 899);
-      exit(-1);
+      (*gpfnScrollUpButtonHandler)();
+      return;
     }
 }
 
@@ -385,7 +385,7 @@ void __fastcall CMD_ResetKeyBindingsToDefaults(DWORD dwParam) {
     do {
       *pWKeyCode = 0xffff;
       pWKeyCode += 5;
-    } while ((int)pWKeyCode < (uintptr_t)((char*)&g_KeyBindingsTable + sizeof(g_KeyBindingsTable) + 4));
+    } while ((int)pWKeyCode < (int)((uintptr_t)((char*)&g_KeyBindingsTable + sizeof(g_KeyBindingsTable) + 4)));
 
     int* pSrcDefault = gaKeyBindingsDefault;
     D2KeyBindStrc* pDstBinding = g_KeyBindingsTable;
@@ -721,7 +721,7 @@ void __fastcall CMD_UnbindCommand(int32_t nCmdIndex, int32_t nSlot) {
       }
 
       pBinding = (PD2KeyBindSlot)((int)pBinding + 10);
-    } while ((int)pBinding < (uintptr_t)((char*)&g_KeyBindingsTable + sizeof(g_KeyBindingsTable) + 6));
+    } while ((int)pBinding < (int)((uintptr_t)((char*)&g_KeyBindingsTable + sizeof(g_KeyBindingsTable) + 6)));
 }
 
 uint32_t __fastcall CMD_IsCommandBound(int32_t nCmdIndex, int32_t nSlot) {
@@ -1287,7 +1287,7 @@ void __fastcall CMD_ToggleKeyConfigMode(int32_t nEnable, int32_t bUpdateUIHandle
     }
 }
 
-void __stdcall CMD_LoadUserKeyBindings() {
+static void __stdcall CMD_LoadUserKeyBindings() {
     D2KeyBindStrc* pBindingRow;
     uint16_t* pDstTable;
     int nCmdIndex;
@@ -1329,7 +1329,7 @@ void __stdcall CMD_LoadUserKeyBindings() {
 
           next_command:
           nCmdIndex++;
-          if (0x38 < nCmdIndex) {
+          if (0x39 <= nCmdIndex) {
             nCmdIndex = 0;
             pDstTable = &wFileMagic.aBindings[0].wKeyCode;
             do {
@@ -1346,7 +1346,7 @@ void __stdcall CMD_LoadUserKeyBindings() {
 
               nCmdIndex++;
               pDstTable += 5;
-              if (0x71 < nCmdIndex) {
+              if (0x72 <= nCmdIndex) {
                 pDstTable = &g_KeyBindingsTable[0].wKeyCode;
                 do {
                   *pDstTable = 0xffff;

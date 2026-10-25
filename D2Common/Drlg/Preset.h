@@ -350,36 +350,17 @@ struct D2MapAIStrc * __fastcall DRLGPRESET_TransferMapAI(struct D2MapAIStrc * * 
 // @sourcefile .\DRLG\Preset.cpp
 void __fastcall DRLGPRESET_FreeSpawnPointList(struct D2PoolManagerStrc * pMemory, struct D2AiGeneralStrc * pAiGeneral);
 void __stdcall CreatePresetObject_Unused(int32_t nParam1, int32_t nParam2, struct D2PoolManagerStrc * pMemory, int32_t nParam3, int32_t nParam4);
-// Spawns repeated object presets (class 0x41) along a vertical line in world coords from start to end, spaced by 0x28. Prepends each to pMap->pPresetUnit and marks flag bit 0x1.
-void CreateObjectPresets(int nWorldX, int nWorldY, struct D2DrlgMapStrc * pMap, struct D2PoolManagerStrc * pMemory);
-// Populates a vertical strip of the preset map with a row of five object presets per Y tile (IDs 0x28, 0x29, 0x29, 0x29, 0x2A at X offsets 0/+5/+10/+15/+20). Skips ahead by +3 rows when the grid cell has specific floor-type flags (type 4, certain subtypes), all linked into pMapStrc->pPresetUnit.
-void __stdcall CreateObjectPresets2(uint32_t xOffset, struct D2DrlgGridStrc * pGrid, struct D2PoolManagerStrc * pMemory, struct D2DrlgMapStrc * pMapStrc);
-// Scans floor layer flags to decide object preset placement. Builds a sub-grid view, checks for a specific cell flag pattern (type 2, subtype 0x18), and invokes CreateObjectPresets/CreateObjectPresets2. Special-cases Def==0x1b to place globally.
-void CreateObjectPresetsForMap(struct D2DrlgMapStrc * pMapStrc, struct D2PoolManagerStrc * pMemory);
-void __stdcall CreateMonsterPreset(struct D2PoolManagerStrc * pMemory, struct D2DrlgMapStrc * pDrlgMap);
-// Frees all tile grids associated with a preset room's D2DrlgPresetRoomStrc. The room data arrives in EAX and the pool manager in EDI; EAX was modelled as a local, so the reconstruction freed grids off an uninitialised pointer.
-void DRLGPRESET_FreePresetRoomGrids(void * pRoomExData, struct D2PoolManagerStrc * pPoolManagerStrc);
 // @sourcefile .\DRLG\Preset.cpp
 void __fastcall DRLGROOMEX_FreeRoomExDataPresetArea(struct D2RoomExStrc * pRoomEx);
 void __fastcall DRLGPRESET_FreePresetRoomGridsFromRoomEx(struct D2RoomExStrc * pRoomEx);
 // @sourcefile .\DRLG\Preset.cpp
 void __fastcall DRLGROOMEX_AllocRoomExDataPresetArea(struct D2RoomExStrc * pRoomEx);
 struct D2RoomExStrc * __fastcall DRLGROOMEX_AllocRoomExTypePreset(struct D2DrlgLevelStrc * pLevel, struct D2DrlgMapStrc * pDrlgMap, struct D2DrlgCoordStrc * pCoord, int32_t nDT1Mask, int32_t dwRoomExFlags, int32_t nPickedFile, struct D2DrlgMapStrc * pParentDrlgMap);
-// Moves preset units from the level's preset list into this room by checking coordinate bounds, adjusting positions to room-local, and linking them into pRoomEx->pPresetUnits.
-void DRLGPRESET_AddAndSetPresetUnits(struct D2RoomExStrc * pRoomEx);
 // Populates all DRLG grids (orientation, wall, floor, shadow/cell) for a preset room from its DS1 file layers. Iterates wall and floor layers calling DRLGGRID_InitGridFromTileData and AlterAllGridFlags for each, then calls DRLGPRESET_AddAndSetPresetUnits to spawn the room's static objects.
 void __fastcall DRLGPRESET_InitGridsFromDS1File(struct D2RoomExStrc * pRoom);
-// Allocates up to 6 navigation waypoints (POINT array, 0x30 bytes) for a preset room, scanning the wall grid for tiles with type==10 and subtype 0x17..0x1B (burial-ground passage markers). Converts matching grid coordinates to world space (+2 offset) and stores them in pRoomExData->pNavigationPoints; only runs if the array is not yet allocated.
-// @sourcefile .\DRLG\Preset.cpp
-void DRLGROOMEX_AllocRoomExData_WorldPointsBurialGrounds(struct D2PoolManagerStrc * pMemory, struct D2RoomExStrc * pRoomEx);
 void __fastcall GetTombStoneTileCoords(struct D2RoomExStrc * pRoomEx, struct D2CoordStrc * * ppTombStoneTiles, int * pnTombStoneTiles);
 // Initializes the tile data for a preset-area (LvlPrest) DRLG room. Allocates the room tile grid, reads Animate/FillBlanks/KillEdge flags from the LvlPrest txt row, and computes KillEdgeX/Y when the room sits on the map border. For Burial-Grounds-style presets (nLevelPrest 1 or 0x6c) builds two scratch grids. Two passes over the floor layers, wall layers and the cell grid: first DRLGROOMTILE_CountTilesFromGrid/CountWallTilesFromGrid (plus anim counts) to size the arrays, then AllocTileDataArrays, then InitRoomTiles to populate them. Allocates anim tiles if Animate set, fixes up the room's max wall/floor/roof tile counts, and builds the room coordinate list (BuildRoomCoordList if Logicals else AllocDrlgCoordList). Special-cases level 0x11 (Burial Grounds world points). Side effects: heavy server-pool allocation, fully populates pRoomEx tile/collision data. Server-side D2Common DRLG preset rooms.
 void __fastcall DRLGROOMEX_InitializePresetRoom(struct D2RoomExStrc * pRoomEx);
-// DRLGPRESET_InitDrlgMapPopLocations
-// Called by BuildPresetArea after pop tile scanning. Converts pop location boxes
-// from min/max coordinate format to position/size format, adjusts coordinates
-// relative to the DrlgMap origin, and normalizes pop orientation values (divide by 4, subtract 1).
-void __stdcall DRLGPRESET_InitDrlgMapPopLocations(int32_t nPopCount, struct D2DrlgMapStrc * pDrlgMap);
 void __fastcall DRLGPRESET_SetPickedFileInDrlgMap(struct D2DrlgMapStrc * pDrlgMap, int32_t nPickedFile);
 // Allocates and initializes D2DrlgMapStrc from LvlPrest. Chooses random map file selector (power-of-two fast path), sets size/offset from coord or LvlPrest defaults, links into level map list.
 // @sourcefile .\DRLG\Preset.cpp
@@ -396,8 +377,6 @@ char * __fastcall DRLGPRESET_GetPickedFilePathFromRoomEx(struct D2RoomExStrc * p
 // Outputs values to optional pWidth and pHeight out parameters.
 // Appears to be an unreferenced/unused accessor function.
 void __fastcall DRLGPRESET_GetDrlgFileSize(struct D2DrlgMapStrc * pDrlgMap, int32_t * pnWidth, int32_t * pnHeight);
-// Already documented — existing description is accurate and meaningful.
-void __stdcall DRLGPRESET_UpdatePopTiles(int nTickCount, struct D2RoomExStrc * pRoomEx, struct D2DrlgCoordsStrc * pPopLocation, uint32_t dwParam3, uint32_t dwParam4);
 // DRLG preset-area "POP" (preset-object population) updater. Given a RoomEx and an (nX,nY) world coordinate plus bOtherRoom flag: if the room is a preset (type 2), finds which POP bounds rectangle the point falls inside and notes its matched POP id. Then iterates the room's nearby preset RoomEx neighbors and, comparing POP tick deadlines, calls DRLGPRESET_UpdatePopTiles to refresh/expire POP tiles (a fresh GetTickCount+500 deadline for the matched POP, or the stored deadline otherwise). If any update occurred, does a second pass writing back the new deadlines (0 for non-matching POPs, the new deadline for the matched POP). No return. NOTE: pRoomExData POP sub-structure accessed via raw +0x40/+0x44/+0x4c/+0x50 offsets - shared struct lacks named fields here.
 void __fastcall UpdatePops(struct D2RoomExStrc * pRoomEx, int32_t nX, int32_t nY, BOOL bOtherRoom);
 // @sourcefile .\DRLG\Preset.cpp
@@ -413,9 +392,6 @@ void __fastcall DRLGPRESETUNIT_FreeDrlgPresetUnit(struct D2PoolManagerStrc * pMe
 void __fastcall DRLGPRESET_AddPresetUnitToDrlgMap(struct D2PoolManagerStrc * pMemory, struct D2DrlgMapStrc * pDrlgMap, struct D2SeedStrc * pSeed);
 // Ensures DS1/preset data is loaded and adds preset units. Then, based on LvlPrest id and room flags, creates monster/object presets and sets eRoomExFlags bit 0x2000000 to mark presets done.
 void __fastcall DRLGPRESET_CreateMonsterPresets(struct D2RoomExStrc * pRoomEx);
-// Builds preset-area grid flags from DS1 data. Sets vis/warp flag bits, loads DS1 file if needed, allocates pops arrays, scans wall layers to mark vis flags and pop locations, records spawn points, and marks grid flags for special objects. Uses LvlPrest Scan/Pops settings to control scanning.
-// @sourcefile .\DRLG\Preset.cpp
-void __stdcall DRLGPRESET_BuildPresetArea(struct D2DrlgMapStrc * pDrlgMap, struct D2DrlgLevelStrc * pLevel, struct D2DrlgGridStrc * pDrlgGrid, int32_t nFlags, bool bSingleRoom);
 // Builds preset-area RoomEx grid. Creates a temp grid from map size, runs DRLGPRESET_BuildPresetArea, then either:
 // - Single-room: allocate one RoomEx covering the whole map with dt1 mask and room data.
 // - Multi-room: iterate in 8x8 chunks, compute grid flags and allocate preset RoomEx tiles.
@@ -431,8 +407,6 @@ void __fastcall DRLGPRESET_ReleaseDrlgFile(struct D2DrlgFileStrc * * ppDrlgFile)
 // Walks the entire D2DrlgMapStrc linked list (pDrlgMap->pNext) and frees every allocation: grid (DRLGGRID_FreeGrid), vertices (DRLGVER_FreeVertices), DS1 file ref (DRLGPRESET_ReleaseDrlgFile), all preset units (including their path coordinate arrays), and the POPS placement arrays (pPopsIndex/SubIndex/Orientation/PosLocation). Finally frees each map node itself.
 // @sourcefile .\DRLG\Preset.cpp
 void __fastcall DRLGPRESET_FreeDrlgMapList(struct D2PoolManagerStrc * pMemory, struct D2DrlgMapStrc * pDrlgMap);
-// Searches for a matching preset type in the static preset type table. Compares the level ID, orientation bits, sub-type byte, and additional parameter against the table entries. Returns the matching index or -1 if not found. From Preset.cpp area.
-int32_t __stdcall DRLGPRESET_FindPresetTypeIndex(int32_t nLevelType, uint32_t nOrientationFlags, uint32_t nSubIndex);
 // Spawns a single preset unit (monster, object, or item) from a tile data record into the room. Looks up the preset type index via DRLGPRESET_FindPresetTypeIndex, transforms room-local tile coordinates to world space, bounds-checks against the room size, then calls AllocPresetUnit. Marks the preset-unit entry as consumed (flag 0x20) on success. Special-cases shrine objects (IDs 0x5b-0x5c) with a seed-modulo 3 branch.
 // Seven arguments, four in registers: pTileData in EDI, pRoomEx in ESI, nWorldY in EAX, nPresetId in EDX. nWorldY is a world Y coordinate: MOV EBX,EAX at 0066d9e7 then SUB EBX,[ESI+0x38] (WorldPosition.y) at 0066da33 mirrors SUB EAX,[ESI+0x34] on nWorldX (1.14d asm).
 void __stdcall CreatesPresets(struct D2DrlgTileDataStrc * pTileData, struct D2RoomExStrc * pRoomEx, int nWorldY, uint32_t nPresetId, int * pPresetUnit, int nWorldX, int nTileType);

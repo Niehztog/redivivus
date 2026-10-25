@@ -135,7 +135,7 @@ void __fastcall Q03_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2Que
 
 // Q03_Callback_11 (A1Q3) — Charsi (NPC 0x9a) dialog/menu handler. msgIndex 0xa3 = "give Malus / complete": if not yet Completed, registers the player, and if player carries the Horadric Malus (item 'hdm ') marks the quest done: SetQuestState JustCompleted + RewardAwaits, sends quest info, removes the Malus from inventory, decrements item count, auto-completes for high-level party members, advances nStateFlag 4->5, sets bQuestAccepted, SetQuestRecordState JustCompleted, runs sequence filter. msgIndex 0x92 = Charsi menu pick: sets nStateFlag 2 and bRewardGiven (arms the imbue reward).
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q3.cpp
-void __fastcall Q03_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q03_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     BOOL bQuestState;
     int32_t nPlayerGUID;
     D2QuestDataStrc* pNextQuestData;
@@ -180,14 +180,14 @@ void __fastcall Q03_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
               /* SetQuestRecordState(QUEST_ToolsOfTheTrade, JustCompleted=0xd) — server-side
                          record mark on nStateFlag 4->5 */ QUEST_SetQuestRecordState(pQuestData->pGame, QUEST_ToolsOfTheTrade, QUESTSTATE_JustCompleted);
               /* FARPROC lpfn for IsBadCodePtr */ bQuestState = IsBadCodePtr((FARPROC)pQuestData->fpSequenceFilter);
-              if (!bQuestState) {
-                pQuestData->fpSequenceFilter(pQuestData);
-                QUEST_SendNpcGossipPacket(pQuestArgs->pGame, pQuestArgs->pPlayer, pQuestArgs->pTarget);
-                return;
+              if (bQuestState) {
+                Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xfa);
+                exit(-1);
               }
 
-              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xfa);
-              exit(-1);
+              pQuestData->fpSequenceFilter(pQuestData);
+              QUEST_SendNpcGossipPacket(pQuestArgs->pGame, pQuestArgs->pPlayer, pQuestArgs->pTarget);
+              return;
             }
             if (pA1Q3Data->bSequenceReady) {
               pNextQuestData = GetQuestDataByQuestNoInternal(pQuestData->pGame, pQuestData->nSequenceQuestId);
@@ -215,7 +215,7 @@ void __fastcall Q03_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // Q03_Callback_00 (A1Q3) — state-0 / gossip-icon handler. Decides which gossip line Charsi (0x9a) shows. If quest not Completed (or JustCompleted) and player lacks the Malus: show the nStateFlag-indexed intro line (via gdwQuestCallbackAddressQ39 lookup, skipping flag 4). If player HAS the Malus and is level >=8 and not Completed: show the "return the Malus" line (index 3). Read-only on quest record.
-void __fastcall Q03_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q03_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     // Static local variables (originally global data)
     static int32_t gdwQuestCallbackAddressQ39[6] = { -0x1, 0x0, 0x1, 0x2, 0x3, 0x4 };
 
@@ -237,7 +237,17 @@ void __fastcall Q03_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     }
 
     D2UnitStrc* pCompletedCheck = ITEMS::Items::Drop::HasQuestItem(pQuestArgs->pGame, pQuestArgs->pPlayer, 0x206d6468);
-    if (!pCompletedCheck) {
+    if (pCompletedCheck) {
+      nPlayerLevel2 = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pQuestArgs->pPlayer, UNITSTAT_level, 0);
+      if (8 <= nPlayerLevel2) {
+        /* GetQuestState(Completed=0) — has Malus & lvl>=8: offer "return Malus" line
+                         if not done */ bCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_ToolsOfTheTrade, QUESTSTATE_Completed);
+        if (!bCompleted) {
+          AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, 3);
+          return;
+        }
+      }
+    } else {
       uint32_t nMessageIndexMaybe;
       if (bJustCompleted != 1) {
         nStateFlag = pQuestData->nStateFlag;
@@ -246,16 +256,6 @@ void __fastcall Q03_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
           if (nMessageIndexMaybe != -1 && nMessageIndexMaybe < 6) {
             AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, nMessageIndexMaybe);
           }
-        }
-      }
-    } else {
-      nPlayerLevel2 = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pQuestArgs->pPlayer, UNITSTAT_level, 0);
-      if (7 < nPlayerLevel2) {
-        /* GetQuestState(Completed=0) — has Malus & lvl>=8: offer "return Malus" line
-                         if not done */ bCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_ToolsOfTheTrade, QUESTSTATE_Completed);
-        if (!bCompleted) {
-          AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, 3);
-          return;
         }
       }
     }
@@ -553,7 +553,7 @@ void __fastcall Q03_CheckPlayerHasMalus(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
 }
 
 // Q03_CheckPartyHasMalus (A1Q3) — returns whether the player (or anyone in their party) holds the Horadric Malus. Fast path: true if the player carries it. Else if not partied, false. Otherwise clears field_0xA0 and runs Q03_CheckPlayerHasMalus over all party members, returning field_0xA0. Read-only on record.
-BOOL Q03_CheckPartyHasMalus(D2UnitStrc * pUnitStrc, D2QuestDataStrc * pQuestData) {
+static BOOL Q03_CheckPartyHasMalus(D2UnitStrc * pUnitStrc, D2QuestDataStrc * pQuestData) {
     uint32_t dwItemCode = 0x206d6468;
     ::SGAMEDATA* pGame = UNIT::SUnit::GetGamePointer(pUnitStrc);
     D2UnitStrc* pMalusItem = ITEMS::Items::Drop::HasQuestItem(pGame, pUnitStrc, dwItemCode);
@@ -583,7 +583,13 @@ bool __fastcall Q03_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUni
     }
 
     bQuestState = Q03_CheckPartyHasMalus(pUnit, pQuestData);
-    if (!bQuestState) {
+    if (bQuestState) {
+      /* GetQuestState(Completed=0) — party holds Malus & not done => status 0x02 */ bQuestState = D2Common::QuestRecord::GetQuestState(pBitBufferEx, QUEST_ToolsOfTheTrade, QUESTSTATE_Completed);
+      if (!bQuestState) {
+        *pbyStatusCode = '\x02';
+        return true;
+      }
+    } else {
       int iVar1;
       if (pQuestData->bIsNotIntroduction) {
         /* GetQuestState(JustCompleted=0xd) — just turned in self game */ bQuestState = D2Common::QuestRecord::GetQuestState(pBitBufferEx, QUEST_ToolsOfTheTrade, QUESTSTATE_JustCompleted);
@@ -606,14 +612,8 @@ bool __fastcall Q03_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUni
         iVar1 = QUEST_GetQuestRecordState(pQuestData->pGame, QUEST_ToolsOfTheTrade, 0xd);
         if (iVar1) {
           nCompletionState = D2Common::Stats::StatsEx::SERVER_GetUnitStat(pUnit, UNITSTAT_level, 0);
-          *pbyStatusCode = (7 < nCompletionState) * '\b' + '\x04';
+          *pbyStatusCode = (8 <= nCompletionState) * '\b' + '\x04';
         }
-      }
-    } else {
-      /* GetQuestState(Completed=0) — party holds Malus & not done => status 0x02 */ bQuestState = D2Common::QuestRecord::GetQuestState(pBitBufferEx, QUEST_ToolsOfTheTrade, QUESTSTATE_Completed);
-      if (!bQuestState) {
-        *pbyStatusCode = '\x02';
-        return true;
       }
     }
 

@@ -83,11 +83,11 @@ template<> ::SGAMEDATA * TSExplicitList<SGAMEDATA, -572662307>::RawNext(::SGAMED
 
 template<> ::SGAMEDATA * TSExplicitList<SGAMEDATA, -572662307>::Next(::SGAMEDATA * pNode) {
     if (pNode) {
-      return (::SGAMEDATA*)((int)*(uint32_t*)(pNode->szGameName + this->m_linkoffset - 0x26) < 1 ? 0 : *(uint32_t*)(pNode->szGameName + this->m_linkoffset - 0x26));
+      return (::SGAMEDATA*)((int)*(uint32_t*)(pNode->szGameName + this->m_linkoffset - 0x26) <= 0 ? 0 : *(uint32_t*)(pNode->szGameName + this->m_linkoffset - 0x26));
     }
 
     uint32_t uVar1 = this->m_terminator.m_next;
-    return (::SGAMEDATA*)((int)uVar1 < 1 ? 0 : uVar1);
+    return (::SGAMEDATA*)((int)uVar1 <= 0 ? 0 : uVar1);
 }
 
 template<> void TSExportTableSync<SGAMEDATA, HSGAMEDATA__*, HSGAMEDATALOCK__*, CCritSect, 0>::Unlock(int32_t nLockedHandle) {
@@ -123,15 +123,15 @@ template<> ::SGAMEDATA * TSExplicitList<SGAMEDATA, -572662307>::DeleteNode(::SGA
     uint32_t nSlotValue = pSlotPtr->m_next;
     pNode->Destructor();
     Storm::SMem::SMemFree(pNode, s___AUSGAMEDATA___0070f56c, -2, 0);
-    return (::SGAMEDATA*)((int)nSlotValue < 1 ? 0 : nSlotValue);
+    return (::SGAMEDATA*)((int)nSlotValue <= 0 ? 0 : nSlotValue);
 }
 
 // Register arguments: only this (ECX, the hash table); EDX is first written at 0052e653 from [ECX+0x1c] (1.14d asm).
 template<> ::SGAMEDATA * TSHashTable<SGAMEDATA, HASHKEY_NONE>::Ptr(uint32_t dwHashVal, HASHKEY_NONE * pKey) {
     ::SGAMEDATA* pBucketHead = (::SGAMEDATA*)this->tSlotListArray.m_data[dwHashVal & this->nSlotMask].m_terminator.m_next;
-    ::SGAMEDATA* pGame = (::SGAMEDATA*)((int)pBucketHead < 1 ? 0 : (uint32_t)pBucketHead);
+    ::SGAMEDATA* pGame = (::SGAMEDATA*)((int)pBucketHead <= 0 ? 0 : (uint32_t)pBucketHead);
     while (true) {
-      if ((int)pGame < 1) {
+      if ((int)pGame <= 0) {
         return nullptr;
       }
       if (pGame->m_hashval == dwHashVal) {
@@ -331,7 +331,7 @@ template<> void TSHashTable<SGAMEDATA, HASHKEY_NONE>::GrowListArray() {
 template<> int32_t TSHashTable<SGAMEDATA, HASHKEY_NONE>::MonitorFullness(uint32_t nSlot) {
     TSLink<::SGAMEDATA>* ppBucket;
     /* Seems like 1024 is a hardcoded limit for sim games to be ran on the servers
-                          */ if (0x3fe < this->nSlotMask) {
+                          */ if (0x3ff <= this->nSlotMask) {
       return 0;
     }
     if (this->nFullnessIndicator < 4) {
@@ -341,10 +341,10 @@ template<> int32_t TSHashTable<SGAMEDATA, HASHKEY_NONE>::MonitorFullness(uint32_
     }
 
     uint32_t pHashData = this->tSlotListArray.m_data[nSlot].m_terminator.m_next;
-    int nSize = (int)pHashData < 1 ? 0 : pHashData;
+    int nSize = (int)pHashData <= 0 ? 0 : pHashData;
     while (true) {
       TSExplicitList<::SGAMEDATA, -572662307>* pValue;
-      if (nSize < 1) {
+      if (nSize <= 0) {
         return 0;
       }
 
@@ -354,10 +354,10 @@ template<> int32_t TSHashTable<SGAMEDATA, HASHKEY_NONE>::MonitorFullness(uint32_
       }
 
       pValue = this->tSlotListArray.m_data + nSlot;
-      if (!nSize) {
-        ppBucket = &pValue->m_terminator;
-      } else {
+      if (nSize) {
         ppBucket = (TSLink<::SGAMEDATA>*)(pValue->m_linkoffset + nSize);
+      } else {
+        ppBucket = &pValue->m_terminator;
       }
 
       nSize = ppBucket->m_next;
@@ -378,10 +378,10 @@ template<> ::SGAMEDATA * TSHashTable<SGAMEDATA, HASHKEY_NONE>::New(uint32_t dwHa
     }
 
     ::SGAMEDATA* pGame = this->pVtable->InternalNew(this, this->tSlotListArray.m_data + nIdInBucket, nExtraBytes, dwFlags);
-    if (!pGame) {
-      ppActiveListLink = &this->tFullList.m_terminator;
-    } else {
+    if (pGame) {
       ppActiveListLink = (TSLink<::SGAMEDATA>*)(pGame->szGameName + this->tFullList.m_linkoffset - 0x2a);
+    } else {
+      ppActiveListLink = &this->tFullList.m_terminator;
     }
 
     int pExistingHead = (int)ppActiveListLink->m_prevlink;

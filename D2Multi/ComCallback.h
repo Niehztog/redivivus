@@ -38,17 +38,12 @@ namespace D2Multi::ComCallback {
 
 // Function declarations
 int __stdcall EDITBOX_Cb_COMCALLBACK_ClearChannelUserList(void * pUnknown);
-void COMCALLBACK_HandleBannerAdFile(uint32_t * pBannerAdData);
 // Returns gszCurrentChannelName, the name of the chat channel last joined (copied there by the "You have joined channel: %s" handler COMCALLBACK_HandleChannelError).
 // Provenance: asm 00446cf0 (MOV EAX,0x798d30); its one caller prefills the Create/Join Channels name edit box with it.
 char * __stdcall COMCALLBACK_GetCurrentChannelName();
 BOOL __fastcall COMCALLBACK_ReturnTrue(uint32_t dwParam1, uint32_t dwParam2, char * szText1, char * szText2);
 // Parses BNet channel user data blob into D2ChannelUserStrc. Reads product tag (D2DV/D2XP/STAR/etc.) from pbRawData, extracts char class, experience, quest flags, merc data. Returns nCharClassId for the character portrait.
 uint32_t COMCALLBACK_CreateChannelUser(struct D2ChannelUserStrc * pChannelUser, uint32_t nStatusFlags, struct D2ChannelUserStrc * pUser, uint8_t * pbRawData);
-// Formats D2ChannelUserStrc data for display: splits clan*charname, converts to wide strings, extracts realm name, calls D2COMP_SetUnitDisplayStrings with portrait/name/realm/clan strings.
-void COMCALLBACK_FormatChannelUserData(struct D2ChannelUserStrc * pChannelUser);
-// Adds or updates a channel user in gpChannelUserLinkedListHead sorted list. Allocates 0x48-byte node, copies username and raw BNet data. Updates existing entry if username matches.
-void __fastcall COMCALLBACK_AddOrUpdateChannelUser(char * szUsername, uint8_t * pbRawData);
 void __fastcall COMCALLBACK_FormatChatMessage(char * szText1, char * szText2, char * szFormattedOutput);
 BOOL __fastcall COMCALLBACK_HandleGameListError(uint32_t dwCbArg1, uint32_t dwCbArg2, uint32_t dwParam1, uint32_t dwParam2);
 BOOL __fastcall COMCALLBACK_ReturnFalse(uint32_t dwParam1, uint32_t dwParam2, char * szText1, char * szText2);
@@ -57,17 +52,11 @@ void __stdcall COMCALLBACK_ClearChannelUserList();
 void __fastcall COMCALLBACK_FormatWhisperFrom(uint16_t * wszText, char * szSenderName);
 void __fastcall COMCALLBACK_FormatWhisperTo(uint16_t * wszText, char * szTargetName);
 BOOL __stdcall COMCALLBACK_ValidateGameJoinability();
-void __fastcall PrintChannelText(uint32_t dwParam, char * szText, int32_t nColor);
-void __stdcall COMCALLBACK_AppendChatWithUser(uint32_t dwParam, char * szUsername, char * szMessage, char * dwToTarget, int32_t nColor);
-void __stdcall COMCALLBACK_UpdateChannelUserList();
-// Adds channel user to the visual list: stores status flags, parses raw data via CreateChannelUser, copies username, creates D2COMP composite, formats display data, updates channel user list UI.
-void __stdcall COMCALLBACK_AddUserToChannelList(struct D2ChannelUserStrc * pChannelUser, uint32_t nStatusFlags, char * szUsername, uint8_t * pbRawData);
+int __fastcall PrintChannelText(uint32_t dwParam, char * szText, int32_t nColor);
 void __stdcall COMCALLBACK_ClearChannelListView();
 // Handles BNet channel join event. Finds matching user in gpChannelUserListHead by username, then calls AddUserToChannelList to build the visual composite. Returns 1 on match, 0 if not found.
 BOOL __fastcall COMCALLBACK_HandleChannelJoin(uint32_t dwUnused, uint32_t dwParam2, char * szUsername, uint8_t * pbRawData);
 uint32_t __stdcall COMCALLBACK_AppendServerMessage(uint32_t dwParam, char * szText);
-// Formats and displays a Battle.net channel chat message with the username prefix in angle brackets, then forwards to the chat text display function.
-int __stdcall COMCALLBACK_AppendChatWithColor(char * szUsername, int nColor, char * szMessage, int nParam);
 // Broadcasts chat message from local player to Battle.net channel. Retrieves current username from network interface, finds matching user in channel list to determine status flags (operator/speaker/moderator), formats message with username and clan tag prefix, then dispatches to chat system with appropriate color based on user status (0=operator red, 3=speaker/moderator yellow, 4=normal white).
 void __stdcall COMCALLBACK_BroadcastChatMessage();
 // Handles incoming BNet whisper message. Checks ignore list, finds sender in channel user list for status flags, formats sender/message and appends to chat with appropriate color.
@@ -76,11 +65,8 @@ BOOL __fastcall COMCALLBACK_AppendErrorMessage(uint32_t dwParam1, uint32_t dwPar
 BOOL __fastcall COMCALLBACK_AppendInfoMessage(uint32_t dwCbArg1, uint32_t dwCbArg2, uint32_t dwParam, char * szText);
 BOOL __fastcall COMCALLBACK_HandleInfoRequest1(uint32_t dwCbArg1, uint32_t dwCbArg2, uint32_t dwParam1, char * szInfoArg);
 BOOL __fastcall COMCALLBACK_HandleInfoRequest2(uint32_t dwCbArg1, uint32_t dwCbArg2, uint32_t dwParam1, char * szInfoArg);
-void __fastcall COMCALLBACK_ValidateWhisperTarget(char * szMessage);
 BOOL __fastcall COMCALLBACK_ProcessWhisperCommand(uint32_t dwCbArg1, uint32_t dwCbArg2, char * szRawText, char * szWhisperText);
-void __stdcall COMCALLBACK_FormatWhisperReply(uint8_t * pbReplyText, uint8_t * pbSenderName, char * szReplyArg);
 BOOL __fastcall COMCALLBACK_HandleWhisperReply(uint32_t dwParam1, uint32_t dwParam2, char * szText, uint32_t dwParam);
-void __fastcall COMCALLBACK_ValidateEmoteTarget(char * szEmoteText);
 BOOL __fastcall COMCALLBACK_ProcessEmoteCommand(uint32_t dwParam1, uint32_t dwParam2, char * szText, char * szEmoteArg);
 // Scrolls the chat-lobby user list by nScrollDelta rows: clamps gnChannelUserListScrollOffset to 0..gnChannelUserCount-11 (0 when fewer than 12 users), rebuilds the list through COMCALLBACK_UpdateChannelUserList when the offset changed, and shows the back/forward scroll buttons only when there is something to scroll to.
 // Provenance: asm 00448bd0..00448c6c; the four user-list scroll buttons call it with -10, 10, -1 and 1.
@@ -92,7 +78,6 @@ uint32_t __stdcall COMCALLBACK_HandleGameListError2(struct D2ControlMsg * pContr
 // Creates or updates Battle.net channel user entry. If user doesn't exist in list, allocates D2ChannelUserStrc (180 bytes), copies username and character data, creates character composite sprite with class/items/level, randomizes animation frame, formats display name, appends to linked list, increments channel user count, formats channel title "Channel Name (N)" as Unicode, displays in chat window, sorts list, and updates UI. If user exists, updates via COMCALLBACK_AddUserToChannelList instead.
 struct D2ChannelUserStrc * __stdcall COMCALLBACK_CreateChannelUserEntry(char * szUsername, uint32_t * pCharDataAndItems, uint32_t dwStatusFlags);
 BOOL __fastcall COMCALLBACK_Unused1(uint32_t dwStatusFlags, uint32_t dwParam2, uint32_t * pszUsername, uint32_t * pCharData);
-void COMCALLBACK_Unused2(uint32_t * pCharData, uint32_t dwStatusFlags, uint32_t * pszUsername);
 BOOL __fastcall COMCALLBACK_Unused3(uint32_t dwStatusFlags, uint32_t dwParam2, uint32_t * pCharData, uint32_t * pszUsername);
 // Removes user from Battle.net channel list. Searches linked list for username match (strips clan tag *prefix for comparison), unlinks from list, displays "username has left the channel" message if gnNotifyEnabled flag set, clears channel view if was selected user, destroys character composite sprite, frees D2ChannelUserStrc memory, decrements global channel user count, formats updated channel title "Channel Name (N)" as Unicode, and refreshes UI. Returns after first match found.
 void __stdcall COMCALLBACK_RemoveChannelUser(char * szUsername);

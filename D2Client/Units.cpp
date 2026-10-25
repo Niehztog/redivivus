@@ -40,7 +40,7 @@ eD2UnitType __fastcall GetType(D2UnitStrc * pUnit) {
 
 int32_t __fastcall GetXPosFromDynamicPathUnit(D2UnitStrc * pUnit) {
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (!(eUnitType != UNIT_OBJECT && ((int)eUnitType < 4 || 5 < (int)eUnitType))) {
+    if (!(eUnitType != UNIT_OBJECT && ((int)eUnitType <= 3 || 5 < (int)eUnitType))) {
       return pUnit->pPath.pStaticPath->nPosX;
     }
     if (!pUnit->pPath.pDynamicPath) {
@@ -53,7 +53,7 @@ int32_t __fastcall GetXPosFromDynamicPathUnit(D2UnitStrc * pUnit) {
 
 int32_t __fastcall GetYPosFromDynamicPathUnit(D2UnitStrc * pUnit) {
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (!(eUnitType != UNIT_OBJECT && ((int)eUnitType < 4 || 5 < (int)eUnitType))) {
+    if (!(eUnitType != UNIT_OBJECT && ((int)eUnitType <= 3 || 5 < (int)eUnitType))) {
       return pUnit->pPath.pStaticPath->nPosY;
     }
     if (!pUnit->pPath.pDynamicPath) {

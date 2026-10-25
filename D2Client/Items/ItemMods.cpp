@@ -48,20 +48,20 @@ uint32_t __fastcall ITEMPROP_SetSockets(uint32_t dwParam1, D2UnitStrc * pUnit, D
     }
 
     uint32_t uVar1 = nParam2;
-    if ((int)nParam2 < 1) {
+    if ((int)nParam2 <= 0) {
       uVar1 = D2Common::ITEMS::ItemMods::ITEMMOD_RollRandomValue(pItemUnit2, *(int32_t*)(nParam1 + 8), *(int32_t*)(nParam1 + 0xc));
-      if ((int)uVar1 < 1) {
+      if ((int)uVar1 <= 0) {
         uVar1 = *(uint32_t*)(nParam1 + 4);
       }
     }
 
     uint32_t nSocketMin = uVar1;
-    if ((int)uVar1 < 2) {
+    if ((int)uVar1 <= 1) {
       nSocketMin = 1;
     }
-    if ((int)nSocketMin < (int)nValue && (nValue = uVar1 , (int)uVar1 < 2)) {
+    if ((int)nSocketMin < (int)nValue && (nValue = uVar1 , (int)uVar1 <= 1)) {
       nValue = 1;
-    } else if ((int)nValue < 1) {
+    } else if ((int)nValue <= 0) {
       return 0;
     }
 

@@ -55,9 +55,6 @@ void __fastcall SUNITNPC_FillNpcInventory(struct D2UnitStrc * pUnit, struct D2Un
 void __fastcall SendMercForHireList(::SGAMEDATA * pGame, struct D2ClientStrc * pClient, struct D2UnitStrc * pNpcUnit, BOOL bFirstInteraction);
 // In Normal difficulty returns min(nLevel, {12,20,28,36,45}[npc act]); otherwise nLevel unchanged.
 int32_t __fastcall SUNITNPC_GetActCappedLevel(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nLevel);
-// Rolls the quality of a store item: advances pSeed, takes roll = seed % 100, and returns QUALITY_LOW (1) for item level < 5 and roll > 90, QUALITY_SUPERIOR (3) for level 5..9 and roll > 85 or level >= 10 and roll > 74, else QUALITY_NORMAL (2).
-// U2 2026-10-21: asm 00576900; was SUNITNPC_CalculateRepairCost (kept as label), its one caller FillNpcStore passes the result to GenerateNpcItems as the quality.
-eD2ItemQuality SUNITNPC_RollStoreItemQuality(struct D2SeedStrc * pSeed, int32_t nItemLevel);
 // Server-side NPC trade-item restock/generation. Given a vendor NPC unit and its trade state (pTradeState, D2NpcTradeStateStrc), rolls and generates the NPC's purchasable inventory: walks tradeList1 entries, for each in-range item rolls a count via the NPC's seeded RNG (SUNITNPC_GetActCappedLevel caps player level+5 by act in Normal) and spawns items through SUNITNPC_GenerateNpcItems; also restocks stackable ammo/scrolls and tradeList2 entries, setting quantity on gold-priced ('qcv'/'acv') items. Aborts a batch after 0x20 consecutive spawn failures. Side effect: stamps the refresh tick (dwLastTradeTick). Halts on missing GameNpc.
 void __fastcall SUNITNPC_FillNpcStore(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pNpcUnit, struct D2NpcTradeStateStrc * pTradeState);
 // @sourcefile .\UNIT\SUNITNPC.CPP
@@ -73,14 +70,10 @@ bool __fastcall SUNITNPC_CheckNpcCanSellItem(::SGAMEDATA * pGame, struct D2UnitS
 void __fastcall SUNITNPC_ReturnOne(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nParam);
 // Handles post-purchase NPC item refresh. For gamble mode (nBuyMode==2) with a personal NPC inventory, scans the player's carried items and refreshes the matching gamble item via SUNITNPC_RefreshNpcItem. Otherwise checks if the NPC can still sell the item; if not, refills the NPC's inventory slot via SUNITNPC_FillNpcInventory.
 void __fastcall SUNITNPC_DeductGoldForPurchase(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * param_1, int32_t pPlayerRaw, int32_t nBuyMode);
-// Checks the hireling slot array for an NPC (indexed by nNpcClassId via D2HirelingTxt name range). If all slots with valid entries are unfilled (count==0), frees the slot array, clears the pointer and a flags byte, then re-initialises the NPC's hireling inventory via SUNITNPC_InitNpcInventory. Halts if the hireling entry or name range is invalid.
-// @sourcefile .\UNIT\SUNITNPC.CPP
-void __fastcall ResetNpcHireListIfEmpty(::SGAMEDATA * pGame, int32_t nNpcClassId, uint32_t nFilledSlots);
 // Server-side handler for hiring a mercenary from a town NPC. Validates the NPC and that quest gates are met (Qualkehk/0x203 requires RescueOnMountArreat; Akara/0x96 requires SistersBurialGrounds before higher-cost mercs). Looks up the game NPC record and the requested merc by name id (range-checked against GetHirelingNamesAndSize), rolls the merc's stats/cost (RollMercStats), checks the player can afford it (CheckIfPlayerCanAffordCost), then spawns the merc monster (SpawnMonster) and binds it to the player (MERC_HireAndReplaceMerc). On success marks the hire slot taken, refreshes the for-hire list, and sends an NPC-transaction result (0x2A, code 5). On any failure sends 0x2A with an error code (9/0xb/0xc/0xf) and current gold. Side effects: spawns a unit, mutates NPC hire slots, sends packets to the player's client.
 // @sourcefile .\UNIT\SUNITNPC.CPP
 void __fastcall NPC_ProcessMercHire(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pNPC, uint16_t nMarcNameId);
 void __fastcall SUNITNPC_ValidateGambleItem(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-void __fastcall SUNITNPC_ProcessGambleResult(struct D2UnitStrc * pUnit);
 // Creates and hires a mercenary unit for player pUnit. Validates act/expansion eligibility, resolves the HirelingTxt row (by nNameIdOverride or the act/difficulty table), clamps nMercNameId to the valid name range, marks the seller NPC slot, spawns a UNIT_MONSTER via CreateUnit, then finalises hiring via MERC_HireAndReplaceMerc. Returns the new merc unit or null on failure.
 // @sourcefile .\UNIT\SUNITNPC.CPP
 struct D2UnitStrc * __fastcall CreateMerc(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint16_t nMercNameId, uint32_t dwHireFlags, uint16_t nNameIdOverride, int32_t nClassIdOverride, int32_t nReplaceFlag);
@@ -101,20 +94,14 @@ void __fastcall SUNITNPC_ProcessGamble(::SGAMEDATA * pGame, struct D2UnitStrc * 
 // Server-side NPC identify-all handler (Deckard Cain). Validates the player is interacting with the given NPC GUID (Cain/act-equivalents) and that unidentified items exist; if the Search-for-Cain quest is incomplete it charges 100 gold per unidentified item. Walks the player inventory (INVENTORY/CUBE pages) and calls ITEMMODE_ProcessItemSell to identify each unidentified item, then sends NET_D2GS_SERVER_Send_0x2A NpcTransaction result (code 9=no items/not-found, 3=success, 0xC=cannot afford) with the player gold to the client.
 // @sourcefile .\UNIT\SUNITNPC.CPP
 void __fastcall SUNITNPC_HandleIdentify(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, DWORD nNpcGUID);
-BOOL __stdcall UnitHasItemInInventory(int32_t guid, struct D2UnitStrc * pUnit);
 // @sourcefile .\UNIT\SUNITNPC.CPP
 void __fastcall SUNITNPC_CheckCanIdentify(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, DWORD nItemGUID);
-// Expansion-only: given a base item class ID and player level, randomly upgrades it to its uber or ultra variant using the NPC's RNG seed. Upgrade chance = (playerLevel - upgradeLevel) * chanceMult + 1, rolled against 10000. Returns the upgraded class ID if rolled, otherwise the original nItemClassId. Used when populating NPC shop inventory.
-uint32_t __stdcall SUNITNPC_RepairAndRecharge(::SGAMEDATA * pGame, uint32_t nItemClassId, int32_t nUberChanceMult, int32_t nUltraChanceMult, int32_t nPlayerLevel);
 // Server-side: builds the randomized gamble-screen inventory offered by a gambling NPC to a player. Allocates a gamble record (new player inventory + player GUID) onto the NPC game-data list. Using the NPC's RNG seed and difficulty GambleRare/Set/Unique/Uber/Ultra weights, rolls up to 14 items from the per-level gamble table, repairs/recharges item codes, picks a quality tier, creates each item (ITEM_CreateFromTemplate), marks it identified and on the inventory page, places it into the gamble inventory via SERVER_ItemToInventory, and frees the item if placement fails.
 // @sourcefile .\UNIT\SUNITNPC.CPP
 void __fastcall GAMBLE_GenerateGambleInventory(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pPlayerUnit, int32_t nNpcGameData);
 void __fastcall SUNITNPC_ValidateNpcInteraction(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pPlayerUnit, int32_t nNpcGameData);
-// Dispatches an NPC interaction for a player. nMode==0: repair/trade path — registers player interaction, repairs items, and initialises inventory for vendor NPCs (Charsi=0x96, Fara=0xC6, Larzuk=0x203, Halbu=0xFC) if not yet done. nMode!=0 with a personal inventory: registers gamble interaction and validates it via SUNITNPC_ValidateNpcInteraction.
-void __fastcall SUNITNPC_ProcessNpcAction(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pNpc, int32_t nMode);
 // Strips all active hireable-only states (flag array 12) from a unit by iterating every state in sgptDataTable->nTxtStatesSize. For each active state that has the hireable flag set and owns a stat list, calls STATLIST_RemoveAndRecalc then FreeStatList. Returns non-zero if any state was removed.
 BOOL __fastcall SUNITNPC_HandleHireableAction(struct D2UnitStrc * pUnit);
-void __stdcall HealByPlayerPetsByNPC(struct D2UnitStrc * pUnit, bool * pbChanged);
 // Server-side NPC heal handler. Verifies that pNpc is the player's currently interacted NPC, then restores HP, mana, and stamina to their txt-data maximums, removes poison and freeze state lists, clears any hireable AI state, and iterates pets to apply the same healing. Sends attribute-update packets (ids 6, 8, 10) for each stat that changed. Triggers an AI-reset sound event on the NPC if anything changed.
 void __fastcall HealByPlayerByNPC(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pNpc);
 void __fastcall Init(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pNpc);

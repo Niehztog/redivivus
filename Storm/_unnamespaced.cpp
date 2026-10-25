@@ -179,7 +179,6 @@ DWORD __fastcall D2FILE_GetFileSize(D2PoolManagerStrc * pMemory, D2MPQFileStrc *
     } else {
       dwFileSizeResult = Fog::Source::SFile::ERRORMANAGER_FGetFileSize(pFile, pFileSizeOut);
       if (dwFileSizeResult) {
-        Fog::Debug::GuardStack();
         return dwFileSizeResult;
       }
 
@@ -228,7 +227,6 @@ void __fastcall D2FILE_ReadFile(D2PoolManagerStrc * pMemory, D2MPQFileStrc * pFi
       D2FILE_ReadFile_HaltTail(0x92);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 void __stdcall D2FILE_ReadFile_HaltTail(int nLine) {
@@ -256,7 +254,7 @@ pfnFaultError __fastcall RegisterExitFunction(pfnFaultError pfnNewCallback) {
     return pfnPrevCallback;
 }
 
-void __stdcall FAULT_TerminateCurrentProcess() {
+static void __stdcall FAULT_TerminateCurrentProcess() {
     UINT uExitCode = -1;
     HANDLE hProcess = GetCurrentProcess();
     /* HANDLE hProcess for TerminateProcess */ TerminateProcess(hProcess, uExitCode);
@@ -356,7 +354,6 @@ void FAULT_ShowFormattedErrorWithArgs(uint32_t nErrorCode, ...) {
     FAULT_LookupErrorString(nErrorCode, szErrorMsg, 0x200);
     /* va_list arglist for wvsprintfA */ /* LPCSTR param_2 for wvsprintfA */ /* LPSTR param_1 for wvsprintfA */ wvsprintfA(szFormattedMsg, szErrorMsg, (va_list)((uint8_t*)&nErrorCode + 4));
     FAULT_ShowErrorMessageBox(szFormattedMsg);
-    Fog::Debug::GuardStack();
 }
 
 LPVOID __fastcall D2MEM_VirtualAlloc(SIZE_T nSize) {

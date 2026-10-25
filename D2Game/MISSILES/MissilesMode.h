@@ -33,8 +33,6 @@ namespace D2Game::MISSILES::MissilesMode {
 
 // Function declarations
 uint32_t MISSILE_RollAttackHit(void * pThis, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit1);
-// Rolls a random elemental damage value for a missile unit. Reads max damage (eStat) and min damage (eUnitStat) stats from the unit; if an optional bonus-percent stat (eUnitStatEx) is provided, scales both bounds by that percentage. Returns a random value in [scaledMin, scaledMax] using the unit's seed, or 0 if max is less than 1 or min is 0.
-int32_t __stdcall MISSILE_RollElementalDamage(struct D2UnitStrc * pUnit, eD2UnitStat eUnitStat, eD2UnitStat eUnitStatEx, eD2UnitStat eStat);
 // MISSILE DAMAGE PACKET ASSEMBLY: Fills the caller's D2DamageStrc (memset 0x70, then +8 physical, +0x10 fire, +0x14/+0x18 burn, +0x1c lightning,
 // +0x20 magic, +0x24 cold, +0x28/+0x2c poison, +0x30 cold length, +0x38/+0x3c/+0x40 leech, +0x44 stun; deadly strike sets wResultFlags |= 0x2000).
 // The stack slot of pDamage is reused by MSVC for the damage-percent total, hence the pointer-typed arithmetic in the decompile.
@@ -64,10 +62,6 @@ bool __stdcall MISSILESMODE_CheckCollisionAtOffset(int32_t nDistance, struct D2R
 void __fastcall MISSILES_SpawnAreaPattern(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nRadiusParam, eMissilesId nMissileId, uint32_t nParam);
 // Spawns a child missile of type eMissileId at the current missile unit's position, provided the missile is still in motion (path flags non-zero). Inherits owner, skill, and level from the parent missile; nParam2 sets total frames (sets flag 0x8000), nParam multiplies the sub-loop count. Calls CreatingMissile to create the child.
 void __fastcall MISSILES_SpawnSubMissileAlongPath(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eMissilesId eMissileId, int32_t nParam2, int32_t nParam);
-// Spawns a missile of a given type at a random position near the parent missile, but only every nParam2 frames (throttled by remaining-frames modulo). Uses remaining-frame count + X-pos as a deterministic seed offset. Picks a random (x,y) offset within nParam1 radius, collision-checks the candidate tile, and calls CreatingMissile if clear. Returns the spawned unit or null.
-struct D2UnitStrc * __stdcall MISSILES_SpawnPeriodicRandom(::SGAMEDATA * pGame, int32_t nParam1, eMissilesId pParam, int32_t eCollisionFlag, int32_t nParam2, struct D2UnitStrc * pUnit);
-void __fastcall SpawnPortal(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2LevelId eLevel);
-void MISSILES_UpdatePathToOwner(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 // Server-side missile hit function for area-of-effect elemental damage explosions. Validates the missile unit and resolves its owner. Reads the explosion radius from MissileTxt.sHitPar1; if zero, falls back to computing it via the owner's Skill1 calc[0] at the missile's skill level. Gets the missile's world position (static or dynamic path), zeroes a D2DamageStrc, fills it via MISSILES_CalculateElementalDamage, ORs in the txt HitFlags/ResultFlags, then calls SKILLS_ApplyAreaDamage to deal elemental splash to all targets in radius. Always returns 1.
 BOOL __fastcall Missiles_SrvHitFunc_AreaElementalDamageExplosion(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 // Server-side missile hit function for area-of-effect physical damage explosions. Mirrors Missiles_SrvHitFunc_AreaElementalDamageExplosion but fills damage via MISSILE_SetDamage (physical) instead of MISSILES_CalculateElementalDamage. Resolves radius from MissileTxt.sHitPar1 or Skill1 calc[0], gets missile position, then calls SKILLS_ApplyAreaDamage for physical splash. Always returns 1.
@@ -91,8 +85,6 @@ BOOL __fastcall Missiles_SrvHitFunc_PierceOrExplodeOnWall(::SGAMEDATA * pGame, s
 BOOL __fastcall Missiles_SrvHitFunc_ChainPierceWithBounce(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 // Server missile hit handler that applies elemental area-of-effect damage with a duration modifier. Reads radius from MissileTxt.sHitPar1 (or calculates via aurarangecalc if zero) and duration from sHitPar2 (or auralencalc). Computes elemental damage via MISSILES_CalculateElementalDamage, applies duration scaling via MISSILES_SetDamageByElementType, then calls SKILLS_ApplyAreaDamage at the missile position. Returns 1 on error, 2 on miss, 3 on hit.
 BOOL __fastcall Missiles_SrvHitFunc_AreaDamageWithDurationMod(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
-// Spawns up to 18 child missiles in a fixed radial pattern around the parent missile's current position. Iterates the gaMissileOffsets_RadialPattern18 table in steps of nParam2*4 (stride to skip entries), each offset applied to the unit's X/Y center. nParam1 sets fixed lifetime (flag 0x8000). Inherits owner/skill/level from parent.
-void __stdcall MISSILES_SpawnRadialPattern18(::SGAMEDATA * pGame, eMissilesId pParam, int32_t nParam1, int32_t nParam2, struct D2UnitStrc * pUnit);
 // Server missile hit callback: applies area damage around the missile impact point then spawns a radial sub-missile burst. Reads skill/level from pUnit (missile), resolves the owner, computes AoE radius from MissileTxt.sHitPar1 or the skill's aurarangecalc, calls SKILLS_ApplyAreaDamage, then — if HitSubMissile1 &gt;= 0 — spawns a radial pattern via MISSILES_SpawnRadialPattern18. Returns 1 unconditionally except when area damage hits (returns 1 or 3 via pTarget cast).
 BOOL __fastcall Missiles_SrvHitFunc_AreaDamageAndRadialBurst(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 BOOL __fastcall Missiles_SrvHitFunc_SpawnStationarySubMissile(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
@@ -103,13 +95,11 @@ BOOL __fastcall Missiles_SrvHitFunc_ApplyTerrorToMonster(::SGAMEDATA * pGame, st
 BOOL __fastcall Missiles_SrvHitFunc_ApplyWarCryBuff(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 // Server hit callback: applies the skill's auratargetstate to pTarget for an auralencalc-derived duration (min 5 frames). Allocates a timed stat list if state absent, sets aura stats via D2SetAurastatsFromSkills, refreshes timeout and schedules expire event 0xC. Returns 3 (pierce/continue) on success, 1 on invalid skill/state/owner/target.
 BOOL __fastcall Missiles_SrvHitFunc_ApplyTimedAuraState(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
-uint32_t __fastcall MISSMODE_CreateSubMissileAtFrame(struct D2SkillCallbackContextStrc * pContext, struct D2UnitStrc * pTargetUnit);
 // Server-side missile hit callback that spawns sub-missiles in an area-of-effect pattern on the frame the parent missile hits. Reads HitSubMissile1, sHitPar1 (radius, else aurarangecalc), sHitPar2 (max sub-missile count, else calc[0]), and aurafilter from the missile/skill txt tables, then calls SKILLS_ApplyAreaEffect with MISSMODE_CreateSubMissileAtFrame as the per-target callback. Returns 3 on success, 1 if preconditions fail (no owner, bad missile class, no HitSubMissile1).
 // @sourcefile .\MISSILES\MissMode.cpp
 BOOL __fastcall Missiles_SrvHitFunc_SpawnSubMissileAtFrameInArea(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 // Server hit callback: like ApplyTimedAuraState but first applies an aurafilter target-flag check (mask 0xA783 if aurafilter is set). Only applies the auratargetstate if the target passes SKILLS_CheckTargetFlags. Uses SetStateWithExpiryTime helper and D2SetAurastatsFromSkills. Returns 0 on success, 1 on bad owner/target/skill/state or filter failure.
 BOOL __fastcall Missiles_SrvHitFunc_ApplyTimedAuraStateFiltered(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
-uint32_t __fastcall MISSMODE_CreateSubMissileInvertFrame(struct D2SkillCallbackContextStrc * pContext, struct D2UnitStrc * pTargetUnit);
 // Spawns a burst of directional sub-missiles aimed at a target unit's position. Iterates gaMissileSpreadOffsets_DirectionalMissiles in steps of nParam2*4, producing up to 8 spread missiles (table size 0x20). Velocity is overridden from Missiles.txt Param1 (shifted left 7). Returns 1 on success, 0 if missile ID is out of range.
 void __fastcall MISSMODE_CreateDirectionalMissiles(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTargetUnit, eMissilesId eMissileId, eD2Skills eSkill, int32_t nParam1, int32_t nParam2);
 BOOL __fastcall Missiles_SrvHitFunc_SpawnDirectionalSubMissiles(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
@@ -127,7 +117,6 @@ BOOL __fastcall Missiles_SrvHitFunc_SetRoomPortalFlag(::SGAMEDATA * pGame, struc
 BOOL __fastcall Missiles_SrvHitFunc_ActivateObjectOnWallHit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 BOOL __fastcall Missiles_SrvHitFunc_SpawnSubMissileAtWallHit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 int32_t __fastcall Missiles_SrvHitFunc_AlwaysPierce(::SGAMEDATA * pGame, struct D2UnitStrc * pMissile, struct D2UnitStrc * pTarget);
-void __fastcall MISSILES_SetPathFromTotalFramesCallback(struct D2UnitStrc * pMissile, int nParam);
 // Server hit callback: spawns HitSubMissile1 in a star (radial) pattern at the parent missile's position. Star count = (skillLvl-1)*sHitPar2 + sHitPar1; if less than 1, falls back to skill calc[3]. Uses MISSILES_SetPathFromTotalFramesCallback for each spoke and delegates to SKILLS_CreateMissileStar. Always returns 1.
 BOOL __fastcall Missiles_SrvHitFunc_SpawnMissileStarPattern(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 BOOL __fastcall Missiles_SrvHitFunc_SpawnRandomMonsterAtHit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
@@ -183,22 +172,14 @@ BOOL __fastcall MISSMODE_RedemptionHitWithMana(::SGAMEDATA * pGame, struct D2Uni
 void __fastcall MISSMODE_PortalArrival(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 BOOL __fastcall Missiles_SrvHitFunc_SpawnTyraelAndOpenPortal(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 void __fastcall MISSMODE_ExpireAndFree(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t bOnExpire);
-BOOL MISSMODE_CheckCollisionMode(int nCollisionMode, int * pnParam);
 int getDamageTarget(struct D2UnitStrc * pUnit);
-void MISSMODE_ApplyNextHitState(struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
-// Server-side per-frame missile update dispatcher. For the given missile unit, looks up its MissilesTxt and validates its pSrvDoFunc index against MISSILESSRVDOFUNCS_SIZE. Resolves the missile's room (falling back to DRLGROOM_FindBetterNearbyRoom from its coords) and its owner. If the missile would be in a town and isn't flagged to persist there (flags2 &4 / &8 logic), it is destroyed (FreeServerUnit). Otherwise it invokes the missile's server "do" callback MISSILESSRVDOFUNCS[pSrvDoFunc](pGame, pUnit); a return of 2 means the callback already handled/kept it, anything else falls through to FreeServerUnit. Side effects: may free the missile unit. Note: __fastcall-ish, pUnit in EDI, pGame on stack (custom convention).
-void __stdcall MissileSrvDo(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 void __fastcall MISSILEEVENT_DefaultCallback(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nIndex);
-void MISSMODE_HitWithArmorReduction(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget, struct D2DamageStrc * pDamage);
 // Server-side missile hit function: on impact, resolves the owning unit and skill parameters, looks up the HitSubMissile1 entry from MissilesTxt, computes AoE radius and max-count (from HitPar or skill calcs), applies damage to the primary target via MISSMODE_HitWithArmorReduction, then calls SKILLS_ApplyAreaEffect with MISSMODE_CreateSubMissileInvertFrame as the area callback to spawn inverted-frame sub-missiles around the impact point. Returns TRUE in all non-error paths.
 // @sourcefile .\MISSILES\MissMode.cpp
 BOOL __fastcall Missiles_SrvHitFunc_SpawnSubMissileInvertFrameInArea(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 // Server-side missile collision/hit resolver. For a missile pUnit hitting pTarget (or terrain when pTarget is null), checks Missiles.txt flags (NextHit/justhit dedupe, owner check, friendly-fire/CollideFriend, ToHit roll, pierce), applies next-hit state, dispatches hit events, invokes the missile's server hit/damage functions (MISSILESSRVHITFUNCS/MISSILESSRVDMGFUNCS by index) and damage via MISSMODE_HitWithArmorReduction, and removes the missile's collision footprint from its room. Returns 1 = missile survives/continues, 2 = missile consumed/expires.
 int __fastcall Hits(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget, int32_t bForceHit);
-// Server-side per-frame "do" routine for a moving collision missile (fastcall pGame,pMissile). Validates the missile classid against MissilesTxt; advances movement (UNITS_ProcessUnitMovement) and decrements the missile's frame counter, calling Hits (explode/expire, returns its code) when movement blocks, the timer runs out, or it leaves a valid room / hits a wall. While alive and not in Death/TownWalk mode, after the activation frame it walks the path's init-coords, runs CheckCollision_BlockAll_Width at each, and on collision invokes the per-anim-mode collision callback (gaMissileSrvDoFuncTable[mode]); if it returns a victim unit it calls Hits on that target (return code), and a wall collision triggers Hits(null)+return 2. Returns 1 normally, 2 on block/wall.
-int __fastcall MISSMODE_SrvDoFn01_BasicMissile(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 int __fastcall MISSMODE_SrvDoFn02_PoisonTrail(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-int __fastcall MISSMODE_SrvDoFn03_StationaryCloud(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 // Server-side missile per-frame update function (SrvDoFunc index 5): handles looping/sub-animation frame cycling for missiles that use SubStart/SubStop animation ranges. Registers a width-based collision entry each frame. When the frame reaches SubStart-1, picks a random sub-frame in [SubStart,SubStop) via the missile's PRNG; on SubStart itself, rewinds to SubStart-3; otherwise decrements the frame by 2 (floored at 0). Delegates to Missiles_SrvDoFunc_001 for the base per-frame logic.
 int __fastcall MISSMODE_SrvDoFn05_FireWall(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 // Per-tick server update: if the missile's dynamic path has nonzero direction flags, spawns SubMissile1 at the current position (nFlags=0x21), then calls Missiles_SrvDoFunc_001 for standard movement/expiry processing. No-ops if no owner or no SubMissile1 defined.
@@ -256,9 +237,6 @@ int __fastcall MISSILESMODE_SrvDoFn35_RoyalStrikeChaosIce(::SGAMEDATA * pGame, s
 BOOL __fastcall Missiles_SrvHitFunc_SpawnHitSubMissilesAndHit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
 // On-hit handler: iterates all four HitSubMissile slots in missiles.txt and spawns each valid one via CreatingMissile. If sHitPar1&gt;0 applies Hits() to each spawned missile against pTarget. Returns TRUE (1) unconditionally — differs from SpawnHitSubMissilesAndHit only in return value (1 vs 3).
 BOOL __fastcall Missiles_SrvHitFunc_SpawnHitSubMissiles(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget);
-// Per-tick server update for Redemption aura missile. Branches on current frame: frames 2–24 use MISSMODE_RedemptionHitNoMana; frame 1 uses MISSMODE_RedemptionHitWithMana. Calls SKILLS_SetupBaalWaveParams (token 0x3002, skill=Redemption) with the missile's position and the selected hit callback, then SrvDoFunc_001.
-int __fastcall MISSILESMODE_SrvDoFn19_RadamentDeath(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-int __fastcall MISSILESMODE_SrvDoFn36_BaalFxControl(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 // Server-side missile per-frame do-function for missile type 037. On each frame, checks up to three sub-missiles (SubMissile1/2/3 from the missile txt row): if the missile's remaining frames match the corresponding ParamN threshold, spawns the sub-missile at the missile's current position via SKILLS_CreateMissileAtTarget, inheriting the owner, skill ID, and level. After sub-missile checks, calls Missiles_SrvDoFunc_001 for standard movement/collision processing.
 int __fastcall MISSILESMODE_SrvDoFn37_Unused(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 int __fastcall thunk_MISSILESMODE_SrvDoFn01_BasicMissile(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);

@@ -88,7 +88,7 @@ int32_t __fastcall PLRMODES_HasAnimEventLastOrComing5Frames(::SGAMEDATA * pGame,
     return (uint32_t)(pGame->dwGameFrame <= nEndAnimFrame + 5);
 }
 
-BOOL PLRMODES_HasEndAnimEventAndSeqInput(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
+static BOOL PLRMODES_HasEndAnimEventAndSeqInput(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     D2SkillStrc* pSkill = D2Common::Units::GetCurrentSkill(pUnit);
     if (pSkill) {
       D2SkillsTxt* pSkillTxt;
@@ -227,7 +227,29 @@ int __fastcall PLRMODES_TryCancelModeAndMoveToLocation(::SGAMEDATA * pGame, D2Un
         return 1;
       }
     }
-    if (!pSkillTxt->interrupt) {
+    if (pSkillTxt->interrupt) {
+      D2StatListExStrc* pConcStatList;
+      eStunState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_concentration);
+      if (eStunState == STATE_none) {
+        eStunState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_concentrate);
+        if (eStunState == STATE_none) {
+          return 1;
+        }
+      } else {
+        pConcStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, STATE_concentration);
+        nConcPct = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pConcStatList, UNITSTAT_skill_concentration, 0);
+        nConcRandRoll = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 100);
+        if ((int)nConcRandRoll >= nConcPct) {
+          eStunState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_concentrate);
+          if (eStunState == STATE_none) {
+            return 1;
+          }
+        }
+      }
+      if (pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Neutral) {
+        return 0;
+      }
+    } else {
       if (pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Neutral) {
         switch (nX) {
           case 7:
@@ -252,28 +274,6 @@ int __fastcall PLRMODES_TryCancelModeAndMoveToLocation(::SGAMEDATA * pGame, D2Un
           default:
             return 0;
         }
-      }
-    } else {
-      D2StatListExStrc* pConcStatList;
-      eStunState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_concentration);
-      if (eStunState == STATE_none) {
-        eStunState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_concentrate);
-        if (eStunState == STATE_none) {
-          return 1;
-        }
-      } else {
-        pConcStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, STATE_concentration);
-        nConcPct = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pConcStatList, UNITSTAT_skill_concentration, 0);
-        nConcRandRoll = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 100);
-        if (nConcPct <= (int)nConcRandRoll) {
-          eStunState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_concentrate);
-          if (eStunState == STATE_none) {
-            return 1;
-          }
-        }
-      }
-      if (pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Neutral) {
-        return 0;
       }
     }
 
@@ -303,7 +303,7 @@ int32_t __fastcall PLRMODES_ModeCallback_Neutral(::SGAMEDATA * pGame, D2UnitStrc
 }
 
 // Begins a player movement path and transitions animation mode. Restores velocity/path type, then normalises the requested mode: Run falls back to Walk if stamina is 0; Walk/TownWalk are promoted to TownWalk when in town; KnockBack sets path type 8 and distance 5. Calculates the path; if path has waypoints, calls FreeCombatAndChangeAnimMode + clears anim timers; otherwise falls back to idle mode.
-void __stdcall PLRMODES_StartPathAndChangeMode(::SGAMEDATA * pGame, eD2PlayerAnimMode dwParam, D2UnitStrc * pUnit) {
+static void __stdcall PLRMODES_StartPathAndChangeMode(::SGAMEDATA * pGame, eD2PlayerAnimMode dwParam, D2UnitStrc * pUnit) {
     int32_t nErrorAddress;
     int nStamina;
     D2RoomStrc* pRoom;
@@ -371,7 +371,7 @@ void __fastcall PLRMODES_SetMoveTargetPosition(::SGAMEDATA * pGame, D2UnitStrc *
 }
 
 // Drains stamina for one run-tick. Returns 1 immediately if player is in town (no drain). Computes base drain from CharStats.RunDrain*2, multiplies by armor speed factor (torso item Speed/10+1), then adjusts by UNITSTAT_item_staminadrainpct. Subtracts the result from stamina; if stamina reaches 0, clamps it to 0 and returns 0 (caller should switch to walk). Returns 1 while stamina remains.
-BOOL PLRMODES_DrainStamina(D2UnitStrc * pUnit) {
+static BOOL PLRMODES_DrainStamina(D2UnitStrc * pUnit) {
     int nDrainAdjusted;
     if (!pUnit) {
       return 0;
@@ -384,7 +384,7 @@ BOOL PLRMODES_DrainStamina(D2UnitStrc * pUnit) {
     }
 
     int nStaminaDrain = pUnit->nClassId;
-    if (!(-1 < nStaminaDrain && nStaminaDrain < sgptDataTable->nTxtCharStatsSize && sgptDataTable->pTxtCharStats + nStaminaDrain)) {
+    if (!(0 <= nStaminaDrain && nStaminaDrain < sgptDataTable->nTxtCharStatsSize && sgptDataTable->pTxtCharStats + nStaminaDrain)) {
       return 0;
     }
 
@@ -425,7 +425,7 @@ BOOL PLRMODES_DrainStamina(D2UnitStrc * pUnit) {
 // filtered, the client's attached unit cleared, corpse collision set, unit timers of types 8 and 9 removed, then tail-jumps
 // to UNITS_ClearAnimTimerEvents. pGame in EDI, pUnit in ESI (custom storage). Called from PLRMODES_HandlePlayerDeath and PLRMODES_Death; not
 // inline, it is a real function with two call sites. Provenance: 1.14d 0057f330..0057f38e, .\PLAYER\PlrModes.cpp literal at 0057f34f.
-void PLRMODES_ClearModeAndSetDead(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
+static void PLRMODES_ClearModeAndSetDead(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_hitpoints, 0, 0);
     D2Common::Stats::StatsEx::STATLIST_RecalcAfterRemove(pUnit);
     D2Common::DATATBLS::ItemStats::STATES_FilterStatesByContext(pUnit, 0);
@@ -608,7 +608,7 @@ int32_t __stdcall PLRMODES_CleanupInvalidCorpses(::SGAMEDATA * pGame, D2UnitStrc
     return nCorpseCount;
 }
 
-uint32_t __stdcall PLRMODES_IsCorpseOwnedByPlayer(::SGAMEDATA * pGame, D2UnitStrc * pCorpseUnitRaw, D2UnitStrc * pUnit) {
+static uint32_t __stdcall PLRMODES_IsCorpseOwnedByPlayer(::SGAMEDATA * pGame, D2UnitStrc * pCorpseUnitRaw, D2UnitStrc * pUnit) {
     D2UnitStrc* pCorpseOwner;
     uint32_t nPartyFlags;
     if (!pUnit) {
@@ -692,21 +692,21 @@ void __fastcall PLRMODES_HandlePlayerDeath(::SGAMEDATA * pGame, D2UnitStrc * pUn
     int32_t nDeathY;
     eD2UnitType eUnitType;
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nDeathY = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nDeathY = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nDeathY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nDeathY = 0;
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nDeathX = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nDeathX = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nDeathX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nDeathX = 0;
     }
 
     D2UnitStrc* pRoom;
@@ -796,7 +796,7 @@ void __fastcall PLRMODES_StartCastAtEntity(::SGAMEDATA * pGame, D2UnitStrc * pUn
     SKILLS::SkillsServer::SKILLS_OnModeComplete(pGame, pUnit);
 }
 
-void __stdcall PLRMODES_ReequipWeaponAfterThrow(::SGAMEDATA * pGame, uint32_t nBodyLocFlags, D2UnitStrc * pUnit) {
+static void __stdcall PLRMODES_ReequipWeaponAfterThrow(::SGAMEDATA * pGame, uint32_t nBodyLocFlags, D2UnitStrc * pUnit) {
     eD2BodyLoc eBodyLoc;
     BOOL bHasBodyLoc;
     uint32_t nBestBodyLoc = nBodyLocFlags & 0xff;
@@ -833,7 +833,7 @@ void __stdcall PLRMODES_ReequipWeaponAfterThrow(::SGAMEDATA * pGame, uint32_t nB
 
 // Called when a stackable ammo or throwable weapon reaches quantity 0. If the item is a throwable stat holder, zeroes the quantity stat and returns. Otherwise: unequips the item via EquipItem, marks it deleted, and searches the inventory for a reload-compatible replacement of the same type/classId to auto-reequip into the same body-loc slot. If the item has the reequip flag, calls PLRMODES_ReequipWeaponAfterThrow.
 // @sourcefile .\PLAYER\PlrModes.cpp
-void __stdcall PLRMODES_HandleDepletedAmmoOrThrowable(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pWeaponOwner) {
+static void __stdcall PLRMODES_HandleDepletedAmmoOrThrowable(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pWeaponOwner) {
     bool bIsStackable;
     int32_t nThrowableStat;
     D2UnitStrc* pReloadItem;
@@ -849,7 +849,7 @@ void __stdcall PLRMODES_HandleDepletedAmmoOrThrowable(::SGAMEDATA * pGame, D2Uni
     }
 
     int nQuantity = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_quantity, 0);
-    if (nQuantity >= 1) {
+    if (nQuantity > 0) {
       return;
     }
 
@@ -878,10 +878,10 @@ void __stdcall PLRMODES_HandleDepletedAmmoOrThrowable(::SGAMEDATA * pGame, D2Uni
             bIsBroken = D2Common::ITEMS::Items::CheckItemFlag(pReloadItem, ITEMFLAG_BROKEN, 0x531, ".\\PLAYER\\PlrModes.cpp");
             if (!bIsBroken) {
               if (pReloadItem) {
-                if (!pUnit) {
-                  nQuantity = -1;
-                } else {
+                if (pUnit) {
                   nQuantity = pUnit->nClassId;
+                } else {
+                  nQuantity = -1;
                 }
                 if (nQuantity == pReloadItem->nClassId) {
                   pSlotItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pWeaponOwner->pInventory, nBodyLocWord & 0xff);
@@ -939,7 +939,7 @@ void PLRMODES_CheckSwapWeaponSkill(eD2Skills * peSkillId, D2UnitStrc * pUnit) {
 }
 
 // After a weapon swap or action completes, restores the player's left and right skill slots to their pre-swap values (stored in peSkillId[0..3]: right skill id, left skill id, right owner, left owner). Skips SKILL_Attack (default). Calls Server_SelectSkill only if the skill is known, not currently selected, and is usable (excludes error codes 2 and 7).
-void PLRMODES_RestoreSwappedSkill(eD2Skills * peSkillId, D2UnitStrc * pUnit) {
+static void PLRMODES_RestoreSwappedSkill(eD2Skills * peSkillId, D2UnitStrc * pUnit) {
     D2SkillStrc* pSkill;
     D2SkillStrc* pCurrentSkill;
     int32_t nCanUse;
@@ -1069,7 +1069,7 @@ void __fastcall PLRMODES_BreakZeroDurabilityWeapons(::SGAMEDATA * pGame, D2UnitS
     } while (true);
 }
 
-int32_t __fastcall PLRMODES_ModeCallback_AttackSkill(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nModeArg, int32_t nSeqFrame) {
+static int32_t __fastcall PLRMODES_ModeCallback_AttackSkill(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nModeArg, int32_t nSeqFrame) {
     BOOL bIsDead;
     D2SkillStrc* pSkill = D2Common::Units::GetCurrentSkill(pUnit);
     if (!pSkill) {
@@ -1169,7 +1169,7 @@ int32_t PLRMODES_GetHpPercent128(D2UnitStrc * pUnit, int32_t dwParam) {
 }
 
 // Per-tick HP regeneration tick for a player unit. Reads UNITSTAT_hpregen; if zero returns early. Adds regen to current HP capped at txt-max; if the max is exceeded and the player has a healthpot state-list, removes and frees it. Enforces a floor of 0x100. Writes the new HP via STATLIST_SetUnitStat, then computes a 7-bit HP-percent and sends packet 0xAB to the client only if the change exceeds 4 units from the last sent value.
-BOOL PLRMODES_RegenHp(D2UnitStrc * pUnit) {
+static BOOL PLRMODES_RegenHp(D2UnitStrc * pUnit) {
     uint32_t nNewHpPct128;
     int nHpRegen;
     nHpRegen = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_hpregen, 0);
@@ -1183,7 +1183,7 @@ BOOL PLRMODES_RegenHp(D2UnitStrc * pUnit) {
     nMaxHp = D2Common::Stats::StatsEx::GetTxtMaxHp(pUnit);
     int nNewHp;
     nNewHp = nCurrentHp + nHpRegen;
-    if (nMaxHp < nCurrentHp + nHpRegen) {
+    if (nCurrentHp + nHpRegen > nMaxHp) {
       D2StatListExStrc* pStatList;
       pStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, STATE_healthpot);
       nNewHp = nMaxHp;
@@ -1225,7 +1225,7 @@ BOOL PLRMODES_RegenHp(D2UnitStrc * pUnit) {
 }
 
 // Per-tick mana regeneration for a player unit (called from the player-mode timer). Reads current mana and max mana; if STATE_nomanaregen is absent, computes base regen from CharStatsTxt.ManaRegen scaled by manarecoverybonus stat. Adds flat manarecovery stat on top. Removes the active mana-potion stat list once mana is full. Clamps the delta to not exceed max or go below zero, then applies via STATLIST_AddUnitStat.
-void PLRMODES_RegenMana(D2UnitStrc * pUnit) {
+static void PLRMODES_RegenMana(D2UnitStrc * pUnit) {
     D2StatListExStrc* pStatList;
     int nCharClassId;
     uint32_t n100Percent;
@@ -1243,7 +1243,7 @@ void PLRMODES_RegenMana(D2UnitStrc * pUnit) {
       if (nCharClassId < 0) {
         return;
       }
-      if (sgptDataTable->nTxtCharStatsSize <= nCharClassId) {
+      if (nCharClassId >= sgptDataTable->nTxtCharStatsSize) {
         return;
       }
       if (!(sgptDataTable->pTxtCharStats + nCharClassId)) {
@@ -1274,7 +1274,7 @@ void PLRMODES_RegenMana(D2UnitStrc * pUnit) {
         D2Common::Stats::StatsEx::FreeStatList(&pStatList->sStatList);
       }
     }
-    if (nMaxMana - nManaRegen < nCharClassId) {
+    if (nCharClassId > nMaxMana - nManaRegen) {
       nCharClassId = nMaxMana - nManaRegen;
     }
     if (nCharClassId < -nManaRegen) {
@@ -1314,14 +1314,14 @@ void __fastcall PacketUpdateForClient(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D
     pLocalPlayer = GAME::Clients::CLIENTS_GetControlUnit(pClient, 0);
     if (pUnit) {
       uint8_t bIsWarping;
-      if (!(pUnit->eUnitFlagsEx >> 0x10 & 1)) {
+      if (pUnit->eUnitFlagsEx >> 0x10 & 1) {
+        bIsWarping = '\x01';
+      } else {
         if (!(pUnit->eUnitFlagsEx >> 0xb & 1) || pUnit == pLocalPlayer) {
           goto send_items_and_mode;
         }
 
         bIsWarping = '\0';
-      } else {
-        bIsWarping = '\x01';
       }
 
       PlayerMsg::SendReassignPlayer(pUnit, pClient, bIsWarping);
@@ -1478,7 +1478,7 @@ void __fastcall PLRMODES_BroadcastAllyAndPartyInfo(::SGAMEDATA * pGame, D2UnitSt
 }
 
 // Per-frame server mode tick for a player in Walk/Run mode. Refreshes target, runs Blaze trail if STATE_blaze is set, drains stamina (downgrading Run->Walk on empty), and advances movement via UNITS_ProcessUnitMovement. Maintains the anti-teleport-hack trail: every ~25ms it records the player's path coords into a ring of 20 slots and, if movement exceeded a distance threshold, advances the slot. When movement completes (mode==2) it resolves any pending interact/queued skill: with no queued skill -> idle + SERVER_InteractOrPick on the target unit; with a queued skill -> GetSkill/GetSkillMode then PLRMODES_StartModeID to begin the skill. Clears bHasPendingInteract. Returns the resulting mode code.
-int32_t __fastcall PLRMODES_ModeCallback_WalkRunBlock(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nArg1, int32_t nArg2) {
+static int32_t __fastcall PLRMODES_ModeCallback_WalkRunBlock(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nArg1, int32_t nArg2) {
     BOOL nStaminaDrained;
     int nPosY;
     int32_t nDistance;
@@ -1505,7 +1505,7 @@ int32_t __fastcall PLRMODES_ModeCallback_WalkRunBlock(::SGAMEDATA * pGame, D2Uni
     dwTickCount = GetTickCount();
     D2UnitDataPlayerStrc* pPlayerData;
     pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-    if (pPlayerData->dwPosHistoryTick + 0x19 < dwTickCount) {
+    if (dwTickCount > pPlayerData->dwPosHistoryTick + 0x19) {
       uint8_t bVar1;
       bVar1 = pPlayerData->nPosHistoryIndex;
       if (!bVar1) {
@@ -1515,21 +1515,21 @@ int32_t __fastcall PLRMODES_ModeCallback_WalkRunBlock(::SGAMEDATA * pGame, D2Uni
       }
 
       eTargetUnitType = pUnit->eUnitType;
-      if (eTargetUnitType == UNIT_OBJECT || 3 < (int)eTargetUnitType && (int)eTargetUnitType < 6) {
+      if (eTargetUnitType == UNIT_OBJECT || 3 < (int)eTargetUnitType && (int)eTargetUnitType <= 5) {
         nPosX = pUnit->pPath.pStaticPath->nPosX;
-      } else if (!pUnit->pPath.pDynamicPath) {
-        nPosX = 0;
-      } else {
+      } else if (pUnit->pPath.pDynamicPath) {
         nPosX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      } else {
+        nPosX = 0;
       }
 
       eTargetUnitType = pUnit->eUnitType;
-      if (eTargetUnitType == UNIT_OBJECT || 3 < (int)eTargetUnitType && (int)eTargetUnitType < 6) {
+      if (eTargetUnitType == UNIT_OBJECT || 3 < (int)eTargetUnitType && (int)eTargetUnitType <= 5) {
         nPosY = pUnit->pPath.pStaticPath->nPosY;
-      } else if (!pUnit->pPath.pDynamicPath) {
-        nPosY = 0;
-      } else {
+      } else if (pUnit->pPath.pDynamicPath) {
         nPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      } else {
+        nPosY = 0;
       }
 
       nDistance = D2Common::PATH::DynamicPath::GetDistanceSquaredXY(nPosX, nPosY, pPlayerData->aPosHistory[byPrevSlot].nX, pPlayerData->aPosHistory[byPrevSlot].nY);
@@ -1538,7 +1538,7 @@ int32_t __fastcall PLRMODES_ModeCallback_WalkRunBlock(::SGAMEDATA * pGame, D2Uni
         pPlayerData->aPosHistory[bVar1].nY = nPosY;
         pPlayerData->nPosHistoryIndex += '\x01';
         pPlayerData->dwPosHistoryTick = dwTickCount;
-        if (0x13 < pPlayerData->nPosHistoryIndex) {
+        if (0x14 <= pPlayerData->nPosHistoryIndex) {
           pPlayerData->nPosHistoryIndex = '\0';
         }
       }
@@ -1625,13 +1625,13 @@ void __fastcall PLRMODES_Death(::SGAMEDATA * pGame, D2UnitStrc * pUnit, DWORD nM
         }
 
         /* FARPROC lpfn for IsBadCodePtr */ bBadPtr = IsBadCodePtr((FARPROC)PLRMODES_SetIdleMode);
-        if (!bBadPtr) {
-          PLRMODES_SetIdleMode(pGame, pUnit, 1, 0, 0);
-          return;
+        if (bBadPtr) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x812);
+          exit(-1);
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x812);
-        exit(-1);
+        PLRMODES_SetIdleMode(pGame, pUnit, 1, 0, 0);
+        return;
       }
     }
 
@@ -1688,7 +1688,7 @@ void __fastcall PLRMODES_OnModeComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
       pSkill = D2Common::Units::GetCurrentSkill(pUnit);
       if (pSkill) {
         eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\PLAYER\\PlrModes.cpp", 0x779);
-        if (-1 < (int)eSkillId && (int)eSkillId < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkillId && sgptDataTable->pTxtSkills[eSkillId].durability) {
+        if (0 <= (int)eSkillId && (int)eSkillId < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkillId && sgptDataTable->pTxtSkills[eSkillId].durability) {
           PLRMODES_CheckWeaponQuantityAndDurability(pGame, pUnit);
           PLRMODES_BreakZeroDurabilityWeapons(pGame, pUnit);
         }
@@ -1775,13 +1775,13 @@ void __fastcall PLRMODES_OnModeComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
       }
 
       /* FARPROC lpfn for IsBadCodePtr */ bBadPtr = IsBadCodePtr((FARPROC)PLRMODES_ChangeAnimModeAndResetSkill);
-      if (!bBadPtr) {
-        PLRMODES_ChangeAnimModeAndResetSkill(pGame, pUnit, 4, -1, 0);
-        return;
+      if (bBadPtr) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x812);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x812);
-      exit(-1);
+      PLRMODES_ChangeAnimModeAndResetSkill(pGame, pUnit, 4, -1, 0);
+      return;
     }
 }
 

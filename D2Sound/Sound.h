@@ -43,8 +43,6 @@ void __stdcall SOUND_ReleaseEAXInterfaces();
 // Applies EAX environment parameters to gpDirectSoundEAXInterface. Two modes: gnSoundQualityMode==1 (simple: vol/distance/flags), ==2 (full: 14 reverb properties including decay, reflections, room size). Calls Set() on EAX property GUIDs for each param.
 void __fastcall SOUND_ApplyEAXEnvironment(float fParam);
 void __stdcall SOUND_ShutdownDirectSound();
-// Initializes DirectSound 8 with EAX 3.0 support - creates primary buffer, configures format, tests environment presets
-void __stdcall SOUND_InitDirectSound();
 void __fastcall SOUND_Initialize(uint32_t dwLanguageCode, HWND hWnd);
 int * SOUND_GetAmbientSoundEntry(int32_t nIndex);
 void __fastcall SOUND_InitMusicBuffer(uint32_t dwHwnd);

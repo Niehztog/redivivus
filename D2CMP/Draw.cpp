@@ -109,7 +109,7 @@ void __fastcall DRAW_ConvertPaletteRGBtoHSL(D2HSLColorStrc * pHSLOut, uint8_t * 
 }
 
 // No register arguments: EAX is first written by FNSTSW AX at 00604fee and only carries the x87 status word (1.14d asm).
-double DRAW_GetHueSector(double m1, double m2, double dHue) {
+static double DRAW_GetHueSector(double m1, double m2, double dHue) {
     if (360.0 < dHue) {
       dHue -= 360.0;
     }
@@ -129,7 +129,7 @@ double DRAW_GetHueSector(double m1, double m2, double dHue) {
     return m1;
 }
 
-void DRAW_ConvertPaletteHSLtoRGB(D2HSLColorStrc * pHSLIn, uint8_t * pRGBOut) {
+static void DRAW_ConvertPaletteHSLtoRGB(D2HSLColorStrc * pHSLIn, uint8_t * pRGBOut) {
     double m1;
     uint8_t byGreen;
     double dVar1;
@@ -216,7 +216,7 @@ uint8_t __stdcall DRAW_FindFarthestPaletteColor(uint8_t * pPalette, int nPalette
     do {
       uint32_t nDistance;
       nDistance = ((uint32_t)*pbCurEntry - nBlue) * ((uint32_t)*pbCurEntry - nBlue) + ((uint32_t)pbCurEntry[-1] - nGreen) * ((uint32_t)pbCurEntry[-1] - nGreen) + ((uint32_t)pbCurEntry[-2] - nRed) * ((uint32_t)pbCurEntry[-2] - nRed);
-      if (nMaxDistance < nDistance) {
+      if (nDistance > nMaxDistance) {
         nBestIndex = nCurrentIndex;
         nMaxDistance = nDistance;
       }
@@ -255,7 +255,6 @@ BOOL __fastcall DRAW_LoadPaletteFromPCX(LPCSTR szFilePath) {
       /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA("Unable to open ");
       /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA(szFilePath);
       /* LPCSTR lpOutputString for OutputDebugStringA */ OutputDebugStringA("\n");
-      Fog::Debug::GuardStack();
       return 0;
     }
 
@@ -278,7 +277,6 @@ BOOL __fastcall DRAW_LoadPaletteFromPCX(LPCSTR szFilePath) {
         } while (iPaletteEntry < 256);
 
         /* HANDLE hObject for CloseHandle */ CloseHandle(hFile);
-        Fog::Debug::GuardStack();
         return 1;
       }
 
@@ -289,7 +287,6 @@ BOOL __fastcall DRAW_LoadPaletteFromPCX(LPCSTR szFilePath) {
 
     OutputDebugStringA(lpOutputString);
     /* HANDLE hObject for CloseHandle */ CloseHandle(hFile);
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -1077,7 +1074,7 @@ BOOL __stdcall DRAW_InitPalette(LPCSTR szPaletteFile, int nStartIndex, int nEndI
     if (!szPaletteFile) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3b6);
       exit(-1);
-    } else if (nEndIndex < nStartIndex) {
+    } else if (nStartIndex > nEndIndex) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3b7);
       exit(-1);
     } else if (nStartIndex < 0) {
@@ -1156,7 +1153,7 @@ void __stdcall DRAW_SetTransparentColorEnabled(BOOL bEnabled) {
     gbTransparentColorEnabled = bEnabled;
 }
 
-uint8_t __stdcall DRAW_FindNearestPaletteColor(uint8_t nRed, uint8_t nGreen, uint8_t nBlue) {
+static uint8_t __stdcall DRAW_FindNearestPaletteColor(uint8_t nRed, uint8_t nGreen, uint8_t nBlue) {
     uint32_t nDistance;
     uint32_t nMinDistance = 0x7fffffff;
     uint32_t nBestIndex = 0;
@@ -1179,7 +1176,7 @@ uint8_t __stdcall DRAW_FindNearestPaletteColor(uint8_t nRed, uint8_t nGreen, uin
       }
 
       nCurrentIndex++;
-      if (gnPaletteMaxIndex < nCurrentIndex) {
+      if (nCurrentIndex > gnPaletteMaxIndex) {
         return (uint8_t)nBestIndex;
       }
     } while (true);
@@ -1202,7 +1199,7 @@ void __stdcall DRAW_ConvertRGBAToIndexed(uint8_t * pRGBAIn, uint8_t * pIndexedOu
       *(uint8_t*)(char*)&pfnCustomColorFinder = *pSrcPixel;
       *(uint8_t*)(char*)&pIndexedOut = pSrcPixel[1];
       *(uint8_t*)(char*)&pRGBAIn = pSrcPixel[2];
-      if (gbBlackColorIsTransparent && (uint8_t)(uintptr_t)pfnCustomColorFinder < 0xb && (uint8_t)(uintptr_t)pIndexedOut < 0xb && (uint8_t)(uintptr_t)pRGBAIn < 0xb) {
+      if (gbBlackColorIsTransparent && (uint8_t)(uintptr_t)pfnCustomColorFinder <= 0xa && (uint8_t)(uintptr_t)pIndexedOut <= 0xa && (uint8_t)(uintptr_t)pRGBAIn <= 0xa) {
         *(uint8_t*)(char*)&pfnCustomColorFinder = 4;
         *(uint8_t*)(char*)&pRGBAIn = 0;
         *(uint8_t*)(char*)&pIndexedOut = 0;
@@ -1270,7 +1267,7 @@ void __stdcall DRAW_BuildAlphaBlendTables(LPPALETTEENTRY pPalette) {
     } while (nAlphaLevel < 3);
 }
 
-void __stdcall DRAW_BuildAdditiveBlendTable(LPPALETTEENTRY pPalette) {
+static void __stdcall DRAW_BuildAdditiveBlendTable(LPPALETTEENTRY pPalette) {
     uint32_t uVar1;
     uint32_t nBlueSum;
     uint32_t nGreenSum;
@@ -1289,12 +1286,12 @@ void __stdcall DRAW_BuildAdditiveBlendTable(LPPALETTEENTRY pPalette) {
         }
 
         nRedSum = (uint32_t)pPalette[-nOuterLoop + 256].peGreen + (uint32_t)pPalette[-nInnerLoop + 256].peGreen;
-        if (0xfe < nRedSum) {
+        if (0xff <= nRedSum) {
           nRedSum = 0xff;
         }
 
         nBlueSum = (uint32_t)pPalette[-nOuterLoop + 256].peBlue + (uint32_t)pPalette[-nInnerLoop + 256].peBlue;
-        if (0xfe < nBlueSum) {
+        if (0xff <= nBlueSum) {
           nBlueSum = 0xff;
         }
 
@@ -1390,9 +1387,9 @@ void __stdcall DRAW_BuildScreenBlendAndDesatTable(LPPALETTEENTRY pPalette) {
       }
 
       bMaxComponent = pbColorOuter[1];
-      if (pbColorOuter[1] < bGreen) {
+      if (bGreen > pbColorOuter[1]) {
         bMaxComponent = *pbColorOuter;
-        if (*pbColorOuter < bRed) {
+        if (bRed > *pbColorOuter) {
           bMaxComponent = bRed;
         }
       }

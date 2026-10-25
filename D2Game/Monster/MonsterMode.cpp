@@ -114,7 +114,7 @@ void __fastcall SetCombatAndMonStats(D2MonsterPathParamStrc * pPathParam, int32_
     if (nSteps == '\0') {
       return;
     }
-    if (0x4d < nSteps) {
+    if (0x4e <= nSteps) {
       nSteps = 'M';
     }
 
@@ -122,7 +122,7 @@ void __fastcall SetCombatAndMonStats(D2MonsterPathParamStrc * pPathParam, int32_
 }
 
 // Initiates pathfinding for a monster along ePathType with nDistance as the step limit. Detects target-change by comparing current dynamic-path target/coords to pPathParam's cached values and resets the cache on mismatch. Calls PATH_CalculatePath; if no path points result, retries with fallback path type PATHTYPE_TOWARD_FALLBACK for movement types. Marks unit for update and returns the effective path type used.
-eD2PathTypes __stdcall GetPathCount(eD2PathTypes ePathType, uint8_t nDistance, D2UnitStrc * pUnit, D2MonsterPathParamStrc * pPathParam) {
+static eD2PathTypes __stdcall GetPathCount(eD2PathTypes ePathType, uint8_t nDistance, D2UnitStrc * pUnit, D2MonsterPathParamStrc * pPathParam) {
     D2DynamicPathStrc* pDynamicPath = pUnit->pPath.pDynamicPath;
     D2Common::PATH::DynamicPath::OverwriteDistanceAndMaxDistance(pDynamicPath, nDistance);
     D2UnitStrc* pTargetUnit = D2Common::PATH::DynamicPath::GetTargetUnit(pDynamicPath);

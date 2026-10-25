@@ -120,8 +120,6 @@ struct DC6 * __stdcall GetBuySellBtnDC6();
 // @sourcefile .\UI\ui.cpp
 void * __fastcall UI_LoadFileToMemory(LPCSTR szFilename, size_t * pSize);
 bool __stdcall UI_ShowPopupDialog();
-int UI_GetCursorFrameOffset(int32_t nCursorIndex);
-int32_t UI_GetCursorMaxFrames(int32_t nCursorIndex);
 void __stdcall UI_HandleCursorMouseDown(int32_t pMsg);
 void __stdcall UI_HandleCursorMouseMove(uint8_t * pMsgEvent);
 void __stdcall UI_HandleCursorMouseUp(struct D2UIMouseMsgStrc * pMsg);
@@ -131,7 +129,6 @@ void __fastcall ITEM_SetItemOnHand(struct D2UnitStrc * pUnit);
 struct D2UnitStrc * __stdcall GetCursorItem();
 void __fastcall UI_InitializeCursor(int32_t nCursorType);
 void __stdcall UI_FreeCursor();
-void __stdcall UI_AnimateCursorForward();
 void __stdcall UI_AnimateCursorBackward();
 void __stdcall UI_UpdateCursorAnimation();
 void __stdcall MOUSE_DrawCursorSprite();
@@ -170,7 +167,6 @@ int UI_IsMouseBelowScrollThumb(int32_t nMouseX, int32_t nMouseY);
 // Returns TRUE when (nMouseX, nMouseY) is over one of the control-config tabs: UI_GetControlConfigTabIndex(nMouseX@ESI, nMouseY@EDX) != 3 (SETNZ at 004a4a0a).
 // Was code outside any function; no direct reference reaches it in 1.14d.
 BOOL UI_IsMouseOverControlConfigTab(int32_t nMouseX, int32_t nMouseY);
-uint32_t UI_IsControlConfigCellClickable(int32_t nMousePosY, int32_t nMousePosX);
 // Returns TRUE when gnUICtrlConfigActiveButton is not 3 (none) and the tab under (nMouseX@ESI, nMouseY@EDX) is that button (004a4a87, 004a4a91); the same test UI_ConfigHandleMouseClick makes inline at 004a5ead.
 // Was code outside any function; no direct reference reaches it in 1.14d.
 BOOL UI_IsMouseOverActiveControlConfigButton(int32_t nMouseX, int32_t nMouseY);
@@ -185,9 +181,6 @@ void __stdcall INPUT_ConfigCancel(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall UI_ConfigKeyBindModeEnable();
 void __stdcall UI_ConfigKeyBindModeDisable(int32_t bRestoreDrawHandlers);
 void __stdcall UI_ConfigKeyBindModeCancelAndRevert();
-// Control config click handler. Reads mouse button from params, updates g_nControlConfigMouseButtonState[0] to track primary button state. Entry point for config UI mouse interaction.
-// ECX is not an argument: first written at 004a5e6e (MOV ECX,EBX) before any read.
-void UI_ConfigHandleMouseClick(int32_t nMouseX, int32_t nMouseY);
 void __stdcall INPUT_ConfigMouseDown(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_ConfigConfirmEntry(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_ConfigScreenOpen(struct D2UIMouseMsgStrc * pMsg);
@@ -211,26 +204,17 @@ void __stdcall INPUT_SkillTreeButtonUp(struct D2UIMouseMsgStrc * pMsg);
 bool __stdcall UI_CanAllocateStatPoint(int32_t nParam);
 void __stdcall UI_DrawLevelUpButtonLeft();
 void __stdcall DRAW_UI_NewStatPoints_II();
-uint32_t __stdcall UI_GetNewSkillPointsForClass(int32_t nCharClass, uint32_t bResult);
 void __stdcall UI_DrawLevelUpButtonRight();
 void __stdcall Draw_UI_NewStatPoints();
 void __fastcall UI_DrawTextCentered(int32_t nPositionXStart, int32_t nParam1, int32_t nPositionXEnd, uint16_t * wszMessage, int32_t nParam2);
-int32_t UI_GetStatDescriptionStringId(int32_t nUnit);
-void __fastcall DRAW_UI_StatWindow_III(int32_t nX, int32_t nY, int32_t nValue);
-int32_t __stdcall CHAR_AddClassToHitFactor(struct D2UnitStrc * pUnit, int32_t nValue);
-// Body continues at 004a7354, the JNZ target of 004a734a - a branch, not a call. Ghidra had a CALL_RETURN flow override there and a separate function named 'UI_FormatStatTooltip'; that made EBP look like a parameter and turned this frame's locals into wild pointers.
-// Retired notes from 'UI_FormatStatTooltip':
-int32_t __stdcall UI_GetStatValueForDisplay(int32_t nUnit);
 int32_t __stdcall UI_BuildStatWindowDescriptions();
 int __fastcall UI_AppendColorCodeToString(void * pWszString, void * pNextLineOut);
-int INPUT_HighResLeftPanelClick(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_StatScreenMouseDown(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_StatScreenMouseUp(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall UI_ClearGoldStashMode();
 void __stdcall UI_SetGoldStashMode();
 void __stdcall UI_PrecomputeStatDescriptionWidths();
 void __stdcall CHAR_FreePanelAssets_NoOp();
-void __stdcall DRAW_UI_StatWindow_II(int32_t bUpperEnabled, int32_t bLowerEnabled, int32_t nMouseX, int32_t nMouseY);
 void __stdcall DRAW_UI_StatWindow_I();
 void __fastcall UI_HandleNpcInteractionPacket(uint8_t nUpdateType, int32_t nUnitGUID, char * pQuestBuffer, int32_t nActionType);
 void UI_ScrollNpcMenuList(int32_t nParam1, struct D2DialogStrc * pDialog);
@@ -241,7 +225,6 @@ void __stdcall DRAW_UI_TradePrompt();
 void __stdcall UI_InitTradeState();
 void __fastcall UI_CloseTradeWindow(int32_t nParam);
 int __stdcall TRADE_GetTradeStatus();
-void __stdcall UI_CloseHoradricCubeWindow();
 void __stdcall UI_FreeHoradricCubeAssets();
 void __stdcall PACKET_SendUnitInteraction0x44(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall DRAW_UI_CASH();
@@ -253,6 +236,5 @@ void __stdcall INPUT_GambleRepairClick(struct D2UIMouseMsgStrc * pMsg);
 void __fastcall UI_HandleHoradricCubePacket(int32_t pPacket);
 void __fastcall UI_OpenHoradricCubeWithNpcInteraction(int nNpcShopTab);
 BOOL __fastcall UI_DrawGroundItemTooltip(int * pnX, int * pnY, int * pnRight, int * pnBottom, int32_t nPlacementMode, int32_t nMaxX, int32_t nMinX);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca05c(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
 
 } // namespace D2Client::UI::ui

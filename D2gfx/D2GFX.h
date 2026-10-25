@@ -71,8 +71,6 @@ BOOL __stdcall D2GFX_Initialize(HINSTANCE hInstance, WNDPROC pfWndProc, eD2Rende
 void __stdcall RENDERER_TogglePerspective();
 void __stdcall RENDERER_ToggleBlendedShadows();
 BOOL __stdcall D2GFX_ToggleLowQuality();
-void __stdcall HideOSCursor();
-void __stdcall ShowOSCursor();
 void __stdcall D2GFX_GetWindowSizeByResolutionMode(int32_t nResolutionMode, int * nWidth, int * nHeight);
 HWND __stdcall D2GFX_CreateWindow(BOOL bWindowed, int32_t nResolution);
 BOOL __stdcall D2GFX_DestroyWindow();
@@ -91,7 +89,6 @@ BOOL __stdcall D2GFX_CheckCutScene();
 void __stdcall D2GFX_DecodeSmacker(char * szSmacker, struct D2SmackerContextStrc * pBuffer, int32_t nVersion);
 void __stdcall D2GFX_PlayerSmacker(struct D2SmackerContextStrc * pContext);
 void __stdcall D2GFX_CloseSmacker(struct D2SmackerContextStrc * pContext);
-void __stdcall DRAW_HideTaskbarAppBars();
 void D2GFX_ResetViewport();
 void __stdcall D2GFX_EndCutScene();
 int32_t __stdcall D2GFX_EndCutSceneReturnSceneState();
@@ -100,7 +97,6 @@ void __stdcall EndCutScene(int32_t nResolution);
 // bClear=1 clears backbuffer. RGB sets clear color (level-specific darkness).
 BOOL __stdcall D2GFX_BeginScene(BOOL bClear, DWORD nRed, DWORD nGreen, DWORD nBlue);
 double __stdcall D2GFX_GetGammaFloat_Unused();
-double D2GFX_CalculateGammaRamp();
 // End render frame. Dispatches EndScene1/2 to backend, then Sleep() for frame pacing.
 // 5ms frame budget enforced - if frame took <5ms, sleeps remainder to throttle FPS.
 BOOL __stdcall D2GFX_EndScene();

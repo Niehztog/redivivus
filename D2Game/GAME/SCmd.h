@@ -91,7 +91,6 @@ namespace D2Game::GAME::SCmd {
 
 // Function declarations
 // @sourcefile .\GAME\SCmd.cpp
-void __stdcall SCMD_QueuePacketForClient(uint8_t * pBytes, size_t nSize, struct D2ClientStrc * pClient);
 void __fastcall NET_D2GS_SERVER_SendStateCommand(struct D2ClientStrc * pClient, uint8_t nPacketId);
 void __fastcall NET_D2GS_SERVER_Send_0x01_NEWGAME(struct D2ClientStrc * pClient, uint8_t nPacketId, ::SGAMEDATA * pGame);
 // Server-to-client act load command. Opcode 0x03. Instructs client to load a new act.
@@ -192,12 +191,6 @@ void NET_D2GS_SERVER_Send_0x81_UPDATEPETPARAMS(void * pThis, uint8_t byAction, u
 // Server-to-client gold amount in trade. Opcode 0x79.
 void __fastcall NET_D2GS_SERVER_Send_0x79_TRADEGOLD(struct D2ClientStrc * pClient, uint32_t dwGold, uint8_t nTradeId);
 BOOL SCMD_DetectPositionDesync(int32_t pState, int32_t nNewPos);
-// Detects position desync for an owned monster. Verifies pUnit2 is a monster owned by pUnit, then compares its stored position against nNewPos. If the delta exceeds 8 units, or if a consecutive-desync counter exceeds 6, resets the counter and snaps the stored position to nNewPos, returning 1. Returns 0 if in sync or guard conditions fail.
-BOOL __stdcall SCMD_CheckMonsterPositionDesync(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, int32_t nNewPos);
-// Ensures a D2PartyDataStrc entry exists in pUnit2's player-data party list for the unit identified by pUnit, then checks whether the position/life snapshot has changed enough to warrant a network update. Both units must share the same party ID. Allocates a new node from the server memory pool if one is not found. Returns 1 if a state update should be broadcast (area changed, or life delta &gt;8 accumulated 6+ times), 0 otherwise.
-// @sourcefile .\GAME\SCmd.cpp
-BOOL __stdcall PLAYERDATA_AllocPartyData(struct D2UnitStrc * pUnit, int32_t nUnitLife, eD2LevelId eLevel, struct D2UnitStrc * pUnit2);
-BOOL __stdcall SCMD_DispatchUnitPartyData(struct D2UnitStrc * pUnit, int32_t nUnitLife, eD2LevelId eLevel, struct D2UnitStrc * pUnit2);
 // Server-to-client ally/party info update. Always sends 0x7F (ally party info: GUID, life%, level).
 // If target is player and > 50 units away, appends 0x90 (automap position: GUID, X, Y).
 // Dual-packet system for efficiency: nearby allies get minimal update, distant players get automap sync.
@@ -270,18 +263,12 @@ void __fastcall NET_D2GS_SERVER_Send_0x83_Unused(struct D2ClientStrc * pClient, 
 void __fastcall NET_D2GS_SERVER_Send_0x84_Unused(struct D2ClientStrc * pClient, uint8_t byFlag, uint16_t wDataLen, void * pData);
 void __fastcall NET_D2GS_SERVER_Send_0x88_Unused(struct D2ClientStrc * pClient, char * szText, uint16_t wDataLen, uint16_t wExtraFlag, uint16_t wParam, void * pData);
 void __fastcall NET_D2GS_SERVER_Send_0x8B_PlayerRelationship(struct D2ClientStrc * pClient, uint32_t dwTargetArg, uint8_t byTypeArg);
-// @sourcefile .\GAME\SCmd.cpp
-void __fastcall NET_D2GS_SERVER_Send_0x8C_PLAYERFLAGS_Argument(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketSrv0x8C * pPacket);
 void __fastcall NET_D2GS_SERVER_Send_0x8C_RelationshipUpdate_Sender(::SGAMEDATA * pGame, uint32_t nUnitGUID, uint32_t nOtherUnitGUID, uint16_t wRelationFlags);
 // @sourcefile .\GAME\SCmd.cpp
 void __fastcall NET_D2GS_SERVER_Send_0x8C_PLAYERFLAGS(struct D2UnitStrc * pUnit, uint32_t nUnitGUID, uint32_t nOtherUnitGUID, uint16_t wRelationFlags);
-// @sourcefile .\GAME\SCmd.cpp
-void __fastcall NET_D2GS_SERVER_Send_0x8D_PLAYERPARTY_Argument(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint8_t * pPacketBuf);
 void __fastcall NET_D2GS_SERVER_Send_0x8D_AssignPlayerToParty_Sender(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 // @sourcefile .\GAME\SCmd.cpp
 void __fastcall NET_D2GS_SERVER_Send_0x8D_PLAYERPARTY(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
-// @sourcefile .\GAME\SCmd.cpp
-void __fastcall NET_D2GS_SERVER_Send_0x8E_LINKDEADBODY_Argument(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint8_t * pPacketBuf);
 void __fastcall NET_D2GS_SERVER_Send_0x8E_CorpseAssign_Sender(::SGAMEDATA * pGame, int32_t nUnitGUID, int32_t nCorpseGUID, uint8_t byCorpseFlagArg);
 void __fastcall NET_D2GS_SERVER_Send_0x8E_CorpseAssign(struct D2ClientStrc * pClient, uint32_t dwUnitGUID_param, uint32_t dwCorpseGUIDArg, uint8_t byCorpseFlagArg);
 void __fastcall NET_D2GS_SERVER_Send_0x89_QUESTEVENTTRIGGER(struct D2ClientStrc * pClient, struct D2GSPacketClt0x89 * pPacket0x89);
@@ -305,7 +292,7 @@ void __fastcall NET_D2GS_SERVER_Send_0xAC_AddMonster(struct D2ClientStrc * pClie
 // (29 functions in D2Client::Warden::WardenClient namespace), but server-side dispatch is stubbed
 // (SCMD_0x66_WardenStub @ 0x0054d740 returns PROCEED_NEXT without processing).
 // Likely disabled/removed in later patches after Warden was integrated into Battle.net realm.
-void __fastcall NET_D2GS_SERVER_Send_0xAE_WARDENDATA(struct D2ClientStrc * pClient, void * pParam, uint32_t nDataSize);
+int __fastcall NET_D2GS_SERVER_Send_0xAE_WARDENDATA(struct D2ClientStrc * pClient, void * pParam, uint32_t nDataSize);
 // Generic wrapper for sending state-related packets (0xA8 SetState or 0xAA AddUnit).
 // Actual opcode selection handled by caller (PLAYER_SendStateListToClient or PLAYER_SendStateDeltaToClient).
 // This is just a thin shim around NET_D2GS_SERVER_SendPacket_Helper.

@@ -55,13 +55,9 @@ namespace Fog::Src::ErrorManager {
 BOOL __stdcall FOG_ReturnZeroCallback(char * szFileName, void * pContext);
 void __stdcall CrashGame();
 void __fastcall FILETOOLS_WriteOneStringToFile(::Report * pReport, char * szString);
-DWORD __fastcall GetParentProcessId(int32_t nProcessId);
 uint32_t __fastcall GetModuleFileNameForProcess(DWORD nProcessId, LPSTR szText, DWORD nBufferSize);
 // Writes process metadata to crash report: application name, inspector tags, admin status via AllocateAndInitializeSid (SECURITY_BUILTIN_DOMAIN_RID + DOMAIN_ALIAS_RID_ADMINS), process/parent/grandparent paths, game/system locale from gaLocaleCodeStrings, and attaches log files (21 slots from InitLogFilePathPointers). Locale lookup uses MISC_GetLanguageCode and STRTABLE_GetRegistryLanguage.
 void __fastcall WriteCrashReportProcessInfo(::Report * pReport);
-void __stdcall InitializeSystemInfo();
-// Registered with atexit. Tears down the Fog error/log subsystem and deletes the two critical sections at 0074c830 and 0074d848. Takes no arguments: the earlier EAX/ESI "parameters" were a callee-save PUSH ESI / POP ESI pair misread as inputs.
-void EXIT_AtExit();
 void __stdcall StubHook1();
 void __stdcall StubHook2();
 void __fastcall LogStringConditional(int32_t nLogLevel, char * szText);
@@ -70,8 +66,6 @@ uint32_t __stdcall GetErrorState();
 char * __fastcall StripPathPrefixToRelative(char * szText);
 // Returns the caller's return address, i.e. the instruction pointer of the call site. Body is MOV EAX,[ESP]; RET - it reads the return address off the stack and returns it. Takes NO arguments: the RET (not RET 4) leaves the caller's stack untouched, and the DWORD after the call is the __LINE__ value the caller pushed for the assert/halt call that follows. Fog ordinal #10265 @ RVA 0x8090.
 int32_t __stdcall GetInstructionPointer();
-// Formats debug output with optional timestamp and outputs to debugger/log. Supports flags: 0x04=prepend timestamp (HH:MM:SS.mmm format via GetLocalTime), 0x02=skip OutputDebugStringA, 0x01=write to LOG category via LogManager, 0x18=check CapsLock state. Uses a 4096-byte buffer for vsnprintf formatting with varargs, appending formatted text after timestamp if present.
-void __stdcall FormatDebugOutput(uint8_t bFlags, va_list vaArgs, char * szText);
 void OutputDebugStringSimple(char * szText, ...);
 void OutputDebugStringIfCapsLock(char * szText, ...);
 void FormatDebugOutputVariadic(uint8_t bFlags, char * szText, uint32_t firstArg);
@@ -119,6 +113,5 @@ void ERROR_UnrecoverableInternalError_Any(eFOG_ErrorType eErrorType, uint32_t dw
 void __stdcall ShowUnrecoverableErrorDialog(int32_t nParam, char * szText, int nLine, char * szSourceFile, va_list vaArgs, DWORD dwParam);
 // Initializes Fog error manager and debugging subsystems on first call. Sets up project metadata (ID 0x108, "Diablo II", version "D2 1.14d"), retrieves executable directory via SFILE_GetExecutableDirectory into a 4096-byte buffer, initializes two critical sections for thread safety, starts the log writer thread, validates gadwBitMasks/gadwInvBitMasks lookup tables, and registers the exit handler. On subsequent calls with bLogGameStrartupInfo=TRUE, only logs startup info via LOGFILE_StoreGameStartupInfo.
 void __fastcall ERRORMANAGER_InitErrorManager(char * dwUnused1, char * szText, BOOL bLogGameStrartupInfo);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9bfb(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
 
 } // namespace Fog::Src::ErrorManager

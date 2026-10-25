@@ -87,7 +87,9 @@ void __fastcall Q13_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     }
 
     BOOL BVar1 = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheSummoner, QUESTSTATE_RewardAwaits);
-    if (!BVar1) {
+    if (BVar1) {
+      nMessageIndexMaybe = 1;
+    } else {
       int32_t nPlayerGUID = !pQuestArgs->pPlayer ? -1 : pQuestArgs->pPlayer->nUnitGUID;
       BVar1 = QUEST_HasPlayerParticipated(pQuestData, nPlayerGUID);
       if (BVar1) {
@@ -107,7 +109,7 @@ void __fastcall Q13_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (BVar1 == 1 && !BVar2) {
         return;
       }
-      if (1 < pQuestData->nStateFlag && !BVar2) {
+      if (2 <= pQuestData->nStateFlag && !BVar2) {
         return;
       }
 
@@ -115,11 +117,9 @@ void __fastcall Q13_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (nMessageIndexMaybe == -1) {
         return;
       }
-      if (3 < nMessageIndexMaybe) {
+      if (4 <= nMessageIndexMaybe) {
         return;
       }
-    } else {
-      nMessageIndexMaybe = 1;
     }
 
     AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, nMessageIndexMaybe);
@@ -239,7 +239,7 @@ BOOL __fastcall Q13_CheckSummonerKillAndReward(::SGAMEDATA * pGame, D2UnitStrc *
 
       D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pDVar3, &ppAdjacentRooms, (int*)&nAdjacentRoomCount);
       iAdjacentRoom = 0;
-      if (nAdjacentRoomCount) {
+      if ((uint32_t)nAdjacentRoomCount > 0) {
         do {
           if (ppAdjacentRooms[iAdjacentRoom] == pDVar1->pSummonerRoom) {
             bPlayerNearSummoner = 1;
@@ -388,7 +388,7 @@ BOOL __fastcall Q13_SetCannotComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit, v
 }
 
 // A2Q5 "The Summoner" - Summoner-death event handler (sStateFunctions[8]). When the quest is introduced/active: debug-print, set state flag 2, record the Summoner's room (pA2Q5->pRadamentRoom/sQuestGUID), and on first death schedule the end-callback timer (Q13_OnEndCallbackAndNotify). Then fans out over all players running the three credit/notify passes: Q13_CheckSummonerKillAndReward (grant credit to nearby), Q13_PropagateRewardToParty (share with party), Q13_SetCannotComplete (lock out absent players). Always notifies clients of event 7 at the end. (Reused A2Q1/A1Q4 struct fields named for Radament/Cain - here they hold Summoner room/kill state.)
-void __fastcall Q13_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q13_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     D2RoomStrc* pDVar2;
     if (pQuestData->bIsNotIntroduction) {
       D2QuestDataA2Q5Strc* pDVar1;

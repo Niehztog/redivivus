@@ -25,7 +25,6 @@ BOOL __stdcall D2CheckExpansionGame() {
     uint32_t uSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (gbExpansionCheckDone) {
       BVar1 = MPQ_d2expMpq_Exists;
-      Debug::GuardStack();
       return BVar1;
     }
 
@@ -38,13 +37,11 @@ BOOL __stdcall D2CheckExpansionGame() {
       /* LPCSTR lpFileName for GetFileAttributesA */ dwFileAttributes = GetFileAttributesA(szMpqPath);
       if (dwFileAttributes == -1) {
         BVar1 = MPQ_d2expMpq_Exists;
-        Debug::GuardStack();
         return BVar1;
       }
     }
 
     MPQ_d2expMpq_Exists = 1;
-    Debug::GuardStack();
     return 1;
 }
 

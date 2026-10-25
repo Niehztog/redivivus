@@ -100,7 +100,7 @@ void __fastcall BITSTREAM_WriteLiteralByte(int32_t pHuffState, int32_t pBitStrea
     BITSTREAM_WriteBits((D2BitStreamWriterStrc*)pBitStream, nCode, nBits);
 }
 
-void SCOMP_SelectADPCMParams(uint8_t * pnBitsPerSample, uint32_t nChannels, uint32_t * pnStepShift) {
+static void SCOMP_SelectADPCMParams(uint8_t * pnBitsPerSample, uint32_t nChannels, uint32_t * pnStepShift) {
     if (nChannels) {
       if (nChannels < 3) {
         *pnBitsPerSample = '\x04';
@@ -119,7 +119,7 @@ void SCOMP_SelectADPCMParams(uint8_t * pnBitsPerSample, uint32_t nChannels, uint
 }
 
 // Encodes PCM audio samples to ADPCM format with dynamic bit rate adjustment
-uint32_t __stdcall SCOMP_ADPCMEncode(uint32_t nMaxOutSize, short * pInSamples, uint32_t nInSize, uint32_t nChannels, uint8_t nBitsPerSample, short * pOutBuffer) {
+static uint32_t __stdcall SCOMP_ADPCMEncode(uint32_t nMaxOutSize, short * pInSamples, uint32_t nInSize, uint32_t nChannels, uint8_t nBitsPerSample, short * pOutBuffer) {
     uint32_t nStepSize;
     uint32_t nDelta;
     int nPredicted;
@@ -167,7 +167,7 @@ uint32_t __stdcall SCOMP_ADPCMEncode(uint32_t nMaxOutSize, short * pInSamples, u
     if (nChannels < nInSize >> 1) {
       int* piVar1;
       do {
-        if ((int)nMaxOutSize < (int)(pOutCur + (2 - (int)pOutStart))) {
+        if ((int)(pOutCur + (2 - (int)pOutStart)) > (int)nMaxOutSize) {
           return (uint32_t)(pOutCur + (2 - (int)pOutStart));
         }
         if (nChannels == 2) {
@@ -196,7 +196,7 @@ uint32_t __stdcall SCOMP_ADPCMEncode(uint32_t nMaxOutSize, short * pInSamples, u
         } else {
           while (true) {
             nChannelIdx = nChannel;
-            if (!(nStepSize * 2 < nDelta && aChannelState[nChannelTmp + 2] < 0x58)) {
+            if (!(nDelta > nStepSize * 2 && aChannelState[nChannelTmp + 2] < 0x58)) {
               break;
             }
             if (!nMaxSamples) {
@@ -275,7 +275,7 @@ uint32_t __stdcall SCOMP_ADPCMEncode(uint32_t nMaxOutSize, short * pInSamples, u
     return (uint32_t)nOutSize;
 }
 
-short * __stdcall SCOMP_ADPCMDecode(short * pOut, uint32_t nOutSize, int32_t pIn, uint32_t nChannels, int32_t nInSize) {
+static short * __stdcall SCOMP_ADPCMDecode(short * pOut, uint32_t nOutSize, int32_t pIn, uint32_t nChannels, int32_t nInSize) {
     int* piVar1;
     int nPredicted;
     uint32_t nDelta;
@@ -410,7 +410,7 @@ short * __stdcall SCOMP_ADPCMDecode(short * pOut, uint32_t nOutSize, int32_t pIn
 uint32_t SCOMP_PkwareBufferRead(void * pDst, uint32_t * pnReqSize, PKWARE_STREAM * pStream) {
     uint32_t nAvail = pStream->nInLen - pStream->nInPos;
     uint32_t _Size = *pnReqSize;
-    if (nAvail <= *pnReqSize) {
+    if (*pnReqSize >= nAvail) {
       _Size = nAvail;
     }
 
@@ -423,7 +423,7 @@ uint32_t SCOMP_PkwareBufferRead(void * pDst, uint32_t * pnReqSize, PKWARE_STREAM
 void SCOMP_PkwareBufferWrite(void * pSrc, uint32_t * pnReqSize, PKWARE_STREAM * pStream) {
     uint32_t nAvail = pStream->nOutLen - pStream->nOutPos;
     uint32_t _Size = *pnReqSize;
-    if (nAvail <= *pnReqSize) {
+    if (*pnReqSize >= nAvail) {
       _Size = nAvail;
     }
 
@@ -440,8 +440,8 @@ void __fastcall SCOMP_PkwareCompress(void * pOutBuf, uint32_t * pdwOutLength, vo
     Stream.nOutLen = *pdwOutLength;
     Stream.nOutPos = 0;
     uint32_t nCompType = (uint32_t)(*pnMode == 2);
-    Stream.nInPos = 0;
     Stream.pInBuf = pInBuf;
+    Stream.nInPos = 0;
     Stream.nInLen = nInLen;
     if (nInLen < 0xc00) {
       nDictSize = (nInLen < 0x600 ? -1024 : 0) + 0x800;
@@ -495,7 +495,7 @@ void __fastcall SCOMP_ArenaFree(int32_t pArenaState, void * pBlock) {
     SMem::SMemFree(pBlock, ".\\SOURCE\\SCOMP.CPP", 0x4cc, 0);
 }
 
-int __stdcall SCOMP_ZlibCompress(uint8_t * pSrc, uint32_t nSrcLen, uint32_t nLevel, uint32_t * pnOutLen) {
+static int __stdcall SCOMP_ZlibCompress(uint8_t * pSrc, uint32_t nSrcLen, uint32_t nLevel, uint32_t * pnOutLen) {
     // Frame slots -300020..-4 are ONE object: &pArenaCur is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -539,12 +539,19 @@ int __stdcall SCOMP_ZlibCompress(uint8_t * pSrc, uint32_t nSrcLen, uint32_t nLev
 
 void __fastcall SCOMP_ZlibCompressWithLevel(uint8_t * pDst, uint32_t * pnDstLen, uint32_t pSrc, uint32_t nSrcLen, uint32_t * pUserData, int32_t nLevel) {
     uint32_t nZlibLevel;
-    if (nLevel == 1) {
+    switch (nLevel) {
+    case 1: {
       nZlibLevel = 9;
-    } else if (nLevel == 2) {
+      break;
+    }
+    case 2: {
       nZlibLevel = 1;
-    } else {
+      break;
+    }
+    default: {
       nZlibLevel = -1;
+      break;
+    }
     }
 
     nLevel = *pnDstLen;
@@ -564,7 +571,7 @@ void __fastcall SCOMP_ZlibCompressWithLevel(uint8_t * pDst, uint32_t * pnDstLen,
 // bzip2, so the whole pair may be misnamed. What would
 // settle it is the SCompDecompress method-table entry that points at 0041e340 and the compression id
 // it sits under.
-void __stdcall SCOMP_InflateZlibStackArena(uint8_t * pSrc, uint32_t nSrcLen, uint32_t * pnOutLen) {
+static void __stdcall SCOMP_InflateZlibStackArena(uint8_t * pSrc, uint32_t nSrcLen, uint32_t * pnOutLen) {
     // Frame slots -47020..-4 are ONE object: &pArenaCur is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -637,7 +644,7 @@ void __fastcall SCOMP_AdpcmStereoDecompress(short * pDst, short * * pnDstLen, in
 }
 
 // @sourcefile .\SOURCE\SCOMP.CPP
-uint32_t * SCOMP_AcquireTempBuffer(uint32_t nSize, int32_t * pbShared) {
+static uint32_t * SCOMP_AcquireTempBuffer(uint32_t nSize, int32_t * pbShared) {
     // Static local variables (originally global data)
     static uint32_t gnScompTempBufferCapacity;
 
@@ -668,7 +675,7 @@ uint32_t * SCOMP_AcquireTempBuffer(uint32_t nSize, int32_t * pbShared) {
 }
 
 // @sourcefile .\SOURCE\SCOMP.CPP
-void __stdcall SCOMP_ReleaseTempBuffer(int32_t bShared, void * pBuf) {
+static void __stdcall SCOMP_ReleaseTempBuffer(int32_t bShared, void * pBuf) {
     if (!pBuf) {
       return;
     }
@@ -743,7 +750,7 @@ uint32_t __stdcall SCompCompress(uint32_t * pDst, uint32_t * pnDstLen, uint32_t 
 
       nUnsupportedMask = nMethodMask & -204;
       if (!nUnsupportedMask) {
-        if (1 < nSrcLen || (pTempBuf = 0 , pSrc < (uint32_t*)((int)pDst + nSrcLenCur) && pDst < (uint32_t*)((int)pSrc + nSrcLenCur)) && nSrcLen) {
+        if (2 <= nSrcLen || (pTempBuf = 0 , (uint32_t*)((int)pDst + nSrcLenCur) > pSrc && (uint32_t*)((int)pSrc + nSrcLenCur) > pDst) && nSrcLen) {
           pTempBuf = (uint32_t*)nUnsupportedMask;
           pTempBuf = SCOMP_AcquireTempBuffer(nSrcLenCur, (int32_t*)&nUnsupportedMask);
         }
@@ -761,9 +768,9 @@ uint32_t __stdcall SCompCompress(uint32_t * pDst, uint32_t * pnDstLen, uint32_t 
             }
 
             _Src = pScratch;
-            if (pSrcCur < (uint32_t*)((int)pScratch + nSrcLenCur) && pScratch < (uint32_t*)(nSrcLenCur + (int)pSrcCur)) {
+            if ((uint32_t*)((int)pScratch + nSrcLenCur) > pSrcCur && (uint32_t*)(nSrcLenCur + (int)pSrcCur) > pScratch) {
               _Src = pTempBuf;
-              if (pTempBuf < (uint32_t*)((int)pScratch + nSrcLenCur) && pScratch < (uint32_t*)(nSrcLenCur + (int)pTempBuf)) {
+              if ((uint32_t*)((int)pScratch + nSrcLenCur) > pTempBuf && (uint32_t*)(nSrcLenCur + (int)pTempBuf) > pScratch) {
                 _Src = (uint32_t*)((int)pDst + 1);
               }
             }
@@ -882,7 +889,7 @@ BOOL __stdcall SCompDecompress(uint32_t * pDst, uint32_t * pnDstSize, uint32_t *
                          Any instrumentation that reads pSrc/nSrcSizeIn after 0041e7a4 reports the
                          reused value, not
                          the caller's argument. */ bTempBufShared = (int32_t)pSrc;
-      if (1 < nSrcSizeIn || pSrcCur < (uint32_t*)((int)pDst + nSrcSize) && pDst < (uint32_t*)((int)pSrcCur + nSrcSize) && nSrcSizeIn) {
+      if (1 < nSrcSizeIn || (uint32_t*)((int)pDst + nSrcSize) > pSrcCur && (uint32_t*)((int)pSrcCur + nSrcSize) > pDst && nSrcSizeIn) {
         pSrc = SCOMP_AcquireTempBuffer(__frame0.nDestSize, &bTempBufShared);
       }
 
@@ -3929,7 +3936,7 @@ void __fastcall SCOMP_HuffmanDecompress(uint8_t * pDst, int * pnDstSize, uint32_
 }
 
 // @blizzard FlushLog (SLOG.CPP)
-void SLOG_FlushLog(D2SLogStrc * pLog) {
+static void SLOG_FlushLog(D2SLogStrc * pLog) {
     DWORD dwBytesWritten;
     if (!pLog->nUsed) {
       return;
@@ -3941,12 +3948,12 @@ void SLOG_FlushLog(D2SLogStrc * pLog) {
     pLog->nLineStart = 0;
 }
 
-void SLOG_OutputIndent(D2SLogStrc * pLog) {
+static void SLOG_OutputIndent(D2SLogStrc * pLog) {
     size_t nLen = pLog->nIndent;
     if (0 >= (int)nLen) {
       return;
     }
-    if (0x7f < (int)nLen) {
+    if (0x80 <= (int)nLen) {
       nLen = 0x80;
     }
 
@@ -3956,13 +3963,13 @@ void SLOG_OutputIndent(D2SLogStrc * pLog) {
 }
 
 // @blizzard OutputReturn (SLOG.CPP)
-void SLOG_OutputReturn(D2SLogStrc * pLog) {
+static void SLOG_OutputReturn(D2SLogStrc * pLog) {
     SSystem::SMemCopy(pLog->acBuffer + pLog->nUsed, (void*)"\r\n", 3);
     pLog->nUsed += 2;
 }
 
 // @blizzard OutputTime (SLOG.CPP)
-void __stdcall SLOG_OutputTime(int32_t bHasData, D2SLogStrc * pLog) {
+static void __stdcall SLOG_OutputTime(int32_t bHasData, D2SLogStrc * pLog) {
     // Static local variables (originally global data)
     static uint32_t gnSLogTimeStrLen;
     static LPSTR gszSLogTimeStr;
@@ -3995,7 +4002,7 @@ void __stdcall SLOG_OutputTime(int32_t bHasData, D2SLogStrc * pLog) {
 }
 
 // @blizzard UnlockDeleteLog (SLOG.CPP)
-void SLOG_UnlockDeleteLog(uint32_t dwUnused, LPVOID pTarget, int32_t nSlot) {
+static void SLOG_UnlockDeleteLog(uint32_t dwUnused, LPVOID pTarget, int32_t nSlot) {
     D2SLogStrc* pNode = gaSLogHead[nSlot];
     if (pNode) {
       D2SLogStrc** ppPrevNext = gaSLogHead + nSlot;
@@ -4110,7 +4117,7 @@ void __stdcall SLogDump(uint32_t nHandle, int32_t pData, uint32_t nLength) {
     }
 
     pContext->nLineStart = pContext->nUsed;
-    if (0xbfff < pContext->nUsed) {
+    if (0xc000 <= pContext->nUsed) {
       SLOG_FlushLog(pContext);
     }
 
@@ -4189,7 +4196,7 @@ void SLogWrite(uint32_t nHandle, char * szFormat, ...) {
     }
 
     pContext->nLineStart = pContext->nUsed;
-    if (0xbfff < pContext->nUsed) {
+    if (0xc000 <= pContext->nUsed) {
       SLOG_FlushLog(pContext);
     }
 
@@ -4444,7 +4451,7 @@ uint8_t PKWARE_explode(pfnPkwareRead pfnRead, pfnPkwareWrite pfnWrite, TDcmpStru
     *pBufByteCount = 0x800;
     uint32_t uVar1 = pWorkBuf->read_buf(pWorkBuf->in_buff, pBufByteCount, pWorkBuf->param);
     pWorkBuf->in_bytes = uVar1;
-    if (uVar1 < 5) {
+    if (uVar1 <= 4) {
       return 3;
     }
 
@@ -4523,7 +4530,7 @@ uint32_t PKWARE_ExplodeStream(TDcmpStruct * pItemData) {
           __frame0.nInventoryResult--;
         } while (__frame0.nInventoryResult);
       }
-      if (0x1fff < pItemData->outputPos) {
+      if (0x2000 <= pItemData->outputPos) {
         __frame0.nInventoryResult = 0x1000;
         pItemData->write_buf(pItemData->out_buff + 0x1000, &__frame0.nInventoryResult, pItemData->param);
         PKWARE_SetMemoryValue((uint32_t*)pItemData->out_buff, (uint32_t*)(pItemData->out_buff + 0x1000), pItemData->outputPos - 0x1000);
@@ -4549,14 +4556,7 @@ uint32_t PKWARE_ProcessItemInventory(TDcmpStruct * nParam) {
         }
       } else {
         nDecodedValue = nParam->bit_buff & 0xff;
-        if (!nDecodedValue) {
-          nRangeCheckResult = PKWARE_CheckItemDataRange(nParam, 8);
-          if (nRangeCheckResult) {
-            return 0x306;
-          }
-
-          nDecodedValue = (uint32_t)nParam->offs2EB4[nParam->bit_buff & 0xff];
-        } else {
+        if (nDecodedValue) {
           nDecodedValue = (uint32_t)nParam->offs2C34[nDecodedValue];
           if (nDecodedValue == 0xff) {
             if (!(nParam->bit_buff & 0x3f)) {
@@ -4575,6 +4575,13 @@ uint32_t PKWARE_ProcessItemInventory(TDcmpStruct * nParam) {
               nDecodedValue = (uint32_t)nParam->offs2D34[nParam->bit_buff & 0xff];
             }
           }
+        } else {
+          nRangeCheckResult = PKWARE_CheckItemDataRange(nParam, 8);
+          if (nRangeCheckResult) {
+            return 0x306;
+          }
+
+          nDecodedValue = (uint32_t)nParam->offs2EB4[nParam->bit_buff & 0xff];
         }
 
         nRangeCheckResult = PKWARE_CheckItemDataRange(nParam, (uint32_t)nParam->ChBitsAsc[nDecodedValue]);
@@ -4638,7 +4645,7 @@ int PKWARE_GetItemDataValue(TDcmpStruct * pClientSideData, int nParam) {
 BOOL PKWARE_CheckItemDataRange(TDcmpStruct * pClientSideData, uint32_t nParam) {
     uint8_t bNextByte;
     uint32_t dwBitBuffer = pClientSideData->extra_bits;
-    if (nParam <= dwBitBuffer) {
+    if (dwBitBuffer >= nParam) {
       pClientSideData->extra_bits = dwBitBuffer - nParam;
       pClientSideData->bit_buff >>= (uint8_t)nParam & 0x1f;
       return 0;
@@ -4955,20 +4962,13 @@ void PKWARE_IterateItemData(TDcmpStruct * pState) {
       pCodeLengthByte = pState->ChBitsAsc + nSymbolIndex;
       byBitLength = *pCodeLengthByte;
       bySymbolValue = (uint8_t)nSymbolIndex;
-      if (byBitLength < 9) {
+      if (byBitLength <= 8) {
         nTableFillIndex = (uint32_t)*pHuffCodeWidthEntry;
         do {
           pState->offs2C34[nTableFillIndex] = bySymbolValue;
           nTableFillIndex += 1 << (byBitLength & 0x1f);
         } while (nTableFillIndex < 0x100);
-      } else if (!(*pHuffCodeWidthEntry & 0xff)) {
-        *pCodeLengthByte = byBitLength - 8;
-        nTableFillIndex = (uint32_t)(*pHuffCodeWidthEntry >> 8);
-        do {
-          pState->offs2EB4[nTableFillIndex] = bySymbolValue;
-          nTableFillIndex += 1 << (byBitLength - 8 & 0x1f);
-        } while (nTableFillIndex < 0x100);
-      } else {
+      } else if (*pHuffCodeWidthEntry & 0xff) {
         pState->offs2C34[*pHuffCodeWidthEntry & 0xff] = 0xff;
         if (!(*pHuffCodeWidthEntry & 0x3f)) {
           byBitLength = *pCodeLengthByte - 6;
@@ -4987,6 +4987,13 @@ void PKWARE_IterateItemData(TDcmpStruct * pState) {
             nTableFillIndex += 1 << (byBitLength & 0x1f);
           } while (nTableFillIndex < 0x100);
         }
+      } else {
+        *pCodeLengthByte = byBitLength - 8;
+        nTableFillIndex = (uint32_t)(*pHuffCodeWidthEntry >> 8);
+        do {
+          pState->offs2EB4[nTableFillIndex] = bySymbolValue;
+          nTableFillIndex += 1 << (byBitLength - 8 & 0x1f);
+        } while (nTableFillIndex < 0x100);
       }
 
       pHuffCodeWidthEntry--;
@@ -5796,7 +5803,7 @@ uint32_t PKWARE_implode(pfnPkwareRead pfnRead, pfnPkwareWrite pfnWrite, TCmpStru
           *psCodeTable = (short int)nGroupCodeIndex << (gaPKWARE_ExtraLenBitsTable[nLenCodeGroup] + 1 & 0x1f) | (uint16_t)gaCRT_PKWareLenBaseTable[nLenCodeGroup] * 2 | 1;
           nGroupCodeIndex = nNextGroupCodeIndex;
           psCodeTable++;
-        } while (nNextGroupCodeIndex < (uint32_t)(1 << (gbCRT_BitwiseOpState[nLenCodeGroup] & 0x1f)));
+        } while ((uint32_t)(1 << (gbCRT_BitwiseOpState[nLenCodeGroup] & 0x1f)) > nNextGroupCodeIndex);
       }
 
       nLenCodeGroup++;

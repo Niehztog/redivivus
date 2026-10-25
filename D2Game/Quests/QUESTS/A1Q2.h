@@ -40,9 +40,6 @@ BOOL __fastcall Q02_SyncQuestStepToPlayer(::SGAMEDATA * pGame, struct D2UnitStrc
 // clears bAcceptedQuest, detaches this slot-2 handler (one-shot), then
 // re-syncs every player's quest step (Q02_SyncQuestStepToPlayer).
 void __fastcall Q02_Callback02_NpcDeactivate(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A1Q2 (Sisters' Burial Grounds) NPC-gossip callback slot 0xb, handling Kashya (NPC 0x96). Msg 0x51: player accepts the quest — sets bAcceptedQuest, advances stateFlag to 2, re-syncs all players' journal steps via Q02_SyncQuestStepToPlayer, sends gossip packet. Msg 0x5c: reward turn-in — only if RewardAwaits; broadcasts JustCompleted state, marks Completed, clears RewardAwaits, records the player GUID, and calls HireMercFromNpc(0x96) to grant the rogue mercenary reward.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q2.cpp
-void __fastcall Q02_Callback11_ScrollMessage(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A1Q2 gossip-text builder slot 0 (Q02_Callback_00): chooses which Kashya
 // gossip line to show on the quest log / monster, based on quest progress.
 //   RewardAwaits set            -> line 3 (Blood Raven dead, come collect reward)
@@ -80,23 +77,6 @@ BOOL __fastcall Q02_PlayCompletionSound(::SGAMEDATA * pGame, struct D2UnitStrc *
 // member of that player's party (ExecuteFunctionForEveryPartyMember) so partied
 // players also get quest credit for the Blood Raven kill.
 BOOL __fastcall Q02_PropagateRewardToParty(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
-// A1Q2 BLOOD RAVEN DEATH HANDLER (quest-state slot 8). The central trigger of
-// Sisters' Burial Grounds: fires when Blood Raven (the act-1 boss) is slain.
-// Only runs if the quest is introduced (bIsNotIntroduction).
-// Sequence:
-//   - debug "killed boss for quest", advance status flag to 4 (boss dead)
-//   - set quest-specific flags bQuestCompleted/bRewardGiven, stash Blood Raven's
-//     GUID (nBloodRavenGUID) for later proximity lookup
-//   - iterate all players running 4 sub-passes:
-//       Q02_SetRewardForNearbyPlayers (mark nearby players reward-eligible),
-//       Q02_PropagateRewardToParty (credit party members),
-//       Q02_SetCannotCompleteInGame (flag out-of-range players),
-//       Q02_PlayCompletionSound (fanfare)
-//   - schedule Q02_TimerNotifyCompletion (0xf ticks), detach slot-2 handler,
-//     set bBloodRavenKilled/bNotifiedCompletion
-//   - QUEST_SetQuestRecordState(JustCompleted=0xd) on the killing player's record.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q2.cpp
-void __fastcall Q02_Callback08_MonsterKilled(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A1Q2 Sisters' Burial Grounds, state-fn slot 3. Handles area-entry trigger (index 0x11): if quest introduced and nStateFlag&lt;3, advances nStateFlag to 3 and broadcasts state 2 (Q02_NotifyQuestStateToPlayer), then syncs step bits to all players. Also handles player-leaves path (pTextControl==1): removes player from participant list and, if nStateFlag==2 and not Completed/RewardAwaits, advances nStateFlag to 3 and resyncs steps.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q2.cpp
 void __fastcall Q02_Callback03_ChangedLevel(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);

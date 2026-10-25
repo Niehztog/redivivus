@@ -82,8 +82,9 @@ typedef void (__fastcall *fpStatListExChangeCb)(::SGAMEDATA * pGame, D2UnitStrc 
 #endif
 
 namespace D2Common::Stats::StatsEx {
+static void __stdcall STATLIST_DeactivateItemStats(D2UnitStrc * pUnit, D2UnitStrc * pItem);
 
-int32_t STATLIST_BinarySearchInsertPos(int32_t nParam, int * pnParam) {
+static int32_t STATLIST_BinarySearchInsertPos(int32_t nParam, int * pnParam) {
     int nMid;
     int nCount = (int)(short int)pnParam[1];
     int nLo = 0;
@@ -108,7 +109,7 @@ int32_t STATLIST_BinarySearchInsertPos(int32_t nParam, int * pnParam) {
     return nLo;
 }
 
-int32_t __stdcall STATLIST_BinarySearchStatInfoArray(int32_t nParam, D2StatInfoStrc * pStatInfo) {
+static int32_t __stdcall STATLIST_BinarySearchStatInfoArray(int32_t nParam, D2StatInfoStrc * pStatInfo) {
     int nPackedStatKey;
     int nCount = (int)pStatInfo->wStatCount;
     int nLo = 0;
@@ -119,7 +120,7 @@ int32_t __stdcall STATLIST_BinarySearchStatInfoArray(int32_t nParam, D2StatInfoS
         nMid = (nHi - nLo) / 2 + nLo;
         *(uint16_t*)(char*)&nPackedStatKey = pStatInfo->pStatInfo[nMid].wSubIndex;
         *(uint16_t*)((char*)&nPackedStatKey + 2) = pStatInfo->pStatInfo[nMid].wStatIndex;
-        if (nPackedStatKey < nParam) {
+        if (nParam > nPackedStatKey) {
           nLo = nMid + 1;
           nMid = nHi;
         } else if (nPackedStatKey <= nParam) {
@@ -136,13 +137,13 @@ int32_t __stdcall STATLIST_BinarySearchStatInfoArray(int32_t nParam, D2StatInfoS
     return nLo;
 }
 
-int __stdcall STATLIST_InsertStatIntoArray(void * * pParam, int32_t nParam, D2StatListExStrc * pStatList) {
+static int __stdcall STATLIST_InsertStatIntoArray(void * * pParam, int32_t nParam, D2StatListExStrc * pStatList) {
     void* pReallocBuf;
     int32_t nInsertPos = STATLIST_BinarySearchInsertPos(nParam, (int*)pParam);
     if (nInsertPos < 0) {
       return 0;
     }
-    if (*(short int*)((int)pParam + 6) <= *(short int*)(pParam + 1)) {
+    if (*(short int*)(pParam + 1) >= *(short int*)((int)pParam + 6)) {
       short int nNewCapacity;
       nNewCapacity = *(short int*)((int)pParam + 6) + 4;
       *(short int*)((int)pParam + 6) = nNewCapacity;
@@ -161,7 +162,7 @@ int __stdcall STATLIST_InsertStatIntoArray(void * * pParam, int32_t nParam, D2St
     return (int)pNewEntry;
 }
 
-void __stdcall STATLIST_RemoveStatFromArray(D2PoolManagerStrc * pPoolManager1, D2StatStrc * pStat, D2PoolManagerStrc * pPoolManager2, void * * pParam) {
+static void __stdcall STATLIST_RemoveStatFromArray(D2PoolManagerStrc * pPoolManager1, D2StatStrc * pStat, D2PoolManagerStrc * pPoolManager2, void * * pParam) {
     int nCount = (int)*(short int*)(pParam + 1);
     int nRemoveIdx = (int)pStat - (int)*pParam >> 3;
     if (nRemoveIdx >= nCount) {
@@ -182,7 +183,7 @@ void __stdcall STATLIST_RemoveStatFromArray(D2PoolManagerStrc * pPoolManager1, D
     *pParam = pReallocBuf;
 }
 
-int32_t STATLIST_BinarySearchChangedInsertPos(D2StatInfoStrc * pStatInfo, int32_t nParam) {
+static int32_t STATLIST_BinarySearchChangedInsertPos(D2StatInfoStrc * pStatInfo, int32_t nParam) {
     int nMid;
     int nCount = (int)pStatInfo->wStatCount;
     int nLo = 0;
@@ -208,7 +209,7 @@ int32_t STATLIST_BinarySearchChangedInsertPos(D2StatInfoStrc * pStatInfo, int32_
 }
 
 // Records a changed stat into the D2StatListExStrc dirty-tracking array so it can be saved later. Guards: only runs if the stat-list has the dirty-tracking flag (bit 31), skips volatile stats (hp/mana/stamina/exp/gold), skips stats not in ItemStatCost or lacking the SAVED flag. Finds the sorted insertion position via binary search; if the changed-stat array is full, reallocates it (+4 slots via Fog ReAllocServerMemory). Shifts existing entries and inserts the shifted-stat id, then increments wCount.
-void __stdcall STATLIST_TrackChangedStat(int32_t nShiftedStat, D2StatListExStrc * pStatEx) {
+static void __stdcall STATLIST_TrackChangedStat(int32_t nShiftedStat, D2StatListExStrc * pStatEx) {
     D2PoolManagerStrc* pMemory;
     if (!(pStatEx->sStatList.nFlags & 0x80000000U)) {
       return;
@@ -228,7 +229,7 @@ void __stdcall STATLIST_TrackChangedStat(int32_t nShiftedStat, D2StatListExStrc 
         return;
     }
 
-    if (sgptDataTable->nTxtItemStatCostSize <= (int)nUnitStatId) {
+    if ((int)nUnitStatId >= sgptDataTable->nTxtItemStatCostSize) {
       return;
     }
     if (!(sgptDataTable->pTxtItemStatCost + nUnitStatId)) {
@@ -245,7 +246,7 @@ void __stdcall STATLIST_TrackChangedStat(int32_t nShiftedStat, D2StatListExStrc 
     }
 
     short int nNewCapacity = pStatEx->sChangedStats.wCapacity;
-    if (nNewCapacity <= pStatEx->sChangedStats.wCount) {
+    if (pStatEx->sChangedStats.wCount >= nNewCapacity) {
       int* pReallocBuf;
       pMemory = pStatEx->sStatList.pMemory;
       nNewCapacity += 4;
@@ -291,7 +292,7 @@ int32_t __stdcall STATLIST_LookupBaseStatWithMinAccr(D2ItemStatCostTxt * pItemSt
     return nLo;
 }
 
-void * STATLIST_GetEffectiveStatsArray(D2StatListExStrc * pStatList) {
+static void * STATLIST_GetEffectiveStatsArray(D2StatListExStrc * pStatList) {
     if (!(pStatList->sStatList.nFlags & 0x80000000U)) {
       return &pStatList->sStatList.sBaseStats;
     }
@@ -300,7 +301,7 @@ void * STATLIST_GetEffectiveStatsArray(D2StatListExStrc * pStatList) {
 }
 
 // Binary-searches pStatEx's stat array for the packed stat key (wStatIndex:wSubIndex == nParam), returns its nStatValue. If the ItemStatCost record has ITEMSTATCOSTFLAG_FMIN set and the owning unit is a player or monster and the found value is below minaccr, returns minaccr left-shifted by valshift instead. Returns 0 if stat not found.
-int32_t __stdcall TXT_ItemStatCost_GetMinimumStatValueShifted(D2ItemStatCostTxt * pItemStatCostLine, D2StatListExStrc * pStatEx, int32_t nParam) {
+static int32_t __stdcall TXT_ItemStatCost_GetMinimumStatValueShifted(D2ItemStatCostTxt * pItemStatCostLine, D2StatListExStrc * pStatEx, int32_t nParam) {
     uint32_t bIsFullList = pStatEx->sStatList.nFlags & 0x80000000;
     D2StatInfoStrc* pStatInfoArray = &pStatEx->sFullStats;
     if (!bIsFullList) {
@@ -308,7 +309,7 @@ int32_t __stdcall TXT_ItemStatCost_GetMinimumStatValueShifted(D2ItemStatCostTxt 
     }
 
     long int lVar1 = Logging::STATLIST_BinarySearchStatById(nParam, (int*)pStatInfoArray);
-    if (!(-1 < lVar1 && pStatInfoArray->pStatInfo + lVar1)) {
+    if (!(0 <= lVar1 && pStatInfoArray->pStatInfo + lVar1)) {
       return 0;
     }
 
@@ -327,7 +328,7 @@ int32_t __stdcall TXT_ItemStatCost_GetMinimumStatValueShifted(D2ItemStatCostTxt 
 }
 
 // Computes the aggregate value of one stat (packed key = wStatIndex<<16 | wSubIndex == nStatId) for a stat-list. Binary-searches the list's own base stats for the value, then if the list is a full/aggregating list (flags bit 0x80000000) walks its active child stat-lists and binary-searches each (its full stats, or base stats if the child isn't aggregating), summing their values. Damage-related stats (ItemStatCost flag) skip children flagged 0x40000000. Returns the summed total. STATLIST_BinarySearchStatById is inlined here.
-int32_t __stdcall STATLIST_CalcFullStatFromChildren(int32_t nStatId, D2ItemStatCostTxt * pTxtItemStatCostLine, D2StatListExStrc * pStatListEx) {
+static int32_t __stdcall STATLIST_CalcFullStatFromChildren(int32_t nStatId, D2ItemStatCostTxt * pTxtItemStatCostLine, D2StatListExStrc * pStatListEx) {
     D2StatStrc* pDVar1;
     int iVar2;
     int nPackedStatKey;
@@ -393,7 +394,7 @@ int32_t __stdcall STATLIST_CalcFullStatFromChildren(int32_t nStatId, D2ItemStatC
 }
 
 // Applies an additive delta (nParam2) to a packed stat entry identified by a combined stat+subindex key (nParam1) within a stat array (pStatArray inferred from pSkillsTxt). Uses an inlined binary search (STATLIST_BinarySearchStatById) to find the entry; inserts a new entry via STATLIST_InsertStatIntoArray if not found. After updating nStatValue, sets a dirty flag (bit 0x20000000) if the result is positive and a condition at nParam3+0x53 is set. Removes the entry if the new value is zero and nParam3+0x50 permits. Fires a registered change-callback (pSkillsTxt->aurastat+4) if present and the stat flags at nParam3+5 have bit 8 set. Returns the new stat value.
-int32_t __stdcall STATLIST_PropagateStatDelta(int32_t nParam1, int32_t nParam2, D2ItemStatCostTxt * nParam3, int32_t nCallbackArg, D2StatListExStrc * pSkillsTxt) {
+static int32_t __stdcall STATLIST_PropagateStatDelta(int32_t nParam1, int32_t nParam2, D2ItemStatCostTxt * nParam3, int32_t nCallbackArg, D2StatListExStrc * pSkillsTxt) {
     D2PoolManagerStrc* pPoolManager1;
     D2StatStrc* pStatEntry;
     D2StatInfoStrc* pStatArray;
@@ -542,7 +543,7 @@ int32_t __stdcall STATLIST_GetStatFromBaseArray(D2StatListExStrc * pStatList, eD
     if (!pStatList) {
       return 0;
     }
-    if (!(-1 < (int)eUnitStat && (int)eUnitStat < sgptDataTable->nTxtItemStatCostSize && sgptDataTable->pTxtItemStatCost + eUnitStat)) {
+    if (!(0 <= (int)eUnitStat && (int)eUnitStat < sgptDataTable->nTxtItemStatCostSize && sgptDataTable->pTxtItemStatCost + eUnitStat)) {
       return 0;
     }
 
@@ -554,7 +555,7 @@ int32_t __stdcall SERVER_GetUnitStat(D2UnitStrc * pUnit, eD2UnitStat eUnitStat, 
     if (!pUnit) {
       return 0;
     }
-    if (!(-1 < (int)eUnitStat && (int)eUnitStat < sgptDataTable->nTxtItemStatCostSize && sgptDataTable->pTxtItemStatCost + eUnitStat)) {
+    if (!(0 <= (int)eUnitStat && (int)eUnitStat < sgptDataTable->nTxtItemStatCostSize && sgptDataTable->pTxtItemStatCost + eUnitStat)) {
       return 0;
     }
     if (!pUnit->pStatsEx) {
@@ -569,7 +570,7 @@ int32_t __stdcall STATLIST_GetMinimalStatValueShifted(D2StatListExStrc * pStatsE
     if (!pStatsEx) {
       return 0;
     }
-    if (!(-1 < (int)eUnitStat && (int)eUnitStat < sgptDataTable->nTxtItemStatCostSize && sgptDataTable->pTxtItemStatCost + eUnitStat)) {
+    if (!(0 <= (int)eUnitStat && (int)eUnitStat < sgptDataTable->nTxtItemStatCostSize && sgptDataTable->pTxtItemStatCost + eUnitStat)) {
       return 0;
     }
 
@@ -586,7 +587,7 @@ int __stdcall STATSEX_GetCurrentStat(D2UnitStrc * pUnit, eD2UnitStat eUnitStat, 
     if (!pUnit->pStatsEx) {
       return 0;
     }
-    if (!(-1 < (int)eUnitStat && (int)eUnitStat < sgptDataTable->nTxtItemStatCostSize && sgptDataTable->pTxtItemStatCost + eUnitStat)) {
+    if (!(0 <= (int)eUnitStat && (int)eUnitStat < sgptDataTable->nTxtItemStatCostSize && sgptDataTable->pTxtItemStatCost + eUnitStat)) {
       return 0;
     }
 
@@ -660,7 +661,7 @@ int32_t __stdcall STATLIST_GetStatValueByIndex(D2StatListExStrc * pStatList, int
     return pStatList->sStatList.sBaseStats.pStatInfo[nIndex].nStatValue;
 }
 
-D2StatListExStrc * __stdcall GetStatListByState(D2StatListExStrc * pStatsEx, eD2States eState) {
+static D2StatListExStrc * __stdcall GetStatListByState(D2StatListExStrc * pStatsEx, eD2States eState) {
     D2StatListExStrc* pCurList;
     if (!(pStatsEx && eState != STATE_none)) {
       return nullptr;
@@ -702,10 +703,10 @@ D2StatListExStrc * __stdcall GetStatListByFlags(D2StatListExStrc * pStatsEx, uin
       return nullptr;
     }
     if (pStatsEx->sStatList.nFlags & 0x80000000U) {
-      if (!(nStatListFlags & 0x2000)) {
-        pStatsEx = pStatsEx->pActiveHead;
-      } else {
+      if (nStatListFlags & 0x2000) {
         pStatsEx = pStatsEx->pInactiveHead;
+      } else {
+        pStatsEx = pStatsEx->pActiveHead;
       }
     }
 
@@ -826,7 +827,7 @@ void __stdcall STATLIST_DispatchUnchangedStatToCallback(D2UnitStrc * pUnit, D2Un
 
     D2StatInfoStrc* pBaseStats = &pDVar2->sStatList.sBaseStats;
     long int lVar3 = Logging::STATLIST_BinarySearchStatById(eUnitStat << 0x10, (int*)pBaseStats);
-    if (-1 >= lVar3) {
+    if (0 > lVar3) {
       return;
     }
 
@@ -1035,7 +1036,7 @@ int32_t __stdcall STATLIST_CopyStatsToBuffer(D2UnitStrc * pUnit, D2StatStrc * pS
     }
 
     int nCopyCount = (int)pStatsEx->sFullStats.wStatCount;
-    if (nParam <= nCopyCount) {
+    if (nCopyCount >= nParam) {
       nCopyCount = nParam;
     }
 
@@ -1059,7 +1060,7 @@ int32_t __stdcall CopyStatsToBuffer(D2StatListExStrc * pStatListEx, D2StatStrc *
     }
 
     int nStatsCount = (int)pStatListEx->sStatList.sBaseStats.wStatCount;
-    if (nOutputSize <= nStatsCount) {
+    if (nStatsCount >= nOutputSize) {
       nStatsCount = nOutputSize;
     }
 
@@ -1286,7 +1287,7 @@ int __stdcall STATLIST_CopyStatPairsByStatIndex(D2StatStrc * pOutStatPairs, uint
       if ((iVar1 >> 0x10 & 0xffffU) != nParam) {
         return nWritten;
       }
-      if (nParam2 <= nWritten) {
+      if (nWritten >= nParam2) {
         return nWritten;
       }
 
@@ -1319,7 +1320,7 @@ int32_t __stdcall STATLIST_GetItemStatBonusValues(D2UnitStrc * pItem, uint32_t n
 }
 
 // Calculates the combined value of a stat for a D2StatListExStrc, including all ItemStatCost formula operations (op types 1-13). Reads base value from CalcFullStatFromChildren, then applies complex stat formulas involving other stats, character class bonuses, and time-of-day modifiers.
-int32_t __fastcall STATLIST_CalcCombinedStatValue(D2StatListExStrc * pStatList, int32_t nStatShifted) {
+static int32_t __fastcall STATLIST_CalcCombinedStatValue(D2StatListExStrc * pStatList, int32_t nStatShifted) {
     D2StatInfoStrc* pnParam;
     D2StatStrc* pDVar1;
     int32_t nBaseValue;
@@ -2294,11 +2295,11 @@ void __stdcall STATLIST_FreeChildStatLists(D2StatListExStrc * pStatList) {
           pStatCur = pStatArray + nMid;
           *(uint16_t*)(char*)&nCmpShiftedStat = pStatCur->wSubIndex;
           *(uint16_t*)((char*)&nCmpShiftedStat + 2) = pStatCur->wStatIndex;
-          if (nCmpShiftedStat < nShiftedStat) {
+          if (nShiftedStat > nCmpShiftedStat) {
             nSearchIdx = nMid + 1;
             nMid = nStatCount;
           } else if (nCmpShiftedStat <= nShiftedStat) {
-            if (-1 < nMid) {
+            if (0 <= nMid) {
               pStatArray += nMid;
               if (pStatArray) {
                 nSearchIdx = pStatArray->nStatValue;
@@ -2457,42 +2458,42 @@ void __stdcall UpdateResourceStats(D2UnitStrc * pUnit) {
     if (!pStatsEx) {
       return;
     }
-    if (sgptDataTable->nTxtItemStatCostSize < 0xb || !(sgptDataTable->pTxtItemStatCost + 10)) {
+    if (sgptDataTable->nTxtItemStatCostSize <= 0xa || !(sgptDataTable->pTxtItemStatCost + 10)) {
       nMinShiftedStatVal = 0;
     } else {
       /* ID 10 = stamina */ nMinShiftedStatVal = TXT_ItemStatCost_GetMinimumStatValueShifted(sgptDataTable->pTxtItemStatCost + 10, pStatsEx, 0xa0000);
     }
 
     int32_t nTxtMaxResource = GetTxtMaxStamina(pUnit);
-    if (nTxtMaxResource < nMinShiftedStatVal && nTxtMaxResource - nMinShiftedStatVal) {
+    if (nMinShiftedStatVal > nTxtMaxResource && nTxtMaxResource - nMinShiftedStatVal) {
       STATLIST_AddStatValue(pStatsEx, UNITSTAT_stamina, nTxtMaxResource - nMinShiftedStatVal, 0);
     }
 
     pStatsEx = pUnit->pStatsEx;
     if (!pStatsEx) {
       nMinShiftedStatVal = 0;
-    } else if (sgptDataTable->nTxtItemStatCostSize < 9 || !(sgptDataTable->pTxtItemStatCost + 8)) {
+    } else if (sgptDataTable->nTxtItemStatCostSize <= 8 || !(sgptDataTable->pTxtItemStatCost + 8)) {
       nMinShiftedStatVal = 0;
     } else {
       /* ID 8 = mana */ nMinShiftedStatVal = TXT_ItemStatCost_GetMinimumStatValueShifted(sgptDataTable->pTxtItemStatCost + 8, pStatsEx, 0x80000);
     }
 
     nTxtMaxResource = GetTxtMaxMana(pUnit);
-    if (nTxtMaxResource < nMinShiftedStatVal && nTxtMaxResource - nMinShiftedStatVal) {
+    if (nMinShiftedStatVal > nTxtMaxResource && nTxtMaxResource - nMinShiftedStatVal) {
       STATLIST_AddStatValue(pStatsEx, UNITSTAT_mana, nTxtMaxResource - nMinShiftedStatVal, 0);
     }
 
     pStatsEx = pUnit->pStatsEx;
     if (!pStatsEx) {
       nMinShiftedStatVal = 0;
-    } else if (sgptDataTable->nTxtItemStatCostSize < 7 || !(sgptDataTable->pTxtItemStatCost + 6)) {
+    } else if (sgptDataTable->nTxtItemStatCostSize <= 6 || !(sgptDataTable->pTxtItemStatCost + 6)) {
       nMinShiftedStatVal = 0;
     } else {
       /* ID 6 = hitpoints */ nMinShiftedStatVal = TXT_ItemStatCost_GetMinimumStatValueShifted(sgptDataTable->pTxtItemStatCost + 6, pStatsEx, 0x60000);
     }
 
     nTxtMaxResource = GetTxtMaxHp(pUnit);
-    if (!(nTxtMaxResource < nMinShiftedStatVal && nTxtMaxResource - nMinShiftedStatVal)) {
+    if (!(nMinShiftedStatVal > nTxtMaxResource && nTxtMaxResource - nMinShiftedStatVal)) {
       return;
     }
 
@@ -2518,8 +2519,8 @@ void __stdcall ItemUpdateStatsAfterSocketing(D2UnitStrc * pUnit, D2UnitStrc * pU
     D2StatStrc* pStatEnd = pStatCur + pItemStatsEx->sFullStats.wStatCount;
     D2DataTableTxtStrc* pDataTable = sgptDataTable;
     for (; pStatCur < pStatEnd; pStatCur++) {
-      D2ItemStatCostTxt* pStatCostTxt = false || pDataTable->nTxtItemStatCostSize <= (int)(uint32_t)(uint16_t)pStatCur->wStatIndex ? 0 : pDataTable->pTxtItemStatCost + (uint16_t)pStatCur->wStatIndex;
-      if ((uint8_t)(pStatCostTxt->op - 6) < 2) {
+      D2ItemStatCostTxt* pStatCostTxt = false || (int)(uint32_t)(uint16_t)pStatCur->wStatIndex >= pDataTable->nTxtItemStatCostSize ? 0 : pDataTable->pTxtItemStatCost + (uint16_t)pStatCur->wStatIndex;
+      if ((uint8_t)(pStatCostTxt->op - 6) <= 1) {
         pUnit = (D2UnitStrc*)&pStatCostTxt->opStat1;
         pUnit2 = 0;
         do {
@@ -2586,7 +2587,9 @@ void __stdcall STATLIST_ActivateItemStats(D2UnitStrc * pUnit, D2UnitStrc * pItem
     if (!pItemStatsEx) {
       return;
     }
-    if (pItemStatsEx->sStatList.pUnitAttached == pUnit) {
+    if (pItemStatsEx->sStatList.pUnitAttached != pUnit) {
+      STATLIST_SetItemStatActive(pUnit, pItem, 1);
+    } else {
       int nShiftedStat;
       pStatsEx = pUnit->pStatsEx;
       if (pStatsEx && pStatsEx->sStatList.nFlags & 0x80000000U) {
@@ -2607,8 +2610,6 @@ void __stdcall STATLIST_ActivateItemStats(D2UnitStrc * pUnit, D2UnitStrc * pItem
           return;
         }
       }
-    } else {
-      STATLIST_SetItemStatActive(pUnit, pItem, 1);
     }
 }
 
@@ -2678,7 +2679,7 @@ void __stdcall STATLIST_ToggleStateDisabled(D2UnitStrc * pUnit, eD2States eState
 }
 
 // Deactivates an item's stat contributions on pUnit. If the item's StatsEx is attached to pUnit and currently active (NOCALCBONUS flag clear), sets the flag and propagates all damage-related stats with negated deltas to remove their effect. Otherwise delegates to STATLIST_SetItemStatActive(0). Returns 1 on success, 0 if already inactive or not attached.
-void __stdcall STATLIST_DeactivateItemStats(D2UnitStrc * pUnit, D2UnitStrc * pItem) {
+static void __stdcall STATLIST_DeactivateItemStats(D2UnitStrc * pUnit, D2UnitStrc * pItem) {
     int* pEffectiveStats;
     D2ItemStatCostTxt* pStatCostTxt;
     int* pStatEntry;
@@ -2692,7 +2693,9 @@ void __stdcall STATLIST_DeactivateItemStats(D2UnitStrc * pUnit, D2UnitStrc * pIt
     if (!pItemStatsEx) {
       return;
     }
-    if (pItemStatsEx->sStatList.pUnitAttached == pUnit) {
+    if (pItemStatsEx->sStatList.pUnitAttached != pUnit) {
+      STATLIST_SetItemStatActive(pUnit, pItem, 0);
+    } else {
       int nShiftedStat;
       pStatsEx = pUnit->pStatsEx;
       if (pStatsEx && pStatsEx->sStatList.nFlags & 0x80000000U) {
@@ -2713,8 +2716,6 @@ void __stdcall STATLIST_DeactivateItemStats(D2UnitStrc * pUnit, D2UnitStrc * pIt
           return;
         }
       }
-    } else {
-      STATLIST_SetItemStatActive(pUnit, pItem, 0);
     }
 }
 

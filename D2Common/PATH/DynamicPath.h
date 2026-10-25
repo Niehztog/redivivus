@@ -21,7 +21,6 @@ typedef uint16_t eCollisionFlags;
 namespace D2Common::PATH::DynamicPath {
 
 // Function declarations
-int32_t PATH_GetCollisionPatternFromMonStats(struct D2UnitStrc * pUnit);
 int32_t __stdcall PATH_GetDynamicPathField(int32_t nMonStatsIdx);
 int32_t __stdcall GetInteractSize(struct D2UnitStrc * pUnit, int32_t nSizeX);
 void __fastcall PATH_SetDirection(struct D2DynamicPathStrc * pDynamicPath, uint8_t bRawDirection);
@@ -113,15 +112,10 @@ void __stdcall PATH_PeriodicPathRecalc(struct D2UnitStrc * pUnit);
 // is the pDynamicPath->nDist getter and takes the path, not coordinates.
 int32_t __stdcall GetDistanceSquaredXY(int32_t x1, int32_t y1, int32_t x2, int32_t y2);
 uint32_t __stdcall PATH_HasRemainingDistance(struct D2DynamicPathStrc * pDynamicPath);
-// Attempts to build a single-step direct path from pDynamicPath's current position to its target unit. Snapshots the target's current X/Y into pDynamicPath-&gt;nTargetX/Y, validates both axes are within 99 units and non-zero, then writes a one-point path and advances along it. Sets flag bit 1 if the target falls outside the current room bounds. Returns dwPathPoints (1 on success, 0 on rejection).
-uint32_t PATH_BuildDirectPathToTarget(struct D2DynamicPathStrc * pDynamicPath);
 // Registers a unit's collision footprint into the room's collision map. Dispatches to AddCollision_Type (players/monsters using dynamic path width), AddCollision_Vector (objects using full size X/Y), or AddCollision_Width (all other unit types) depending on eUnitType and path type.
 void __stdcall PATH_AddUnitCollision(struct D2UnitStrc * pUnit);
 // Removes a unit's collision footprint from its room's collision grid, choosing the removal method by unit type. For players (Dead anim) and monsters (Kick/Death anim), and any unit when forced via nParam, it removes using the dynamic path's target coords + nUnitWidth (RemoveCollision_Type). For objects it removes a size-X box at the unit's position (RemoveCollision_Width). For other unit types it removes a full sizeX-by-sizeY rectangle (RemoveCollision_Vector). Objects/monsters that have no collision and aren't forced (nParam==0) return 0 without acting. Position is read from the static path (objects/types 4-5) or dynamic path Get X/YPos. Returns 1 if collision was removed, 0 if skipped. Called before moving a unit so its old footprint is cleared.
 BOOL __stdcall PATH_RemoveUnitCollision(struct D2UnitStrc * pUnit, int32_t nParam);
-int32_t PATH_CalculateMissilePath(struct D2DynamicPathStrc * pDynamicPath, int32_t nParam);
-// Resolves the dynamic-path target position for pPathTypeArg's pTargetUnit. Reads the target's current X/Y (from static path for objects/tiles, dynamic path otherwise) into pDynamicPath->nTargetX/nTargetY. Returns 1 if there is no target unit; 0 if the resolved position is (0,0). For players/monsters applies a missile offset if set. For door objects, nudges the target +/-2 along X or Y depending on door orientation (so pathing aims to the open side), returning 2. Items and other handled unit types return 2. Halts via Fog ErrorManager if a unit it expects to be a door is not.
-uint8_t PATH_ResolveTargetPosition(struct D2PathTypeArg * pPathTypeArg, int32_t nDistMax);
 // Computes a movement path for a unit's dynamic path toward its target, populating pDynamicPath->PathPoints. Asserts the path's owner matches pUnit (Fog halt otherwise). For missile paths (flag 0x40000) delegates to PATH_CalculateMissilePath. Otherwise: requires a valid current and target position; resolves the target via PATH_ResolveTargetPosition; bounds-checks the delta (<100 tiles) and finds the destination room. Calls PATH_CanMonsterPathInArea (proceeds anyway if nParam set), temporarily removes the unit's (and optionally the target unit's, flag 0x800) collision, optionally routes around a blocking obstacle (flag 0x1000), then dispatches to the path-type function in PATHTYPEFUNC[ePathType] (guarded by IsBadCodePtr) to fill the point list. Re-adds collisions, advances one step along the points, sets/clears the 0x20 (path-active) flag and updates target X/Y. Returns the number of path points found, or 0 if no path (clearing dwPathPoints and the 0x20 flag). Server-side monster/unit pathfinding entry.
 uint32_t __stdcall PATH_CalculatePath(struct D2DynamicPathStrc * pDynamicPath, struct D2UnitStrc * pUnit, int32_t nParam);
 void __stdcall PATH_UpdateCollisionWidth(struct D2UnitStrc * pUnit);

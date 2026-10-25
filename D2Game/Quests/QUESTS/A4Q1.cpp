@@ -260,7 +260,9 @@ void __fastcall Q26_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     }
 
     bJustCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_RewardAwaits);
-    if (!bJustCompleted) {
+    if (bJustCompleted) {
+      nGossipMsgIdx = 3;
+    } else {
       int32_t nPlayerGUID = !pQuestArgs->pPlayer ? -1 : pQuestArgs->pPlayer->nUnitGUID;
       bJustCompleted = QUEST_HasPlayerParticipated(pQuestData, nPlayerGUID);
       if (bJustCompleted == 1) {
@@ -270,7 +272,7 @@ void __fastcall Q26_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (bCompleted == 1) {
         return;
       }
-      if (3 < pQuestData->nStateFlag && !bStep0x05Set) {
+      if (4 <= pQuestData->nStateFlag && !bStep0x05Set) {
         return;
       }
       if (!pQuestData->bIsNotIntroduction) {
@@ -281,11 +283,9 @@ void __fastcall Q26_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (nGossipMsgIdx == -1) {
         return;
       }
-      if (5 < nGossipMsgIdx) {
+      if (6 <= nGossipMsgIdx) {
         return;
       }
-    } else {
-      nGossipMsgIdx = 3;
     }
 
     AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, nGossipMsgIdx);
@@ -302,7 +302,7 @@ void __fastcall Q26_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 }
 
 // Q26_QuestUpdate_SpawnIzual — deferred quest timer (added in Callback_08). If stateflag just reached 4 (and prev wasn't 4/0xd), broadcast stateflag 3. Then, if a spawn was queued, spawn Izual's monster (classId 0x196) at the recorded subtile coords in Act4 (pAct[3]); tries skill-variant ids 1/3/5. Materializes the actual Izual demon unit for the kill.
-uint8_t __fastcall Q26_QuestUpdate_SpawnIzual(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
+static uint8_t __fastcall Q26_QuestUpdate_SpawnIzual(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
     D2UnitStrc* pIzualUnit;
     D2QuestDataA4Q1Strc* pQuestSpecificData = pQuestData->pQuestSpecificData.pA4Q1;
     if (pQuestData->nStateFlag == 4 && pQuestData->nStateFlagPrev != 4 && pQuestData->nStateFlagPrev != 0xd) {
@@ -359,7 +359,7 @@ BOOL __fastcall Q26_PlayerCheckNearIzual(::SGAMEDATA * pGame, D2UnitStrc * pUnit
 
       D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pPlayerRoom, &pAdjacentRooms, (int*)&nAdjacentRoomCount);
       nRoomIdx = 0;
-      if (nAdjacentRoomCount) {
+      if ((uint32_t)nAdjacentRoomCount > 0) {
         do {
           if (pAdjacentRooms[nRoomIdx] == pQuestData) {
             bIsNearIzual = 1;
@@ -392,7 +392,7 @@ BOOL __fastcall Q26_PlayerCheckNearIzual(::SGAMEDATA * pGame, D2UnitStrc * pUnit
 
 // Q26_Callback_08 — Izual-death handler (handler[8], fires when Izual monster dies). Logs "Finished quest", clears handler[2]/[8], sets stateflag 4, stores Izual unit + death coords. Marks killer/nearby players JustCompleted+RewardAwaits (if not already done), then iterates party: proximity credit (CheckNearIzual), propagate completion, and mark out-of-act members CannotComplete. Queues Q26_QuestUpdate_SpawnIzual timer.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a4q1.cpp
-void __fastcall Q26_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q26_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     bool _bQuestState;
     bool bQuestState;
     D2UnitDataPlayerStrc* pGame;

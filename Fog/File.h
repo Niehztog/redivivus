@@ -87,7 +87,6 @@ void __fastcall CRASH_DumpThreadContext(DWORD dwThreadId, void * pContext, fnCra
 void __fastcall CRASH_FormatStackTrace(DWORD dwThreadId, void * * aFrameAddrs, int32_t nNumFrames, fnCrashOutputLine pOutputCallback, ::Report * pReport, char bIncludeThreadName, char bIncludeStackInfo);
 void __fastcall CRASH_DumpRegisters(DWORD dwThreadId, fnCrashOutputLine pOutputCallback, ::Report * pReport);
 void __fastcall CRASH_EnumerateThreads(fnCrashOutputLine pOutputCallback, ::Report * pReport, DWORD dwSkipThreadId);
-void CRASH_GetExceptionName(char * szText, DWORD dwExceptionCode);
 // FOG top-level unhandled-exception filter (SetUnhandledExceptionFilter target) — shows the Blizzard "application encountered an unexpected error" crash dialog.
 // It returns LONG: 00403eb0 XOR EAX,EAX reaches the RET 0x4 at
 // 00403ec0 and 00403f3a MOV EAX,ECX reaches the one at 00403f49, so EAX carries the filter disposition
@@ -99,7 +98,6 @@ void __fastcall CRASH_SetExceptionHandler(pfnFogExceptionFilter pfnFilter, void 
 uint32_t __stdcall FILETOOLS_ExtractDirectory(char * szDest, char * nDestSize, char * szSrcPath);
 uint32_t __stdcall FILETOOLS_ExtractFilename(char * szDest, char * szSrcPath, char * nDestSize);
 uint32_t __fastcall STRING_AppendBlizzardErrorSubfolderToPath(uint32_t nUnused, LPSTR wchFilePath);
-char * STRING_CopyStringBounded(int32_t nDestSize, char * szDest, char * szSrc);
 char * __stdcall STRING_AppendStringToString(char * szDest, int32_t nDestSize, char * szSrc);
 int STRING_FormatVarArgs(char * szFormat, char * szDest, int32_t nDestSize, ...);
 bool __fastcall FILETOOLS_StartApplicationWithCommandLine_UTF8(LPCSTR lpApplicationName, LPCSTR szCommandLine);
@@ -108,16 +106,6 @@ FILE * __stdcall FILETOOLS_OpenFile_WriteMode_UTF8(LPCSTR lpMultiByteStr);
 void __stdcall FILETOOLS_CopyFile_UTF8(LPCSTR szSrcPath, LPCSTR szDestPath);
 // Writes the process temp path into the caller's buffer and reports success. The result is a single byte in AL (XOR AL,AL / the sole caller does TEST AL,AL); EDX is never written, so declaring an 8-byte return invented a high dword out of nothing.
 bool FILETOOLS_GetTempPath_UTF8(LPSTR szDest);
-// Recursively creates a directory path (CreateDirectoryW, then split at the last separator and
-// retry).
-// @evidence lpPathName was LPCWSTR and is written through: the body stores L'\0' over the last
-// separator, recurses, then restores L'\\'. A const pointer is wrong for that buffer, so the
-// parameter and the two wcsrchr results are LPWSTR.
-// The retype is also what lets the emitted tree type them: the generator rewrites every
-// WCHAR/wchar_t/wchar16/unicode to uint16_t (D2's own wide strings are ushort in decompiled bodies),
-// so a wcsrchr result inferred as wchar_t * came out as uint16_t * while the parameter stayed
-// LPCWSTR - half of a designed rewrite. LPWSTR is outside that rewrite set, so both sides now agree.
-uint32_t __fastcall FILETOOLS_CreateDirectoryW(LPWSTR lpPathName);
 BOOL __stdcall FILETOOLS_CreateFolder_UTF8(LPCSTR szPathName);
 
 } // namespace Fog::File

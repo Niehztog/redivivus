@@ -241,7 +241,7 @@ void __stdcall Update(D2UnitStrc * pUnit, D2UnitStrc * pMissile, int32_t nParam1
                 }
 
                 nExtraCycleCounter--;
-                if (nExtraCycleCounter < 1) {
+                if (nExtraCycleCounter <= 0) {
                   nExtraCycleCounter = 4;
                 }
                 if (0 < nCreated) {
@@ -261,7 +261,7 @@ void __stdcall Update(D2UnitStrc * pUnit, D2UnitStrc * pMissile, int32_t nParam1
             nPathIdx++;
           } while (nPathIdx < nSegmentCount);
         }
-        if (pStream->nStreamSize <= nPathIdx) {
+        if (nPathIdx >= pStream->nStreamSize) {
           return;
         }
 

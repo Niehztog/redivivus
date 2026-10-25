@@ -65,7 +65,7 @@
 namespace D2Client::SKILLS::SkillsPal {
 
 int32_t __fastcall SKILLS_GetManaCostMultiplier(int32_t nParam) {
-    if (!(-1 < nParam && nParam < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + nParam)) {
+    if (!(0 <= nParam && nParam < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + nParam)) {
       return 0;
     }
 
@@ -78,7 +78,7 @@ BOOL __fastcall Skills_CltDoFunc_Pal_Zeal_DirOffsetMissile(D2UnitStrc * pUnit, e
     static int gnPaladinSkillOffsetTable[8] = { 0x2, 0x1, 0x0, -0x1, -0x2, -0x1, 0x0, 0x1 };
 
     uint32_t nDirQuadrant;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -88,7 +88,7 @@ BOOL __fastcall Skills_CltDoFunc_Pal_Zeal_DirOffsetMissile(D2UnitStrc * pUnit, e
     }
 
     eMissilesId eMissileId = (eMissilesId)pSkillTxt->cltmissilea;
-    if (!(-1 < (int)eMissileId && (int)eMissileId < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)eMissileId && (int)eMissileId < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
     if (pUnit) {
@@ -130,12 +130,12 @@ BOOL __fastcall Skills_CltDoFunc_Pal_ChargePathMissile(D2UnitStrc * pUnit, eD2Sk
     D2SkillArgStrc sSkillArg;
     int nDestY;
     int nDestX;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
 
     eMissilesId eCltMissileId = SkillsAss::SKILLSASS_GetCltMissileByAuraLevel(pUnit, eSkill);
-    if (!(-1 < (int)eCltMissileId && (int)eCltMissileId < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)eCltMissileId && (int)eCltMissileId < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
     if (pUnit) {
@@ -173,12 +173,12 @@ BOOL __fastcall Skills_CltDoFunc_Pal_ChargePathMissile(D2UnitStrc * pUnit, eD2Sk
 
 BOOL __fastcall Skills_CltDoFunc_Pal_FistOfHeavens(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
     D2SkillArgStrc sSkillArg;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
 
     eMissilesId eCltMissileId = SkillsAss::SKILLSASS_GetCltMissileByAuraLevel(pUnit, eSkill);
-    if (!(-1 < (int)eCltMissileId && (int)eCltMissileId < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)eCltMissileId && (int)eCltMissileId < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
     if (pUnit) {
@@ -222,7 +222,7 @@ BOOL __fastcall Skills_CltDoFunc_Pal_RandomRadiusMissileField(D2UnitStrc * pUnit
     if (bIsTown) {
       return 0;
     }
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -232,7 +232,7 @@ BOOL __fastcall Skills_CltDoFunc_Pal_RandomRadiusMissileField(D2UnitStrc * pUnit
     }
 
     eMissilesId eVar1 = SkillsAss::SKILLSASS_GetCltMissileByAuraLevel(pUnit, eSkill);
-    if (!(-1 < (int)eVar1 && (int)eVar1 < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)eVar1 && (int)eVar1 < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
 
@@ -334,7 +334,7 @@ void __fastcall SKILL_DrawChargeTrail(D2UnitStrc * pUnit, uint32_t nParticleType
     if (nScreenVelY < 0) {
       nAbsVelY = -nScreenVelY;
     }
-    if (nAbsVelY < nAbsVelX) {
+    if (nAbsVelX > nAbsVelY) {
       nAbsVelY += nAbsVelX * 2;
     } else {
       nAbsVelY = nAbsVelX + nAbsVelY * 2;
@@ -425,7 +425,7 @@ BOOL __fastcall Skills_CltStFunc_SetupHolyChargeMovement(D2UnitStrc * pUnit, eD2
     if ((int)eSkill < 0) {
       return 0;
     }
-    if (sgptDataTable->nTxtSkillsCount <= (int)eSkill) {
+    if ((int)eSkill >= sgptDataTable->nTxtSkillsCount) {
       return 0;
     }
 
@@ -464,12 +464,12 @@ BOOL __fastcall Skills_CltStFunc_SetupHolyChargeMovement(D2UnitStrc * pUnit, eD2
     }
     if (pUnit->eUnitType == UNIT_PLAYER) {
       nSndId = pSkillsTxt[eSkill].dosounda;
-      if (nSndId < 1) {
+      if (nSndId <= 0) {
         goto setup_charge;
       }
 
       nSoundId = (eD2Sounds)nSndId;
-    } else if (pUnit->eUnitType != UNIT_MONSTER || (nSoundId = SKILLSCLT_CalcChargeSkillDuration((int32_t)pUnit, eSkill) , (int)nSoundId < 1)) {
+    } else if (pUnit->eUnitType != UNIT_MONSTER || (nSoundId = SKILLSCLT_CalcChargeSkillDuration((int32_t)pUnit, eSkill) , (int)nSoundId <= 0)) {
       goto setup_charge;
     }
 
@@ -504,7 +504,7 @@ BOOL __fastcall Skills_CltStFunc_SetupHolyChargeMovement(D2UnitStrc * pUnit, eD2
     }
 
     nVelocityPct = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_velocitypercent, 0);
-    if (nVelocityPct < 0x33) {
+    if (nVelocityPct <= 0x32) {
       nVelocityPct = 0x32;
     }
 
@@ -591,7 +591,7 @@ BOOL __fastcall Skills_CltDoFunc_Pal_HolyBolt_Melee(D2UnitStrc * pUnit, eD2Skill
           }
         }
         if (!(nSkillFlags & 2)) {
-          if (nEventFrame <= (int)pUnit->nSeqFrame >> 8) {
+          if ((int)pUnit->nSeqFrame >> 8 >= nEventFrame) {
             D2Common::Units::SetSequenceFrame(pUnit, 0);
             pUnit->nFrameCount = nFrameRate << 8;
             D2Common::Skills::SKILL_SetFlags(pSkill, 1);
@@ -667,7 +667,7 @@ BOOL __fastcall Skills_CltDoFunc_Pal_RateThrottledBloodParticles(D2UnitStrc * pU
     static uint32_t gdwBloodParticleThrottleNextTick;
 
     uint32_t nCurrentTick = GAME::Game::GetEntryIndex();
-    if (gdwBloodParticleThrottleNextTick >= nCurrentTick) {
+    if (nCurrentTick <= gdwBloodParticleThrottleNextTick) {
       return 1;
     }
 
@@ -677,14 +677,14 @@ BOOL __fastcall Skills_CltDoFunc_Pal_RateThrottledBloodParticles(D2UnitStrc * pU
 }
 
 // Executes a skill cast triggered by an item (e.g. charged item, wand). Saves and restores the unit's current target/SP1 and SKSRVDOFUNC flag around the cast. Handles corpse-state suppression for corpse-targeting skills, plays the item cast sound and overlay, then calls SKILL_ExecuteClientDoFunc. Returns the client do-func result.
-void __fastcall SKILL_ExecuteItemCast(D2UnitStrc * pUnit, eD2Skills eSkill, short * pDoFuncData, D2UnitStrc * pTargetUnit, int16_t nParam1, int16_t nParam2, uint16_t nParam) {
+static void __fastcall SKILL_ExecuteItemCast(D2UnitStrc * pUnit, eD2Skills eSkill, short * pDoFuncData, D2UnitStrc * pTargetUnit, int16_t nParam1, int16_t nParam2, uint16_t nParam) {
     eD2States eTargetState;
     int32_t bCastSucceeded;
     bool bCorpseStateSet;
     if ((int)eSkill < 0) {
       return;
     }
-    if (sgptDataTable->nTxtSkillsCount <= (int)eSkill) {
+    if ((int)eSkill >= sgptDataTable->nTxtSkillsCount) {
       return;
     }
 
@@ -741,10 +741,10 @@ void __fastcall SKILL_ExecuteItemCast(D2UnitStrc * pUnit, eD2Skills eSkill, shor
 
     Skills::SKILL_ExecuteClientDoFunc(pUnit, eSkill, (int32_t)pDoFuncData, (uint32_t)nParam);
     restore_caster_state:
-    if (!pSavedTarget) {
-      D2Common::PATH::DynamicPath::SetSP1(pUnit->pPath.pDynamicPath, (int16_t)nSavedSP1X, (int16_t)nSavedSP1Y);
-    } else {
+    if (pSavedTarget) {
       D2Common::Units::SetTargetUnitForDynamicUnit(pUnit, pSavedTarget);
+    } else {
+      D2Common::PATH::DynamicPath::SetSP1(pUnit->pPath.pDynamicPath, (int16_t)nSavedSP1X, (int16_t)nSavedSP1Y);
     }
     if (!(eSavedUnitFlags >> 6 & 1)) {
       pUnit->eUnitFlags &= ~UNITFLAG_SKSRVDOFUNC;
@@ -762,12 +762,13 @@ void __fastcall SKILL_ExecuteItemCastOnUnit(D2UnitStrc * pUnit, eD2Skills eSkill
     SKILL_ExecuteItemCast(pUnit, eSkill, pSkillLevelData, pTargetUnit, 0, 0, nParam);
 }
 
-void __fastcall SKILL_ExecuteItemCastAtCoords(D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, int32_t nTargetX, int32_t nTargetY, uint16_t nItemParam) {
+int __fastcall SKILL_ExecuteItemCastAtCoords(D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, int32_t nTargetX, int32_t nTargetY, uint16_t nItemParam) {
     if (!(pUnit && nTargetX && nTargetY)) {
-      return;
+      return 0;
     }
 
     SKILL_ExecuteItemCast(pUnit, eSkill, pSkillLevelData, nullptr, (int16_t)nTargetX, (int16_t)nTargetY, nItemParam);
+    return 0;
 }
 
 } // namespace D2Client::SKILLS::SkillsPal

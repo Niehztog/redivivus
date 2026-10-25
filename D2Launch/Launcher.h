@@ -24,13 +24,11 @@ namespace D2Launch::Launcher {
 
 // Function declarations
 void __stdcall CHARSEL_ResetCharListUI();
-void __stdcall UIMENU_ChangeHavingMultipleRealmsAsia123();
 BOOL __stdcall ChangeClosedRealmChoice(struct D2ControlMsg * pControlMsg);
 BOOL __stdcall CHARSEL_OpenRealmChangeDialog(struct D2ControlMsg * pControlMsg);
 BOOL __stdcall CHARSEL_HandleCharListClick(struct D2ControlMsg * pControlMsg);
 void __stdcall CHARSEL_ParseRealmCharList(char * szRealmName, char * szText, int32_t bShouldCache);
 BOOL __stdcall CHARSEL_OnPressPumpRealmCharListLoad(struct D2ControlMsg * pControlMsg);
-void CHARSEL_RequestRealmCharList(char * szRealmName);
 void __fastcall CHARSEL_LoadCharList(char * szText);
 // Initializes character selection screen. Creates 8 D2WinTextBox controls stored in gaCharSelScreenSlotControls[0-7] for character name display slots. Sets up UI callbacks, loads DC6 assets, initializes character list data structures.
 void __stdcall CHARSEL_InitCharSelScreen();
@@ -39,18 +37,15 @@ BOOL __stdcall CHARSEL_OnPressLoadCharListForPreferredRealm(struct D2ControlMsg 
 BOOL __stdcall CHARSEL_HandleRealmChange(struct D2ControlMsg * pMsg);
 BOOL __stdcall HandleUpdateToExpansion(struct D2ControlMsg * pControlMsg);
 BOOL __stdcall LAUNCHER_StartGameWithSelectedCharacter(struct D2ControlMsg * pControlMsg);
-void __fastcall LAUNCHER_InitNetworkLobbyQueue(struct D2IniConfigStrc * pIniConfig);
+int __fastcall LAUNCHER_InitNetworkLobbyQueue(struct D2IniConfigStrc * pIniConfig);
 void __stdcall LAUNCHER_SetBusyFlag();
 void __stdcall LAUNCHER_ClearBusyFlag();
 BOOL __stdcall LAUNCHER_GetBusyFlag();
 BOOL __stdcall LAUNCHER_IsBnetConnectInProgress();
 int __stdcall LAUNCHER_CheckRevisionAndShowDialog(int nFrameIndex);
-int __stdcall LAUNCHER_HandleBnetConnect_1(int nFrameIndex);
-int __stdcall LAUNCHER_PumpChangePasswordResponse(int nFrameIndex);
 void __stdcall LAUNCHER_DisconnectFromBnet();
 // Displays out-of-game error/message dialogs. Error code determines which localized string to show. Custom data used for character names or custom messages.
 int __fastcall ShowOogErrorDialog(struct D2OogErrorDataStrc * pErrorData);
-void __stdcall LAUNCHER_ShowOogErrorDialog_ForEnterEmail();
 uint32_t __stdcall CLIENT_ConnectToBattleNet();
 int __fastcall EnterEmailMessagePumper(struct D2IniConfigStrc * pIniConfig, int32_t bCreateAccount, int32_t nResponseCode);
 void __stdcall UIMENU_MainMenuWithoutMenuButWithDiabloLogo();
@@ -65,6 +60,5 @@ uint32_t __fastcall LAUNCHER_WriteSaveFileToD2s(char * szCharacterName);
 void __fastcall LAUNCHER_DeleteCharacterFiles(struct D2CharSelStrc * pCharSel, char * szSubdirectory);
 // Loads character appearance data from a .d2s save file for display in character selection. Reads up to 8KB from the save file, validates the magic number (0xaa55aa55), extracts equipment and visual data based on save file version (pre-0x5c vs 0x5c-0x60), and writes encoded appearance info to output buffer including class, level, and equipped items. Returns 1 on success, 0 on failure.
 uint32_t __fastcall LAUNCHER_LoadCharacterAppearanceFromD2s(char * szCharacterName, uint8_t * pOutputBuffer);
-BOOL __fastcall UpdateSaveFileToExpansion(char * szCharname);
 
 } // namespace D2Launch::Launcher

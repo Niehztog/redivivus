@@ -39,12 +39,8 @@ namespace D2Glide::glTextureCache {
 // Initializes Glide texture cache with LRU eviction policy. Allocates node array (0x1C bytes per entry), sets up active/free lists, and constrains capacity to 2MB in debug builds.
 // @sourcefile .\Src\glTextureCache.cpp
 int __fastcall GLTEXCACHE_Initialize(struct GlTextureCacheStrc * pCache, int nVramStart, int nVramEnd, uint32_t dwTextureSize);
-// Appends texture cache node to tail of active LRU list (most-recently-used position). Creates list if empty, otherwise links to existing tail.
-void GLTEXCACHE_AppendNodeToTail(struct GlTextureCacheStrc * pCache, struct GlTextureCacheNodeStrc * pNode);
 // Removes a texture cache node from the active LRU list by index. Returns pointer to removed node, or NULL if active list empty. Handles head, tail, and middle removal cases.
 struct GlTextureCacheNodeStrc * __fastcall GLTEXCACHE_RemoveNodeByIndex(struct GlTextureCacheStrc * pCache, int nNodeIndex);
-// Allocates node from free list and moves to active list tail (MRU position). Returns 1-based node index on success, 0 if cache full. Halts with error 0xc1 if free list unexpectedly empty.
-int GLTEXCACHE_AllocateNode(struct GlTextureCacheStrc * pCache);
 // Promotes a texture cache node to most-recently-used position (active list tail). Validates index range and ensures cache has multiple entries before relinking.
 void __fastcall GLTEXCACHE_PromoteNodeToMRU(struct GlTextureCacheStrc * pCache, int nNodeIndex1Based);
 // Evicts least recently used texture from cache by removing head of active list. Clears hash table entry and moves node to free list tail.

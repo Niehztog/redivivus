@@ -66,11 +66,6 @@ struct D2UnitStrc * __fastcall FindUnitFromTable(::SGAMEDATA * pGame, eD2UnitTyp
 struct D2UnitStrc * __fastcall GetOwnerUnit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 // 2022.01.09 - dzik
 struct D2UnitStrc * __fastcall GetKillerUnit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-// Inserts pUnit into the game's per-type unit hash table, keyed on (nUnitGUID & 0x7F). Warp tiles use a dedicated list; other types use ganUnitHashTableBaseOffsets. Maintains sorted order by GUID descending; halts with an unrecoverable error if a duplicate GUID is detected.
-void __fastcall UNITS_InsertUnitIntoHashTable(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame);
-// Removes pUnit from the game's per-type unit hash table (same slot logic as InsertUnitIntoHashTable). Walks the singly-linked bucket list to find the unit and unlinks it; no-ops silently if the unit is not found. Despite the name, contains no client-notification logic — it is purely a hash-table unlink.
-void UNITS_NotifyClientsUnitRemoved(struct D2UnitStrc * pGameUnit, ::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-int32_t IsRoomOccupied(struct D2UnitStrc * pUnit);
 // 2022.01.09 - dzik
 void __fastcall SetClient(struct D2UnitStrc * pUnit, struct D2ClientStrc * pClient);
 // @blizzard UnitGetClient
@@ -129,12 +124,10 @@ BOOL __fastcall CheckForModeZeroDeath(struct D2UnitStrc * pUnit);
 // Determines whether pAttacker may attack pUnit, resolving owner chains for monsters and reflected missiles. If both resolved units are players, delegates to PLAYERLIST_GetFlagsMasked with the hostile flag (bit 3). Otherwise calls Path::IsAllyOf; returns 0 if allied, 1 if hostile. Returns 0 for self-attack.
 uint32_t __fastcall UNITS_CheckIfCanAttackTarget(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pAttacker);
 BOOL __fastcall UNITS_CheckSkillTargetAlignment(::SGAMEDATA * pGameStrc, int * pnParam, struct D2UnitStrc * pTarget, eD2Skills eSkill);
-void __stdcall UNITS_OnAlignmentChanged(int32_t nParam, int32_t pStatEx, struct D2UnitStrc * pUnit, int32_t nStatValue);
 // Sets the alignment stat (good/neutral/evil, values 0-2) on a unit via the STATE_alignment stat list. Allocates and attaches the stat list if absent, stores the alignment value, toggles the alignment GFX state (0x69), and calls UNITS_OnAlignmentChanged with old and new values. Skips the change for revived units with alignment 0 (neutral). Certain monster class IDs (0x15F/0x160/0x161) always bypass the revive check. The alignment argument is a single byte: callers set only DL and the prologue does MOVZX EBX, DL, so the upper 24 bits of EDX are dead.
 void __fastcall SetAlignment(struct D2UnitStrc * pUnit, uint8_t nAlignment, int32_t nOldAlignment);
 // Applies or removes STATE_uninterruptable on pUnit (nParam=1 to set, 0 to clear). When clearing: if STATE_death_delay is active, it removes that state and immediately kills the unit (via SERVER_KillMonster if no killer, or SERVER_GetHitCalculation with the KILL result flag if a killer exists). Additionally triggers AITHINK for monster units to resume AI after the uninterruptable window closes.
 void __fastcall SetUninterruptableState(struct D2UnitStrc * pUnit, int32_t nParam);
-void __fastcall PLAYER_CancelMapReveal(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2TimerTypeDWORD eTimerType, int32_t dwUnused2, int32_t dwUnused3);
 struct D2RoomStrc * __fastcall UNITS_GetTargetRoom(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 // 2022.01.09 - dzik
 int16_t __fastcall GetPartyId(struct D2UnitStrc * pUnit);
@@ -161,7 +154,6 @@ void __fastcall TakeStairs(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struc
 // Server-side unit factory. Position is WORLD SUBTILES; bPlaceInRoom=1 routes through UNITS_PlaceUnitInRoom + AllocObjectData.
 // Dispatches on eUnitType through the jump table at 005554e8 (label UNIT_FillFunctions) - a switch, not an array of callbacks. Its six branch labels (FillPlayer/FillMonster/FillObject/FillMissile/FillItem/FillWarp) and the shared tail UNITS_RestoreUnitInRoom are case blocks of this function, not callable functions.
 struct D2UnitStrc * __fastcall CreateUnit(eD2UnitType eUnitType, int32_t nClassId, int32_t nPosX, int32_t nPosY, ::SGAMEDATA * pGame, struct D2RoomStrc * pRoom, uint8_t bPlaceInRoom, int32_t nInitialMode, void * pMonsterData);
-void ClearInteractOnFreePlayer(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame);
 void __fastcall UNITS_UnlinkUnitFromRoom(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, int32_t bDisallowNotify);
 // Fully tears down a server-side unit: unlinks it from its room, frees quest-event data, then dispatches per-type cleanup (player: portals, party, resources, path; monster: target nodes, resources, path; object: object data, static path, unit data; missile: path, missile data; item: inventory+timers, item data; warp: static path). Finishes by freeing unit events, queued packets, and the unit itself. Asserts pGame/pUnit non-null and eUnitType < 6.
 // @sourcefile .\UNIT\SUnit.cpp

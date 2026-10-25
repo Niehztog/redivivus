@@ -54,23 +54,23 @@
 namespace D2Common::Unit {
 
 // Validates that pUnit's current tile coordinates lie within pRoom's bounds and that pUnit is in the room's unit list. Returns 1 if position is valid and unit is found in list. If coordinates are out of bounds or the unit is absent from the list, halts with a fatal error (nParam=1) or returns 0 (nParam=0). Handles both dynamic-path (monsters/players) and static-path (objects/items) coordinate sources.
-BOOL __stdcall DRLGROOM_ValidateUnitPosition(int32_t nParam, D2RoomStrc * pRoom, D2UnitStrc * pUnit) {
+static BOOL __stdcall DRLGROOM_ValidateUnitPosition(int32_t nParam, D2RoomStrc * pRoom, D2UnitStrc * pUnit) {
     int nUnitX;
     int nUnitY;
     D2DrlgRoomCoordsStrc roomCoords;
     int nRoomXStart;
     DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &roomCoords);
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nUnitX = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nUnitX = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nUnitX = PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nUnitX = 0;
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nUnitY = pUnit->pPath.pStaticPath->nPosY;
     } else if (!pUnit->pPath.pDynamicPath) {
       nUnitY = 0;
@@ -154,11 +154,11 @@ void __stdcall SortUnitListByTargetY(D2RoomStrc * pRoom) {
       do {
         nTargetYCur = Units::GetTargetY(pUnitCur);
         nTargetYNext = Units::GetTargetY(pUnit);
-        if (nTargetYNext < nTargetYCur) {
-          if (!pPrev) {
-            *ppUnitList = pUnit;
-          } else {
+        if (nTargetYCur > nTargetYNext) {
+          if (pPrev) {
             pPrev->pRoomNext = pUnit;
+          } else {
+            *ppUnitList = pUnit;
           }
 
           pUnitCur->pRoomNext = pUnit->pRoomNext;
@@ -378,7 +378,7 @@ void __stdcall DRLGROOM_ClearUnitRoomLink(D2UnitStrc * pUnit) {
     }
 
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (eUnitType != UNIT_OBJECT && ((int)eUnitType < 4 || 5 < (int)eUnitType)) {
+    if (eUnitType != UNIT_OBJECT && ((int)eUnitType <= 3 || 5 < (int)eUnitType)) {
       Drlg::Path::DRLGPATH_ClearPathPosition(pUnit->pPath.pDynamicPath);
       return;
     }

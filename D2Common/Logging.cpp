@@ -19,7 +19,7 @@ void __stdcall MISC_SafeStrncpy(char * szText, size_t nSize) {
 }
 
 // NOTE: Callee-saved register params inferred (medium confidence): pchar (EBX): char*
-void __fastcall StoreLogging(va_list pArgs, FILE * pFile, uint32_t nThreadId, uint32_t nLogLevel, uint32_t nComponent, uint32_t nSubsystem, uint32_t nSequence, char * szContext) {
+static void __fastcall StoreLogging(va_list pArgs, FILE * pFile, uint32_t nThreadId, uint32_t nLogLevel, uint32_t nComponent, uint32_t nSubsystem, uint32_t nSequence, char * szContext) {
     size_t nHeaderLen;
     int nMessageLen;
     char* szOutput;
@@ -59,7 +59,6 @@ void __fastcall StoreLogging(va_list pArgs, FILE * pFile, uint32_t nThreadId, ui
       fflush(pFileToFlush);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 void LOGGING_FilePrintf(FILE * pFile, uint32_t dwGame, uint32_t dwFrame, uint32_t dwClient, uint32_t dwLogType, char * szFilename, uint32_t nLine, char * szFormatString, ...) {
@@ -130,7 +129,6 @@ void StoreGameLogging(int32_t nGame, int32_t nFrame, void * pClient, int32_t nPa
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_0096ca30);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 bool __fastcall LOGGING_OpenLogFile(char * szLogFileName) {

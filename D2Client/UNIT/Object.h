@@ -67,14 +67,6 @@ void __fastcall AllocObjectData(struct D2UnitStrc * pUnit, struct D2RoomStrc * p
 // Adds a hardcoded visual overlay to specific object class IDs if the txt Overlay flag is set. Class 0x95 (Horadric Cube) in Neutral mode and 0x98 get OVERLAY_horadric_light; classes 0x162-0x164, 0x18D, 0x195-0x197, and 0x1C7 in Death mode get OVERLAY_multigleam. No-ops for all other classes or modes.
 void __fastcall OBJECT_AddVisualOverlay(struct D2UnitStrc * pUnit);
 void __fastcall FreeObjectData(struct D2UnitStrc * pUnit);
-void OBJECT_ToggleDoorState(struct D2UnitStrc * pUnit);
-// Advances or rewinds a door object's current animation frame toward a target frame derived from its TreasureClass txt data. In Neutral mode (door opening), increments frame toward target; in Run mode (door closing), decrements toward 0. When the target frame is reached, calls OBJECT_ToggleDoorState to flip the door's open/closed state. Halts on unexpected anim mode.
-void OBJECT_AnimateDoorTransition(struct D2UnitStrc * pUnit);
-// Advances the animation frame of an object unit for one game tick, driven by the object's D2ObjectsTxt data. Handles cyclic vs. non-cyclic animations, door-transition objects, special objects (classId 0xC reverse-playing, 0xBD torch state-machine walk→neutral), spawn-monster triggers on anim end (Neutral→Walk transition), selectable/collision/light-RGB updates, and overlay removal on specific shrine/chest IDs.
-void OBJECT_UpdateAnimation(struct D2UnitStrc * pUnit);
-// Sets an object unit's animation mode and recomputes its collision/targetable/shadow state (used for portals and other interactive objects). nNewAnimMode (0..7) selects the new ObjectAnimMode; handles special transitions (open<->close, death->operate) using the ObjectsTxt FrameCnt/Start frame tables. Toggles UNITFLAG_TARGETABLE from bTargetable, blocks or removes the unit's collision path on the relevant mode changes, reloads the unit COF, sets the starting GFX frame, and finally sets/clears UNITFLAG_DRAWSHADOW from the ObjectsTxt BlocksLight table for the current mode. Halts if nNewAnimMode > 7.
-void __stdcall OBJECT_HandlePortalOpen(int32_t bTargetable, int32_t nNewAnimMode, struct D2UnitStrc * pUnit);
-void OBJECT_UpdateModeAndProperties(struct D2UnitStrc * pUnit, struct D2ServerMessageHandleStrc * pMessage);
 // Gloaming shrine (nCode=16) server callback: reverses the activating player's character name string as an Easter egg effect
 void __fastcall OBJECT_ShrineGloaming_ReversePlayerName(struct D2UnitStrc * pUnit, struct D2UnitStrc * pPlayer, uint32_t dwParam);
 // Spawns a 5×5 grid of Fireball missiles (MISSILE_Fireball) centred on pUnit's position, toggling X/Y offsets from ±5 to ±20 in steps of 5. Missile level is clamped to 1–8 based on pPlayer's level/5. Called server-side for trap objects (e.g. fire towers).
@@ -84,10 +76,6 @@ void __fastcall OBJECT_SpawnExplosivePotionGrid(struct D2UnitStrc * pUnit, struc
 // Identical structure to OBJECT_SpawnExplosivePotionGrid but fires MISSILE_Chokinggaspoition. Spawns 6 choking-gas missiles in a ±6-tile ring around pUnit; pPlayer owns them with level-scaled nToHit [1,8]. Called when a choking-gas potion object triggers.
 void __fastcall OBJECT_SpawnChokingGasGrid(struct D2UnitStrc * pUnit, struct D2UnitStrc * pPlayer, uint32_t dwParam);
 void __fastcall OBJECT_UpdateShrineOverlay(struct D2UnitStrc * pUnit, struct D2ShrinesTxt * pShrinesTxt);
-void __stdcall OBJECT_PlayShrineSound(struct D2UnitStrc * pUnit, struct D2UnitStrc * pSourceUnit);
-// Server-side shrine/well activation dispatch: looks up D2ShrinesTxt.nCode or D2ObjectsTxt.ShrineFunction, finds the activating player, calls fpServerActivate callback, then plays activation sound
-void __stdcall OBJECT_DispatchShrineServerActivate(int * pnParam, struct D2UnitStrc * pUnit);
-void OBJECT_DispatchShrineClientFunc(struct D2UnitStrc * pUnit);
 void __fastcall SetShrineTextInfo(struct D2UnitStrc * pUnit);
 void __fastcall ObjectMessage(int32_t eMessageType, struct D2UnitStrc * pUnit, struct D2ServerMessageHandleStrc * pMessage);
 // ClientFn 0x2 handler, slot 2 of gpObjectClientFunctionDispatchTable (called by OBJECT_ExecuteClientFunction). Enters mode OP once every 64 calls (counter in dwTickCount, random start 0..63 on first call, flag at +0xc8); on mode ON re-seeds the counter and returns to NU.

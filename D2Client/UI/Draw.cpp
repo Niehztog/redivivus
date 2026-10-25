@@ -204,7 +204,7 @@ uint32_t __stdcall DRAW_IsDialogActive() {
     return (uint32_t)(Dialog::gpDialog != 0);
 }
 
-void __stdcall DRAW_CenteredText(int32_t nFontId, int32_t nY, DWORD dwColor, uint16_t * wszText) {
+static void __stdcall DRAW_CenteredText(int32_t nFontId, int32_t nY, DWORD dwColor, uint16_t * wszText) {
     int i;
     uint16_t wszBuf[256];
     int anBounds[4];
@@ -227,7 +227,7 @@ void __stdcall DRAW_CenteredText(int32_t nFontId, int32_t nY, DWORD dwColor, uin
     D2Win::Src::D2WinFont::SetAndReturnLastFont(nPrevFont);
 }
 
-void __stdcall DRAW_MonsterUnderCursorImmunites() {
+static void __stdcall DRAW_MonsterUnderCursorImmunites() {
     D2UnitStrc* pSelected = GAME::Select::GetSelectedUnit();
     if (!(pSelected && pSelected->eUnitType == UNIT_MONSTER)) {
       return;
@@ -267,7 +267,7 @@ void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
       nClassId = -1;
     } else {
       nClassId = pUnit->nClassId;
-      if (-1 < nClassId && nClassId < sgptDataTable->nTxtMonStatsSize) {
+      if (0 <= nClassId && nClassId < sgptDataTable->nTxtMonStatsSize) {
         pMonStats = sgptDataTable->pTxtMonStats + nClassId;
         goto draw_hover_unit_label;
       }
@@ -370,13 +370,13 @@ void __fastcall DRAW_MonsterHealthBar(D2UnitStrc * pUnit) {
         pMonStats = DataTbls::MonsterTbls::TXT_MonStats_GetLine(nClassId);
         wMonTypeStrId = 0;
         nResult = D2Common::Monsters::MONSTERS::IsDemon(pUnit);
-        if (!nResult) {
+        if (nResult) {
+          wMonTypeStrId = 0x275e;
+        } else {
           bResult = D2Common::Monsters::MONSTERS::MONSTER_IsMonsterUndead(pUnit);
           if (bResult) {
             wMonTypeStrId = 0x275d;
           }
-        } else {
-          wMonTypeStrId = 0x275e;
         }
 
         bResult = ui::UI_GetUniqueMonsterName(pUnit, wMonTypeStrId);
@@ -667,7 +667,7 @@ void __fastcall DRAW_UnitUnderMouse(D2UnitStrc * pUnit) {
     }
 }
 
-void __stdcall DRAW_UnitUModsUnderCursor() {
+static void __stdcall DRAW_UnitUModsUnderCursor() {
     int32_t nNameLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength((uint16_t*)&gnMonsterHealthBarValue);
     if (!nNameLen) {
       return;
@@ -693,7 +693,7 @@ void __stdcall DRAW_UnitUModsUnderCursor() {
     DRAW_CenteredText(6, nFontHeight + 0x27, dwColor, (uint16_t*)&gnMonsterHealthBarValue);
 }
 
-void __stdcall DRAW_Overlay_EnteringAreaX() {
+static void __stdcall DRAW_Overlay_EnteringAreaX() {
     // Static local variables (originally global data)
     static D2QuestAreaIntroStrc gnQuestAreaIntroLevelId_0[2] = {
     {
@@ -1557,7 +1557,7 @@ BOOL __fastcall UI_CloseActivePanels(int32_t bForceAutomap, int32_t bAdjustMouse
                     goto apply_overlay_mode;
                   }
                 Path::TypeOfUiOverlayOverWorld(0);
-                if (bAdjustMouse && ScreenSizeX / 2 < iVar1) {
+                if (bAdjustMouse && iVar1 > ScreenSizeX / 2) {
                   ui::SetMouseXY(iVar1 - ((int)(ScreenSizeX + (ScreenSizeX >> 0x1f & 3U)) >> 2), nMouseY);
                 }
 
@@ -1607,12 +1607,12 @@ void __stdcall LoadingsScreen() {
     CleanupAfterLoadingAct();
     PALETTE_LoadLoadingScreenPalette();
     uint32_t nLangCode = D2Lang::StrTable::strtable::MISC_GetLanguageCode();
-    if (!nLangCode) {
-      pszBaseDir = "DATA\\GLOBAL";
-      _Format = "%s\\UI\\Loading\\Loadingscreen";
-    } else {
+    if (nLangCode) {
       pszBaseDir = "DATA\\LOCAL";
       _Format = "%s\\UI\\LoadingScreen";
+    } else {
+      pszBaseDir = "DATA\\GLOBAL";
+      _Format = "%s\\UI\\Loading\\Loadingscreen";
     }
 
     sprintf(szPath, _Format, pszBaseDir);
@@ -1688,7 +1688,7 @@ void __fastcall Draw_UI_LoadGame(int32_t bAdvanceFrame) {
     gnLoadScreenAnimFrame++;
 }
 
-void __stdcall UI_ToggleMiniPanel() {
+static void __stdcall UI_ToggleMiniPanel() {
     bool _bRegistryRead;
     bool bRegistryRead;
     int32_t nHandlerCount;
@@ -2141,15 +2141,15 @@ void DRAW_UI(D2GameViewStrc * pGameView, short * pnNpcParam) {
     if (GFX_bShowUIFlag.HelpScreenRedButton) {
       Help::HELP_DrawHelpButton();
     }
-    if (!GFX_bShowUIFlag.EquipmentPane) {
-      ui::UI_DrawLevelUpButtonLeft();
-    } else {
+    if (GFX_bShowUIFlag.EquipmentPane) {
       ui::DRAW_UI_NewStatPoints_II();
-    }
-    if (!GFX_bShowUIFlag.NewSkill) {
-      ui::UI_DrawLevelUpButtonRight();
     } else {
+      ui::UI_DrawLevelUpButtonLeft();
+    }
+    if (GFX_bShowUIFlag.NewSkill) {
       ui::Draw_UI_NewStatPoints();
+    } else {
+      ui::UI_DrawLevelUpButtonRight();
     }
     if (GFX_bShowUIFlag.QuestLogButton) {
       QuestLog::QUESTLOG_DrawQuestLogButton();
@@ -2282,7 +2282,7 @@ void __fastcall CLIENT_AdjustMemoryBudget(D2PoolManagerStrc * pMemory, int32_t b
     dwPhysMemBytes = pStormGlobal * 10 / 100;
     if (dwPhysMemBytes < 0x300001) {
       dwPhysMemBytes = 0x300000;
-    } else if (0x4fffff < dwPhysMemBytes) {
+    } else if (0x500000 <= dwPhysMemBytes) {
       dwPhysMemBytes = 0x500000;
     }
 

@@ -28,12 +28,11 @@ namespace D2Win::Src::D2WinTextBox {
 // Function declarations
 // Edit-box key filter installed via D2WINEDITBOX_SetMaxLength @004fdad0 (set site 00441087) into D2WinEditBox+0x268 (fpFilterCallback). Clears the TCP/IP game-list selection then returns 1. Signature proven by RET 0xc (3 stack args, callee cleans).
 int __stdcall EDITBOX_Cb_D2WINTEXTBOX_SetSelectedLine(::D2WinEditBox * pEditBox, int nTextLen, char * pKeyChar);
-void D2WINTEXTBOX_ComputeLineSpacingForLanguage(int32_t nFontIndex);
 // @sourcefile .\Src\D2WinTextBox.cpp
 void __fastcall D2WINTEXTBOX_ClearAllLines(::D2WinTextBox * pTextBox);
-void __fastcall D2WINTEXTBOX_SetLinePadding(::D2WinTextBox * pnTextBox, int32_t nPadLeft, int32_t nPadding);
+int __fastcall D2WINTEXTBOX_SetLinePadding(::D2WinTextBox * pnTextBox, int32_t nPadLeft, int32_t nPadding);
 // @sourcefile .\Src\D2WinTextBox.cpp
-void __fastcall D2WINTEXTBOX_SetLineCellTextW(::D2WinTextBox * pnTextBox, uint16_t * wszText, int32_t nRow, int32_t nCol);
+int __fastcall D2WINTEXTBOX_SetLineCellTextW(::D2WinTextBox * pnTextBox, uint16_t * wszText, int32_t nRow, int32_t nCol);
 // @sourcefile .\Src\D2WinTextBox.cpp
 void __fastcall D2WINTEXTBOX_ClearLineRow(::D2WinTextBox * pnParam, int32_t nRow);
 int32_t __fastcall D2WINTEXTBOX_GetLineCount(::D2WinTextBox * pnParam);
@@ -55,7 +54,6 @@ void __fastcall D2WINTEXTBOX_SetActive(::D2WinTextBox * pTextBox, BOOL bActive);
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 void __stdcall D2WINTEXTBOX_Unused_HaltLine814();
 uint32_t __fastcall D2WINTEXTBOX_SetLineColor(::D2WinTextBox * pnParam, int32_t nParam, uint32_t dwColor);
-int32_t D2WINTEXTBOX_GetVisibleLinesFromScroll(::D2WinTextBox * pnParam);
 int32_t __stdcall D2WINTEXTBOX_TruncateStringToFitWidth(int32_t nParam, uint16_t * wszText);
 BOOL __fastcall Draw(::D2WinTextBox * pTextBox);
 BOOL __stdcall Push(struct D2ControlMsg * pControlMsg);
@@ -80,10 +78,8 @@ void __fastcall FORMS_DestroyD2WinTextBox(::D2WinTextBox * pWinTextBox);
 // @sourcefile .\Src\D2WinTextBox.cpp
 uint32_t __fastcall SetText(::D2WinTextBox * pTextBox, uint16_t * szText, int32_t nLineStyle, bool bIndent, int nAlignment);
 // @sourcefile .\Src\D2WinTextBox.cpp
-void __fastcall D2WINTEXTBOX_AddLines(::D2WinTextBox * pnParam, uint16_t * wszText, int nRepeatCount, int32_t nLineStyle, bool bIndent);
+int __fastcall D2WINTEXTBOX_AddLines(::D2WinTextBox * pnParam, uint16_t * wszText, int nRepeatCount, int32_t nLineStyle, bool bIndent);
 void __fastcall D2WINTEXTBOX_SetLineCellTextA(::D2WinTextBox * pnParam, char * szText, int32_t nRowIndex, int32_t nColIndex);
 void __fastcall D2WINTEXTBOX_SetLineCellTextWDirect(::D2WinTextBox * pnParam, uint16_t * wszText, int32_t nParam1, int32_t nParam2);
-// @sourcefile .\Src\D2WinTextBox.cpp
-void __fastcall D2WINTEXTBOX_WordWrapAndSetText(::D2WinTextBox * pTextBox, uint16_t * wszText, int32_t nLineStyle, int32_t nAlignment);
 
 } // namespace D2Win::Src::D2WinTextBox

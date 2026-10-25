@@ -64,7 +64,6 @@ D2AnimDataStrc * __fastcall TXT_AllocTxt_AnimTbls(D2PoolManagerStrc * pMemory) {
 
     pAnimTbls->pDefaultRecord.nFrames = 0x800;
     pAnimTbls->pDefaultRecord.nAnimSpeed = 0x100;
-    Fog::Debug::GuardStack();
     return pAnimTbls;
 }
 
@@ -107,7 +106,7 @@ BOOL __stdcall ANIMDATA_CompareNames(uint32_t * pdwName1, uint32_t * pdwName2) {
 // byte-sum hash, then walks the hash bucket comparing 8-byte names.
 // Returns pointer to the matching record or NULL.
 // Source: .\\DATATBLS\\AnimTbls.cpp
-int * ANIMDATA_GetRecordByNameHash(int * pnParam) {
+static int * ANIMDATA_GetRecordByNameHash(int * pnParam) {
     char cChar = (char)*pnParam;
     int* pszChar = pnParam;
     while (cChar != '\0') {
@@ -133,7 +132,7 @@ int * ANIMDATA_GetRecordByNameHash(int * pnParam) {
     int nRecordCount = pAnimTbls->pHashTable[nHashValue & 0xff]->nCount;
     D2AnimDataRecordStrc* szRecordName = pAnimTbls->pHashTable[nHashValue & 0xff]->aRecords;
     while (true) {
-      if (nRecordCount < 1) {
+      if (nRecordCount <= 0) {
         return nullptr;
       }
 
@@ -176,7 +175,6 @@ D2AnimDataRecordStrc * __fastcall ANIMDATA_GetAnimDataForUnit(D2UnitStrc * pUnit
       pRecord = &pDVar1->pDefaultRecord;
     }
 
-    Fog::Debug::GuardStack();
     return pRecord;
 }
 

@@ -43,7 +43,6 @@ BOOL __stdcall CHATDLG_IsLobbyInitialized();
 void __stdcall LAUNCHER_DestroyLauncherForms();
 int __stdcall isServerDown();
 void LAUNCHER_AllocCharSelectComponent(int32_t pCharInfo);
-void LAUNCHER_GetDifficultyNameStringId(int32_t nDifficulty, uint16_t * wszText);
 void __stdcall UIMENU_CantTestItBeacuseItCrash();
 void __stdcall CHATDLG_DestroyAllForms();
 void __stdcall CHATDLG_AddMultiLineText(::D2WinTextBox * pTextBox, int32_t bAddBlankLine, char * szText, int32_t nColor);

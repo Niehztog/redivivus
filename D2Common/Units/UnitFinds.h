@@ -31,13 +31,9 @@ namespace D2Common::Units::UnitFinds {
 BOOL __stdcall AreUnitsInNeighboredRooms(struct D2UnitStrc * pUnit, struct D2UnitStrc * pSrcUnit);
 // Searches all rooms adjacent to pRoom for a unit matching eUnitType and nClassId. Gets the adjacent room list via DRLGROOM_GetAdjacentRoomsList, then iterates each room's pUnitList chain comparing eUnitType and nClassId. Returns the first matching D2UnitStrc*, or NULL if not found. Halts with an internal error if pRoom is null.
 struct D2UnitStrc * __stdcall FindUnitInNeighboredRooms(struct D2RoomStrc * pRoom, eD2UnitType eUnitType, int32_t nClassId);
-BOOL CheckRoomIfNotInRange(struct D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t nDistance);
-BOOL CheckRoomIfInRange(struct D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t nDistance);
 int32_t __stdcall GetTestedUnitsFromRoom(struct D2RoomStrc * pRoom, struct D2UnitStrc * * ppUnitList, UNITFINDTEST nfpUnitTest, struct D2UnitFindArgStrc * pUnitFindArg);
 // Searches all rooms adjacent to pUnit's room for the nearest unit passing a caller-supplied predicate (fpUnitTest). Iterates each room's unit list, computes distance via GetDistanceToXY, and returns the closest unit within nRoomIdx tiles (0 = unlimited). Returns NULL if no candidate passes. Halts on bad function pointer.
 struct D2UnitStrc * __stdcall GetNearestTestedUnit(struct D2UnitStrc * pUnit, int32_t nX, int32_t nY, int32_t nRoomIdx, fpUnitTest nfpUnitTest);
-// @sourcefile .\UNITS\UnitFinds.cpp
-void ExpandUnitFinds(struct D2UnitFindDataStrc * pUnitFindData, struct D2UnitStrc * pUnit);
 // @sourcefile .\UNITS\UnitFinds.cpp
 void __stdcall InitializeUnitFindData(::SGAMEDATA * pMemPool, struct D2UnitFindDataStrc * pUnitFindData, struct D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t nDistance, UNITFINDTEST nfpUnitTest, struct D2UnitFindArgStrc * pUnitFindArg);
 // @sourcefile .\UNITS\UnitFinds.cpp

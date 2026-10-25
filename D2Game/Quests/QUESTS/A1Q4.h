@@ -39,38 +39,6 @@ BOOL __fastcall Q04_NotifyQuestStateToPlayer(::SGAMEDATA * pGame, struct D2UnitS
 // nStateFlag==2 -> set Step0x02; nStateFlag in 3..5 -> set Step0x03.
 // Run via IteratePlayerOrMonsterUnits whenever the server step advances.
 BOOL __fastcall Q04_SyncQuestStepToPlayer(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
-// A1Q4 — Q04_Callback_02 (quest event handler, slot 2).
-// Reacts to monster/NPC events. If target is Akara (0x94): on pending sub-flags
-// fires step transitions — flag 0x53 -> broadcast step 1 (quest given); flag 0x19
-// -> broadcast step 3; both then re-sync all players via Q04_SyncQuestStepToPlayer.
-// If target is Cain (0x92) marks bAnyaMonsterAlive (Cain-in-town present flag).
-// NOTE: A1Q4Strc reused as A5Q3Strc by decompiler; sQuestGUID.aPlayerGUID[] indices
-// are sub-struct byte flags, not real GUIDs.
-void __fastcall Q04_Callback02_NpcDeactivate(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A1Q4 — Q04_Callback_11 (quest event handler, slot 0xb): NPC dialogue/gossip driver.
-// Dispatches on (NPC classId, message index):
-//  Akara(0x94): msg 0x61 -> set step flag 2 + send gossip (quest intro);
-//    msg 0x70 -> if player holds Scroll of Inifuss (item 'bks ') consume it, reward
-//    the Deciphered scroll ('bkd '), set step flag 5, broadcast step 3;
-//    msg 0x76 -> if RewardAwaits: COMPLETE quest (set Completed, unset RewardAwaits),
-//    grant skill-point reward (arrows/bolts per difficulty), and on JustCompleted run
-//    the sequence filter to unlock the next quest.
-//  Cain(0x109): msg 0x7d adds player to participated list & removes from list1;
-//    msg 0x7e/0x7b adds player to list2; both send gossip.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
-void __fastcall Q04_Callback11_ScrollMessage(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A1Q4 — Q04_Callback_00 (quest event handler, slot 0): NPC gossip-line selector.
-// The big "which line should this NPC say" dispatcher for Akara(0x94)/Cain(0x109).
-// Consumes the Deciphered scroll if a turn-in flag is set. Picks gossip message
-// index based on: whether player is in Cain's participated/reward lists, and quest
-// record bits (RewardAwaits, JustCompleted, Completed, CannotCompleteQuestInGame).
-// Falls back to a small lookup table indexed by nStateFlag (1..5) for the default
-// intro/progress lines. Pure read of quest state -> chooses a text line; no transitions.
-void __fastcall Q04_Callback00_NpcActivate(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A1Q4 — QuestStartDebugNotify: debug-only QUEST_DebugPrint("Started quest") helper
-// called at the points where the quest first transitions out of the not-started state.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
-void __stdcall QuestStartDebugNotify(struct D2QuestDataStrc * pQuestData);
 // A1Q4 — Q04_SendQuestStatePacket: builds and sends the 0x5d quest-state packet
 // (opcode 0x5d, quest 4) to a single unit's client. Pure network notify, no state change.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
@@ -81,12 +49,6 @@ void __fastcall Q04_SendQuestStatePacket(struct D2UnitStrc * pUnit);
 // lifecycle transition. On kill, marks the quest sub-flag 0x61 (guards cleared).
 // Driven by Q04_TimerDespawnRogueGuards.
 BOOL __fastcall Q04_DespawnRogueGuards(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
-// A1Q4 — Q04_SpawnDeckardCainNpc: spawns the rescued Deckard Cain NPC unit
-// (monster classId 0x109) at/near a given room tile. Validates the requested tile
-// is inside the room, then retries FindSpawnableLocation + SpawnMonster up to ~0x14
-// nearby rooms until placement succeeds. On success flags Cain init/resurrect, records
-// his unit GUID into the quest sub-struct, and sets the "Cain spawned" flag (0x51).
-void __stdcall Q04_SpawnDeckardCainNpc(struct D2RoomStrc * pRoom, ::SGAMEDATA * pGame, int32_t nX, int32_t nY);
 // A1Q4 — Q04_MarkCannotComplete (per-player iterate callback).
 // If a player has NOT yet Completed and has no RewardAwaits, mark their quest record
 // CannotCompleteQuestInGame (they were not present when the quest was force-progressed,
@@ -98,30 +60,10 @@ BOOL __fastcall Q04_MarkCannotComplete(::SGAMEDATA * pGame, struct D2UnitStrc * 
 // 0x1f) for each of the deciphered scroll ('bkd ') and Scroll of Inifuss ('bks ')
 // the player currently carries. No quest-state transition.
 void __fastcall Q04_Callback14_PlayerJoinedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A1Q4 — Q04_DeactivateCairnStones: tears down the Cairn Stones puzzle after it has
-// served its purpose. If the stones-active flag (0x47) is set, finds the Cairn Stones
-// object (classId 0x1e) and stops its animation. Clears the quest's local active byte,
-// broadcasts step 1 (Q04_NotifyQuestStateToPlayer), sets step flag 3, clears sub-flag
-// 0x58, and re-syncs all players. Called from Callback_06/Callback_09 on completion.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
-void __stdcall Q04_DeactivateCairnStones(struct D2QuestDataStrc * pQuestData);
-// A1Q4 — Q04_Callback_09 (quest event handler, slot 9): item-drop/loss watcher.
-// Hooked while the Scroll-of-Inifuss puzzle is live. When a quest scroll ('bkd '/'bks ')
-// leaves the player's inventory, decrements the held-item count; if the count hits 0
-// before the puzzle is solved (stones-active flag 0x47 set, not yet solved), it tears
-// the puzzle back down via Q04_DeactivateCairnStones and resets step flag to 3.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
-void __fastcall Q04_Callback09_PlayerDroppedWithQuestItem(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A1Q4 — Q04_Callback_10 (quest event handler, slot 10/0xa): per-player cleanup.
 // Calls SetRewardAndFinishFlags then removes the player from quest lists 1 and 2.
 // Run as the quest wraps up so stale player references are purged.
 void __fastcall Q04_Callback10_PlayerLeavesGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A1Q4 — Q04_SpawnTristramPortal: opens the red Tristram portal at the Cairn Stones.
-// Looks up the Cairn Stones unit, reads its tile, and calls SERVER_SpawnPortal to
-// LEVEL_Tristram (portal classId 0x3c) offset +4,+4 from the stones. On success sets
-// the "portal opened" flag (0x45) and clears the "spawn-pending" flag (0x44).
-// Scheduled as a quest timer from Objects_InitFn06.
-uint8_t __fastcall Q04_SpawnTristramPortal(::SGAMEDATA * pGame, struct D2QuestDataStrc * pQuestData);
 // A1Q4 — Q04_Callback_04 (quest event handler, slot 4): Cairn-stone item acquired.
 // Debug-logs "cairn stone item acquired" and, if the quest has truly begun
 // (bIsNotIntroduction), re-syncs every player's step via Q04_SyncQuestStepToPlayer.
@@ -132,22 +74,9 @@ void __fastcall Q04_Callback04_ItemPickedUp(struct D2QuestDataStrc * pQuestData,
 // step flag 3 and calls Q04_DeactivateCairnStones to dismantle the Cairn Stones.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
 void __fastcall Q04_Callback06_Unused(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A1Q4 — RollStonesOrder: randomizes the correct activation order of the 5 Cairn
-// Stones for this game, using the quest control seed (D2_SEED_NEXT). Fills the
-// sub-struct aStones[5] with distinct stone classIds in random sequence and resets
-// nStoneIndex to 0. Called lazily the first time the puzzle is touched (bStonesRolled).
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
-void __fastcall RollStonesOrder(struct D2QuestDataA1Q4Strc * pQuestSpecificData);
 // A1Q4 — Q04_SetRescueTrigger: stores the rescued-Cain trigger unit GUID into the
 // quest sub-struct (or -1 if none) and sets the rescue-armed flag (0x31). Setter only.
 void __fastcall Q04_SetRescueTrigger(::SGAMEDATA * pGame, struct D2QuestDataStrc * pQuestData, struct D2UnitStrc * pUnit);
-// A1Q4 — Q04_ActiveFilter (fpActiveFilter): decides whether an NPC shows the quest
-// as "active" (offers dialogue) for this player. Akara(0x94): active if the red
-// Tristram portal is open (step 4) and player still holds the Horadric/Inifuss scroll,
-// OR quest given (step>0) & not done, OR Cain freed (step 6 & JustCompleted), OR
-// RewardAwaits. Cain(0x109): active if player is in his participated list, or has the
-// reward pending. Pure read of quest record + step flag; returns bool, no transitions.
-bool __fastcall Q04_ActiveFilter(struct D2QuestDataStrc * pQuestData, int32_t nTargetClassId, struct D2UnitStrc * pUnit, struct D2BitBufferStrc * pBitBuffer, struct D2UnitStrc * pUnitEx);
 // A1Q4 — Q04_AutoCompleteForActIPlayer (party-member callback).
 // For each Act I party member who hasn't Completed/RewardAwaits yet: if they are
 // currently somewhere in Act I, mark their quest record JustCompleted AND RewardAwaits
@@ -219,13 +148,6 @@ BOOL __fastcall OBJOP_A1Q4_UseScrollOfInifuss(struct D2ObjectOperateFnArg * pOpe
 // and transmits. Lets the client highlight stones in the correct activation sequence.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
 void __fastcall Q04_SendStonesOrderToClient(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-// A1Q4 — Q04_SequenceFilter (fpSequenceFilter): drives quest-chain ordering.
-// If quest unstarted but begun (bIsNotIntroduction), logs "Started quest" and sets
-// step flag 1 (quest given). If finished (step 6) or not yet introduced, hands off to
-// the next quest in the chain (nSequenceQuestId = QUEST_ToolsOfTheTrade) by invoking
-// its sequence filter. Asserts the next filter pointer is valid.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
-void __fastcall Q04_SequenceFilter(struct D2QuestDataStrc * pQuestData);
 // A1Q4 — Q04_SetCainRescuedFlag: sets the quest sub-struct "Cain rescued" byte
 // (offset 0x63) to 1. Setter only.
 void __fastcall Q04_SetCainRescuedFlag(::SGAMEDATA * pGame);
@@ -234,12 +156,6 @@ void __fastcall Q04_SetCainRescuedFlag(::SGAMEDATA * pGame);
 // quest record), sets quest record Step0x10 to mark the cow level as discovered.
 // The Cow Level state piggybacks on the "Search for Cain" quest slot.
 BOOL __fastcall Q04_SetSecretCowLevelDiscovered(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
-// A1Q4 — Q04_Callback_08 (quest event handler, slot 8): Secret Cow Level entry reward.
-// When the cow-portal target is operated: if player hasn't already got Step0x10 and has
-// beaten the final act (Diablo/Baal per expansion), set Step0x10 (cow level unlocked),
-// mark all players via Q04_SetSecretCowLevelDiscovered, and drop 8 reward items at the
-// target. Cow Level is bookkept inside A1Q4's quest record via Step0x10/Step0x11.
-void __fastcall Q04_Callback08_MonsterKilled(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A1Q4 — Q04_SetScrollActivatedFlag: sets the quest sub-struct flag at offset 0x52
 // ("scroll/portal activated") to 1. Setter only.
 void __fastcall Q04_SetScrollActivatedFlag(::SGAMEDATA * pGame);
@@ -320,36 +236,11 @@ void __fastcall Q04_DropShieldRewards(struct D2QuestDataStrc * pQuestData, struc
 // A1Q4 — Q04_SetCainUnitGUID: stores Cain's unit GUID into the quest sub-struct
 // (field_0xB0). Setter only.
 void Q04_SetCainUnitGUID(void * pThis, int32_t nCainGUID);
-// A1Q4 — Q04_ActivateCairnStonesAndTree: master "make the quest objects active" routine.
-// Animates/activates the Cairn Stones (classId 0x1a) and the Tree-of-Inifuss objects to
-// their open/usable state and sets sub-flags. Depending on cParam1/cParam2 it either
-// schedules the Rogue-guard despawn timer (Q04_TimerDespawnRogueGuards) or immediately
-// despawns guards (Q04_DespawnRogueGuards), and removes the inactive Cain placeholder.
-// Called from the force-start / debug-progress paths and Callback_03. No quest record bits.
-void __stdcall Q04_ActivateCairnStonesAndTree(char cParam1, char cParam2, struct D2QuestDataStrc * pQuestData, struct D2UnitStrc * pUnit);
 // A1Q4 — Q04_ForceStartQuestProgression: one-shot (guarded by flag 0x65) debug/forced
 // advance that activates the quest objects (Q04_ActivateCairnStonesAndTree) and jumps the
 // step flag straight to 6 (Cain freed). Halts if quest data missing.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
 void __fastcall Q04_ForceStartQuestProgression(::SGAMEDATA * pGame);
-// A1Q4 — Q04_Callback_03 (quest event handler, slot 3): gossip/dialogue progression.
-// On gossip index 0x26 (and not already advanced) sets step flag 5 and broadcasts step 4.
-// On index 1 removes the player from lists and, if at step 2, advances step to 3.
-// On index 0x28 (Akara "go save Cain"): activates quest objects
-// (Q04_ActivateCairnStonesAndTree), sets step flag 7, broadcasts step 5, marks the quest
-// record JustCompleted, and locks out non-present players (Q04_MarkCannotComplete). Also
-// re-spawns Cain if the saved spawn flags say he should be present. Central NPC-driven
-// state machine for the quest.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q4.cpp
-void __fastcall Q04_Callback03_ChangedLevel(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A1Q4 — Q04_Callback_13 (quest event handler, slot 0xd): rebuild server step state
-// from a player's saved quest record on (re)join. Reads the player's record bits and
-// maps them onto the server-side nStateFlag/nStateFlagPrev and sub-struct flags:
-//  Completed or FinishedInPreviousGame -> Cain rescued, step finalized (flags 0x52/0x63);
-//  Step0x04 -> step 5 (stones solved); Step0x03 -> step 3; Step0x02 -> step 2;
-//  none set -> infer from held scrolls ('bkd '=step5, 'bks '=step4). Also re-counts held
-// quest scrolls. The "resume an in-progress quest" reconstructor.
-void __fastcall Q04_Callback13_PlayerStartedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A1Q4 — Q04_InitData: quest constructor. Allocates the 0x1bc-byte A1Q4 sub-struct,
 // zeroes the state-handler table, then wires every callback slot used by this quest:
 //  [0]=Callback_00 (gossip select) [2]=Callback_02 [3]=Callback_03 [4]=Callback_04

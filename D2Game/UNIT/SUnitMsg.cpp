@@ -103,7 +103,7 @@ void __stdcall PLAYER_SetStartingLevelForAct(uint8_t nAct, ::SGAMEDATA * pGame, 
 
 // Sets all base stats for a newly created player unit from CharStats.txt (str, dex, vit, energy, HP, mana, stamina at fixed-point *256, level=1, nextexp for level 1, attack/velocity/animrate=100). If nAct != 0, also raises the unit to gaStartingLevelByAct[nAct] via DAMAGE_SetUnitToLevel. The third argument is the act (both call sites pass D2Game::Game::Clients::GetAct(pClient)), not a character class.
 void __fastcall PLAYER_InitBaseStats(::SGAMEDATA * pGame, D2UnitStrc * pUnit, uint8_t nAct) {
-    if (4 < nAct) {
+    if (5 <= nAct) {
       nAct = 4;
     }
     if (!pUnit) {
@@ -111,7 +111,7 @@ void __fastcall PLAYER_InitBaseStats(::SGAMEDATA * pGame, D2UnitStrc * pUnit, ui
     }
 
     int nStatValue = pUnit->nClassId;
-    if (!(-1 < nStatValue && nStatValue < sgptDataTable->nTxtCharStatsSize)) {
+    if (!(0 <= nStatValue && nStatValue < sgptDataTable->nTxtCharStatsSize)) {
       return;
     }
 
@@ -145,7 +145,7 @@ void __fastcall PLAYER_InitBaseStats(::SGAMEDATA * pGame, D2UnitStrc * pUnit, ui
     if (!nAct) {
       return;
     }
-    if (4 < nAct) {
+    if (5 <= nAct) {
       nAct = 4;
     }
     if (gnActCount <= (int)(uint32_t)nAct) {
@@ -180,7 +180,7 @@ void __fastcall UpdateGameInfo(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     if (0 >= nLevelDelta) {
       return;
     }
-    if (nCurHp < 0 || sgptDataTable->nTxtCharStatsSize <= nCurHp) {
+    if (nCurHp < 0 || nCurHp >= sgptDataTable->nTxtCharStatsSize) {
       pCharStats = 0;
     } else {
       pCharStats = sgptDataTable->pTxtCharStats + nCurHp;
@@ -222,13 +222,13 @@ void __fastcall UpdateGameInfo(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     (**ppfnUpdateGameInfo)((uint32_t)pGame->nServerToken, (int)nLevelDelta_00);
 }
 
-void PLAYER_AddEnergyStatPoints(D2UnitStrc * pUnit, int32_t nParam) {
+static void PLAYER_AddEnergyStatPoints(D2UnitStrc * pUnit, int32_t nParam) {
     if (!(nParam && pUnit)) {
       return;
     }
 
     int nCharClassId = pUnit->nClassId;
-    if (!(-1 < nCharClassId && nCharClassId < sgptDataTable->nTxtCharStatsSize)) {
+    if (!(0 <= nCharClassId && nCharClassId < sgptDataTable->nTxtCharStatsSize)) {
       return;
     }
 
@@ -246,7 +246,7 @@ void PLAYER_AddEnergyStatPoints(D2UnitStrc * pUnit, int32_t nParam) {
     D2Common::Stats::StatsEx::STATLIST_AddUnitStat(pUnit, UNITSTAT_maxmana, (uint32_t)(uint8_t)pCharStats->ManaPerMagic * nParam * 0x40, 0);
     nCharClassId = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_maxmana, 0);
     int nCurMana = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_mana, 0);
-    if (nCharClassId >= nCurMana) {
+    if (nCurMana <= nCharClassId) {
       return;
     }
 
@@ -254,13 +254,13 @@ void PLAYER_AddEnergyStatPoints(D2UnitStrc * pUnit, int32_t nParam) {
 }
 
 // Spends nParam stat points into Vitality: decrements statpts by nParam, adds nParam to vitality, adds LifePerVitality*nParam*64 to maxhp (and to current HP if nParam>0, capped at maxhp), and adds StaminaPerVitality*nParam*64 to maxstamina (and stamina if nParam>0, capped). Uses CharStats.txt per-vitality multipliers.
-void PLAYER_AddVitalityStatPoints(int32_t nParam, D2UnitStrc * pUnit) {
+static void PLAYER_AddVitalityStatPoints(int32_t nParam, D2UnitStrc * pUnit) {
     if (!(nParam && pUnit)) {
       return;
     }
 
     int nMaxStat = pUnit->nClassId;
-    if (!(-1 < nMaxStat && nMaxStat < sgptDataTable->nTxtCharStatsSize)) {
+    if (!(0 <= nMaxStat && nMaxStat < sgptDataTable->nTxtCharStatsSize)) {
       return;
     }
 
@@ -278,7 +278,7 @@ void PLAYER_AddVitalityStatPoints(int32_t nParam, D2UnitStrc * pUnit) {
 
     nMaxStat = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_maxhp, 0);
     int nCurStat = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_hitpoints, 0);
-    if (nMaxStat < nCurStat) {
+    if (nCurStat > nMaxStat) {
       D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_hitpoints, nMaxStat, 0);
     }
 
@@ -289,7 +289,7 @@ void PLAYER_AddVitalityStatPoints(int32_t nParam, D2UnitStrc * pUnit) {
 
     nMaxStat = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_maxstamina, 0);
     nCurStat = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_stamina, 0);
-    if (nMaxStat >= nCurStat) {
+    if (nCurStat <= nMaxStat) {
       return;
     }
 
@@ -302,7 +302,7 @@ void __fastcall ClearStats(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     }
 
     int nStatDelta = pUnit->nClassId;
-    if (!(-1 < nStatDelta && nStatDelta < sgptDataTable->nTxtCharStatsSize)) {
+    if (!(0 <= nStatDelta && nStatDelta < sgptDataTable->nTxtCharStatsSize)) {
       return;
     }
 
@@ -427,21 +427,23 @@ void __fastcall PLAYER_SendStateListToClient(D2UnitStrc * pUnit, D2ClientStrc * 
           nDwordIdxSaved = nDwordIdx;
           pCurFlagDword = pFlagDword;
           nSetBitIdx = Fog::SMem::SMemSizeClassBucketLookup(*pFlagDword);
-          while (-1 < (int)nSetBitIdx) {
+          while (0 <= (int)nSetBitIdx) {
             aStateFlagDwords[((int)nSetBitIdx >> 5) + nDwordIdxSaved] &= gadwInvBitMasks[nSetBitIdx & 0x1f];
             eState = nSetBitIdx + nStateBaseIdx;
-            if ((int)eState < 0 || sgptDataTable->nTxtStatesSize <= (int)eState || !(sgptDataTable->pTxtStates + eState)) {
+            if ((int)eState < 0 || (int)eState >= sgptDataTable->nTxtStatesSize || !(sgptDataTable->pTxtStates + eState)) {
               nFlagDwordVal = *pFlagDword;
-            } else if (!sgptDataTable->pTxtStates[eState].nosend) {
+            } else if (sgptDataTable->pTxtStates[eState].nosend) {
+              nFlagDwordVal = *pFlagDword;
+            } else {
               nBitPos = Fog::BitBuffer::GetNextPositon(&bitBuf);
               nFlagDwordCount = nStateFlagDwordCount;
-              if (0xda < nBitPos + 7) {
+              if (0xdb <= nBitPos + 7) {
                 break;
               }
 
               Fog::BitBuffer::WriteValueToBitBuffer(&bitBuf, eState, 8);
               pStatListEx = D2Common::Stats::StatsEx::GetStatsByState(pUnitSaved, eState);
-              if (!pStatListEx || (nBitPosCheck = D2Common::Stats::StatsEx::CopyStatsToBuffer(pStatListEx, aStatBuf, 0x10) , nStatCount = nBitPosCheck , nBitPosCheck < 1)) {
+              if (!pStatListEx || (nBitPosCheck = D2Common::Stats::StatsEx::CopyStatsToBuffer(pStatListEx, aStatBuf, 0x10) , nStatCount = nBitPosCheck , nBitPosCheck <= 0)) {
                 Fog::BitBuffer::WriteValueToBitBuffer(&bitBuf, 0, 1);
               } else {
                 Fog::BitBuffer::WriteValueToBitBuffer(&bitBuf, 1, 1);
@@ -459,13 +461,7 @@ void __fastcall PLAYER_SendStateListToClient(D2UnitStrc * pUnit, D2ClientStrc * 
                         if (bySendBits) {
                           nValue = uVar1;
                           if (bySendBits < 0x20) {
-                            if (!(pItemStatCost->dwItemStatFlags & ITEMSTATCOSTFLAG_SIGNED)) {
-                              nMaxVal = (1 << (bySendBits & 0x1f)) - 1;
-                              nValue = (int)uVar1 < 1 ? 0 : uVar1;
-                              if ((int)nMaxVal <= (int)nValue) {
-                                nValue = nMaxVal;
-                              }
-                            } else {
+                            if (pItemStatCost->dwItemStatFlags & ITEMSTATCOSTFLAG_SIGNED) {
                               nMaxVal = -1 << (bySendBits - 1 & 0x1f);
                               nClampedVal = uVar1;
                               if ((int)uVar1 <= (int)nMaxVal) {
@@ -478,6 +474,12 @@ void __fastcall PLAYER_SendStateListToClient(D2UnitStrc * pUnit, D2ClientStrc * 
                                 if ((int)uVar1 <= (int)nMaxVal) {
                                   nValue = nMaxVal;
                                 }
+                              }
+                            } else {
+                              nMaxVal = (1 << (bySendBits & 0x1f)) - 1;
+                              nValue = (int)uVar1 < 1 ? 0 : uVar1;
+                              if ((int)nMaxVal <= (int)nValue) {
+                                nValue = nMaxVal;
                               }
                             }
                           }
@@ -503,8 +505,6 @@ void __fastcall PLAYER_SendStateListToClient(D2UnitStrc * pUnit, D2ClientStrc * 
               }
 
               nFlagDwordVal = *pFlagDword;
-            } else {
-              nFlagDwordVal = *pFlagDword;
             }
 
             nSetBitIdx = Fog::SMem::SMemSizeClassBucketLookup(nFlagDwordVal);
@@ -525,7 +525,6 @@ void __fastcall PLAYER_SendStateListToClient(D2UnitStrc * pUnit, D2ClientStrc * 
       GAME::SCmd::NET_D2GS_SERVER_Send_0xAA_AddUnit_0xA8_SetState(pClient, &__frame0.byOpcode, nBitPosCheck + 7U);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Send stat changes (buffs/debuffs) to client. Iterates state flags, checks which are new/ending, encodes changed stats into bit buffer with ItemStatCost config, sends via 0xA7/0xA8/0xA9 opcodes.
@@ -593,21 +592,21 @@ void __fastcall PLAYER_SendStateDeltaToClient(D2UnitStrc * pUnit, D2ClientStrc *
         pCurFlagDword = aStateFlagDwords;
         do {
           nSetBitIdx = Fog::SMem::SMemSizeClassBucketLookup(*pCurFlagDword);
-          while (-1 < (int)nSetBitIdx) {
+          while (0 <= (int)nSetBitIdx) {
             aStateFlagDwords[((int)nSetBitIdx >> 5) + nDwordIdx] &= gadwInvBitMasks[nSetBitIdx & 0x1f];
             eState_00 = nSetBitIdx + nStateBaseIdx;
             if ((int)eState_00 < 0 || sgptDataTable->nTxtStatesSize <= (int)eState_00 || !(sgptDataTable->pTxtStates + eState_00)) {
               nFlagDwordVal = *pCurFlagDword;
             } else {
-              if (!sgptDataTable->pTxtStates[eState_00].nosend) {
+              if (sgptDataTable->pTxtStates[eState_00].nosend) {
+                nFlagDwordVal = *pCurFlagDword;
+              } else {
                 eCurState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, eState_00);
                 if (eCurState == STATE_none) {
                   GAME::SCmd::NET_D2GS_SERVER_Send_0xA9_UNITSTATE_OFF_EX(pClientSaved, (uint8_t)eUnitType, uVar1, eState_00);
                 } else {
                   pStatListEx = D2Common::Stats::StatsEx::GetStatsByState(pUnit, eState_00);
-                  if (!pStatListEx) {
-                    GAME::SCmd::NET_D2GS_SERVER_Send_0xA7_UNITSTATE_ON_EX(pClientSaved, (uint8_t)eUnitType, uVar1, eState_00);
-                  } else {
+                  if (pStatListEx) {
                     nCopiedStats = D2Common::Stats::StatsEx::CopyStatsToBuffer(pStatListEx, aStatBuf, 0x10);
                     nCopiedStatCount = nCopiedStats;
                     if (nCopiedStats < 1) {
@@ -633,13 +632,7 @@ void __fastcall PLAYER_SendStateDeltaToClient(D2UnitStrc * pUnit, D2ClientStrc *
                               if (bySendBits) {
                                 nValue = uVar1;
                                 if (bySendBits < 0x20) {
-                                  if (!(pItemStatCost->dwItemStatFlags & ITEMSTATCOSTFLAG_SIGNED)) {
-                                    nMaxVal = (1 << (bySendBits & 0x1f)) - 1;
-                                    nValue = (int)uVar1 < 1 ? 0 : uVar1;
-                                    if ((int)nMaxVal <= (int)nValue) {
-                                      nValue = nMaxVal;
-                                    }
-                                  } else {
+                                  if (pItemStatCost->dwItemStatFlags & ITEMSTATCOSTFLAG_SIGNED) {
                                     nMaxVal = -1 << (bySendBits - 1 & 0x1f);
                                     nClampedVal = uVar1;
                                     if ((int)uVar1 <= (int)nMaxVal) {
@@ -652,6 +645,12 @@ void __fastcall PLAYER_SendStateDeltaToClient(D2UnitStrc * pUnit, D2ClientStrc *
                                       if ((int)uVar1 <= (int)nMaxVal) {
                                         nValue = nMaxVal;
                                       }
+                                    }
+                                  } else {
+                                    nMaxVal = (1 << (bySendBits & 0x1f)) - 1;
+                                    nValue = (int)uVar1 < 1 ? 0 : uVar1;
+                                    if ((int)nMaxVal <= (int)nValue) {
+                                      nValue = nMaxVal;
                                     }
                                   }
                                 }
@@ -678,11 +677,11 @@ void __fastcall PLAYER_SendStateDeltaToClient(D2UnitStrc * pUnit, D2ClientStrc *
                       GAME::SCmd::NET_D2GS_SERVER_Send_0xAA_AddUnit_0xA8_SetState(pClientSaved, &__frame0.byOpcode, nCopiedStats + 8U);
                       pUnit = pUnitSaved;
                     }
+                  } else {
+                    GAME::SCmd::NET_D2GS_SERVER_Send_0xA7_UNITSTATE_ON_EX(pClientSaved, (uint8_t)eUnitType, uVar1, eState_00);
                   }
                 }
 
-                nFlagDwordVal = *pCurFlagDword;
-              } else {
                 nFlagDwordVal = *pCurFlagDword;
               }
             }
@@ -698,7 +697,6 @@ void __fastcall PLAYER_SendStateDeltaToClient(D2UnitStrc * pUnit, D2ClientStrc *
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 void __fastcall PLAYER_SendStateUpdate(D2UnitStrc * pUnit, D2ClientStrc * pClient, int32_t nStateUpdateType) {
@@ -717,7 +715,7 @@ void __fastcall PLAYER_SendOverlayToClient(D2UnitStrc * pUnit, D2ClientStrc * pC
     }
 
     int32_t nOverlayId = D2Common::Stats::StatsEx::STATLIST_GetStatByState(pOverlayStatList, UNITSTAT_unit_dooverlay);
-    if (!(-1 < nOverlayId && nOverlayId <= sgptDataTable->nTxtOverlaySize)) {
+    if (!(0 <= nOverlayId && nOverlayId <= sgptDataTable->nTxtOverlaySize)) {
       return;
     }
     if (!pUnit) {
@@ -875,7 +873,7 @@ void __fastcall UnitQueuePacket0x9A(D2UnitStrc * pUnit, uint16_t wParam1, uint8_
 void __fastcall UnitQueuePacket0x9E(D2UnitStrc * pUnit, eD2UnitStat eUnitStat, uint32_t dwStatValue) {
     D2PoolManagerStrc* pMemory;
     int nUnitGUID;
-    if (0xfe < (uint16_t)eUnitStat) {
+    if (0xff <= (uint16_t)eUnitStat) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2ad);
       exit(-1);
     }

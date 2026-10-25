@@ -90,13 +90,10 @@ int * * __fastcall LINKEDLIST_AllocNode(int32_t pList, int32_t nDataSize, uint32
 int * __fastcall LINKEDLIST_UnlinkAndFree(uint8_t bFreeMemory, int * pNode);
 // Unlinks a node from the list, frees its memory, and returns the masked count value. Combines unlinking logic with memory cleanup and count extraction. Always deallocates via SMemFree after unlinking.
 uint32_t __fastcall LINKEDLIST_UnlinkFreeAndGetCount(void * pListHead, int * pNode);
-struct StormLinkStrc * __fastcall LINKEDLIST_GetNodePointer(int32_t nLinkOffset, struct StormLinkStrc * pLink);
 void __fastcall LINKEDLIST_UnlinkNodeSelf(struct StormLinkStrc * pLink);
 struct StormLinkStrc * __fastcall LINKEDLIST_GetOffset(void * pItem, struct StormLinkedListStrc * pList);
 void __fastcall LINKEDLIST_SetNodeValue(int32_t dwValue, struct StormLinkedListStrc * pNode);
-void __fastcall LINKEDLIST_InsertNode(void * pNewItem, int32_t nInsertMode, void * pRefItem, struct StormLinkedListStrc * pList);
 int32_t __fastcall LINKEDLIST_GetNodeAt(int32_t nOffset, int * pList);
-void __fastcall LINKEDLIST_RemoveNode(int32_t nOffset, int * pnParam);
 // @wasnamed LINKEDLIST_GetCount - one name on two different functions.
 // @evidence Calls LINKEDLIST_GetOffset(nOffset,p) then returns node[+4].
 // It counts nothing. 00426a60 is the real count (returns max(pList[+8],0)).

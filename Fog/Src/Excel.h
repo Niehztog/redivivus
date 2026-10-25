@@ -38,7 +38,6 @@ namespace Fog::Src::Excel {
 // @sourcefile .\Src\Excel\Excel.cpp
 void __stdcall TXT_FreeBinFieldExcel(struct D2BinFieldExcelStrc * pBinFieldExcel);
 size_t __stdcall TXT_GetLinesCountFromBinFieldExcel(struct D2BinFieldExcelStrc * pBinFieldExcel);
-int __stdcall FOG_ParseBinField(int pOutMapping, struct D2BinFieldExcelStrc * pBinFieldExcel, struct D2BinFieldInputStrc * pBinFieldInput);
 struct D2TxtLinkStrc * __stdcall STRUCT_CreateTxtLinkStrc(char * szFile, int nLine);
 // @sourcefile .\Src\Excel\Excel.cpp
 void __fastcall STRUCT_FreeTxtLinkNode(struct D2TxtLinkNodeStrc * pTxtLinkNode);
@@ -47,10 +46,8 @@ void __stdcall STRUCT_FreeTxtLink(struct D2TxtLinkStrc * pTxtLink);
 int32_t __stdcall GetClassIdFromName(struct D2TxtLinkStrc * pTxtLink, uint32_t pItemsTxt, uint32_t dwParam3);
 BOOL __stdcall FOG_GetTxtLinkRecord(struct D2TxtLinkStrc * pTxtLink, int nRecordId, void * pResult);
 uint32_t __stdcall FillUpTxtLinkSub0x08(struct D2TxtLinkStrc * pTxtLink, char * nItemCode);
-int __fastcall FOG_GetRecordField(struct D2UnitDataClientSide * pClientSideData, int nParam);
 int __stdcall FOG_ParseIntField(int * pnParam, int nParam1, int nParam2);
 int32_t __stdcall GetLinkNodeIndex(struct D2TxtLinkStrc * pLink, char * szItemCode, uint32_t dwParam3);
-uint8_t * __fastcall FOG_ValidateBytePtr(uint8_t * pbyte, uint8_t * pKey);
 // @sourcefile .\Src\Excel\Excel.cpp
 int __stdcall FOG_ParseStringField(struct D2TxtLinkStrc * pTxtLink, char * szText);
 int __fastcall FOG_ParseTxtLink(struct D2TxtLinkStrc * pTxtLink, char * szText);

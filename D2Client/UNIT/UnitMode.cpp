@@ -158,7 +158,7 @@ void __fastcall INTERACT_AnyObject(uint16_t eUnitType, DWORD nUnitGUID) {
     GAME::Msg::NET_D2GS_CLIENT_Send_INT_INT(0x13, eUnitType_00, nUnitGUID);
 }
 
-void __fastcall ClickWithSkillOnUnitOrCoord(eD2UnitModeAction pThis, int32_t nTargetOrX, int32_t nParam, uint32_t dwUnused) {
+static void __fastcall ClickWithSkillOnUnitOrCoord(eD2UnitModeAction pThis, int32_t nTargetOrX, int32_t nParam, uint32_t dwUnused) {
     if (pThis == UNITMODEACTION_ITEM_INTERACT) {
       return;
     }
@@ -198,7 +198,7 @@ uint32_t UNITMODE_CanInterruptSkill(D2UnitStrc * pUnit) {
     }
 
     eD2Skills eSkillId = D2Common::Skills::GetSkillId(pSkill, ".\\UNIT\\UnitMode.cpp", 0x2cc);
-    if (!(-1 < (int)eSkillId && (int)eSkillId < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkillId && !sgptDataTable->pTxtSkills[eSkillId].interrupt && (!pUnit || pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Neutral && pUnit->eAnimMode.ePlayerMode != TownNeutral))) {
+    if (!(0 <= (int)eSkillId && (int)eSkillId < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkillId && !sgptDataTable->pTxtSkills[eSkillId].interrupt && (!pUnit || pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Neutral && pUnit->eAnimMode.ePlayerMode != TownNeutral))) {
       return 1;
     }
 
@@ -388,7 +388,7 @@ void __fastcall UNITMODE_SendWalkToPosition(D2UnitStrc * pUnit, int32_t nTargetX
     bMoved = 0;
     int32_t local_c;
     local_c = nTargetX;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nPosDelta = pUnit->pPath.pStaticPath->nPosX;
     } else if (!pUnit->pPath.pDynamicPath) {
       nPosDelta = 0;
@@ -405,7 +405,7 @@ void __fastcall UNITMODE_SendWalkToPosition(D2UnitStrc * pUnit, int32_t nTargetX
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nPosDelta = pUnit->pPath.pStaticPath->nPosY;
     } else if (!pUnit->pPath.pDynamicPath) {
       nPosDelta = 0;

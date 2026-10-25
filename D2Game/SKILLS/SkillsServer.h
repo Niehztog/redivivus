@@ -82,13 +82,11 @@ uint32_t __fastcall SKILLS_CheckTargetFlags(struct D2UnitStrc * pUnit, struct D2
 // @sourcefile .\SKILLS\Skills.cpp
 void __fastcall SKILLS_ClampHpManaStamina(struct D2UnitStrc * pUnit);
 void __fastcall SKILLS_InvokeCallbackNoTarget(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, pfnSkillNoTargetCb pfnCallback, void * pCallbackArg);
-BOOL SKILLS_IsRoomInRange(struct D2RoomStrc * pRoom, int32_t nX, int32_t nRadius, int32_t nY);
 // Iterates all units in adjacent rooms within nRadius of (nX,nY), applying a caller-supplied callback (pfnCallback) to each eligible target. Filters by target flags (dwTargetFlags, SKILLS_CheckTargetFlags mask, default 0x583), skips town rooms if bit 0x2000 set, and respects noaura flag on monsters when bSkipNoAuraMonsters != 0. Core server-side AoE dispatch used by auras and area skills.
 // The callback gets sContext (D2SkillCallbackContextStrc at EBP-0x24); nHitCount counts callbacks that returned nonzero. The pCallbackArg stack slot is reused as the room loop index after it is copied (MSVC slot reuse).
 void __fastcall SKILLS_ApplyAreaEffect(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nX, int32_t nY, int32_t nRadius, uint32_t dwTargetFlags, PFN_AreaEffectCallback pfnCallback, void * pCallbackArg, int32_t bSkipNoAuraMonsters, char * szFile, int32_t nLine);
 // Resolves and applies a skill hit to a target unit. Resolves missile owner if the attacker is a missile. Checks block/evasion (setting hit/block/evade/dodge flags in pDamage->wResultFlags). Sets interrupt flag if target lacks STATE_uninterruptable. Applies critical damage modifier, then calls DAMAGE_ApplyDamageToUnit if the hit flag is set, followed by SERVER_GetHitCalculation for post-hit effects.
 void __fastcall SKILLS_ApplyDamageToTarget(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTargetUnit, struct D2DamageStrc * pDamage, uint32_t dwUnused);
-uint32_t __fastcall SKILLS_ApplyDamageCallback(struct D2SkillCallbackContextStrc * pContext, struct D2UnitStrc * pUnit);
 // @sourcefile .\SKILLS\Skills.cpp
 BOOL __fastcall SKILLS_ApplyAreaDamage(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nX, int32_t nY, int32_t nRadius, struct D2DamageStrc * pDamage, uint32_t nCollisionFlags);
 // @sourcefile .\SKILLS\Skills.cpp
@@ -100,9 +98,6 @@ eD2MissileHitFlags __fastcall SKILLS_ApplyAreaHitAtPos(::SGAMEDATA * pGame, stru
 struct D2UnitStrc * __fastcall SKILLS_FindNextUnitInAreaByGUID(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nX, int32_t nY, int32_t nRadius, uint32_t nCollisionFlags, uint32_t nAfterGUID, int * pnUnitCount);
 // Recomputes and enforces the maximum pet count for the pet type associated with skill nSkillId. Iterates every skill listed in the pet type's nSkillId table, evaluates the petmax calc at the current skill level, and takes the highest result. Calls PETS_SetMaxAndTrimExcess to apply the new cap and kill excess pets. Only acts on player units with a valid pettype in D2PetTypeTxt.
 void __fastcall SKILLS_UpdatePetMax(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, short * nSkillId);
-// Consumes one charge from a charged-skill item when cast. Looks up the weapon item by nWeaponUnitId, finds the matching charged-skill stat via ITEMMOD_FindChargedSkill, decrements the remaining charge count (floor 0), writes the updated stat back via STATLIST_SetStatValueInBaseArraySafe, and sends a 0x3E UpdateItemStats packet to the client to sync the new charge count.
-// @sourcefile .\SKILLS\Skills.cpp
-void __stdcall SKILLS_UseChargedSkillCharge(::SGAMEDATA * pGame, struct D2SkillStrc * pSkill, struct D2UnitStrc * pUnit, uint32_t nWeaponUnitId);
 // Deducts mana cost for casting a skill, or converts it to life if the caster has STATE_blood_mana. For charged skills (owner GUID != -1) delegates to SKILLS_UseChargedSkillCharge. Computes mana cost from SkillsTxt (mana + lvlmana*(level-1)) shifted by manashift, enforces minmana floor. Returns 1 on successful deduction or charge use, 0 if insufficient mana or no mana entry, 1 if unit is not a player.
 // @sourcefile .\SKILLS\Skills.cpp
 void __fastcall CalculateManaUse(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLevel);
@@ -138,9 +133,7 @@ BOOL __fastcall SKILLS_SrvStFn65_Throw(::SGAMEDATA * pGame, struct D2UnitStrc * 
 BOOL __fastcall SKILLS_SrvStFn02_Kick(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall SKILLS_SrvStFn03_Unsummon(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall Skills_SrvDoFunc_004_RemovePetBySkillParam(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
-BOOL __stdcall SKILLS_ValidateSkillTarget(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill);
 int32_t __fastcall SKILLS_CalcPerDelayInterval(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2SkillsTxt * pSkillData, eD2Skills eSkill, int32_t nParam2);
-void __fastcall SKILLS_SetPeriodicSkillTimer(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLevel, int32_t bReset);
 void __fastcall SKILLS_SetPeriodicStatOrSkillTimer(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nStatId, eD2Skills eSkill, int32_t nParam1, int32_t nParam2);
 // Server-side: spawns and links a Town Portal object for pUnit. Finds a free spawn coordinate in eSrcLevel, checks for the special Duriel portal, creates an OBJECT unit of pUnit's class, stores the source level ID in the portal's char name buffer, sets portal flags, and bidirectionally links owner/portal via StoreOwner and LinkPortalCoords. Frees the placeholder pUnit on spawn failure. Returns the new portal unit or NULL on error.
 struct D2UnitStrc * LinkPortal(void * pThis, struct D2UnitStrc * pUnit, struct D2RoomStrc * eLevel, eD2LevelId nLevelId2);
@@ -158,8 +151,6 @@ void __fastcall SKILLS_CreateMissileStar(::SGAMEDATA * pGame, int32_t nMissileCo
 void __fastcall SKILLS_SpawnWeaponForHand(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, char * szItemCode);
 void __fastcall SKILLS_DispatchStateActiveFunc(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nArg1, int32_t nArg2);
 void __fastcall SKILLS_DispatchSrvDoFunc(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t nSrvDoFuncIdx, eD2Skills eSkill, int32_t nParam2);
-void ClearNecroPet(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame);
-void __stdcall SKILLS_InitSummonedPet(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, struct D2MonsterCastPetStrc * pMonsterCastPet);
 // Spawns a summoned pet monster for the casting player. Resolves spawn position from pPetCreation (explicit coords or cursor target), finds the nearest valid room, calls SpawnMonster, initialises the pet via SKILLS_InitSummonedPet, assigns minion ownership, attaches the correct AI function, and fires the initial AI-think and stat-regen events. Returns the new monster unit or NULL on failure.
 struct D2UnitStrc * __fastcall SKILL_CreateSummon(::SGAMEDATA * pGame, struct D2MonsterCastPetStrc * pPetCreation);
 // Creates and drops an item of the given 4-char code at the caster's position. Converts szItemCode to an item class ID, finds the best nearby spawn tile via FindBestSpotToSpawnItem, builds a D2ItemGenContextStrc with the caster's level and given quality, and calls ITEM_CreateItemInstance to spawn and place the item in the game world.
@@ -213,7 +204,6 @@ struct D2UnitStrc * __fastcall CreatingAMissile(::SGAMEDATA * pGame, eMissilesId
 struct D2UnitStrc * __fastcall SKILLS_CreateMissileAtTarget(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl, eMissilesId nMissileId, uint32_t nParam1, uint32_t nParam2);
 // Initializes a D2SkillArgStrc from pUnit's position (plus nParam2/nParam3 offsets) and the given missile ID/skill, resolves the target via SKILLS_GetTargetOrCursorPos or explicit nParam4/nParam5 coords, optionally consumes one ammo charge (RemoveQuanityOnUse) when nParam6!=0 and unit is a player, then calls CreatingMissile to spawn the missile. Returns the new missile unit, or NULL if target resolution or ammo check fails.
 struct D2UnitStrc * __fastcall SKILLS_CreateMissileFromUnit(::SGAMEDATA * pGame, eMissilesId nMissileId, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nParam1, int32_t nParam2, int32_t nParam3, int32_t nParam4, int32_t nParam5, int32_t nParam6);
-void __stdcall SetTimeoutEffect(::SGAMEDATA * pGame, int32_t timeoutFrame, struct D2UnitStrc * pUnit);
 void __fastcall SKILLS_ApplySkillDelay(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 // Server skill-do-func for the basic bow attack (skill 1). Sets UNITFLAG_SKSRVDOFUNC on the unit. Returns 0 if the active weapon is a missile potion. If the weapon is not drawn, delegates to SKILLS_ExecuteProgressiveAttack. Otherwise fetches the arrow-modifier missile type via SKILL_GetArrowModifierSkill and fires the appropriate missile (magic arrow or modifier arrow, with ammo removal when a modifier is active) via CreatingAMissile.
 // Body continues at 0056f115, the JZ target of 0056f0af - a branch, not a call. Ghidra had a CALL_RETURN flow override there and a separate function named 'SKILLS_ExecuteProgressiveAttack'; that made EBP look like a parameter and turned this frame's locals into wild pointers.

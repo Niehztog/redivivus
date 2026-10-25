@@ -90,27 +90,13 @@ int32_t __stdcall ITEMDROP_GetDropListEntry(int32_t pDropListBase, int32_t nEntr
 void __fastcall ITEM_InitializeDroppedItem(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, int32_t dwUnitGUID, uint32_t dwUnused);
 // Find collision-free coords near drop point. Offset (+2,+3), check if better room exists, then scan for free space using SPAWN_ITEM_COLLISION + COLLISION_ITEMS flags. Returns room or NULL if no space found.
 struct D2RoomStrc * __fastcall FindBestSpotToSpawnItem(struct D2RoomStrc * pRoom, POINT * pPoint, POINT * pNewPosition, uint32_t nCollisionMask, uint8_t nMaxSearchRadius);
-// Returns 1 when ItemsTxt row pItemsTxt may drop in level eLevel: spawnable, not a quest item, nLevel <= eLevel, wType == nItemTypeFilter (-1 = any) and, unless bSkipRarityRoll, a RANDOM_RandomNumberSelector(pSeed, nRarity - act) roll of 0.
-// Called by ITEMDROP_RollNormal/Exceptional/EliteItemClass; 1.14d asm 00555e00.
-BOOL __stdcall ITEMDROP_IsItemClassEligible(struct D2SeedStrc * pSeed, int32_t bSkipRarityRoll, eD2LevelId eLevel, struct D2ItemsTxt * pItemsTxt, int32_t nItemTypeFilter);
 // Selects a random exceptional-tier item class index for a drop roll. Iterates the exceptional slice of the Items txt table (between the exceptional and elite size offsets), filters candidates via MONSTER_ShouldSpawnSuperUnique against level/TC constraints, respects the expansion flag, then picks one uniformly at random using the D2SeedStrc PRNG (power-of-two fast path or modulo). Returns the Items txt index of the chosen class, or -1 if none qualify.
 int32_t __fastcall ITEMDROP_RollExceptionalItemClass(::SGAMEDATA * pGame, struct D2SeedStrc * pSeed, eD2LevelId eLevel, int32_t nTCFilter, int32_t nMonsterLevel);
-// Selects a random normal-tier item class index for a drop roll. Iterates the normal slice of the Items txt table (between the normal-start and exceptional-start size offsets), filters candidates via MONSTER_ShouldSpawnSuperUnique against level/TC constraints, respects the expansion flag, then picks one uniformly at random using the D2SeedStrc PRNG (power-of-two fast path or modulo). Returns the Items txt index of the chosen class, or -1 if none qualify. Structurally identical to ITEMDROP_RollExceptionalItemClass but over the normal tier.
-int32_t __fastcall ITEMDROP_RollNormalItemClass(::SGAMEDATA * pGame, struct D2SeedStrc * pSeed, int32_t nMonsterLevel, int32_t nTCFilter, int32_t nLevelFilter);
 // Rolls a random elite item class index for a drop. Iterates all elite-tier ItemsTxt entries (from the elite start offset), filtering candidates via MONSTER_ShouldSpawnSuperUnique using the monster level, area level, and TC filter; also excludes non-expansion items when not in expansion. Picks a random candidate from the eligible list using the RNG seed and returns its ItemsTxt index, or -1 if none qualify.
 int32_t __fastcall ITEMDROP_RollEliteItemClass(::SGAMEDATA * pGame, struct D2SeedStrc * pSeed, eD2LevelId eLevel, int32_t nTCFilter, int32_t nMonsterLevel, int32_t bIsMonsterDrop);
 // Rolls the broad item quality tier (gold, exceptional, normal, or elite) for a monster drop at a given area level. Uses a 0-100 RNG roll with level-scaled thresholds: low levels skew toward gold; mid levels can yield normal/exceptional; high levels (≥0x42) halt. Delegates to ITEMDROP_RollExceptionalItemClass, RollNormalItemClass, or RollEliteItemClass based on the roll. One-time initializes the gold item class ID.
 int32_t __stdcall ITEMDROP_RollItemClassByLevel(::SGAMEDATA * pGame, struct D2SeedStrc * pSeed, int32_t nTCFilter, int32_t nMonsterLevel, int32_t bIsMonsterDrop, uint32_t nLevel);
-void ITEM_RollBaseArmorClass(struct D2UnitStrc * pUnit);
-void ITEM_SetBaseDamageStats(struct D2UnitStrc * pUnit);
-uint32_t ITEM_CheckUniqueBitmask(uint32_t nUniqueFileIndex, ::SGAMEDATA * pGame);
 uint32_t __fastcall ITEM_IsUniqueAlreadyDropped(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-BOOL __stdcall ITEM_MarkUniqueAsDropped(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-BOOL __stdcall ITEM_RollMagicPrefixSuffix(struct D2ItemGenContextStrc * pItemGenCtx, struct D2UnitStrc * * ppUnit);
-// Drop-time roller that promotes an item to a Unique. Looks up the item's itemstxt line; if durability-bearing and version 0, scales current/max durability x5 (capped 255). For modern items, scans uniqueitems.txt building a weighted candidate list (matching item code, enabled flag, qlvl<=ilvl, ladder/version gating), then picks one via seeded RollBetweenMinAndMax over the rarity-weight total (or a forced index from pItemGenCtx+0x40). Records the unique into the player's found-uniques bitmask (ITEM_MarkUniqueAsDropped) unless quest/already-found, sets the item's nFileIndex, clears IDENTIFIED, and applies unique mods via ApplyRuneAndGemStats. Returns 1 if the item became unique, 0 otherwise.
-BOOL __stdcall ITEM_RollUniqueItem(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2ItemGenContextStrc * pItemGenContext);
-// Rolls and assigns magic prefix and/or suffix for an item during generation. Respects forced prefix/suffix overrides from pItemGenCtx (nForcePrefix/nForceSuffix). If both overrides are absent, rolls randomly via ITEMMOD_RollMagicAffixVersioned. Halts if neither prefix nor suffix could be assigned. Clears ITEMFLAG_IDENTIFIED on success.
-void __stdcall ITEM_RollForcedMagicAffix(struct D2ItemGenContextStrc * pItemGenCtx, struct D2UnitStrc * pUnit);
 // Drop-time socket roller: decides whether an item gets sockets and how many. Bails
 // for items below magic quality, items without an inventory graphic, stackables, or items with no
 // max socket count. Caps the max socket count by pGame->nDifficulty (+0x6D, MOVZX at 556ba9):
@@ -120,44 +106,8 @@ void __stdcall ITEM_RollForcedMagicAffix(struct D2ItemGenContextStrc * pItemGenC
 // below 0x21. On success sets ITEMFLAG_SOCKETED and calls the D2Common ITEM_RollSocketCount with
 // modseed % max + 1 (versioned items) or the max capped at 3, 2 for helms (version 0). No return value.
 void __stdcall ITEM_RollSocketCount(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2ItemGenContextStrc * pItemGenContext);
-// Conditionally makes an item ethereal during drop generation. Eligible items are weapons or armor with durability, not unique or set quality, not quest items, and not flagged to suppress ethereal (pItemGenContext bit 1). Triggers on a 5% RNG roll or if the drop context forces ethereal (bit 2 or flag 0x400000). Applies ITEMMOD_ApplyEtherealBonus and halves max durability (setting current durability to the new max).
-void ITEM_ApplyEthereal(struct D2UnitStrc * pUnit, struct D2ItemGenContextStrc * pItemGenContext);
 // Applies item-type-specific post-generation properties to a newly dropped item. Switch on wType: PlayerBodyPart/BodyPart sets file index from ctx; Charm rolls forced magic affix; Book/Scroll sets magic suffix from scroll-book index. Falls through to StaffMod roll and socket count roll for all other types.
 void __stdcall ITEM_ApplySpecialTypeProperties(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, struct D2ItemGenContextStrc * pItemGenContext);
-// Expansion variant of ITEM_ApplySpecialTypeProperties. Applies all type-specific fixups non-exclusively using IsOfType checks (no switch): Charm gets forced magic affix, BodyPart/PlayerBodyPart get file index from ctx, Scroll/Book get magic suffix from scroll-book index. Does NOT roll sockets; always falls through to StaffMod.
-void ITEM_ApplySpecialTypePropertiesExp(struct D2UnitStrc * pUnit, struct D2ItemGenContextStrc * pItemGenContext);
-void __stdcall ITEM_ApplyNormalTypeProperties(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2ItemGenContextStrc * pItemGenContext);
-// Quality cascade (Unique→Set→Rare→Magic→Superior→Normal). Applies MF, TC quality bonuses. Never fails (fallback to Normal). Returns quality level [0-7]. Sets item.dwItemLevel and item.dwFileIndex.
-uint32_t __stdcall ITEM_RollItemQuality(struct D2UnitStrc * pUnit, struct D2ItemGenContextStrc * pItemGenContext);
-void ITEM_ClearAllMagicAffixes(struct D2UnitStrc * * ppUnit);
-void __stdcall ITEM_FallbackToNormalQuality(struct D2UnitStrc * * ppUnit, ::SGAMEDATA * pGame, struct D2ItemGenContextStrc * pItemGenContext, int32_t nModSeedVal);
-//   pnParam: ESI:4 (int *) - seed in/out
-//   pItemGenContext: EBX:4 (D2ItemGenContextStrc *)
-//   ppUnit: EAX:4 (D2UnitStrc **)
-// @returns BOOL in EAX: the result of ITEMMOD_RollSuperiorQualityMods, passed straight through.
-// Re-generates the item as QUALITY_SUPERIOR: clears its magic affixes, re-seeds the
-// mod seed and item seed from *pnParam (seed high 0x29A), rerolls the quality fields, sets the
-// quality on the item and on the gen context, writes the new seed low back to *pnParam, then
-// calls ITEMMOD_RollSuperiorQualityMods.
-BOOL ITEM_FallbackToSuperiorQuality(int * pnParam, struct D2ItemGenContextStrc * pItemGenContext, struct D2UnitStrc * * ppUnit);
-//   pnParam: EBX:4 (int *) - seed in/out
-//   ppUnit: EAX:4 (D2UnitStrc **)
-// @returns BOOL in EAX: the result of ITEM_RollMagicPrefixSuffix, passed straight through.
-// Downgrades the item being generated to magic quality: clears its magic affixes,
-// re-seeds the mod seed and item seed from *pnParam (seed high 0x29A), rerolls the quality
-// fields, sets QUALITY_MAGIC on the item and the gen context, writes the new seed low back to
-// *pnParam, then rolls the magic prefix/suffix. ITEM_ApplyQualityAndAffixes tests the result
-// at its three call sites (TEST EAX,EAX after 557647/557783/557915).
-BOOL __stdcall ITEM_FallbackToMagicQuality(struct D2ItemGenContextStrc * pItemGenContext, int * pnParam, struct D2UnitStrc * * ppUnit);
-//   pnParam: ESI:4 (int *) - seed in/out
-//   pItemGenContext: EBX:4 (D2ItemGenContextStrc *)
-//   ppUnit: EAX:4 (D2UnitStrc **)
-// @returns BOOL in EAX: the result of SKILLS::Items::RollingItem, passed straight through.
-// Re-generates the item as QUALITY_RARE: clears its magic affixes, re-seeds the mod
-// seed and item seed from *pnParam (seed high 0x29A), rerolls the quality fields, sets the
-// quality on the item and on the gen context, writes the new seed low back to *pnParam, then
-// calls RollingItem.
-BOOL ITEM_FallbackToRareQuality(int * pnParam, struct D2ItemGenContextStrc * pItemGenContext, struct D2UnitStrc * * ppUnit);
 // Apply quality tier to item and generate affixes based on quality type (magic/rare/set/unique/superior)
 int __fastcall ITEM_ApplyQualityAndAffixes(::SGAMEDATA * pGame, struct D2UnitStrc * * ppItem, struct D2ItemGenContextStrc * pItemGenContext);
 void ITEM_RollVariantGraphic(struct D2UnitStrc * pUnit);
@@ -165,7 +115,6 @@ void ITEM_RollVariantGraphic(struct D2UnitStrc * pUnit);
 // Returns a BOOL: the epilogue loads EAX explicitly and two of the three callers branch on it, so every server-side item creation decided whether to keep or immediately free the item from whatever was in EAX. Parameter 2 is a D2UnitStrc** - the body dereferences it immediately and every call site passes the address of a local unit pointer; typed one level short it only worked because eUnitType sits at offset 0 and is 4 bytes wide.
 int __fastcall ITEM_InitItemBaseStats(::SGAMEDATA * pGame, struct D2UnitStrc * * ppItem, struct D2ItemGenContextStrc * pItemGenCtx, int32_t bApplyQuality);
 void __fastcall ITEM_FreeItemInventoryAndTimers(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-void INVENTORY_RemoveItemFromOwner(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit);
 // IterateAllUnits per-unit callback: removes pItem from this unit's inventory.
 // Matches fpSUnitIterateCallback (ECX=pGame, EDX=pUnit, Stack[0x4]=pArgs); pGame is unused by the
 // body, which is why the register is never read. Confirmed by RET 0x4 and the CALL EBX at 00553914.
@@ -184,11 +133,7 @@ int32_t __fastcall UNIT_GetMaxAvailableHPCharCode(struct D2UnitStrc * pUnit);
 int32_t __fastcall UNIT_GetMaxAvailableMPCharCode(struct D2UnitStrc * pUnit);
 void __fastcall RefreshDurability(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 void __fastcall RefreshQuantity(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-int32_t ITEM_GetTotalMagicFind(struct D2UnitStrc * pUnit);
 int32_t __fastcall ITEMDROP_AdjustDrop(int32_t nParam1, int32_t nParam2, int32_t nMFAdjusted);
-// Item quality selector. QualityRatio.txt cascading rolls: Unique(128/idx) -> Set(128/idx) -> Rare(128/idx if allowed) -> Magic(128/idx) -> Superior(128/idx) else Normal. MF applies diminishing returns via ITEMDROP_AdjustDrop. The quality modifiers in pMagicFindUnit ([0]=magic, [1]=rare, [2]=set, [3]=unique, in 1024ths) reduce each roll chance. Returns eD2ItemTypes quality enum.
-int32_t __stdcall GAME_GetItemQuality(uint32_t nItemClassId, int32_t nVictimLevel, struct D2UnitStrc * pAttacker, ::SGAMEDATA * pGame, struct D2UnitStrc * pVictim, uint16_t * pMagicFindUnit);
-void ITEM_ApplyGoldBonus(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 // Calculates the game-frame at which a ground item should despawn. Quest items never expire (returns 0). Unique/set quality: +30000 frames. High-tier quality (5–9): +45000. Gold &gt;10000: +45000. Socketable items: +30000. All others: +15000.
 int32_t __fastcall ITEM_CalculateDespawnTimer(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 void __fastcall DropItem(::SGAMEDATA * pGame, int32_t nParam, struct D2UnitStrc * pUnit, struct D2RoomStrc * pRoom, int32_t x, int32_t y);

@@ -290,7 +290,7 @@ void Crypt(D2DrlgLevelStrc * pLevel) {
     if (pLevel->eD2LevelId == 0x13 || pLevel->eD2LevelId == 0x85) {
       ReplaceRoom(gaDrlgCryptReplacements_C + nRoll, pLevel, &nRoll);
     }
-    if (!(0x14 < pLevel->eD2LevelId && pLevel->eD2LevelId < 0x19)) {
+    if (!(0x15 <= pLevel->eD2LevelId && pLevel->eD2LevelId <= 0x18)) {
       return;
     }
 

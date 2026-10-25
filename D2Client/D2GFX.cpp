@@ -302,8 +302,9 @@ void __stdcall D2GFX_ClearYBuffer() {
     } while ((int)pRow < (uintptr_t)((char*)&gaYBufferRowOffsets + sizeof(gaYBufferRowOffsets)));
 }
 
-void __stdcall INIT_SetWndProcBGlobalPointer(::WndProcB pWndProcB) {
+int __stdcall INIT_SetWndProcBGlobalPointer(::WndProcB pWndProcB) {
     GAME::Record::pWndProcB = pWndProcB;
+    return 1;
 }
 
 } // namespace D2Client::D2GFX

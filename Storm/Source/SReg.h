@@ -24,17 +24,6 @@ int32_t __stdcall SRegGetBaseKey(uint8_t byFlags, char * szText, int32_t nBufSiz
 // Storm module with its own nine exported symbols; nothing in this family belongs to the string module.
 // The SReg block occupies 00414930-0041513f, contiguous, between SStr and SFile.
 int __fastcall SREG_DeleteValueInternal(uint8_t byFlags, char * pszSubKey, LPCSTR szValueName);
-// @wasnamed SSTR_RegistryReadValue
-// @basis internal. NOT an exported Storm symbol: no such name on the 337-entry Storm 1.10b export table. Renamed only to correct the module prefix - this is SReg code, not SStr code. Register-convention worker shared by SRegLoadValue, SRegLoadString and SRegLoadData: RegQueryValueExA against HKCU then HKLM, returning the REG type and byte count to the caller, which is what interprets them.
-// @blizzard InternalLoadEntry (SREG.CPP)
-BOOL __stdcall SREG_InternalLoadEntry(LPDWORD pdwType, LPBYTE pbData, char * pszSubKey, uint8_t byFlags, DWORD dwBufSize, LPCSTR szValueName, LPDWORD pdwDataLen);
-// @wasnamed SSTR_RegistryWriteValue
-// @basis internal. NOT an exported Storm symbol: no such name on the 337-entry Storm 1.10b export table. Renamed only to correct the module prefix - this is SReg code, not SStr code. Register-convention worker shared by SRegSaveValue, SRegSaveString and SRegSaveData: RegCreateKeyExA then RegSetValueExA with a caller-supplied REG type, optional RegFlushKey on flag bit 3.
-// @namespace-fix moved from Storm::Source::SSTR to Storm::Source::SReg. SReg is a separate
-// Storm module with its own nine exported symbols; nothing in this family belongs to the string module.
-// The SReg block occupies 00414930-0041513f, contiguous, between SStr and SFile.
-// @blizzard InternalSaveEntry (SREG.CPP)
-int __stdcall SREG_InternalSaveEntry(char * pszSubKey, LPCSTR szValueName, uint32_t dwType, uint8_t * pbData, uint32_t dwDataLen, uint8_t byFlags);
 // @oracle Storm PPC export table, Mac PPC 1.10b Storm: "SRegDeleteValue"
 // @wasnamed SSTR_RegistryDeleteKey
 // @basis behaviour-confirmed. Public 3-arg entry (keyname, valuename, flags): validates args, SetLastError(0x57), then calls the internal worker at 00414990 which does RegDeleteValueA on HKCU and/or HKLM. It deletes a VALUE, not a key. SRegDeleteKey is in the real API but is not linked into 1.14d: no RegDeleteKeyA call site exists.

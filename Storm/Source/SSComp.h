@@ -129,10 +129,6 @@ namespace Storm::Source::SSComp {
 void __fastcall BITSTREAM_WriteBits(struct D2BitStreamWriterStrc * pBitStream, int32_t nBitsValue, int32_t nBitCount);
 void __fastcall BITSTREAM_Flush(struct D2BitStreamWriterStrc * pBitStream);
 void __fastcall BITSTREAM_WriteLiteralByte(int32_t pHuffState, int32_t pBitStream, int32_t nSymbol);
-void SCOMP_SelectADPCMParams(uint8_t * pnBitsPerSample, uint32_t nChannels, uint32_t * pnStepShift);
-// Encodes PCM audio samples to ADPCM format with dynamic bit rate adjustment
-uint32_t __stdcall SCOMP_ADPCMEncode(uint32_t nMaxOutSize, short * pInSamples, uint32_t nInSize, uint32_t nChannels, uint8_t nBitsPerSample, short * pOutBuffer);
-short * __stdcall SCOMP_ADPCMDecode(short * pOut, uint32_t nOutSize, int32_t pIn, uint32_t nChannels, int32_t nInSize);
 // @blizzard PkwareBufferRead (SCOMP.CPP)
 uint32_t SCOMP_PkwareBufferRead(void * pDst, uint32_t * pnReqSize, struct PKWARE_STREAM * pStream);
 // @blizzard PkwareBufferWrite (SCOMP.CPP)
@@ -147,15 +143,7 @@ void __fastcall SCOMP_PkwareDecompress(void * pOutBuf, uint32_t * pdwOutLength, 
 void __fastcall SCOMP_ArenaAlloc(int * pArenaState, int32_t nItems, int32_t nItemSize);
 // @sourcefile .\SOURCE\SCOMP.CPP
 void __fastcall SCOMP_ArenaFree(int32_t pArenaState, void * pBlock);
-int __stdcall SCOMP_ZlibCompress(uint8_t * pSrc, uint32_t nSrcLen, uint32_t nLevel, uint32_t * pnOutLen);
 void __fastcall SCOMP_ZlibCompressWithLevel(uint8_t * pDst, uint32_t * pnDstLen, uint32_t pSrc, uint32_t nSrcLen, uint32_t * pUserData, int32_t nLevel);
-// @wasnamed SCOMP_Bzip2Decompress - one name on two different functions.
-// @evidence Worker CALLed from 0041e340; the two are a wrapper/worker pair, not duplicates.
-// @caveat BOTH bodies are zlib (ZLIB_InflateInit / Inflate / InflateEnd, version string "1.1.3"), not
-// bzip2, so the whole pair may be misnamed. What would
-// settle it is the SCompDecompress method-table entry that points at 0041e340 and the compression id
-// it sits under.
-void __stdcall SCOMP_InflateZlibStackArena(uint8_t * pSrc, uint32_t nSrcLen, uint32_t * pnOutLen);
 void __fastcall SCOMP_Bzip2Decompress(uint8_t * pDst, uint32_t * pnDstLen, uint32_t pSrc, uint32_t nSrcLen, uint32_t pUserData);
 // @blizzard AdpcmMonoCompress (SCOMP.CPP)
 void __fastcall SCOMP_AdpcmMonoCompress(short * pDst, uint32_t * pnDstLen, short * pSrc, uint32_t nSrcLen, uint32_t * pUserData, uint32_t nBitsPerSample);
@@ -165,10 +153,6 @@ void __fastcall SCOMP_AdpcmMonoDecompress(short * pDst, short * * pnDstLen, int3
 void __fastcall SCOMP_AdpcmStereoCompress(short * pDst, uint32_t * pnDstLen, short * pSrc, uint32_t nSrcLen, uint32_t * pUserData, uint32_t nBitsPerSample);
 // @blizzard AdpcmStereoDecompress (SCOMP.CPP)
 void __fastcall SCOMP_AdpcmStereoDecompress(short * pDst, short * * pnDstLen, int32_t pSrc, int32_t nSrcLen, uint32_t pUserData);
-// @sourcefile .\SOURCE\SCOMP.CPP
-uint32_t * SCOMP_AcquireTempBuffer(uint32_t nSize, int32_t * pbShared);
-// @sourcefile .\SOURCE\SCOMP.CPP
-void __stdcall SCOMP_ReleaseTempBuffer(int32_t bShared, void * pBuf);
 // @oracle Storm PPC export table, Mac PPC 1.10b Storm: "SCompCompress". SComp exports exactly two symbols, SCompCompress and SCompDecompress.
 // @wasnamed SCOMP_Compress
 // @basis behaviour-confirmed. (dst, pdstlen, src, srclen, methodmask, level, userdata). Counts the set bits of the method mask, rejects any bit outside the supported set (mask & 0xffffff34), walks the codec dispatch table paSCompCompressCodecTable forward applying each selected codec, ping-pongs between the destination and a scratch buffer from SCOMP_AcquireTempBuffer, drops any codec that failed to shrink the data, and writes the surviving method mask as the FIRST OUTPUT BYTE - the byte SCompDecompress reads back.
@@ -191,15 +175,6 @@ int __fastcall COMPRESS_EncodeBuffer(int32_t pBitStream, uint8_t * pbSrc, int32_
 void __fastcall SCOMP_HuffmanCompress(uint8_t * pBitStreamCtx, uint32_t * pnBytesWritten, uint8_t * pbSrc, int32_t nSrcLen, uint8_t * pbTableSel, uint32_t dwFlags);
 // @blizzard HuffmanDecompress (SCOMP.CPP)
 void __fastcall SCOMP_HuffmanDecompress(uint8_t * pDst, int * pnDstSize, uint32_t * pBitStreamCtx, uint32_t dwFlags, uint32_t dwParam);
-// @blizzard FlushLog (SLOG.CPP)
-void SLOG_FlushLog(struct D2SLogStrc * pLog);
-void SLOG_OutputIndent(struct D2SLogStrc * pLog);
-// @blizzard OutputReturn (SLOG.CPP)
-void SLOG_OutputReturn(struct D2SLogStrc * pLog);
-// @blizzard OutputTime (SLOG.CPP)
-void __stdcall SLOG_OutputTime(int32_t bHasData, struct D2SLogStrc * pLog);
-// @blizzard UnlockDeleteLog (SLOG.CPP)
-void SLOG_UnlockDeleteLog(uint32_t dwUnused, LPVOID pTarget, int32_t nSlot);
 // @blizzard UnlockLog (SLOG.CPP)
 void SLOG_UnlockLog(int32_t nParam);
 // @blizzard SLogClose (SLOG.CPP)

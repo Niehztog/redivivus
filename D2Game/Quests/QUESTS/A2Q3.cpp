@@ -165,7 +165,7 @@ BOOL __fastcall Q11_SendDarknessPacket(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
     #pragma pack(pop)
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 10, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    uint8_t aQuestStatePacket[8];
+    struct { uint8_t e0, e1, e2, e3, e4, e5, e6, e7; } aQuestStatePacket;
     D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q3.cpp", 0x142);
     __frame0.nActNo = GAME::Clients::GetAct(pClient);
     if (__frame0.nActNo != 1) {
@@ -176,13 +176,13 @@ BOOL __fastcall Q11_SendDarknessPacket(::SGAMEDATA * pGame, D2UnitStrc * pUnit, 
     __frame0.nDarknessSubCmd = 5;
     __frame0.nDarknessParam = 0;
     GAME::SCmd::NET_D2GS_SERVER_Send_0x53_ACTTIMEOFDAY(pClient, (D2GSPacketSrv0x53*)&__frame0.byCmd);
-    aQuestStatePacket[4] = 0;
-    aQuestStatePacket[5] = 0;
-    aQuestStatePacket[0] = 0x5d;
-    aQuestStatePacket[1] = 10;
-    aQuestStatePacket[2] = 0x10;
-    aQuestStatePacket[3] = 0;
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pClient, aQuestStatePacket);
+    ((uint8_t*)&aQuestStatePacket)[4] = 0;
+    ((uint8_t*)&aQuestStatePacket)[5] = 0;
+    ((uint8_t*)&aQuestStatePacket)[0] = 0x5d;
+    ((uint8_t*)&aQuestStatePacket)[1] = 10;
+    ((uint8_t*)&aQuestStatePacket)[2] = 0x10;
+    ((uint8_t*)&aQuestStatePacket)[3] = 0;
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pClient, ((uint8_t*)&aQuestStatePacket));
     return 0;
 }
 
@@ -288,7 +288,7 @@ void __fastcall Q11_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (bQuestState == 1) {
         return;
       }
-      if (3 < pQuestData->nStateFlag) {
+      if (4 <= pQuestData->nStateFlag) {
         return;
       }
 
@@ -296,7 +296,7 @@ void __fastcall Q11_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (nMessageIndexMaybe == -1) {
         return;
       }
-      if (5 < nMessageIndexMaybe) {
+      if (6 <= nMessageIndexMaybe) {
         return;
       }
     }
@@ -437,20 +437,20 @@ BOOL __fastcall Q11_UpdateQuestRecord(::SGAMEDATA * pGame, D2UnitStrc * pUnit, v
 // Q11_BeginTaintedSun; if it deferred (act not loaded, returns 0) sets the pending flag and sends a 0x5D
 // quest-state packet (quest 10, flag 1) to the interacting client; otherwise sets the darkened flag.
 void __stdcall Q11_OnPlayerInteract(D2QuestDataStrc * pQuestData, D2UnitStrc * pUnit) {
-    uint8_t abyQuestStatePacket[8];
+    struct { uint8_t e0, e1, e2, e3, e4, e5, e6, e7; } abyQuestStatePacket;
     D2QuestDataA2Q3Strc* pA2Q3Data = pQuestData->pQuestSpecificData.pA2Q3;
     bool bTaintedSunStarted = (bool)Q11_BeginTaintedSun(pQuestData);
     if (!bTaintedSunStarted) {
       D2ClientStrc* pClient;
       pA2Q3Data->bViperAmuletInitPending = true;
-      abyQuestStatePacket[4] = 0;
-      abyQuestStatePacket[5] = 0;
-      abyQuestStatePacket[0] = 0x5d;
-      abyQuestStatePacket[1] = 10;
-      abyQuestStatePacket[2] = 1;
-      abyQuestStatePacket[3] = 0;
+      ((uint8_t*)&abyQuestStatePacket)[4] = 0;
+      ((uint8_t*)&abyQuestStatePacket)[5] = 0;
+      ((uint8_t*)&abyQuestStatePacket)[0] = 0x5d;
+      ((uint8_t*)&abyQuestStatePacket)[1] = 10;
+      ((uint8_t*)&abyQuestStatePacket)[2] = 1;
+      ((uint8_t*)&abyQuestStatePacket)[3] = 0;
       pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q3.cpp", 0x2e0);
-      GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pClient, abyQuestStatePacket);
+      GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pClient, ((uint8_t*)&abyQuestStatePacket));
       return;
     }
 
@@ -822,7 +822,7 @@ void __fastcall Q11_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
           return;
         }
       }
-    } else if (nMsgIndex - 0x16a < 0xb) {
+    } else if (nMsgIndex - 0x16a <= 0xa) {
       pGame = pQuestArgs->pGame;
       pPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
       pBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];

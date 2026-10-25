@@ -23,7 +23,7 @@ int32_t __fastcall D2ApplyPercent(int32_t nValue, int32_t nPercent, uint32_t n10
       return nValue / (int)n100Percent * nPercent;
     }
 
-    int64_t qwResult = __alldiv((uint32_t)((int64_t)nValue * (int64_t)nPercent), (uint32_t)((uint64_t)((int64_t)nValue * (int64_t)nPercent) >> 0x20), n100Percent, (int)n100Percent >> 0x1f);
+    int64_t qwResult = (int64_t)((int64_t)nValue * (int64_t)nPercent) / (int)n100Percent;
     return (int32_t)qwResult;
 }
 

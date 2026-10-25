@@ -70,12 +70,12 @@ void __fastcall TXT_LoadArenaTxt(D2PoolManagerStrc * pMemory) {
 }
 
 D2ArenaTxt * __fastcall GetArenaTxtRecord(int32_t nArenaType) {
-    if (0 >= nArenaType) {
-      return sgpTxtArena + nArenaType;
+    if (!(1 > nArenaType)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x41);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x41);
-    exit(-1);
+    return sgpTxtArena + nArenaType;
     return sgpTxtArena + nArenaType;
 }
 
@@ -89,7 +89,7 @@ void __stdcall FreeArenaTxt() {
 // (halts at line 0x5c otherwise).
 //   pCharTemplateTxt: Stack[0x4]:4 - first D2CharTemplateTxt record (stride 0xf0, level byte at +0x1f)
 //   nCount: EDI:4 (int32_t)
-void __stdcall TXT_BuildCharTemplateLevelIndex(D2CharTemplateTxt * pCharTemplateTxt, int32_t nCount) {
+static void __stdcall TXT_BuildCharTemplateLevelIndex(D2CharTemplateTxt * pCharTemplateTxt, int32_t nCount) {
     memset(sgCharTemplateLevelIndex, 0, 0x100);
     uint32_t nPrevLevel = 0;
     int i = 0;

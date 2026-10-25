@@ -293,7 +293,6 @@ namespace D2Common::Unit {
 
 // Function declarations
 // Validates that pUnit's current tile coordinates lie within pRoom's bounds and that pUnit is in the room's unit list. Returns 1 if position is valid and unit is found in list. If coordinates are out of bounds or the unit is absent from the list, halts with a fatal error (nParam=1) or returns 0 (nParam=0). Handles both dynamic-path (monsters/players) and static-path (objects/items) coordinate sources.
-BOOL __stdcall DRLGROOM_ValidateUnitPosition(int32_t nParam, struct D2RoomStrc * pRoom, struct D2UnitStrc * pUnit);
 void __stdcall ROOM_LinkUnitToUpdateList(struct D2UnitStrc * pUnit);
 // Sorts the room's unit linked list (pRoom->pUnitList via pRoomNext) in ascending order of target Y coordinate using an in-place bubble sort. Used to establish rendering/update draw order for units in a room tile.
 void __stdcall SortUnitListByTargetY(struct D2RoomStrc * pRoom);

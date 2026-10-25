@@ -64,7 +64,6 @@ int * __stdcall GetTargetGUIDFromDynamicUnit(struct D2UnitStrc * pUnit);
 void __stdcall SetTargetUnitForPlayerOrMonster(struct D2UnitStrc * pUnit, struct D2UnitStrc * pTargetUnit);
 void __stdcall SetAnimSpeedForMonster(struct D2UnitStrc * pUnit);
 void __stdcall GetRunAndWalkVelocityForPlayer(int32_t nUnused, int32_t ePlayerClassId, int * pWalkVelocity, int * pRunVelocity);
-void AddWalkVelocityStatIfExistToPlayer(struct D2UnitStrc * pUnit, int32_t ePlayerClassId);
 void __stdcall SetAnimData(struct D2UnitStrc * pUnit, int32_t nUnitType, int32_t nClassId, int32_t nMode);
 uint32_t __stdcall NeedsRoomUpdate(struct D2UnitStrc * pUnit);
 void __stdcall ChangeAnimMode(struct D2UnitStrc * pUnit, int32_t nMode);
@@ -74,24 +73,14 @@ int32_t __stdcall GetInventoryPage(struct D2UnitStrc * pUnit, int32_t nInvPage, 
 struct D2LightMapStrc * __stdcall GetLightMap(struct D2UnitStrc * pUnit);
 int32_t __stdcall GetAnimOrSeqMode(struct D2UnitStrc * pUnit);
 void __stdcall SetAnimOrSeqMode(struct D2UnitStrc * pUnit, int32_t nAnimMode);
-int32_t __stdcall UpdateSequenceMode(struct D2UnitStrc * pUnit, uint32_t nSeqMode);
 void __stdcall InitializeSequence(struct D2UnitStrc * pUnit);
 void __stdcall SetSequenceFrame(struct D2UnitStrc * pUnit, int32_t nSequenceFrame);
 void __stdcall UpdateFrame(struct D2UnitStrc * pUnit);
 void __stdcall SetFrameNonRate(struct D2UnitStrc * pUnit, int32_t nRate, int32_t nFailRate);
-int32_t UNITS_GetBaseWalkVelocity(eD2UnitType eUnitType, int32_t nClassId);
-int32_t UNITS_GetAnimFrameTime(eD2UnitType eUnitType, int32_t nClassId, int32_t nAnimMode);
 uint8_t * __stdcall UNITS_GetAnimTableEntry(int32_t nClassId, int32_t nAnimMode);
-// Returns non-zero if the given animation mode is playable for the unit. For players, looks up the mode in gaPlayerAnimModeCheckTable; for monsters, uses gaAnimTableClassic/Expansion based on class ID. NPCs only allow modes 2 and 15. Also checks whether the current skill has the relevant skill-flag set (flag 0x1 with no 0x1000 override).
-BOOL __stdcall CanPlayAnimMode(struct D2UnitStrc * pUnit, int32_t nClassId, eD2UnitType eUnitType, int32_t nAnimMode);
 // Returns non-zero if the unit's current animation mode triggers at frame-end. Checks offset [3] of the anim-table entry for unconditional frame-end; if offset [2] is set, also checks the current skill's SkillsTxt nFlags bit 3 (animate-at-end flag). Dispatches per unit type (player vs monster) to the appropriate table (gaPlayerAnimModeCheckTable / gaAnimTableClassic / gaAnimTableExpansion).
 // @sourcefile .\UNITS\Units.cpp
 uint32_t __fastcall UNITS_CheckAnimateAtFrameEnd(int32_t nAnimMode, eD2UnitType eUnitType, struct D2UnitStrc * pUnit, int32_t nClassId);
-int __stdcall UNITS_GetAnimFrameSkip(int32_t nAnimMode, int32_t nParam, eD2UnitType eUnitType);
-// @sourcefile .\UNITS\Units.cpp
-BOOL HasSequenceTransition(struct D2UnitStrc * pUnit, int32_t nAnimMode, eD2UnitType eUnitType);
-// Returns the diminished (soft-capped) value of a unit stat indexed by nParam into gaUnitStatDiminished[]. If the entry has nDiminishedFlag==1 and the raw value is non-zero, applies a harmonic-mean formula: (base * value) / (base + value), producing diminishing returns. Otherwise returns the raw shifted stat value unchanged.
-int32_t GetDiminishedStat(struct D2UnitStrc * pUnit, int32_t nParam);
 void __stdcall SetAnimationSpeed(struct D2UnitStrc * pUnit, int32_t nSpeed);
 uint32_t __stdcall IsAtEndOfFrameCycle(struct D2UnitStrc * pUnit);
 void __stdcall GetShiftedFrameMetrics(struct D2UnitStrc * pUnit, int * pCurrentFrame, int * pFrameCount);
@@ -107,7 +96,6 @@ struct D2ObjectsTxt * __stdcall GetObjectTxtRecordFromObject(struct D2UnitStrc *
 struct D2ShrinesTxt * __stdcall GetShrineTxtRecordFromObject(struct D2UnitStrc * pUnit);
 void __stdcall SetShrineTxtRecordInObjectData(struct D2UnitStrc * pUnit, struct D2ShrinesTxt * pShrinesTxt);
 void __stdcall UpdateDirectionAndSpeed(struct D2UnitStrc * pUnit, int32_t nX, int32_t nY);
-void __stdcall StoreOwnerTypeAndGUID(struct D2UnitStrc * pUnit, eD2UnitType eUnitType, int32_t nOwnerGUID);
 void __stdcall StoreOwnerInfo(struct D2UnitStrc * pUnit, eD2UnitType eUnitType, int32_t nOwnerId);
 void __stdcall StoreOwner(struct D2UnitStrc * pUnit, struct D2UnitStrc * pOwner);
 void __stdcall StoreLastAttacker(struct D2UnitStrc * pUnit, struct D2UnitStrc * pKiller);

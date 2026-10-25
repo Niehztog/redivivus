@@ -19,8 +19,6 @@ void __stdcall RENDERER_SetMode6();
 void __stdcall RENDERER_SetMode7();
 int __stdcall GetCurrentEngine();
 uint32_t __stdcall IsWindowMode();
-// Debug overlay that queries sprite-cache and floor/subtile/sprite-cache render statistics and prints them as formatted strings to the screen via D2GFX_DrawString. Displays tile cache KB size, miss rate, and percent utilization; floor cache, subtile cache, and three sprite cache tiers if their sizes are nonzero.
-void __stdcall DrawRenderStats();
 // Renders the in-game FPS and diagnostic stats overlay (toggled by gbFPSStatsEnabled). Maintains a per-second frame counter (fps global) and a cumulative frame accumulator. When enabled, draws: FPS + skip count, ping, physical/page memory usage (via GlobalMemoryStatus), renderer name (Software/DirectDraw/Glide/OpenGL/Direct3D/RAVE), and optionally COF memory, sprite cache, async file count, and CelData cache stats. Called each render frame from the game rendering path.
 void __stdcall DRAW_UI_FPSStats();
 void __stdcall ResetStats();

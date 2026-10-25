@@ -37,7 +37,6 @@ namespace D2Common::Text {
 
 // Function declarations
 // @sourcefile .\Text\Text.cpp
-void TEXT_FreeAllMessages(struct D2PoolManagerStrc * * ppPoolManager);
 // @sourcefile .\Text\Text.cpp
 void __stdcall STRUCT_FreeTxtMessageForPacket0x27(struct D2GSPacketSrv0x27_TextStrc * pGSPacketSrv0x27_Text);
 // @sourcefile .\Text\Text.cpp
@@ -51,7 +50,6 @@ uint32_t __stdcall OVERHEAD_GetMessageType1(struct D2GSPacketSrv0x27_TextStrc * 
 // @sourcefile .\Text\Text.cpp
 void __stdcall StoreMessages(struct D2GSPacketSrv0x27_TextStrc * pGSPacketSrv0x27_Text, uint8_t * pPacketData);
 int32_t __fastcall TEXT_CompareMessagesByCode(uint16_t * pnCodeA, uint16_t * pnCodeB);
-void __fastcall TEXT_SortMessages(uint16_t nCount, uint16_t * pEntries, pfnTextMessageCompare pfnCompare);
 // @sourcefile .\Text\Text.cpp
 void __stdcall TEXT_SortMessageList(struct D2GSPacketSrv0x27_TextStrc * pGSPacketSrv0x27_Text);
 

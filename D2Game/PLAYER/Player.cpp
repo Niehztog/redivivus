@@ -112,7 +112,7 @@ void __fastcall PLAYER_AllocPlayerInteractedArray(::SGAMEDATA * pGame, D2UnitStr
 }
 
 // @sourcefile .\PLAYER\Player.cpp
-void FreePartyData(::SGAMEDATA * pGame, D2UnitDataPlayerStrc * pPlayerData) {
+static void FreePartyData(::SGAMEDATA * pGame, D2UnitDataPlayerStrc * pPlayerData) {
     D2PartyDataStrc* pMemoryToFree = pPlayerData->pPartyData;
     while (pMemoryToFree) {
       D2PartyDataStrc* pPrevPartyData;
@@ -252,7 +252,7 @@ void __fastcall PLAYER_MoveToLocationWithTimeout(::SGAMEDATA * pGame, D2UnitStrc
 }
 
 // @sourcefile .\PLAYER\Player.cpp
-uint32_t __stdcall PLAYER_PlaceItemInInventory(::SGAMEDATA * pGame, int32_t nParam, D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+static uint32_t __stdcall PLAYER_PlaceItemInInventory(::SGAMEDATA * pGame, int32_t nParam, D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     int32_t nItemGUID;
     int bItemPlaced;
     int32_t bPlaced;
@@ -263,23 +263,23 @@ uint32_t __stdcall PLAYER_PlaceItemInInventory(::SGAMEDATA * pGame, int32_t nPar
       exit(-1);
     } else {
       int32_t nItemX;
-      if (pUnit) {
-        D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pUnit2, INVPAGE_INVENTORY);
-        nErrorLine = pUnit2->nUnitGUID;
-        pInventory = 0;
-        bPlaced = 1;
-        nItemGUID = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit2);
-        nItemX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit2);
-        bItemPlaced = ITEMS::ItemMode::SERVER_ItemToInventory(".\\PLAYER\\Player.cpp", 0xba, pGame, pUnit, nErrorLine, nItemX, nItemGUID, nParam, bPlaced, pInventory);
-        return (uint32_t)(bItemPlaced != 0);
+      if (!pUnit) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb5);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb5);
-      exit(-1);
+      D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pUnit2, INVPAGE_INVENTORY);
+      nErrorLine = pUnit2->nUnitGUID;
+      pInventory = 0;
+      bPlaced = 1;
+      nItemGUID = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit2);
+      nItemX = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit2);
+      bItemPlaced = ITEMS::ItemMode::SERVER_ItemToInventory(".\\PLAYER\\Player.cpp", 0xba, pGame, pUnit, nErrorLine, nItemX, nItemGUID, nParam, bPlaced, pInventory);
+      return (uint32_t)(bItemPlaced != 0);
     }
 }
 
-BOOL __stdcall PLAYER_EquipItemToBodyLoc(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+static BOOL __stdcall PLAYER_EquipItemToBodyLoc(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     eD2BodyLoc eBodyLoc;
     BOOL bEquipResult;
     uint32_t dwEquipResultOut;
@@ -290,17 +290,17 @@ BOOL __stdcall PLAYER_EquipItemToBodyLoc(::SGAMEDATA * pGame, D2UnitStrc * pUnit
       exit(-1);
     } else {
       DWORD nItemGUID_00;
-      if (pUnit) {
-        nItemGUID_00 = pUnit2->nUnitGUID;
-        pResultOut = &dwEquipResultOut;
-        nItemGUID = 1;
-        eBodyLoc = D2Common::ITEMS::Items::GetBodyLocation(pUnit2);
-        bEquipResult = ITEMS::ItemMode::SERVER_EquipItemToBodyLoc(pGame, pUnit, nItemGUID_00, eBodyLoc, nItemGUID, pResultOut);
-        return (uint32_t)(bEquipResult != 0);
+      if (!pUnit) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 199);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 199);
-      exit(-1);
+      nItemGUID_00 = pUnit2->nUnitGUID;
+      pResultOut = &dwEquipResultOut;
+      nItemGUID = 1;
+      eBodyLoc = D2Common::ITEMS::Items::GetBodyLocation(pUnit2);
+      bEquipResult = ITEMS::ItemMode::SERVER_EquipItemToBodyLoc(pGame, pUnit, nItemGUID_00, eBodyLoc, nItemGUID, pResultOut);
+      return (uint32_t)(bEquipResult != 0);
     }
 }
 
@@ -314,21 +314,21 @@ uint32_t __stdcall PLAYER_PlaceItemInBelt(::SGAMEDATA * pGame, int32_t nParam, D
       exit(-1);
     } else {
       DWORD nItemGUID;
-      if (pUnit) {
-        nItemGUID = pUnit2->nUnitGUID;
-        pnBeltSlot = &nParam;
-        dwGUID = nParam;
-        nXPos = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit2);
-        bBeltPlaced = ITEMS::ItemMode::ITEM_TryPlaceInBelt(pGame, pUnit, nItemGUID, nXPos, dwGUID, (uint32_t*)pnBeltSlot);
-        return (uint32_t)(bBeltPlaced != 0);
+      if (!pUnit) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd9);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd9);
-      exit(-1);
+      nItemGUID = pUnit2->nUnitGUID;
+      pnBeltSlot = &nParam;
+      dwGUID = nParam;
+      nXPos = D2Client::Units::GetXPosFromDynamicPathUnit(pUnit2);
+      bBeltPlaced = ITEMS::ItemMode::ITEM_TryPlaceInBelt(pGame, pUnit, nItemGUID, nXPos, dwGUID, (uint32_t*)pnBeltSlot);
+      return (uint32_t)(bBeltPlaced != 0);
     }
 }
 
-D2UnitStrc * __stdcall PLAYER_CreateRewardItemFromTemplate(int32_t nGamePtr, int32_t bNoSkill, int32_t nItemClassId, int32_t pTemplateTxt, D2UnitStrc * pUnit) {
+static D2UnitStrc * __stdcall PLAYER_CreateRewardItemFromTemplate(int32_t nGamePtr, int32_t bNoSkill, int32_t nItemClassId, int32_t pTemplateTxt, D2UnitStrc * pUnit) {
     if (!pUnit) {
       return nullptr;
     }
@@ -365,7 +365,7 @@ D2UnitStrc * __stdcall PLAYER_CreateRewardItemFromTemplate(int32_t nGamePtr, int
 }
 
 // Server-side: grants a class's starting equipment loop from a starter-item template entry (pnParam: item code, body-loc, count byte at +5). For each of count copies it creates the item (PLAYER_CreateRewardItemFromTemplate), flags it ITEMFLAG_BEGINNER and sets its body-loc. Beltable items go to the belt (ITEM_TryPlaceInBelt, fallback to inventory). Non-beltable: if a body-loc is set it equips (PLAYER_EquipItemToBodyLoc, fallback inventory) else places in inventory; then seeds durability (or quantity 250 / charges 100 for bow-quiver ammo). Used during new-character creation. No return value.
-void __fastcall PLAYER_CreateStarterItems(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t eClassId, int32_t nDifficulty, uint32_t * pnParam) {
+static void __fastcall PLAYER_CreateStarterItems(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t eClassId, int32_t nDifficulty, uint32_t * pnParam) {
     // Frame slots -20..-4 are ONE object: &dwBeltSlotOut is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -402,8 +402,51 @@ void __fastcall PLAYER_CreateStarterItems(::SGAMEDATA * pGame, D2UnitStrc * pUni
       D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pNewItem, ITEMFLAG_BEGINNER, 1);
       D2Common::ITEMS::Items::SetBodyLoc(pNewItem, *(eD2BodyLoc*)(pnParam + 1));
       nLine = D2Common::ITEMS::Items::ITEM_GetTxtItemTypes_beltable(pNewItem);
-      if (!nLine) {
-        if ((char)pnParam[1] == '\0') {
+      if (nLine) {
+        if (!pNewItem) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd8);
+          exit(-1);
+        }
+        if (!pUnit) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd9);
+          exit(-1);
+        }
+
+        eItemUnitType = pNewItem->eUnitType;
+        if (eItemUnitType == UNIT_OBJECT || 3 < (int)eItemUnitType && (int)eItemUnitType <= 5) {
+          bIsQuiver = pNewItem->pPath.pStaticPath->nPosX;
+        } else if (!pNewItem->pPath.pDynamicPath) {
+          bIsQuiver = 0;
+        } else {
+          bIsQuiver = D2Common::PATH::DynamicPath::GetXPos(pNewItem->pPath.pDynamicPath);
+        }
+
+        pGameLocal = __frame0.pGameSaved;
+        nBeltResult = ITEMS::ItemMode::ITEM_TryPlaceInBelt(__frame0.pGameSaved, pUnit, pNewItem->nUnitGUID, bIsQuiver, 1, &__frame0.dwBeltSlotOut);
+        if (!nBeltResult) {
+          PLAYER_PlaceItemInInventory(pGameLocal, 1, pUnit, pNewItem);
+        }
+      } else {
+        if ((char)pnParam[1] != '\0') {
+          nBeltResult = PLAYER_EquipItemToBodyLoc(__frame0.pGameSaved, pUnit, pNewItem);
+          if (!nBeltResult) {
+            PLAYER_PlaceItemInInventory(__frame0.pGameSaved, 1, pUnit, pNewItem);
+          }
+
+          bIsQuiver = D2Common::ITEMS::Items::ITEMS_IsA(pNewItem, ITEMTYPE_BowQuiver);
+          nStatSubIndex = 0;
+          if (bIsQuiver) {
+            nLine = 0xfa;
+            set_quiver_quantity:
+            nStatSubIndex = 0;
+            eStatId = UNITSTAT_quantity;
+          } else {
+            nLine = D2Common::Stats::StatsEx::GetTxtMaxDurability(pNewItem);
+            eStatId = UNITSTAT_durability;
+          }
+
+          D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pNewItem, eStatId, nLine, nStatSubIndex);
+        } else {
           PLAYER_PlaceItemInInventory(__frame0.pGameSaved, 1, pUnit, pNewItem);
           bIsQuiver = D2Common::ITEMS::Items::ITEMS_IsA(pNewItem, ITEMTYPE_BowQuiver);
           nLine = 0;
@@ -421,49 +464,6 @@ void __fastcall PLAYER_CreateStarterItems(::SGAMEDATA * pGame, D2UnitStrc * pUni
             nLine = 100;
             goto set_quiver_quantity;
           }
-        } else {
-          nBeltResult = PLAYER_EquipItemToBodyLoc(__frame0.pGameSaved, pUnit, pNewItem);
-          if (!nBeltResult) {
-            PLAYER_PlaceItemInInventory(__frame0.pGameSaved, 1, pUnit, pNewItem);
-          }
-
-          bIsQuiver = D2Common::ITEMS::Items::ITEMS_IsA(pNewItem, ITEMTYPE_BowQuiver);
-          nStatSubIndex = 0;
-          if (!bIsQuiver) {
-            nLine = D2Common::Stats::StatsEx::GetTxtMaxDurability(pNewItem);
-            eStatId = UNITSTAT_durability;
-          } else {
-            nLine = 0xfa;
-            set_quiver_quantity:
-            nStatSubIndex = 0;
-            eStatId = UNITSTAT_quantity;
-          }
-
-          D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pNewItem, eStatId, nLine, nStatSubIndex);
-        }
-      } else {
-        if (!pNewItem) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd8);
-          exit(-1);
-        }
-        if (!pUnit) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd9);
-          exit(-1);
-        }
-
-        eItemUnitType = pNewItem->eUnitType;
-        if (eItemUnitType == UNIT_OBJECT || 3 < (int)eItemUnitType && (int)eItemUnitType < 6) {
-          bIsQuiver = pNewItem->pPath.pStaticPath->nPosX;
-        } else if (!pNewItem->pPath.pDynamicPath) {
-          bIsQuiver = 0;
-        } else {
-          bIsQuiver = D2Common::PATH::DynamicPath::GetXPos(pNewItem->pPath.pDynamicPath);
-        }
-
-        pGameLocal = __frame0.pGameSaved;
-        nBeltResult = ITEMS::ItemMode::ITEM_TryPlaceInBelt(__frame0.pGameSaved, pUnit, pNewItem->nUnitGUID, bIsQuiver, 1, &__frame0.dwBeltSlotOut);
-        if (!nBeltResult) {
-          PLAYER_PlaceItemInInventory(pGameLocal, 1, pUnit, pNewItem);
         }
       }
 
@@ -477,7 +477,7 @@ void __fastcall PLAYER_CreateAllStarterItems(D2UnitStrc * pUnit, ::SGAMEDATA * p
     }
 
     int i = pUnit->nClassId;
-    if (!(-1 < i && i < sgptDataTable->nTxtCharStatsSize)) {
+    if (!(0 <= i && i < sgptDataTable->nTxtCharStatsSize)) {
       return;
     }
 
@@ -683,13 +683,13 @@ void __fastcall PLAYER_SetUniqueId(D2UnitStrc * pUnit, uint32_t dwUniqueId) {
     } else {
       D2UnitDataPlayerStrc* pPlayerData;
       pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-      if (pPlayerData) {
-        pPlayerData->dwUniqueId = dwUniqueId;
-        return;
+      if (!pPlayerData) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x243);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x243);
-      exit(-1);
+      pPlayerData->dwUniqueId = dwUniqueId;
+      return;
     }
 }
 
@@ -700,12 +700,12 @@ uint32_t __fastcall GetPlayerUniqueId(D2UnitStrc * pUnit) {
     } else {
       D2UnitDataPlayerStrc* pPlayerData;
       pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-      if (pPlayerData) {
-        return pPlayerData->dwUniqueId;
+      if (!pPlayerData) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x250);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x250);
-      exit(-1);
+      return pPlayerData->dwUniqueId;
     }
 }
 
@@ -768,7 +768,7 @@ BOOL __fastcall GOLD_DropGoldFromInventory(::SGAMEDATA * pGame, D2UnitStrc * pUn
 
     int i = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
     uint32_t nClampedGold = nGoldAmount;
-    if (!((int)nGoldAmount <= i && -1 < (int)nGoldAmount)) {
+    if (!((int)nGoldAmount <= i && 0 <= (int)nGoldAmount)) {
       return 0;
     }
 
@@ -817,13 +817,7 @@ uint32_t __fastcall CheckItemMovePermission(::SGAMEDATA * pGame, D2UnitStrc * pU
     uint32_t nInteractUnitId;
     eD2UnitType eInteractUnitType;
     BOOL bHasInteraction = UNIT::SUnit::GetInteractInfo(pUnit, &eInteractUnitType, &nInteractUnitId);
-    if (!bHasInteraction) {
-      pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-      if (!pPlayerData->dwTradeTick) {
-        bCanMove = PlayerTrade::PLRTRADE_ValidateAndInitiateTrade(pGame, pUnit, pItem);
-        return bCanMove;
-      }
-    } else {
+    if (bHasInteraction) {
       D2UnitStrc* pInteractUnit;
       pInteractUnit = UNIT::SUnit::FindUnitFromTable(pGame, eInteractUnitType, nInteractUnitId);
       if (pInteractUnit) {
@@ -841,6 +835,12 @@ uint32_t __fastcall CheckItemMovePermission(::SGAMEDATA * pGame, D2UnitStrc * pU
       }
 
       UNIT::SUnit::ClearInteractInfo(pUnit);
+    } else {
+      pPlayerData = D2Common::Units::GetPlayerData(pUnit);
+      if (!pPlayerData->dwTradeTick) {
+        bCanMove = PlayerTrade::PLRTRADE_ValidateAndInitiateTrade(pGame, pUnit, pItem);
+        return bCanMove;
+      }
     }
 
     return 0;
@@ -896,7 +896,7 @@ void __fastcall CountModeZeroDeath(::SGAMEDATA * pGame, D2UnitStrc * pUnit, DWOR
 }
 
 void __fastcall COMMAND_playersX(DWORD count) {
-    if (count >= 9) {
+    if (count > 8) {
       return;
     }
 
@@ -916,7 +916,7 @@ int32_t __fastcall SERVER_GAME_CountPlayers(::SGAMEDATA * pGame) {
 }
 
 // Applies the on-death gold penalty to the dying player pUnit2 (killer = pUnit). Penalty = min(level,20)% of (inventory gold + stash/bank gold). In single-player it is further capped so the player keeps at least level*500. If killed by another player (or a player-owned monster), the lost gold is moved into the bank (clamped to stash limit); otherwise it is dropped on the ground via GOLD_DropGoldFromInventory and inventory gold zeroed. Records the amount in UNITSTAT_goldlost. Note: uses a custom calling convention (pUnit2 in ESI, pGame/pUnit on stack).
-void __stdcall PLAYER_ApplyGoldPenaltyOnDeath(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+static void __stdcall PLAYER_ApplyGoldPenaltyOnDeath(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     uint32_t nStashLimit;
     int nLevel;
     nLevel = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit2, UNITSTAT_level, 0);
@@ -951,12 +951,12 @@ void __stdcall PLAYER_ApplyGoldPenaltyOnDeath(::SGAMEDATA * pGame, D2UnitStrc * 
           nValue = 0;
         }
       }
-      if ((int)nGold < (int)nValue) {
+      if ((int)nValue > (int)nGold) {
         nValue = nGold;
       }
     }
     if (!bKilledByPlayer) {
-      if ((int)nGold < (int)nValue) {
+      if ((int)nValue > (int)nGold) {
         if (pGame->nGameType != SGAMETYPE_SINGLEPLAYER) {
           nTotalGold = nBankGold - nValue + nGold;
           if (!pUnit2) {
@@ -964,7 +964,7 @@ void __stdcall PLAYER_ApplyGoldPenaltyOnDeath(::SGAMEDATA * pGame, D2UnitStrc * 
           }
           if (nTotalGold < 0) {
             nTotalGold = 0;
-          } else if (pUnit2->eUnitType == UNIT_PLAYER && (nGold = D2Common::Units::GetStashGoldLimit(pUnit2) , (int)nGold < nTotalGold)) {
+          } else if (pUnit2->eUnitType == UNIT_PLAYER && (nGold = D2Common::Units::GetStashGoldLimit(pUnit2) , nTotalGold > (int)nGold)) {
             nTotalGold = 0;
           }
 
@@ -1032,7 +1032,7 @@ void __stdcall PLAYER_ApplyGoldPenaltyOnDeath(::SGAMEDATA * pGame, D2UnitStrc * 
 
 // Computes and applies the experience penalty on player death. Reads the difficulty-scaled penalty percentage, calculates the XP range between the player's current and previous level, subtracts the penalty (clamped so XP cannot drop below level floor +1), and calls SetExperience to broadcast the delta to the client.
 // @sourcefile .\PLAYER\Player.cpp
-void __stdcall EXP_ApplyDeathExpPenalty(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
+static void __stdcall EXP_ApplyDeathExpPenalty(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     eD2PlayerClassID _eClassId;
     eD2PlayerClassID eClassId;
     uint32_t nExpForLevel;

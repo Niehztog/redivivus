@@ -51,7 +51,7 @@ void __stdcall D2ProfileDump() {
     do {
       LOGGING_LogLine(1, 2, 1, 0x80000, ".\\Logging\\ProfCore.cpp", 0x54, "FUNCTION: %30s, TIME %12d, COUNT %5d", (D2ProfilingDumpFrequency*)(pLVar1 - 0xd), pLVar1->u.LowPart, *(int*)&pLVar1[1].u);
       pLVar1 += 0xf;
-    } while ((int)pLVar1 < (uintptr_t)((char*)&gaProfilingDumpFrequency + sizeof(gaProfilingDumpFrequency) + 104));
+    } while ((int)pLVar1 < (int)((uintptr_t)((char*)&gaProfilingDumpFrequency + sizeof(gaProfilingDumpFrequency) + 104)));
 }
 
 } // namespace D2Common::Logging::ProfCore

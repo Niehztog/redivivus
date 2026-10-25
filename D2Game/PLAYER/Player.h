@@ -43,8 +43,6 @@ namespace D2Game::PLAYER::Player {
 
 // Function declarations
 void __fastcall PLAYER_AllocPlayerInteractedArray(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-// @sourcefile .\PLAYER\Player.cpp
-void FreePartyData(::SGAMEDATA * pGame, struct D2UnitDataPlayerStrc * pPlayerData);
 void __fastcall PLAYERDATA_FreeInteractions(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 void __fastcall STRUCT_FillPlayerUnit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t dwUnitGUID);
 void PLAYER_FreeAllCorpseUnits(int32_t nParam, ::SGAMEDATA * pGame);
@@ -53,13 +51,7 @@ void __fastcall PLAYER_FreeAllResources(::SGAMEDATA * pGame, struct D2UnitStrc *
 void __fastcall FreePlayers(::SGAMEDATA * pGame);
 void __fastcall PLAYER_ClearTargetIfMatch(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTargetUnit);
 void __fastcall PLAYER_MoveToLocationWithTimeout(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nTargetX, int32_t nTargetY);
-// @sourcefile .\PLAYER\Player.cpp
-uint32_t __stdcall PLAYER_PlaceItemInInventory(::SGAMEDATA * pGame, int32_t nParam, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
-BOOL __stdcall PLAYER_EquipItemToBodyLoc(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 uint32_t __stdcall PLAYER_PlaceItemInBelt(::SGAMEDATA * pGame, int32_t nParam, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
-struct D2UnitStrc * __stdcall PLAYER_CreateRewardItemFromTemplate(int32_t nGamePtr, int32_t bNoSkill, int32_t nItemClassId, int32_t pTemplateTxt, struct D2UnitStrc * pUnit);
-// Server-side: grants a class's starting equipment loop from a starter-item template entry (pnParam: item code, body-loc, count byte at +5). For each of count copies it creates the item (PLAYER_CreateRewardItemFromTemplate), flags it ITEMFLAG_BEGINNER and sets its body-loc. Beltable items go to the belt (ITEM_TryPlaceInBelt, fallback to inventory). Non-beltable: if a body-loc is set it equips (PLAYER_EquipItemToBodyLoc, fallback inventory) else places in inventory; then seeds durability (or quantity 250 / charges 100 for bow-quiver ammo). Used during new-character creation. No return value.
-void __fastcall PLAYER_CreateStarterItems(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t eClassId, int32_t nDifficulty, uint32_t * pnParam);
 void __fastcall PLAYER_CreateAllStarterItems(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, uint32_t dwParam);
 void __fastcall PLAYER_SendAllItemsToClient(struct D2UnitStrc * pUnit, struct D2ClientStrc * pClient);
 int32_t __fastcall GetPlayerTradeTickOrBusy(struct D2UnitStrc * pPlayer);
@@ -91,11 +83,6 @@ int32_t __fastcall PLAYER_CountLivingPlayersInLevel(::SGAMEDATA * pGame, eD2Leve
 void __fastcall CountModeZeroDeath(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, DWORD * pnAlivePlayerCount);
 void __fastcall COMMAND_playersX(DWORD count);
 int32_t __fastcall SERVER_GAME_CountPlayers(::SGAMEDATA * pGame);
-// Applies the on-death gold penalty to the dying player pUnit2 (killer = pUnit). Penalty = min(level,20)% of (inventory gold + stash/bank gold). In single-player it is further capped so the player keeps at least level*500. If killed by another player (or a player-owned monster), the lost gold is moved into the bank (clamped to stash limit); otherwise it is dropped on the ground via GOLD_DropGoldFromInventory and inventory gold zeroed. Records the amount in UNITSTAT_goldlost. Note: uses a custom calling convention (pUnit2 in ESI, pGame/pUnit on stack).
-void __stdcall PLAYER_ApplyGoldPenaltyOnDeath(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
-// Computes and applies the experience penalty on player death. Reads the difficulty-scaled penalty percentage, calculates the XP range between the player's current and previous level, subtracts the penalty (clamped so XP cannot drop below level floor +1), and calls SetExperience to broadcast the delta to the client.
-// @sourcefile .\PLAYER\Player.cpp
-void __stdcall EXP_ApplyDeathExpPenalty(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 void __fastcall PLAYER_HandleDeathPenalties(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pKillerUnit);
 void __fastcall PLAYER_CheckIsHostileToPlayer(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, bool * pbHostile);
 DWORD __fastcall PLAYER_CountPlayersWithFilter(::SGAMEDATA * pGame, int * pnFilter);

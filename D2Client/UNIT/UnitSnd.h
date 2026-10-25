@@ -18,12 +18,7 @@ typedef int eD2UnitType;
 namespace D2Client::UNIT::UnitSnd {
 
 // Function declarations
-DWORD GetSndUnitClassId(struct D2UnitStrc * pUnit);
-eD2UnitType GetSndUnitType(struct D2UnitStrc * pUnit);
-int * GetSndUnitMode(struct D2UnitStrc * pUnit);
-int * UNITSND_GetBaseSoundId(uint32_t nUnitClassId);
 // Returns the D2MonSoundsTxt record for a unit's sound set. For monsters, resolves in priority order: super-unique boss sound override (MonSound), unique/minion UMonSound field, then base MonStats sound. Returns line 0 (silent) if pUnit is null or class ID is out of range.
-struct D2MonSoundsTxt * TxtGetSoundIdLineFromUnit(struct D2UnitStrc * pUnit);
 int __fastcall UNITSND_GetSkillCastSound(struct D2UnitStrc * pUnit, uint32_t nAnimMode);
 uint32_t __fastcall UNITSND_GetSkillStartSound(struct D2UnitStrc * pUnit, uint32_t nAnimMode);
 // Maps a unit's animation/event flag word to a pair of sound ids. Resolves the unit's sound type; for monsters that are critters, returns no sound. The low nibble (nAnimFlags & 0xf) selects a base sound id into *pnSoundIdOut (0 if none); the high nibble (&0xf0) selects a secondary/param sound into *pnParam, with several cases branching on whether a base sound exists and whether the unit is a player/monster (gated by bExcludePlayerMonster). Both outputs default to 0. Halts via ErrorManager if pUnit is null.
@@ -46,22 +41,15 @@ void __stdcall UNITSND_Unused_Placeholder_3(uint8_t bParam, int32_t nParam);
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 uint32_t __stdcall UNITSND_GetSfxMode(struct D2UnitStrc * pUnit);
 void __stdcall UNITSND_Unused_Placeholder_4(uint32_t dwParam, int32_t nParam);
-uint32_t GetSfxTicks(int32_t nParam);
-void __stdcall SetSfxTicks(uint32_t dwParam, struct D2UnitStrc * pUnit);
-uint32_t GetSfxAsyncTicks(int32_t nParam);
-void __stdcall SetSfxAsyncTicks(uint32_t dwParam, int32_t nParam);
 // Returns pUnit's client-side dwSfxStepTicks (+0x84, the field SetSfxStepTicks writes); halts (UnitSnd.cpp line 3303) on NULL.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 uint32_t __stdcall UNITSND_GetSfxStepTicks(struct D2UnitStrc * pUnit);
-void __stdcall SetSfxStepTicks(uint32_t dwParam, int32_t nParam);
 // Returns the dword at pUnit's client-side +0x88 (bHasActiveSound, read as 4 bytes); halts (UnitSnd.cpp line 3325, ptUnit) on NULL.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 BOOL __stdcall UNITSND_HasActiveSound(struct D2UnitStrc * pUnit);
 // Sets pUnit's client-side bHasActiveSound (+0x24 of the client side data, unit +0x88); halts (UnitSnd.cpp line 3336) on a NULL unit.
 // Provenance: asm 004caca0..004cacd0 (pUnit in EAX, value at [EBP+8], RET 4); unreferenced in 1.14d.
 void __stdcall SetHasActiveSound(struct D2UnitStrc * pUnit, BOOL bHasActiveSound);
-int * UNITSND_GetTileDataAtPosition(int32_t nPosX, struct D2RoomStrc * pRoom, int32_t nPosY);
-uint32_t UNITSND_GetGroundMaterialType(int32_t pUnit);
 // Returns the ground material index (1–6) at the unit's current tile position, used to select footstep/ground sounds. Queries the sound environment table for a fallback material, resolves the unit's map coordinates from its path (static or dynamic), then samples tile data from the unit's room and adjacent rooms. Returns 0 if the room is unavailable, the fallback if no tile data is found in any room.
 int32_t __fastcall UNITSND_GetGroundMaterial(struct D2UnitStrc * pUnit);
 // Returns the sound ID for pUnit's footstep given ground material and whether running. For players, indexes gaUnitSoundTableByClassId[classId][10]; for monsters, reads D2MonSoundsTxt.Footstep. Adds a material offset (+0/+4/+8/+0xc/+0x10/+0x14 for materials 1-6) and +0x18 if bIsRunning. Returns 0 for unsupported unit types or missing data.
@@ -71,18 +59,11 @@ struct D2MonSoundsTxt * __fastcall PlayUnitFootstepSound(struct D2UnitStrc * pUn
 void __fastcall UNITSND_StopAllSkillSounds(struct D2UnitStrc * pUnit);
 // Iterates the unit's active SFX channel list and stops or gracefully fades any channel whose base sound matches the unit's neutral (idle ambient) sound. bForceStop=1 kills the channel immediately; bForceStop=0 fades it. Halts with a fatal error if pUnit is null.
 void __stdcall UNITSND_UpdateNeutralSound(struct D2UnitStrc * pUnit, int32_t bForceStop);
-void __stdcall UNITSND_StopAllCombatSounds(struct D2UnitStrc * pUnit);
 eD2Sounds __stdcall UNITSND_GetModeChangeSound(int32_t nPrevMode, struct D2UnitStrc * pUnit, int32_t nNewMode);
-// Returns the eD2Sounds special-sound override for a unit in a given animation mode (0–7). Looks up the unit's sound table by class ID; returns SOUND_NONE if no override is configured or class ID / mode is out of range. Special-cases class 0x3D via a separate gaUnitSoundTableSpecialMode table.
-eD2Sounds UNITSND_GetSpecialSoundByMode(struct D2UnitStrc * pUnit, int32_t nMode);
 // Client-side sound updater invoked when a unit's animation mode changes; plays the appropriate sfx and tracks the last-played sfx mode in the unit's client-side data. For OBJECT units, handles a special looping ambient (classId 0x1A, e.g. a fountain) when the local player is within 0x14 tiles, then plays the per-mode special/mode-change sounds (UNITSND_GetSpecialSoundByMode / UNITSND_GetModeChangeSound) unless already current, and caches nSfxMode/bUnitSfx. For MONSTER units in walk/run/death-type modes (or special-cased classes 0x6E/0x88), plays the monster's idle/neutral chatter (MonSounds.Neutral) subject to NeuTime/global cooldowns, not-in-town, within ~700 distance, and a 1-in-16 random roll, then reseeds the cooldown.
 void __fastcall UpdateUnitSfxOnModeChange(struct D2UnitStrc * pUnit);
 // Plays the attack sound(s) for a unit's attack. For players: looks up the hit-class sound in gaUnitSoundTable and plays it (delay only when bPlayDelayed), recording the sfx tick into the unit's client-side data. For monsters: reads MonSounds.txt (Attack1/Attack2 + delay/probability for nAttackMode==4 vs other), rolls Att*Prb to decide whether to play the attack vocal (respecting a sound-channel cooldown), then always plays the corresponding Weapon1/Weapon2 sound scaled by the unit's anim speed and sets its channel priority by Wea*Vol. No-op for other unit types.
 void __fastcall UNITSND_PlayAttackSound(struct D2UnitStrc * pUnit, int32_t nAttackMode, uint32_t bPlayDelayed);
-void UNITSND_PlayGetHitSound(struct D2UnitStrc * pUnit);
-// Plays the appropriate skill sound for a monster unit based on its animation mode (Skill1–Skill4). Looks up the sound ID from MonSounds.txt via TxtGetSoundIdLineFromUnit. For sound ID 0 (SOUND_ALKOR_ACT3_GOSSIP_4 used as sentinel for throttled sounds), enforces a 25-frame cooldown via pUnit->dwSfxTicks. Calls SOUND_PlaySound and updates gdwSoundChannelIndex on success.
-void UNITSND_PlayMonsterSkillSound(struct D2UnitStrc * pUnit, eD2MonsterAnimMode nAnimMode);
-void UNITSND_PlayFleeSound(struct D2UnitStrc * pUnit);
 // Plays the appropriate player/character sound effect for a given animation-mode/event code (nAnimModeParam, low 16 bits). Looks up the per-class sound table (gaUnitSoundTableByClassId indexed by nClassId 0-6); aborts loudly for invalid units. Maps the code into one of three ranges: anim modes 0x19-0x20 (footstep/run sounds gated by channel availability), special scheduled sequences 0x21-0x53 (WALL2_ScheduleSoundSequence for timed multi-part sounds), and small codes 1-0x18 (cursor/UI/item sounds and the class voice/attack sounds from the table, with duplicate-suppression within ~75ms via gnSoundLastPlayerAnimModeTime). Plays via SOUND_PlaySound and routes the result to overhead-text display. Skips if the local player is dead.
 void __fastcall UNITSND_PlayPlayerSound(struct D2UnitStrc * pUnit, uint32_t nAnimModeParam);
 // Client-side dispatcher that plays a contextual voice/ambience sound for a unit (mercenary/NPC/player) identified by GUID+type. Switches on a sound command (low 16 bits): quest-instruction lines, skill cast sound (from the unit's modifier-skill state via STATE_evade statlist), find-item/guardian/jade barks, taunt (from MonSounds.txt), flee sound, NPC greeting (cmd 0x12, SOUND_SelectNpcGreetingSound), durability-break cursor sound, and class-specific (Necromancer/other 0x10f) action grunts whose sound id is then surfaced as overhead text. Falls through to UNITSND_PlayPlayerSound for player units. No-op if the unit can't be resolved.
@@ -92,8 +73,6 @@ void __fastcall MuteOrUnmuteUnitSounds(struct D2UnitStrc * pUnit, int32_t nMuteD
 // Client-side ambient/level music updater: gets the local player's current room and level id, and if that level changed since the last call (geLastProcessedAmbientMusicLevelId) and hasn't already been played, scans the global ambient-music level table (gnAmbientMusicUpdateFrame) for the entry whose level list contains the current level. Marks the matched levels as played, checks an optional quest-availability gate, and—if enough ticks elapsed since the player's last SFX and no music is currently playing—plays the entry's player sound id (offset +0x2c). No return.
 void __stdcall SOUND_UpdateAmbientMusic();
 void __fastcall PlayUnitInitSound(struct D2UnitStrc * pUnit);
-// Plays the sound effect(s) triggered when a unit (player or monster) changes animation mode (nMode). Skips for invisible monsters. Resolves and plays the base mode-change sound(s) via UNITSND_ResolveSoundFromFlags + SOUND_PlaySound, boosting channel priority to 0xFF for the local player. On mode 0 for monsters it stops/mutes combat sounds. Skips further sounds while frozen or when the unit's last-hit class nibble == 0xA0. For monsters, looks up the MonSounds.txt row and plays the Hit (modes 3/0xD) or Death sound with its delay (special-cases goatman hit chaining); for players it plays from the class base-sound table (modes 4/0x13 use entry[0] else entry[1]). Finally records the current client tick into the unit's dwSfxTicks and the global gdwSoundChannelIndex. Client-side audio; custom register args (pUnit@EAX, nMode on stack).
-void __stdcall UNITSND_PlayModeChangeSound(int32_t nMode, struct D2UnitStrc * pUnit);
 // Dispatches the appropriate sound event when a unit changes animation mode. For players: plays mode-change, attack, or get-hit sounds keyed on mode and class (e.g. Druid kick at mode 0xF, Assassin at 0x10). For monsters: applies MonSounds CvtMo/CvtTgt remapping, then plays mode-change, attack, skill, or stop-combat sound. nMode==0 uses the unit's current mode.
 void __fastcall UNITSND_DispatchModeChangeSound(struct D2UnitStrc * pUnit, int32_t pnParam, int32_t nMode);
 

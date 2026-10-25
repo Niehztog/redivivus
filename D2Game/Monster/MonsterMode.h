@@ -21,8 +21,6 @@ void __stdcall MONSTERMODE_ConsumeStoredPosition(int * pnParam1, int * pnParam2,
 void __fastcall ResetEngagedCombatAndStats(struct D2UnitStrc * pUnit);
 void __fastcall MONSTERMODE_GetStoredPosition(int32_t pMonData, int32_t * pOutStoredX, int32_t * pOutStoredY, uint8_t * pOutStoredFlags);
 void __fastcall SetCombatAndMonStats(struct D2MonsterPathParamStrc * pPathParam, int32_t nPathType, int32_t nVelocity, uint8_t nSteps);
-// Initiates pathfinding for a monster along ePathType with nDistance as the step limit. Detects target-change by comparing current dynamic-path target/coords to pPathParam's cached values and resets the cache on mismatch. Calls PATH_CalculatePath; if no path points result, retries with fallback path type PATHTYPE_TOWARD_FALLBACK for movement types. Marks unit for update and returns the effective path type used.
-eD2PathTypes __stdcall GetPathCount(eD2PathTypes ePathType, uint8_t nDistance, struct D2UnitStrc * pUnit, struct D2MonsterPathParamStrc * pPathParam);
 // @sourcefile .\MONSTER\MonsterMode.cpp
 void MONSTER_SetVelocityPercent(struct D2MonsterPathParamStrc * pPathParam, struct D2UnitStrc * pUnit);
 // Updates per-game path-use counters (pGame->nPathCount[n] and nPathCountCount) after resolving the effective path type and velocity from pPathParam overrides. Calls GetPathCount to compute the path, sets nDistanceToTarget=10 if a target unit exists and the path succeeded, resets pPathParam combat/stat fields. Central accounting point for monster movement pathfinding statistics.

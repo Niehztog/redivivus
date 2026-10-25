@@ -27,8 +27,6 @@ int __fastcall SOUNDHDR_GetSoundField0x60(int32_t nSoundId);
 uint8_t __fastcall SOUNDHDR_GetSoundGroupSize(int32_t nSoundId);
 uint32_t __fastcall SOUNDHDR_GetSoundLoopFlag(int32_t nSoundId);
 struct D2SoundEnvironTxt * __fastcall GetSoundEnvironLine(int32_t nSoundEnviron);
-// @sourcefile .\Sound\SoundHdr.cpp
-void __stdcall TXT_AllocTxt_sounds_soundenviron();
 void __fastcall SOUNDHDR_Init(uint32_t bBackgroundActive);
 void __fastcall SOUNDHDR_AdjustReferenceCount(int32_t nSoundId, int32_t nDelta);
 void __fastcall SOUNDHDR_ClearReferenceCounts(eD2Sounds eSound);

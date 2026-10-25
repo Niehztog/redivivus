@@ -73,13 +73,11 @@ int32_t __fastcall inflateInit2_(z_stream * pStream, uint32_t nWindowBits, char 
 int __fastcall inflateInit_(z_stream * pStream, char * szVersion, int32_t nStreamSize);
 uint32_t __fastcall inflatePrime(z_stream * pStream, int32_t nBits, uint32_t nValue);
 void __fastcall fixedtables(inflate_state * state);
-BOOL __stdcall updatewindow(uint32_t nCopy, uint8_t * pEnd, z_stream * pStream);
 int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush);
 int __fastcall inflateEnd(z_stream * pStream);
 uint32_t __fastcall inflateGetDictionary(z_stream * pStream, void * pDictionary, uint32_t * pnDictLength);
 uint32_t __fastcall inflateSetDictionary(z_stream * pStream, uint8_t * pDictionary, uint32_t nDictLength);
 int __fastcall inflateGetHeader(z_stream * pStream, gz_header * pHead);
-uint32_t __stdcall syncsearch(uint32_t * pnMatchState, uint32_t nLen, uint8_t * pBuf);
 uint32_t __fastcall inflateSync(z_stream * pStream);
 int __fastcall inflateSyncPoint(z_stream * pStream);
 uint32_t __fastcall inflateCopy(z_stream * pDestStream, z_stream * pSrcStream);

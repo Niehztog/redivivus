@@ -19,7 +19,7 @@
 namespace D2Common::Drlg::OutWild {
 
 // Spawns outdoor level border presets (town transitions, caves, vertical dividers) for pLevel based on wilderness flags. Handles the central column divider (dwFlags bit 4), the four cardinal border exits (bits 7-10), and the mandatory town wayback preset (0x33/preset 15). Aborts with an unrecoverable error if the wayback preset fails to place. Skips level 0x27 (Harrogath interior).
-void SpawnTownTransitionsAndCaves(D2DrlgLevelStrc * pLevel) {
+static void SpawnTownTransitionsAndCaves(D2DrlgLevelStrc * pLevel) {
     D2DrlgLevelStrc* pLinkedLevel;
     int nMidColumn;
     if (pLevel->eD2LevelId == 0x27) {
@@ -72,7 +72,7 @@ void __fastcall InitAct1OutdoorLevel(D2DrlgLevelStrc * pLevel) {
 
     OutPlace::SetOutGridLinkFlags(pLevel);
     OutPlace::PlaceAct1245OutdoorBorders(pLevel);
-    if (1 < pLevel->eD2LevelId && pLevel->eD2LevelId < 8) {
+    if (2 <= pLevel->eD2LevelId && pLevel->eD2LevelId <= 7) {
       Outdoors::AddAct124SecondaryBorder(pLevel, 0, 4);
       DRLGOUTROOM_FillBorderCornersAndPresets(pLevel);
       Outdoors::AddAct124SecondaryBorder(pLevel, 1, 4);
@@ -87,10 +87,10 @@ void __fastcall InitAct1OutdoorLevel(D2DrlgLevelStrc * pLevel) {
       Outdoors::AddAct124SecondaryBorder(pLevel, 2, 4);
       Outdoors::AddAct124SecondaryBorder(pLevel, 3, 4);
     }
-    if (2 < pLevel->eD2LevelId && pLevel->eD2LevelId < 7) {
+    if (3 <= pLevel->eD2LevelId && pLevel->eD2LevelId <= 6) {
       Outdoors::SpawnAct12Waypoint(pLevel);
     }
-    if (1 < pLevel->eD2LevelId && pLevel->eD2LevelId < 8) {
+    if (2 <= pLevel->eD2LevelId && pLevel->eD2LevelId <= 7) {
       Outdoors::SpawnAct12Shrines(pLevel, 5);
     }
 

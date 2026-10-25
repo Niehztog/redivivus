@@ -109,30 +109,12 @@ namespace D2Client::Warden {
 // Function declarations
 void __fastcall WARDEN_RC4Decrypt(struct D2RC4StateStrc * pState, int32_t pData, uint32_t nLen);
 uint32_t __stdcall WARDEN_CheckSignatureMagic(int32_t nDataLen, uint32_t nTotalLen, int32_t pBuffer, int * pnSigOffset);
-void __stdcall WARDEN_ComputeModuleHash(char * szModuleName, int32_t pHashOut, uint32_t nSplitOffset, uint32_t nTotalLen, uint8_t * pModuleData);
-//   pModulus: Stack[0xc]:4 (void *) - nKeySize bytes
-//   pExponent: Stack[0x10]:4 (void *)
-//   nExponentLen: Stack[0x14]:4 (uint32_t)
-//   nSigDataLen: Stack[0x18]:4 (uint32_t)
-//   nTotalLen: EAX:4 (uint32_t)
-// @sourcefile .\WARDEN\WardenClient.cpp
-bool __stdcall WARDEN_VerifyModuleSignature(size_t nKeySize, char * szModuleName, int32_t pData, void * pModulus, void * pExponent, uint32_t nExponentLen, uint32_t nSigDataLen, uint32_t nTotalLen);
 // @sourcefile .\WARDEN\WardenClient.cpp
 void __fastcall WARDEN_CbAllocModuleStruct(uint32_t nParam);
 // @sourcefile .\WARDEN\WardenClient.cpp
 void __fastcall WARDEN_CbFreeModuleStruct(void * pParam);
 // @sourcefile .\WARDEN\WardenClient.cpp
 LPVOID * __fastcall WARDEN_DestroyModuleObject(uint8_t bFreeStruct, LPVOID * ppModule);
-// @sourcefile .\WARDEN\WardenClient.cpp
-BOOL __stdcall WARDEN_DecryptAndLoadModule(void * pSrcData, void * pRc4Key, uint32_t nSize);
-// Loads the Warden module whose 16-byte hash is pModuleHash (EBX). If it equals
-// gabWardenEmbeddedModuleHash (SSYSTEM_MemCompare, 0x10 bytes) the embedded copy gaWardenModuleLoadData
-// (0x12b2 bytes) is decrypted with gabWardenModuleRc4Key and loaded. Otherwise the hash is formatted as
-// 32 hex digits, the BNet client callback pfnCacheReadData fetches that cached module, and it is
-// decrypted with pRc4Key, loaded and freed with pfnCacheFreeMem. Returns the load result, 0 if the
-// module is not cached.
-// Provenance: 1.14d asm 0047fee0 (callers 004803e4 MOV EBX,0x6d8768 and 00480027 MOV EBX,[EBP+8]).
-BOOL __stdcall WARDEN_ResolveAndLoadModule(void * pRc4Key, uint8_t * pModuleHash);
 uint32_t __stdcall WARDEN_DownloadModule(char * dwParam1, void * dwParam2, uint32_t pModuleRequest);
 void SendPacket(::WardenClient * pThis, void * pData, uint32_t nLen);
 bool CheckModule(::WardenClient * pThis, uint8_t * pModuleHash, void * pRc4Key);
@@ -147,14 +129,12 @@ void SetRC4Data(::WardenClient * pThis, void * pData, uint32_t nSize);
 bool GetRC4Data(::WardenClient * pThis, void * pDest, uint32_t * pnSize);
 ::WardenClient * Constructor(::WardenClient * pThis);
 // @sourcefile .\WARDEN\WardenClient.cpp
-void __stdcall WARDEN_UnloadActiveModule();
-// @sourcefile .\WARDEN\WardenClient.cpp
 void __fastcall WARDEN_ActivatePendingModule(uint32_t dwModuleParam);
 void __fastcall WARDEN_HandleServerPacket(void * pPacket, uint32_t nPacketLen);
 void __fastcall WARDEN_Tick(uint32_t dwTickArg);
 // @sourcefile .\WARDEN\WardenClient.cpp
 void __stdcall WARDEN_Cleanup();
-void __fastcall WARDEN_Initialize(uint32_t dwModuleParam);
+int __fastcall WARDEN_Initialize(uint32_t dwModuleParam);
 void __fastcall WARDEN_SetGlobalFlag(uint32_t dwParam);
 void __fastcall WARDEN_FreeModuleLibraries(LPVOID * ppParam);
 

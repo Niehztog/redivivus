@@ -30,15 +30,6 @@ void __fastcall Q09_AICallback_GreaterMummy(::SGAMEDATA * pGame, struct D2UnitSt
 // internal quest-data is absent/uninitialized OR its nStateFlag==5 (fully done).
 // Gate used so The Horadric Staff dialog/flow only proceeds once Radament is dealt with.
 bool __fastcall Q10_IsRadamentCompleted(::SGAMEDATA * pGame);
-// Q10_CheckHoradricStaffState. Reads QuestRecord bits for QUEST_TheHoradricStaff.
-// Returns 1 (quest "live"/should be shown) when NOT yet Completed and NOT
-// FinishedInPreviousGame, OR when JustCompleted/CannotCompleteQuestInGame is set;
-// returns 0 once fully closed out. Drives whether to push a quest-log update to client.
-BOOL __stdcall Q10_CheckHoradricStaffState(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame);
-// Q10_NotifyHoradricStaffActive. If Q10_CheckHoradricStaffState says the quest is
-// live, send quest-log update (msg 9 = The Horadric Staff) to the player. Pure
-// notification wrapper; no state changes.
-void __stdcall Q10_NotifyHoradricStaffActive(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame);
 // Q10_CheckQuestItemsForDialog. Inspects which quest items the player holds and
 // picks the Drognan/Cain dialog message index (*pOutput) for The Horadric Staff.
 // Item codes: 'tsh '=Staff of Kings, 'box '=Horadric Cube, 'rt1 '=Book of Skill
@@ -129,28 +120,11 @@ void __fastcall Q10_GetQuestInfo(::SGAMEDATA * pGame, uint32_t * pdwParam, bool 
 // QuestRecord Step0x11 (staff-built), then tail-calls A2Q4::Q12_OnHoradricStaffAssembled
 // to progress the Tainted Sun / Seven Tombs chain.
 void __fastcall Q10_OnStaffAssembledViaCube(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-// Q10_StatusFilter. Computes the quest-log STATUS byte (*nUnknown) shown to the
-// client for The Horadric Staff, read-only over QuestRecord. Gates:
-//  - If QUEST_AbleGoToAct2 not Completed -> status 0 (not started/locked).
-//  - Else if THIS quest is Completed or RewardAwaits -> done branch: if SevenTombs
-//    not yet complete use 6-Step0x10; else 11 or 13 (JustCompleted bump).
-//  - Else (in progress) it inspects held items (rt1/msf/box/vip/tsh) and the
-//    Step0x03/04/05/06/10 bits to pick status 1,2,3,4,6,9. Status 9 = "ready to
-//    build staff" (has cube+amulet pieces, counts satisfied / TaintedSun flag).
-bool __fastcall Q10_StatusFilter(struct D2QuestDataStrc * pQuestData, struct D2UnitStrc * pUnit, struct D2BitBufferStrc * pBitBuffer, struct D2BitBufferStrc * pBitBufferEx, BYTE * nUnknown);
-// A2Q2 (Horadric Staff) inventory-recount handler, handler index 0xd. Increments per-piece counters in D2QuestDataA2Q2Strc for each staff component (msf/box/vip/tsh) the player currently holds. If quest not Completed, Seven Tombs introduced, Izual not set, and player lacks the Staff of Kings, clears step bits Step0x04/0x05/0x06 so the relevant dialog re-offers.
-void __fastcall Q10_Callback13_PlayerStartedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // Q10_Callback_14. Item-gained handler (handler[0xe]). Increments the A2Q2 per-piece
 // counters for any of msf/vip/box/tsh now held, then, if the "all pieces present"
 // condition is met (has staff, or has cube+viper+amulet pieces), clears Seven Tombs'
 // bJerhynGateOpened flag to keep the gate logic consistent. No QuestRecord writes.
 void __fastcall Q10_Callback14_PlayerJoinedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// Q10_Callback_09. Item-lost/consumed handler (handler[9]). Decrements the A2Q2
-// per-piece counter for the lost item (tsh/msf/vip/box). Then evaluates whether the
-// Izual/Arcane-Sanctuary spawn condition is satisfied (piece counters + TaintedSun
-// state) and, on first satisfaction, sets Seven Tombs' bIzualLocationSet and seeds
-// pIzualUnit (SP vs MP variant). No QuestRecord writes.
-void __fastcall Q10_Callback09_PlayerDroppedWithQuestItem(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // Q10_InitData. Per-game initializer for The Horadric Staff quest. Allocates the
 // 0x30-byte A2Q2 quest-specific struct, zeroes the state-function table, installs the
 // NPC gossip table (Drognan 0xf4, string 0x14f), wires fpStatusFilter=Q10_StatusFilter

@@ -131,7 +131,7 @@ void __fastcall NET_SID_CLIENT_Send_0x29_LogonResponse(char * szText1, char * sz
     _net_sid::SHA1(&__frame0.sha1Combined, (char*)&__frame0.dwTickCount, 0x1c);
     uint32_t uVar1 = Storm::Source::SSTR::SStrCopy(__frame0.szUsername, szText1, 0x100);
     NET_SID_CLIENT_Send(0x29, (char*)&__frame0.dwClientToken, uVar1 + 0x1d);
-    Fog::Debug::GuardStack();
+    return 1;
 }
 
 void __fastcall NET_SID_CLIENT_Send_0x3A_LogonResponse2(char * szText1, char * szText2) {
@@ -163,10 +163,10 @@ void __fastcall NET_SID_CLIENT_Send_0x3A_LogonResponse2(char * szText1, char * s
     _net_sid::SHA1(&__frame0.sha1Combined, (char*)&__frame0.dwTickCount, 0x1c);
     uint32_t uVar1 = Storm::Source::SSTR::SStrCopy(__frame0.szUsername, szText1, 0x100);
     NET_SID_CLIENT_Send(0x3a, (char*)&__frame0.dwClientToken, uVar1 + 0x1d);
-    Fog::Debug::GuardStack();
+    return 1;
 }
 
-void __fastcall NET_SID_CLIENT_Send_0x3D_CreateAccount2(char * szText1, char * szText2) {
+int __fastcall NET_SID_CLIENT_Send_0x3D_CreateAccount2(char * szText1, char * szText2) {
     D2SHA1 sha1Password;
     char szUsername[256];
     char szPasswordLower[256];
@@ -177,7 +177,7 @@ void __fastcall NET_SID_CLIENT_Send_0x3D_CreateAccount2(char * szText1, char * s
     _net_sid::SHA1(&sha1Password, szPasswordLower, nLen);
     uint32_t uVar1 = Storm::Source::SSTR::SStrCopy(szUsername, szText1, 0x100);
     NET_SID_CLIENT_Send(0x3d, (char*)&sha1Password, uVar1 + 0x15);
-    Fog::Debug::GuardStack();
+    return 1;
 }
 
 void __fastcall NET_SID_CLIENT_Send_0x31_ChangePassword(char * szText1, char * szText2, char * szNewPassword) {
@@ -213,7 +213,7 @@ void __fastcall NET_SID_CLIENT_Send_0x31_ChangePassword(char * szText1, char * s
     _net_sid::SHA1(&__frame0.sha1NewPassword, __frame0.szPasswordLower, uVar1);
     uVar1 = Storm::Source::SSTR::SStrCopy(__frame0.szUsername, szText1, 0x100);
     NET_SID_CLIENT_Send(0x31, (char*)&__frame0.dwClientToken, uVar1 + 0x31);
-    Fog::Debug::GuardStack();
+    return 1;
 }
 
 void __fastcall NET_SID_CLIENT_Send_0x07_ReportVersion(uint32_t dwExeHash, uint32_t dwParam2, char * szExeInfoStr) {
@@ -242,10 +242,9 @@ void __fastcall NET_SID_CLIENT_Send_0x07_ReportVersion(uint32_t dwExeHash, uint3
     char* szFilenameCursor = __frame0.szExeInfo;
     szFilenameCursor = szFilenameCursor + strlen(szFilenameCursor) + 1;
     NET_SID_CLIENT_Send(7, __frame0.abVersionHeader, (size_t)(szFilenameCursor + (0x15 - (int)(__frame0.szExeInfo + 1))));
-    Fog::Debug::GuardStack();
 }
 
-void NET_SID_CLIENT_Send_0x06_StartVersioning() {
+int NET_SID_CLIENT_Send_0x06_StartVersioning() {
     // Frame slots -288..-4 are ONE object: &dwExeChecksum is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -274,7 +273,7 @@ void NET_SID_CLIENT_Send_0x06_StartVersioning() {
     __frame0.dwVersionFlags = 0xe;
     _net_sid::NET_SID_CLIENT_ResetRequireResponse(6);
     int32_t nCRCOk = NET_SID_CLIENT_Send(6, (char*)&__frame0.dwExeVersion, 0x10);
-    if (-1 < nCRCOk) {
+    if (0 <= nCRCOk) {
       bPatchPending = BnDownload::BNDOWNLOAD_HasPatchFilename();
       while (true) {
         if (bPatchPending) {
@@ -288,8 +287,7 @@ void NET_SID_CLIENT_Send_0x06_StartVersioning() {
 
         bIsExpansion = _net_sid::SID_GetReadyFlag();
         if (bIsExpansion) {
-          Fog::Debug::GuardStack();
-          return;
+          return 0;
         }
 
         /* DWORD dwMilliseconds for Sleep */ Sleep(10);
@@ -304,8 +302,7 @@ void NET_SID_CLIENT_Send_0x06_StartVersioning() {
         nCRCOk = BnDownload::BNDOWNLOAD_PerformCheckRevision(&__frame0.dwExeVerOut, &__frame0.dwExeChecksum, &__frame0.cExeInfoFirst);
         if (!nCRCOk) {
           BNMESSQUEUE_SetStateIfZero(1);
-          Fog::Debug::GuardStack();
-          return;
+          return 0;
         }
 
         BNSEND_SendRawBytes(&gaBnSendRawBytesHeader, 2);
@@ -313,8 +310,7 @@ void NET_SID_CLIENT_Send_0x06_StartVersioning() {
         _net_sid::NET_SID_CLIENT_WaitForPacketId(7);
       }
     }
-
-    Fog::Debug::GuardStack();
+    return 0;
 }
 
 // @sourcefile .\BnSend.cpp
@@ -331,7 +327,7 @@ int32_t __fastcall NET_SID_CLIENT_Send_0x41_QueryAdURL(uint32_t dwParam) {
     uint32_t dwAdType = dwParam;
     _net_sid::NET_SID_CLIENT_ResetRequireResponse(0x41);
     int32_t nSendResult = NET_SID_CLIENT_Send(0x41, (char*)&dwAdType, 4);
-    if (-1 >= nSendResult) {
+    if (0 > nSendResult) {
       return 0;
     }
 
@@ -406,7 +402,6 @@ void __fastcall NET_SID_CLIENT_Send_0x0C_JoinChannel(char * szText, int32_t nPar
     char* pszChannelCursor = __frame0.szChannelBuf;
     pszChannelCursor = pszChannelCursor + strlen(pszChannelCursor) + 1;
     NET_SID_CLIENT_Send(0xc, (char*)&__frame0.dwJoinFlags, (size_t)(pszChannelCursor + (5 - (int)(__frame0.szChannelBuf + 1))));
-    Fog::Debug::GuardStack();
 }
 
 uint32_t __fastcall BNSEND_EncodePacketEscape(char * szText, uint32_t nParam) {
@@ -482,12 +477,11 @@ void __fastcall NET_SID_CLIENT_Send_0x0B_GetChannelList_0x0A_EnterChat(char * sz
     char* pszScanEnd = __frame0.szPacketBuf + 1 + (int)(pszCursor + (0x207 - (uintptr_t)((uint8_t*)&__frame0.szPacketBuf + 520)));
     pszScanEnd = pszScanEnd + strlen(pszScanEnd) + 1;
     NET_SID_CLIENT_Send(10, __frame0.szPacketBuf, (size_t)(pszScanEnd + ((uintptr_t)((uint8_t*)&__frame0.szPacketBuf + 520) * -2 - (int)(pszCursor + (0x207 - (uintptr_t)((uint8_t*)&__frame0.szPacketBuf + 520)))) + (int)(pszText2End + 0x410)));
-    Fog::Debug::GuardStack();
 }
 
 uint32_t NET_SID_CLIENT_Send_0x10_LeaveChat() {
     int32_t nSendResult = NET_SID_CLIENT_Send(0x10, nullptr, 0);
-    return (uint32_t)(-1 < nSendResult);
+    return (uint32_t)(0 <= nSendResult);
 }
 
 void __fastcall NET_SID_CLIENT_Send_0x0E_ChatCommand(uint8_t * pbParam) {
@@ -516,14 +510,12 @@ void __fastcall NET_SID_CLIENT_Send_0x0E_ChatCommand(uint8_t * pbParam) {
           if (!nUtf8Result) {
             szUtf8Buf[nUnicodeLen] = 0;
             NET_SID_CLIENT_Send(0xe, (char*)szUtf8Buf, nUnicodeLen);
-            Fog::Debug::GuardStack();
             return;
           }
         }
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 int __stdcall NET_SID_CLIENT_Send_0x15_CheckAd() {
@@ -581,7 +573,6 @@ void __fastcall NET_SID_CLIENT_Send_0x1C_StartAdVex3(char * szGameName, char * s
     uint32_t nPasswordLen = Storm::Source::SSTR::SStrCopy(__frame0.aPacketBufMid + nGameNameLen, szGamePassword, 0x100);
     uint32_t nDescLen = Storm::Source::SSTR::SStrCopy(__frame0.aPacketBufMid + nPasswordLen + nGameNameLen + 1, szGameDescription, 0x100);
     NET_SID_CLIENT_Send(0x1c, (char*)adwHeader, (size_t)(__frame0.aPacketBufMid + nPasswordLen + nGameNameLen + 1 + (nDescLen + 0x15 - (uintptr_t)&__frame0.cGameNameFirst)));
-    Fog::Debug::GuardStack();
 }
 
 DWORD __stdcall BNCLIENT_SendKeepAlive() {
@@ -643,7 +634,6 @@ void * __fastcall NET_SID_CLIENT_Send_0x09_GetAdvListEx(char * szText1, char * s
     NET_SID_CLIENT_Send(9, aPacketHeader, (size_t)(aPacketBufMid + nPasswordLen + nGameNameLen + 1 + (nDescLen + 0x11 - (int)(aPacketHeader + 0x10))));
     _net_sid::NET_SID_CLIENT_WaitForPacketId(9);
     void* pvVar1 = g_pBNetGameListData;
-    Fog::Debug::GuardStack();
     return pvVar1;
 }
 
@@ -666,7 +656,6 @@ void __fastcall NET_SID_CLIENT_Send_0x22_NotifyJoin(char * szText1, char * szTex
     uint32_t nGameNameLen = Storm::Source::SSTR::SStrCopy(&__frame0.cGameNameFirst, szText1, 0x100);
     uint32_t nPasswordLen = Storm::Source::SSTR::SStrCopy(__frame0.aPacketBufMid + nGameNameLen, szText2, 0x100);
     NET_SID_CLIENT_Send(0x22, (char*)adwHeader, (size_t)(__frame0.aPacketBufMid + nGameNameLen + (nPasswordLen + 9 - (uintptr_t)&__frame0.cGameNameFirst)));
-    Fog::Debug::GuardStack();
 }
 
 // @sourcefile .\BnSend.cpp
@@ -679,7 +668,7 @@ void __fastcall BNSEND_StoreUserProfileData(uint8_t * pbProfileData, size_t nDat
     gpBNetWriteUserData = D2_ALLOC(nDataSize + 4);
     *(size_t*)gpBNetWriteUserData = nDataSize;
     memcpy((void*)((int)gpBNetWriteUserData + 4), pbProfileData, nDataSize);
-    if (!(nDataSize != 8 && 0x47 < nDataSize)) {
+    if (!(nDataSize != 8 && 0x48 <= nDataSize)) {
       return;
     }
 
@@ -715,7 +704,7 @@ void * __fastcall NET_SID_CLIENT_Send_0x3E_LogonRealmEx(char * szRealmName, char
       uVar1 = Storm::Source::SSTR::SStrCopy(abPacketBuf + 0x18, szRealmName, 0x100);
       _net_sid::NET_SID_CLIENT_ResetRequireResponse(0x3e);
       nSendLen = NET_SID_CLIENT_Send(0x3e, abPacketBuf, uVar1 + 0x19);
-      if (-1 < nSendLen) {
+      if (0 <= nSendLen) {
         _net_sid::NET_SID_CLIENT_WaitForPacketId(0x3e);
         pvVar2 = gpBNetWriteUserData;
         Fog::Debug::GuardStack();
@@ -758,7 +747,6 @@ void __stdcall NET_SID_CLIENT_Send_0x12_LocaleInfo() {
     /* int cchData for GetLocaleInfoA */ /* LPSTR lpLCData for GetLocaleInfoA */ /* LCTYPE LCType for GetLocaleInfoA */ /* LCID Locale for GetLocaleInfoA */ GetLocaleInfoA(0x400, 0x1002, pszLocaleCursor, 0x40);
     pszLocaleCursor = pszLocaleCursor + strlen(pszLocaleCursor) + 1;
     NET_SID_CLIENT_Send(0x12, (char*)&ftSystemTime, (size_t)(pszLocaleCursor + (0x20 - (int)szLocaleInfo)));
-    Fog::Debug::GuardStack();
 }
 
 int __fastcall NET_SID_CLIENT_Send_0x16_ClickAd(uint32_t dwParam, int32_t nParam) {
@@ -894,11 +882,11 @@ int __fastcall BNSEND_GetStoredReadUserData(int32_t nKeyCount, int32_t nRequestI
     ppszOutBufs = (char**)nKeyCount;
     do {
       uint32_t pNextSrc;
-      if (*pszSrcData == '\0') {
-        **ppszOutBuf = '\0';
-      } else {
+      if (*pszSrcData != '\0') {
         strncpy(*ppszOutBuf, pszSrcData, *(size_t*)(nMaxLensOffset + (int)ppszOutBuf));
         (*ppszOutBuf)[*(int*)(nMaxLensOffset + (int)ppszOutBuf)] = '\0';
+      } else {
+        **ppszOutBuf = '\0';
       }
 
       pNextSrc = Storm::Source::SSTR::SStrLen(pszSrcData);
@@ -919,16 +907,15 @@ void __fastcall NET_SID_CLIENT_Send_0x59_SetEmail(char * szText) {
       exit(-1);
     } else {
       nStrLen = Storm::Source::SSTR::SStrLen(szText);
-      if (nStrLen < 0x100) {
-        memcpy(szEmailBuf, szText, nStrLen);
-        szEmailBuf[nStrLen] = '\0';
-        NET_SID_CLIENT_Send(0x59, szEmailBuf, nStrLen + 1);
-        Fog::Debug::GuardStack();
-        return;
+      if (!(nStrLen < 0x100)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x565);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x565);
-      exit(-1);
+      memcpy(szEmailBuf, szText, nStrLen);
+      szEmailBuf[nStrLen] = '\0';
+      NET_SID_CLIENT_Send(0x59, szEmailBuf, nStrLen + 1);
+      return;
     }
 }
 
@@ -942,7 +929,6 @@ BOOL __fastcall NET_SID_CLIENT_Send_0x5A_ResetPassword(char * szText1, char * sz
     if (szText1 && *szText1 != '\0') {
       uint32_t nLen1;
       if (!szText2 || *szText2 == '\0') {
-        Fog::Debug::GuardStack();
         return 0;
       }
 
@@ -955,8 +941,7 @@ BOOL __fastcall NET_SID_CLIENT_Send_0x5A_ResetPassword(char * szText1, char * sz
         if (_Size < 0x101) {
           memcpy(szPacketBuf + nLen1 + 1, szText2, _Size);
           nErrorAddr = NET_SID_CLIENT_Send(0x5a, szPacketBuf, _Size + _Size_00);
-          Fog::Debug::GuardStack();
-          return (uint32_t)(-1 < nErrorAddr);
+          return (uint32_t)(0 <= nErrorAddr);
         }
 
         nErrorLine = 0x588;
@@ -980,7 +965,6 @@ BOOL __fastcall NET_SID_CLIENT_Send_0x5B_ChangeEmail(char * szText1, char * szTe
     if (szText1 && *szText1 != '\0') {
       uint32_t nLen1;
       if (!szText2 || *szText2 == '\0' || !szNewEmail || *szNewEmail == '\0') {
-        Fog::Debug::GuardStack();
         return 0;
       }
 
@@ -997,8 +981,7 @@ BOOL __fastcall NET_SID_CLIENT_Send_0x5B_ChangeEmail(char * szText1, char * szTe
           if (_Size_01 < 0x101) {
             memcpy(szPacketBuf + nLen1 + 1 + _Size_00, szNewEmail, _Size_01);
             nErrorAddr = NET_SID_CLIENT_Send(0x5b, szPacketBuf, _Size_01 + _Size_00 + _Size);
-            Fog::Debug::GuardStack();
-            return (uint32_t)(-1 < nErrorAddr);
+            return (uint32_t)(0 <= nErrorAddr);
           }
 
           nErrorLine = 0x5b4;
@@ -1020,12 +1003,10 @@ void __stdcall NET_SID_CLIENT_Send_0x5D_ReportCrash() {
     size_t nCrashDumpSize = 0x5dc;
     BOOL bHasCrashDump = Fog::Debug::LoadPreviousCrashDump((uint8_t*)szCrashDumpBuf, (int*)&nCrashDumpSize);
     if (!bHasCrashDump) {
-      Fog::Debug::GuardStack();
       return;
     }
 
     NET_SID_CLIENT_Send(0x5d, szCrashDumpBuf, nCrashDumpSize);
-    Fog::Debug::GuardStack();
 }
 
 // @sourcefile .\BnSend.cpp
@@ -1071,7 +1052,7 @@ BOOL __stdcall D2CheckExpansionGame() {
 }
 
 // lpStartAddress parameter of CreateThread
-DWORD __stdcall GetDnsResults(void * lpThreadParam) {
+static DWORD __stdcall GetDnsResults(void * lpThreadParam) {
     // Static local variables (originally global data)
     static uint32_t gInAddrBnetLookupAddr;
     static char * gInAddrBnetLookupAddrList;
@@ -1141,7 +1122,7 @@ DWORD __stdcall GetDnsResults(void * lpThreadParam) {
       do {
         nRandIdx = rand();
         nRandIdx = ((int)(nRandIdx * nLpThreadParam + (nRandIdx * nLpThreadParam >> 0x1f & 0x7fffU)) >> 0xf) + nAddrCount;
-        if (nRandIdx < nAddrCount) {
+        if (nAddrCount > nRandIdx) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1ad);
           exit(-1);
         }
@@ -1173,7 +1154,7 @@ DWORD __stdcall GetDnsResults(void * lpThreadParam) {
       pInAddr = (_union_1226*)*ppAddrList;
     } while (pInAddr);
 
-    if (szOutBuf >= szWriteCursor) {
+    if (szWriteCursor <= szOutBuf) {
       return 1;
     }
 
@@ -1229,7 +1210,6 @@ void __fastcall GetBnetIp(char * szText, int32_t nParam) {
       Storm::Source::SSTR::SStrCopy(szText, szRegistryBuf, nParam);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Returns current Battle.net connection state into output parameter. Validates param is non-null.
@@ -1447,13 +1427,11 @@ int32_t __fastcall NET_SID_CLIENT_Send(uint8_t nPacketId, char * pBytes, size_t 
         }
 
         iVar1 = Fog::Src::Safesock::WSASocket2_Send(pSafesock, chRealPacket, nSizeNoHeader + 4);
-        Fog::Debug::GuardStack();
         return iVar1;
       }
     }
 
     _net_sid::SID_SetReadyFlag();
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -1464,7 +1442,7 @@ void __fastcall BNCLIENT_ParseAndEnqueueChatMessages(char * szMessageText) {
     char* pCrPos = CRT_Strchr(szMessageText, '\r');
     while (pCrPos) {
       nChunkLen = (int)pCrPos - (int)szMessageText;
-      if (0x11e < (int)nChunkLen) {
+      if (0x11f <= (int)nChunkLen) {
         nChunkLen = 0x11f;
       }
 
@@ -1479,12 +1457,11 @@ void __fastcall BNCLIENT_ParseAndEnqueueChatMessages(char * szMessageText) {
       pCrPos = CRT_Strchr(szMessageText, '\r');
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // BATTLE.NET PACKET DISPATCH LOOP
 // Iterates over received network buffer, scanning for 0xFF packet start markers and dispatching complete packets to NET_SID_CLIENT_IncomingPacketHandler. For each packet: validates 4-byte header (0xFF, ID, size_lo, size_hi), checks if buffer contains full packet based on 2-byte little-endian size field, dispatches packet data (excluding 4-byte header) to handler, advances buffer pointer by packet size. Returns pointer to remaining unparsed buffer data for next iteration.
-char * __fastcall NET_SID_CLIENT_IncomingPacketHandlerLoop(char * pBytes, size_t nSize) {
+static char * __fastcall NET_SID_CLIENT_IncomingPacketHandlerLoop(char * pBytes, size_t nSize) {
     int nBytesProcessed;
     char* pScanPtr = pBytes;
     do {
@@ -1492,7 +1469,7 @@ char * __fastcall NET_SID_CLIENT_IncomingPacketHandlerLoop(char * pBytes, size_t
       if (*pScanPtr != -1) {
         nBytesProcessed = (int)pScanPtr - (int)pBytes;
         do {
-          if ((int)nSize <= nBytesProcessed) {
+          if (nBytesProcessed >= (int)nSize) {
             break;
           }
 
@@ -1510,7 +1487,7 @@ char * __fastcall NET_SID_CLIENT_IncomingPacketHandlerLoop(char * pBytes, size_t
     } while (true);
 }
 
-void __stdcall BnetReadFunction(uint32_t dwParam) {
+static void __stdcall BnetReadFunction(uint32_t dwParam) {
     int32_t nBytesRead;
     DWORD dwCurrentTick;
     char chRecvBuf[8196];
@@ -1518,7 +1495,6 @@ void __stdcall BnetReadFunction(uint32_t dwParam) {
     LONG lInterlockedResult = InterlockedIncrement((LONG*)&Destination_00881bf4);
     if (1 < lInterlockedResult) {
       /* LONG * lpAddend for InterlockedDecrement */ InterlockedDecrement((LONG*)&Destination_00881bf4);
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -1559,7 +1535,7 @@ void __stdcall BnetReadFunction(uint32_t dwParam) {
       }
       if (nPollResult) {
         nBytesRead = Fog::Src::Safesock::WSASocket2_Read(pSafesock, chRecvBuf + (int)pBufPos, 0x2000 - (int)pBufPos);
-        if (nBytesRead < 1) {
+        if (nBytesRead <= 0) {
           _net_sid::SID_SetReadyFlag();
           break;
         }
@@ -1568,7 +1544,7 @@ void __stdcall BnetReadFunction(uint32_t dwParam) {
       }
 
       dwCurrentTick = GetTickCount();
-      if (179999 < dwCurrentTick - dwLastKeepaliveTick) {
+      if (180000 <= dwCurrentTick - dwLastKeepaliveTick) {
         NET_SID_CLIENT_Send(0, nullptr, 0);
         dwLastKeepaliveTick = dwCurrentTick;
       }
@@ -1577,7 +1553,6 @@ void __stdcall BnetReadFunction(uint32_t dwParam) {
     } while (true);
 
     /* LONG * lpAddend for InterlockedDecrement */ InterlockedDecrement((LONG*)&Destination_00881bf4);
-    Fog::Debug::GuardStack();
 }
 
 uint32_t __fastcall BNCLIENT_GetSocketPeerName(sockaddr * pSockAddr, int * pAddrLen) {
@@ -1634,7 +1609,7 @@ void __fastcall BNSEND_SetGlobalFlag(uint32_t dwThreadInitFlag) {
 }
 
 // Battle.net connection orchestrator. Manages full logon sequence: server selection via fastest-connect test (select() on 64 candidate sockets, 5-second timeout per batch), protocol init (0x01 byte), SID_AUTHINFO (0x50) handshake, SID_AUTHCHECK (0x51) version/CD-key verification. Uses non-blocking socket multiplexing across up to 32 server candidates. Connection state machine: 2=searching, 3=accessing accounts, 4=checking version. Stores final socket in g_pBNetSocketData via InterlockedCompareExchange.
-void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
+static void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
     // Frame slots -8508..-4 are ONE object: &nAddrLen is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -1680,7 +1655,6 @@ void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
     memset(__frame0.aCandidates, 0, 0x2100);
     BnDownload::BNDOWNLOAD_ResetState(0x66);
     if (!szServerList) {
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -1737,7 +1711,7 @@ void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
         iVar4 = 0;
         fdWriteSet.fd_count = 0;
         fdExceptSet.fd_count = 0;
-        if (__frame0.nCandidateCount < 1) {
+        if (__frame0.nCandidateCount <= 0) {
           no_sockets_to_poll:
           pNetData = __frame0.pWinnerSocket;
           pfnInterlocked = d2_InterlockedCompareExchange;
@@ -1861,7 +1835,6 @@ void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
     }
     if (!pNetData) {
       Bnet::BnetLog_WriteLine("no servers found");
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -1870,7 +1843,6 @@ void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
     BVar2 = _net_sid::SID_GetReadyFlag();
     /* LONG Comperand for InterlockedCompareExchange */ /* LONG Exchange for InterlockedCompareExchange */ /* LONG * Destination for InterlockedCompareExchange */ if (BVar2 || __frame0.nSIDState || (lInterlockedResult = (*pfnInterlocked)((LONG*)&g_pBNetSocketData, 0, 0) , !lInterlockedResult)) {
       Debug::DEBUG_UnusedDebugFunction("  Error, not connected.");
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -1890,9 +1862,8 @@ void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
     Fog::Src::Safesock::SAFESOCK_SetSocketNonBlocking(pNetData, 0);
     __frame0.bProtocolByte = '\x01';
     bAuthInfoAccepted = Fog::Src::Safesock::WSASocket2_Send(pNetData, &__frame0.bProtocolByte, 1);
-    if (bAuthInfoAccepted < 1) {
+    if (bAuthInfoAccepted <= 0) {
       Debug::DEBUG_UnusedDebugFunction("  Failed send.");
-      Fog::Debug::GuardStack();
       return;
     }
 
@@ -1905,13 +1876,14 @@ void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
       /* LONG Comperand for InterlockedCompareExchange */ /* LONG Exchange for InterlockedCompareExchange */ /* LONG * Destination for InterlockedCompareExchange */ if (BVar2 || __frame0.nSIDState || (lInterlockedResult = (*pfnInterlocked)((LONG*)&g_pBNetSocketData, 0, 0) , !lInterlockedResult)) {
         Fog::Src::Safesock::Free(pNetData);
         /* LONG Comperand for InterlockedCompareExchange */ /* LONG Exchange for InterlockedCompareExchange */ /* LONG * Destination for InterlockedCompareExchange */ (*pfnInterlocked)((LONG*)&g_pBNetSocketData, 0, (LONG)pNetData);
-        Fog::Debug::GuardStack();
         return;
       }
     }
 
     BVar2 = _net_sid::SID_GetReadyFlag();
-    if (!BVar2) {
+    if (BVar2) {
+      SID_SetStateFlag1(0xb);
+    } else {
       /* DWORD dwMilliseconds for Sleep */ g_nBNetConnectionState = 4;
       Sleep(10);
       Bnet::BnetLog_WriteLine("Checking for the latest version");
@@ -1919,7 +1891,6 @@ void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
       _net_sid::NET_SID_CLIENT_ResetRequireResponse(0x51);
       bAuthInfoAccepted = _net_sid::NET_SID_CLIENT_Send_0x51_AuthCheck();
       if (!bAuthInfoAccepted || (BVar2 = _net_sid::NET_SID_CLIENT_WaitForPacketId(0x51) , !BVar2)) {
-        Fog::Debug::GuardStack();
         return;
       }
 
@@ -1931,15 +1902,12 @@ void __stdcall NET_SID_CLIENT_LogonSequence(char * szServerList) {
           Bnet::BnetLog_WriteLine("Connected to Battle.net");
         }
       }
-    } else {
-      SID_SetStateFlag1(0xb);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // lpStartAddress parameter of CreateThread
-int __stdcall BattleConnectFastest() {
+static int __stdcall BattleConnectFastest() {
     // Static local variables (originally global data)
     static char RealmDNS[256] = {
     0,
@@ -2246,7 +2214,9 @@ HANDLE ConnectingToBattleNet() {
     DWORD dwThreadId;
     Bnet::BnetLog_WriteLine("Connecting to Battle.net...");
     LONG lSocketData = InterlockedCompareExchange((LONG*)&g_pBNetSocketData, 0, 0);
-    if (!lSocketData) {
+    if (lSocketData) {
+      Debug::DEBUG_UnusedDebugFunction("   already connected");
+    } else {
       BOOL bDisconnected;
       bDisconnected = BNSEND_Disconnect();
       if (bDisconnected) {
@@ -2260,8 +2230,6 @@ HANDLE ConnectingToBattleNet() {
         hThread = CreateThread((LPSECURITY_ATTRIBUTES)0x0, 0, (LPTHREAD_START_ROUTINE)BattleConnectFastest, (LPVOID)0x0, 0, &dwThreadId);
         return hThread;
       }
-    } else {
-      Debug::DEBUG_UnusedDebugFunction("   already connected");
     }
 
     return (HANDLE)0x0;
@@ -2285,7 +2253,7 @@ int __fastcall BNNEWS_GetNewsEntryByIndex(int * pNewsTable, int nIndex) {
     return nIndex * 0x408 + pNewsTable[2];
 }
 
-uint32_t __fastcall BNNEWS_RoundToPowerOfTwo(int * pNewsTable, uint32_t dwSize) {
+static uint32_t __fastcall BNNEWS_RoundToPowerOfTwo(int * pNewsTable, uint32_t dwSize) {
     uint32_t uStripped;
     if (dwSize < 8) {
       uint32_t uHighBit;
@@ -2321,7 +2289,7 @@ DWORD __stdcall BNNEWS_RoundUpToMultiple(DWORD dwValue, DWORD dwMultiple) {
 }
 
 // @sourcefile .\BNNews.cpp
-void __stdcall BNNEWS_SaveToCache() {
+static int __stdcall BNNEWS_SaveToCache() {
     char* pStrScan;
     uint32_t nEntryIndex;
     char* pEntryText;
@@ -2334,7 +2302,7 @@ void __stdcall BNNEWS_SaveToCache() {
     int nDestOffset;
     uint32_t nUnreadCount = g_nNewsEntryCount;
     ftWriteTime.dwHighDateTime = g_nNewsEntryCount - g_nFirstUnreadNewsIndex;
-    if (0xff < ftWriteTime.dwHighDateTime) {
+    if (0x100 <= ftWriteTime.dwHighDateTime) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x13b);
       exit(-1);
     }
@@ -2348,8 +2316,8 @@ void __stdcall BNNEWS_SaveToCache() {
         pStrScanEnd = pEntryText + 1;
         pStrScan = pEntryText;
         pStrScan = pStrScan + strlen(pStrScan) + 1;
-        if (0x3ff < (int)pStrScan - (int)pStrScanEnd) {
-          return;
+        if (0x400 <= (int)pStrScan - (int)pStrScanEnd) {
+          return 0;
         }
 
         nTotalSize = nTotalSize + 5 + ((int)pStrScan - (int)pStrScanEnd);
@@ -2362,7 +2330,7 @@ void __stdcall BNNEWS_SaveToCache() {
     nTotalSize = nAccumSize;
     uint32_t* pMemoryToFree = (uint32_t*)D2_ALLOC(nAccumSize);
     if (!pMemoryToFree) {
-      return;
+      return 0;
     }
 
     *pMemoryToFree = g_dwNewsTimestamp;
@@ -2402,7 +2370,7 @@ void __stdcall BNNEWS_SaveToCache() {
     D2_FREE(pMemoryToFree);
 }
 
-void __stdcall BNNEWS_InvokeCallbacks() {
+static void __stdcall BNNEWS_InvokeCallbacks() {
     if (g_pfnNewsCallback) {
       (*g_pfnNewsCallback)();
     }
@@ -2490,7 +2458,7 @@ void __fastcall BNNEWS_ClearNewsTable(uint32_t * pNewsTable) {
 
 void __fastcall BNNEWS_EnsureCapacityWithGrowth(uint32_t * pNewsTable, int dwAdditionalCount, int bGrow) {
     uint32_t nNewCount = dwAdditionalCount + pNewsTable[1];
-    if (*pNewsTable >= nNewCount) {
+    if (nNewCount <= *pNewsTable) {
       return;
     }
     if (bGrow) {
@@ -2523,7 +2491,7 @@ BOOL __stdcall BNNEWS_Shutdown() {
 
 int __fastcall BNNEWS_AllocateNewsEntry(uint32_t * pNewsTable) {
     uint32_t nNewCount = pNewsTable[1] + 1;
-    if (*pNewsTable < nNewCount) {
+    if (nNewCount > *pNewsTable) {
       uint32_t nPageSize;
       nPageSize = pNewsTable[3];
       if (!nPageSize) {
@@ -2542,7 +2510,7 @@ int __fastcall BNNEWS_AllocateNewsEntry(uint32_t * pNewsTable) {
 }
 
 void __fastcall BNNEWS_EnsureCapacity(uint32_t * pNewsTable, int dwAdditionalCount) {
-    if (*pNewsTable >= pNewsTable[1] + dwAdditionalCount) {
+    if (pNewsTable[1] + dwAdditionalCount <= *pNewsTable) {
       return;
     }
 
@@ -2551,7 +2519,7 @@ void __fastcall BNNEWS_EnsureCapacity(uint32_t * pNewsTable, int dwAdditionalCou
 
 void __fastcall BNNEWS_SetNewsEntryCount(uint32_t * pNewsTable, uint32_t dwNewCount) {
     uint32_t nAlignedCount;
-    if (pNewsTable[1] < dwNewCount && *pNewsTable < dwNewCount) {
+    if (dwNewCount > pNewsTable[1] && dwNewCount > *pNewsTable) {
       uint32_t nPageSize;
       nPageSize = pNewsTable[3];
       if (!nPageSize) {
@@ -2632,7 +2600,7 @@ BOOL __fastcall NET_SID_CLIENT_Incoming0x46(char * pBytes, size_t nSize) {
         nInsertIndex++;
         BNNEWS_SetNewsEntryCount(&g_nNewsMaxCacheSize, g_nNewsEntryCount + 1);
         dwCachedEntryId = g_nNewsEntryCount - 1;
-        if (nInsertIndex < dwCachedEntryId) {
+        if (dwCachedEntryId > nInsertIndex) {
           nCacheByteOffset = dwCachedEntryId * 0x408;
           iVar1 = dwCachedEntryId - nInsertIndex;
           do {
@@ -2662,7 +2630,7 @@ BOOL __fastcall NET_SID_CLIENT_Incoming0x46(char * pBytes, size_t nSize) {
     if (g_nNewsEntryCount) {
       pEntryData = (uint32_t*)((int)gpBNetNewsCache + 4);
       do {
-        if (dwMotdTimestamp <= *pEntryData) {
+        if (*pEntryData >= dwMotdTimestamp) {
           break;
         }
 
@@ -2712,9 +2680,9 @@ BOOL __stdcall BNNEWS_LoadCachedNews() {
       nEntryCount = __frame0.pCacheData[1];
       pEntryData = __frame0.pCacheData + 2;
       __frame0.nTotalEntries = nEntryCount;
-      if (nEntryCount < 0x101) {
+      if (nEntryCount <= 0x100) {
         BNNEWS_SetNewsEntryCount(&g_nNewsMaxCacheSize, 0);
-        if (g_nNewsMaxCacheSize < g_nNewsEntryCount + nEntryCount) {
+        if (g_nNewsEntryCount + nEntryCount > g_nNewsMaxCacheSize) {
           BNNEWS_ReallocateNewsTable(&g_nNewsMaxCacheSize, g_nNewsEntryCount + nEntryCount);
         }
 
@@ -2724,7 +2692,7 @@ BOOL __stdcall BNNEWS_LoadCachedNews() {
         if (nEntryCount) {
           do {
             nEntryCount = g_nNewsEntryCount + 1;
-            if (g_nNewsMaxCacheSize < nEntryCount) {
+            if (nEntryCount > g_nNewsMaxCacheSize) {
               nPageSize = g_nNewsPageSize;
               if (!g_nNewsPageSize) {
                 nPageSize = BNNEWS_RoundToPowerOfTwo((int*)&g_nNewsMaxCacheSize, nEntryCount);
@@ -2748,7 +2716,7 @@ BOOL __stdcall BNNEWS_LoadCachedNews() {
             } while ((char)nEntryCount != '\0');
 
             nStrLen = (int)pStrEnd - ((int)pEntryData + 5);
-            if (0x3ff < nStrLen) {
+            if (0x400 <= nStrLen) {
               goto reset_news_table;
             }
 
@@ -2826,7 +2794,6 @@ void __fastcall BNSEND_HashCDKeyData(void * pOutHash, void * pTokenData, uint32_
     Fog::Source::SSignature::Sha1_Initialize(&aSHA1Ctx);
     Storm::Source::SSignature::Sha1_Append((uint8_t*)pTokenData, nDataLength, &aSHA1Ctx);
     Storm::Source::SSignature::Sha1_Finalize((uint8_t*)pOutHash, &aSHA1Ctx);
-    Fog::Debug::GuardStack();
 }
 
 void __stdcall BNNEWS_TransformCDKeyCharacter(uint8_t bKeyChar, uint32_t * pValue, uint8_t * pOutChar) {
@@ -2846,7 +2813,7 @@ void __stdcall BNNEWS_TransformCDKeyCharacter(uint8_t bKeyChar, uint32_t * pValu
 }
 
 // Calculates checksum byte for CD key validation. Uses lookup table at 0x006df238. Iterates through 8 pairs of hex characters, accumulating checksum as bit flags.
-void BNSEND_CalculateCDKeyChecksum(uint32_t unused, char * szCDKey, uint32_t * pOutChecksum) {
+static void BNSEND_CalculateCDKeyChecksum(uint32_t unused, char * szCDKey, uint32_t * pOutChecksum) {
     // Static local variables (originally global data)
     static uint8_t gaCDKeyCharLookup[256] = {
     0xff,
@@ -3117,25 +3084,25 @@ void BNSEND_CalculateCDKeyChecksum(uint32_t unused, char * szCDKey, uint32_t * p
     do {
       uint32_t nByteVal;
       nByteVal = (int)(char)gaCDKeyCharLookup[*pKeyPair] + (char)gaCDKeyCharLookup[pKeyPair[-1]] * 0x18;
-      if (0xff < nByteVal) {
+      if (0x100 <= nByteVal) {
         nByteVal -= 0x100;
         *pOutChecksum |= nBitFlag;
       }
 
       nHighNibble = nByteVal >> 4 & 0xf;
       cNibble = (char)nHighNibble;
-      if (nHighNibble < 10) {
-        bHexChar = cNibble + 0x30;
-      } else {
+      if (!(nHighNibble < 10)) {
         bHexChar = cNibble + 0x37;
+      } else {
+        bHexChar = cNibble + 0x30;
       }
 
       pKeyPair[-1] = bHexChar;
       cNibble = (char)(nByteVal & 0xf);
-      if ((nByteVal & 0xf) < 10) {
-        bHexChar = cNibble + 0x30;
-      } else {
+      if (!((nByteVal & 0xf) < 10)) {
         bHexChar = cNibble + 0x37;
+      } else {
+        bHexChar = cNibble + 0x30;
       }
 
       *pKeyPair = bHexChar;
@@ -3146,7 +3113,7 @@ void BNSEND_CalculateCDKeyChecksum(uint32_t unused, char * szCDKey, uint32_t * p
 }
 
 // Decodes 16-character CD key string into three components (Product: 3 hex digits, Public: 7 hex digits, Private: 9 hex digits). Validates checksum and performs character shuffling/XOR transformations. Returns 1 on success, 0 on failure.
-int __fastcall BNSEND_DecodeCDKeyString(uint32_t * pOutProduct, uint32_t * pOutPublic, char * szCDKey, uint32_t * pOutPrivate) {
+static int __fastcall BNSEND_DecodeCDKeyString(uint32_t * pOutProduct, uint32_t * pOutPublic, char * szCDKey, uint32_t * pOutPrivate) {
     // Frame slots -64..-40 are ONE object: &szProductBuf is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -3175,7 +3142,6 @@ int __fastcall BNSEND_DecodeCDKeyString(uint32_t * pOutProduct, uint32_t * pOutP
     *pOutPublic = 0;
     *pOutPrivate = 0;
     if (!szCDKey) {
-      Fog::Debug::GuardStack();
       return 0;
     }
 
@@ -3196,7 +3162,6 @@ int __fastcall BNSEND_DecodeCDKeyString(uint32_t * pOutProduct, uint32_t * pOutP
     } while (iChar < 0x10);
 
     if ((nChecksumAccum & 0xff) != __frame0.szProductBuf) {
-      Fog::Debug::GuardStack();
       return 0;
     }
 
@@ -3236,7 +3201,6 @@ int __fastcall BNSEND_DecodeCDKeyString(uint32_t * pOutProduct, uint32_t * pOutP
     *pOutPublic = nParsedVal;
     nParsedVal = strtoul(__frame0.szPrivateBuf, nullptr, 0x10);
     *pOutPrivate = nParsedVal;
-    Fog::Debug::GuardStack();
     return 1;
 }
 
@@ -3285,7 +3249,6 @@ int32_t __stdcall BNSEND_PrepareCDKeyHash(uint32_t nToken, uint32_t nServerToken
         pOutHash->nUnused = __frame0.dwReserved;
         pOutHash->nPublic = __frame0.nProduct;
         _net_sid::SHA1((D2SHA1*)pOutHash->abHash, (char*)&__frame0.nTokenCopy, 0x18);
-        Fog::Debug::GuardStack();
         return 1;
       }
     } else if (pKeyLenPtr == 0x1a) {
@@ -3299,12 +3262,10 @@ int32_t __stdcall BNSEND_PrepareCDKeyHash(uint32_t nToken, uint32_t nServerToken
         pOutHash->nKeyLength = pKeyLenPtr;
         pOutHash->nUnused = 0;
         BNSEND_HashCDKeyData(pOutHash->abHash, &__frame0.nToken2, 0x1a);
-        Fog::Debug::GuardStack();
         return 1;
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -3373,6 +3334,26 @@ void __stdcall NET_SID_CLIENT_Send_0x42_CDKey3() {
       uVar2 = Storm::Source::SSTR::SStrCopy(szOwnerBuf, szOwner, 0x100);
       nSizeNoHeader = uVar2 + 0x55;
       pSendData = (uint8_t*)aExpansionPacket;
+    } else {
+      aExpansionHashBuf.abHash[8] = (uint8_t)gnBNetCDKeyHashSize;
+      aExpansionHashBuf.abHash[9] = *(uint8_t*)((char*)&gnBNetCDKeyHashSize + 1);
+      aExpansionHashBuf.abHash[10] = *(uint8_t*)((char*)&gnBNetCDKeyHashSize + 2);
+      aExpansionHashBuf.abHash[0xb] = *(uint8_t*)((char*)&gnBNetCDKeyHashSize + 3);
+      aExpansionHashBuf.abHash[0xc] = 1;
+      aExpansionHashBuf.abHash[0xd] = 0;
+      aExpansionHashBuf.abHash[0xe] = 0;
+      aExpansionHashBuf.abHash[0xf] = 0;
+      *(uint32_t*)((char*)&aExpansionHashBuf.abHash + 16) = nProductId;
+      BNSEND_GetServerToken();
+      bHash1Ok = BNSEND_PrepareCDKeyHash(gnBNetCDKeyHashSize, szOwnerCopy, &aClassicHashBuf);
+      if (!bHash1Ok) {
+        Fog::Debug::GuardStack();
+        return;
+      }
+
+      uVar2 = Storm::Source::SSTR::SStrCopy(szOwnerBuf, szOwner, 0x100);
+      nSizeNoHeader = uVar2 + 0x31;
+      pSendData = aExpansionHashBuf.abHash + 8;
     }
 
     bHash1Ok = NET_SID_CLIENT_Send(0x42, (char*)pSendData, nSizeNoHeader);
@@ -3397,17 +3378,17 @@ void __stdcall BNNEWS_DecodeCDKeys() {
     szCDKey = _net_sid::NET_SID_CLIENT_GetCdKeyByType(0);
     uint32_t pKeyLenPtr;
     pKeyLenPtr = Storm::Source::SSTR::SStrLen(szCDKey);
-    if (pKeyLenPtr == 0x10) {
-      bDecodeOk = BNSEND_DecodeCDKeyString(&nProduct, &nPublic, szCDKey, &nPrivate);
-      if (!bDecodeOk) {
-        goto cleanup;
-      }
-    } else {
+    if (pKeyLenPtr != 0x10) {
       if (pKeyLenPtr != 0x1a || !szCDKey) {
         goto cleanup;
       }
 
       _net_sid::NET_SID_CLIENT_TransformCdKeyToken((int32_t)szCDKey, &nProduct, &nPublic, aExtra26);
+    } else {
+      bDecodeOk = BNSEND_DecodeCDKeyString(&nProduct, &nPublic, szCDKey, &nPrivate);
+      if (!bDecodeOk) {
+        goto cleanup;
+      }
     }
 
     BOOL bIsExpansion;
@@ -3434,15 +3415,17 @@ void __fastcall BNSEND_HashCDKeyByType(D2CDKeyHashStrc * pOutHash, uint32_t nTok
     BNSEND_PrepareCDKeyHash(nToken, nServerToken, szCDKey, pOutHash);
 }
 
-void __fastcall BNSEND_SendRawBytes(void * pBytes, size_t nSize) {
+int __fastcall BNSEND_SendRawBytes(void * pBytes, size_t nSize) {
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_00881f64);
     Storm::Source::SSystem::SMemCopy(&gbBnetFtpFileTransferActive, pBytes, nSize);
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ gnNetworkSendState = 0;
     LeaveCriticalSection(&lpCriticalSection_00881f64);
+    return 1;
 }
 
-void __fastcall BNSEND_SendString(char * szString) {
+int __fastcall BNSEND_SendString(char * szString) {
     Storm::Source::SSTR::SStrCopy(gszBNetChatInputBuffer, szString, 0x104);
+    return 1;
 }
 
 void __fastcall NET_SID_CLIENT_Send_0x33_GetFileTime(char * szText, uint32_t dwRequestId) {
@@ -3467,7 +3450,6 @@ void __fastcall NET_SID_CLIENT_Send_0x33_GetFileTime(char * szText, uint32_t dwR
     __frame0.dwFileTimeParam = dwRequestId;
     uint32_t nTextLen = Storm::Source::SSTR::SStrCopy(&__frame1.szTextBuf, szText, 0x104);
     NET_SID_CLIENT_Send(0x33, (char*)&__frame0.dwFileTimeParam, (size_t)(__frame1.auStack_10b + (nTextLen - (uintptr_t)&__frame0.dwFileTimeParam)));
-    Fog::Debug::GuardStack();
 }
 
 void StaticFini_gpBNetNewsCache() {

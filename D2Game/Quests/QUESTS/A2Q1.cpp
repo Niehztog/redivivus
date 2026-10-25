@@ -190,20 +190,7 @@ void __fastcall Q09_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
       }
 
       bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_JustCompleted);
-      if (!bQuestState) {
-        if (pA2Q1Data->bRewardPending) {
-          pSeqQuestData = GetQuestDataByQuestNoInternal(pQuestData->pGame, pQuestData->nSequenceQuestId);
-          if (pSeqQuestData) {
-            /* FARPROC lpfn for IsBadCodePtr */ bQuestState = IsBadCodePtr((FARPROC)pQuestData->fpSequenceFilter);
-            if (bQuestState) {
-              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10d);
-              exit(-1);
-            }
-
-            pSeqQuestData->fpSequenceFilter(pSeqQuestData);
-          }
-        }
-      } else {
+      if (bQuestState) {
         if (pQuestData->nStateFlag != 5) {
           pQuestData->nQuestPacketFlags = '\0';
           QUEST_SetStateAndBroadcast(pQuestData, 0xd, nullptr, (::fpExecuteOnUnitFunction)Q09_NotifyRadamentComplete, true);
@@ -220,6 +207,19 @@ void __fastcall Q09_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
         if (!pQuestData->bIsNotIntroduction) {
           /* SetQuestRecordState JustCompleted: finalize quest on Atma reward turn-in
                          (non-intro path) */ QUEST_SetQuestRecordState(pQuestData->pGame, QUEST_RadamentsLair, QUESTSTATE_JustCompleted);
+        }
+      } else {
+        if (pA2Q1Data->bRewardPending) {
+          pSeqQuestData = GetQuestDataByQuestNoInternal(pQuestData->pGame, pQuestData->nSequenceQuestId);
+          if (pSeqQuestData) {
+            /* FARPROC lpfn for IsBadCodePtr */ bQuestState = IsBadCodePtr((FARPROC)pQuestData->fpSequenceFilter);
+            if (bQuestState) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10d);
+              exit(-1);
+            }
+
+            pSeqQuestData->fpSequenceFilter(pSeqQuestData);
+          }
         }
       }
 
@@ -367,7 +367,7 @@ BOOL __fastcall Q09_CheckRadamentKillAndReward(::SGAMEDATA * pGame, D2UnitStrc *
 
       D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pAdjacentRooms, (int*)&nAdjacentRoomCount);
       nAdjacentRoomIdx = 0;
-      if (nAdjacentRoomCount) {
+      if ((uint32_t)nAdjacentRoomCount > 0) {
         do {
           if (pAdjacentRooms[nAdjacentRoomIdx] == pA1Q1Data->pRadamentRoom) {
             bPlayerNearKill = 1;
@@ -435,7 +435,7 @@ BOOL __fastcall Q09_CheckBookOfSkillAndSound(::SGAMEDATA * pGame, D2UnitStrc * p
 }
 
 // A2Q1 callback[8]: Radament death handler (the actual quest-objective trigger). For an active (non-intro) quest: debug-logs, advances nStateFlag to 4, pushes QUESTSTATE_JustCompleted to the quest record, records Radament's room (pRadamentRoom in the A1Q3-aliased scratch), unhooks handler[2]. Then iterates all players: Q09_CheckRadamentKillAndReward (grant reward to nearby), Q09_SetCannotComplete (lock out absent), Q09_CheckBookOfSkillAndSound (tally how many Book-of-Skill copies must drop). Schedules Q09_OnEndCallback timer (0xc) once. Finally sets the target's dropItemCode to 0x20737361 ('ass '=Book of Skill) and drops that many shield-type reward items so each eligible player can get a book.
-void __fastcall Q09_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q09_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int32_t nDropItemCode;
     if (!pQuestData->bIsNotIntroduction) {
       return;
@@ -507,7 +507,7 @@ void __fastcall Q09_OnPlayerJoinNoop(::SGAMEDATA * pGame, D2QuestDataStrc * pQue
 }
 
 // A2Q1 fpSequenceFilter: chain into the next quest's sequence filter once this quest is at its terminal state (nStateFlag==5) or already past intro. Looks up the sequence-successor quest (nSequenceQuestId = QUEST_TheSummoner) and tail-calls its fpSequenceFilter, with an IsBadCodePtr guard that halts on a corrupt pointer. Drives the act-2 quest-availability chain forward.
-void __fastcall Q09_SequenceFilter(D2QuestDataStrc * pQuestData) {
+static void __fastcall Q09_SequenceFilter(D2QuestDataStrc * pQuestData) {
     if (pQuestData->nStateFlag != 5 && pQuestData->bIsNotIntroduction) {
       return;
     }

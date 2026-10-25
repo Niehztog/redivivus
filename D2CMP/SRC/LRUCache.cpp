@@ -69,7 +69,7 @@ void __fastcall LRUCACHE_Init(D2LRUCacheStrc * pCache, D2PoolManagerStrc * pMemo
     pCache->pFreeTail = pCache->pNodeBuffer + pCache->nMaxCount - 1;
 }
 
-D2LRUCacheNodeStrc * LRUCACHE_PopOldest(D2LRUCacheStrc * pCache) {
+static D2LRUCacheNodeStrc * LRUCACHE_PopOldest(D2LRUCacheStrc * pCache) {
     D2LRUCacheNodeStrc* pOldestEntry = pCache->pLRUHead;
     if (!pOldestEntry) {
       return nullptr;
@@ -139,8 +139,8 @@ void __fastcall LRUCACHE_ForEach(D2LRUCacheStrc * pCache, fpLRUCacheForEachFn pf
     } while (bContinue);
 }
 
-D2LRUCacheNodeStrc * LRUCACHE_AllocEntry(D2LRUCacheStrc * pCache, int32_t nEntrySize) {
-    if (pCache->nCount == pCache->nMaxCount || pCache->dwBufSize < (uint32_t)(pCache->nBytesUsed + nEntrySize)) {
+static D2LRUCacheNodeStrc * LRUCACHE_AllocEntry(D2LRUCacheStrc * pCache, int32_t nEntrySize) {
+    if (pCache->nCount == pCache->nMaxCount || (uint32_t)(pCache->nBytesUsed + nEntrySize) > pCache->dwBufSize) {
       return nullptr;
     }
 
@@ -273,7 +273,10 @@ void __fastcall LRUCACHE_FreeAll(D2LRUCacheStrc * pCache) {
 // @sourcefile .\SRC\LRUCache.cpp
 D2LRUCacheNodeStrc * __fastcall LRUCACHE_GetOrAlloc(D2LRUCacheStrc * pCache, uint32_t nEntrySize, void * pUserData) {
     void* pAllocBuf;
-    if (nEntrySize < pCache->dwBufSize) {
+    if (!(nEntrySize < pCache->dwBufSize)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x76);
+      exit(-1);
+    } else {
       D2LRUCacheNodeStrc* ppAllocEntry;
       pCache->nMissCount++;
       pCache->nHitCount++;
@@ -285,17 +288,14 @@ D2LRUCacheNodeStrc * __fastcall LRUCACHE_GetOrAlloc(D2LRUCacheStrc * pCache, uin
 
       pAllocBuf = D2_ALLOC_POOL((D2PoolManagerStrc*)pCache->pAllocator, nEntrySize);
       ppAllocEntry->pBuf = pAllocBuf;
-      if (pAllocBuf) {
-        ppAllocEntry->nBufSize = nEntrySize;
-        ppAllocEntry->pUserData = pUserData;
-        return ppAllocEntry;
+      if (!pAllocBuf) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x85);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x85);
-      exit(-1);
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x76);
-      exit(-1);
+      ppAllocEntry->nBufSize = nEntrySize;
+      ppAllocEntry->pUserData = pUserData;
+      return ppAllocEntry;
     }
 }
 

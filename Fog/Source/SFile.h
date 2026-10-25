@@ -69,8 +69,6 @@ int __fastcall SFILE_GetExecutableDirectory(char * szText, DWORD nSize);
 int __fastcall SFILE_GetInstallPath(LPSTR lpFilename, DWORD nSize);
 int __fastcall SFILE_GetBlizzardAppDataPath(char * szOutPath, uint32_t nMaxLen);
 BOOL __stdcall GetUseDirectCommand();
-bool SFILE_GetSaveGamePath(LPSTR szOutPath, uint32_t nMaxLen);
-int __fastcall SFILE_MoveDirectoryRecursive(LPCSTR szSrcRoot, LPCSTR szDstRoot);
 void __fastcall GetAndCreateSavePath(char * pBuffer, size_t nSize);
 int32_t __fastcall SFILE_CalculateBufferOffset(int32_t pThis, int32_t nBufferOffset);
 char * ERRORMANAGER_SprintfToBuffer(char * szText1, char * szText2, ...);

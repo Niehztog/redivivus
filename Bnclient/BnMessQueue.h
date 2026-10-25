@@ -24,14 +24,14 @@ void __stdcall thunk_BNMESSQUEUE_Shutdown();
 void __stdcall BNMESSQUEUE_Initialize();
 // Shuts down Battle.net message queue. Deletes critical section at lpCriticalSection_00882004.
 void __stdcall BNMESSQUEUE_Shutdown();
-void __fastcall BNMESSQUEUE_EnqueueBytes(int32_t nEventType, char * pBytes, size_t nSize);
+int __fastcall BNMESSQUEUE_EnqueueBytes(int32_t nEventType, char * pBytes, size_t nSize);
 uint32_t __fastcall BNMESSQUEUE_EnqueueString(int32_t nEventType, char * szMessage);
 // Dequeues next Battle.net lobby chat message. Thread-safe dequeue from global linked list (nLobbyChatCurrentMessage). Copies message buffer to output, returns data size. Returns 0 if queue empty.
 size_t __fastcall BNMESSQUEUE_DequeueMessage(int * pMessageTypeOut, void * pBufferOut);
-void __stdcall BNMESSQUEUE_ClearAll();
+int __stdcall BNMESSQUEUE_ClearAll();
 uint32_t __fastcall BNMESSQUEUE_SetStateIfZero(int32_t nState);
-void __fastcall BNMESSQUEUE_SetStateWithString(int32_t nState, char * szMessage);
+int __fastcall BNMESSQUEUE_SetStateWithString(int32_t nState, char * szMessage);
 uint32_t __fastcall SID_SetStateFlag1(uint32_t nState);
-void __fastcall SID_SetStateFlag2(uint32_t nData);
+int __fastcall SID_SetStateFlag2(uint32_t nData);
 
 } // namespace Bnclient

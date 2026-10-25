@@ -93,7 +93,7 @@ BOOL __stdcall D2WINMAIN_SetFocusedControl(struct D2ControlStrc * pControl);
 BOOL __stdcall FORMS_AddControlToGlobalList(struct D2ControlStrc * pControl);
 BOOL __fastcall FORMS_AppendFormToDestroyQueue(struct D2ControlStrc * pControl);
 // @sourcefile .\Src\D2WinMain.cpp
-void __stdcall D2WINMAIN_FreeLeadingFormControls();
+int __stdcall D2WINMAIN_FreeLeadingFormControls();
 void __stdcall FORMS_DestroyControl(struct D2ControlStrc * pControl);
 struct D2ControlStrc * __stdcall FORMS_CreateAnyForm(struct FORMS_PredefinedFormStrc * pForm);
 void __stdcall FORMS_DestroyAnyForm(struct D2ControlStrc * * pForm);
@@ -110,8 +110,6 @@ void __fastcall D2WINMAIN_SetControlActive(struct D2ControlStrc * pControl, BOOL
 BOOL __fastcall D2WINMAIN_IsControlActive(struct D2ControlStrc * pControl);
 // Tests if current mouse position (D2Client::Mouse::nPosX/Y) is inside the specified RECT using PtInRect
 BOOL __stdcall D2WINMAIN_TestMouseInRect(RECT * pRect);
-void __stdcall DrawCursorOOG();
-void __stdcall DRAW_UI_Sprites();
 void __stdcall RENDERER_DrawOutOfGameScene();
 LRESULT __stdcall WndProc(HWND hWnd, uint32_t uMsg, uint32_t nParam, LPARAM lParam);
 void __stdcall INPUT_FormKeyHandler(struct D2UIMouseMsgStrc * pMsg);
@@ -120,25 +118,9 @@ void __stdcall INPUT_FormActivate(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_FormDeactivate(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall D2WIN_HandleSystemCommand(int32_t nParam);
 void __stdcall D2WIN_HandleActivation(int32_t nParam);
-// Writes the screenshot DIB out as a JPEG through Intel JPEG Library (IJL11.DLL).
-// @abi custom: pDibBytes @Stack[0x4], szFileName @ESI, nWidth @EDI, nHeight @EBX. Returns void.
-// @evidence EBX was a hidden fourth register argument. It is never written in this function and is
-// read twice - 004fa053 into +0x0c and 004fa094 into +0x30 - and BOTH call sites load it immediately
-// before the call and restore it after (004fa125 MOV EBX,[EBP-4] / 004fa131; 004fa802 MOV EBX,[EBP-4]
-// after PUSH EBX at 004fa801, which is the save, not an argument - the callee ends RET 4, one stack
-// parameter). Before it was declared, DIBHeight and JPGHeight simply vanished from the lift.
-// @evidence The 0x4e40-byte frame slot is IJL's JPEG_CORE_PROPERTIES, not ten loose dwords. Proven
-// field by field against the public ijl.h layout: +0x10 receives ((3*w+3)&~3)-3*w, the 4-byte row
-// padding for a 24bpp DIB (DIBPadBytes); +0x20 receives a file name (JPGFile); +0x50 receives 0x64
-// (jquality 100); ijlWrite's second argument 8 is IJL_JFILE_WRITEWHOLEIMAGE. Only the 21 head fields
-// of that struct are modelled - the 19948-byte tail is left as an explicit unmodelled blob.
-// @wasnamed parameter 1 was pQServerClientPacket typed D2QServerClientPacketStrc *. It is assigned
-// straight into JPEG_CORE_PROPERTIES.DIBBytes, so it is the pixel buffer; retyped uint8_t *.
-void __stdcall D2WIN_SaveScreenshotToFile(uint8_t * pDibBytes, LPCSTR szFileName, int32_t nWidth, int32_t nHeight);
 // @sourcefile .\Src\D2WinMain.cpp
 void __fastcall D2WIN_TakeThrottledScreenshot(LPCSTR szFileName);
 void __stdcall D2WIN_ToggleMusicOptions(int32_t nParam);
-int32_t __stdcall D2WIN_FindClosestControlToMouse(struct D2ControlStrc * pControl1, struct D2ControlStrc * pControl2);
 void __stdcall INPUT_FormMouseWheel(struct D2UIMouseMsgStrc * pMsg);
 // Sets gbCursorVisible cursor visibility flag
 void __stdcall D2WINMAIN_SetCursorVisible(BOOL bVisible);

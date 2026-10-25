@@ -21,19 +21,9 @@ typedef int32_t (__fastcall *fnRoomUnitScanCallback)(struct D2UnitStrc * pSource
 namespace D2Client::Source::ClientEngine {
 
 // Function declarations
-void __stdcall CLIENT_QuestEvent_CairnStonesPortal();
-void __stdcall DenOfEvilSpecific(struct D2RoomStrc * pRoom);
 void __stdcall CLIENT_QuestEvent_DenOfEvilLightReset();
-// Iterate act rooms and apply DenOfEvil-specific lighting to matching rooms.
-void __stdcall ClientLight_ApplyDenOfEvilLighting();
-void __stdcall CLIENT_QuestEvent_PlaceHoradricStaff();
-void __stdcall CLIENT_QuestEvent_RestoreTaintedSun();
-void __stdcall CLIENT_QuestEvent_DiabloSpawnInChaosSanctuary();
-void __stdcall CLIENT_QuestEvent_HoradricForge();
 void __stdcall CLIENT_QuestEvent_StartGameEndCountdown();
 void __fastcall CLIENT_SpawnOverseerControlMissile(struct D2UnitStrc * pUnit);
-void __stdcall CLIENT_QuestEvent_FreeAnyaFromIce();
-void __stdcall CLIENT_QuestEvent_NihlathakTransformation();
 void __stdcall CLIENT_QuestEvent_WorldstoneShake();
 void __fastcall CLIENT_SpawnAncientDeathMissile(struct D2UnitStrc * pUnit);
 void __fastcall HandleIncoming0x89(int32_t nEventId);
@@ -62,12 +52,10 @@ void DRAW_Overlay_SecondsLeftToGame(struct D2QServerClientConnectionStrc * pQSer
 // @evidence Body is one instruction: JMP 0x0046c060. The apparent 'duplicate body' was Ghidra following the jump.
 void thunk_DRAW_Overlay_SecondsLeftToGame(struct D2QServerClientConnectionStrc * pQServerClientConnection);
 uint32_t __fastcall GetSomeMonsterStatFlag(int32_t nMonsterClassId, uint32_t nStatBitIndex);
-void __stdcall ROOM_FindSpawnPositionForMonster(struct D2RoomStrc * pRoom, int32_t nMonsterClassId, uint32_t * pSeed);
 void __fastcall CLIENT_SpawnMonstersAroundUnit(struct D2UnitStrc * pUnit, int32_t nMonsterClassId, int32_t nSpawnCount);
 void __fastcall DRLGROOM_SpawnRandomMonsters(struct D2RoomStrc * pRoom);
 int32_t __fastcall CLIENT_ForEachUnitInAdjacentRooms(struct D2UnitStrc * pUnit, struct D2UnitStrc * * ppBestUnit, int32_t * pnBestValue, fnRoomUnitScanCallback pfnCallback);
 int __fastcall CLIENT_FindClosestDeadUnitCallback(struct D2UnitStrc * pSourceUnit, struct D2UnitStrc * pCandidate, struct D2UnitStrc * * ppBestUnit, int * pnBestDistance);
-eD2UnitType __fastcall CLIENT_FindNearbyCorpseCallback(struct D2UnitStrc * pSourceUnit, struct D2UnitStrc * pCandidate, struct D2UnitStrc * * ppBestUnit, int * pnBestDistance);
 void __fastcall CLIENT_RegisterActiveUnitInSlot(int32_t nUnitId);
 void __fastcall CLIENT_UnregisterActiveUnitFromSlot(int32_t nUnitId);
 struct D2UnitStrc * __stdcall CLIENT_FindClosestTrackedUnit(struct D2UnitStrc * pUnit, int * pnClosestDist);

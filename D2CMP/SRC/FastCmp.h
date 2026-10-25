@@ -19,7 +19,6 @@ typedef uint8_t (__stdcall *pfnRGBToPaletteIndex)(uint8_t nRed, uint8_t nGreen, 
 namespace D2CMP::SRC::FastCmp {
 
 // Function declarations
-void __stdcall FASTCMP_CompressToRLE(uint8_t * pSrcData, uint32_t nLineCount, uint8_t * pDirectionOrder, uint8_t * * ppRLEBuffer, uint8_t * * ppRLEEnd, uint8_t * pBaseData);
 // Remap the palette indices of one already-decoded DC6 frame in place, walking the frame's RLE stream from +0x20 for nHeight rows and translating each pixel byte through the caller-supplied 256-byte remap table
 void __fastcall FASTCMP_RemapFramePaletteIndices(struct DC6Block * pFrame, BYTE * pPaletteRemap);
 // Convert a DC6 sprite from RGB pixel data to palette-indexed RLE format using a caller-supplied colour-mapping callback

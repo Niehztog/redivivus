@@ -284,7 +284,7 @@ BOOL __fastcall Draw(::D2WinList * pList) {
 
       ppDrawFrame = &pList->sEntriesControl.nCursorFrame;
       (*ppDrawFrame)++;
-      if (7 < pList->sEntriesControl.nCursorFrame) {
+      if (8 <= pList->sEntriesControl.nCursorFrame) {
         pList->sEntriesControl.nCursorFrame = 0;
       }
 
@@ -374,14 +374,7 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
     }
 
     uint32_t WVar2 = pControlMsg->wParam;
-    if (WVar2 == 0xd) {
-      D2WinMain::D2WINMAIN_SetFocusedControl(nullptr);
-      pfVar5 = pList->sEntriesControl.pSelectedEntry->pfnOnActivate;
-      if (pfVar5) {
-        bCallbackResult = (*pfVar5)(pControlMsg);
-        return bCallbackResult;
-      }
-    } else {
+    if (WVar2 != 0xd) {
       int* piVar1;
       if (WVar2 == 0x26) {
         pDVar6 = pList->sEntriesControl.pFirstEntry;
@@ -407,14 +400,14 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
 
         nKeyCode = pList->sEntriesControl.nSelectedIndex;
         iVar3 = pList->sEntriesControl.nTopIndex;
-        if (nKeyCode < iVar3) {
+        if (iVar3 > nKeyCode) {
           pList->sEntriesControl.nTopIndex = nKeyCode;
           D2WinMain::D2WINMAIN_SetFocusedControl(nullptr);
           return 1;
         }
 
         nKeyCode -= iVar3;
-        while (pList->sEntriesControl.nMaxVisibleIndex < nKeyCode) {
+        while (nKeyCode > pList->sEntriesControl.nMaxVisibleIndex) {
           piVar1 = &pList->sEntriesControl.nTopIndex;
           (*piVar1)++;
           nKeyCode--;
@@ -446,7 +439,7 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
         }
 
         nKeyCode -= iVar3;
-        while (pList->sEntriesControl.nMaxVisibleIndex < nKeyCode) {
+        while (nKeyCode > pList->sEntriesControl.nMaxVisibleIndex) {
           piVar1 = &pList->sEntriesControl.nTopIndex;
           (*piVar1)++;
           nKeyCode--;
@@ -454,6 +447,13 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
 
         D2WinMain::D2WINMAIN_SetFocusedControl(nullptr);
         return 1;
+      }
+    } else {
+      D2WinMain::D2WINMAIN_SetFocusedControl(nullptr);
+      pfVar5 = pList->sEntriesControl.pSelectedEntry->pfnOnActivate;
+      if (pfVar5) {
+        bCallbackResult = (*pfVar5)(pControlMsg);
+        return bCallbackResult;
       }
     }
 
@@ -532,7 +532,7 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
         pNewEntry = D2_NEW(D2WinListEntry);
         wszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(*(uint16_t*)(nSizeX - 1));
         nStrLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszLocaleStr);
-        if (0xff < nStrLen) {
+        if (0x100 <= nStrLen) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x58);
           exit(-1);
         }
@@ -554,9 +554,7 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
         pNewEntry->nUserData = nSizeX[1];
         pNewEntry->pNext = 0;
         pTailEntry = pList->sEntriesControl.pFirstEntry;
-        if (!pTailEntry) {
-          pList->sEntriesControl.pFirstEntry = pNewEntry;
-        } else {
+        if (pTailEntry) {
           pDVar1 = pTailEntry->pNext;
           while (pDVar1) {
             pTailEntry = pTailEntry->pNext;
@@ -564,6 +562,8 @@ BOOL __stdcall Key(D2ControlMsg * pControlMsg) {
           }
 
           pTailEntry->pNext = pNewEntry;
+        } else {
+          pList->sEntriesControl.pFirstEntry = pNewEntry;
         }
 
         pItemCountPtr = &pList->sEntriesControl.nItemCount;

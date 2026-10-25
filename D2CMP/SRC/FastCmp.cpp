@@ -27,7 +27,7 @@ typedef uint8_t (__stdcall *pfnRGBToPaletteIndex)(uint8_t nRed, uint8_t nGreen, 
 
 namespace D2CMP::SRC::FastCmp {
 
-void __stdcall FASTCMP_CompressToRLE(uint8_t * pSrcData, uint32_t nLineCount, uint8_t * pDirectionOrder, uint8_t * * ppRLEBuffer, uint8_t * * ppRLEEnd, uint8_t * pBaseData) {
+static void __stdcall FASTCMP_CompressToRLE(uint8_t * pSrcData, uint32_t nLineCount, uint8_t * pDirectionOrder, uint8_t * * ppRLEBuffer, uint8_t * * ppRLEEnd, uint8_t * pBaseData) {
     int nColorRunLen;
     uint32_t nColorTailFlag;
     int nZeroTailFlag;
@@ -263,7 +263,7 @@ void __fastcall FASTCMP_DecompressRLEWithClip(uint8_t * pImageHeader, int32_t nD
 
           nClipEnd = -nXPos + nImageWidth;
           nRunLen = (int)(char)bRLEToken;
-          if (nRunLen < nClipEnd) {
+          if (nClipEnd > nRunLen) {
             nClipEnd = nRunLen;
           }
           if (0 < nClipEnd - nClipStart) {
@@ -391,7 +391,7 @@ void __fastcall FASTCMP_DecompressRLEWithBlendAndClip(uint8_t * pbParam, int32_t
 
           nRunLen = -nClipStartX + nDrawEndX;
           nFullChunks = (int)(char)bRLEToken;
-          if (nFullChunks < nRunLen) {
+          if (nRunLen > nFullChunks) {
             nRunLen = nFullChunks;
           }
 
@@ -557,12 +557,12 @@ void __fastcall FASTCMP_DecompressRLEWithLookup2AndClip(uint8_t * pbParam, int32
 
           nRunLen = -nParam2 + nParam4;
           nFullChunks = (int)(char)bRLEToken;
-          if (nFullChunks < nRunLen) {
+          if (nRunLen > nFullChunks) {
             nRunLen = nFullChunks;
           }
 
           nClipCount = nRunLen - nParam5;
-          if ((int)nClipCount < 1) {
+          if ((int)nClipCount <= 0) {
             nParam2 += nFullChunks;
             pbParam += nFullChunks;
             nParam1 += nFullChunks;
@@ -723,7 +723,7 @@ void __fastcall FASTCMP_DecompressRLEWithLookup1AndClip(uint8_t * pbParam, int32
 
           nRunLen = -nParam2 + nParam4;
           nFullChunks = (int)(char)bRLEToken;
-          if (nFullChunks < nRunLen) {
+          if (nRunLen > nFullChunks) {
             nRunLen = nFullChunks;
           }
 
@@ -888,7 +888,7 @@ void __fastcall FASTCMP_DecompressRLEWithBlend2AndClip(uint8_t * pbParam, int32_
 
           nRunLen = -nParam2 + nParam4;
           nFullChunks = (int)(char)bRLEToken;
-          if (nFullChunks < nRunLen) {
+          if (nRunLen > nFullChunks) {
             nRunLen = nFullChunks;
           }
 
@@ -1581,12 +1581,12 @@ void __fastcall FASTCMP_DecompressRLEWithEffect(int32_t nStride) {
           }
 
           nClampedX = (int)(nProjectedX + 0x28U) < 1 ? 0 : nProjectedX + 0x28U;
-          if (0x4e < (int)nClampedX) {
+          if (0x4f <= (int)nClampedX) {
             nClampedX = 0x4f;
           }
 
           nClampedY = (int)(nDeltaY + 0x28U) < 1 ? 0 : nDeltaY + 0x28U;
-          if (0x4e < (int)nClampedY) {
+          if (0x4f <= (int)nClampedY) {
             nClampedY = 0x4f;
           }
 
@@ -1650,7 +1650,7 @@ void __fastcall FASTCMP_DecompressRLEWithEffect(int32_t nStride) {
       } while (nDeltaY < 0x50);
 
       nDeltaX++;
-      if (0x4f < nDeltaX) {
+      if (0x50 <= nDeltaX) {
         return;
       }
     } while (true);
@@ -1667,7 +1667,7 @@ void __stdcall DRAW_DebugFillRect(int32_t nRowStart, int32_t nRowStride) {
     do {
       nMaxRow = *(int*)((int)gnFastCmpEffectMapMinRow + nMinRow);
       pbPixel = (uint8_t*)(*(int*)((int)gnFastCmpEffectMapMaxRow + nMinRow) + nRowBase);
-      if (0x28 < nMaxRow) {
+      if (0x29 <= nMaxRow) {
         nMaxRow = 0x29;
       }
       if (pbPixel < (uint8_t*)(nMaxRow + nRowBase)) {
@@ -1684,7 +1684,7 @@ void __stdcall DRAW_DebugFillRect(int32_t nRowStart, int32_t nRowStride) {
       if (nMaxRow < 0x28) {
         nMaxRow = 0x28;
       }
-      if ((uint8_t*)(nMaxRow + nRowBase) < pbPixel) {
+      if (pbPixel > (uint8_t*)(nMaxRow + nRowBase)) {
         pEffectOffset = gaFastCmpEffectPixelOffsetTable + *(int*)((int)gnFastCmpEffectMapMinRow + nMinRow) + nWorkspaceOffset;
         do {
           *pbPixel = pbPixel[*pEffectOffset];
@@ -1706,7 +1706,7 @@ void __stdcall DRAW_DebugFillRect(int32_t nRowStart, int32_t nRowStride) {
       iVar1 = *(int*)((int)gnFastCmpEffectMapMaxRow + nMaxRow + 0x13c);
       nMinRow2 = *(int*)((int)gnFastCmpEffectMapMinRow + nMaxRow + 0x13c);
       pbPixel = (uint8_t*)(iVar1 + nMinRow);
-      if (0x28 < nMinRow2) {
+      if (0x29 <= nMinRow2) {
         nMinRow2 = 0x29;
       }
       if (pbPixel < (uint8_t*)(nMinRow2 + nMinRow)) {
@@ -1724,7 +1724,7 @@ void __stdcall DRAW_DebugFillRect(int32_t nRowStart, int32_t nRowStride) {
       if (nMinRow2 < 0x28) {
         nMinRow2 = 0x28;
       }
-      if ((uint8_t*)(nMinRow2 + nMinRow) < pbPixel) {
+      if (pbPixel > (uint8_t*)(nMinRow2 + nMinRow)) {
         pEffectOffset = gaFastCmpEffectPixelOffsetTable + iVar1 + nWorkspaceOffset;
         do {
           *pbPixel = pbPixel[*pEffectOffset];
@@ -1736,7 +1736,7 @@ void __stdcall DRAW_DebugFillRect(int32_t nRowStart, int32_t nRowStride) {
       nWorkspaceOffset += -0x50;
       nMinRow -= nRowStride;
       nMaxRow += -4;
-    } while (-0x9d < nMaxRow);
+    } while (-0x9c <= nMaxRow);
 }
 
 void __fastcall FASTCMP_DecompressRLEWithAlpha(BYTE * pFrameBlock, BYTE * pDst, int32_t nDrawX, int32_t nClipLeft, int32_t nClipRight, uint32_t nDstPitch, int32_t nSkipRows, int32_t nRowCount, BYTE * pBlendTable, uint8_t byBlendColor) {
@@ -1820,10 +1820,10 @@ void __fastcall FASTCMP_DecompressRLEWithAlpha(BYTE * pFrameBlock, BYTE * pDst, 
         }
 
         nClipSkip = -nDrawX + nClipLeft;
-        nClipSkip = (int)nClipSkip < 1 ? 0 : nClipSkip;
+        nClipSkip = (int)nClipSkip <= 0 ? 0 : nClipSkip;
         nCopyCount = -nDrawX + nClipRight;
-        nCopyCount = (int)nCopyCount < 1 ? 0 : nCopyCount;
-        if ((int)nRunLen <= (int)nCopyCount) {
+        nCopyCount = (int)nCopyCount <= 0 ? 0 : nCopyCount;
+        if ((int)nCopyCount >= (int)nRunLen) {
           nCopyCount = nRunLen;
         }
 
@@ -1882,7 +1882,7 @@ uint32_t __fastcall FASTCMP_DecompressRLEWithPaletteConversion(int32_t pDCCSrc, 
     uint32_t nFramesPerDir = *(uint32_t*)(pDCCSrc + 0x24) / *(uint32_t*)(pDCCSrc + 0x28);
     uint32_t nFrameCounter = 0;
     uint32_t nDirectionCount = *(uint32_t*)(pDCCSrc + 0x34);
-    for (nFrameInDir = (int)nDirectionCount < 1 ? 0 : nDirectionCount; 0 < (int)nFrameInDir; nFrameInDir = *(uint32_t*)(nFrameInDir + 4)) {
+    for (nFrameInDir = (int)nDirectionCount <= 0 ? 0 : nDirectionCount; 0 < (int)nFrameInDir; nFrameInDir = *(uint32_t*)(nFrameInDir + 4)) {
       FASTCMP_CompressToRLE(*(uint8_t**)(nFrameInDir + 0xc), *(uint32_t*)(nFrameInDir + 0x10), *(uint8_t**)(nFrameInDir + 8), &nCompressedSize, &pbCompressedData, *(uint8_t**)(nFrameInDir + 0x20));
       nCompressedDataSize = pbCompressedData;
       pNewFrame = (uint32_t*)D2_ALLOC((size_t)(pbCompressedData + 0x23));

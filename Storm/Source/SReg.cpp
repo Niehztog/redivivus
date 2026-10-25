@@ -88,7 +88,6 @@ int __fastcall SREG_DeleteValueInternal(uint8_t byFlags, char * pszSubKey, LPCST
         lResult = lResult2;
       }
       if (!lResult) {
-        Fog::Debug::GuardStack();
         return 1;
       }
     }
@@ -100,14 +99,13 @@ int __fastcall SREG_DeleteValueInternal(uint8_t byFlags, char * pszSubKey, LPCST
       SetLastError(lResult);
     }
 
-    Fog::Debug::GuardStack();
     return bSuccess;
 }
 
 // @wasnamed SSTR_RegistryReadValue
 // @basis internal. NOT an exported Storm symbol: no such name on the 337-entry Storm 1.10b export table. Renamed only to correct the module prefix - this is SReg code, not SStr code. Register-convention worker shared by SRegLoadValue, SRegLoadString and SRegLoadData: RegQueryValueExA against HKCU then HKLM, returning the REG type and byte count to the caller, which is what interprets them.
 // @blizzard InternalLoadEntry (SREG.CPP)
-BOOL __stdcall SREG_InternalLoadEntry(LPDWORD pdwType, LPBYTE pbData, char * pszSubKey, uint8_t byFlags, DWORD dwBufSize, LPCSTR szValueName, LPDWORD pdwDataLen) {
+static BOOL __stdcall SREG_InternalLoadEntry(LPDWORD pdwType, LPBYTE pbData, char * pszSubKey, uint8_t byFlags, DWORD dwBufSize, LPCSTR szValueName, LPDWORD pdwDataLen) {
     char szKeyPath[260];
     uint32_t dwSecurityCookie;
     dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
@@ -129,7 +127,6 @@ BOOL __stdcall SREG_InternalLoadEntry(LPDWORD pdwType, LPBYTE pbData, char * psz
         /* LPCSTR lpValueName for RegQueryValueExA */ /* HKEY hKey for RegQueryValueExA */ dwErrCode = RegQueryValueExA(hKey, szValueName, (LPDWORD)0x0, pdwType, pbData, pdwDataLen);
         /* HKEY hKey for RegCloseKey */ RegCloseKey(hKey);
         if (!dwErrCode) {
-          Fog::Debug::GuardStack();
           return 1;
         }
       }
@@ -145,13 +142,11 @@ BOOL __stdcall SREG_InternalLoadEntry(LPDWORD pdwType, LPBYTE pbData, char * psz
       /* HKEY hKey for RegCloseKey */ RegCloseKey(hKey);
     }
     if (!dwErrCode) {
-      Fog::Debug::GuardStack();
       return 1;
     }
 
     fail:
     /* DWORD dwErrCode for SetLastError */ SetLastError(dwErrCode);
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -161,7 +156,7 @@ BOOL __stdcall SREG_InternalLoadEntry(LPDWORD pdwType, LPBYTE pbData, char * psz
 // Storm module with its own nine exported symbols; nothing in this family belongs to the string module.
 // The SReg block occupies 00414930-0041513f, contiguous, between SStr and SFile.
 // @blizzard InternalSaveEntry (SREG.CPP)
-int __stdcall SREG_InternalSaveEntry(char * pszSubKey, LPCSTR szValueName, uint32_t dwType, uint8_t * pbData, uint32_t dwDataLen, uint8_t byFlags) {
+static int __stdcall SREG_InternalSaveEntry(char * pszSubKey, LPCSTR szValueName, uint32_t dwType, uint8_t * pbData, uint32_t dwDataLen, uint8_t byFlags) {
     // Frame slots -280..-272 are ONE object: &dwDisposition is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -195,7 +190,6 @@ int __stdcall SREG_InternalSaveEntry(char * pszSubKey, LPCSTR szValueName, uint3
 
         /* HKEY hKey for RegCloseKey */ dwErrCode = RegCloseKey(hKey);
         if (!dwErrCode) {
-          Fog::Debug::GuardStack();
           return 1;
         }
       }
@@ -205,7 +199,6 @@ int __stdcall SREG_InternalSaveEntry(char * pszSubKey, LPCSTR szValueName, uint3
     }
 
     /* DWORD dwErrCode for SetLastError */ SetLastError(dwErrCode);
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -307,19 +300,22 @@ int __stdcall SRegLoadValue(char * pTree, char * pKey, uint8_t byFlags, int32_t 
       __frame0.valueBuf[0] &= -256;
       bReadOk = SREG_InternalLoadEntry(&__frame0.dwType, (LPBYTE)__frame0.valueBuf, pTree, byFlags, 0x100, pKey, &__frame0.dwDataLen);
       if (bReadOk) {
-        if (__frame0.dwType == 1) {
+        switch (__frame0.dwType) {
+        case 1: {
           nParsed = strtoul((char*)__frame0.valueBuf, nullptr, 0);
           *__frame0.pnOutVal = nParsed;
-        } else if (__frame0.dwType == 4) {
+          break;
+        }
+        case 4: {
           *__frame0.pnOutVal = __frame0.valueBuf[0];
+          break;
+        }
         }
 
-        Fog::Debug::GuardStack();
         return 1;
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 

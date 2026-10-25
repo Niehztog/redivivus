@@ -37,9 +37,6 @@ void __fastcall MERC_ApplyLevelStats(::SGAMEDATA * pGame, struct D2UnitStrc * pP
 struct D2MonsterAiStrc * __fastcall AllocMonsterAI(::SGAMEDATA * pGame);
 // @sourcefile .\MONSTER\MonsterAI.cpp
 void __fastcall FreeMonsterAi(::SGAMEDATA * pGame, struct D2MonsterAiStrc * pMonster);
-// Initiates a player-NPC interaction on the server. Guards against double-interaction (checks existing pAiSub list and GetInteractedNpc), verifies the NPC is interactable (MonStats interact flag) and not in Death/Kick mode, and that the player is not already trading. Allocates a D2MonsterAiSubStrc to track the interaction participant, sends the mercenary hire list (SendMercForHireList, first-time flag), sets the interact info on the player unit, then sends 0x27 NPC-info and 0x28 player-quest-info packets. Also triggers QUEST_OnNpcInteraction for quest dialogue and 0x29 quest-log prep.
-// @sourcefile .\MONSTER\MonsterAI.cpp
-uint32_t __stdcall NPC_BeginInteraction(::SGAMEDATA * pGame, struct D2MonsterAiStrc * pAi, uint8_t questActionType, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pNpcUnit);
 int32_t __fastcall CountMonstersByAi(struct D2MonsterAiStrc * pMonsterAi);
 BOOL __fastcall HasAiSub(struct D2MonsterAiStrc * pMonsterAi);
 BOOL __fastcall HasUnitInSubAi(struct D2MonsterAiStrc * pMonsterAiArg, struct D2UnitStrc * pUnit);

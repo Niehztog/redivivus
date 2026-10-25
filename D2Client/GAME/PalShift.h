@@ -31,8 +31,6 @@ void __stdcall InitPal();
 // @sourcefile .\GAME\PalShift.cpp
 void __stdcall FreeGamePalShift();
 int * __fastcall PALSHIFT_FindPalShiftByToken(int32_t nToken);
-// Remaps the blood-color entries in a monster's palette table to green if the monster uses local blood (MonStats2.byLocalBlood == 2). Copies the base 512-byte palette block to an offset within pPaletteData, then applies the PalShift_GreenBlood lookup table across 8 rows of 256 entries, replacing non-zero mapped indices. No-ops for monsters outside the valid MonStats/MonStatsEx range or without local blood.
-void PALSHIFT_ApplyGreenBloodPalette(int32_t pPaletteData, int32_t nMonsterId);
 // Loads a monster's palshift.dat color-remapping table on demand. Looks up MonStats for nMonsterId, returns early if missing or if a palshift entry already exists. Builds the path Data\\Global\\Monsters\\<2-char monster code>\\Cof\\palshift.dat, opens it if present, allocates a 0x1008-byte client-memory entry, reads the file into it, applies the green-blood palette transform, links it into the global palshift list, and registers it in gpMonsterPalShiftList by monster index. Side effects: client-memory alloc, MPQ file read, mutates global palshift list/array.
 // @sourcefile .\GAME\PalShift.cpp
 void __fastcall PALSHIFT_LoadMonsterPalShift(int32_t nMonsterId);

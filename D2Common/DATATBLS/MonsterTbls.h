@@ -69,10 +69,7 @@ struct D2UniqueNameTablesStrc {
 namespace D2Common::DATATBLS::MonsterTbls {
 
 // Function declarations
-void FilterNameString(char * szText1, char * szText2);
 // Post-processes all MonStats entries after TXT load: for each monster resolves its base MonStats ID (fixing out-of-range back-references), then queries AnimData to compute and store the scaled walk-anim frame count (offset +0x26) and run-anim frame count (offset +0x28), clamped to 0x7FFF, accounting for Velocity/Run speed overrides from the base monster.
-void __stdcall MONSTERTBLS_AllocateTransformArrays(int32_t nMonStatsSize);
-void __stdcall MONSTERTBLS_FreeTransformArrays();
 int32_t __stdcall MONSTERTBLS_GetUpgradeDataByMonStatsId(int32_t nMonStatsId, uint32_t * pUpgradeCount, eD2Skills * eSkill);
 // TXT field linker for a MonStats skill slot (index nSkillIdx, max 7): zeroes the skill mode byte and sequence ID, then resolves szText as a monster mode name (via FilterNameString + monmode link) or falls back to a monster sequence ID (via monseq link). Writes mode byte to pMonStats+0x180+idx and seq short to +0x188+idx*2.
 void __fastcall MONSTERTBLS_ParseMonStatsField(char * szText, char * pRecord, uint32_t nSkillIdx, int32_t nMonStatsOffset, int32_t nReserved1, int32_t nReserved2);
@@ -93,11 +90,6 @@ struct D2ParsedTreasureClassEntriesStrc * __fastcall AddOneParsedTCEntry(struct 
 void __fastcall AdjustRarities(struct D2ParsedTreasureClassStrc * pParsedTC, struct D2ParsedTreasureClassEntriesStrc * pParsedTCEntry, int32_t nRarity, BOOL bIsNotVersion100);
 // One-time initialization that auto-generates level-banded treasure classes for each spawnable item type. For every ItemTypes.txt record that has auto-TC enabled (szCode[0x1d] != 0), creates TC entries named "&lt;typeCode&gt;&lt;level&gt;" (level 3..96 step 3) via TC_ExtendTreasureClassSize, then populates each TC with items whose nLevel falls within the band, excluding missile potions and marking LoD-only items with TC_Expansion. Calls AdjustRarities to finalize drop weights.
 void __stdcall TC_GenerateAutoItemTypeTreasureClasses();
-int32_t TC_ExtractNextIntModifier(char cParam, uint32_t * * pnParam);
-// Parses one TreasureClasses.txt drop entry (item code + probability) into a parsed-TC node and appends it to pParsedTC. Strips quotes, splits the field on ',', and resolves the code: a <5-char item code becomes an item-class entry (tagging TC_Expansion by items.txt version); otherwise it tries the monster-TC, unique-items, then set-items link tables (tagging TC_Monster/TC_Unique/TC_Set and the link node id). Calls AddOneParsedTCEntry then AdjustRarities with the probability and expansion flag. After the base entry it parses optional trailing modifiers ("mul","cu","cs","cr","cm","ce","cg","ma","mg") via _atol / TC_ExtractNextIntModifier, storing them into the entry's nUniqueMod/nSetMod/nRareMod/nMagicMod/etc fields. Returns 1 on success, 0 if prob<1 or no code resolves. Custom convention: szItemCode in EAX, pParsedTC/nProb on stack.
-void __stdcall TC_ParseTreasureClassEntry(struct D2ParsedTreasureClassStrc * pParsedTC, int32_t nProb, char * szItemCode);
-// Loads and compiles TreasureClassEx.txt (drop tables). Builds the D2BinFieldInputStrc descriptor array (treasure class name, group, level, picks, unique/set/rare/magic chances, nodrop, and item1..item10 with prob1..prob10), compiles into D2TreasureClassExTxt records, then post-processes each line: allocates a parsed-TC record via TC_ExtendTreasureClassSize, fills group(+base offset)/level/prob(min 1)/nodrop/magic/rare/set/unique, and parses up to 10 item entries via TC_ParseTreasureClassEntry. Frees the raw bin afterward (UnloadBin). One-time table init; allocates from pMemory. Note: many fields accessed via raw pointer arithmetic over D2PoolManagerStrc casts (decompiler smell), not real pool fields.
-void __stdcall TXT_AllocTxt_TreasureClassEx(struct D2PoolManagerStrc * pMemory);
 void __stdcall FreeParsedTC();
 struct D2ParsedTreasureClassStrc * __stdcall TC_LookupTreasureClassByName(char * szText);
 // TC level-variant selector. TCs with same nGroup form a chain, select best match where TC.nLevel <= nLevel. Linear scan through variants, returns highest applicable TC or base TC if no variants.
@@ -131,8 +123,6 @@ struct D2NpcTxt * __stdcall TXT_npc_GetLine(int32_t nNpc);
 void __fastcall TXT_AllocTxt_monsounds(struct D2PoolManagerStrc * pMemory);
 struct D2MonSoundsTxt * __stdcall TxtGetMonSoundsLine(int32_t nSoundId);
 struct D2MonSoundsTxt * __stdcall MONSTERTBLS_GetMonSoundsTxtRecord(int32_t nParam);
-// Parses one comma-separated component-code field of a MonSeq/monster txt row into the row's compiled code table. For sequence slot nSeqSlot (<0x10) it clears the slot's count byte and three code entries, strips surrounding quotes, then tokenizes the input string on commas; each <=4-char token is packed into a 4-char code (space-padded), resolved to a class id via Excel GetClassIdFromName against pTxtCompCodeLink, and stored as a byte. Writes the resolved code count back to offset 0x15+nSeqSlot (max 12 codes). On the final slot (0xf) it sums frame counts across the parsed component groups and stores the clamped (<=0xfe) total at offset 0x25. Pure table-build side effects; no return.
-void __fastcall MONSTERTBLS_ParseMonSeqField(char * szText, char * pRecord, uint32_t nSeqSlot, int32_t nLinkerCtx1, int32_t nLinkerCtx2, int32_t nLinkerCtx3);
 // Builds the field-descriptor table for monstats2.txt and compiles it into the in-memory MonStatsEx binary table. Fills a 126-entry D2BinFieldInputStrc array mapping every monstats2 column (Height, sizes, gfx component vectors mode-link bits HD/TR/.../S8 with MONSTERTBLS_ParseMonSeqField linkers, selection/collision flags, light/transform, Heart/BodyPart, Inferno, ResurrectMode/Skill), creates the txt link strc, then calls DataTbls::CompileTxt to allocate sgtDataTable.pTxtMonStatsEx (record size 0x134) and store its row count. __fastcall, pMemory(ECX)=pool allocator; no return.
 void __fastcall TXT_AllocTxt_monstats2(struct D2PoolManagerStrc * pMemory);
 // Breadth-first traversal of the monstypes.txt equiv1/equiv2/equiv3 parent-type hierarchy to test whether monster type nMonTypeId belongs to type nCheckTypeId. Returns 1 if found, 0 if not found, out-of-range, or stack depth exceeds 124. Despite its name, behaves as a monster-type membership test (analogous to ITEMTBLS_CheckItemTypeRecursive but for MonType with three equiv slots).
@@ -144,10 +134,8 @@ void __stdcall MONSTERTBLS_FreeMonPlaceTxt();
 void __fastcall TXT_AllocTxt_monprop(struct D2PoolManagerStrc * pMemory);
 // Builds the monlvl.txt field-binding table (AC/TH/HP/DM/XP normal+nightmare+hell columns and their per-level L- variants, each an INT field with a target struct offset) on the stack, then calls DataTbls::CompileTxt to parse data/global/excel/monlvl.txt into the sgtDataTable.pTxtMonLvl array (count in nTxtMonLvlSize). Holds per-area-level monster scaling stats used to compute monster AC/to-hit/HP/damage/experience by level. Uses the gTxtCompilationMemPool; takes the game memory pool via ECX.
 void __fastcall TXT_AllocTxt_monlvl(struct D2PoolManagerStrc * pMemory);
-void __fastcall DATATBLS_LinkerMonsterPreset(char * pName, char * pRecord, int32_t nParam3, int32_t nParam4, int32_t nParam5, int32_t nParam6);
 // Parses monpreset.txt (Act/CHAR + Place/LINKER_BIT) via CompileTxt, then builds the per-act index arrays sgtDataTable.pTxtMonPresetPerAct[] and pTxtMonPresetPerActId[] so presets can be looked up by act number. Side-effects: sgtDataTable.pTxtMonPresetPlace, pTxtMonPresetPerAct, pTxtMonPresetPerActId.
 void __fastcall TXT_AllocTxt_monpreset(struct D2PoolManagerStrc * pMemory);
-void __stdcall MONSTERTBLS_FreeMonPresetTxt();
 struct D2MonPresetTxt * __stdcall MONSTERTBLS_GetMonPresetRecord(uint32_t nParam, int * pnParam);
 int32_t __stdcall MONSTERTBLS_GetPresetActValue(int32_t nParam1, int32_t nParam2);
 void __fastcall TXT_AllocTxt_sounds(struct D2PoolManagerStrc * pMemory);
@@ -161,8 +149,6 @@ struct D2MonSeqMonsterTbls * __stdcall GetMonsterSequenceTableByIndex(int32_t nI
 void __fastcall TXT_AllocTxt_MonEquip(struct D2PoolManagerStrc * pMemory);
 // Frees all monster-related data tables from sgtDataTable. Unloads MonEquip, Npc, MonLvl, MonPreset, SuperUniques (+ txt link), MonUmod (+ txt link), MonStats (+ txt link), MonStats2 (+ txt link), MonProp (+ txt link), MonSounds (+ txt link), then delegates to MONSTERTBLS_FreeMonPropTxt, FreeParsedTC, and TXT_UnloadUniqueMonsterNameTables. Called during game shutdown or data table reload.
 void __stdcall MONSTERTBLS_FreeMonUModTxt();
-// Populates sgtDataTable.pParsedTreasureClassDiffActChestABC by looking up each "Act N&lt;diff&gt; Chest &lt;A|B|C&gt;" TreasureClass name (formatted via sprintf) in the treasure-class link table for all 3 difficulties × 5 acts × 3 chest types (A/B/C). Stores a pointer to the resolved D2ParsedTreasureClassStrc or NULL for each slot.
-void __stdcall TXT_AllocParsedTreasureClassDiffActChestABC();
 void __stdcall TXT_AllocItemDropData(struct D2PoolManagerStrc * pMemory);
 // Allocates and compiles all monster-related TXT data tables into the given memory pool. Loads uniquetitle/uniqueprefix/uniquesuffix/uniqueappellation (each keyed on the 'Name' column via DATATBLS_LookupStringId), then delegates to per-table alloc helpers for monlvl, monstats/monstats2, monprop, monsounds, monseq, monumod, superuniques, monpreset, hireling, npc, and MonEquip. Called once at startup during data-table initialization.
 void __fastcall TXT_AllocMonsterTables(struct D2PoolManagerStrc * pMemory);

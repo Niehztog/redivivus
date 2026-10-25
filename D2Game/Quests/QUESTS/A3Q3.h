@@ -77,41 +77,14 @@ void __fastcall Q20_Callback03_ChangedLevel(struct D2QuestDataStrc * pQuestData,
 BOOL __fastcall Q20_PlayerCheckBladeQuestCannotComplete(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
 // A3Q3 \"Khalim's Will\" — per-player Act III entry gate. Called when a player joins or changes area. If the quest is not Completed, Step0x06, Step0x07, or Step0x08, checks whether the player is currently in an Act III level; if so, sets QUESTSTATE_Step0x06 (Khalim's Will assembled / orb-ready marker) in the player's bit buffer. No broadcast; pure record write.
 void __fastcall Q20_PlayerCheckInAct3SetStep06(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
-// A3Q3 "Khalim's Will" — main completion driver (gossip/NPC-message callback #11). Dispatches on
-// NPC id (field1.nNPCNo) + message index (field1.nMessageIndex); no-op if already Completed(0).
-// NPC 0xff:
-//  - msg 0x24b: if player holds Will item & Step0x05 & not Step0x08 -> consume the Will
-//    (RemoveQuestItem 0x20333367), set Step0x06 (orb smashed / Will used), mark party members via
-//    Q20_PlayerCheckInAct3SetStep06, recheck cannot-complete for all. Then sets JustCompleted(0xd)
-//    record state, broadcasts quest state 0xd, advances nStateFlag to 5 and chains the sequence
-//    filter. (This is the climactic "smash the Compelling Orb" moment.)
-//  - msg 0x251: requires Step0x06 & not Step0x08 -> set Step0x08, award the reward (bolts/quiver,
-//    amount scales with difficulty 0x15/0x23/0x4b); if Step0x07 also set -> JustCompleted+Completed.
-// NPC 0xfd msg 0x23b: SetStateFlag 2, mark sub-quest bQuestCompleted.
-// NPC 0xfc msg 0x24d: set Step0x07, hire merc; if Step0x08 also set -> JustCompleted+Completed.
-// On full completion adds player to the quest GUID list.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q3.cpp
-void __fastcall Q20_Callback11_ScrollMessage(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A3Q3 \"Khalim's Will\" — item-acquired callback (slot 4). Fires when the player picks up / transmutes the Khalim's Will item (code 0x20333367 / \"ginbinn\"). During active play: broadcasts quest states 4 then 3 (log steps), latches Step0x09 on first pickup and plays the acquire sound (event 0x41), and sets nStateFlag=4. Always finishes by iterating all players through Q20_PlayerUpdateBladeState to refresh quest-log steps.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q3.cpp
 void __fastcall Q20_Callback04_ItemPickedUp(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A3Q3 "Khalim's Will" — sequence filter (fpSequenceFilter). If not yet at nStateFlag 5 and during
-// real play: bump nStateFlag 0->1 and return. Once at step 5 (Will used), it looks up the chained
-// prerequisite quest (nSequenceQuestId = QUEST_AbleGoToAct3) and invokes that quest's own sequence
-// filter, propagating the completion forward in the quest chain.
-void __fastcall Q20_SequenceFilter(struct D2QuestDataStrc * pQuestData);
 // A3Q3 "Khalim's Will" — callback #14: per-player counter maintenance. Increments the
 // "players holding the Will item" tally (aPlayerGUID[7]) when this player has the quest item; clears
 // the aPlayerGUID[8] one-shot flag once the count drops back to exactly 1. Bookkeeping for spawn/drop
 // gating, no quest-state writes.
 void __fastcall Q20_Callback14_PlayerJoinedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A3Q3 "Khalim's Will" — callback #9: fires when the quest item (0x20333367) is destroyed/removed.
-// Decrements the outstanding-item counter (aPlayerGUID[2]); when it hits 0 and field_0x00 is set
-// during real play with nStateFlag<5, raises the aPlayerGUID[3] flag (signals the orb/serpent object
-// should re-trigger). No quest-state bit writes.
-void __fastcall Q20_Callback09_PlayerDroppedWithQuestItem(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// Already documented.
-void __fastcall Q20_Callback13_PlayerStartedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A3Q3 "Khalim's Will" — quest init. Zeroes the state-handler table, points pNpcMessages at the
 // A3Q3 gossip data, sets nQuestIdReal=QUEST_BladeOfTheOldReligion, nSequenceQuestId=QUEST_AbleGoToAct3,
 // and wires the filters (Active/Status/Sequence) plus the per-state handlers:
@@ -119,20 +92,9 @@ void __fastcall Q20_Callback13_PlayerStartedGame(struct D2QuestDataStrc * pQuest
 // the 0x30-byte A3Q3-specific state struct (nQuestStage=0).
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q3.cpp
 void __fastcall Q20_InitData(struct D2QuestDataStrc * pQuestData);
-// A3Q3 "Khalim's Will" — spawns the unique serpent/council monster pack (monClass 0x197) that
-// carries the quest item. Sets in-progress guard at +4 around the spawn; on success records spawned,
-// clears the "pending" flag (+3) and stores the spawned unit's GUID at +0x24. No quest-state writes.
-void Q20_SpawnUniqueSerpent(::SGAMEDATA * pGame, struct D2RoomStrc * pRoom, struct D2QuestDataA3Q3Strc * pA3Q3Data);
 // A3Q3 "Khalim's Will" — accessor: returns the quest's "blade has been given/dropped" flag
 // (bTaintedSunStartedFailed field of the A3Q3 state struct) from the global quest data. Read-only.
 uint32_t __fastcall Q20_GetBladeHasBeenGiven(::SGAMEDATA * pGame);
-// A3Q3 "Khalim's Will" — quest-state callback #8: on-monster-death drop handler. If the quest can
-// still drop the Will (bCanDropBlade) during real play and the dead target is a boss/marked-boss,
-// forces its drop code to the quest item (0x20333367) and drops it. On success marks
-// bSerpentItemDropped, refreshes all players' logs, and unhooks this state-8 handler (one-shot). If
-// the drop fails, clears bCanDropBlade. No quest-state bit writes.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q3.cpp
-void __fastcall Q20_Callback08_MonsterKilled(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A3Q3 \"Khalim's Will\" — quest timer tick (installed as timer slot 7 by OBJOP_A3Q5_NihlathakPortalTrigger). When the serpent spawn is armed (bSerpentLocationValid + bSerpentArrived set, bCanDropBlade clear) and Act III exists, locates the recorded spawn room and scans adjacent rooms for any player unit; once a player is nearby, calls Q20_SpawnUniqueSerpent and installs Q20_Callback_08 as the death-drop handler. Implements lazy boss spawn on player proximity.
 uint8_t __fastcall Q20_QuestUpdate(::SGAMEDATA * pGame, struct D2QuestDataStrc * pQuestData);
 // A3Q3 "Khalim's Will" — object init fn (#25) for the quest's interactive object. If no quest data

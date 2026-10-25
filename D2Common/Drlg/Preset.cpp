@@ -152,11 +152,11 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
     }
 
     pFile->nAct = 0;
-    if (9 < (int)__frame0.nDs1Version) {
+    if (10 <= (int)__frame0.nDs1Version) {
       pFile->nAct = *(int*)pCursor;
       pCursor += 4;
     }
-    if (2 < (int)__frame0.nDs1Version) {
+    if (3 <= (int)__frame0.nDs1Version) {
       i = *(int*)pCursor;
       pCursor += 4;
       if (0 < i) {
@@ -173,17 +173,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
     if (__frame0.nDs1Version[-1].szInternalPrefix + 0xff < (char*)0x5) {
       pCursor += 8;
     }
-    if ((int)__frame0.nDs1Version < 4) {
-      i = eUnitType * 4;
-      pFile->pWallLayer[0] = pCursor;
-      pCursor += i;
-      pFile->pFloorLayer[0] = pCursor;
-      pCursor += i;
-      pFile->pTileTypeLayer[0] = pCursor;
-      pFile->pSubstGroupTags = pCursor + i;
-      pFile->nWallLayers = 1;
-      pCursor2 = pCursor + i + i;
-    } else {
+    if (!((int)__frame0.nDs1Version < 4)) {
       void** ppLayer;
       pCursor2 = pCursor + 4;
       pFile->nWallLayers = *(int*)pCursor;
@@ -216,6 +206,16 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
           ppLayer++;
         } while (i < pFile->nFloorLayers);
       }
+    } else {
+      i = eUnitType * 4;
+      pFile->pWallLayer[0] = pCursor;
+      pCursor += i;
+      pFile->pFloorLayer[0] = pCursor;
+      pCursor += i;
+      pFile->pTileTypeLayer[0] = pCursor;
+      pFile->pSubstGroupTags = pCursor + i;
+      pFile->nWallLayers = 1;
+      pCursor2 = pCursor + i + i;
     }
     if ((int)__frame0.nDs1Version < 7) {
       __frame0.nWallLayerIdx = 0;
@@ -241,7 +241,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
 
     pFile->pShadowLayer = pCursor2;
     pCursor2 += eUnitType * 4;
-    if (pFile->nAct - 1U < 2) {
+    if (pFile->nAct - 1U <= 1) {
       pFile->pSubstGroupTags = pCursor2;
       pCursor2 += eUnitType * 4;
     }
@@ -298,15 +298,15 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
                       pBuffer = pClassId;
                       break;
                     }
-                  } else if (nActId == 4 && (int)pBuffer < sgptDataTable->nTxtMonStatsSize && -1 < (int)pBuffer) {
-                    if (pBuffer == (char*)0x202) {
-                      pClassId = (char*)0x1cd;
-                    } else {
+                  } else if (nActId == 4 && (int)pBuffer < sgptDataTable->nTxtMonStatsSize && 0 <= (int)pBuffer) {
+                    if (pBuffer != (char*)0x202) {
                       if ((int)pBuffer < 0x219 || 0x21b < (int)pBuffer) {
                         goto add_preset_unit;
                       }
 
                       pClassId = (char*)(0x3f5 - (int)pBuffer);
+                    } else {
+                      pClassId = (char*)0x1cd;
                     }
 
                     goto convert_to_object_preset;
@@ -347,15 +347,15 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
 
                   if ((char)__frame0.szItemCode == '\0') {
                     __frame0.nWallLayerIdx = 0x202020;
-                  } else if (*(uint8_t*)((char*)&__frame0.szItemCode + 1) == '\0') {
-                    *(uint16_t*)(char*)&__frame0.nWallLayerIdx = (uint16_t)((uint16_t)(uint8_t)0x20 << 8 | (uint16_t)(uint8_t)(char)__frame0.szItemCode);
-                    __frame0.nWallLayerIdx = (uint32_t)((uint32_t)(uint16_t)0x20 << 16 | (uint32_t)(uint16_t)__frame0.nWallLayerIdx);
-                  } else {
+                  } else if (*(uint8_t*)((char*)&__frame0.szItemCode + 1) != '\0') {
                     *(uint16_t*)(char*)&__frame0.nWallLayerIdx = (uint16_t)__frame0.szItemCode;
                     __frame0.nWallLayerIdx = (uint32_t)((uint32_t)(uint16_t)0x20 << 16 | (uint32_t)(uint16_t)__frame0.nWallLayerIdx);
                     if (*(uint8_t*)((char*)&__frame0.szItemCode + 2) != '\0') {
                       __frame0.nWallLayerIdx = __frame0.szItemCode & 0xffffff;
                     }
+                  } else {
+                    *(uint16_t*)(char*)&__frame0.nWallLayerIdx = (uint16_t)((uint16_t)(uint8_t)0x20 << 8 | (uint16_t)(uint8_t)(char)__frame0.szItemCode);
+                    __frame0.nWallLayerIdx = (uint32_t)((uint32_t)(uint16_t)0x20 << 16 | (uint32_t)(uint16_t)__frame0.nWallLayerIdx);
                   }
 
                   __frame0.nWallLayerIdx = (uint32_t)((uint32_t)(uint8_t)0x20 << 24 | (uint32_t)((uint32_t)__frame0.nWallLayerIdx & 0xffffffu));
@@ -375,7 +375,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
             nPresetCount = *(uint32_t*)pCursor2;
             pCursor2 = pCursor + 0x14;
           }
-          if (-1 < (int)pClassId && (eUnitType != 1 || 4 < (int)__frame0.nDs1Version)) {
+          if (0 <= (int)pClassId && (eUnitType != 1 || 4 < (int)__frame0.nDs1Version)) {
             pPreset = DrlgRoom::AllocPresetUnit(nullptr, nullptr, eUnitType, (int32_t)pClassId, __frame0.nWallLayerIdx, *(int32_t*)(pCursor + 8), *(int32_t*)(pCursor + 0xc));
             pPreset->pPresetUnitNext = pFile->pPresetUnit;
             pFile->pPresetUnit = pPreset;
@@ -387,8 +387,8 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
         } while (nUnitCount);
       }
     }
-    if (0xb < (int)__frame0.nDs1Version && pFile->nAct - 1U < 2) {
-      if (0x11 < (int)__frame0.nDs1Version) {
+    if (0xc <= (int)__frame0.nDs1Version && pFile->nAct - 1U <= 1) {
+      if (0x12 <= (int)__frame0.nDs1Version) {
         pCursor2 += 4;
       }
 
@@ -418,7 +418,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
         } while (i < pFile->nSubstGroups);
       }
     }
-    if (0xd >= (int)__frame0.nDs1Version) {
+    if (0xe > (int)__frame0.nDs1Version) {
       return;
     }
 
@@ -450,11 +450,11 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
                 *(int*)((uintptr_t)&pPreset->pMapAI->pPosition->nYpos + i) = *(int*)(pCursor + 4);
                 pDVar1 = pPreset->pMapAI->pPosition;
                 pCursor2 = pCursor + 8;
-                if ((int)__frame0.nDs1Version < 0xf) {
-                  *(uint32_t*)((uintptr_t)&pDVar1->nDirection + i) = 1;
-                } else {
+                if (!((int)__frame0.nDs1Version < 0xf)) {
                   *(int*)((uintptr_t)&pDVar1->nDirection + i) = *(int*)pCursor2;
                   pCursor2 = pCursor + 0xc;
+                } else {
+                  *(uint32_t*)((uintptr_t)&pDVar1->nDirection + i) = 1;
                 }
 
                 i += 0xc;
@@ -470,7 +470,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
         }
 
         pCursor2 += (int)nPathNodeCount * 8;
-        if (0xe < (int)__frame0.nDs1Version) {
+        if (0xf <= (int)__frame0.nDs1Version) {
           pCursor2 += (int)nPathNodeCount * 4;
         }
       }
@@ -567,7 +567,7 @@ void __stdcall CreatePresetObject_Unused(int32_t nParam1, int32_t nParam2, D2Poo
 }
 
 // Spawns repeated object presets (class 0x41) along a vertical line in world coords from start to end, spaced by 0x28. Prepends each to pMap->pPresetUnit and marks flag bit 0x1.
-void CreateObjectPresets(int nWorldX, int nWorldY, D2DrlgMapStrc * pMap, D2PoolManagerStrc * pMemory) {
+static void CreateObjectPresets(int nWorldX, int nWorldY, D2DrlgMapStrc * pMap, D2PoolManagerStrc * pMemory) {
     int32_t worldYStart = 0;
     int worldYEnd = pMap->pDrlgFile->nHeight + nWorldY;
     int worldX = nWorldX;
@@ -585,7 +585,7 @@ void CreateObjectPresets(int nWorldX, int nWorldY, D2DrlgMapStrc * pMap, D2PoolM
 }
 
 // Populates a vertical strip of the preset map with a row of five object presets per Y tile (IDs 0x28, 0x29, 0x29, 0x29, 0x2A at X offsets 0/+5/+10/+15/+20). Skips ahead by +3 rows when the grid cell has specific floor-type flags (type 4, certain subtypes), all linked into pMapStrc->pPresetUnit.
-void __stdcall CreateObjectPresets2(uint32_t xOffset, D2DrlgGridStrc * pGrid, D2PoolManagerStrc * pMemory, D2DrlgMapStrc * pMapStrc) {
+static void __stdcall CreateObjectPresets2(uint32_t xOffset, D2DrlgGridStrc * pGrid, D2PoolManagerStrc * pMemory, D2DrlgMapStrc * pMapStrc) {
     uint32_t cellFlags;
     int32_t worldY;
     int worldX;
@@ -643,12 +643,12 @@ void __stdcall CreateObjectPresets2(uint32_t xOffset, D2DrlgGridStrc * pGrid, D2
 }
 
 // Scans floor layer flags to decide object preset placement. Builds a sub-grid view, checks for a specific cell flag pattern (type 2, subtype 0x18), and invokes CreateObjectPresets/CreateObjectPresets2. Special-cases Def==0x1b to place globally.
-void CreateObjectPresetsForMap(D2DrlgMapStrc * pMapStrc, D2PoolManagerStrc * pMemory) {
+static void CreateObjectPresetsForMap(D2DrlgMapStrc * pMapStrc, D2PoolManagerStrc * pMemory) {
     int floorFlagsBuf[256];
     D2DrlgGridStrc floorGrid;
     D2DrlgCoordStrc mapCoords;
-    mapCoords.nHeight = pMapStrc->nSizeY;
     mapCoords.nWidth = pMapStrc->nSizeX;
+    mapCoords.nHeight = pMapStrc->nSizeY;
     uint32_t xIndex = 0;
     mapCoords.nPosX = 0;
     mapCoords.nPosY = 0;
@@ -679,7 +679,7 @@ void CreateObjectPresetsForMap(D2DrlgMapStrc * pMapStrc, D2PoolManagerStrc * pMe
     DrlgGrid::ResetGrid(&floorGrid);
 }
 
-void __stdcall CreateMonsterPreset(D2PoolManagerStrc * pMemory, D2DrlgMapStrc * pDrlgMap) {
+static void __stdcall CreateMonsterPreset(D2PoolManagerStrc * pMemory, D2DrlgMapStrc * pDrlgMap) {
     int32_t nX = pDrlgMap->nSizeX / 2 + pDrlgMap->nRealOffsetX;
     int32_t nY = pDrlgMap->nSizeY / 2 + pDrlgMap->nRealOffsetY;
     Transform::CoordsRoomToWorld(&nX, &nY);
@@ -689,7 +689,7 @@ void __stdcall CreateMonsterPreset(D2PoolManagerStrc * pMemory, D2DrlgMapStrc * 
 }
 
 // Frees all tile grids associated with a preset room's D2DrlgPresetRoomStrc. The room data arrives in EAX and the pool manager in EDI; EAX was modelled as a local, so the reconstruction freed grids off an uninitialised pointer.
-void DRLGPRESET_FreePresetRoomGrids(void * pRoomExData, D2PoolManagerStrc * pPoolManagerStrc) {
+static void DRLGPRESET_FreePresetRoomGrids(void * pRoomExData, D2PoolManagerStrc * pPoolManagerStrc) {
     D2DrlgGridStrc* pGrid;
     int pPresetRoomDataRaw = *(int*)((int)pRoomExData + 0x20);
     if (!(pPresetRoomDataRaw && *(int*)(pPresetRoomDataRaw + 8))) {
@@ -786,7 +786,7 @@ D2RoomExStrc * __fastcall DRLGROOMEX_AllocRoomExTypePreset(D2DrlgLevelStrc * pLe
 }
 
 // Moves preset units from the level's preset list into this room by checking coordinate bounds, adjusting positions to room-local, and linking them into pRoomEx->pPresetUnits.
-void DRLGPRESET_AddAndSetPresetUnits(D2RoomExStrc * pRoomEx) {
+static void DRLGPRESET_AddAndSetPresetUnits(D2RoomExStrc * pRoomEx) {
     bool _bInside;
     bool bInside;
     D2DrlgCoordsStrc roomCoords;
@@ -810,16 +810,13 @@ void DRLGPRESET_AddAndSetPresetUnits(D2RoomExStrc * pRoomEx) {
       }
 
       _bInside = DrlgRoom::AreXYInsideCoordinates(&roomCoords, pCurrent->nPosX, pCurrent->nPosY);
-      if (!_bInside) {
-        pNextPresetUnit = pCurrent->pPresetUnitNext;
-        pPrevPresetUnit = pCurrent;
-      } else {
+      if (_bInside) {
         pCurrent->nPosX -= nOffsetX;
         pCurrent->nPosY -= nOffsetY;
-        if (!pPrevPresetUnit) {
-          *(D2PresetUnitStrc**)(pMapDataRaw + 0x38) = pCurrent->pPresetUnitNext;
-        } else {
+        if (pPrevPresetUnit) {
           pPrevPresetUnit->pPresetUnitNext = pCurrent->pPresetUnitNext;
+        } else {
+          *(D2PresetUnitStrc**)(pMapDataRaw + 0x38) = pCurrent->pPresetUnitNext;
         }
 
         pCurrent->pPresetUnitNext = pRoomEx->pPresetUnit;
@@ -829,6 +826,9 @@ void DRLGPRESET_AddAndSetPresetUnits(D2RoomExStrc * pRoomEx) {
         } else {
           pNextPresetUnit = pPrevPresetUnit->pPresetUnitNext;
         }
+      } else {
+        pNextPresetUnit = pCurrent->pPresetUnitNext;
+        pPrevPresetUnit = pCurrent;
       }
     }
 }
@@ -911,7 +911,7 @@ void __fastcall DRLGPRESET_InitGridsFromDS1File(D2RoomExStrc * pRoom) {
 
 // Allocates up to 6 navigation waypoints (POINT array, 0x30 bytes) for a preset room, scanning the wall grid for tiles with type==10 and subtype 0x17..0x1B (burial-ground passage markers). Converts matching grid coordinates to world space (+2 offset) and stores them in pRoomExData->pNavigationPoints; only runs if the array is not yet allocated.
 // @sourcefile .\DRLG\Preset.cpp
-void DRLGROOMEX_AllocRoomExData_WorldPointsBurialGrounds(D2PoolManagerStrc * pMemory, D2RoomExStrc * pRoomEx) {
+static void DRLGROOMEX_AllocRoomExData_WorldPointsBurialGrounds(D2PoolManagerStrc * pMemory, D2RoomExStrc * pRoomEx) {
     int nOffsetX;
     int nX;
     int nY;
@@ -933,7 +933,7 @@ void DRLGROOMEX_AllocRoomExData_WorldPointsBurialGrounds(D2PoolManagerStrc * pMe
           do {
             /* Is sub 0x10 is a POINT ? Maybe ? Seems like it is but i cant be sure so leave
                          it for now. */ dwGridFlags = DrlgGrid::GetGridFlags(pRoomData->pWallGrid, nOffsetX, nOffsetY);
-            if (((uint8_t)(dwGridFlags >> 0x14) & 0x3f) == 10 && (uint8_t)((char)(dwGridFlags >> 8) - 0x17U) < 5 && nIndex < 6) {
+            if (((uint8_t)(dwGridFlags >> 0x14) & 0x3f) == 10 && (uint8_t)((char)(dwGridFlags >> 8) - 0x17U) <= 4 && nIndex < 6) {
               nY = pRoomEx->sCoords.WorldPosition.y + nOffsetY;
               nX = pRoomEx->sCoords.WorldPosition.x + nOffsetX;
               Transform::CoordsRoomToWorld(&nX, &nY);
@@ -1097,10 +1097,10 @@ void __fastcall DRLGROOMEX_InitializePresetRoom(D2RoomExStrc * pRoomEx) {
     pRoomTiles->nWallTilesMax = pRoomTiles->nWalls;
     pRoomTiles->nFloorTilesMax = pRoomTiles->nFloors;
     pRoomTiles->nRoofTilesMax = pRoomTiles->nShadows;
-    if (!pPresetRoom->pMap->pTxtLevelPrest->Logicals) {
-      DrlgLogic::AllocDrlgCoordList(pRoomEx);
-    } else {
+    if (pPresetRoom->pMap->pTxtLevelPrest->Logicals) {
       DrlgLogic::DRLGLOGIC_BuildRoomCoordList(pRoomEx, (int)pPresetRoom->pOrientationGrid, (int)pPresetRoom->pFloorGrid, pPresetRoom->pWallGrid);
+    } else {
+      DrlgLogic::AllocDrlgCoordList(pRoomEx);
     }
     if (_bIsBurialGrounds) {
       DrlgGrid::ResetGrid(&pGrid);
@@ -1117,7 +1117,7 @@ void __fastcall DRLGROOMEX_InitializePresetRoom(D2RoomExStrc * pRoomEx) {
 // Called by BuildPresetArea after pop tile scanning. Converts pop location boxes
 // from min/max coordinate format to position/size format, adjusts coordinates
 // relative to the DrlgMap origin, and normalizes pop orientation values (divide by 4, subtract 1).
-void __stdcall DRLGPRESET_InitDrlgMapPopLocations(int32_t nPopCount, D2DrlgMapStrc * pDrlgMap) {
+static void __stdcall DRLGPRESET_InitDrlgMapPopLocations(int32_t nPopCount, D2DrlgMapStrc * pDrlgMap) {
     int nY0;
     int nX0;
     int nMinY;
@@ -1143,7 +1143,7 @@ void __stdcall DRLGPRESET_InitDrlgMapPopLocations(int32_t nPopCount, D2DrlgMapSt
       nY0 = pPos[1];
       nY1 = pPos[3];
       nMinY = nY0;
-      if (nY1 <= nY0) {
+      if (nY0 >= nY1) {
         nMinY = nY1;
       }
       if (nX0 <= nX1) {
@@ -1161,7 +1161,7 @@ void __stdcall DRLGPRESET_InitDrlgMapPopLocations(int32_t nPopCount, D2DrlgMapSt
       nX0 = *pPos;
       nPopIndex++;
       *pPos = ((int)(nX0 + (nX0 >> 0x1f & 3U)) >> 2) - 1;
-    } while (nPopIndex < nPopCount);
+    } while (nPopCount > nPopIndex);
 }
 
 void __fastcall DRLGPRESET_SetPickedFileInDrlgMap(D2DrlgMapStrc * pDrlgMap, int32_t nPickedFile) {
@@ -1182,7 +1182,7 @@ D2DrlgMapStrc * __fastcall DRLGPRESET_AllocDrlgMap(D2DrlgLevelStrc * pLevel, int
     pDrlgMap->pTxtLevelPrest = pLvlPrest;
     pDrlgMap->nNumber = nLvlPrestId;
     uint32_t nFiles = pLvlPrest->Files;
-    if ((int)nFiles < 1) {
+    if ((int)nFiles <= 0) {
       nFileSelector = 0;
     } else if (!(nFiles & nFiles - 1)) {
       newSeed = D2_SEED_NEXT(*pSeed);
@@ -1249,7 +1249,7 @@ void __fastcall DRLGPRESET_GetDrlgFileSize(D2DrlgMapStrc * pDrlgMap, int32_t * p
 }
 
 // Already documented — existing description is accurate and meaningful.
-void __stdcall DRLGPRESET_UpdatePopTiles(int nTickCount, D2RoomExStrc * pRoomEx, D2DrlgCoordsStrc * pPopLocation, uint32_t dwParam3, uint32_t dwParam4) {
+static void __stdcall DRLGPRESET_UpdatePopTiles(int nTickCount, D2RoomExStrc * pRoomEx, D2DrlgCoordsStrc * pPopLocation, uint32_t dwParam3, uint32_t dwParam4) {
     bool _bInside;
     bool bInside;
     int* pTileFlags;
@@ -1297,12 +1297,12 @@ void __stdcall DRLGPRESET_UpdatePopTiles(int nTickCount, D2RoomExStrc * pRoomEx,
               }
             }
           }
-        } else if (!dwParam4) {
-          pTileFlags[4] &= -5;
-          *pTileFlags &= -9;
-        } else {
+        } else if (dwParam4) {
           pTileFlags[4] |= 4;
           pTileFlags[6] = nTickCount;
+        } else {
+          pTileFlags[4] &= -5;
+          *pTileFlags &= -9;
         }
 
         pTileFlags += 0xc;
@@ -1556,13 +1556,13 @@ void __fastcall DRLGPRESET_AddPresetUnitToDrlgMap(D2PoolManagerStrc * pMemory, D
             case 0x174:
               newSeed = D2_SEED_NEXT(*pSeed);
             *pSeed = newSeed;
-            if (newSeed.nSeedLow != (int)(((uint64_t)d2_bits_of(newSeed) & 0xffffffff) / 3) * 3) {
+            if (newSeed.nSeedLow % 3 != 0) {
               continue;
             }
           }
         } else {
           nMonExtraBase = DATATBLS::MonsterTbls::MONSTERTBLS_ReturnZero();
-          if (nMonExtraBase <= pPresetUnit->nClassId - nTableSize) {
+          if (pPresetUnit->nClassId - nTableSize >= nMonExtraBase) {
             nTableSize = sgptDataTable->nTxtMonStatsSize;
             nMonExtraBase = DATATBLS::MonsterTbls::MONSTERTBLS_ReturnZero();
             nTableSize = pPresetUnit->nClassId - nTableSize - nMonExtraBase;
@@ -1632,7 +1632,7 @@ void __fastcall DRLGPRESET_CreateMonsterPresets(D2RoomExStrc * pRoomEx) {
       int nLvlPrestId;
       nLvlPrestId = pDrlgMap->nNumber;
       pDrlgMap->bInited = 0;
-      if (nLvlPrestId < 8) {
+      if (nLvlPrestId <= 7) {
         if (3 < nLvlPrestId) {
           if (pRoomEx->pLevel->eD2LevelId == 2 && pDrlgMap->nRandomMapFileSelector == 3) {
             CreateMonsterPreset(pMemory, pDrlgMap);
@@ -1661,7 +1661,7 @@ void __fastcall DRLGPRESET_CreateMonsterPresets(D2RoomExStrc * pRoomEx) {
 
 // Builds preset-area grid flags from DS1 data. Sets vis/warp flag bits, loads DS1 file if needed, allocates pops arrays, scans wall layers to mark vis flags and pop locations, records spawn points, and marks grid flags for special objects. Uses LvlPrest Scan/Pops settings to control scanning.
 // @sourcefile .\DRLG\Preset.cpp
-void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2DrlgLevelStrc * pLevel, D2DrlgGridStrc * pDrlgGrid, int32_t nFlags, bool bSingleRoom) {
+static void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2DrlgLevelStrc * pLevel, D2DrlgGridStrc * pDrlgGrid, int32_t nFlags, bool bSingleRoom) {
     bool _bSingleRoom;
     int nWarpDestLevel;
     D2DrlgCoordStrc* pPosLocationArray;
@@ -1715,7 +1715,10 @@ void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2DrlgLevelS
     AllocDrlgFile(&pDrlgMap->pDrlgFile, nWallLayerIndex->pDS1MemPool, pLvlPrest->File[pDrlgMap->nRandomMapFileSelector]);
     D2PoolManagerStrc* pMemoryOrXIndex = nXIndex;
     DRLGPRESET_AddPresetUnitToDrlgMap(nXIndex, pDrlgMap, &pLevel->sSeed);
-    if (pDrlgMap->pDrlgFile->nWidth == pDrlgMap->nSizeX) {
+    if (pDrlgMap->pDrlgFile->nWidth != pDrlgMap->nSizeX) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8b9);
+      exit(-1);
+    } else {
       int* pAllocatedArray;
       if (pDrlgMap->pDrlgFile->nHeight == pDrlgMap->nSizeY) {
         if (pPopsCount) {
@@ -1736,16 +1739,16 @@ void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2DrlgLevelS
         memset(pDrlgMap->pPosLocation, 0, (int)pPopsCount << 4);
         pDrlgFile = pDrlgMap->pDrlgFile;
         fileCoords.nPosX = 0;
-        fileCoords.nPosY = 0;
-        wallGrid.pCellsFlags = 0;
-        wallGrid.pCellsRowOffsets = 0;
+        tileGrid.nWidth = 0;
+        tileGrid.nHeight = 0;
         wallGrid.nWidth = 0;
         wallGrid.nHeight = 0;
         wallGrid.bIsSubGrid = 0;
         tileGrid.pCellsFlags = 0;
         tileGrid.pCellsRowOffsets = 0;
-        tileGrid.nWidth = 0;
-        tileGrid.nHeight = 0;
+        fileCoords.nPosY = 0;
+        wallGrid.pCellsFlags = 0;
+        wallGrid.pCellsRowOffsets = 0;
         tileGrid.bIsSubGrid = 0;
         fileCoords.nWidth = pDrlgFile->nWidth + 1;
         fileCoords.nHeight = pDrlgFile->nHeight + 1;
@@ -1770,18 +1773,18 @@ void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2DrlgLevelS
                     nPopSubIndex = nFlagBit >> 8 & 0xff;
                     nTileType = nFlagBit >> 0x14 & 0x3f;
                     if (nCellFlags == 0xb || nCellFlags == 10) {
-                      if (nScanMode && nTileType < 8 && (!nPopSubIndex || nPopSubIndex == 4 || nFlagBit & 0x80000000)) {
-                        if (!_bSingleRoom) {
-                          nCellFlags = (int)((int)pMemoryOrXIndex->pPools + (((int)pMemoryOrXIndex >> 0x1f & 7U) - 0x20)) >> 3;
-                          nErrLine = (int)(nFlags + (nFlags >> 0x1f & 7U)) >> 3;
-                        } else {
+                      if (nScanMode && nTileType <= 7 && (!nPopSubIndex || nPopSubIndex == 4 || nFlagBit & 0x80000000)) {
+                        if (_bSingleRoom) {
                           nCellFlags = 0;
                           nErrLine = 0;
+                        } else {
+                          nCellFlags = (int)((int)pMemoryOrXIndex->pPools + (((int)pMemoryOrXIndex >> 0x1f & 7U) - 0x20)) >> 3;
+                          nErrLine = (int)(nFlags + (nFlags >> 0x1f & 7U)) >> 3;
                         }
 
                         DrlgGrid::AlterGridFlag(pDrlgGrid, nCellFlags, nErrLine, 1 << ((char)nTileType + 4U & 0x1f), 0);
                       }
-                      if (pPopsConfig && nTileType - 8 < 0x16) {
+                      if (pPopsConfig && nTileType - 8 <= 0x15) {
                         nVisIndex = 0;
                         if (0 < nPopCount) {
                           pIndexIter = (uint32_t*)pDrlgMap->pPopsIndex;
@@ -1806,7 +1809,7 @@ void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2DrlgLevelS
                           nPopCount++;
                         }
                       }
-                      if (nScanMode && nTileType - 0x1e < 4) {
+                      if (nScanMode && nTileType - 0x1e <= 3) {
                         pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nX = (int)pMemoryOrXIndex->pPools + pDrlgMap->nRealOffsetX - 0x20;
                         pLevel->aSpawnPoints[pLevel->nSpawnPointCount].nY = pDrlgMap->nRealOffsetY + nFlags;
                         switch (nTileType) {
@@ -1855,14 +1858,14 @@ void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2DrlgLevelS
           if (pPresetUnit->eType == UNIT_OBJECT && pPresetUnit->nClassId < 0x23d) {
             pObjectsTxt = DATATBLS::ObjectTbls::TXT_Objects_GetLine(pPresetUnit->nClassId);
             if (pObjectsTxt->SubClass & 0x40U) {
-              if (!_bSingleRoom) {
+              if (_bSingleRoom) {
+                nObjCellX = 0;
+                nErrLine = 0;
+              } else {
                 nVisIndex = pPresetUnit->nPosX / 5;
                 nWarpDestLevel = pPresetUnit->nPosY / 5;
                 nObjCellX = (int)(nVisIndex + (nVisIndex >> 0x1f & 7U)) >> 3;
                 nErrLine = (int)(nWarpDestLevel + (nWarpDestLevel >> 0x1f & 7U)) >> 3;
-              } else {
-                nObjCellX = 0;
-                nErrLine = 0;
               }
 
               DrlgGrid::AlterGridFlag(pDrlgGrid, nObjCellX, nErrLine, 0x30000, 0);
@@ -1874,9 +1877,6 @@ void __stdcall DRLGPRESET_BuildPresetArea(D2DrlgMapStrc * pDrlgMap, D2DrlgLevelS
       }
 
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8ba);
-      exit(-1);
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8b9);
       exit(-1);
     }
 }
@@ -2113,11 +2113,11 @@ void __fastcall DRLGPRESET_ReleaseDrlgFile(D2DrlgFileStrc * * ppDrlgFile) {
     }
 
     /* LONG * lpAddend for InterlockedDecrement */ InterlockedDecrement((LONG*)&pCacheEntry->nRefCount);
-    if (pCacheEntry && (int)pCacheEntry->nRefCount < 1) {
-      if (!pPrev) {
-        gpDrlgFileCache = pCacheEntry->pNext;
-      } else {
+    if (pCacheEntry && (int)pCacheEntry->nRefCount <= 0) {
+      if (pPrev) {
         pPrev->pNext = pCacheEntry->pNext;
+      } else {
+        gpDrlgFileCache = pCacheEntry->pNext;
       }
 
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_0096d610);
@@ -2174,7 +2174,7 @@ void __fastcall DRLGPRESET_FreeDrlgMapList(D2PoolManagerStrc * pMemory, D2DrlgMa
 }
 
 // Searches for a matching preset type in the static preset type table. Compares the level ID, orientation bits, sub-type byte, and additional parameter against the table entries. Returns the matching index or -1 if not found. From Preset.cpp area.
-int32_t __stdcall DRLGPRESET_FindPresetTypeIndex(int32_t nLevelType, uint32_t nOrientationFlags, uint32_t nSubIndex) {
+static int32_t __stdcall DRLGPRESET_FindPresetTypeIndex(int32_t nLevelType, uint32_t nOrientationFlags, uint32_t nSubIndex) {
     uint32_t nIndex;
     int* pTypeEntry;
     uint32_t* pTableEntry = (uint32_t*)&gPresetTypeTables.aIndex[0].nLastIndex;
@@ -2236,10 +2236,10 @@ void __stdcall CreatesPresets(D2DrlgTileDataStrc * pTileData, D2RoomExStrc * pRo
     if (nTileType < 0) {
       return;
     }
-    if (pRoomEx->sCoords.WorldSize.x * 5 <= iVar1) {
+    if (iVar1 >= pRoomEx->sCoords.WorldSize.x * 5) {
       return;
     }
-    if (pRoomEx->sCoords.WorldSize.y * 5 <= nTileType) {
+    if (nTileType >= pRoomEx->sCoords.WorldSize.y * 5) {
       return;
     }
 

@@ -70,14 +70,14 @@ int __fastcall ApplicationMain(HINSTANCE hInstance, D2IniConfigStrc * pD2IniData
     }
 
     D2Lang::StrTable::strtable::MISC_GetLanguageCode();
-    if (!pD2IniData->b3DFX) {
-      if (!pD2IniData->bWINDOW) {
-        eD2ApplicationModeAndRenderer = (pD2IniData->bD3D ? 3 : 0) + RENDERED_DirectDraw;
-      } else {
-        eD2ApplicationModeAndRenderer = RENDERER_Windowed;
-      }
-    } else {
+    if (pD2IniData->b3DFX) {
       eD2ApplicationModeAndRenderer = RENDERER_Glide;
+    } else {
+      if (pD2IniData->bWINDOW) {
+        eD2ApplicationModeAndRenderer = RENDERER_Windowed;
+      } else {
+        eD2ApplicationModeAndRenderer = (pD2IniData->bD3D ? 3 : 0) + RENDERED_DirectDraw;
+      }
     }
 
     int bExpansionMode = *(int*)pD2IniData->bD2ExpMpqExistsOrLanugageCode;

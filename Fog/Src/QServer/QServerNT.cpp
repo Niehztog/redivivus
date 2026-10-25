@@ -109,7 +109,7 @@ void __fastcall AwaitAndClose(D2QServerStrc * pQserver) {
     } while (nThreadSlotCount);
 }
 
-BOOL __stdcall BeginAsyncReadForClient(D2QServerStrc * pQServer, D2QServerClientConnectionStrc * pClient) {
+static BOOL __stdcall BeginAsyncReadForClient(D2QServerStrc * pQServer, D2QServerClientConnectionStrc * pClient) {
     BOOL fReadResult;
     CRITICAL_SECTION* lpCriticalSection = &pClient->clientLock;
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(lpCriticalSection);
@@ -120,7 +120,10 @@ BOOL __stdcall BeginAsyncReadForClient(D2QServerStrc * pQServer, D2QServerClient
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(lpCriticalSection);
       return 0;
     }
-    if ((pClient->dwReadFlags & QSRV_READFLAG_PENDING_IO) == QSRV_READFLAG_NONE) {
+    if ((pClient->dwReadFlags & QSRV_READFLAG_PENDING_IO) != QSRV_READFLAG_NONE) {
+      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x3f5);
+      exit(-1);
+    } else {
       HANDLE pvVar1;
       pvVar1 = pClient->ovRead.hEvent;
       pClient->dwReadFlags |= QSRV_READFLAG_PENDING_IO;
@@ -152,9 +155,6 @@ BOOL __stdcall BeginAsyncReadForClient(D2QServerStrc * pQServer, D2QServerClient
 
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x3f8);
       exit(-1);
-    } else {
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x3f5);
-      exit(-1);
     }
 }
 
@@ -179,7 +179,7 @@ D2QServerClientPacketStrc * __stdcall NET_QServerClientPacket_CreateStructAndCop
     return pTailPacket;
 }
 
-int32_t __stdcall AcceptConnection(D2QServerStrc * pQServer, sockaddr * pSockAddr, int nWorkerIndex, int * pSockAddrLen) {
+static int32_t __stdcall AcceptConnection(D2QServerStrc * pQServer, sockaddr * pSockAddr, int nWorkerIndex, int * pSockAddrLen) {
     char* szClientIpStr;
     BOOL bBeginReadOk2;
     memset(&pQServer->aWorkerTelemetry[nWorkerIndex].qpcStampStart, 0, 0x48);
@@ -297,7 +297,7 @@ int32_t __stdcall AcceptConnection(D2QServerStrc * pQServer, sockaddr * pSockAdd
     return (int32_t)FileHandle;
 }
 
-int __stdcall BeginAsyncWriteForClient(D2QServerStrc * pQServer, D2QServerClientConnectionStrc * pClient) {
+static int __stdcall BeginAsyncWriteForClient(D2QServerStrc * pQServer, D2QServerClientConnectionStrc * pClient) {
     DWORD dwBytesWritten;
     if (!pClient->pSendQueueHead) {
       return 1;
@@ -343,7 +343,7 @@ int __stdcall PopAndFreeCompletedSendPacket(D2QServerClientConnectionStrc * pCli
 }
 
 // Accept thread entry point for QServer network listener. Polls listening socket with select(), accepts incoming client connections via AcceptConnection(), and periodically sweeps expired hacklist entries to enforce IP-based rate limiting. Telemetry tracks performance of each accept operation substage (hacklist check, connection limit, IP rate, IOCP attachment, initial recv).
-DWORD __stdcall AcceptThreadMain(void * lpThreadParam) {
+static DWORD __stdcall AcceptThreadMain(void * lpThreadParam) {
     DWORD dwNextSweepTick;
     uint32_t dwQpcDelta;
     bool bRngCarry;
@@ -498,7 +498,7 @@ BOOL __fastcall SendToClientLocal(D2QServerStrc * pQServer, D2QServerClientConne
 }
 
 // NOTE: Register params: pQServer (ECX): D2QServerStrc *, nWorkerIndex (EDX): int
-int __fastcall PumpIoCompletionQueueForWorker(D2QServerStrc * pQServer, int nWorkerIndex, uint32_t dwTimeoutMs) {
+static int __fastcall PumpIoCompletionQueueForWorker(D2QServerStrc * pQServer, int nWorkerIndex, uint32_t dwTimeoutMs) {
     // Frame slots -20..-12 are ONE object: &dwBytesTransferred is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -541,12 +541,12 @@ int __fastcall PumpIoCompletionQueueForWorker(D2QServerStrc * pQServer, int nWor
         dwTickStart = GetLastError();
         if (!bGqcsResult) {
           if (!pOverlapped || !pClient) {
-            if (dwTickStart == 0x102) {
-              return bReceivedData;
+            if (dwTickStart != 0x102) {
+              ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x3c8);
+              exit(-1);
             }
 
-            ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x3c8);
-            exit(-1);
+            return bReceivedData;
           }
 
           QSERVER_LOG("QSRV", "[NTRdQ]          I/O err %d on client %d refcount=%d", dwTickStart, pClient->nClientToken, pClient->nRefCount);
@@ -698,7 +698,6 @@ SOCKET __fastcall StartListening(D2QServerStrc * pQServer, uint32_t nPort) {
     if (hListenSocket == -1) {
       nResult = WSAGetLastError();
       LogManager::LOGFILE_WriteStringToFile("[SERVER]  QSNTInit failed on socket() - err=%d", nResult);
-      Debug::GuardStack();
       return 0;
     }
 
@@ -755,7 +754,6 @@ SOCKET __fastcall StartListening(D2QServerStrc * pQServer, uint32_t nPort) {
           ErrorManager::StubHook1();
         }
 
-        Debug::GuardStack();
         return hListenSocket;
       }
 
@@ -765,7 +763,6 @@ SOCKET __fastcall StartListening(D2QServerStrc * pQServer, uint32_t nPort) {
 
     LogManager::LOGFILE_WriteStringToFile(pszErrFmt, nResult);
     Safesock::closeSocket(hListenSocket);
-    Debug::GuardStack();
     return 0;
 }
 

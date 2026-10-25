@@ -46,12 +46,6 @@ namespace D2Common::DATATBLS::ArenaTbls {
 void __fastcall TXT_LoadArenaTxt(struct D2PoolManagerStrc * pMemory);
 struct D2ArenaTxt * __fastcall GetArenaTxtRecord(int32_t nArenaType);
 void __stdcall FreeArenaTxt();
-// Builds a lookup index from CharTemplate level/tier to first row index, stored in
-// sgCharTemplateLevelIndex[nLevel] (int[64]). Templates must be sorted by level in ascending order
-// (halts at line 0x5c otherwise).
-//   pCharTemplateTxt: Stack[0x4]:4 - first D2CharTemplateTxt record (stride 0xf0, level byte at +0x1f)
-//   nCount: EDI:4 (int32_t)
-void __stdcall TXT_BuildCharTemplateLevelIndex(struct D2CharTemplateTxt * pCharTemplateTxt, int32_t nCount);
 // Arena preset-fighter roster loader (= beta D2Common ARENA_LoadCharTemplatesTxt, DATATBLS\Arena.cpp). LIVE in 1.14d: called by TXT_InitTxtFiles at game init, compiles chartemplate.txt into the level-indexed ArenaCharTemplate[] (0xF8-byte records: Name, class->index, level, str/int/Hitpoints/Mana/ManaRegenBonus/Velocity/AttackRate/OtherRate, RightSkill, Skill1-9+SkillLevel1-9, item1-15 (code/loc/count)). Retail ships no chartemplate.txt so it loads 0 rows. Provide the data file to populate the arena roster for arena mode; spawn via the GetCharTemplateRecord(level,n) accessors. Arena GAMEPLAY (rounds/combat) was the part actually cut.
 void __fastcall TXT_LoadCharTemplateTxt(struct D2PoolManagerStrc * pMemory);
 void __stdcall FreeCharTemplateTxt();

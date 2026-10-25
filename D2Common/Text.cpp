@@ -34,7 +34,7 @@ typedef int32_t (__fastcall *pfnTextMessageCompare)(uint16_t * pnCodeA, uint16_t
 namespace D2Common::Text {
 
 // @sourcefile .\Text\Text.cpp
-void TEXT_FreeAllMessages(D2PoolManagerStrc * * ppPoolManager) {
+static void TEXT_FreeAllMessages(D2PoolManagerStrc * * ppPoolManager) {
     D2PoolManagerStrc* pMemoryToFree = ppPoolManager[2];
     while (pMemoryToFree) {
       D2PoolManagerStrc* pNext;
@@ -221,12 +221,12 @@ int32_t __fastcall TEXT_CompareMessagesByCode(uint16_t * pnCodeA, uint16_t * pnC
     return 1;
 }
 
-void __fastcall TEXT_SortMessages(uint16_t nCount, uint16_t * pEntries, pfnTextMessageCompare pfnCompare) {
+static void __fastcall TEXT_SortMessages(uint16_t nCount, uint16_t * pEntries, pfnTextMessageCompare pfnCompare) {
     // Frame slots -40..-32 are ONE object: &wNextCode is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
       uint16_t wNextCode;
-      uint8_t __pad2[2];
+      struct { uint8_t e0, e1; } __pad2;
       uint32_t dwNextData;
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 8, "frame group __frame0_t must reproduce the Ghidra frame layout");
@@ -234,9 +234,9 @@ void __fastcall TEXT_SortMessages(uint16_t nCount, uint16_t * pEntries, pfnTextM
     uint16_t* pPivot;
     uint16_t* pCurEntry;
     int nInsertIndex;
-    uint16_t wInnerCode[2];
+    struct { uint16_t e0, e1; } wInnerCode;
     uint32_t dwInnerData;
-    uint16_t wPivotCode[2];
+    struct { uint16_t e0, e1; } wPivotCode;
     uint32_t dwPivotData;
     uint16_t wTmpCode;
     uint32_t dwTmpData;
@@ -262,10 +262,10 @@ void __fastcall TEXT_SortMessages(uint16_t nCount, uint16_t * pEntries, pfnTextM
       nInsertIndex = nSortedCount;
       pPivot = pCurOuter + 6;
       dwPivotData = *(uint32_t*)(pCurOuter + 8);
-      wPivotCode[0] = *pPivot;
-      nCmpOuter = (*pfnCompare)(&__frame0.wNextCode, wPivotCode);
+      ((uint16_t*)&wPivotCode)[0] = *pPivot;
+      nCmpOuter = (*pfnCompare)(&__frame0.wNextCode, ((uint16_t*)&wPivotCode));
       if (nCmpOuter < 1) {
-        __frame0.wNextCode = wPivotCode[0];
+        __frame0.wNextCode = ((uint16_t*)&wPivotCode)[0];
         __frame0.dwNextData = dwPivotData;
       } else {
         *pPivot = __frame0.wNextCode;
@@ -275,21 +275,21 @@ void __fastcall TEXT_SortMessages(uint16_t nCount, uint16_t * pEntries, pfnTextM
         pCurEntry = pSortedTail;
         for (; nInsertIndex; nInsertIndex--) {
           dwInnerData = *(uint32_t*)(pCurEntry + 2);
-          wInnerCode[0] = *pCurEntry;
+          ((uint16_t*)&wInnerCode)[0] = *pCurEntry;
           nSortedCount = nSortedCountSaved;
-          nCmpOuter = (*pfnCompare)(wInnerCode, wPivotCode);
-          if (nCmpOuter < 1) {
+          nCmpOuter = (*pfnCompare)(((uint16_t*)&wInnerCode), ((uint16_t*)&wPivotCode));
+          if (nCmpOuter <= 0) {
             break;
           }
 
           *(uint32_t*)(pCurEntry + 8) = dwInnerData;
-          pCurEntry[6] = wInnerCode[0];
+          pCurEntry[6] = ((uint16_t*)&wInnerCode)[0];
           pCurEntry += -6;
           nSortedCountSaved = nSortedCount;
         }
 
         *(uint32_t*)(pEntries + nInsertIndex * 6 + 2) = dwPivotData;
-        pEntries[nInsertIndex * 6] = wPivotCode[0];
+        pEntries[nInsertIndex * 6] = ((uint16_t*)&wPivotCode)[0];
         nInsertIndex = nSortedCount;
       }
 

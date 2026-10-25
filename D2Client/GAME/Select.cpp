@@ -188,7 +188,7 @@ void __stdcall SetCanBeSelectedToFalse() {
 }
 
 // Returns 1 if the player has double-clicked a warp unit. Checks that pUnit2 is a UNIT_WARP, both click points land inside its click area, the player is in moving mode, a queued primary click exists, and the tick-count deadline has not expired. On a valid second click it resets the 500 ms deadline window and returns 1; otherwise records the first click in *pnDoubleClickState and returns 0.
-BOOL __stdcall SELECT_IsWarpDoubleClicked(uint32_t dwUnused, int32_t nClick1X, D2UnitStrc * pUnit, int32_t nClick1Y, int32_t nClick2X, int32_t nClick2Y, int * pnDoubleClickState, D2UnitStrc * pUnit2) {
+static BOOL __stdcall SELECT_IsWarpDoubleClicked(uint32_t dwUnused, int32_t nClick1X, D2UnitStrc * pUnit, int32_t nClick1Y, int32_t nClick2X, int32_t nClick2Y, int * pnDoubleClickState, D2UnitStrc * pUnit2) {
     if (!(pUnit2 && pUnit2->eUnitType == UNIT_WARP)) {
       return 0;
     }
@@ -230,7 +230,7 @@ BOOL __stdcall SELECT_IsWarpDoubleClicked(uint32_t dwUnused, int32_t nClick1X, D
     return 0;
 }
 
-void __stdcall SELECT_ScreenToWorldCoords(int * pnX, int * pnY) {
+static void __stdcall SELECT_ScreenToWorldCoords(int * pnX, int * pnY) {
     int32_t nWorldOffset;
     uint32_t bPerspective = D2gfx::D2GFX::D2GFX_IsPerspectiveActive();
     if (bPerspective) {
@@ -252,7 +252,7 @@ void __stdcall SELECT_ScreenToWorldCoords(int * pnX, int * pnY) {
 }
 
 // Client-side mouse-input gate for the selection system. If the UI border type is 3 (full-screen/npc-scroll), handles NPC menu deselection and warp deselection, then returns 1 (input consumed). Otherwise reads raw mouse X/Y, clamps to the playable area excluding the HUD exclusion rect and split-screen half, projects through SELECT_ScreenToWorldCoords, and returns 0 (pass through). Clears the selected unit when the cursor is over UI chrome.
-BOOL SELECT_HandleMouseInput(int * pnMouseX, int * pnMouseY) {
+static BOOL SELECT_HandleMouseInput(int * pnMouseX, int * pnMouseY) {
     D2UnitStrc* pUnit;
     D2RoomStrc* pRoom;
     eD2LevelId eLevel;
@@ -297,7 +297,7 @@ BOOL SELECT_HandleMouseInput(int * pnMouseX, int * pnMouseY) {
           SELECT_ScreenToWorldCoords(pnMouseX, pnMouseY);
           return 0;
         }
-      } else if (nBorderType != 2 || ScreenSizeX / 2 <= *pnMouseX) {
+      } else if (nBorderType != 2 || *pnMouseX >= ScreenSizeX / 2) {
         SELECT_ScreenToWorldCoords(pnMouseX, pnMouseY);
         return 0;
       }
@@ -307,7 +307,7 @@ BOOL SELECT_HandleMouseInput(int * pnMouseX, int * pnMouseY) {
     return 1;
 }
 
-uint32_t __stdcall SELECT_IsDoorBlockingUnit(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+static uint32_t __stdcall SELECT_IsDoorBlockingUnit(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     POINT ptDoorCoord;
     POINT ptTargetCoord;
     POINT ptPlayerCoord;
@@ -316,11 +316,11 @@ uint32_t __stdcall SELECT_IsDoorBlockingUnit(D2UnitStrc * pUnit, D2UnitStrc * pU
     }
 
     D2UnitStrc* pPlayerUnit_lcl = UNIT::Player::GetPlayerUnit_UI();
-    if (!pPlayerUnit_lcl) {
+    if (pPlayerUnit_lcl) {
+      D2Common::Units::GetCoords(pPlayerUnit_lcl, &ptPlayerCoord);
+    } else {
       ptPlayerCoord.x = 0;
       ptPlayerCoord.y = 0;
-    } else {
-      D2Common::Units::GetCoords(pPlayerUnit_lcl, &ptPlayerCoord);
     }
 
     D2Common::Units::GetCoords(pUnit, &ptDoorCoord);
@@ -343,7 +343,7 @@ uint32_t __stdcall SELECT_IsDoorBlockingUnit(D2UnitStrc * pUnit, D2UnitStrc * pU
 }
 
 // Returns 1 if pUnit (target) is on the far side of a door object (pUnit2) relative to the local player. Returns 0 immediately if the door is not in Death mode (i.e. not open/destroyed). Uses the door's Orientation field from ObjectsTxt to choose the X or Y axis, then compares the door coordinate against the player and target coordinates to determine occlusion.
-uint32_t __stdcall SELECT_IsUnitBehindDoor(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+static uint32_t __stdcall SELECT_IsUnitBehindDoor(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     POINT ptDoorCoord;
     POINT ptTargetCoord;
     POINT ptPlayerCoord;
@@ -383,7 +383,7 @@ uint32_t __stdcall SELECT_IsUnitBehindDoor(D2UnitStrc * pUnit, D2UnitStrc * pUni
     return 1;
 }
 
-int32_t SELECT_GetDistanceSquared(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+static int32_t SELECT_GetDistanceSquared(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     int32_t nX2 = D2Common::Units::GetTargetX(pUnit2);
     int32_t nX1 = D2Common::Units::GetTargetX(pUnit);
     int32_t nY2 = D2Common::Units::GetTargetY(pUnit2);
@@ -415,7 +415,7 @@ void __fastcall SELECT_SetExclusionRect(uint32_t * pRect) {
 
 // Finds the closest valid target unit within a 9-tile radius around a given (X,Y) coordinate, for the server-side skill targeting system. Handles Iron Golem specially (ignores non-socketed metal items, excludes quest items). For each candidate it calls HitTestScreen and GetDistanceToXY, returning the nearest hit. Writes the resolved X/Y back into pX/pY. pSkillsTxt.flags4 bit-0 controls whether an already-active target is accepted immediately.
 // @sourcefile .\GAME\Select.cpp
-D2UnitStrc * __stdcall SKILL_FindTargetInRange(D2SkillStrc * pSkill, D2UnitStrc * pUnit, int * pX, int * pY, D2SkillsTxt * pSkillsTxt) {
+static D2UnitStrc * __stdcall SKILL_FindTargetInRange(D2SkillStrc * pSkill, D2UnitStrc * pUnit, int * pX, int * pY, D2SkillsTxt * pSkillsTxt) {
     int nFindFlags;
     uint32_t bHitTest;
     D2UnitFindArgStrc sUnitFindArg;
@@ -432,7 +432,7 @@ D2UnitStrc * __stdcall SKILL_FindTargetInRange(D2SkillStrc * pSkill, D2UnitStrc 
       }
 
       eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         nRadius = pUnit->pPath.pStaticPath->nPosX;
       } else if (!pUnit->pPath.pDynamicPath) {
         nRadius = 0;
@@ -442,7 +442,7 @@ D2UnitStrc * __stdcall SKILL_FindTargetInRange(D2SkillStrc * pSkill, D2UnitStrc 
 
       *pX = nRadius;
       eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         nRadius = pUnit->pPath.pStaticPath->nPosY;
       } else if (!pUnit->pPath.pDynamicPath) {
         nRadius = 0;
@@ -512,7 +512,7 @@ int __fastcall UnitIsOfTypeMonster(D2UnitStrc * pUnit, ::SGAMEDATA * pGame) {
 }
 
 // Scans the direction-offset table (gnGameSelectPathState/gnGameSelectGameState) starting from the player's current facing direction to find an interactable unit (monster, object, or NPC) in that direction. Checks collision, unit type, MonStats2 flags (e.g. selectable), and CanInteractWith. Returns the first matching D2UnitStrc* and registers it as the player's dynamic-path target, or null if none found within the table bounds.
-D2UnitStrc * __stdcall SELECT_FindTargetInFacingDirection(D2UnitStrc * pPlayerUnit_lcl, int pSkillsTxt) {
+static D2UnitStrc * __stdcall SELECT_FindTargetInFacingDirection(D2UnitStrc * pPlayerUnit_lcl, int pSkillsTxt) {
     // Static local variables (originally global data)
     static int gnGameSelectGameState[8] = { 0x3, 0x2, 0x0, -0x2, -0x3, -0x2, 0x0, 0x2 };
     static int gnGameSelectPathState[8] = { 0x0, -0x2, -0x3, -0x2, 0x0, 0x2, 0x3, 0x2 };
@@ -534,17 +534,17 @@ D2UnitStrc * __stdcall SELECT_FindTargetInFacingDirection(D2UnitStrc * pPlayerUn
       eCollisionFlags eCollision;
       eUnitType = pPlayerUnit_lcl->eUnitType;
       nAdjustedDirIdx = *pDirTableEntry + ((nFacingDirection & 0xff) >> 3) & 7;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         nUnitX = pPlayerUnit_lcl->pPath.pStaticPath->nPosX;
-      } else if (!pPlayerUnit_lcl->pPath.pDynamicPath) {
-        nUnitX = 0;
-      } else {
+      } else if (pPlayerUnit_lcl->pPath.pDynamicPath) {
         nUnitX = D2Common::PATH::DynamicPath::GetXPos(pPlayerUnit_lcl->pPath.pDynamicPath);
+      } else {
+        nUnitX = 0;
       }
 
       nOffsetX = gnGameSelectPathState[nAdjustedDirIdx];
       eUnitType = pPlayerUnit_lcl->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         nUnitY = pPlayerUnit_lcl->pPath.pStaticPath->nPosY;
       } else if (!pPlayerUnit_lcl->pPath.pDynamicPath) {
         nUnitY = 0;
@@ -585,31 +585,31 @@ D2UnitStrc * __stdcall SELECT_FindTargetInFacingDirection(D2UnitStrc * pPlayerUn
 }
 
 // Resolves world coordinates for a click target. If pUnit is null, reads X/Y directly from pnOutX/pnOutY. Otherwise extracts the unit's position from its static or dynamic path. Then checks the local player's room for movement collision; if blocked, calls GetFreeCoordinates_WithMaxDistance (radius 7) to find the nearest walkable tile and writes the adjusted coords back to pnOutX/pnOutY. Returns null on success, or pUnit if no adjustment was needed.
-int * __stdcall SELECT_GetTargetCoords(int * pnOutX, int * pUnit, int * pnOutY) {
+static int * __stdcall SELECT_GetTargetCoords(int * pnOutX, int * pUnit, int * pnOutY) {
     POINT ptCoord;
     eD2UnitType eUnitType;
-    if (!pUnit) {
-      ptCoord.x = *pnOutX;
-      ptCoord.y = *pnOutY;
-    } else {
+    if (pUnit) {
       eD2UnitType eUnitTypeForY;
       eUnitType = *pUnit;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         ptCoord.x = *(int32_t*)(pUnit[0xb] + 0xc);
-      } else if (!(D2DynamicPathStrc*)pUnit[0xb]) {
-        ptCoord.x = 0;
-      } else {
+      } else if ((D2DynamicPathStrc*)pUnit[0xb]) {
         ptCoord.x = D2Common::PATH::DynamicPath::GetXPos((D2DynamicPathStrc*)pUnit[0xb]);
+      } else {
+        ptCoord.x = 0;
       }
 
       eUnitTypeForY = *pUnit;
-      if (eUnitTypeForY == UNIT_OBJECT || 3 < (int)eUnitTypeForY && (int)eUnitTypeForY < 6) {
+      if (eUnitTypeForY == UNIT_OBJECT || 3 < (int)eUnitTypeForY && (int)eUnitTypeForY <= 5) {
         ptCoord.y = *(int32_t*)(pUnit[0xb] + 0x10);
-      } else if (!(D2DynamicPathStrc*)pUnit[0xb]) {
-        ptCoord.y = 0;
-      } else {
+      } else if ((D2DynamicPathStrc*)pUnit[0xb]) {
         ptCoord.y = D2Common::PATH::DynamicPath::GetYPos((D2DynamicPathStrc*)pUnit[0xb]);
+      } else {
+        ptCoord.y = 0;
       }
+    } else {
+      ptCoord.x = *pnOutX;
+      ptCoord.y = *pnOutY;
     }
 
     D2RoomStrc* pRoom = UNIT::CUnit::GetCurrentRoom();
@@ -665,7 +665,7 @@ D2UnitStrc * __fastcall SKILL_ValidateTarget(D2SkillStrc * pSkill, D2UnitStrc * 
 
     eD2UnitType eUnitType;
     eUnitType = pPlayerUnit_lcl->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nUnitCoord = pPlayerUnit_lcl->pPath.pStaticPath->nPosX;
     } else if (!pPlayerUnit_lcl->pPath.pDynamicPath) {
       nUnitCoord = 0;
@@ -674,7 +674,7 @@ D2UnitStrc * __fastcall SKILL_ValidateTarget(D2SkillStrc * pSkill, D2UnitStrc * 
     }
     if (*pX == nUnitCoord) {
       eUnitType = pPlayerUnit_lcl->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         nUnitCoord = pPlayerUnit_lcl->pPath.pStaticPath->nPosY;
       } else if (!pPlayerUnit_lcl->pPath.pDynamicPath) {
         nUnitCoord = 0;

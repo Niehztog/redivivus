@@ -98,7 +98,7 @@ void __fastcall Q14_OnPlayerJoinNoop(::SGAMEDATA * pGame, D2QuestDataStrc * pQue
 }
 
 // A2Q6 "The Seven Tombs" — gossip/talk callback (state 0). Builds the NPC dialogue line shown when the player talks to Atma(0xc9)/Drognan(0xd2)/Cain(0xfb)/Tyrael(0xb1) etc. Reads the player's TheSevenTombs quest-record bits (JustCompleted/Step0x03/0x04 + per-NPC Step0x06..0x11 "already-talked" flags) plus nStateFlag to pick which gossip message index to display. Read-only w.r.t. quest state (only GetQuestState + GetQuestRecordState for TheArcaneSanctuary). Quest flow: TheSevenTombs is the Act2 finale — talk Jerhyn, kill Duriel, free Tyrael; completing opens Act3.
-void __fastcall Q14_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q14_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     // Static local variables (originally global data)
     static uint32_t gdwQ12QuestStateMessages[6] = { 0xffffffff, 0x0, 0x1, 0x2, 0x3, 0x4 };
 
@@ -169,7 +169,9 @@ void __fastcall Q14_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
 
     /* GetQuestState(TheSevenTombs, 3=Step0x03=Duriel-dead) — if set, gossip
                          message index = 3 */ bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheSevenTombs, QUESTSTATE_Step0x03);
-    if (!bQuestState) {
+    if (bQuestState) {
+      nMessageIndexMaybe = 3;
+    } else {
       int32_t nPlayerGUID;
       /* GetQuestState(TheSevenTombs, 4=Step0x04) — if set: Drognan(0xd2)->msg5,
                          else msg4 */ bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheSevenTombs, QUESTSTATE_Step0x04);
@@ -205,7 +207,7 @@ void __fastcall Q14_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (bQuestState == 1 && !bJustCompleted) {
         return;
       }
-      if (3 < pQuestData->nStateFlag && !bJustCompleted) {
+      if (4 <= pQuestData->nStateFlag && !bJustCompleted) {
         return;
       }
 
@@ -220,12 +222,10 @@ void __fastcall Q14_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
         if (nMessageIndexMaybe == -1) {
           return;
         }
-        if (7 < nMessageIndexMaybe) {
+        if (8 <= nMessageIndexMaybe) {
           return;
         }
       }
-    } else {
-      nMessageIndexMaybe = 3;
     }
 
     AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, nMessageIndexMaybe);
@@ -266,7 +266,7 @@ BOOL __fastcall Q14_UpdateQuestRecordStep(::SGAMEDATA * pGame, D2UnitStrc * pUni
     }
 
     D2QuestDataStrc* pQuestData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_TheSevenTombs);
-    if (!(pQuestData && 1 < pQuestData->nStateFlag)) {
+    if (!(pQuestData && 2 <= pQuestData->nStateFlag)) {
       return 0;
     }
 
@@ -293,7 +293,7 @@ void __fastcall Q14_PlayCompletionSoundAll(::SGAMEDATA * pGame) {
 }
 
 // A2Q6 "The Seven Tombs" — talk callback for state 2 (slot fpQuestStateHandler[2]). On talking to Cain(0xfb): if bCainSaved, broadcasts quest state 4 then clears the slot. On talking to Jerhyn(0xc9): if field_0x08 set, broadcasts state 1; else if field_0x0A set, broadcasts state 6; then clears the slot and re-syncs every player's quest record via Q14_UpdateQuestRecordStep. Drives the post-Duriel Jerhyn/Cain dialogue that gates the reward & Act3 travel. (eFlags zeroed before each broadcast.)
-void __fastcall Q14_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q14_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     ::SGAMEDATA* pGame;
     short int sVar1 = !pQuestArgs->pTarget ? -1 : (short int)pQuestArgs->pTarget->nClassId;
     D2QuestDataA2Q6Strc* pDVar1 = pQuestData->pQuestSpecificData.pA2Q6;
@@ -327,7 +327,7 @@ void __fastcall Q14_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // A2Q6 "The Seven Tombs" — mark Duriel dead / quest just-completed for one player's record. Sets TheSevenTombs Step0x03 + JustCompleted(0xd) on the player's quest-record bitbuffer, then bumps that client's status to 2 (act-progress) for the current difficulty. This is the core "Duriel killed" record stamp; called per qualifying player in Duriel's Lair.
-void __stdcall Q14_SetDurielComplete(::SGAMEDATA * pQuestControl, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer) {
+static void __stdcall Q14_SetDurielComplete(::SGAMEDATA * pQuestControl, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer) {
     /* SetQuestState(TheSevenTombs, 0xd=JustCompleted) — Duriel killed self game
                           */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheSevenTombs, QUESTSTATE_JustCompleted);
     /* SetQuestState(TheSevenTombs, 3=Step0x03) — Duriel-dead progress bit */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheSevenTombs, QUESTSTATE_Step0x03);
@@ -373,7 +373,7 @@ BOOL __fastcall Q14_CheckDurielLairAndComplete(::SGAMEDATA * pGame, D2UnitStrc *
 }
 
 // A2Q6 "The Seven Tombs" — party-propagation variant of the Duriel-complete stamp. For a party member: if their record has none of Completed(0)/Step0x03/Step0x04 and they are anywhere in Act II, stamp completion via Q14_SetDurielComplete. Lets party members not standing in the lair still get Duriel credit.
-void __fastcall Q14_SetDurielCompleteOnPartyMember(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
+static void __fastcall Q14_SetDurielCompleteOnPartyMember(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
     D2QuestDataStrc* pPlayerData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_TheSevenTombs);
     if (!pPlayerData) {
       return;
@@ -503,7 +503,7 @@ bool __fastcall Q14_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUni
 }
 
 // A2Q6 "The Seven Tombs" — main NPC-dialogue (state 0xb) driver, the quest's spine. Cain(0xfb)/msg 0x12e: spawns the Lut Gholein town portal (Tyrael's), sets nStateFlag 4, then runs CheckDurielLairAndComplete+PropagateRewardToParty+SetCannotComplete to finalize. Jerhyn(0xc9): msg 0x1ae sets flag 2 and kicks TheTaintedSun's sequence filter (opens the seven tombs storyline); msg 0x1ba (requires record Step0x03) advances record Step0x03->Step0x04 and sets flag 5. Drognan(0xd2)/msg 0x1c2 (requires Step0x04 + TheHoradricStaff Completed): strips the staff/viper/shaft quest items, and if JustCompleted writes the game-wide TheSevenTombs record + broadcasts state 0xd + marks record Completed + clears Step0x04 + records the finishing player GUID. switch(msg): 0x1bc/0x1bd/0x1be/0x1bf/0x1c1/0x1c4 set the per-NPC "talked" record bits Step0x09/06/07/0x11/08/0x10.
-void __fastcall Q14_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q14_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int32_t nPlayerY;
     int32_t nPlayerX;
     BOOL bPortalSpawned;
@@ -661,7 +661,7 @@ void __fastcall Q14_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // A2Q6 "The Seven Tombs" — quest timer callback armed by Q14_Callback_08 (8 frames after entering Duriel's chamber). If nStateFlagPrev is not already 3/4/5, broadcasts quest state 3 (Duriel-encounter reached). Clears the bBloodRavenKilled-aliased flag. Returns 1 to indicate the timer is done.
-uint8_t __fastcall Q14_OnEndCallback(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
+static uint8_t __fastcall Q14_OnEndCallback(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
     uint8_t bPrevFlag = pQuestData->nStateFlagPrev;
     D2QuestDataA2Q6Strc* pBloodRavenData = pQuestData->pQuestSpecificData.pA2Q6;
     if (bPrevFlag != 5 && bPrevFlag != 4 && bPrevFlag != 3) {
@@ -826,7 +826,7 @@ void __fastcall Q14_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // A2Q6 "The Seven Tombs" — state-3 callback: level-transition handler keyed on level id (nIndex). Caches the Horadric-staff tomb level id (the randomly-chosen true tomb) on first use. When the player enters the staff tomb (iVar1==tomb id): if nStateFlag!=2 sets flag 2 and, if prev>1, advances the record (Q14_UpdateQuestRecordStep). Entering Duriel's Lair (0x2e): sets flag 2 + record step, then broadcasts state 1 (reward awaits) if prev==0. Entering Lut Gholein (0x49): sets flag 2 if flag<=1. Tail broadcasts state 2 (in-progress) + syncs record. Read/writes nStateFlag, not the bitbuffer record directly.
-void __fastcall Q14_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q14_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int nLevelId;
     nLevelId = pQuestArgs->sQuestArgs.sNpcActivate.nIndex;
     if (0x22 < nLevelId - 0x28U) {

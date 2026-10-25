@@ -67,7 +67,7 @@ void __stdcall UnsetQuestStepStates(D2BitBufferStrc * pBitBuffer, eD2Quests nQue
     do {
       Fog::BitBuffer::UnsetBitAtOffset((char*)pBitBuffer->pBuffer, nQuestId * 0x10 + iStep);
       iStep++;
-    } while (iStep < 0xc);
+    } while (iStep <= 0xb);
 }
 
 // @sourcefile .\QuestRecord\QuestRecord.cpp

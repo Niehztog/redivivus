@@ -21,12 +21,6 @@ int __stdcall ReadBytesFromSocket(struct D2QSSocketStrc * pMCPQSocket, char * pO
 // NOTE: Register params: pQServerStrc (EAX): D2QSSocketStrc *
 int __stdcall ProcessReceivedData(struct D2QSSocketStrc * pQServerStrc, void * pBuffer, int nBufferSize);
 void __stdcall QSSOCKET_SetCallbackHandler2(struct D2QSSocketStrc * pQSSocket, int nHeaderSize, int nSizeFieldOffset, int nUnknown0x120);
-// NOTE: Register param types inferred (medium confidence): pQSSocketStrc (ESI): D2QSSocketStrc *
-void __stdcall QSSOCKET_BlockSocket(struct D2QSSocketStrc * pQSSocketStrc);
-// Thread-safe socket close with critical section protection
-void __stdcall CloseSocket(struct D2QSSocketStrc * pQServer);
-// Socket receive loop, passed as thread proc to Fog::Safesock::Create_Flag0
-void __stdcall ReceiveLoopCallback(struct D2QSSocketStrc * pQSSocket);
 // lpStartAddress parameter of CreateThread
 DWORD __stdcall QSSOCKET_ThreadEntryPoint(void * lpThreadParam);
 void __stdcall NET_MCP_CLIENT_CreateConnectionThread(struct D2QSSocketStrc * NET_MCP_CLIENT_D2QSSocket);

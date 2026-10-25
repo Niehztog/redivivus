@@ -49,9 +49,6 @@ BOOL __fastcall DRLGOUTDOOR_IsGridCellPresetFree(struct D2DrlgLevelStrc * pLevel
 BOOL __fastcall DRLGOUTDOOR_IsGridCellEmpty(struct D2DrlgLevelStrc * pLevel, int32_t nX, int32_t nY);
 // Tests whether a rectangular area (sized from lvlprest txt SizeX/SizeY, optionally expanded by nOffset in the directions indicated by nFlags bits 0–3) can be placed at grid position (nX, nY) in the outdoor level. Returns 0 immediately if any cell falls outside the grid area or has any of the occupied/blocked grid flags (0x1b81); returns 1 if all cells are free.
 BOOL __fastcall TestOutdoorLevelPreset(struct D2DrlgLevelStrc * pLevel, int32_t nX, int32_t nY, int32_t nLevelPrestId, int32_t nOffset, char nFlags);
-// Creates/finds level preset tracker cycling through files.
-// @sourcefile .\DRLG\Outdoors.cpp
-int32_t DRLGOUTDOOR_AllocPresetFileTracker(int32_t nLevelPrestId, struct D2DrlgLevelStrc * pLevel);
 // Spawns an outdoor level preset at the given grid coordinates with specified preset ID and file index.
 void __fastcall SpawnOutdoorLevelPresetEx(struct D2DrlgLevelStrc * pLevel, int nX, int nY, int nPresetId, int nFileIndex, int bFlag);
 // Outdoor DRLG preset placement: scans all interior grid cells of pLevel (using the level's RNG seed for a randomized start offset) for a spot where TestOutdoorLevelPreset succeeds, picking the candidate cell whose Manhattan-ish weighted distance from the level's reference coord (pDrlgCoord) is greatest (i.e. farthest away). On success calls SpawnOutdoorLevelPresetEx at the best cell and returns TRUE; returns FALSE if no valid cell found. Mutates pLevel->sSeed as it draws randoms.
@@ -64,11 +61,6 @@ BOOL __fastcall SpawnRandomOutdoorDS1(struct D2DrlgLevelStrc * pLevel, int32_t n
 void __fastcall SpawnAct12Waypoint(struct D2DrlgLevelStrc * pLevel);
 // DRLG outdoor decorator that scatters up to nShrines special tiles into a wilderness level grid. Builds a list of all interior (x,y) cells, Fisher-Yates shuffles it using the level seed, then walks the shuffled cells placing a shrine/decoration where the collision grid is clear (flags & 0x1b81 == 0): writes a per-style grid value (gnOutdoorsGridWidthByLevel[style]) into one grid and sets flag 0x1000 in the collision grid, cycling the 0..3 style index each placement. Stops once nShrines are placed or cells exhausted. Mutates pLevel grids and seed; no return.
 void __fastcall SpawnAct12Shrines(struct D2DrlgLevelStrc * pLevel, int32_t nShrines);
-// Snap each outdoor vertex to 8-tile grid (divide by 8) and merge duplicate vertices by latching next pointer, OR-ing flags, and freeing redundant entries.
-// @sourcefile .\DRLG\Outdoors.cpp
-void DRLGOUTDOOR_SimplifyOutdoorPoints(struct D2PoolManagerStrc * pMemory, int * * ppnParam);
-// Iterate grid of outdoor chunks (8×8 tiles). For open tiles (no wall/roof flags) spawn standard outdoor rooms, otherwise build preset map from DS1 data and call `BuildArea`. Picks `outdoorRoomStyle` based on level-type heuristics.
-void DRLGOUTDOOR_CreateOutdoorRoomExGrid(struct D2DrlgLevelStrc * pLevel);
 void __fastcall AddAct124SecondaryBorder(struct D2DrlgLevelStrc * pLevel, int32_t nLvlSubId, int32_t nLevelPrestId);
 // @sourcefile .\DRLG\Outdoors.cpp
 void __fastcall DRLGLEVEL_InitializeWithWildernessLevel(struct D2DrlgLevelStrc * pLevel);

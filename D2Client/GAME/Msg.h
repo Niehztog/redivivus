@@ -121,9 +121,6 @@ void __stdcall NET_D2GS_CLIENT_Send_0x6D_PING();
 void __stdcall NET_D2GS_CLIENT_Send_0x69();
 void __fastcall NET_D2GS_CLIENT_Send_0x68(int16_t nGameToken, int32_t nGameHash);
 void NET_D2GS_CLIENT_Send_0x6A();
-// Reads a character save file (.d2s) from disk into a memory buffer. Constructs the full file path from the save directory and character name, opens the file in binary read mode, seeks to end to get file size, allocates a client memory buffer of that size, rewinds to start, reads the entire file contents into the buffer, and returns the buffer pointer with size written to the output parameter.
-// @sourcefile .\GAME\Msg.cpp
-uint8_t * MSG_ReadSaveFileToBuffer(size_t * pnFileSize);
 void __fastcall LOADING_SetProgressRatio(int32_t nParam1, int32_t nParam2);
 int __stdcall LOADING_GetProgressRatio();
 void __fastcall LOADING_AnimateProgressBar(int32_t nCurrentChunk, int32_t nTotalChunks);

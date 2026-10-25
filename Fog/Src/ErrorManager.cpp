@@ -32,6 +32,7 @@ typedef _EXCEPTION_DISPOSITION (*pfnEHHandlerRoutine)(EHExceptionRecord * pExcep
 #endif
 
 namespace Fog::Src::ErrorManager {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9bfb(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
 
 BOOL __stdcall FOG_ReturnZeroCallback(char * szFileName, void * pContext) {
     return 0;
@@ -45,7 +46,7 @@ void __fastcall FILETOOLS_WriteOneStringToFile(::Report * pReport, char * szStri
     _3rdparty::crashy::Printf(pReport, "%s", szString);
 }
 
-DWORD __fastcall GetParentProcessId(int32_t nProcessId) {
+static DWORD __fastcall GetParentProcessId(int32_t nProcessId) {
     PROCESSENTRY32 procEntry;
     HANDLE hSnapshot;
     hSnapshot = (HANDLE)CreateToolhelp32Snapshot(2, 0);
@@ -68,7 +69,6 @@ DWORD __fastcall GetParentProcessId(int32_t nProcessId) {
     }
 
     /* HANDLE hObject for CloseHandle */ CloseHandle(hSnapshot);
-    Debug::GuardStack();
     return DVar1;
 }
 
@@ -210,7 +210,7 @@ void __fastcall WriteCrashReportProcessInfo(::Report * pReport) {
     Debug::GuardStack();
 }
 
-void __stdcall InitializeSystemInfo() {
+static void __stdcall InitializeSystemInfo() {
     _MEMORYSTATUS memoryStatus;
     uint32_t dwMajorVersion;
     _OSVERSIONINFOA osVersionInfo;
@@ -252,11 +252,10 @@ void __stdcall InitializeSystemInfo() {
     /* LPSYSTEM_INFO lpSystemInfo for GetSystemInfo */ g_dwTotalPhysicalMemory = memoryStatus.dwTotalPhys;
     GetSystemInfo(&gSystemInfo);
     gbSystemInfoInitialized = 1;
-    Debug::GuardStack();
 }
 
 // Registered with atexit. Tears down the Fog error/log subsystem and deletes the two critical sections at 0074c830 and 0074d848. Takes no arguments: the earlier EAX/ESI "parameters" were a callee-save PUSH ESI / POP ESI pair misread as inputs.
-void EXIT_AtExit() {
+static void EXIT_AtExit() {
     if (!gbFogErrorManagerInitialized) {
       return;
     }
@@ -333,7 +332,7 @@ __attribute__((noinline)) int32_t __stdcall GetInstructionPointer() {
 }
 
 // Formats debug output with optional timestamp and outputs to debugger/log. Supports flags: 0x04=prepend timestamp (HH:MM:SS.mmm format via GetLocalTime), 0x02=skip OutputDebugStringA, 0x01=write to LOG category via LogManager, 0x18=check CapsLock state. Uses a 4096-byte buffer for vsnprintf formatting with varargs, appending formatted text after timestamp if present.
-void __stdcall FormatDebugOutput(uint8_t bFlags, va_list vaArgs, char * szText) {
+static void __stdcall FormatDebugOutput(uint8_t bFlags, va_list vaArgs, char * szText) {
     SYSTEMTIME sLocalTime;
     char szOutputBuffer[4095];
     char cCurrent;
@@ -358,7 +357,6 @@ void __stdcall FormatDebugOutput(uint8_t bFlags, va_list vaArgs, char * szText) 
       /* int nVirtKey for GetKeyState */ GetKeyState(0x14);
     }
 
-    Debug::GuardStack();
 }
 
 void OutputDebugStringSimple(char * szText, ...) {
@@ -371,7 +369,6 @@ void OutputDebugStringSimple(char * szText, ...) {
     __vsnprintf(szBuffer + ((int)pScan - (int)(szBuffer + 1)), 0x1000 - ((int)pScan - (int)(szBuffer + 1)), szText, (va_list)((uint8_t*)&szText + 4));
     uint8_t cNull = 0;
     OutputDebugStringA(szBuffer);
-    Debug::GuardStack();
 }
 
 void OutputDebugStringIfCapsLock(char * szText, ...) {
@@ -390,7 +387,6 @@ void OutputDebugStringIfCapsLock(char * szText, ...) {
       OutputDebugStringA(szBuffer);
     }
 
-    Debug::GuardStack();
 }
 
 void FormatDebugOutputVariadic(uint8_t bFlags, char * szText, uint32_t firstArg) {
@@ -607,7 +603,6 @@ void __fastcall CRASH_FillupCrashTxt(char * szSummary, char * szReason, char * *
         __frame0.nSehState = -1;
         _3rdparty::crashy::Destructor(&crashFile);
         ExceptionList = __frame0.pPrevSehFrame;
-        Debug::GuardStack();
         return;
       }
     }
@@ -617,7 +612,6 @@ void __fastcall CRASH_FillupCrashTxt(char * szSummary, char * szReason, char * *
     __frame0.nSehState = -1;
     _3rdparty::crashy::Destructor(&crashFile);
     ExceptionList = __frame0.pPrevSehFrame;
-    Debug::GuardStack();
 }
 
 BOOL __fastcall CheckErrorDuringError(char * szText, int32_t nLine, char * szReason) {
@@ -671,7 +665,6 @@ void FOG_ErrorHandler(eFOG_ErrorType eErrorType, char * szFile, int32_t nLine, c
       }
     }
 
-    Debug::GuardStack();
 }
 
 void ERROR_UnrecoverableInternalError_AssertionFailure(char * szUnused, int32_t nAddress, int32_t nLine) {
@@ -744,17 +737,17 @@ void __stdcall ShowUnrecoverableErrorDialog(int32_t nParam, char * szText, int n
 
     __vsnprintf(szFormattedMessageBuffer, 0x1000, szSourceFile, vaArgs);
     uint8_t byNullTerm = 0;
-    if (!szText) {
+    if (szText) {
+      pScan = szFormattedMessageBuffer;
+      szRelativePath2 = StripPathPrefixToRelative(szText);
+      Storm::Source::SSTR::SStrPrintf(szFinalErrorMessage, 0x1000, "%s\nLocation : %s, line #%d\nExpression : %s", gaErrorTypeNames[nParam], szRelativePath2, nLine, pScan);
+    } else {
       nCopyIdx = 0;
       do {
         pScan = szFormattedMessageBuffer + nCopyIdx;
         szFinalErrorMessage[nCopyIdx] = *pScan;
         nCopyIdx++;
       } while (*pScan != '\0');
-    } else {
-      pScan = szFormattedMessageBuffer;
-      szRelativePath2 = StripPathPrefixToRelative(szText);
-      Storm::Source::SSTR::SStrPrintf(szFinalErrorMessage, 0x1000, "%s\nLocation : %s, line #%d\nExpression : %s", gaErrorTypeNames[nParam], szRelativePath2, nLine, pScan);
     }
 
     Storm::Source::SSTR::SStrPrintf(szTitleBuffer, 0x100, "%s Error", "Diablo II");
@@ -769,7 +762,6 @@ void __stdcall ShowUnrecoverableErrorDialog(int32_t nParam, char * szText, int n
     LogManager::LogWithCategoryVarArgs("", "%s", szFinalErrorMessage);
     LogManager::ExitOrCrashCleanUpJmp();
     /* UINT uType for MessageBoxA */ /* LPCSTR lpCaption for MessageBoxA */ /* LPCSTR lpText for MessageBoxA */ /* HWND hWnd for MessageBoxA */ MessageBoxA((HWND)0x0, szMessageBoxBuffer, szTitleBuffer, 0x30);
-    Debug::GuardStack();
 }
 
 // Initializes Fog error manager and debugging subsystems on first call. Sets up project metadata (ID 0x108, "Diablo II", version "D2 1.14d"), retrieves executable directory via SFILE_GetExecutableDirectory into a 4096-byte buffer, initializes two critical sections for thread safety, starts the log writer thread, validates gadwBitMasks/gadwInvBitMasks lookup tables, and registers the exit handler. On subsequent calls with bLogGameStrartupInfo=TRUE, only logs startup info via LOGFILE_StoreGameStartupInfo.
@@ -4977,7 +4969,7 @@ void __fastcall ERRORMANAGER_InitErrorManager(char * dwUnused1, char * szText, B
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9bfb(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9bfb(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 

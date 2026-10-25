@@ -540,7 +540,6 @@ char * __fastcall SKILLS_ParseSkillDescription(CalcGetKeyWordToNumber_t pFuncLoo
         nCtype = isdigit((int)szToken[1]);
       }
 
-      Debug::GuardStack();
       return szToken;
     }
     if (*szToken != '\'') {
@@ -550,33 +549,26 @@ char * __fastcall SKILLS_ParseSkillDescription(CalcGetKeyWordToNumber_t pFuncLoo
           case '!':
             if (szToken[1] == '=') {
               *pTokenType = '\x0f';
-              Debug::GuardStack();
               return szToken + 2;
             }
           break;
           case '(':
             *pTokenType = '\0';
-          Debug::GuardStack();
           return szToken + 1;
           case ')':
             *pTokenType = '\x01';
-          Debug::GuardStack();
           return szToken + 1;
           case '*':
             *pTokenType = '\x05';
-          Debug::GuardStack();
           return szToken + 1;
           case '+':
             *pTokenType = '\x03';
-          Debug::GuardStack();
           return szToken + 1;
           case ',':
             *pTokenType = '\x02';
-          Debug::GuardStack();
           return szToken + 1;
           case '-':
             *pTokenType = '\x04';
-          Debug::GuardStack();
           return szToken + 1;
           case '.':
             szTokenBuf[0] = szToken[1];
@@ -601,55 +593,44 @@ char * __fastcall SKILLS_ParseSkillDescription(CalcGetKeyWordToNumber_t pFuncLoo
           if (-1 < nCtype) {
             *local_10c = '\x10';
             *local_110 = nCtype;
-            Debug::GuardStack();
             return pcTokenEnd;
           }
 
           break;
           case '/':
             *pTokenType = '\x06';
-          Debug::GuardStack();
           return szToken + 1;
           case ':':
             *pTokenType = '\b';
-          Debug::GuardStack();
           return szToken + 1;
           case '<':
             if (szToken[1] != '=') {
               *pTokenType = '\v';
-              Debug::GuardStack();
               return szToken + 1;
             }
           *pTokenType = '\n';
-          Debug::GuardStack();
           return szToken + 2;
           case '=':
             if (szToken[1] == '=') {
               *pTokenType = '\x0e';
-              Debug::GuardStack();
               return szToken + 2;
             }
           break;
           case '>':
             if (szToken[1] != '=') {
               *pTokenType = '\f';
-              Debug::GuardStack();
               return szToken + 1;
             }
           *pTokenType = '\r';
-          Debug::GuardStack();
           return szToken + 2;
           case '?':
             *pTokenType = '\a';
-          Debug::GuardStack();
           return szToken + 1;
           case '^':
             *pTokenType = '\t';
-          Debug::GuardStack();
           return szToken + 1;
         }
 
-        Debug::GuardStack();
         return nullptr;
       }
 
@@ -681,10 +662,9 @@ char * __fastcall SKILLS_ParseSkillDescription(CalcGetKeyWordToNumber_t pFuncLoo
         if (!nCtype) {
           if (*pcTokenEnd != '\0' && *pcTokenEnd == '(') {
             nCtype = (*local_118)(szTokenBuf);
-            if (-1 < nCtype) {
+            if (0 <= nCtype) {
               *local_10c = '\x12';
               *local_110 = nCtype;
-              Debug::GuardStack();
               return pcTokenEnd + 1;
             }
           }
@@ -701,13 +681,11 @@ char * __fastcall SKILLS_ParseSkillDescription(CalcGetKeyWordToNumber_t pFuncLoo
       if (nCtype < 0) {
         *local_10c = '\x10';
         *local_110 = 0;
-        Debug::GuardStack();
         return pcTokenEnd;
       }
 
       *local_10c = !local_11c + '\x10';
       *local_110 = nCtype;
-      Debug::GuardStack();
       return pcTokenEnd;
     }
 
@@ -742,13 +720,11 @@ char * __fastcall SKILLS_ParseSkillDescription(CalcGetKeyWordToNumber_t pFuncLoo
     if (nCtype < 0) {
       *pTokenType = '\x10';
       *local_110 = 0;
-      Debug::GuardStack();
       return pcTokenEnd;
     }
 
     *pTokenType = !local_10c + '\x10';
     *local_110 = nCtype;
-    Debug::GuardStack();
     return pcTokenEnd;
 }
 
@@ -879,15 +855,15 @@ uint8_t * __stdcall SKILLS_EmitFormulaBytecode(uint8_t * pWritePtr, uint8_t * pO
     return nullptr;
 }
 
-uint8_t * __fastcall SKILLS_WriteValueToBuffer(uint8_t * pBase, int nValue, int nBufferSize, D2QuestDataA5Q2Strc * pStruct, uint8_t * pWritePtr) {
-    if (nValue + 0x80U < 0x100) {
+static uint8_t * __fastcall SKILLS_WriteValueToBuffer(uint8_t * pBase, int nValue, int nBufferSize, D2QuestDataA5Q2Strc * pStruct, uint8_t * pWritePtr) {
+    if (nValue + 0x80U <= 0xff) {
       if ((int)pWritePtr - (int)pBase < nBufferSize) {
         *pWritePtr = 7;
         pWritePtr[1] = (char)nValue;
         pStruct->anWussieMonsterGUIDs[9]++;
         return pWritePtr + 2;
       }
-    } else if (nValue + 0x8000U < 0x10000) {
+    } else if (nValue + 0x8000U <= 0xffff) {
       if ((int)(pWritePtr + (3 - (int)pBase)) < nBufferSize) {
         *pWritePtr = 8;
         *(short int*)(pWritePtr + 1) = (short int)nValue;
@@ -905,15 +881,15 @@ uint8_t * __fastcall SKILLS_WriteValueToBuffer(uint8_t * pBase, int nValue, int 
     return nullptr;
 }
 
-uint8_t * __fastcall SKILLS_WriteValueToBuffer2(int pBase, int nValue, int nBufferSize, D2QuestDataA5Q2Strc * pStruct, int pWritePtr) {
-    if (nValue + 0x80U < 0x100) {
+static uint8_t * __fastcall SKILLS_WriteValueToBuffer2(int pBase, int nValue, int nBufferSize, D2QuestDataA5Q2Strc * pStruct, int pWritePtr) {
+    if (nValue + 0x80U <= 0xff) {
       if (pWritePtr - pBase < nBufferSize) {
         *(uint8_t*)pWritePtr = 4;
         *(char*)(pWritePtr + 1) = (char)nValue;
         pStruct->anWussieMonsterGUIDs[9]++;
         return (uint8_t*)(pWritePtr + 2);
       }
-    } else if (nValue + 0x8000U < 0x10000) {
+    } else if (nValue + 0x8000U <= 0xffff) {
       if (pWritePtr - pBase + 3 < nBufferSize) {
         *(uint8_t*)pWritePtr = 5;
         *(short int*)(pWritePtr + 1) = (short int)nValue;
@@ -987,7 +963,6 @@ int __stdcall SKILLS_ParseCalcExpression(char * szExpressionString, uint8_t * pb
             goto finish_token;
           }
         *pbByteCodeOutput = 0;
-        Debug::GuardStack();
         return 0;
         case 1:
           if (0 < __frame0.nOpStackTop) {
@@ -1002,7 +977,6 @@ int __stdcall SKILLS_ParseCalcExpression(char * szExpressionString, uint8_t * pb
               nPrecedence = SKILLS_GetOpcodePrecedence(__frame0.aTokenBuf, pOpcodeInfo, nFunctionArg);
               if (__frame0.nPrecedenceDepth < nPrecedence || nMaxOutputSize <= nBytesWritten) {
                 *pbByteCodeOutput = 0;
-                Debug::GuardStack();
                 return 0;
               }
 
@@ -1011,9 +985,8 @@ int __stdcall SKILLS_ParseCalcExpression(char * szExpressionString, uint8_t * pb
               *pbWritePtr = __frame0.aTokenBuf;
               pbFinalWrite = pbWritePtr + 1;
               if (__frame0.aTokenBuf == 1) {
-                if (nMaxOutputSize <= (int)pbFinalWrite - (int)pbByteCodeOutput) {
+                if ((int)pbFinalWrite - (int)pbByteCodeOutput >= nMaxOutputSize) {
                   *pbByteCodeOutput = 0;
-                  Debug::GuardStack();
                   return 0;
                 }
 
@@ -1025,9 +998,8 @@ int __stdcall SKILLS_ParseCalcExpression(char * szExpressionString, uint8_t * pb
 
               __frame0.nOpStackTop--;
               pbWritePtr = pbFinalWrite;
-              if (__frame0.nOpStackTop < 1) {
+              if (__frame0.nOpStackTop <= 0) {
                 *pbByteCodeOutput = 0;
-                Debug::GuardStack();
                 return 0;
               }
             }
@@ -1038,7 +1010,6 @@ int __stdcall SKILLS_ParseCalcExpression(char * szExpressionString, uint8_t * pb
             }
           }
         *pbByteCodeOutput = 0;
-        Debug::GuardStack();
         return 0;
         case 2:
           bToken = 3;
@@ -1121,7 +1092,6 @@ int __stdcall SKILLS_ParseCalcExpression(char * szExpressionString, uint8_t * pb
       finish_token:
       if (!pbWritePtr) {
         *pbByteCodeOutput = 0;
-        Debug::GuardStack();
         return 0;
       }
       __frame0.aTokenBuf = 0;
@@ -1136,12 +1106,10 @@ int __stdcall SKILLS_ParseCalcExpression(char * szExpressionString, uint8_t * pb
         pbWritePtr = SKILLS_EmitFormulaBytecode(pbWritePtr, (uint8_t*)__frame0.aOpStackTokenTypes, pbByteCodeOutput, nMaxOutputSize, 0, nullptr, 0);
       }
 
-      Debug::GuardStack();
       return (int)pbWritePtr - (int)pbByteCodeOutput;
     }
 
     *pbByteCodeOutput = 0;
-    Debug::GuardStack();
     return 0;
 }
 

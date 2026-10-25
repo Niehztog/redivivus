@@ -54,12 +54,12 @@ void __fastcall FORMS_DestroyD2WinAnimImage(::D2WinAnimImage * pWinAnimImage) {
 
 // Returns the current animation state (field 0x14) from D2WinAnimImage. Validates form type is FORM_Image (2).
 int32_t __fastcall D2WINANIMIMAGE_GetCurrentState(::D2WinAnimImage * pAnimImage) {
-    if (pAnimImage->sControl.neD2FormType == FORM_Image) {
-      return pAnimImage->nAnimState;
+    if (pAnimImage->sControl.neD2FormType != FORM_Image) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x50);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x50);
-    exit(-1);
+    return pAnimImage->nAnimState;
     return pAnimImage->nAnimState;
 }
 
@@ -124,7 +124,7 @@ BOOL __fastcall DrawAnim(::D2WinAnimImage * pAnimImage) {
 }
 
 // Per-frame animation update. Advances frame counter, handles state transitions (looping vs one-shot), invokes frame change callbacks. Returns 1 on success.
-BOOL D2WINANIMIMAGE_UpdateFrame(::D2WinAnimImage * pAnimImage) {
+static BOOL D2WINANIMIMAGE_UpdateFrame(::D2WinAnimImage * pAnimImage) {
     BOOL bHitTest;
     D2WinAnimImageNotifyStrc sNotifyArgs;
     uint32_t nFrameCount;
@@ -165,18 +165,18 @@ BOOL D2WINANIMIMAGE_UpdateFrame(::D2WinAnimImage * pAnimImage) {
 
     int nAnimState;
     nAnimState = pAnimImage->nAnimState;
-    if (nAnimState == 2) {
-      if (pAnimImage->nCurrentFrame < nFrames - 2) {
-        goto wrap_frame_counter;
-      }
-
-      pAnimImage->nAnimState = 3;
-    } else {
+    if (nAnimState != 2) {
       if (nAnimState != 4 || pAnimImage->nCurrentFrame < nFrames - 2) {
         goto wrap_frame_counter;
       }
 
       pAnimImage->nAnimState = 1;
+    } else {
+      if (pAnimImage->nCurrentFrame < nFrames - 2) {
+        goto wrap_frame_counter;
+      }
+
+      pAnimImage->nAnimState = 3;
     }
 
     pAnimImage->nCurrentFrame = 0;
@@ -187,7 +187,7 @@ BOOL D2WINANIMIMAGE_UpdateFrame(::D2WinAnimImage * pAnimImage) {
     if (nAnimState != pAnimImage->nAnimState && (pFrameEntry = (uint32_t*)pAnimImage->pAnimFrames[pAnimImage->nAnimState].ppBaseImage , pFrameEntry != 0) && (pDC6Next = (DC6*)*pFrameEntry , pDC6Next != 0)) {
       D2CMP::SRC::CelCmp::IMAGE_GetFramesCount(pDC6Next);
     }
-    if (nFrames >= pAnimImage->nCurrentFrame) {
+    if (pAnimImage->nCurrentFrame <= nFrames) {
       return 1;
     }
 
@@ -277,7 +277,7 @@ BOOL __fastcall Draw(::D2WinAnimImage * pAnimImage) {
     dwTick = GetTickCount();
     nFrameIntervalMs = (dwTick - pAnimImage->dwAnimStartTick) / nFrameIntervalMs;
     pAnimImage->nCurrentFrame = nFrameIntervalMs;
-    if ((int)(nFrameCount - 1U) <= (int)nFrameIntervalMs) {
+    if ((int)nFrameIntervalMs >= (int)(nFrameCount - 1U)) {
       nFrameIntervalMs = nFrameCount - 1U;
     }
 

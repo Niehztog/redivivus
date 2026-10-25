@@ -47,8 +47,6 @@ namespace Storm::Source::SSignature {
 // Function declarations
 struct BigData * * __fastcall SSIG_InitBigNum(struct BigData * * pBigNum);
 void __fastcall SSIG_FreeBigNum(void * * pBigNum);
-BOOL SSIG_FindSignatureMarker(int32_t nOffset, uint32_t nTotalSize, int32_t pBuffer, int * pnFoundOffset);
-void __stdcall SSIG_HashData(uint32_t nDataLen, uint8_t * pData, int32_t pDigestOut);
 // @sourcefile .\SOURCE\SSignature.cpp
 // @oracle 2026-08-28 pass 5. Oracle: Mac PPC 1.10b Storm.
 // Was SSIG_AllocContext. Storm export, exact string "SSignatureVerifyStream_Begin" (PPC export vector 100cdfc4 -> code 100a3c90). Basis: callee set {operator new / SMemAlloc, Sha1::Initialize} == 1.14d {SMemAlloc, Sha1_Initialize}, and PPC reads exactly r3,r4,r5 = 3 args, matching this function's 3 params. Allocates the 0x78-byte verify-stream context and a nModulusLen+4 data buffer, and inits the embedded Sha1 at ctx+0x18.
@@ -108,14 +106,8 @@ void * __fastcall SSIGNATURE_RsaExportZeroPadded(void * pOutBuf, uint32_t nParam
 // @oracle 2026-08-28 pass 5. Oracle: Mac PPC 1.10b Storm.
 // Was SBIG_RSA_LoadComponent. DESCRIPTIVE, not an oracle name - no PPC counterpart exists. Body is a single SBigFromBinary(this[0], bytes, len), i.e. one half of CryptRSA_Prepare. Zero callers in the whole program: an MSVC out-of-line COMDAT copy of a helper that was inlined at every use. Moved out of SBig into SSignature because that is the translation unit it belongs to.
 void __fastcall SSIGNATURE_RsaLoadComponent(void * pBytes, uint32_t nParam, struct BigData * * pnParam);
-// @oracle 2026-08-28 pass 5. Oracle: Mac PPC 1.10b Storm.
-// Was SBIG_RSA_LoadKeyPair. Oracle: ".Prepare__Q25Crypt3RSAFPCvUlPCvUl" @100a2a50 = Crypt::RSA::Prepare(const void*, unsigned long, const void*, unsigned long). Basis: PPC body is exactly two bl .SBigFromBinary calls on this[0] and this[4], and reads r3..r7 = this+4 args; this function is byte-for-byte the same shape with this+4 params. So the object is a pair of BigBuffer handles at +0 and +4.
-// ppKey[0] is the modulus and ppKey[1] the exponent: CryptRSA_Process calls SBigPowMod(out, in, ppKey[1], ppKey[0]). SSignatureGenerate passes one modulus with its private then its public exponent, so neither pair is 'public' or 'private' as a whole.
-void __fastcall CryptRSA_Prepare(void * pModulusBytes, uint32_t nModulusLen, void * pExponentBytes, uint32_t nExponentLen, struct BigData * * ppKey);
 // Crypt::RSA::Process: one RSA operation in place on nDataLen bytes at pData. Loads the bytes into a BigData, computes SBigPowMod(out, in, ppKey[1] exponent, ppKey[0] modulus), writes the result back with SBigToBinaryBuffer and zero-fills any shorter tail; used for both signing (SSignatureGenerate) and verifying (SSignatureVerifyStream_Finish).
 // Provenance: 1.14d asm 004260a0; PPC Storm 1.10b symbol Process__Q25Crypt3RSAFPUcUl with the same callee set.
 void __fastcall CryptRSA_Process(void * pData, uint32_t nDataLen, struct BigData * * ppKey);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9ef8(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9f28(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
 
 } // namespace Storm::Source::SSignature

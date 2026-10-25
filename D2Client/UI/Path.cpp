@@ -47,7 +47,7 @@ uint32_t __stdcall DRAW_GetTypeOfBorder() {
 }
 
 void __fastcall TypeOfUiOverlayOverWorld(uint32_t eBorderType) {
-    if (eBorderType < 4) {
+    if (eBorderType <= 3) {
       switch (eBorderType) {
         default:
           MouseYRelatedB = 0;
@@ -179,21 +179,21 @@ void __stdcall DEBUG_DrawUnitShadowBounds(D2UnitStrc * pUnit) {
 
     eD2UnitType eUnitType = pUnit->eUnitType;
     D2LvlWarpTxt* pShadowData = pShadows;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nX = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nX = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nX = 0;
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nY = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nY = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nY = 0;
     }
 
     D2Common::Drlg::Transform::CoordsMapToScreen(&nX, &nY);
@@ -212,21 +212,21 @@ void __stdcall DEBUG_DrawUnitShadowBounds(D2UnitStrc * pUnit) {
     rect.bottom = rect.top + 0x10;
     D2gfx::D2GFX::D2GFX_DrawRect(&rect, 0xff);
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nX = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nX = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nX = 0;
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nXEnd = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nXEnd = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nXEnd = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nXEnd = 0;
     }
 
     nX += pShadowData->ExitWalkX;
@@ -365,7 +365,14 @@ void __stdcall DRAW_DrawRoomWallTiles(D2RoomStrc * pRoom) {
           D2Common::Drlg::Transform::CoordsMapToScreen(&nScreenX, &nScreenY);
           if (pTile[4] != 0xf && (pTile[2] & 0x1c000U) == 0x4000) {
             nTileFlags = D2CMP::DUNGEON::Dungeon::TILEPROJECT_GetTileCount((int32_t)pTile[3]);
-            if (!(nTileFlags & 4)) {
+            if (nTileFlags & 4) {
+              rect.right = nScreenX + 0x20 - MouseXOffset;
+              rect.left = rect.right - 0x10;
+              rect.right += 0x10;
+              rect.top = nScreenY - MouseYOffset;
+              rect.bottom = rect.top + 0x10;
+              D2gfx::D2GFX::D2GFX_DrawRect(&rect, 'x');
+            } else {
               if (!(pTile[2] & 0x800U)) {
                 byColor = 0xff;
                 nTmp = nScreenX;
@@ -377,13 +384,6 @@ void __stdcall DRAW_DrawRoomWallTiles(D2RoomStrc * pRoom) {
               }
 
               DEBUG_DrawRoomBoundsRect(nTmp, nScreenYArg, byColor);
-            } else {
-              rect.right = nScreenX + 0x20 - MouseXOffset;
-              rect.left = rect.right - 0x10;
-              rect.right += 0x10;
-              rect.top = nScreenY - MouseYOffset;
-              rect.bottom = rect.top + 0x10;
-              D2gfx::D2GFX::D2GFX_DrawRect(&rect, 'x');
             }
 
             nScreenY -= MouseYOffset;
@@ -447,21 +447,21 @@ void __stdcall DEBUG_DrawLogicalRoomOverlay() {
 
     D2UnitStrc* pUnit = UNIT::Player::GetPlayerUnit_Net();
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nX = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nX = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nX = 0;
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nY = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nY = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nY = 0;
     }
 
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);

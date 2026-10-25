@@ -53,7 +53,7 @@ static_assert(sizeof(void*) != 4 || sizeof(::D2RosterPetStrc) == 0x34, "D2_NEW(D
 namespace D2Client::GAME::RosterPets {
 
 D2PetTypeTxt * __fastcall GetPetTypeTxtById(int32_t nPetId) {
-    if (!(-1 < nPetId && nPetId < sgptDataTable->nTxtPetTypeSize)) {
+    if (!(0 <= nPetId && nPetId < sgptDataTable->nTxtPetTypeSize)) {
       return nullptr;
     }
 
@@ -222,10 +222,10 @@ void __fastcall RemoveRosterPet(int32_t nRosterGUID) {
         return;
       }
     }
-    if (!pPrev) {
-      pRosterPet = pMemoryToFree->pNext;
-    } else {
+    if (pPrev) {
       pPrev->pNext = pMemoryToFree->pNext;
+    } else {
+      pRosterPet = pMemoryToFree->pNext;
     }
 
     D2_FREE(pMemoryToFree);
@@ -246,7 +246,7 @@ int __fastcall ROSTER_GetPetOwnershipRelation(int32_t nRosterGUID) {
     }
 
     int nPlayerGUID = pPet->nSkillID;
-    if (nPlayerGUID < 0 || sgptDataTable->nTxtPetTypeSize <= nPlayerGUID || !(sgptDataTable->pTxtPetType + nPlayerGUID) || !sgptDataTable->pTxtPetType[nPlayerGUID].automap) {
+    if (nPlayerGUID < 0 || nPlayerGUID >= sgptDataTable->nTxtPetTypeSize || !(sgptDataTable->pTxtPetType + nPlayerGUID) || !sgptDataTable->pTxtPetType[nPlayerGUID].automap) {
       return 3;
     }
 
@@ -292,7 +292,7 @@ D2SeedStrc * __fastcall GetSeed(int32_t nRosterGUID) {
 }
 
 // Returns 1 (hostile) or 0 (friendly) for two units. If pRosterUnit is a roster pet, hostility is determined by whether pUnit is the pet's owner (0) or not (delegates to CheckRostersArePartied). For non-pet units, returns 1 unless both are monsters that are allies via IsAllyOf. Null unit arguments always yield hostile.
-uint32_t __fastcall ROSTER_AreUnitsHostile(D2UnitStrc * pUnit, D2UnitStrc * pRosterUnit) {
+static uint32_t __fastcall ROSTER_AreUnitsHostile(D2UnitStrc * pUnit, D2UnitStrc * pRosterUnit) {
     D2RosterPetStrc* pRosterPet;
     uint32_t bHostile;
     int nRosterGUID;
@@ -578,7 +578,7 @@ void __fastcall ROSTER_UpdateMercHostileColors(int32_t nOwnerGUID) {
     int32_t nGfxSeq;
     D2RosterPetStrc* pRosterIter;
     for (pRosterIter = pRosterPet; pRosterIter; pRosterIter = pRosterIter->pNext) {
-      if (pRosterIter->nOwnerGUID == nOwnerGUID && pRosterIter->nRosterClass - 0x16bU < 2) {
+      if (pRosterIter->nOwnerGUID == nOwnerGUID && pRosterIter->nRosterClass - 0x16bU <= 1) {
         pRosterUnit = UNIT::Player::UNITS_FindClientSideUnit(pRosterIter->nRosterGUID, UNIT_MONSTER);
         if (pRosterUnit) {
           nPalShift = UNIT::CUnit::GetPalShiftIndex(pRosterUnit);

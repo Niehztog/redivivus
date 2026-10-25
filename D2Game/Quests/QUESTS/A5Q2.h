@@ -36,15 +36,6 @@ void __fastcall Q32_Callback02_NpcDeactivate(struct D2QuestDataStrc * pQuestData
 // stateFlag==2 -> set Step0x02, stateFlag==3 -> set Step0x03. These step bits let the client UI show
 // progress and let Q32_Callback_13 restore stateFlag on re-entry.
 BOOL __fastcall Q32_UpdateQuestStep(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
-// Q32_Callback_11 (A5Q2 Rescue on Mount Arreat) -- state-handler slot[0xb], Qual-Kehk (0x203) dialog/reward handler.
-// On talk-completed gossip line 0x4e80 ("accept quest"): marks bQuestCompleted, bumps server stateFlag->2 and
-// syncs step bits (Q32_UpdateQuestStep). On line 0x4e8e ("claim reward"): only if RewardAwaits(1) set. If
-// JustCompleted(0xd) is set, advances stateFlag->5, runs the sequence filter, broadcasts JustCompleted(0xd) and
-// detaches handler[2]. Reward count depends on which completion step bit is set: Step0x06->2 items, Step0x07->1 item,
-// else 3 (the runner-up tiers of how many barbarians survived). Grants reward shield item(s) from aQ32RewardItemCodes;
-// on success sets Completed(0), clears RewardAwaits + all step bits, records player GUID, sends 0x5D quest-state packet.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a5q2.cpp
-void __fastcall Q32_Callback11_ScrollMessage(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // Q32_Callback_00 (A5Q2 Rescue on Mount Arreat) -- state-handler slot[0], Qual-Kehk gossip-line selector.
 // Picks which NPC gossip/audio line to play when talking to a monster/NPC. Reads player QuestRecord:
 // Completed(0), JustCompleted(0xd), RewardAwaits(1). If RewardAwaits -> line index 3 (reward dialog).
@@ -92,22 +83,6 @@ void __fastcall Q32_Callback08_MonsterKilled(struct D2QuestDataStrc * pQuestData
 // stateFlag 1. Drives progression from "talked to Qual-Kehk" toward "barricades reached".
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a5q2.cpp
 void __fastcall Q32_Callback03_ChangedLevel(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// Q32_ActiveFilter (A5Q2 Rescue on Mount Arreat) -- fpActiveFilter: should this unit be quest-active for the player?
-// For Qual-Kehk (0x203): if quest underway (stateFlag!=0) returns true while quest is neither Completed(0) nor
-// RewardAwaits(1); if stateFlag==0 returns true only if RewardAwaits(1) (so he offers the reward dialog).
-// For caged barbarian prisoner (0x216): active (true) only while quest not Completed(0) and not RewardAwaits(1),
-// i.e. the prisoners exist/are interactable until the quest is essentially done. Reads player QuestRecord only.
-bool __fastcall Q32_ActiveFilter(struct D2QuestDataStrc * pQuestData, int32_t nTargetClassId, struct D2UnitStrc * pUnit, struct D2BitBufferStrc * pBitBuffer, struct D2UnitStrc * pUnitEx);
-// Q32_SequenceFilter (A5Q2 Rescue on Mount Arreat) -- fpSequenceFilter, chains quest unlock progression.
-// If this quest's server stateFlag isn't yet 5 (fully done) and it's in the log, ensures stateFlag is at least 1
-// and returns (don't unlock the next quest yet). Once done (stateFlag==5), looks up the next quest in the chain
-// (nSequenceQuestId) and invokes ITS sequence filter, propagating the "you may now start the next quest" unlock.
-// No direct QuestRecord writes here.
-void __fastcall Q32_SequenceFilter(struct D2QuestDataStrc * pQuestData);
-// Q32_Callback_14 (A5Q2 Rescue on Mount Arreat) -- state-handler slot[0xe].
-// Clears the player's QuestRecord Step0x04 bit for QUEST_RescueOnMountArreat (resets the "barricade freed"
-// transient progress flag). Counterpart to where Step0x04 is set in Q32_OnBarricadeDestroyed.
-void __fastcall Q32_Callback14_PlayerJoinedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A5Q2 (Rescue on Mount Arreat) state-handler slot 0xd — join/load state restore. On player (re)join: first clears the transient Step0x04 bit. Then, if quest is not Completed, FinishedInPreviousGame, or RewardAwaits, rehydrates server stateFlag from persisted step bits: Step0x03 set → stateFlag=3 (stateFlagPrev=1); Step0x02 set → stateFlag=2 (stateFlagPrev=1). Restores in-progress quest progression when a game is created or joined.
 void __fastcall Q32_Callback13_PlayerStartedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // Q32_InitData (A5Q2 Rescue on Mount Arreat) -- quest init/registration.

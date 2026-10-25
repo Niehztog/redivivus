@@ -52,27 +52,14 @@ void __stdcall LoadClassIcons();
 void __stdcall FreeHireablesList();
 void __fastcall InitializeHealthBarColors(int32_t nForce);
 void __stdcall UnsetHealthBarInitialize();
-void __stdcall DrawHirelingName(int32_t nX, int32_t nY, int32_t nColor, uint16_t * lwMessage);
-void __stdcall GetAndDrawHirelingName(int32_t nX, int32_t nY, int32_t nPetType);
-void __fastcall UI_DrawHirelingNameFromString(char * szText, int32_t nX, int32_t nY);
 void __stdcall UI_DrawHirelingGoldCost(int nGoldCost, int32_t nDrawPositionX);
-struct DC6 * __fastcall GetRosterIcon(struct D2UnitStrc * pUnit, int32_t nSkillId, int32_t * pRosterGUID, uint32_t * pFlagOut);
 void __stdcall DRAW_Overlay_PetsAndPartyMembers();
 void __stdcall INPUT_HireableInteract(struct D2UIMouseMsgStrc * pMsg);
-int32_t __stdcall UI_CheckItemCanEquipToHireling(int32_t bPlaySound);
 void __stdcall INPUT_HireableHireClick(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall UI_HandleHirelingTooltipHoverTimer(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall UI_ToggleHirelingIconsVisibility();
 void __stdcall INPUT_HireableLongPress(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall UI_InitializeHirelingIconsUI();
-// Stack-slot reuse: after the colour is chosen, the low byte of the nPetType slot holds nColorMask, which is the colour passed to D2GFX_DrawSolidRectEx.
-void __stdcall DrawHealthBar(uint32_t nRosterGUID, uint32_t nPetType, int32_t nX);
-void __stdcall UI_DrawHirelingNameFromUnit(int32_t nX, int32_t nY, struct D2UnitStrc * pUnit);
-BOOL __stdcall UI_DrawPartyMembersHirelingIcons(int * pnY, int * pnYOffset, int * pnX, struct D2UnitStrc * pUnit);
-BOOL __stdcall HIRELING_DrawPortraitIcon(struct D2UnitStrc * pUnit, int * pnYToggle, int * pnY, int * pnX);
-BOOL __stdcall HIRELING_DrawPetIcon(struct D2UnitStrc * pUnit, int * nX, int * pnYToggle, uint32_t nPetType, int * nY);
-BOOL __stdcall HIRELING_DrawSummonIcon(struct D2UnitStrc * pUnit, int32_t * nY, int * pnYToggle, uint32_t nSkillId, int32_t * nX);
-BOOL __stdcall HIRELING_DrawGenericPetIcon(struct D2UnitStrc * pUnit, int * pnX, int * pnYToggle, uint32_t nPetType, int * pnY);
 void __stdcall UI_DrawHireableIcons();
 
 } // namespace D2Client::UI::Hireables

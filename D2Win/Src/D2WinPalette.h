@@ -21,7 +21,7 @@ void __fastcall D2WINPAL_CopyPalette(void * pParam);
 // @sourcefile .\Src\D2WinPalette.cpp
 BOOL __stdcall D2WINPAL_LoadPaletteFiles(char * szText1, char * szText2);
 BOOL __fastcall D2WINPAL_LoadActPalette(uint8_t nParam);
-void __stdcall LoadPalette(char * szDatFile, char * szPl2File);
+int __stdcall LoadPalette(char * szDatFile, char * szPl2File);
 void __fastcall D2WINPAL_SetGammaRamp(uint32_t dwParam);
 
 } // namespace D2Win::Src::D2WinPalette

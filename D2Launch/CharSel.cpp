@@ -173,7 +173,7 @@ char * __stdcall GetPreferedRealm() {
     return PreferredClosedRealm;
 }
 
-uint32_t CHARSEL_IsBetaRealm(uint16_t * wszText) {
+static uint32_t CHARSEL_IsBetaRealm(uint16_t * wszText) {
     // Static local variables (originally global data)
     static uint8_t gbBetaRealmNamesInitialized;
 
@@ -214,7 +214,7 @@ uint32_t CHARSEL_IsBetaRealm(uint16_t * wszText) {
     return 0;
 }
 
-void CHARSEL_GetClassNameString(int nClassId, uint16_t * wszText) {
+static void CHARSEL_GetClassNameString(int nClassId, uint16_t * wszText) {
     uint16_t* pwszName;
     switch (nClassId) {
       case 0:
@@ -252,7 +252,7 @@ void CHARSEL_GetClassNameString(int nClassId, uint16_t * wszText) {
     }
 }
 
-BOOL CHARSEL_ClassHasAlternateDeath(int nPlayerClass) {
+static BOOL CHARSEL_ClassHasAlternateDeath(int nPlayerClass) {
     switch (nPlayerClass) {
       case 0:
 
@@ -280,7 +280,7 @@ void __stdcall CHARSEL_DestroySelectedChar() {
     gpCharSelPendingEntry = 0;
 }
 
-uint32_t CHARSEL_GetDaysUntilExpiry(uint32_t nExpiryTime) {
+static uint32_t CHARSEL_GetDaysUntilExpiry(uint32_t nExpiryTime) {
     __time32_t nTimeBuf;
     uint32_t uVar1 = _time32(&nTimeBuf);
     if (nExpiryTime > uVar1) {
@@ -291,7 +291,7 @@ uint32_t CHARSEL_GetDaysUntilExpiry(uint32_t nExpiryTime) {
 }
 
 // Draws local character slots in selection screen. Iterates gaCharSelScreenSlotControls[0-7] to render each slot's character name, level, class, and hardcore/expansion flags. Highlights selected slot, draws character preview sprite, and handles expired characters.
-void __stdcall DRAW_LocalCharsInSelectionScreen() {
+static void __stdcall DRAW_LocalCharsInSelectionScreen() {
     uint32_t nLanguageCode;
     uint16_t* pwszLocaleStr;
     D2CharSelStrc* pDVar2;
@@ -820,12 +820,7 @@ BOOL __stdcall SAVEFILE_ParseSaveData(char * szRealmName, char * szCharacterName
     int32_t nClassicOrExpansionMode;
     nClassicOrExpansionMode = 5;
     if (pNewCharSel->nCharacterFlags & 4) {
-      if (!(pNewCharSel->nCharacterFlags & 8)) {
-        BVar6 = Fog::D2CheckExpansionGame();
-        if (BVar6 || pNewCharSel->ePlayerClassID < CLASS_DRUID) {
-          nClassicOrExpansionMode = 1;
-        }
-      } else {
+      if (pNewCharSel->nCharacterFlags & 8) {
         switch (ePlayerClassID) {
           case CLASS_AMAZON:
 
@@ -839,6 +834,11 @@ BOOL __stdcall SAVEFILE_ParseSaveData(char * szRealmName, char * szCharacterName
         }
 
         ePlayerClassID = 9;
+      } else {
+        BVar6 = Fog::D2CheckExpansionGame();
+        if (BVar6 || pNewCharSel->ePlayerClassID < CLASS_DRUID) {
+          nClassicOrExpansionMode = 1;
+        }
       }
     }
 
@@ -875,16 +875,7 @@ BOOL __stdcall SAVEFILE_ParseSaveData(char * szRealmName, char * szCharacterName
     if (D2Client::CharScreen::D2CharSelStrcFirst) {
       D2CharSelStrc* pListCur;
       BVar6 = Fog::D2CheckExpansionGame();
-      if (!BVar6) {
-        pListPrev = pListIter->pNext;
-        while (pListPrev) {
-          pListIter = pListIter->pNext;
-          pListPrev = pListIter->pNext;
-        }
-
-        pListIter->pNext = pNewCharSel;
-        pNewCharSel = D2Client::CharScreen::D2CharSelStrcFirst;
-      } else {
+      if (BVar6) {
         if (pListIter) {
           while (true) {
             pListCur = pListIter;
@@ -911,6 +902,15 @@ BOOL __stdcall SAVEFILE_ParseSaveData(char * szRealmName, char * szCharacterName
         }
 
         pNewCharSel->pNext = D2Client::CharScreen::D2CharSelStrcFirst;
+      } else {
+        pListPrev = pListIter->pNext;
+        while (pListPrev) {
+          pListIter = pListIter->pNext;
+          pListPrev = pListIter->pNext;
+        }
+
+        pListIter->pNext = pNewCharSel;
+        pNewCharSel = D2Client::CharScreen::D2CharSelStrcFirst;
       }
     }
 
@@ -1258,7 +1258,7 @@ void __stdcall CHARSEL_EnumerateLocalSaves() {
     /* HANDLE hFindFile for FindClose */ FindClose(hFindFile);
 }
 
-void __stdcall CHARSEL_UpdateSelectionExpansion() {
+static int __stdcall CHARSEL_UpdateSelectionExpansion() {
     BOOL bDisabled;
     D2CharSelStrc* pCharSel = D2Client::CharScreen::D2CharSelStrcFirst;
     int nWalkIndex = 0;
@@ -1267,7 +1267,7 @@ void __stdcall CHARSEL_UpdateSelectionExpansion() {
     }
 
     uint32_t nSlotIndex = D2Client::CharScreen::nSelectedCharIndex - g_nCharSelNavigationIndex;
-    if ((int)nSlotIndex < 0 || gnCharSelScreenSlotCount <= (int)nSlotIndex) {
+    if ((int)nSlotIndex < 0 || (int)nSlotIndex >= gnCharSelScreenSlotCount) {
       bDisabled = 0;
     } else {
       uint32_t nColumnParity;
@@ -1292,7 +1292,7 @@ void __stdcall CHARSEL_UpdateSelectionExpansion() {
       D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpCtlCharSelDownArrow->sControl, 0);
       D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(gpCtlCharSelDeleteButton, 0);
       D2Win::Src::D2WinMain::D2WINMAIN_SetControlActive(&gpaCharSelCharacterList->sControl, 0);
-      return;
+      return 1;
     }
 
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpCharSelScreenControl->sControl, 1);
@@ -1307,6 +1307,7 @@ void __stdcall CHARSEL_UpdateSelectionExpansion() {
 
     D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(gpaCharSelectDisplay);
     D2Win::Src::D2WinImage::D2WINTEXTBOX_SetTextFromAnsi(gpaCharSelectDisplay, pCharSel->szCharname, 0);
+    return 1;
 }
 
 // @sourcefile .\Src\CharSel.cpp
@@ -1348,7 +1349,7 @@ BOOL __stdcall CHARSEL_UpdateSelectedCharDisplay() {
 
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpCtlCharSelDownArrow->sControl, bControlState);
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(gpCtlCharSelDeleteButton, 1);
-    if (nSlotIndex < 0 || gnCharSelScreenSlotCount <= nSlotIndex) {
+    if (nSlotIndex < 0 || nSlotIndex >= gnCharSelScreenSlotCount) {
       bControlState = 0;
     } else {
       if (D2Client::CharScreen::nSelectedCharIndex == gnCharSelLoadMoreEntryIndex && gnCharSelLoadedCharCount) {
@@ -1408,16 +1409,16 @@ BOOL __stdcall CHARSEL_UpdateSelectedCharDisplay() {
         ePlayerClass = pCharSelCopy->ePlayerClassID;
         nClassicOrExpansionMode = 5;
         if (pCharSelCopy->nCharacterFlags & 4) {
-          if (!(pCharSelCopy->nCharacterFlags & 8)) {
+          if (pCharSelCopy->nCharacterFlags & 8) {
+            bControlState = CHARSEL_ClassHasAlternateDeath((uint32_t)ePlayerClass);
+            ePlayerClass = (bControlState != 0) + 8;
+            pCharSelCopy = pCharSelFastcallEcx;
+          } else {
             bControlState = Fog::D2CheckExpansionGame();
             pCharSelCopy = gpCharSelPendingEntry;
             if (bControlState || gpCharSelPendingEntry->ePlayerClassID < CLASS_DRUID) {
               nClassicOrExpansionMode = 1;
             }
-          } else {
-            bControlState = CHARSEL_ClassHasAlternateDeath((uint32_t)ePlayerClass);
-            ePlayerClass = (bControlState != 0) + 8;
-            pCharSelCopy = pCharSelFastcallEcx;
           }
         }
 
@@ -1536,7 +1537,7 @@ void __fastcall UIMENU_SelectDifficultySinglePlayerOrTcpip(int32_t nCharLevel, i
     pFormControl = MainMenus::FORMS_CreateAnyFormFromList(0xaa);
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(pFormControl, 0);
     D2Win::Src::D2WinMain::SetUnsetFlag0x08(pFormControl, 1);
-    if (!bExpansion && 7 < nCharLevel || 9 < nCharLevel) {
+    if (!bExpansion && 8 <= nCharLevel || 10 <= nCharLevel) {
       D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(pFormControl, 1);
     }
 
@@ -1765,7 +1766,7 @@ BOOL __stdcall CHARSEL_HandleKeyNavExpansion(int32_t pKeyMsg) {
       g_nCharSelNavigationIndex = 0;
       break;
       case 0x25:
-        if ((int)D2Client::CharScreen::nSelectedCharIndex < 1) {
+        if ((int)D2Client::CharScreen::nSelectedCharIndex <= 0) {
           break;
         }
       nNewSelectedIndex = D2Client::CharScreen::nSelectedCharIndex & 0x80000001;
@@ -1832,7 +1833,7 @@ BOOL __stdcall CHARSEL_HandleKeyNavExpansion(int32_t pKeyMsg) {
         CHARSEL_UpdateSelectedCharDisplay();
         return 1;
       }
-      if (gnCharSelScreenSlotCount - 1 + g_nCharSelNavigationIndex < (int)nNewSelectedIndex) {
+      if ((int)nNewSelectedIndex > gnCharSelScreenSlotCount - 1 + g_nCharSelNavigationIndex) {
         g_nCharSelNavigationIndex = nNewSelectedIndex - gnCharSelScreenSlotCount + 1;
         DRAW_LocalCharsInSelectionScreen0();
         CHARSEL_UpdateSelectedCharDisplay();
@@ -1939,12 +1940,19 @@ BOOL __stdcall CHARSEL_HandleKeyNavClassic(int32_t pKeyMsg) {
 
 void CHARSEL_SetStatusMessage(int32_t nStatusCode) {
     uint16_t wLocaleStrId;
-    if (nStatusCode == 0x7e) {
+    switch (nStatusCode) {
+    case 0x7e: {
       wLocaleStrId = 0x2b99;
-    } else if (nStatusCode == 0x7f) {
+      break;
+    }
+    case 0x7f: {
       wLocaleStrId = 0x2b9a;
-    } else {
+      break;
+    }
+    default: {
       wLocaleStrId = 0x2b3a;
+      break;
+    }
     }
 
     gbCharSelArrowsHidden = 1;
@@ -1994,10 +2002,7 @@ BOOL __stdcall CHARSEL_InitRealmSelection() {
 
     MainMenus::MAINMENU_QueryAndBuildRealmList();
     int nRealmCount = MainMenus::MAINMENU_GetRealmCount();
-    if (nRealmCount == -1) {
-      Launcher::LAUNCHER_DisconnectFromBnet();
-      wErrorStrId = 0x14e3;
-    } else {
+    if (nRealmCount != -1) {
       D2ControlStrc* pTimerForm;
       if (nRealmCount) {
         pTimerForm = MainMenus::FORMS_CreateAnyFormFromListExEx(0x7a);
@@ -2046,6 +2051,9 @@ BOOL __stdcall CHARSEL_InitRealmSelection() {
 
       Launcher::LAUNCHER_DisconnectFromBnet();
       wErrorStrId = 0x14aa;
+    } else {
+      Launcher::LAUNCHER_DisconnectFromBnet();
+      wErrorStrId = 0x14e3;
     }
 
     pwszLocaleStr = D2Lang::StrTable::strtable::GetLocaleString(wErrorStrId);
@@ -2054,7 +2062,7 @@ BOOL __stdcall CHARSEL_InitRealmSelection() {
 }
 
 // @sourcefile .\Src\CharSel.cpp
-void __stdcall CHARSEL_CreateCharEntry(uint16_t * wszCharName, uint16_t * wszCommandString, int32_t nEntryType, bool ePlayerClass) {
+int __stdcall CHARSEL_CreateCharEntry(uint16_t * wszCharName, uint16_t * wszCommandString, int32_t nEntryType, bool ePlayerClass) {
     int nAnimMode;
     D2CharSelStrc* pCharSel = D2_NEW(D2CharSelStrc);
     D2Lang::WideCharToUTF8(pCharSel->szCharname, wszCharName, 0x100);
@@ -2106,6 +2114,7 @@ void __stdcall CHARSEL_CreateCharEntry(uint16_t * wszCharName, uint16_t * wszCom
     D2Client::CharScreen::D2CharSelStrcFirst = pListHead;
     D2Client::CharScreen::TotalCurrentChars++;
     DRAW_LocalCharsInSelectionScreen0();
+    return 1;
 }
 
 void __stdcall CHARSEL_AddCreateNewEntry() {

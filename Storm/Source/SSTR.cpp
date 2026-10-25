@@ -427,21 +427,21 @@ uint32_t __stdcall SStrPack(LPSTR szText, char * szSource, uint32_t nBufferLengt
     return 0;
 }
 
-uint32_t D2vsprintf(char * szFormat, size_t nSize, char * pBuffer, va_list pArgs) {
+static uint32_t D2vsprintf(char * szFormat, size_t nSize, char * pBuffer, va_list pArgs) {
     uint32_t nWritten;
-    if (!nSize) {
-      nWritten = 0;
-    } else {
+    if (nSize) {
       if (nSize == 0x7fffffff) {
         nWritten = vsprintf(pBuffer, szFormat, pArgs);
         return nWritten;
       }
 
       nWritten = __vsnprintf(pBuffer, nSize, szFormat, pArgs);
-      if (nSize <= nWritten) {
+      if (nWritten >= nSize) {
         pBuffer[nSize - 1] = '\0';
         return nSize - 1;
       }
+    } else {
+      nWritten = 0;
     }
 
     return nWritten;
@@ -536,7 +536,7 @@ uint32_t __stdcall SStrToUnsigned(char * szText) {
       if (nValue < 10) {
         pScan = szText + 1;
         nDigit = (int)szText[1] - 0x30;
-        if (9 < nDigit) {
+        if (10 <= nDigit) {
           return nValue;
         }
 
@@ -695,7 +695,7 @@ uint32_t __stdcall SStrHash(char * pszText, uint8_t bCaseSensitive, uint32_t nSe
       if (!(bCaseSensitive & 1)) {
         while (nChar) {
           pszText++;
-          if (nChar - 0x61 < 0x1a) {
+          if (nChar - 0x61 <= 0x19) {
             nChar -= 0x20;
           }
           if (nChar == 0x2f) {
@@ -929,7 +929,7 @@ int __stdcall SStrHashHT(uint8_t * pszText) {
     uint8_t bChar = *pszText;
     uint8_t* pWrite = szUpper;
     for (nLen = 0; nChar = (uint32_t)bChar , nChar && (pszText++ , nLen < 0x3ff); nLen++) {
-      if (nChar - 0x61 < 0x1a) {
+      if (nChar - 0x61 <= 0x19) {
         bChar -= 0x20;
       } else if (nChar == 0x2f) {
         bChar = 0x5c;
@@ -942,7 +942,6 @@ int __stdcall SStrHashHT(uint8_t * pszText) {
 
     *pWrite = 0;
     uint32_t uVar1 = SSTR_JenkinsHash((int*)szUpper, nLen, 0);
-    Fog::Debug::GuardStack();
     return uVar1;
 }
 
@@ -1015,7 +1014,7 @@ double SSTR_PowDoubleInt(double dBase, int nExp) {
     return 1.0 / dVar1;
 }
 
-void __stdcall SSTR_InitPow10Table() {
+static void __stdcall SSTR_InitPow10Table() {
     uint32_t nAbsExp;
     int nMantissa;
     double dBase;
@@ -1896,7 +1895,7 @@ int __stdcall UTF8_ToUTF16(short * pszUTF16Out, int nOutMaxChars, uint8_t * pbUT
       pbUTF8In = (uint8_t*)(pszUTF16Out + 1);
       do {
         uByteCount = (uint32_t)*(uint8_t*)((int)gaUTF8ByteCountTable + (uint32_t)*pOutStart);
-        if (pOutCur <= pOutStart + uByteCount) {
+        if (pOutStart + uByteCount >= pOutCur) {
           iAccum = -1 - uByteCount;
           goto report_counts;
         }
@@ -1929,12 +1928,12 @@ int __stdcall UTF8_ToUTF16(short * pszUTF16Out, int nOutMaxChars, uint8_t * pbUT
         }
 
         uByteCount = iAccum - gdwUTF8ConversionTab[uByteCount];
-        if (pszUTF16Out + nOutMaxChars <= (short*)pInStart) {
+        if ((short*)pInStart >= pszUTF16Out + nOutMaxChars) {
           output_full:
           iAccum = 1;
           goto report_counts;
         }
-        if (uByteCount < 0x10000) {
+        if (uByteCount <= 0xffff) {
           pbUTF8In += 2;
           *(short int*)pInStart = (short int)uByteCount;
           pInStart += 2;

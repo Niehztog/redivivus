@@ -81,44 +81,22 @@ namespace Storm::SMem {
 
 // Function declarations
 // @blizzard FatalError (SMEM.CPP)
-void SMEM_FatalError(uint32_t * pnName, uint32_t nErrorCode, int32_t nSourceLine);
 // @blizzard GetHandleByCaller (SMEM.CPP)
-uint32_t SMEM_GetHandleByCaller(int * pnName, uint32_t nNameLen);
 // @blizzard LockHeapByBlockPtr (SMEM.CPP)
-int32_t __stdcall SMEM_LockHeapByBlockPtr(uint32_t * pnOutBucket, struct D2FogHeapBlockHdrStrc * pBlockHdr);
 // @blizzard Warning (SMEM.CPP)
-void __stdcall SMEM_Warning(uint32_t * pnName, int32_t nSourceLine, DWORD dwErrorCode);
 // @blizzard UnlockHeap (SMEM.CPP)
-void SMEM_UnlockHeap(int * pnBucketIndex);
-// @blizzard AllocateHeap (SMEM.CPP)
-struct D2FogHeapDescStrc * __stdcall SMEM_AllocateHeap(int32_t nSourceLine, uint32_t dwHash, int32_t nBucketIndex, uint32_t dwPageAlignMask, SIZE_T nCommitSize, SIZE_T nReserveSize, uint32_t * pnName);
-// @blizzard CheckValidBlock (SMEM.CPP)
-BOOL SMEM_CheckValidBlock(int32_t nSourceLine, int32_t bReportError, uint32_t * pnName, struct D2FogHeapBlockHdrStrc * pBlock);
-void __stdcall SMemCalculateAllocationLayout(uint32_t nSize, int * pnOutProtected, int * pnOutTotalSize, int * pnOutPadding, int * pnOutDebug);
 // @blizzard ComputePageSize (SMEM.CPP)
 void __stdcall SMEM_ComputePageSize();
-void __stdcall SMemWriteBlockHeader(uint8_t byFlags, int32_t nExtraBytes, struct D2FogHeapDescStrc * nHeap, int32_t nBlockSize, struct D2FogHeapBlockHdrStrc * pwHeader);
 // @blizzard FreeHeap (SMEM.CPP)
 void __fastcall SMEM_FreeHeap(LPVOID * ppListHead);
-// @blizzard FreeHeapBlock (SMEM.CPP)
-void SMEM_FreeHeapBlock(struct D2FogHeapBlockHdrStrc * pwBlock, struct D2FogHeapDescStrc * nHeap);
-void SMemGetBlockDataAndSize(int * pnOutHeaderSize, int32_t nBlockAddr, int * pnOutDataSize, struct D2FogHeapBlockHdrStrc * pwBlockHdr);
 BOOL SMemCommitMorePages(int32_t nTargetOffset, struct D2FogHeapDescStrc * pHeap);
-// @blizzard SatisfyFreeRequest (SMEM.CPP)
-void __stdcall SMEM_SatisfyFreeRequest(void * pParam, struct D2FogHeapDescStrc * pHeap, struct D2FogHeapBlockHdrStrc * pnParam);
-void __stdcall SMemCoalesceFreeBlocks(int * pnFreeTotal, struct D2FogHeapBlockHdrStrc * pBlock, int * pnUsedSize, struct D2FogHeapDescStrc * pHeap);
 // @blizzard SMemInitialize (SMEM.CPP)
 void __stdcall SMemInitialize();
 void __stdcall SMemSetDebugFlags(uint32_t nParam, uint8_t bParam);
-// @blizzard CombineFreeBlocks (SMEM.CPP)
-void SMEM_CombineFreeBlocks(struct D2FogHeapDescStrc * pHeap);
 // @blizzard DestroyHeap (SMEM.CPP)
 int __fastcall SMEM_DestroyHeap(LPVOID * ppHeap);
-// @blizzard FreeEmptyHeaps (SMEM.CPP)
-void __stdcall SMEM_FreeEmptyHeaps();
 // Grow, shrink or merge a heap block in place. The heap descriptor arrives in EAX.
 int32_t __stdcall SMemReallocInPlace(struct D2FogHeapBlockHdrStrc * pBlock, int32_t nOldSize, uint32_t nNewSize, struct D2FogHeapDescStrc * pHeap);
-void __stdcall SMemShrinkBlock(void * pBlock, int32_t nOldSize, uint32_t nNewSize, int32_t pHeap);
 // @blizzard SMemDestroy (SMEM.CPP)
 uint32_t __stdcall SMemDestroy();
 int32_t __stdcall SMemFindNextBlock(uint16_t * * nHeapId, int32_t pPrevBlock, uint16_t * * ppOutBlock, int * pnInfo);
@@ -131,11 +109,6 @@ uint32_t __stdcall SMemHeapCreate(int32_t nReserved, uint32_t nMaxSize, uint32_t
 int32_t __stdcall SMemHeapDestroy(LPVOID nHeapId);
 uint32_t __stdcall SMemHeapFree(int32_t nHeapId, uint32_t dwFlags, void * pObject);
 int32_t __stdcall SMemHeapSize(int32_t nHeapId, uint32_t dwFlags, int32_t pObject);
-// @blizzard AllocateHeapBlock (SMEM.CPP)
-uint32_t * __stdcall SMEM_AllocateHeapBlock(uint32_t nSize, uint8_t byFlags, struct D2FogHeapDescStrc * pHeap);
-// @blizzard SatisfyAllocRequest (SMEM.CPP)
-uint32_t * __stdcall SMEM_SatisfyAllocRequest(struct D2FogHeapDescStrc * pHeap, uint32_t nFlags, uint32_t nSize, int * pnLockIndex);
-uint32_t * __stdcall SMemReallocCore(int * pnLockIndex, uint32_t * pHeap, uint32_t * pOldObject, uint16_t * pBlock, uint8_t byFlags, uint32_t nNewSize);
 void * __stdcall SMemAlloc(uint32_t nSize, char * szFile, uint32_t nLine, uint32_t nFlags);
 void __stdcall SMemDumpState(pfnSMemDumpCallback pfnCallback, uint32_t dwCallbackArg);
 // @blizzard SMemHeapAlloc (SMEM.CPP)

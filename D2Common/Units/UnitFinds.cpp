@@ -149,7 +149,7 @@ D2UnitStrc * __stdcall FindUnitInNeighboredRooms(D2RoomStrc * pRoom, eD2UnitType
     return nullptr;
 }
 
-BOOL CheckRoomIfNotInRange(D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t nDistance) {
+static BOOL CheckRoomIfNotInRange(D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t nDistance) {
     D2DrlgRoomCoordsStrc pCoords;
     DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &pCoords);
     if (!(pCoords.dwXStart < nX - nDistance && pCoords.dwYStart < nY - nDistance && nX + nDistance < pCoords.dwXSize + pCoords.dwXStart && nY + nDistance < pCoords.dwYSize + pCoords.dwYStart)) {
@@ -159,7 +159,7 @@ BOOL CheckRoomIfNotInRange(D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t n
     return 0;
 }
 
-BOOL CheckRoomIfInRange(D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t nDistance) {
+static BOOL CheckRoomIfInRange(D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t nDistance) {
     D2DrlgRoomCoordsStrc pRoomCoords;
     DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &pRoomCoords);
     if (nX + nDistance < pRoomCoords.dwXStart) {
@@ -193,7 +193,7 @@ int32_t __stdcall GetTestedUnitsFromRoom(D2RoomStrc * pRoom, D2UnitStrc * * ppUn
       if (bPassed) {
         ppUnitList[nCount] = pUnit;
         nCount++;
-        if (0xe < nCount) {
+        if (0xf <= nCount) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x78);
           exit(-1);
         }
@@ -261,7 +261,7 @@ D2UnitStrc * __stdcall GetNearestTestedUnit(D2UnitStrc * pUnit, int32_t nX, int3
 }
 
 // @sourcefile .\UNITS\UnitFinds.cpp
-void ExpandUnitFinds(D2UnitFindDataStrc * pUnitFindData, D2UnitStrc * pUnit) {
+static void ExpandUnitFinds(D2UnitFindDataStrc * pUnitFindData, D2UnitStrc * pUnit) {
     if (!pUnitFindData) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc0);
       exit(-1);
@@ -282,23 +282,23 @@ void __stdcall InitializeUnitFindData(::SGAMEDATA * pMemPool, D2UnitFindDataStrc
       D2UnitFindsStrc* pInitArray;
       pInitArray = D2_NEW_POOL((D2PoolManagerStrc*)pMemPool, D2UnitFindsStrc);
       pUnitFindData->pUnitsArray = pInitArray;
-      if (pInitArray) {
-        memset(pInitArray, 0, 0x3c);
-        pUnitFindData->pRoom = pRoom;
-        pUnitFindData->nX = nX;
-        pUnitFindData->nY = nY;
-        pUnitFindData->pMemory = (D2PoolManagerStrc*)pMemPool;
-        pUnitFindData->nUnitFindsSize = 0xf;
-        pUnitFindData->nCountedUnits = 0;
-        pUnitFindData->nFlags = 0;
-        pUnitFindData->nDistance = nDistance;
-        pUnitFindData->fpUnitTest = nfpUnitTest;
-        pUnitFindData->pUnitFindArg = pUnitFindArg;
-        return;
+      if (!pInitArray) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe5);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe5);
-      exit(-1);
+      memset(pInitArray, 0, 0x3c);
+      pUnitFindData->pRoom = pRoom;
+      pUnitFindData->nX = nX;
+      pUnitFindData->nY = nY;
+      pUnitFindData->pMemory = (D2PoolManagerStrc*)pMemPool;
+      pUnitFindData->nUnitFindsSize = 0xf;
+      pUnitFindData->nCountedUnits = 0;
+      pUnitFindData->nFlags = 0;
+      pUnitFindData->nDistance = nDistance;
+      pUnitFindData->fpUnitTest = nfpUnitTest;
+      pUnitFindData->pUnitFindArg = pUnitFindArg;
+      return;
     }
 }
 
@@ -329,7 +329,7 @@ int32_t __stdcall TestUnit(D2UnitStrc * pUnit, D2UnitFindArgStrc * pUnitFindArg)
     uint32_t nSearchFlags;
     D2UnitFindArgStrc* pArgs = pUnitFindArg;
     D2UnitStrc* pTestUnit = pUnit;
-    if (!pUnitFindArg || pUnitFindArg->nFlags & 0x40 && pUnitFindArg->nMaxArrayEntries <= pUnitFindArg->nIndex) {
+    if (!pUnitFindArg || pUnitFindArg->nFlags & 0x40 && pUnitFindArg->nIndex >= pUnitFindArg->nMaxArrayEntries) {
       return 0;
     }
 
@@ -343,17 +343,17 @@ int32_t __stdcall TestUnit(D2UnitStrc * pUnit, D2UnitFindArgStrc * pUnitFindArg)
     }
 
     eD2UnitType eUnitTypeY = pTestUnit->eUnitType;
-    if (eUnitTypeY == UNIT_OBJECT || 3 < (int)eUnitTypeY && (int)eUnitTypeY < 6) {
+    if (eUnitTypeY == UNIT_OBJECT || 3 < (int)eUnitTypeY && (int)eUnitTypeY <= 5) {
       pUnit = *(D2UnitStrc**)&pTestUnit->pPath.pDynamicPath->nTargetX;
-    } else if (!pTestUnit->pPath.pDynamicPath) {
-      pUnit = 0;
-    } else {
+    } else if (pTestUnit->pPath.pDynamicPath) {
       pUnit = (D2UnitStrc*)PATH::DynamicPath::GetYPos(pTestUnit->pPath.pDynamicPath);
+    } else {
+      pUnit = 0;
     }
 
     int nOffsetX = (int)pUnitFindArg - pArgs->nX;
     int nOffsetY = (int)pUnit - pArgs->nY;
-    if (pArgs->nDistance * pArgs->nDistance < nOffsetY * nOffsetY + nOffsetX * nOffsetX) {
+    if (nOffsetY * nOffsetY + nOffsetX * nOffsetX > pArgs->nDistance * pArgs->nDistance) {
       return 0;
     }
 
@@ -520,9 +520,7 @@ int32_t __stdcall UNITFINDS_FindCullRange(D2UnitFindDataStrc * pUnitFindData) {
 
               pNextUnit = pUnit->pRoomNext;
               nRoomIdxInner = nRoomIdx;
-              if (!pFindData->fpUnitTest) {
-                iVar1 = TestUnit(pUnit, pFindData->pUnitFindArg);
-              } else {
+              if (pFindData->fpUnitTest) {
                 /* FARPROC lpfn for IsBadCodePtr */ bBadPtr = IsBadCodePtr((FARPROC)pFindData->fpUnitTest);
                 if (bBadPtr) {
                   Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x13e);
@@ -530,6 +528,8 @@ int32_t __stdcall UNITFINDS_FindCullRange(D2UnitFindDataStrc * pUnitFindData) {
                 }
 
                 iVar1 = pFindData->fpUnitTest(pUnit, pFindData->pUnitFindArg);
+              } else {
+                iVar1 = TestUnit(pUnit, pFindData->pUnitFindArg);
               }
 
               nRoomIdx = nRoomIdxInner;

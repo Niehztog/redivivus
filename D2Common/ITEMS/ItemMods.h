@@ -43,8 +43,6 @@ struct D2MagixAffixModStrc * TXT_magixaffixes_GetModEntry(struct D2MagicAffixTxt
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 void * __stdcall TXT_UniqueItems_GetModEntry(void * pTxtLine, uint32_t nMod);
 int32_t ITEMMOD_GetMaxLevelAtIndex(struct D2MagicAffixTxt * pMagixAffixLine, uint32_t nIndex, uint32_t nParam);
-// Retrieves a specific property modifier from an affix line. Rolls property values based on min/max ranges and returns property code, parameter, and calculated value.
-int32_t ITEMMOD_GetPropertyFromAffix(struct D2MagicAffixTxt * pMagicAffixLine, uint32_t nParam, uint32_t nNumber, uint32_t nSelector);
 void __stdcall ITEMMODS_GetQualityMinMax(uint32_t nPackedQuality, uint32_t * pnParam1, uint32_t * pnParam2);
 void __stdcall ITEMMODS_GetQualityAllFields(uint32_t nPackedQuality, uint32_t * pnParam1, uint32_t * pnParam2, uint32_t * pnParam3, uint32_t * pnParam4);
 // Searches an item unit's stat lists (flag 0x40) for a charged-skill stat matching nParam1 (skill ID) and nParam2 (charge slot). Recurses into socketed/carried items via inventory. On match, writes current charge count (low byte) to *pnParam and the stat list pointer to *ppStatList. Returns 1 if found, 0 otherwise.
@@ -57,34 +55,8 @@ void __stdcall ITEMMODS_GetQualityFields2_3_4(uint32_t nPackedQuality, uint32_t 
 int32_t __stdcall ITEMMODS_GetQualityField2(int32_t nParam1, int32_t nParam2, int32_t nParam3);
 void __stdcall ITEMMODS_GetQualityFields1_2_3(uint32_t nPackedQuality, uint32_t * pnParam1, uint32_t * pnParam2, uint32_t * pnParam3);
 int32_t __stdcall ITEMMODS_GetQualityField3(int32_t nParam1, int32_t nParam2, int32_t nParam3);
-// Returns an existing stat list on pUnit (or pUnitUnknown if non-null) matching nState+nFlags, creating and attaching one if absent. Allocates via AllocStatList using the unit's memory pool and GUID, sets the state, then halts unrecoverably if allocation fails.
-struct D2StatListExStrc * __stdcall ITEMMOD_GetOrCreateStatList(struct D2UnitStrc * pUnit, int32_t nState, uint32_t nFlags, struct D2UnitStrc * pUnitUnknown);
-// Already has a meaningful @description (maximizes AC or damage stats when an enhanced property is applied).
-void __stdcall ITEMMOD_MaximizeStatForEnhanced(eD2UnitStat eEnhancedProp, struct D2UnitStrc * pUnit);
-// Scales stat values by shifting left 8 bits for specific stat types (life, mana, stamina, resistances). Twenty-eight bytes: an ADD, a jump table and a shift through ECX, touching EDX not at all. PropertyFunc_MinMaxDamagePair loads the max-stat code into EDX before calling this and reads it back afterwards, so declaring EDX killed lost the code and every elemental and poison MAX damage value was scaled with garbage.
-void ITEMMOD_ScaleValueForStatType(int * pnParam, eD2UnitStat eStatType);
 // Rolls random value from [fmin, fmax] and applies to stat. Classic: exclusive upper bound. Expansion: inclusive upper bound (can hit max!). Uses item seed for deterministic RNG. Scales damage/poison values (shift left 8 bits).
 int32_t __stdcall ITEMMOD_ApplyRandomStatValue(struct D2UnitStrc * pUnit, int32_t nParam1, struct D2UnitStrc * pUnit2, eD2UnitStat eUnitStat, int32_t nParam2, int32_t nParam3, int32_t nParam4, uint32_t nParam, struct D2SetsTxtFStrc * pProperty);
-// Core property-to-stat conversion. Applies stat value to unit, optionally maximizing enhanced stats and handling value removal.
-int32_t __stdcall PropertyFunc_SimpleStat(int32_t nParam1, struct D2UnitStrc * pUnit, int32_t nParam2, int32_t nParam3, int32_t nParam4, int32_t nParam5, struct D2UnitStrc * pUnit2, eD2UnitStat eUnitStat, uint32_t nParam);
-// Property-to-stat conversion with additional context parameter for situational stat application. Reads scaled value from pPropData+4, optionally maximizes enhanced-damage stats, gets or creates the stat list (using pUnit as context for ITEMMOD_GetOrCreateStatList), then adds or negates the stat value. Halts on stat list failure.
-int32_t __fastcall PropertyFunc_SimpleStatWithContext(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Property function wrapper - delegates to ITEMMOD_ApplyRandomStatValue (normal mode).
-// Property→Stat Conversion:
-// - Used by 30+ property types in the dispatch table
-// - Target stat: eStatCode (varies by property)
-// - Formula: property.min/max → RNG roll → stat value
-// - Passes 0 as ITEMMOD_ApplyRandomStatValue's sixth argument: normal mode (no maximization)
-// This is the most common property function. It handles:
-// - +Strength, +Dex, +Vit, +Energy
-// - +Life, +Mana, +Stamina
-// - +Attack Rating, +Defense
-// - All resistances (individual)
-// - +Magic Find, +Gold Find
-// - Crushing Blow, Deadly Strike, Open Wounds, Knockback
-// - Many other single-stat bonuses
-// The actual stat ID is determined by the dispatch table parameter.
-int32_t __fastcall ITEMMODS_PropFunc_ApplyRolledStat(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
 // Wrapper for simple stat application via PropertyFunc_SimpleStat.
 void __stdcall PropertyFunc_SimpleStatThunk1(int32_t param_1, int32_t param_2, int32_t nParam1, struct D2UnitStrc * pUnit, int32_t nParam2, eD2UnitStat eUnitStat, struct D2UnitStrc * pUnit2, uint32_t nParam);
 // Property function for Socket Count (adds sockets to an item).
@@ -93,6 +65,10 @@ void __stdcall PropertyFunc_SimpleStatThunk1(int32_t param_1, int32_t param_2, i
 // - Target: Item flags + socket count field
 // - Formula: property.param → socket count (no RNG)
 // Property data (pProperty):
+// Applies three consecutive stat values (min, max, length/duration at eUnitStat+0, +1, +2) from a property entry to an item's stat list. Scales each value by stat type, gets or creates the stat list, and optionally negates existing values (remove mode when nParam2!=0). Increments UNITSTAT_poison_count when base stat is poisonmindam.
+int32_t __fastcall ITEMMOD_ApplyTripleStat(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
+// Property handler that packs three sub-values from a property entry into a single stat value and adds it to the unit's stat list. Reads three fields at pPropEntry+4/+8/+0xC, applies +0x100 offsets to the second and third, validates ranges (val1 &lt; 4, val2/val3 &lt; 0x400), then computes: stat = val1 + (val3*0x400 + val2)*4 and calls D2AddStatToStatsListEx. Halts on validation failure. Used for multi-field stats such as class/tab skill bonuses.
+int32_t __fastcall PropertyFunc_PackedStat(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
 // - fparam: socket count value
 // Logic:
 // 1. Validate property pointer is not NULL
@@ -144,68 +120,6 @@ int32_t __fastcall ITEMMOD_ApplyIndestructible(int32_t nType, struct D2UnitStrc 
 int32_t __fastcall ITEMMODS_PropFunc_ApplyRolledStatAndMaximize(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
 // Alternative wrapper for simple stat application via PropertyFunc_SimpleStat.
 void __stdcall PropertyFunc_SimpleStatThunk2(int32_t nFastCallECX, int32_t pPropData, int32_t nParam1, struct D2UnitStrc * pUnit, int32_t nParam2, eD2UnitStat eUnitStat, struct D2UnitStrc * pUnit2, uint32_t nParam);
-// Property function for All Resistances (+resist to fire/light/cold/poison).
-// Property→Stat Conversion:
-// - Property code: ? (need to verify dispatch table index)
-// - Target stats: fireresist, lightresist, coldresist, poisonresist
-// - Formula: Single RNG roll applied to all 4 resistance stats
-// Classic mode:
-// - Calls ITEMMOD_ApplyRandomStatValue 4 times (once per element)
-// - Each call rolls independently from property.min/max
-// Expansion mode:
-// - Single RNG roll from property.min/max (inclusive upper bound)
-// - Applies same value to all 4 resistances via PropertyFunc_SimpleStat
-// - More efficient and ensures all 4 resistances get identical values
-// This is why expansion items can show "All Resistances +15" as a single
-// coherent bonus, whereas classic items might show 4 separate resistance
-// lines with different values.
-int32_t __fastcall PropertyFunc_AllResistances(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Property function for All Maximum Resistances (+X% max fire/light/cold/poison resist). Classic items: 4 independent RNG rolls via ITEMMOD_ApplyRandomStatValue. Expansion items: single RNG roll from property min/max applied identically to all four max-resist stats via PropertyFunc_SimpleStat. Halts if property data pointer is null.
-int32_t __fastcall PropertyFunc_AllMaxResistances(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Item-property callback that rolls and applies minimum-damage stats (UNITSTAT_mindamage, UNITSTAT_secondary_mindamage, UNITSTAT_item_throw_mindamage) to a unit. Reads min/max range from pPropData[8/12], rolls a random value in [min,max] via RANDOM_RandomNumberSelector on the item seed (range is exclusive for older item versions). Looks up the item's Items.txt row to decide which damage stats apply: one-hand vs. two-hand min damage are written separately for weapons; throw-min is applied for throwable weapons or non-weapons. Calls PropertyFunc_SimpleStat for each applicable stat. Halts with an internal error if pPropData is null.
-int32_t __fastcall PropertyFunc_MinDamage(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Property function for Maximum Damage bonus.
-// Property→Stat Conversion:
-// - Property code: 28
-// - Target stats: maxdamage, secondary_maxdamage, item_throw_maxdamage
-// - Formula: property.min/max → RNG roll → stat value
-// Logic:
-// Identical to PropertyFunc_MinDamage but applies to maximum damage stats.
-// 1. Roll value from property.min/max range
-// 2. Determine if item is weapon (checks ITEMTYPE_Weapon)
-// 3. Check ItemsTxt fields (nMaxDam, n2HandMaxDam) to determine which stats to apply
-// 4. Apply to appropriate max damage stats based on weapon configuration
-// Handles same edge cases as MinDamage:
-// - Weapons with only 1H damage defined
-// - Weapons with only 2H damage defined
-// - Weapons with both 1H and 2H damage
-// - Throwing weapons (javelins, throwing axes, knives)
-// Min/Max damage properties typically appear together on affixes like
-// "Sharp" (+min/max damage) or "Jagged" (+min/max damage).
-int32_t __fastcall PropertyFunc_MaxDamage(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Property function for % Enhanced Damage.
-// Property→Stat Conversion:
-// - Property code: 29
-// - Target stats: item_maxdamage_percent, item_mindamage_percent
-// - Formula: property.min/max → RNG roll → % value
-// - Special: Overflow protection for expansion items
-// Classic mode:
-// - Applies % to item_maxdamage_percent and item_mindamage_percent
-// - Simple percentage modifier
-// Expansion mode:
-// - Calculates if (base_max_dam * (1 + %/100)) > max_dam
-// - Overflow check: If % would push damage beyond item's base maximum:
-//   * Adds +1 to maxdamage/secondary_maxdamage/item_throw_maxdamage instead
-//   * Prevents % from exceeding the item's inherent damage cap
-// - Otherwise: Applies % to item_maxdamage_percent and item_mindamage_percent
-// Example: A sword with 10-20 damage rolling 300% ED
-// - Classic: 10-20 → 40-80 (300% applied freely)
-// - Expansion: If 300% would create 70 damage but base max is 20:
-//   * Adds +1 maxdam instead of applying the full %
-//   * This is an anti-overflow safeguard
-// The param=0xFFFFFFFF in dispatch table signals "no stat ID" - the function
-// calculates which stats to modify internally based on weapon type.
-int32_t __fastcall PropertyFunc_EnhancedDamage(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
 // Property function for +All Skills bonus.
 // Property→Stat Conversion:
 // - Property code: 30? (need to verify dispatch table index)
@@ -215,78 +129,10 @@ int32_t __fastcall PropertyFunc_EnhancedDamage(int32_t nType, struct D2UnitStrc 
 // This is a simple wrapper that applies a randomized value from the property's
 // min/max range to the all-skills stat.
 int32_t __fastcall PropertyFunc_AllSkills(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Property function for Charged Skills (Level X SkillName (Y/Y Charges)).
-// Property→Stat Conversion:
-// - Property code: ? (charged skill property)
-// - Target stat: item_charged_skill (one per charge)
-// - Formula: Complex skill level calculation + charge packing
-// Property data (pProperty):
-// - fparam: Skill ID (eD2Skills)
-// - fmin: Max charges (negative = formula-based)
-// - fmax: Skill level (0 = ilvl-based, negative = scaling formula)
-// Skill level calculation:
-// - If level==0: (ilvl - reqLevel) / 4 + 1, clamped to [1, skill_max_level]
-// - If level<0: (ilvl - reqLevel) / abs(level), clamped to [1, skill_max_level]
-// - Otherwise: Use property level value directly
-// Max charges calculation:
-// - If charges==0: Default to 5
-// - If charges<0: -charges * skill_level + (-charges * skill_level) / 8
-// - Otherwise: Use property charges value
-// - Final charges clamped to [1, 255]
-// Variance:
-// - Actual charges = charges - (charges/8) + RNG(charges - (charges/8))
-// - This gives ±12.5% variance on charge count
-// Bit-packing:
-// stat_value = (maxCharges << 8) | currentCharges | (skillID << shift)
-// shift = ItemStatCost[charged_skill].nTxtItemStatCostStuff
-// Example: +3 Teleport (20/20 Charges)
-// - Skill level: 3 (calculated or fixed)
-// - Max charges: 20 (rolled with variance)
-// - Current charges: 20 (starts at max)
-// - Packed value encodes all 3 fields into one stat
-int32_t __fastcall PropertyFunc_Charges(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Property handler that packs three sub-values from a property entry into a single stat value and adds it to the unit's stat list. Reads three fields at pPropEntry+4/+8/+0xC, applies +0x100 offsets to the second and third, validates ranges (val1 &lt; 4, val2/val3 &lt; 0x400), then computes: stat = val1 + (val3*0x400 + val2)*4 and calls D2AddStatToStatsListEx. Halts on validation failure. Used for multi-field stats such as class/tab skill bonuses.
-int32_t __fastcall PropertyFunc_PackedStat(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Property function for Min/Max damage pairs (elemental damage, poison damage).
-// Property→Stat Conversion:
-// - Property code: ? (elemental damage properties)
-// - Target stats: Pairs like (mindamage, maxdamage) or (poisonmindam, poisonmaxdam)
-// - Formula: Two separate values from property.min and property.max
-// Property data (pProperty):
-// - fmin: Minimum value (for min stat)
-// - fmax: Maximum value (for max stat)
-// Two modes based on eStatCode:
-// MODE 1: Physical damage (eStatCode == UNITSTAT_mindamage)
-// - Applies to weapon damage stats (mindamage/maxdamage pairs)
-// - Handles 1H, 2H, and throwing damage separately
-// - Same weapon-type logic as PropertyFunc_MinDamage/MaxDamage
-// - Applies min value to mindamage stat, max value to maxdamage stat
-// MODE 2: Elemental/Poison damage (other stats)
-// - Scales both values (8-bit shift for damage/poison)
-// - Applies min value to base stat (e.g., UNITSTAT_poisonmindam)
-// - Applies max value to base+1 stat (e.g., UNITSTAT_poisonmaxdam = poisonmindam+1)
-// - Special: If poisonmindam, increments UNITSTAT_poison_count
-// Examples:
-// - Fire Damage: firemin (+48) → firemax (+49)
-// - Lightning Damage: lightmin (+50) → lightmax (+51)
-// - Magic Damage: magicmin (+52) → magicmax (+53)
-// - Cold Damage: coldmin (+54) → coldmax (+55)
-// - Poison Damage: poisonmindam (+57) → poisonmaxdam (+58) + poison_count++
-// This function is why elemental damage properties always have both min and max
-// values - they're applied as a pair to consecutive stats.
-int32_t __fastcall PropertyFunc_MinMaxDamagePair(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Applies three consecutive stat values (min, max, length/duration at eUnitStat+0, +1, +2) from a property entry to an item's stat list. Scales each value by stat type, gets or creates the stat list, and optionally negates existing values (remove mode when nParam2!=0). Increments UNITSTAT_poison_count when base stat is poisonmindam.
-int32_t __fastcall ITEMMOD_ApplyTripleStat(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
 // Property function for +X to Skill Y bonus. Reads skill ID from pPropEntry+4 and rolls level value from pPropEntry+8/C range (inclusive upper bound for expansion items). Adds UNITSTAT_item_singleskill with skill ID as layer to the item's stat list. Returns 0 if skill ID out of range or stat list unavailable.
 int32_t __fastcall PropertyFunc_SingleSkillBonus(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Property function for +X to Elemental Skills bonus (e.g. +2 to Fire Skills). Rolls value from property min/max range (inclusive for expansion items), then adds UNITSTAT_item_elemskill with hardcoded layer 1 to the item's stat list. Returns 0 if rolled value is zero or stat list unavailable.
-int32_t __fastcall PropertyFunc_ElemSkillBonus(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Property function for +X to [Class] Skills bonus (e.g. +2 to Sorceress Skills). Maps property code 0x53-0x57,0xb3-0xb4 to class skill layers 0-6 for UNITSTAT_item_addclassskills. Rolls value from property min/max range.
-int32_t __fastcall PropertyFunc_ClassSkillsBonus(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
 // No-op property handler: ignores all args and returns 1 (success). Default/placeholder entry in the ItemMods property-function dispatch table for properties with no stat-apply behavior.
 int32_t __fastcall PropertyFunc_ReturnTrue(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
-// Variant of SimpleStatWrapper: rolls a value from property min/max range (with expansion/classic RNG difference) then applies it via PropertyFunc_SimpleStat. Used for properties where the expansion path still needs RNG but not the ITEMMOD_ApplyRandomStatValue pipeline.
-int32_t __fastcall PropertyFunc_SimpleStatWithRoll(int32_t nType, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItemUnit, struct D2SetsTxtFStrc * pProperty, eD2UnitStat eStatCode, int32_t nParam2, int32_t nParam3, uint32_t nParam, int32_t nContext);
 void __stdcall ITEMMOD_ApplyEtherealBonus(struct D2UnitStrc * pUnit);
 // Returns 1 if the given automod entry (nParam points to an AutomagicTxt record) can be applied to pUnit. Rejects stackable items, throwables, items without inventory slots, and items whose type matches the automod's exclusion list; passes only if the item type matches at least one inclusion entry.
 BOOL __stdcall ITEMMOD_CanApplyAutomod(struct D2UnitStrc * pUnit, int32_t nParam);
@@ -297,8 +143,6 @@ uint32_t __stdcall ITEMMOD_MatchesRepairType(struct D2UnitStrc * pUnit, char * s
 void __stdcall ITEMMOD_RollGemRuneType(struct D2UnitStrc * pUnit);
 // Rolls a random integer in [nMin, nParam] using the item's seed (via GetItemSeed for UNIT_ITEM, pUnit->sSeed otherwise). If min==max returns min with no RNG call. Returns the rolled value in EAX.
 int32_t __fastcall ITEMMOD_RollRandomValue(struct D2UnitStrc * pUnit, int32_t nMin, int32_t nParam);
-// Adds a stat to an item's stat list. Validates stat ID against ItemStatCost table, then calls ITEMMOD_GetOrCreateStatList to obtain or create the target stat list. Adds the shifted stat value via STATLIST_AddStatValue or D2AddStatToStatsListEx depending on nParam2. Special-cases poison (stat 0x3A) to also add/check UNITSTAT_poison_count. Returns nParam3 (the stat value) on success, 0 on invalid stat or missing stat list.
-int32_t __fastcall ITEMMOD_AddStatToItem(struct D2UnitStrc * pUnit, int32_t nParam1, int32_t nParam2, int16_t nParam, uint32_t nParam12, int32_t nParam3, int32_t nParam4, struct D2UnitStrc * pUnit2, uint32_t nParam22);
 uint32_t __fastcall ITEMPROP_AddStat_EnhancedIfItem(int32_t nParam1, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, uint32_t nParam12, int32_t nParam2, int32_t nParam3, uint32_t dwParam1, uint32_t dwParam2, int32_t nParam4, uint32_t nParam22, uint32_t dwParam3);
 uint32_t __fastcall ITEMPROP_AddStat_EnhancedAlways(uint32_t dwParam1, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, uint32_t nParam1, int32_t nParam, int32_t nParam2, uint32_t dwParam2, uint32_t dwParam3, int32_t nParam3, uint32_t nParam4, uint32_t dwParam4);
 uint32_t __fastcall ITEMPROP_AddStat_PreserveRolledValue_EnhancedIfItem(int32_t nParam1, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, uint32_t nParam12, int32_t nParam2, int32_t nParam3, uint32_t dwParam1, int32_t nParam4, int32_t nParam5, uint32_t nParam22, uint32_t dwParam2);

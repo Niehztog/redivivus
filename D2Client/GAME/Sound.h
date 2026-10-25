@@ -177,11 +177,6 @@ uint32_t __stdcall SOUND_IsEaxMixerActive();
 // Retired notes from 'SOUND_FindPlayingById':
 int * __fastcall SOUND_FindPlayingByIdSafe(int32_t nId);
 uint32_t __fastcall SOUND_GetPlaybackStatus(int * * ppnParam);
-void __stdcall SOUND_ShutdownAudio();
-// Initialises the audio mixer's streaming sample channels. Returns 0 immediately if the speaker config is unset, or halts if a mixer is already active. Allocates up to 8 channel slots: the first 4 are always type 1 (music), slots 4+ are type 2 (stereo) if nParam==1, type 6 (surround) if nParam==2, or type 0 otherwise. On success initialises EAX to environment 0 and sets pAudioMixerInterface; on failure calls SOUND_ShutdownAudio and returns 0.
-BOOL SOUND_InitStreamChannels(int32_t nParam);
-// Finds a free or preemptable sound channel for playback. First scans the global sound instance pool for a channel matching pnParam (sound type/category) that is not currently playing and has no active sound. If none found, scans for the best occupied channel that can be preempted via SOUND_IsChannelAvailable; if preemptable, stops the current sample, saves its stream progress, marks the channel free, and returns it. Returns NULL if no channel is available.
-int * * __stdcall SOUND_FindAvailableChannel(uint32_t nParam, int * pnParam);
 // Recomputes and re-applies a positional sound channel's mixing state (__fastcall, ECX=pSoundChannel). Reads the channel's sound descriptor (pSoundChannel[2]) and its sounds.txt line; halts via Fog::ErrorManager if descriptor is null. Computes effective volume by chaining music/master volume, per-channel left/right multipliers (skipping certain reserved sound-id ranges and Solo lines), and positional bias from the mixer. If the new volume and the descriptor's 3D position (offsets 0xC/0x10/0x14/0x20) match the channel's cached copy (pSoundChannel[3..7]) it returns 0 early (no change); otherwise distance-attenuates volume via falloff min/max, calls SOUNDSMP_CalculateVolumeAndPan/SetPan/Set3DPosition/SetEaxObstruction/SetVolume, caches the new pos+volume into the channel, and returns the descriptor pointer. Side-effects: drives the underlying audio mixer sample.
 int __fastcall SOUND_UpdateChannelParams(int * pSoundChannel);
 BOOL __fastcall SOUND_SetSoundMixer(int32_t nParam);
@@ -190,9 +185,6 @@ void __fastcall SOUND_SetBackgroundSoundsActive(uint32_t bActive);
 void __stdcall SOUND_ShutdownAudio_Thunk();
 // Plays a positioned (panned) sound effect using the game's channel system. Resolves the sound ID (randomizing from a group if flagged), checks for a duplicate already-playing instance, loads the sound file if needed, selects a mono/stereo/EAX channel, sets reverb and frequency, loads WAV data or opens a streaming file, and calls SOUNDSMP_Play/SOUNDSMP_OpenAndStreamFile. Returns the allocated channel slot on success, null on failure or if a duplicate throttle fires.
 struct D2PoolManagerStrc * * __fastcall SOUND_PlaySoundWithPanning(struct D2SoundChannelStrc * pMemory);
-// Returns the unit's greeting sound set &gaNpcGreetingSounds[n] by class id (pUnit+4, nClassId), or NULL if pUnit is NULL or the class has none. The callers pass the interacted NPC or the mercenary; every Cain class (0x92, 0xf4-0xf6, 0x109, 0x208) maps to entry 4.
-// Provenance: 004e0378 MOV EAX,[EAX+4]; record values are Sounds.txt <npc>_greeting_* ids.
-struct D2NpcGreetingSoundsStrc * SOUND_GetNpcGreetingSounds(struct D2UnitStrc * pUnit);
 // Returns a greeting sound id from pUnit's class-id greeting set, or 0 when the class has none. nMode 2 returns nReturnSoundId directly; otherwise picks nGreetingSoundId, or nInactiveSoundId 1 in 2 when nMode is 0, or the time-of-day id (+0/+1/+2 by DRLGENV_GetCycleIndexFromAct), retrying up to 20 times to avoid repeating nLastSoundId, and records the pick.
 // Provenance: 1.14d asm 004e0590; callers pass nMode 1 (004b510e greeting, 004cc04d mercenary) or the greeting mode (004b691b).
 int32_t __fastcall SOUND_SelectNpcGreetingSound(struct D2UnitStrc * pUnit, int32_t nMode);

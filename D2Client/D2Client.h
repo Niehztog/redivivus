@@ -180,7 +180,6 @@ void __fastcall TEXT_HandleItemUse(int32_t nParam1, int32_t nParam2);
 void __stdcall SOUND_ClearGlobalState();
 void __fastcall MISSILES_StatExpireCallback_ClearState(struct D2UnitStrc * pUnit, eD2States eState, int32_t nParam);
 int32_t __fastcall DC6_AssignParams(struct D2GfxDataStrc * pGfxData, struct D2UnitStrc * pUnit, struct DC6 * pDC6, int32_t nDirection, int32_t nFrameNumber, int * pnOutItemClassId, uint8_t nComponentType, struct D2UnitStrc * pEquipContext);
-BOOL __stdcall GFXUTIL_BuildMonsterCofParams(void * pCofFile, int32_t nAnimMode, short * pComponentTable, void * pMonStatsTxt, int32_t nComponentRow, int32_t nWeaponClass, struct D2GfxDataStrc * pGfxData);
 int32_t __fastcall GFXUTIL_InitAndBuildMonsterCofParams(struct D2GfxDataStrc * pGfxData, int32_t nDirection, int32_t nFrameNumber, uint8_t nComponentType, int32_t nAnimMode, int32_t nWeaponClass, void * pCofFile, short * pComponentTable, struct D2MonStatsTxt * pMonStatsTxt, int32_t nComponentRow);
 int32_t __fastcall GFXUTIL_CalcMaxSpriteHeight(struct D2UnitStrc * pUnit, uint8_t * pbParam, int32_t pLayerArray, int * pOutMaxY, int32_t nPaletteShift, uint32_t nParam);
 int32_t __fastcall GFXUTIL_GetOverlayFrameDelay(struct D2UnitStrc * pUnit, int32_t pOverlayEntry);

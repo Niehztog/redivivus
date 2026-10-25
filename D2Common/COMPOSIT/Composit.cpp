@@ -183,7 +183,7 @@ uint32_t __stdcall COMPOSIT_ResolveWeaponClass(D2UnitStrc * pUnit, int32_t nUnit
     }
 
     pick_weapon_class:
-    if (nClassIndex < 0 || sgptDataTable->nTxtCharStatsSize <= nClassIndex) {
+    if (nClassIndex < 0 || nClassIndex >= sgptDataTable->nTxtCharStatsSize) {
       pCharStatsTxt = 0;
     } else {
       pCharStatsTxt = sgptDataTable->pTxtCharStats + nClassIndex;
@@ -323,7 +323,10 @@ BOOL __stdcall COMPOSIT_HasWeaponDrawn(D2UnitStrc * pUnit) {
 }
 
 uint32_t __stdcall COMPOSIT_GetBodyPartTransform(eD2BodyLocDWORD nBodyIndex, uint8_t * pbParam) {
-    if ((int)nBodyIndex < 0x10) {
+    if (!((int)nBodyIndex < 0x10)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x265);
+      exit(-1);
+    } else {
       switch (nBodyIndex) {
         case BODYLOC_HEAD:
           return (uint32_t)pbParam[2];
@@ -340,9 +343,6 @@ uint32_t __stdcall COMPOSIT_GetBodyPartTransform(eD2BodyLocDWORD nBodyIndex, uin
       }
 
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x274);
-      exit(-1);
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x265);
       exit(-1);
     }
 }
@@ -362,7 +362,7 @@ void __stdcall COMPOSIT_BuildCofPath(D2UnitStrc * pUnit, uint32_t nPlrClass, uin
       uint8_t byModeToken1;
       uint8_t byModeToken2;
       uint8_t byModeToken3;
-      uint8_t __pad4[4];
+      struct { uint8_t e0, e1, e2, e3; } __pad4;
       uint8_t byWeaponToken0;
       uint8_t byWeaponToken1;
       uint8_t byWeaponToken2;
@@ -440,10 +440,10 @@ void __stdcall COMPOSIT_BuildCofPath(D2UnitStrc * pUnit, uint32_t nPlrClass, uin
       }
 
       __frame0.byWeaponToken3 = 0;
-      __frame0.byTypeToken3 = 0;
-      __frame0.byModeToken3 = 0;
       __frame0.byWeaponToken0 = (uint8_t)*pnWeaponClass == 0x20 ? 0 : (uint8_t)*pnWeaponClass;
       __frame0.byWeaponToken1 = *(uint8_t*)((int)pnWeaponClass + 1) == 0x20 ? 0 : *(uint8_t*)((int)pnWeaponClass + 1);
+      __frame0.byModeToken3 = 0;
+      __frame0.byTypeToken3 = 0;
       __frame0.byWeaponToken2 = *(uint8_t*)((int)pnWeaponClass + 2) == 0x20 ? 0 : *(uint8_t*)((int)pnWeaponClass + 2);
       __frame0.byTypeToken0 = (uint8_t)nModeItemCode == 0x20 ? 0 : (uint8_t)nModeItemCode;
       __frame0.byTypeToken1 = (uint8_t)((uint32_t)nModeItemCode >> 8);

@@ -36,7 +36,7 @@ namespace D2CMP::SRC::GfxHash {
 // Unlinks hash entry pEntry from its bucket (pHashTable + 0x8000 + [pEntry+0]*4 -> [pEntry+0x2c]), frees the cache block's
 // async frame buffer (+0x20 -> tDecode) and the entry itself. The entry node struct (+0 hash, +0x20 cache block, +0x28/+0x2c links) is untyped.
 // @sourcefile .\SRC\GfxHash.cpp
-void __fastcall GFXHASH_UnlinkCacheEntry(int32_t pHashTable, D2PoolManagerStrc * pMemory, int * pEntry) {
+static void __fastcall GFXHASH_UnlinkCacheEntry(int32_t pHashTable, D2PoolManagerStrc * pMemory, int * pEntry) {
     int* pPixelData;
     pfnCelPixelDataFree pFreeCallback;
     int* pFrameData;
@@ -166,7 +166,7 @@ uint32_t __fastcall GFXHASH_CalcDirectionIndex(int32_t nParam, uint32_t * pnPara
     return 0;
 }
 
-uint32_t GFXHASH_CalcHashKey(D2GfxDataStrc * pGfxData, uint32_t * pnParam1, uint32_t * pnParam2, D2CelFileCacheEntryStrc * pCelEntry) {
+static uint32_t GFXHASH_CalcHashKey(D2GfxDataStrc * pGfxData, uint32_t * pnParam1, uint32_t * pnParam2, D2CelFileCacheEntryStrc * pCelEntry) {
     uint32_t nHashAccum;
     uint32_t nDirIdx = GFXHASH_CalcDirectionIndex((int32_t)pGfxData, pnParam1, pCelEntry);
     *pnParam2 = nDirIdx;

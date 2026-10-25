@@ -32,9 +32,6 @@ int * __fastcall RollRoomSeed(struct D2RoomStrc * pRoom);
 int32_t __fastcall MONSTERREGION_CheckSpawnDensity(struct D2MonsterRegionStrc * pMonterRegion, struct D2RoomStrc * pRoom);
 // @sourcefile .\SKILLS\SkillItem.cpp
 BOOL __fastcall SKILLITEM_ItemSpellInit_UseStackable(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem, struct D2UnitStrc * pTarget, int nX, int nY, eD2Skills eSkill);
-struct D2InventoryStrc * SKILLITEM_FindItemInInventory(struct D2UnitStrc * pUnit, struct D2UnitStrc * nParam);
-// @sourcefile .\SKILLS\SkillItem.cpp
-void SKILLITEM_ClearCursorFlagAndNotifyClient(struct D2UnitStrc * pUnit);
 // @sourcefile .\SKILLS\SkillItem.cpp
 BOOL __fastcall SKILLITEM_IdentifyScrollSpell(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem, struct D2UnitStrc * pTarget, int nX, int nY, eD2Skills eSkill);
 // Server handler for the Town Portal scroll spell (player units only). If the caster is in town or Uber Tristram, plays the fail sound and returns 0. Otherwise destroys any existing portal pair, spawns a new Town Portal object (obj 0x3B) at the caster's position via SERVER_SpawnPortal, records the portal GUID on the player, rebinds any previous portal owner, fires quest callbacks, and sends CMD 0x7C to the client. Returns 1 on successful portal creation.
@@ -97,13 +94,6 @@ BOOL __fastcall ITEMEVENT_CastOnAttack(::SGAMEDATA * pGame, uint32_t nUnitEvent,
 BOOL __fastcall ITEMEVENT_CastOnStriking(::SGAMEDATA * pGame, uint32_t nUnitEvent, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget, struct D2DamageStrc * pDamage, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall ITEMEVENT_CastOnDeath(::SGAMEDATA * pGame, uint32_t nUnitEvent, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget, struct D2DamageStrc * pDamage, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall ITEMEVENT_SetRestInPeace(::SGAMEDATA * pGame, uint32_t nUnitEvent, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget, struct D2DamageStrc * pDamage, eD2Skills eSkill, int32_t nSkillLvl);
-//   pAttacker: Stack[0x4]:4 (D2UnitStrc *) - the corpse being revived
-//   pTarget: Stack[0x8]:4 (D2UnitStrc *)
-//   pDamage: Stack[0xc]:4 (D2DamageStrc *)
-//   eSkill: Stack[0x10]:4 (eD2Skills) - carries the monster class to spawn
-//   nSkillLvl: Stack[0x14]:4 (int32_t) - carries the owner player's GUID
-// Server-side Necromancer Revive handler: validates the corpse (consumable check, MonStats bounds), removes its collision, spawns a new monster of class eSkill in a nearby room, sets ISREVIVE flags and STATE_revive, attaches minion AI, assigns owner, and schedules AI-think and expiry timer events. Returns 1 on success, 0 on any validation failure.
-BOOL __fastcall SKILL_ReviveMonsterFromCorpse(::SGAMEDATA * pGame, uint32_t nUnitEvent, struct D2UnitStrc * pAttacker, struct D2UnitStrc * pTarget, struct D2DamageStrc * pDamage, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall ITEMEVENT_ReviveMonster(::SGAMEDATA * pGame, uint32_t nUnitEvent, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget, struct D2DamageStrc * pDamage, eD2Skills eSkill, int32_t nSkillLvl);
 // Item hit-event handler that retaliates by launching a missile at the owner of pTarget. Resolves the target's owner via GetOwnerUnit, checks hostility via UNITS_CheckIfCanAttackTarget, then reads the skill's srvmissilea. Only fires if pTarget's missile has the retaliating flag (flags2 bit 1). Creates a missile aimed at the owner's position with UNITFLAG_SKSRVDOFUNC set. Returns 1 if the missile was launched.
 BOOL __fastcall ITEMEVENT_LaunchMissileOnOwner(::SGAMEDATA * pGame, uint32_t nUnitEvent, struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget, struct D2DamageStrc * pDamage, eD2Skills eSkill, int32_t nSkillLvl);

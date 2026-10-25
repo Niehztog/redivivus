@@ -61,7 +61,7 @@ BOOL __fastcall DrawEx(::D2WinTimer * pTimer) {
     }
 
     DWORD dwTickCount = GetTickCount();
-    if ((uint32_t)pTimer->nTimeoutInSeconds >= dwTickCount / 1000 - (uint32_t)pTimer->nCreationTickCount / 1000) {
+    if (dwTickCount / 1000 - (uint32_t)pTimer->nCreationTickCount / 1000 <= (uint32_t)pTimer->nTimeoutInSeconds) {
       return 1;
     }
 
@@ -91,7 +91,7 @@ int __fastcall D2WINTIMER_GetElapsed(::D2WinTimer * pTimer) {
     }
 
     DWORD dwTickCount = GetTickCount();
-    if (gnTimerNextFireTick > dwTickCount) {
+    if (dwTickCount < gnTimerNextFireTick) {
       return 1;
     }
 

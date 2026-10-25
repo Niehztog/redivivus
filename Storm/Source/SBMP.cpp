@@ -73,7 +73,7 @@ BOOL SBMP_DecodeTGAPalette(void * pThis, int nPaletteDataSize, uint32_t * pPalet
 }
 
 // Decodes TGA pixel data into output buffer. Handles both uncompressed (type 1/2) and RLE-compressed (type 9/10) formats. Supports horizontal/vertical flipping via image descriptor flags. Processes raw runs and repeat runs for RLE.
-BOOL __fastcall SBMP_DecodeTGAPixels(uint8_t * pSrcData, uint8_t * pTgaHeader, int nSrcDataSize, uint8_t * pDstPixels, int nMaxBytes) {
+static BOOL __fastcall SBMP_DecodeTGAPixels(uint8_t * pSrcData, uint8_t * pTgaHeader, int nSrcDataSize, uint8_t * pDstPixels, int nMaxBytes) {
     uint8_t bVar1;
     int nPixelCount;
     uint8_t* pSrcEnd;
@@ -86,7 +86,7 @@ BOOL __fastcall SBMP_DecodeTGAPixels(uint8_t * pSrcData, uint8_t * pTgaHeader, i
     int nBytesPerPixelStored = (int)(pTgaHeader[0x10] + 7) >> 3;
     size_t nTotalPixelBytes = nBytesPerPixelStored * (uint32_t)*(uint16_t*)(pTgaHeader + 0xe) * (int)nWidth;
     size_t nBytesToProcess = nMaxBytes;
-    if ((int)nTotalPixelBytes <= nMaxBytes) {
+    if (nMaxBytes >= (int)nTotalPixelBytes) {
       nBytesToProcess = nTotalPixelBytes;
     }
 
@@ -309,7 +309,6 @@ int __fastcall SBMP_ReadTGA(D2PoolManagerStrc * hFile, uint32_t * pWidth, void *
             SFile::SFileReadFile((D2MPQFileStrc*)hFile, &sTgaHeader[0].usedSockets, nPaletteDataSize, nullptr, 0);
             BVar1 = SBMP_DecodeTGAPalette(sTgaHeader, nPaletteDataSize, (uint32_t*)pixels, (uint8_t*)&sTgaHeader[0].usedSockets);
             if (!BVar1) {
-              Fog::Debug::GuardStack();
               return 0;
             }
           }
@@ -321,23 +320,19 @@ int __fastcall SBMP_ReadTGA(D2PoolManagerStrc * hFile, uint32_t * pWidth, void *
             BVar1 = SBMP_DecodeTGAPixels(pSrcData, (uint8_t*)sTgaHeader, nPaletteDataSize, pPixelsOut, nMaxPixelBytes);
             if (!BVar1) {
               SMem::SMemFree(pSrcData, ".\\SOURCE\\SBMP.CPP", 0x11d, 0);
-              Fog::Debug::GuardStack();
               return 0;
             }
 
             SMem::SMemFree(pSrcData, ".\\SOURCE\\SBMP.CPP", 0x120, 0);
           }
 
-          Fog::Debug::GuardStack();
           return 1;
         }
 
-        Fog::Debug::GuardStack();
         return 0;
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -470,12 +465,11 @@ int SBMP_WriteTGA(void * pPixels, void * hFile, int nPalettePtr, int width, int 
       }
     }
 
-    Fog::Debug::GuardStack();
     return 1;
 }
 
 // @blizzard FlipImage (SBMP.CPP)
-void SBMP_FlipImage(int numRows, void * dst, void * src, int dstSize, int rowWidth, int srcStride) {
+static void SBMP_FlipImage(int numRows, void * dst, void * src, int dstSize, int rowWidth, int srcStride) {
     size_t _Size;
     if (!dst || !src || !dstSize || !rowWidth || !srcStride || !numRows) {
       SErr::SErrSetLastError(0x57);
@@ -525,10 +519,10 @@ void __fastcall SBMP_Output(int value, int * ppOutput, int * pState) {
     pState[3] |= value << ((uint8_t)pState[4] & 0x1f);
     iVar1 = *pState + pState[4];
     pState[4] = iVar1;
-    while (7 < iVar1) {
+    while (8 <= iVar1) {
       pState[0xc]++;
       *(char*)((int)pState + pState[0xc] + 0x34) = (char)pState[3];
-      if (0xfe < pState[0xc]) {
+      if (0xff <= pState[0xc]) {
         SBMP_FlushPacket(pState, ppOutput);
       }
 
@@ -537,7 +531,7 @@ void __fastcall SBMP_Output(int value, int * ppOutput, int * pState) {
       iVar1 = pState[4];
     }
 
-    if (pState[1] >= pState[9]) {
+    if (pState[9] <= pState[1]) {
       return;
     }
 
@@ -600,7 +594,7 @@ void __fastcall SBMP_CompressPcxRow(int count, int * ppInput, int * ppOutput) {
 // Write bitmap data to PCX format file with RLE compression and palette
 // @sourcefile .\SOURCE\SBMP.CPP
 // @blizzard EncodePcx256File (SBMP.CPP)
-int __fastcall SBMP_EncodePcx256File(int nWidth, int nHeight, HANDLE hFile, int nPalettePtr, void * pPixels) {
+static int __fastcall SBMP_EncodePcx256File(int nWidth, int nHeight, HANDLE hFile, int nPalettePtr, void * pPixels) {
     // Frame slots -144..-120 are ONE object: &pSrcRow is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -668,12 +662,11 @@ int __fastcall SBMP_EncodePcx256File(int nWidth, int nHeight, HANDLE hFile, int 
     } while (nRowIdx);
 
     /* LPOVERLAPPED lpOverlapped for WriteFile */ /* LPDWORD lpNumberOfBytesWritten for WriteFile */ /* DWORD nNumberOfBytesToWrite for WriteFile */ /* LPCVOID lpBuffer for WriteFile */ /* HANDLE hFile for WriteFile */ WriteFile(hFile_00, (LPCVOID)byPaletteMarker, 0x301, &dwBytesWritten, (LPOVERLAPPED)0x0);
-    Fog::Debug::GuardStack();
     return iVar1;
 }
 
 // @blizzard UncompressPcxImage (SBMP.CPP)
-void __fastcall SBMP_UncompressPcxImage(int dstSize, uint8_t * dst, int srcSize, uint8_t * src, uint32_t width, uint32_t stride, int bytesPerPixel) {
+static void __fastcall SBMP_UncompressPcxImage(int dstSize, uint8_t * dst, int srcSize, uint8_t * src, uint32_t width, uint32_t stride, int bytesPerPixel) {
     uint8_t bVar1;
     uint32_t nColIdx;
     int nDstOff;
@@ -711,7 +704,7 @@ void __fastcall SBMP_UncompressPcxImage(int dstSize, uint8_t * dst, int srcSize,
         }
 
         nRunLen++;
-        if (stride <= nRunLen) {
+        if (nRunLen >= stride) {
           nRunLen -= stride;
           nPlaneIdx--;
           if (nPlaneIdx < 0) {
@@ -753,23 +746,12 @@ void __fastcall SBMP_UncompressPcxImage(int dstSize, uint8_t * dst, int srcSize,
           }
 
           _Size = nRLECount;
-          if (width - nRunLen <= nRLECount) {
+          if (nRLECount >= width - nRunLen) {
             _Size = width - nRunLen;
           }
           if (bytesPerPixel == 1) {
             memset(dst + nRunLen, (uint32_t)bVar1, _Size);
-          } else if (bytesPerPixel == 3) {
-            nDstOff = nPlaneIdx + nRunLen * 3;
-            nRowBytes = _Size * 3;
-            if (nDstRemaining < (int)(_Size * 3)) {
-              nRowBytes = nDstRemaining;
-            }
-
-            nRowBytes += nDstOff;
-            for (; nDstOff < nRowBytes; nDstOff += 3) {
-              dst[nDstOff] = bVar1;
-            }
-          } else {
+          } else if (bytesPerPixel != 3) {
             nDstOff = nRunLen * bytesPerPixel + nPlaneIdx;
             nRowBytes = _Size * bytesPerPixel;
             if (nDstRemaining < (int)(_Size * bytesPerPixel)) {
@@ -780,10 +762,21 @@ void __fastcall SBMP_UncompressPcxImage(int dstSize, uint8_t * dst, int srcSize,
             for (; nDstOff < nRowBytes; nDstOff += bytesPerPixel) {
               dst[nDstOff] = bVar1;
             }
+          } else {
+            nDstOff = nPlaneIdx + nRunLen * 3;
+            nRowBytes = _Size * 3;
+            if (nDstRemaining < (int)(_Size * 3)) {
+              nRowBytes = nDstRemaining;
+            }
+
+            nRowBytes += nDstOff;
+            for (; nDstOff < nRowBytes; nDstOff += 3) {
+              dst[nDstOff] = bVar1;
+            }
           }
 
           nRunLen += _Size;
-          if (stride <= nRunLen) {
+          if (nRunLen >= stride) {
             nRunLen -= stride;
             nPlaneIdx--;
             if (nPlaneIdx < 0) {
@@ -803,7 +796,7 @@ void __fastcall SBMP_UncompressPcxImage(int dstSize, uint8_t * dst, int srcSize,
 }
 
 // @blizzard FindExtension (SBMP.CPP)
-char * __stdcall SBMP_FindExtension(char * path) {
+static char * __stdcall SBMP_FindExtension(char * path) {
     char* pScanPtr = SSTR::SStrChr(path, '\\');
     while (pScanPtr) {
       pScanPtr = SSTR::SStrChr(path, '\\');
@@ -823,7 +816,7 @@ char * __stdcall SBMP_FindExtension(char * path) {
 }
 
 // @blizzard DetermineImageType (SBMP.CPP)
-int SBMP_DetermineImageType(short magic) {
+static int SBMP_DetermineImageType(short magic) {
     if (magic == 0x50a) {
       return 2;
     }
@@ -832,7 +825,7 @@ int SBMP_DetermineImageType(short magic) {
 }
 
 // @blizzard DecodeBmpFile (SBMP.CPP)
-int SBMP_DecodeBmpFile(int * pWidth, void * palette, D2PoolManagerStrc * hFile, void * pixels, int nDstStride, int * pHeight, uint32_t * pBpp) {
+static int SBMP_DecodeBmpFile(int * pWidth, void * palette, D2PoolManagerStrc * hFile, void * pixels, int nDstStride, int * pHeight, uint32_t * pBpp) {
     uint8_t aPaletteScratch[1034];
     int nDataOffset;
     BITMAPINFOHEADER aBmpInfoExtraBuf;
@@ -1000,7 +993,7 @@ int __stdcall SBMP_EncodeBmp256File(int nPalettePtr, uint32_t nSrcStride, HANDLE
 }
 
 // @blizzard ClearBlock (SBMP.CPP)
-void __stdcall SBMP_ClearBlock(int * pState, int pDstBuf) {
+static void __stdcall SBMP_ClearBlock(int * pState, int pDstBuf) {
     SSystem::SMemZero((void*)pState[10], 0x4e2c);
     pState[9] = pState[7] + 2;
     SBMP_Output(pState[7], (int*)pDstBuf, pState);
@@ -1009,7 +1002,7 @@ void __stdcall SBMP_ClearBlock(int * pState, int pDstBuf) {
 }
 
 // @blizzard CompressGifByte (SBMP.CPP)
-void __stdcall SBMP_CompressGifByte(int * pState, int pDstBuf, uint32_t nNewCode) {
+static void __stdcall SBMP_CompressGifByte(int * pState, int pDstBuf, uint32_t nNewCode) {
     int nProbeStep;
     if (pState[6]) {
       pState[5] = nNewCode;
@@ -1018,7 +1011,7 @@ void __stdcall SBMP_CompressGifByte(int * pState, int pDstBuf, uint32_t nNewCode
     }
 
     int nHashIndex = nNewCode * 0x10 + pState[5];
-    if (0x138a < nHashIndex) {
+    if (0x138b <= nHashIndex) {
       nHashIndex += -0x138b;
     }
 
@@ -1128,12 +1121,11 @@ int __fastcall SBMP_CompressGifImage(int nSrcLen, uint8_t * pSrcPixels, int pDst
     SMem::SMemFree(__frame0.pHashTable, ".\\SOURCE\\SBMP.CPP", 0x3a4, 0);
     SMem::SMemFree(__frame0.pCodeTable, ".\\SOURCE\\SBMP.CPP", 0x3a5, 0);
     int iVar1 = nDstOffset - pDstBuf;
-    Fog::Debug::GuardStack();
     return iVar1;
 }
 
 // @blizzard EncodeGif256File (SBMP.CPP)
-int SBMP_EncodeGif256File(int width, void * hFile, int palette, uint8_t * pixels, int height) {
+static int SBMP_EncodeGif256File(int width, void * hFile, int palette, uint8_t * pixels, int height) {
     // Frame slots -40..-4 are ONE object: &dwBytesWritten is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -1198,7 +1190,6 @@ int SBMP_EncodeGif256File(int width, void * hFile, int palette, uint8_t * pixels
     WriteFile(hFile, (LPCVOID)&__frame0.bySentinel, 1, (LPDWORD)&__frame0.pPixelsCopy, (LPOVERLAPPED)0x0);
     /* LPOVERLAPPED lpOverlapped for WriteFile */ /* LPDWORD lpNumberOfBytesWritten for WriteFile */ /* DWORD nNumberOfBytesToWrite for WriteFile */ /* LPCVOID lpBuffer for WriteFile */ /* HANDLE hFile for WriteFile */ __frame0.bySentinel = 0x3b;
     WriteFile(hFile, (LPCVOID)&__frame0.bySentinel, 1, (LPDWORD)&__frame0.pPixelsCopy, (LPOVERLAPPED)0x0);
-    Fog::Debug::GuardStack();
     return 1;
 }
 
@@ -1214,7 +1205,6 @@ int __fastcall SBMP_DecodePcxFile(D2PoolManagerStrc * hFile, uint8_t * pixels, i
     D2PcxHeaderStrc sPcxHeader;
     int iResult = SFile::SFileReadFile((D2MPQFileStrc*)hFile, &sPcxHeader, 0x80, nullptr, 0);
     if (!iResult) {
-      Fog::Debug::GuardStack();
       return 0;
     }
 
@@ -1248,6 +1238,12 @@ int __fastcall SBMP_DecodePcxFile(D2PoolManagerStrc * hFile, uint8_t * pixels, i
       SFile::SFileReadFile((D2MPQFileStrc*)hFile, src, nSize, nullptr, 0);
       SBMP_UncompressPcxImage(nParam, pixels, nSize - (iResult == 8), src, width, (uint32_t)sPcxHeader.wBytesPerLine, (uint32_t)sPcxHeader.byPlanes);
       SMem::SMemFree(src, ".\\SOURCE\\SBMP.CPP", 0x474, 0);
+    } else {
+      if (!bHasPalette) {
+        return 1;
+      }
+
+      SFile::SFileSetFilePointer((D2MPQFileStrc*)hFile, -0x300, nullptr, 2);
     }
     if (bVar1) {
       SFile::SFileReadFile((D2MPQFileStrc*)hFile, abPalette, 0x300, nullptr, 0);
@@ -1265,12 +1261,11 @@ int __fastcall SBMP_DecodePcxFile(D2PoolManagerStrc * hFile, uint8_t * pixels, i
       } while (iResult);
     }
 
-    Fog::Debug::GuardStack();
     return 1;
 }
 
 // @blizzard DecodePcxMem (SBMP.CPP)
-int SBMP_DecodePcxMem(uint32_t * pWidth, void * gifData, int dataSize, int palette, uint8_t * pixels, int dstSize, int * pHeight, int * pBpp) {
+static int SBMP_DecodePcxMem(uint32_t * pWidth, void * gifData, int dataSize, int palette, uint8_t * pixels, int dstSize, int * pHeight, int * pBpp) {
     uint32_t width = (uint32_t)*(uint16_t*)((int)gifData + 8) - (uint32_t)*(uint16_t*)((int)gifData + 4) + 1;
     int nBpp = (uint32_t)*(uint8_t*)((int)gifData + 3) * (uint32_t)*(uint8_t*)((int)gifData + 0x41);
     int nHeight = (uint32_t)*(uint16_t*)((int)gifData + 10) - (uint32_t)*(uint16_t*)((int)gifData + 6) + 1;
@@ -1337,7 +1332,7 @@ int __stdcall SBmpDecodeImage(int nFormat, void * pData, uint32_t nDataSize, voi
       SErr::SErrSetLastError(0x57);
     } else {
       int iResult;
-      if (!nFormat && 1 < nDataSize) {
+      if (!nFormat && 2 <= nDataSize) {
         nFormat = SBMP_DetermineImageType(*(short int*)pData);
       }
       if (nFormat == 1) {

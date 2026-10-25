@@ -59,7 +59,7 @@ void __fastcall SRP_InitializeRandomState(D2Srp * pThis, uint32_t dwSeed) {
     Fog::Debug::GuardStack();
 }
 
-void SRP_ExtractSessionKeyBytes(void * pThis, void * pDst, uint32_t nBytes) {
+static void SRP_ExtractSessionKeyBytes(void * pThis, void * pDst, uint32_t nBytes) {
     uint32_t nAvail;
     int iVar1;
     uint32_t aShaCtx[23];
@@ -67,7 +67,7 @@ void SRP_ExtractSessionKeyBytes(void * pThis, void * pDst, uint32_t nBytes) {
     if (nBytes) {
       iVar1 = *(int*)pThis;
       nAvail = *(uint32_t*)(iVar1 + 0x48);
-      while (nAvail < nBytes) {
+      while (nBytes > nAvail) {
         memcpy(pDst, (void*)(iVar1 - nAvail + 0x48), nAvail);
         pDst = (void*)((int)pDst + *(int*)(*(int*)pThis + 0x48));
         nBytes -= *(int*)(*(int*)pThis + 0x48);
@@ -87,7 +87,6 @@ void SRP_ExtractSessionKeyBytes(void * pThis, void * pDst, uint32_t nBytes) {
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 void __stdcall SRP_ComputePasswordHash(void * pParam, char * szText1, char * szText2, int * pnParam) {
@@ -111,7 +110,6 @@ void __stdcall SRP_ComputePasswordHash(void * pParam, char * szText1, char * szT
     SHA::SHA1_Final(hashBuf, sha1Ctx);
     BigData* nHashResult = SHA::SHA1_FromBigIntBytes(hashBuf, 0x14);
     *pnParam = (int)nHashResult;
-    Fog::Debug::GuardStack();
 }
 
 void __fastcall SRP_ComputeScramblingParam(int32_t pThis, BigData * * ppBase, BigData * * pnParam) {
@@ -127,10 +125,9 @@ void __stdcall SRP_HashBigNumToU32(BigData * * ppBigNum, uint32_t * pdwOut) {
     SHA::SHA1_Update(sha1Ctx, bigIntBytes, nByteLen);
     SHA::SHA1_Final(aHash, sha1Ctx);
     *pdwOut = (uint32_t)((uint32_t)((uint32_t)((uint32_t)(uint16_t)((uint16_t)(uint8_t)aHash[0] << 8 | (uint16_t)(uint8_t)aHash[1]) << 8 | (uint32_t)(uint8_t)aHash[2]) & 0xffffffu) << 8 | (uint32_t)(uint8_t)aHash[3]);
-    Fog::Debug::GuardStack();
 }
 
-int __fastcall SRP_ClientComputeSharedSecret(int32_t pSrp, BigData * * pPrivateKey, BigData * * pnParam1, BigData * * pnParam2, BigData * * pnParam3) {
+static int __fastcall SRP_ClientComputeSharedSecret(int32_t pSrp, BigData * * pPrivateKey, BigData * * pnParam1, BigData * * pnParam2, BigData * * pnParam3) {
     BigData* pBase;
     uint32_t nMultiplierU;
     int32_t pThis = pSrp;
@@ -172,7 +169,7 @@ int __fastcall SRP_ClientComputeSharedSecret(int32_t pSrp, BigData * * pPrivateK
     return 1;
 }
 
-int __fastcall SRP_ServerComputeSharedSecret(D2Srp * pThis, BigData * * ppClientPublic, int * pnParam, BigData * * pnParam1, BigData * * pnParam2, BigData * * pnParam3) {
+static int __fastcall SRP_ServerComputeSharedSecret(D2Srp * pThis, BigData * * ppClientPublic, int * pnParam, BigData * * pnParam1, BigData * * pnParam2, BigData * * pnParam3) {
     SRP_HashBigNumToU32((BigData**)pnParam, (uint32_t*)&pnParam);
     int* pScramblingHash = pnParam;
     if (!pnParam) {
@@ -250,10 +247,9 @@ void __fastcall SRP_ComputeClientProof(int32_t pThis, char * szUsername, void * 
     SHA::SHA1_Update(sha1Ctx, pParam3, 0x20);
     SHA::SHA1_Update(sha1Ctx, pParam4, 0x28);
     SHA::SHA1_Final((uint8_t*)nParam, sha1Ctx);
-    Fog::Debug::GuardStack();
 }
 
-void __stdcall SRP_ComputeServerProof(void * pParam1, void * pParam2, void * pParam3, int32_t nParam) {
+static void __stdcall SRP_ComputeServerProof(void * pParam1, void * pParam2, void * pParam3, int32_t nParam) {
     uint32_t sha1Ctx[23];
     uint32_t dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     SHA::SHA1_Init(sha1Ctx);
@@ -264,7 +260,7 @@ void __stdcall SRP_ComputeServerProof(void * pParam1, void * pParam2, void * pPa
     Fog::Debug::GuardStack();
 }
 
-BOOL SRP_IsContextInitialized(D2Srp * pSrp) {
+static BOOL SRP_IsContextInitialized(D2Srp * pSrp) {
     return (uint32_t)(pSrp->bInitialized != 0);
 }
 
@@ -413,7 +409,7 @@ BOOL __stdcall SRP_ClientVerifyServerProof(void * pSrpContext, int * pServerProo
       nRemaining -= 4;
       pServerProof = (int*)((int)pServerProof + 4);
       pComputedProof += 4;
-    } while (3 < nRemaining);
+    } while (4 <= nRemaining);
 
     if (!nRemaining) {
       proofs_equal:
@@ -445,7 +441,6 @@ BOOL __stdcall SRP_ClientVerifyServerProof(void * pSrpContext, int * pServerProo
       }
     }
 
-    Fog::Debug::GuardStack();
     return (uint32_t)!nCmpSign;
 }
 
@@ -538,9 +533,8 @@ void SRP_ClientVerifyAndComputeKey(void * pThis, void * pContext, uint32_t * pSe
       nRemaining -= 4;
       pServerProof++;
       pSharedSecret = (BigData*)&pSharedSecret->sPrimary.nCount;
-    } while (3 < nRemaining);
+    } while (4 <= nRemaining);
 
-    Fog::Debug::GuardStack();
 }
 
 void __stdcall SRP_ComputeFinalProof(int32_t nContextBase) {

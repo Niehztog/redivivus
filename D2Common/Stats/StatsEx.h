@@ -37,22 +37,8 @@ typedef void (__fastcall *pfnStatChangedCb)(struct D2UnitStrc * pUnit, uint16_t 
 namespace D2Common::Stats::StatsEx {
 
 // Function declarations
-int32_t STATLIST_BinarySearchInsertPos(int32_t nParam, int * pnParam);
-int32_t __stdcall STATLIST_BinarySearchStatInfoArray(int32_t nParam, struct D2StatInfoStrc * pStatInfo);
-int __stdcall STATLIST_InsertStatIntoArray(void * * pParam, int32_t nParam, struct D2StatListExStrc * pStatList);
-void __stdcall STATLIST_RemoveStatFromArray(struct D2PoolManagerStrc * pPoolManager1, struct D2StatStrc * pStat, struct D2PoolManagerStrc * pPoolManager2, void * * pParam);
-int32_t STATLIST_BinarySearchChangedInsertPos(struct D2StatInfoStrc * pStatInfo, int32_t nParam);
-// Records a changed stat into the D2StatListExStrc dirty-tracking array so it can be saved later. Guards: only runs if the stat-list has the dirty-tracking flag (bit 31), skips volatile stats (hp/mana/stamina/exp/gold), skips stats not in ItemStatCost or lacking the SAVED flag. Finds the sorted insertion position via binary search; if the changed-stat array is full, reallocates it (+4 slots via Fog ReAllocServerMemory). Shifts existing entries and inserts the shifted-stat id, then increments wCount.
-void __stdcall STATLIST_TrackChangedStat(int32_t nShiftedStat, struct D2StatListExStrc * pStatEx);
 // Binary-searches the base stat array of pStatList for a packed stat key (wStatIndex:wSubIndex = nParam). If found and the ItemStatCost entry has FMIN flag set, the stat list is owned by a player/monster unit, and the raw value is below the minaccr threshold, returns minaccr left-shifted by valshift instead. Otherwise returns the raw stat value, or 0 if not found. Uses a custom calling convention (pStatList in EBX, nParam in EDI).
 int32_t __stdcall STATLIST_LookupBaseStatWithMinAccr(struct D2ItemStatCostTxt * pItemStatCostLine, struct D2StatListExStrc * pStatList, int32_t nParam);
-void * STATLIST_GetEffectiveStatsArray(struct D2StatListExStrc * pStatList);
-// Binary-searches pStatEx's stat array for the packed stat key (wStatIndex:wSubIndex == nParam), returns its nStatValue. If the ItemStatCost record has ITEMSTATCOSTFLAG_FMIN set and the owning unit is a player or monster and the found value is below minaccr, returns minaccr left-shifted by valshift instead. Returns 0 if stat not found.
-int32_t __stdcall TXT_ItemStatCost_GetMinimumStatValueShifted(struct D2ItemStatCostTxt * pItemStatCostLine, struct D2StatListExStrc * pStatEx, int32_t nParam);
-// Computes the aggregate value of one stat (packed key = wStatIndex<<16 | wSubIndex == nStatId) for a stat-list. Binary-searches the list's own base stats for the value, then if the list is a full/aggregating list (flags bit 0x80000000) walks its active child stat-lists and binary-searches each (its full stats, or base stats if the child isn't aggregating), summing their values. Damage-related stats (ItemStatCost flag) skip children flagged 0x40000000. Returns the summed total. STATLIST_BinarySearchStatById is inlined here.
-int32_t __stdcall STATLIST_CalcFullStatFromChildren(int32_t nStatId, struct D2ItemStatCostTxt * pTxtItemStatCostLine, struct D2StatListExStrc * pStatListEx);
-// Applies an additive delta (nParam2) to a packed stat entry identified by a combined stat+subindex key (nParam1) within a stat array (pStatArray inferred from pSkillsTxt). Uses an inlined binary search (STATLIST_BinarySearchStatById) to find the entry; inserts a new entry via STATLIST_InsertStatIntoArray if not found. After updating nStatValue, sets a dirty flag (bit 0x20000000) if the result is positive and a condition at nParam3+0x53 is set. Removes the entry if the new value is zero and nParam3+0x50 permits. Fires a registered change-callback (pSkillsTxt->aurastat+4) if present and the stat flags at nParam3+5 have bit 8 set. Returns the new stat value.
-int32_t __stdcall STATLIST_PropagateStatDelta(int32_t nParam1, int32_t nParam2, struct D2ItemStatCostTxt * nParam3, int32_t nCallbackArg, struct D2StatListExStrc * pSkillsTxt);
 // Writes a stat value (nParam2) identified by composite key nParam1 (wStatIndex:wSubIndex packed) into a stat array. Binary-searches the D2StatInfoStrc array for the key; inserts a new entry if absent and value is non-zero, or removes the entry if value is zero and the stat has no keep-flag. If the stat has ITEMSTATCOSTFLAG_UPDATEANIMRATE, sets the animation-dirty flag on the stat list. Fires the stat-change callback (pSkillsTxt+4) when the value changes and the notify bit is set.
 void __stdcall STATLIST_SetFullStatValue(int32_t nParam1, int32_t nParam2, struct D2ItemStatCostTxt * nParam3, struct D2UnitStrc * pCallbackUnit, struct D2StatListExStrc * pSkillsTxt);
 // Allocates a simple D2StatListStrc (60 bytes). Used for child stat lists (item bonuses, buff overlays, aura effects). Does NOT allocate the extended fields (full stats, state flags).
@@ -79,7 +65,6 @@ int32_t __stdcall STATLIST_GetStatBonusFromLists(struct D2UnitStrc * pUnit, eD2U
 int32_t __stdcall STATLIST_CalcStatWithPercentBonus(struct D2StatListExStrc * pStatList, eD2UnitStat eUnitStat, eD2UnitStat eStat, int32_t nParam);
 void __stdcall UNITS_CalcUnitStatWithPercentBonus(struct D2UnitStrc * pUnit, eD2UnitStat eUnitStat, eD2UnitStat ePercentStat, int32_t nValue);
 int32_t __stdcall STATLIST_GetStatValueByIndex(struct D2StatListExStrc * pStatList, int32_t nIndex);
-struct D2StatListExStrc * __stdcall GetStatListByState(struct D2StatListExStrc * pStatsEx, eD2States eState);
 struct D2StatListExStrc * __stdcall GetStatsByState(struct D2UnitStrc * pUnit, eD2States eState);
 struct D2StatListExStrc * __stdcall GetStatListByFlags(struct D2StatListExStrc * pStatsEx, uint32_t nStatListFlags);
 struct D2StatListExStrc * __stdcall STATLIST_FindStatListWithFlags(struct D2StatListExStrc * pStatList, uint32_t nFlags);
@@ -172,8 +157,6 @@ int32_t __stdcall UNITS_CalcCombinedStatValue(struct D2UnitStrc * pUnit, eD2Unit
 void __stdcall STATLIST_ActivateItemStats(struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem);
 void __stdcall STATLIST_SetItemStatActive(struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem, int32_t nParam);
 void __stdcall STATLIST_ToggleStateDisabled(struct D2UnitStrc * pUnit, eD2States eState, int32_t nParam);
-// Deactivates an item's stat contributions on pUnit. If the item's StatsEx is attached to pUnit and currently active (NOCALCBONUS flag clear), sets the flag and propagates all damage-related stats with negated deltas to remove their effect. Otherwise delegates to STATLIST_SetItemStatActive(0). Returns 1 on success, 0 if already inactive or not attached.
-void __stdcall STATLIST_DeactivateItemStats(struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem);
 BOOL __fastcall SKILLS_ValidateSkillDescIndex(int32_t nParam);
 // Always-zero stub used as the fnSkillCalcMethod callback where a formula context has no
 // stat source.

@@ -51,7 +51,7 @@ void __stdcall BuildPacket0x27Messages(D2GSPacketSrv0x27_TextStrc * pTxtMsg, uin
         if (!pCurEntry) {
           return;
         }
-        if (7 < nSlot) {
+        if (8 <= nSlot) {
           break;
         }
 

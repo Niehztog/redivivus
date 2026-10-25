@@ -99,11 +99,8 @@ void __stdcall ProcessQueuedPrimaryClick();
 void __stdcall ProcessPrimaryClickImmediate();
 // WM_LBUTTONUP handler: forwards to ProcessPrimaryClickImmediate.
 void __stdcall INPUT_HandlePrimaryClickUp(struct D2UIMouseMsgStrc * pMsg);
-// The player pointer stays in ECX across the call to GetMouseClickFlags (MOV ECX,EAX after GetPlayerUnit_UI, CALL GetMouseClickFlags, TEST ECX,ECX): GetMouseClickFlags (0044bec0) writes only EAX.
-void __stdcall INPUT_HandleRightClick(struct D2UIMouseMsgStrc * pMsg);
 // Process queued secondary click: build flags (run/modifier) and call ClickMap(4,x,y,flags).
 void __stdcall ProcessQueuedSecondaryClick();
-void __stdcall INPUT_HandleSecondaryClick(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_HandleMouseWheel(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_HandleScrollDown(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_HandleScrollUp(struct D2UIMouseMsgStrc * pMsg);
@@ -111,12 +108,7 @@ void __stdcall INPUT_HandlePageUpDown(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_HandleScrollToEnd(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_HandleSysCommand(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_HandlePassthrough(struct D2UIMouseMsgStrc * pMsg);
-// Handle mouse button event: clear selection/UI, update run key, and normalize queued click state.
-void __stdcall HandleMouseButtonEvent(int32_t pMouseEvent);
 void __stdcall GAMEDATA_CheckAutomapCenterOnLoad();
-void __stdcall NET_D2GS_CLIENT_HandleAllNonVariableSizePackets();
-// Client-side world tick: init room, missiles, and DenOfEvil lighting for current act.
-void __stdcall GameLoop();
 // Client-side world update. Runs at 25 FPS (same cadence as server loop).
 // Per-frame: GameLoop -> UpdateGfxState -> AnimateTiles -> UpdateLights -> Gfx_UpdateNearbyUnitGfx.
 // Also: day/night cycle, room activation, automap, periodic FreeDungeons (13th frame).
@@ -137,10 +129,6 @@ int __stdcall GAMEDATA_GetCurrentLevelBlankScreen();
 // Flow: BeginScene -> Draw world (floor/units/roofs) -> Draw UI -> EndScene -> Present.
 // Viewport centered on player, supports shake, perspective, isometric transform.
 void __fastcall InGameDraw(int32_t nParam);
-// Draw localized loading message (single or multi-line) centered on screen.
-void __stdcall DrawLoadingMessage();
-// Compute frame-skip level based on elapsed ticks and fps_drawn.
-uint32_t __fastcall ComputeFrameSkipLevel(int32_t nElapsedTicks, int32_t nFpsDrawn);
 void __stdcall UpdateFrameStats();
 void __stdcall GAMEDATA_SendPeriodicPing();
 void __fastcall NET_D2GS_CLIENT_Incoming0x8F_HEARTBEAT_PING(char * pBytes);
@@ -162,7 +150,6 @@ BOOL __stdcall GAMEDATA_IsMouseInRect(int32_t width, int32_t height, int32_t bot
 // Set gCongratzOkClicked when congratz screen is clicked.
 void __stdcall Congratz_SetOkClicked(struct D2UIMouseMsgStrc * pMsg);
 int32_t __fastcall GAMEDATA_GetCenteredTextX(uint16_t nStringId, int32_t nCenterX);
-void __stdcall GAMEDATA_DrawLoadingScreenText();
 // Set gExitCutscenePlayed flag.
 void __stdcall SetExitCutscenePlayed();
 void __stdcall D2CLIENT_SetExitVar3ToTrue();
@@ -175,8 +162,6 @@ eD2ClientAppMode __stdcall pfModes_ExitGame();
 void __fastcall ClientInit_NoSaveFlag(struct D2IniConfigStrc * pIniConfig);
 // Set starting act from config; validates and halts on invalid values.
 void __fastcall ClientInit_StartingAct(struct D2IniConfigStrc * pIniConfig);
-// Apply TCP/IP game server address from config.
-void __fastcall ClientInit_JoinTcpIpServer(struct D2IniConfigStrc * pIniConfig);
 // Apply Battle.net server address from config.
 void __fastcall ClientInit_JoinBNetServer(struct D2IniConfigStrc * pIniConfig);
 // Apply MCP server address from config.
@@ -217,8 +202,6 @@ void __fastcall ClientInit_Log(struct D2IniConfigStrc * pIniConfig);
 // Apply forced game seed from config.
 void __fastcall ClientInit_CustomSeed(struct D2IniConfigStrc * pIniConfig);
 void __fastcall ClientInit_Noop09(struct D2IniConfigStrc * pIni);
-// Apply character name from config.
-void __fastcall ClientInit_CharName(struct D2IniConfigStrc * pIniConfig);
 // Apply realm selection from config.
 void __fastcall ClientInit_Realm(struct D2IniConfigStrc * pIniConfig);
 // Set arena flags from config.
@@ -251,7 +234,6 @@ int32_t __stdcall gnRecordingIndex();
 uint32_t __stdcall GetStepsOfMissileMovement();
 eD2GSGameType __stdcall CLIENT_GetD2GSGameType();
 void __fastcall GAMEDATA_ExtendTimeout(int32_t nDelayMs);
-void __stdcall GAMEDATA_LoadActTiles(uint32_t nAct);
 void GAMEDATA_CheckColorTxtOverride(uint32_t pUnused);
 BOOL __stdcall GAMEDATA_GetBloodFlag();
 void __fastcall CLIENT_SetDifficulty(char nDifficulty);
@@ -271,23 +253,12 @@ uint32_t __fastcall Timer_IsActiveAndUpdate(int * pnParam);
 // Send exit-game request (0x69) if not already exiting; updates exit flags.
 void __stdcall SendExitGameRequest(struct D2UIMouseMsgStrc * pMsg);
 void __fastcall CLIENT_AllocAct(int32_t nActNo, int32_t nMapSeed, int32_t nAutomap, eD2LevelId eLevel);
-// GAME_InitClientSide: reset globals, init client pool, view/UI, loading screen, send join packet for network games, init palette/weather/lighting/chat; set CurrentDrawFunction and flags.
-// @sourcefile .\GAME\Game.cpp
-void __stdcall GAME_InitClientSide();
 void __fastcall CLIENT_ConnectionRefused(int32_t nReason);
-// While load timer active, draw loading message; otherwise cleanup after loading act.
-uint32_t __stdcall LoadingScreen_TickOrCleanup(uint32_t dwArg1);
 void __stdcall INPUT_HandleMinimapClick(struct D2UIMouseMsgStrc * pMsg);
-// Handle congratz OK button hit-test; sets gCongratzOkClicked or clears click queues.
-void __stdcall Congratz_HandleOkButton(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall GAMEDATA_DrawCharacterPortrait();
-// End-game congrats screen; caches images in `gD2QServer.congratsBgImage`/`congratsOkButton` and uses `gD2QServer.frameSkipLevel` to decide whether to skip frames.
-uint32_t __stdcall DRAW_Congratz(uint32_t dwUnused);
 void __stdcall GAMEDATA_ShowEndGameCutscene();
 void __fastcall TSIntrusiveList_Clear(struct D2StormListHead * pListHead);
 void __fastcall TSIntrusiveList_Clear_Unreferenced(struct D2StormListHead * pListHead);
-// Client network timeout checks; triggers CLIENT_ConnectionRefused on long waits or failed connects.
-void __stdcall Client_CheckConnectionTimeouts();
 // Main game loop tick. Runs at ~25 FPS.
 // SP: Server tick (QSERVER_TickAllGames) + ClientSideGameLoop + render
 // MP: Receive packets + ClientSideGameLoop + render

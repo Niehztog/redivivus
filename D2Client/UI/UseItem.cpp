@@ -80,7 +80,7 @@ void __stdcall INPUT_UseItemClick(D2UIMouseMsgStrc * pMsg) {
     }
 
     pPlayerUnit_lcl = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pPlayerUnit_lcl->pInventory);
-    if (!(pPlayerUnit_lcl && nParam1 - 0x7b < 0x59 && uMouseY - 0x6a < 0x73)) {
+    if (!(pPlayerUnit_lcl && nParam1 - 0x7b <= 0x58 && uMouseY - 0x6a <= 0x72)) {
       return;
     }
 

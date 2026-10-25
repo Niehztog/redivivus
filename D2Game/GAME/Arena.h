@@ -48,7 +48,6 @@ void __fastcall SERVER_ARENA_KillHandler(::SGAMEDATA * pGame, struct D2UnitStrc 
 // Clears bScoreDirty flag on player's D2UnitDataPlayerArenaStrc. Halts if unit is null, not player type, or has no arena data.
 void __fastcall ARENA_ClearScoreDirty(::SGAMEDATA * pGameStrc, struct D2UnitStrc * pUnit);
 void __fastcall ARENA_ClearUpdateFlag(::SGAMEDATA * pGame);
-int ARENA_IsScoreDirty(struct D2UnitStrc * pUnit);
 void __stdcall UpdatePlayerKillCount(struct D2ClientStrc * pClient, struct D2UnitStrc * pUnit);
 void __stdcall ARENA_BroadcastKillToPlayers(::SGAMEDATA * pGame, int32_t nBroadcastMode, struct D2ClientStrc * pClient);
 void __fastcall ARENA_UpdatePlayerKillState(::SGAMEDATA * pGame, struct D2ClientStrc * pClient);

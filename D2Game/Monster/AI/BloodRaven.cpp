@@ -38,21 +38,21 @@ int32_t __fastcall AI_BloodRaven_MoveRandomNearTarget(::SGAMEDATA * pGame, D2Uni
     int nTargetUnitType = *pTarget;
     ::SGAMEDATA* pGameSaved = pGame;
     D2UnitStrc* pUnitSaved = pUnit;
-    if (nTargetUnitType == 2 || 3 < nTargetUnitType && nTargetUnitType < 6) {
+    if (nTargetUnitType == 2 || 3 < nTargetUnitType && nTargetUnitType <= 5) {
       nTargetPosX = *(int32_t*)(pTarget[0xb] + 0xc);
-    } else if (!(D2DynamicPathStrc*)pTarget[0xb]) {
-      nTargetPosX = 0;
-    } else {
+    } else if ((D2DynamicPathStrc*)pTarget[0xb]) {
       nTargetPosX = D2Common::PATH::DynamicPath::GetXPos((D2DynamicPathStrc*)pTarget[0xb]);
+    } else {
+      nTargetPosX = 0;
     }
 
     nTargetUnitType = *pTarget;
-    if (nTargetUnitType == 2 || 3 < nTargetUnitType && nTargetUnitType < 6) {
+    if (nTargetUnitType == 2 || 3 < nTargetUnitType && nTargetUnitType <= 5) {
       nTarget = (int)*(int**)(pTarget[0xb] + 0x10);
-    } else if (!(D2DynamicPathStrc*)pTarget[0xb]) {
-      nTarget = 0x0;
-    } else {
+    } else if ((D2DynamicPathStrc*)pTarget[0xb]) {
       nTarget = D2Common::PATH::DynamicPath::GetYPos((D2DynamicPathStrc*)pTarget[0xb]);
+    } else {
+      nTarget = 0x0;
     }
 
     D2SeedStrc* pSeed = &pUnit->sSeed;

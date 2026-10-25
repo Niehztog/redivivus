@@ -26,31 +26,17 @@ struct D2BnetDownloadStateStrc {
 namespace Bnclient::BnDownload {
 
 // Function declarations
-void __stdcall BNDOWNLOAD_WriteFileWithTimestamp(LPCSTR pThis, LPCVOID param_1, DWORD dwParam, FILETIME * pFileTime);
-bool __stdcall NET_CopyDllFromArchive(struct D2ArchiveStrc * pArchive, char * pszSrcFileName, LPSTR szText);
 void __stdcall BNDOWNLOAD_SetCancelFlag();
 uint32_t __stdcall BNDOWNLOAD_HasActiveDownloads();
-BOOL __stdcall NET_RecvExact(SOCKET hSocket, int32_t pBuffer, uint32_t nLen);
-// Opens szText; when its last-write FILETIME is within 0x2625a00 (40,000,000 x 100 ns = 4 s) of *pftCompare in either direction, returns its size, else 0.
-// Provenance: 1.14d asm 0051e677-0051e69d (SUB/SBB against [EDI]/[EDI+4], 64-bit NEG/ADC/NEG abs, CMP 0x2625a00).
-DWORD BNDOWNLOAD_GetCachedFileSize(LPCSTR szText, FILETIME * pftCompare);
 int32_t __fastcall BNDOWNLOAD_PerformCheckRevision(uint32_t * pdwVersionOut, uint32_t * pdwChecksumOut, uint8_t * pbResultOut);
-void __fastcall BNDOWNLOAD_ExtractFileFromArchive(char * szFileName, struct D2ArchiveStrc * pArchive, LPCSTR szFilePath);
-BOOL BNDOWNLOAD_LaunchVerifiedExecutables(LPCSTR szText1, LPCSTR szText2);
 void __fastcall BNDOWNLOAD_UpdateProgressPercent(uint32_t dwUnused, int32_t nBytesDone, uint32_t nTotalSize);
 void __fastcall BNDOWNLOAD_ResetState(int nResetValue);
 int __stdcall BNDOWNLOAD_GetProgress();
-void __fastcall BNDOWNLOAD_SetPatchFilename(char * szText);
+int __fastcall BNDOWNLOAD_SetPatchFilename(char * szText);
 uint32_t __stdcall BNDOWNLOAD_HasPatchFilename();
-BOOL __stdcall BnetDownloadFile(SOCKET hSocket, char * szText, FILETIME * pTimestamp, int32_t nProgressMode, uint8_t bWriteFlags, LPCVOID * ppOutBuffer, uint32_t nFileSize);
-int32_t __stdcall BNDOWNLOAD_RecvFileFromSocket(LPCSTR pThis, SOCKET hSocket, uint32_t nOffset, uint32_t nTotalSize, int32_t nProgressMode, FILETIME * pFileTime);
-// Processes BNet prepatch.lst from downloaded MPQ archive - executes patches, extracts files, launches updates
-void __fastcall BNDOWNLOAD_ProcessPrepatchList(uint32_t * pResultOut);
 int __fastcall BNDOWNLOAD_ApplyPrepatch(uint32_t * pdwParam);
 uint32_t __stdcall BnetDownloadFile_II(void * lpThreadParam);
 void __fastcall BNDOWNLOAD_InitiateFileDownload(struct D2BnetDownloadStateStrc * pDownloadCtx, uint32_t nParam, uint32_t eFileType, uint32_t nOpcode, FILETIME * pFileTime, char * szText1, char * szText2);
-// Processes downloaded BNFTP files: version info, cache files, ads, bnserver.ini, and ExtraWork DLLs. Handles extraction, loading, and cleanup.
-void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t nOpcode, FILETIME * pModTime, LPCSTR szSourcePath, char * szDestPath, uint32_t * pPoolMgr, size_t nSize, int32_t bDeleteSource, int32_t bIsExtraWork);
 uintptr_t __fastcall BNDOWNLOAD_InitiatePatchDownload(BYTE * pbParam, size_t nSize);
 void StaticFini_CriticalSection_00881f64();
 

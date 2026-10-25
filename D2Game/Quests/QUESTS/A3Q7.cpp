@@ -274,7 +274,7 @@ void __fastcall Objects_InitFn43(D2ObjectInitFnArg * pInitArg) {
 }
 
 // A3Q7 secondary slot QUESTINT_UnknownDuplicate1. Q24_Callback_13: quest state-handler installed at sStateFunctions[0xd] (the JustCompleted slot) by Q24_InitData. Reads the firing player's per-difficulty QuestRecord: if QUEST_UnknownDuplicate1 is Completed in the record, promote the live quest to JustCompleted and clear bQuestCompleted (one-shot completion latch syncing record->live state).
-void __fastcall Q24_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q24_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     ::SGAMEDATA* pGame = pQuestArgs->pGame;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
     BOOL bQuestState = D2Common::QuestRecord::GetQuestState(pPlayerData->pQuestRecord[pGame->nDifficulty], QUEST_UnknownDuplicate1, QUESTSTATE_Completed);
@@ -318,7 +318,7 @@ void __fastcall Q24_InitData(D2QuestDataStrc * pQuestData) {
 }
 
 // A3Q7 secondary slot QUESTINT_UnknownDuplicate1. Q24_TimerCallback_SpawnPortals(pGame,pQuestData): quest-timer cb (armed by Q24_StartDarkWandererPortalTimer). One-shot (bTomePickedUp gate): grant all party members the AbleGoToAct4 flag (IteratePlayerOrMonsterUnits + Q24_PartyMember_SetAbleGoToAct4), advance the quest control seed, then spawn up to 8 town-portal objects (CreateUnit UNIT_OBJECT type 0x83) around the trigger unit at offsets from the gnA3Q7ArchonState* coord tables, each placement validated via FindSpawnableLocation. This is the red Mephisto->Act4 portal burst. No GetQuestState/SetQuestState calls.
-uint8_t __fastcall Q24_TimerCallback_SpawnPortals(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
+static uint8_t __fastcall Q24_TimerCallback_SpawnPortals(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
     // Static local variables (originally global data)
     static int gnA3Q7ArchonState2[16] = {
     -0x3,

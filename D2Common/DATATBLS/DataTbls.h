@@ -48,11 +48,6 @@ void __fastcall DATATBLS_BuildStatesDataBitMask(struct D2StatesDataTbls * pState
 void __fastcall DATATBLS_BuildStatesDataList(struct D2AllStatesDataTbl * * ppAllStatesData, short * pCounter, uint32_t nFlag);
 // @sourcefile .\DATATBLS\DataTbls.cpp
 void __fastcall TXT_States_AllocItemTypesStateDataTable(struct D2AllStatesDataTbl * * ppAllStatesData, short * pCounter, int32_t nOffset);
-void GetPlayerClassIdToName(int32_t nClassId, char * szResult, size_t nSize);
-void GetMonsterClassIdToName(int32_t nClassId, char * szResult, size_t nSize);
-void GetObjectClassIdToName(int32_t nClassId, char * szResult, size_t nSize);
-void GetItemClassIdToName(int32_t nClassId, char * szResult, size_t nSize);
-void GetMissileClassIdToName(int32_t nClassId, char * szResult, size_t nSize);
 char * __stdcall GetUnitClassIdToName(struct D2UnitStrc * pUnit, char * szResult, size_t nSize);
 char * __stdcall GetNameByClassIdAndType(eD2UnitType eUnitType, int16_t nClassId, char * szResult, size_t nSize);
 void __stdcall StoreDataTables(uint32_t szFileName, struct D2InventoryToBeUpdatedStrc * pInventoryToBeUpdated, size_t nSize, uint32_t dwVersion);
@@ -66,9 +61,6 @@ void __stdcall sgtDataTableSetupIfUseTxt(int32_t nMode);
 void __stdcall UnloadBin(void * pTxtTable);
 // Populates the wide-string class-name field in every row of the CharStats txt table. For each row, looks up the string-table key via STRTABLE_GetStringByKey; if not found, formats a fallback like "&lt;keyname&gt;" and writes the wide string (up to nWstringSize chars) into the destination field at the computed struct offset.
 void __fastcall TXT_CharStats_DefineWideStringClass(struct D2CharStatsTxt * pTxtCharStats, int32_t nTxtCharStatsSize, int32_t nStructStride, int32_t nSrcFieldOffset, int32_t nParam, size_t nWstringSize);
-// One-time startup loader for the many small single-column code/name lookup tables in DataTbls. Always compiles compcode. If sgtDataTable.bUseTxt is set, also creates a TxtLink struct and compiles each of: playerclass, bodylocs, storepage, elemtypes, hitclass, colors, hiredesc, monmode, plrmode, monai, monplace, skillcalc, misscalc, skills, events. Each is a CODE4 or NAME_I_WORD keyed table whose compiled pointer + link are stored into the corresponding sgtDataTable.pTxt*/pTxt*Link/nTxt*Size globals. Allocates from pMemory. Pure init side-effects, no return.
-// @sourcefile .\DATATBLS\DataTbls.cpp
-void TXT_AllocTxt_VariousSmallTables(struct D2PoolManagerStrc * pMemory);
 // Shutdown teardown for the miscellaneous data tables in sgtDataTable. Always frees compcode (table + its TxtLink); then, only when bUseTxt is set, frees the remaining misc txt tables and their TxtLinks: playerclass, bodylocs, storepage, elemtypes, hitclass, colors, hiredesc, monmode, plrmode, monai, monplace, skillcalc, misscalc, skillsheader, events. The base-pointer fixup before FreeServerMemory differs by table (-1 or -2 element offset) and the source-line code passed to the allocator depends on whether gpaMiscTxtTables is set (aggregate vs individual allocation), mirroring how each was allocated.
 // @sourcefile .\DATATBLS\DataTbls.cpp
 void __stdcall DATATBLS_FreeMiscTxtTables();
@@ -79,20 +71,8 @@ void __stdcall TXT_AllocTxt_experience(struct D2PoolManagerStrc * pMemory);
 DWORD __stdcall TXT_Experience_GetExpRatio(int32_t nLevel);
 // @sourcefile .\DATATBLS\DataTbls.cpp
 void __fastcall TXT_SaveTableToBinFile(struct D2PoolManagerStrc * pMemory, char * szTableName, struct D2ArchiveStrc * * ppInput, size_t * pSize2, size_t * pSize1);
-// Loads and compiles Skills.txt and SkillDesc.txt into the engine's runtime tables. Builds two large D2BinFieldInputStrc schemas (skills: flags, mana/level reqs, damage, elemental, calc/srvprgfunc string-linker columns, state and reqskill cross-links; skilldesc) and compiles both into sgtDataTable (pTxtSkills/nTxtSkillsCount, pTxtSkillDesc/nTxtSkillDescSize, their txt-links, nPassiveSkillsCount). Also derives per-class skill index tables (pSkillsPerClassStrc, pPassiveSkillsPerClassStrc, pSkillsPerClassCounter, nSkillCountMaxPerClass) and cross-references pets (pTxtPetType.nSkillId). Caches skillscode/skilldesccode bins. Must run after pTxtPetType is loaded; halts via ErrorManager on count overflow. Skill record stride 0x23c. __stdcall(pMemory).
-// @sourcefile .\DATATBLS\DataTbls.cpp
-void __stdcall TXT_AllocTxt_skill_skilldesc(struct D2PoolManagerStrc * pMemory);
-// Frees all skills and skill-description txt table allocations from the global sgtDataTable. Releases pSkillsPerClassCounter, pSkillsPerClassStrc, pPassiveSkillsPerClassStrc, pSkillsCodeUnk1, pSkillsDescCodeUnk1, pTxtSkills (with a -1 entry offset when gpaMiscTxtTables is set), and pTxtSkillDesc. Also frees the txt link structures for skills and skill descriptions and resets all associated counts to zero.
-// @sourcefile .\DATATBLS\DataTbls.cpp
-void __stdcall DATATBLS_FreeSkillsTxtTables();
 // Loads and parses difficultylevels.txt into sgtDataTable.pTxtDifficultyLevels. Builds the D2BinFieldInputStrc field-binding schema (ResistPenalty, DeathExpPenalty, Uber/UltraCodeOdds, Life/ManaStealDivisor, Monster*Divisor, *DamageBonus/Percent, StaticFieldMin, Gamble* odds, etc., each mapped to its struct offset) and calls CompileTxt (record stride 0x58) to allocate the parsed rows from the pMemory pool. Asserts exactly 3 rows (Normal/Nightmare/Hell), halting with Fog error 0x61f otherwise. Called once during data-table init.
 void __stdcall TXT_AllocTxt_difficultylevels(struct D2PoolManagerStrc * pMemory);
-// Loads and compiles states.txt into sgtDataTable.pTxtStates (record stride 0x3C). Builds the column-binding descriptor: state name (linked to the States txt-link), group, a large block of behavior bit-flags (nosend/hide/transform/aura/active/curse/curable/staydeath variants/bossinv/shatter/etc.), per-state overlays (overlay1-4/pgsv/cast/rem), linked stat/missile/skill/sounds/itemtype/itemtrans, gfx fields, and client/server event+func indices. Creates the txt-link, calls CompileTxt, and error-halts if more than 255 states. Then allocates and zero-fills the per-state bitmask data tables (pStatesDataTbls, one 32-bit-rounded bitmask block per state, 0x28 entries) via DATATBLS_BuildStatesDataBitMask, and builds the grouped state lists for flag classes 0x04/0x0B/0x10/0x05 and the item-types state-data table. __fastcall(pMemory). Side effect: populates global state data tables.
-// @sourcefile .\DATATBLS\DataTbls.cpp
-void __fastcall TXT_AllocTxt_states(struct D2PoolManagerStrc * pMemory);
-// Frees all states.txt-derived allocations from sgtDataTable: the D2StatesDataTbls block, four D2AllStatesDataTbl flag-indexed blocks (0x04, 0x0B, 0x10, 0x05), zeroes the single-state array, frees pTxtStates (adjusting the pointer by -1 row if gpaMiscTxtTables is set), and releases the Excel txt-link. Sets each pointer to null after freeing.
-// @sourcefile .\DATATBLS\DataTbls.cpp
-void __stdcall DATATBLS_FreeStatesTxtTables();
 // DataTbls init: builds the column descriptor list for pettype.txt and compiles it into the global pet-type table. Fills a local D2BinFieldInputStrc array describing each column (pet type id, group, basemax, the warp/range/partysend/unsummon/automap/drawhp bitflags, icontype, baseicon, mclass1-4/micon1-4, name keyword) with offsets/types into D2PetTypeTxt, creates the TxtLink, then calls CompileTxt to load the file. Stores result and row count in sgtDataTable.pTxtPetType / nTxtPetTypeSize. Halts if more than 255 rows; clamps size to 0x100. Called once during table loading.
 // @sourcefile .\DATATBLS\DataTbls.cpp
 void __fastcall TXT_AllocTxt_pettype(struct D2PoolManagerStrc * pMemory);

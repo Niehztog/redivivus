@@ -31,6 +31,7 @@
 
 
 namespace Bnclient {
+static bool __fastcall D2FILE_GetSignerOrganization(LPCSTR szFilePath, LPSTR szOrgOut, int32_t nOrgMaxLen);
 
 // NOTE: Return type changed void→char (1 callers, MEDIUM confidence)
 char __fastcall D2FILE_VerifyFileSignature(LPCSTR szText) {
@@ -54,7 +55,6 @@ char __fastcall D2FILE_VerifyFileSignature(LPCSTR szText) {
       cVar2 = '\0';
     }
 
-    Fog::Debug::GuardStack();
     return cVar2;
 }
 
@@ -109,15 +109,15 @@ int32_t __fastcall D2FILE_VerifySignatureWinTrust(LPCSTR szText) {
         nTrustResult = WinVerifyTrust((HWND)0x0, &sActionGuid, &sWvtData);
         if (nTrustResult == -0x7ff6dfda || nTrustResult == -0x7ff4fffc) {
           nVerifyResult = 3;
-        } else if (nTrustResult == -0x7ff4ff00) {
-          dwLastError = GetLastError();
-          nVerifyResult = (dwLastError != 0x800b0100) + 1;
-        } else {
+        } else if (nTrustResult != -0x7ff4ff00) {
           if (nTrustResult == -0x7ff4feef) {
             nVerifyResult = 3;
           } else {
             nVerifyResult = nTrustResult ? 4 : 0;
           }
+        } else {
+          dwLastError = GetLastError();
+          nVerifyResult = (dwLastError != 0x800b0100) + 1;
         }
 
         Fog::Engine::Application::MISC_OperatorDeleteShim(pWideStr);
@@ -132,7 +132,7 @@ int32_t __fastcall D2FILE_VerifySignatureWinTrust(LPCSTR szText) {
 }
 
 // Extracts signer organization from signed file's certificate. Converts file path to wide char, queries certificate store, retrieves X.509 certificate, extracts organization field (OID 2.5.4.10), converts back to ANSI.
-bool __fastcall D2FILE_GetSignerOrganization(LPCSTR szFilePath, LPSTR szOrgOut, int32_t nOrgMaxLen) {
+static bool __fastcall D2FILE_GetSignerOrganization(LPCSTR szFilePath, LPSTR szOrgOut, int32_t nOrgMaxLen) {
     // Static local variables (originally global data)
     static uint8_t gszFileSignerOrganizationAttribute = -0x2;
 
@@ -450,7 +450,6 @@ void __stdcall CACHE_DeleteFile() {
     szFilePath[0] = '\0';
     CACHE_BuildFilePath(szFilePath);
     /* LPCSTR lpFileName for DeleteFileA */ DeleteFileA(szFilePath);
-    Fog::Debug::GuardStack();
 }
 
 // @sourcefile .\BnSend.cpp
@@ -497,13 +496,11 @@ void __fastcall NET_SID_CLIENT_SetupIDEAKey(int32_t nKeyScheduleIdx, int32_t bEn
     __frame0.dwKeyWord3 = pdwKeyMaterial[3];
     if (bEncryptMode) {
       _net_sid::NET_SID_CLIENT_IDEAExpandKey((uint16_t*)&__frame0.dwKeyWord0, (uint16_t*)(g_IDEAKeySchedules + nKeyScheduleIdx * 0x68));
-      Fog::Debug::GuardStack();
       return;
     }
 
     _net_sid::NET_SID_CLIENT_IDEAExpandKey((uint16_t*)&__frame0.dwKeyWord0, aKeyScheduleBuf);
     _net_sid::NET_SID_CLIENT_IDEAInvertKey(aKeyScheduleBuf, (uint16_t*)(g_IDEAKeySchedules + nKeyScheduleIdx * 0x68));
-    Fog::Debug::GuardStack();
 }
 
 void __fastcall SRP_DestroyContext(D2Srp * * ppContext) {

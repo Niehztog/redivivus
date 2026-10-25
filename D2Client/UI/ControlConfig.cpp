@@ -89,7 +89,7 @@ void __stdcall UI_UpdateConfigControlsState(int32_t nMouseXStack, int32_t nMouse
         if (nMouseYStack < nMouseInTopScroll + 0x28) {
           ui::UI_ScrollConfigListHorizontal(-1);
         }
-        if (nMouseInTopScroll + 0x136 < nMouseYStack) {
+        if (nMouseYStack > nMouseInTopScroll + 0x136) {
           ui::UI_ScrollConfigListHorizontal(1);
         }
 
@@ -119,14 +119,14 @@ void __stdcall UI_UpdateConfigControlsState(int32_t nMouseXStack, int32_t nMouse
       gaControlConfigRegionMouseState[1] = gnUICtrlConfigMouseButtonState;
       if (gnUICtrlConfigMouseButtonState) {
         dwNowTick = GetTickCount();
-        if (gbUICtrlConfigPendingKey + 0x32 < dwNowTick) {
+        if (dwNowTick > gbUICtrlConfigPendingKey + 0x32) {
           gbUICtrlConfigPendingKey = GetTickCount();
           nMaxScrollRows = ui::UI_GetControlConfigRowCount();
           nMouseInTopScroll = gnUICtrlConfigScrollOffset;
           if (0 < gnUICtrlConfigScrollOffset) {
             nMouseInTopScroll = gnUICtrlConfigScrollOffset - 1;
           }
-          if (-1 < nMouseInTopScroll) {
+          if (0 <= nMouseInTopScroll) {
             gnUICtrlConfigScrollOffset = nMouseInTopScroll;
           }
 
@@ -149,7 +149,7 @@ void __stdcall UI_UpdateConfigControlsState(int32_t nMouseXStack, int32_t nMouse
       gaControlConfigRegionMouseState[2] = gnUICtrlConfigMouseButtonState;
       if (gnUICtrlConfigMouseButtonState) {
         dwTickCount = GetTickCount();
-        if (gbUICtrlConfigPendingKey + 0x32 < dwTickCount) {
+        if (dwTickCount > gbUICtrlConfigPendingKey + 0x32) {
           gbUICtrlConfigPendingKey = GetTickCount();
           nMaxScrollRows = ui::UI_GetControlConfigRowCount();
           nMouseInBottomScroll = (int)nMaxScrollRows;
@@ -180,7 +180,7 @@ void __stdcall UI_UpdateConfigControlsState(int32_t nMouseXStack, int32_t nMouse
       gaControlConfigRegionMouseState[3] = gnUICtrlConfigMouseButtonState;
       if (gnUICtrlConfigMouseButtonState) {
         dwTickCount = GetTickCount();
-        if (gbUICtrlConfigPendingKey + 0x32 < dwTickCount) {
+        if (dwTickCount > gbUICtrlConfigPendingKey + 0x32) {
           gbUICtrlConfigPendingKey = GetTickCount();
           ui::UI_ScrollConfigListVertical(-0xe);
         }
@@ -226,7 +226,7 @@ void __stdcall UI_UpdateConfigControlsState(int32_t nMouseXStack, int32_t nMouse
       gaControlConfigRegionMouseState[5] = nMouseInTopScroll;
       if (nMouseInTopScroll) {
         dwTickCount = GetTickCount();
-        if (gbUICtrlConfigPendingKey + 0x32 < dwTickCount) {
+        if (dwTickCount > gbUICtrlConfigPendingKey + 0x32) {
           gbUICtrlConfigPendingKey = GetTickCount();
           ui::UI_ScrollConfigListVertical(0xe);
         }
@@ -250,7 +250,7 @@ void __stdcall UI_UpdateConfigControlsState(int32_t nMouseXStack, int32_t nMouse
 }
 
 // UI controls config: returns text color index for a control entry based on binding state. Returns 3 (highlighted) if selected and not in bind mode, 5 (bound) or 4 (unbound) based on whether keys are assigned via CMD_IsCommandBound.
-int32_t UI_GetConfigControlTextColor(int32_t nColumn, int32_t nRow) {
+static int32_t UI_GetConfigControlTextColor(int32_t nColumn, int32_t nRow) {
     if (nRow == g_ControlConfigUIState && (gbUICtrlConfigKeyBindMode || nColumn == nConfigControlSelected)) {
       return 3;
     }
@@ -297,7 +297,7 @@ void __stdcall CONTROLCONFIG_CalculateColumnBounds() {
     nColumnIndex = gnUICtrlConfigTotalRows;
     do {
       nColumnIndex--;
-      if (nColumnIndex < 1) {
+      if (nColumnIndex <= 0) {
         nColumnIndex = 0;
         break;
       }

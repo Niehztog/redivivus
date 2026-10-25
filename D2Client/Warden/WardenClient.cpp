@@ -62,7 +62,7 @@ uint32_t __stdcall WARDEN_CheckSignatureMagic(int32_t nDataLen, uint32_t nTotalL
     return (uint32_t)(pBuffer == 0x5349474e);
 }
 
-void __stdcall WARDEN_ComputeModuleHash(char * szModuleName, int32_t pHashOut, uint32_t nSplitOffset, uint32_t nTotalLen, uint8_t * pModuleData) {
+static void __stdcall WARDEN_ComputeModuleHash(char * szModuleName, int32_t pHashOut, uint32_t nSplitOffset, uint32_t nTotalLen, uint8_t * pModuleData) {
     uint8_t szUpperName[1024];
     D2Sha1ContextStrc sha1Ctx;
     Fog::Source::SSignature::Sha1_Initialize(&sha1Ctx);
@@ -85,7 +85,7 @@ void __stdcall WARDEN_ComputeModuleHash(char * szModuleName, int32_t pHashOut, u
 //   nSigDataLen: Stack[0x18]:4 (uint32_t)
 //   nTotalLen: EAX:4 (uint32_t)
 // @sourcefile .\WARDEN\WardenClient.cpp
-bool __stdcall WARDEN_VerifyModuleSignature(size_t nKeySize, char * szModuleName, int32_t pData, void * pModulus, void * pExponent, uint32_t nExponentLen, uint32_t nSigDataLen, uint32_t nTotalLen) {
+static bool __stdcall WARDEN_VerifyModuleSignature(size_t nKeySize, char * szModuleName, int32_t pData, void * pModulus, void * pExponent, uint32_t nExponentLen, uint32_t nSigDataLen, uint32_t nTotalLen) {
     // Frame slots -24..-4 are ONE object: &pExpectedHash is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -97,7 +97,7 @@ bool __stdcall WARDEN_VerifyModuleSignature(size_t nKeySize, char * szModuleName
     };
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 20, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
-    if (nTotalLen < nSigDataLen) {
+    if (nSigDataLen > nTotalLen) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xa3);
       exit(-1);
     }
@@ -162,7 +162,7 @@ LPVOID * __fastcall WARDEN_DestroyModuleObject(uint8_t bFreeStruct, LPVOID * ppM
 }
 
 // @sourcefile .\WARDEN\WardenClient.cpp
-BOOL __stdcall WARDEN_DecryptAndLoadModule(void * pSrcData, void * pRc4Key, uint32_t nSize) {
+static BOOL __stdcall WARDEN_DecryptAndLoadModule(void * pSrcData, void * pRc4Key, uint32_t nSize) {
     // Static local variables (originally global data)
     static uint32_t gdwWardenModuleRsaExponent = 0x10001;
     static uint8_t gabWardenModuleRsaModulus[256] = {
@@ -530,7 +530,7 @@ BOOL __stdcall WARDEN_DecryptAndLoadModule(void * pSrcData, void * pRc4Key, uint
 // decrypted with pRc4Key, loaded and freed with pfnCacheFreeMem. Returns the load result, 0 if the
 // module is not cached.
 // Provenance: 1.14d asm 0047fee0 (callers 004803e4 MOV EBX,0x6d8768 and 00480027 MOV EBX,[EBP+8]).
-BOOL __stdcall WARDEN_ResolveAndLoadModule(void * pRc4Key, uint8_t * pModuleHash) {
+static BOOL __stdcall WARDEN_ResolveAndLoadModule(void * pRc4Key, uint8_t * pModuleHash) {
     // Static local variables (originally global data)
     static uint8_t gaWardenModuleLoadData = 0x1;
 
@@ -652,7 +652,7 @@ bool GetRC4Data(::WardenClient * pThis, void * pDest, uint32_t * pnSize) {
     }
 
     uint32_t nCopySize = *pnSize;
-    if (gnWardenResponseSize <= *pnSize) {
+    if (*pnSize >= gnWardenResponseSize) {
       nCopySize = gnWardenResponseSize;
     }
 
@@ -670,7 +670,7 @@ bool GetRC4Data(::WardenClient * pThis, void * pDest, uint32_t * pnSize) {
 }
 
 // @sourcefile .\WARDEN\WardenClient.cpp
-void __stdcall WARDEN_UnloadActiveModule() {
+static void __stdcall WARDEN_UnloadActiveModule() {
     if (gpWardenActiveModule) {
       D2WardenModuleStrc* pModule;
       gpWardenActiveModule->pModuleObject->pFuncs->pfnUnload(gpWardenActiveModule->pModuleObject);
@@ -766,17 +766,18 @@ void __stdcall WARDEN_Cleanup() {
     gpWardenResponseData = 0;
 }
 
-void __fastcall WARDEN_Initialize(uint32_t dwModuleParam) {
+int __fastcall WARDEN_Initialize(uint32_t dwModuleParam) {
     uint32_t dwUnusedParam = dwModuleParam;
     WARDEN_Cleanup();
     gpWardenModuleParam = dwModuleParam;
     sgpUnknownSequence = Bnclient::NET_GetLobbyChatQueue();
     if (!sgpUnknownSequence) {
-      return;
+      return 1;
     }
 
     WARDEN_ResolveAndLoadModule(gabWardenModuleRc4Key, gabWardenEmbeddedModuleHash);
     WARDEN_ActivatePendingModule(dwUnusedParam);
+    return 1;
 }
 
 void __fastcall WARDEN_SetGlobalFlag(uint32_t dwParam) {

@@ -23,7 +23,6 @@ namespace D2Glide::glBlocks {
 void __stdcall GLBLOCKS_AllocBlockBuffers();
 // @sourcefile .\Src\glBlocks.cpp
 void __stdcall GLBLOCKS_FreeBlockBuffers();
-void GLBLOCKS_DecodeRLEBlock(uint8_t * pbSrc, uint8_t * pbDstRow);
 void __stdcall GLBLOCKS_RenderTileSubBlocks(struct D2TileLibraryEntryStrc * pTileEntry, uint8_t * pbDstBuf);
 BOOL __fastcall GLBLOCKS_LoadFloorTileTexture(struct D2TileLibraryEntryStrc * pTileLibraryEntry);
 void __fastcall GLBLOCKS_LoadWallSubtileTexture(struct D2GroundSubTileStrc * pSubTile);

@@ -65,7 +65,6 @@ uint32_t __stdcall SStrLen(char * szText);
 // @sourcefile-storm .\SOURCE\SSTR.CPP  (first-party: SStrDup's own SMemAlloc call site names it)
 // @wasnamed SSTR_AppendStringOptimized
 uint32_t __stdcall SStrPack(LPSTR szText, char * szSource, uint32_t nBufferLength);
-uint32_t D2vsprintf(char * szFormat, size_t nSize, char * pBuffer, va_list pArgs);
 // @oracle PPC Mac Storm 1.10b export table (337 named TVector symbols), the authoritative Storm API.
 // @oracle-signature SStrPrintf(char *, unsigned long, const char *, ...)
 // @oracle-basis The only __cdecl varargs formatter in the module: (out, size, format, ...), NULL guard on out and
@@ -130,7 +129,6 @@ void __stdcall SStrLower(char * szText);
 double __fastcall SSTR_Pow10Helper(uint32_t nValue, double param_1);
 // Scales dBase by a power of ten. Returns a double in ST(0), not through a hidden return pointer, so dBase sits at Stack[0x4] and nExp at Stack[0xc]. An 80-bit x87 return type would make Ghidra add a __return_storage_ptr__ at Stack[0x4] and shift every argument by four bytes.
 double SSTR_PowDoubleInt(double dBase, int nExp);
-void __stdcall SSTR_InitPow10Table();
 // @oracle PPC Mac Storm 1.10b export table (337 named TVector symbols), the authoritative Storm API.
 // @oracle-signature SStrDup(const char *)
 // @oracle-basis One parameter. NULL guard, SStrLen, SMemAlloc(len+1, ".\\SOURCE\\SSTR.CPP", 0x1f2, 0), memcpy, return

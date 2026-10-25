@@ -128,7 +128,6 @@ void __fastcall D2FILE_ReadFile(struct D2PoolManagerStrc * pMemory, struct D2MPQ
 void __stdcall D2FILE_ReadFile_HaltTail(int nLine);
 uint32_t __fastcall D2FILE_OpenAndReadFile(struct D2PoolManagerStrc * pMemory, char * szText, void * pBuffer, uint32_t nBufSize);
 pfnFaultError __fastcall RegisterExitFunction(pfnFaultError pfnNewCallback);
-void __stdcall FAULT_TerminateCurrentProcess();
 void __fastcall FAULT_ShowErrorAndTerminate(LPCSTR szText);
 void __fastcall FAULT_ShowErrorMessageBox(LPCSTR szText);
 void __fastcall FAULT_FormatAndShowError(LPCSTR szFile, int nLine, LPCSTR szExpression);

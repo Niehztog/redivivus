@@ -35,7 +35,7 @@ typedef int (__fastcall *CalcGetKeyWordToNumber_t)(char * szKey);
 
 namespace D2Common::DATATBLS::MissileTbls {
 
-void MISSILETBLS_PadCodeTo4Chars(char * szText1, char * szText2) {
+static void MISSILETBLS_PadCodeTo4Chars(char * szText1, char * szText2) {
     char cLastChar;
     if (*szText1 == '\0') {
       cLastChar = ' ';
@@ -95,7 +95,7 @@ int32_t __fastcall MapMissilesTxtKeywordToNumber(char * szKey) {
 }
 
 // Validates and resolves a calc-code string (szText) for a missile table column. For nCalcType==1: looks up the code in the skills link table (nLinkType==3) or missiles link table (nLinkType==4); sets *pdwParam=1 on a successful lookup, 0 on fallback via GetClassIdFromName on the misc-calc link. For other nCalcType values: packs the up-to-4-char string into a uint32 and calls GetClassIdFromName on the miss-calc link, always setting *pdwParam=0.
-int __fastcall MISSILETBLS_ValidateCalcCode(char * szText, int * pOutHasResolvedToConstant, int nAST, int nKeywordNumber) {
+static int __fastcall MISSILETBLS_ValidateCalcCode(char * szText, int * pOutHasResolvedToConstant, int nAST, int nKeywordNumber) {
     char cFourthChar;
     int32_t iVar1;
     if (nAST == 1) {
@@ -116,7 +116,7 @@ int __fastcall MISSILETBLS_ValidateCalcCode(char * szText, int * pOutHasResolved
       } else if (nKeywordNumber == 4) {
         if (sgtDataTable.pTxtMissilesLink) {
           nLinkIdx = Fog::Src::Excel::GetLinkNodeIndex(sgtDataTable.pTxtMissilesLink, szText, 0);
-          if (-1 < nLinkIdx) {
+          if (0 <= nLinkIdx) {
             *pOutHasResolvedToConstant = 1;
             return nLinkIdx;
           }
@@ -187,7 +187,7 @@ void __fastcall MissileCalcLinker(char * pSrc, void * pRecord, int32_t nOffset, 
 
 // Validates a single field of a D2MissilesTxt row (indexed by nMissileIdx) against [nMinVal, nMaxVal] and clamps it in-place if out of range. Reads the field via eFieldType (0=signed byte, 1=unsigned byte, 2=signed short, 3=unsigned short, 4=uint32) at nFieldOffset into the Missile sub-struct. On violation, walks pFieldDescArray to find the matching descriptor, then writes back the clamped value at the same offset and width.
 void __stdcall MISSILETBLS_ValidateAndClampField(int32_t eFieldType, uint32_t nMinVal, uint32_t nMaxVal, int32_t nFieldOffset, int32_t pFieldDescArray, int32_t nMissileIdx) {
-    D2MissilesTxt* pMissileTxt = nMissileIdx < 0 || sgptDataTable->nTxtMissilesSize <= nMissileIdx ? 0 : sgptDataTable->pTxtMissiles + nMissileIdx;
+    D2MissilesTxt* pMissileTxt = nMissileIdx < 0 || nMissileIdx >= sgptDataTable->nTxtMissilesSize ? 0 : sgptDataTable->pTxtMissiles + nMissileIdx;
     uint32_t nRawVal = 0;
     switch (eFieldType) {
       case 0:
@@ -996,7 +996,7 @@ void __fastcall TXT_AllocTxt_missiles(D2PoolManagerStrc * pMemory) {
       int iFieldIdx;
       sgptDataTable_lcl = sgptDataTable;
       do {
-        if (iMissileIdx < 0 || sgptDataTable_lcl->nTxtMissilesSize <= iMissileIdx) {
+        if (iMissileIdx < 0 || iMissileIdx >= sgptDataTable_lcl->nTxtMissilesSize) {
           pMissileTxt = 0;
         } else {
           pMissileTxt = &sgptDataTable_lcl->pTxtMissiles[iMissileIdx];
@@ -1053,7 +1053,7 @@ void __stdcall MISSILETBLS_FreeTxt() {
 }
 
 int32_t __stdcall MISSILETBLS_CalculateVelocity(int32_t nMissileId, int32_t nLevel) {
-    if (!(-1 < nMissileId && nMissileId < sgtDataTable.nTxtMissilesSize)) {
+    if (!(0 <= nMissileId && nMissileId < sgtDataTable.nTxtMissilesSize)) {
       return 0;
     }
 

@@ -33,13 +33,8 @@ void __fastcall Q26_Callback11_ScrollMessage(struct D2QuestDataStrc * pQuestData
 void __fastcall Q26_Callback00_NpcActivate(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // Q26_Callback_10 — player-leave handler (handler[10]). Removes the departing player's GUID from this quest's participation list (sQuestGUID); uses -1 when no player. Cleans up party-participation tracking so reward/credit logic stays correct.
 void __fastcall Q26_Callback10_PlayerLeavesGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// Q26_QuestUpdate_SpawnIzual — deferred quest timer (added in Callback_08). If stateflag just reached 4 (and prev wasn't 4/0xd), broadcast stateflag 3. Then, if a spawn was queued, spawn Izual's monster (classId 0x196) at the recorded subtile coords in Act4 (pAct[3]); tries skill-variant ids 1/3/5. Materializes the actual Izual demon unit for the kill.
-uint8_t __fastcall Q26_QuestUpdate_SpawnIzual(::SGAMEDATA * pGame, struct D2QuestDataStrc * pQuestData);
 // Q26_PlayerCheckNearIzual — per-player proximity completion check (run via IteratePlayerOrMonsterUnits on Izual death). If the player's room == Izual's room or an adjacent room, and quest not Completed/RewardAwaits, marks that player's record JustCompleted + RewardAwaits. Grants kill credit to players near Izual when he dies.
 BOOL __fastcall Q26_PlayerCheckNearIzual(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
-// Q26_Callback_08 — Izual-death handler (handler[8], fires when Izual monster dies). Logs "Finished quest", clears handler[2]/[8], sets stateflag 4, stores Izual unit + death coords. Marks killer/nearby players JustCompleted+RewardAwaits (if not already done), then iterates party: proximity credit (CheckNearIzual), propagate completion, and mark out-of-act members CannotComplete. Queues Q26_QuestUpdate_SpawnIzual timer.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a4q1.cpp
-void __fastcall Q26_Callback08_MonsterKilled(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // Q26_Callback_03 — object/portal interaction handler (handler[3]). On the relevant object (id 0x67), remove player from list; if stateflag==2 and quest not Completed, advance stateflag->3 (Jerhyn portal opened path), resync all players, and if first time (prev stateflag 0) broadcast stateflag 1. Drives progression after the Jerhyn red-portal step.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a4q1.cpp
 void __fastcall Q26_Callback03_ChangedLevel(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);

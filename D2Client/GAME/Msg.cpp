@@ -65,10 +65,10 @@ void __fastcall NET_D2GS_CLIENT_Send_0x67(char * szGameName) {
     }
 
     uint32_t bIsArena = CLIENT_IsArenaMode();
-    if (!bIsArena) {
-      packet.nCharClass = nD2PlayerClassID;
-    } else {
+    if (bIsArena) {
       packet.nCharClass = CLIENT_GetDefaultCharClass();
+    } else {
+      packet.nCharClass = nD2PlayerClassID;
     }
 
     bIsArena = D2Lang::StrTable::strtable::MISC_GetLanguageCode();
@@ -158,7 +158,7 @@ void __stdcall NET_D2GS_CLIENT_Send_0x6D_PING() {
     }
 
     DWORD dwTick = GetTickCount();
-    if (4999 >= dwTick - gdwLastPingSentTick) {
+    if (5000 > dwTick - gdwLastPingSentTick) {
       return;
     }
 
@@ -219,10 +219,10 @@ void __fastcall NET_D2GS_CLIENT_Send_0x68(int16_t nGameToken, int32_t nGameHash)
     uint32_t nLangOrArena = D2Lang::StrTable::strtable::MISC_GetLanguageCode();
     packet.nLanguageCode = (uint8_t)nLangOrArena;
     nLangOrArena = CLIENT_IsArenaMode();
-    if (!nLangOrArena) {
-      packet.nCharClass = nD2PlayerClassID;
-    } else {
+    if (nLangOrArena) {
       packet.nCharClass = CLIENT_GetDefaultCharClass();
+    } else {
+      packet.nCharClass = nD2PlayerClassID;
     }
 
     Storm::Source::SSTR::SStrCopy(packet.szCharName, D2Game::Save::szSaveCharacterName, 0x7fffffff);
@@ -242,7 +242,7 @@ void NET_D2GS_CLIENT_Send_0x6A() {
 
 // Reads a character save file (.d2s) from disk into a memory buffer. Constructs the full file path from the save directory and character name, opens the file in binary read mode, seeks to end to get file size, allocates a client memory buffer of that size, rewinds to start, reads the entire file contents into the buffer, and returns the buffer pointer with size written to the output parameter.
 // @sourcefile .\GAME\Msg.cpp
-uint8_t * MSG_ReadSaveFileToBuffer(size_t * pnFileSize) {
+static uint8_t * MSG_ReadSaveFileToBuffer(size_t * pnFileSize) {
     size_t nFileSize;
     D2CharSelCompStrc* pBuffer;
     char szFilePath[1024];
@@ -939,7 +939,7 @@ void __stdcall NET_D2GS_CLIENT_Send(uint8_t * pBytes, int32_t nSize) {
 
       case 0x11:
         {
-          if (0x31 < dwTick - gdwLastPacketSendTick) {
+          if (0x32 <= dwTick - gdwLastPacketSendTick) {
             goto record_and_send;
           }
 
@@ -1169,13 +1169,13 @@ void __fastcall NET_D2GS_CLIENT_Send_Chat(uint8_t * pbParam) {
     __frame0.byHeader1 = pbParam[1];
     __frame0.byHeader2 = pbParam[2];
     uint32_t nMsgLen = Storm::Source::SSTR::SStrCopy(&__frame0.szMessage, (char*)(pbParam + 3), 0x100);
-    if (!(pbParam + 0x103)) {
-      __frame0.aMsgBody[nMsgLen] = '\0';
-      pcVar1 = __frame0.aMsgBody + nMsgLen + 1;
-    } else {
+    if (pbParam + 0x103) {
       uint32_t nTargetLen;
       nTargetLen = Storm::Source::SSTR::SStrCopy(__frame0.aMsgBody + nMsgLen, (char*)(pbParam + 0x103), 0x10);
       pcVar1 = __frame0.aMsgBody + nTargetLen + nMsgLen + 1;
+    } else {
+      __frame0.aMsgBody[nMsgLen] = '\0';
+      pcVar1 = __frame0.aMsgBody + nMsgLen + 1;
     }
 
     *pcVar1 = '\0';

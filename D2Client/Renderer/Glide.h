@@ -18,7 +18,6 @@ struct D2GlideWallCornerStrc {
 namespace D2Client::Renderer::Glide {
 
 // Function declarations
-BOOL __stdcall RENDERER_GLIDE_LoadLibrarySymbols();
 void __stdcall RENDERER_GLIDE_LoadLibrarySymbols_HaltTail(int nLine);
 BOOL __fastcall Initialize(HINSTANCE hInstance);
 BOOL CheckCutScene();

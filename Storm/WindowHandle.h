@@ -22,7 +22,7 @@ namespace Storm::WindowHandle {
 WPARAM __stdcall SMsgDoMessageLoop(pfnStormMsgIdleCallback pfnIdleCallback, uint32_t dwUnused);
 HWND __stdcall WND_GetActiveWindow();
 // @blizzard SMsgPopRegisterState (SMSG.CPP)
-void __stdcall SMsgPopRegisterState(char * szText);
+int __stdcall SMsgPopRegisterState(char * szText);
 // @blizzard SMsgPushRegisterState (SMSG.CPP)
 uint32_t __stdcall SMsgPushRegisterState(uint32_t nParam);
 uint32_t __stdcall WND_SetActiveWindow(uint32_t dwParam);
@@ -38,15 +38,8 @@ int * * __fastcall WND_AllocRecord(int32_t nMode, int32_t nSize, uint32_t dwFlag
 int * __fastcall WND_UnlinkAndFreeRecord(uint8_t byFreeFlags, int * pRecord);
 // @blizzard AddWindow (SMSG.CPP)
 void __stdcall SMSG_AddWindow(uint32_t hWnd);
-uint32_t __fastcall WND_RemoveAndFreeRecord(void * pListHead, int * pRecord);
 // @blizzard FindWindow (SMSG.CPP)
 uint32_t __fastcall SMSG_FindWindow(int32_t nHandle);
-// @blizzard DeleteWindow (SMSG.CPP)
-void SMSG_DeleteWindow(uint32_t hWnd);
-// @blizzard InternalRegister (SMSG.CPP)
-void __stdcall SMSG_InternalRegister(uint32_t hWnd, int32_t pCallback, uint32_t dwEventTag, uint32_t dwContext);
-// @blizzard InternalUnregister (SMSG.CPP)
-void __stdcall SMSG_InternalUnregister(uint32_t nEventId, char * szText1, char * szText2, HWND hWnd);
 // @blizzard SMsgDispatchMessage (SMSG.CPP)
 BOOL __stdcall SMsgDispatchMessage(HWND handle, UINT uMsg, WPARAM nWParam, LPARAM dwLParam, BOOL * pbHandled, LRESULT * plResult);
 // @blizzard SMsgRegisterCommand (SMSG.CPP)
@@ -65,7 +58,6 @@ void __stdcall SMsgUnregisterKeyDown(uint32_t hWnd, char * szText1, char * szTex
 void __stdcall SMsgUnregisterKeyUp(uint32_t hWnd, char * szText1, char * szText2);
 // @blizzard SMsgUnregisterMessage (SMSG.CPP)
 void __stdcall SMsgUnregisterMessage(uint32_t hWnd, char * szText1, char * szText2);
-LRESULT __stdcall WndProcC(HWND hWnd, uint32_t nParam1, uint32_t nParam2, LPARAM lParam);
 uint8_t * __stdcall WND_GetWndProc(int32_t nResourceId);
 uint32_t __fastcall WND_ByteBuffer_HasRoom(int32_t pThis, int32_t nAddBytes);
 int32_t __fastcall WND_EntryArray_AllocNext(int32_t pThis, int * pnCount);

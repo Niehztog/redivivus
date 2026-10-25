@@ -352,9 +352,7 @@ template<> void TSHashTable<SGAMEDATA, HASHKEY_NONE>::InternalClear(int32_t bUnl
         if ((int)pGame < 1) {
           break;
         }
-        if (!bUnlinkOnly) {
-          this->pVtable->InternalDelete(this, pGame);
-        } else {
+        if (bUnlinkOnly) {
           nChunkBase = pTVar1[pBucketIdx].m_linkoffset;
           pNext = *(int*)(pGame->szGameName + nChunkBase - 0x2a);
           pNode = pGame->szGameName + nChunkBase - 0x2a;
@@ -370,6 +368,8 @@ template<> void TSHashTable<SGAMEDATA, HASHKEY_NONE>::InternalClear(int32_t bUnl
             *(uint32_t*)(*(int*)pNode + 4) = *(uint32_t*)(pNode + 4);
             memset(pNode, 0, 8 * sizeof(pNode[0]));
           }
+        } else {
+          this->pVtable->InternalDelete(this, pGame);
         }
       }
 
@@ -499,7 +499,7 @@ template<> void TSGrowableArray<SGAMEDATA>::ReallocData(uint32_t nAlloc) {
 
 template<> void TSGrowableArray<SGAMEDATA>::Reserve(uint32_t nCount, int32_t bRound) {
     uint32_t nNeeded = nCount + this->m_count;
-    if (this->m_alloc >= nNeeded) {
+    if (nNeeded <= this->m_alloc) {
       return;
     }
     if (bRound) {
@@ -548,7 +548,7 @@ template<> ::SGAMEDATA * TSGrowableArray<SGAMEDATA>::New() {
 // Same code as TSGrowableArray<CELLIST>::ReserveNoRound 00604440; T from its call to ReallocData 00450d90.
 template<> void TSGrowableArray<SGAMEDATA>::ReserveNoRound(uint32_t nCount) {
     uint32_t uVar1 = this->m_count + nCount;
-    if (this->m_alloc >= uVar1) {
+    if (uVar1 <= this->m_alloc) {
       return;
     }
 
@@ -557,15 +557,15 @@ template<> void TSGrowableArray<SGAMEDATA>::ReserveNoRound(uint32_t nCount) {
 
 template<> TSHashObjectChunk<::SGAMEDATA, HASHKEY_NONE>* TSExplicitList<TSHashObjectChunk<SGAMEDATA, HASHKEY_NONE>, 16>::NewNode(uint32_t nLocation, uint32_t nExtraBytes, uint32_t dwFlags) {
     TSHashObjectChunk<::SGAMEDATA, HASHKEY_NONE>* pChunk = (TSHashObjectChunk<::SGAMEDATA, HASHKEY_NONE>*)Storm::SMem::SMemAlloc(nExtraBytes + 0x18, s___AV__TSHashObjectChunk_USGAMEDA_0070f5f4, -2, dwFlags | 8);
-    if (!pChunk) {
-      pChunk = 0;
-    } else {
+    if (pChunk) {
       pChunk->nArrayAlloc = 0;
       pChunk->nArrayCount = 0;
       pChunk->pArray = 0;
       pChunk->nArrayChunk = 0;
       pChunk->m_link.m_prevlink = 0;
       pChunk->m_link.m_next = 0;
+    } else {
+      pChunk = 0;
     }
     if (!nLocation) {
       return pChunk;

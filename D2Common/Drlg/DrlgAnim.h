@@ -28,7 +28,6 @@ namespace D2Common::Drlg::DrlgAnim {
 // Function declarations
 // Scans every cell in the room's grid, looks up the tile in all tile projects, and for any tile whose library flags include bit 0x100 (animated) adds (matchCount-1) to the floor, wall, or roof animated tile counters in pRoomTiles and sets the animated-room flag 0x8000000 on pRoomEx.
 void __fastcall DRLGROOMTILE_CountAnimTilesFromGrid(struct D2RoomExStrc * pRoomEx, struct D2DrlgGridStrc * pGrid, struct D2DrlgGridStrc * pOrientGrid, struct D2DrlgCoordStrc * pUnused, int nKillEdgeX, int nKillEdgeY);
-void AnimateTile(struct D2RoomExStrc * pRoomEx);
 void __fastcall AnimateTiles(struct D2RoomExStrc * pRoomEx);
 // Builds the animated-tile frame chains for a generated room. Scans the room's tile-entry array (stride 0x30 (0xc dwords)) for tiles flagged animated (TILEPROJECT_GetTileCount bit 0x100), looks up all project tile variants into a 40-entry result buffer, allocates a D2DrlgAnimTileGridStrc from the DRLG memory pool plus a per-frame ppTileData array, and creates floor/shadow/wall tile data for each animation frame (selecting CreateFloor/Shadow/WallTileData by entry type), tagging each with flag 8. Links the new anim-tile grid onto the room's pRoomTiles->pAnimTiles list. Halts on frame-count inconsistencies. Stack-guarded.
 // @sourcefile .\DRLG\DrlgAnim.cpp

@@ -119,7 +119,7 @@ void __fastcall D3DFLOOR_SetPalette(D3DFloorCacheStrc * pCache, void * pPalette)
     Renderer::DIRECTD3D_LogError("SetPalette (floor surface)", nResult);
 }
 
-void __fastcall D3DFLOOR_InsertNodeAtTail(D3DFloorCacheNodeStrc * pNode, D3DFloorCacheStrc * pCache) {
+static void __fastcall D3DFLOOR_InsertNodeAtTail(D3DFloorCacheNodeStrc * pNode, D3DFloorCacheStrc * pCache) {
     if (!pCache->pUsedHead) {
       pCache->pUsedHead = pNode;
       pCache->pUsedTail = pNode;
@@ -170,7 +170,7 @@ D3DFloorCacheNodeStrc * __fastcall D3DFLOOR_RemoveNodeByIndex(D3DFloorCacheStrc 
     return (D3DFloorCacheNodeStrc*)pTargetNode;
 }
 
-int __stdcall D3DFLOOR_AllocateNodeFromFreeList(D3DFloorCacheStrc * pCache) {
+static int __stdcall D3DFLOOR_AllocateNodeFromFreeList(D3DFloorCacheStrc * pCache) {
     if (pCache->nUsedCount == pCache->nMaxNodes) {
       return 0;
     }
@@ -211,24 +211,24 @@ int __stdcall D3DFLOOR_AllocateNodeFromFreeList(D3DFloorCacheStrc * pCache) {
 // Provenance: 1.14d asm 006bb2d0; Direct3D twin of GLFLOOR_PromoteNodeToMRU (0050f670).
 void __fastcall D3DFLOOR_PromoteNodeToMRU(D3DFloorCacheStrc * pCache, int nIndex) {
     D3DFloorCacheNodeStrc* pNode;
-    if (pCache->nUsedCount < 2) {
+    if (pCache->nUsedCount <= 1) {
       return;
     }
     if (!nIndex) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 199);
       exit(-1);
-    } else if (pCache->nMaxNodes < nIndex) {
+    } else if (nIndex > pCache->nMaxNodes) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 200);
       exit(-1);
     } else {
-      if (0 < nIndex) {
-        pNode = D3DFLOOR_RemoveNodeByIndex(pCache, nIndex - 1);
-        D3DFLOOR_InsertNodeAtTail(pNode, pCache);
-        return;
+      if (!(1 <= nIndex)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc9);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc9);
-      exit(-1);
+      pNode = D3DFLOOR_RemoveNodeByIndex(pCache, nIndex - 1);
+      D3DFLOOR_InsertNodeAtTail(pNode, pCache);
+      return;
     }
 }
 
@@ -493,7 +493,7 @@ void __stdcall D3D_FreeSystemMemoryTexturesForTiles() {
     gpD3DSubtileSystemSurface = 0;
 }
 
-void __fastcall D3D_DecompressRLESubtileToBuffer(uint8_t * pDest, uint8_t * pSrc) {
+static void __fastcall D3D_DecompressRLESubtileToBuffer(uint8_t * pDest, uint8_t * pSrc) {
     uint8_t nSkipCount;
     int nRowsRemaining = 0x20;
     memset(pDest, 0, 0x400);
@@ -518,7 +518,7 @@ void __fastcall D3D_DecompressRLESubtileToBuffer(uint8_t * pDest, uint8_t * pSrc
     } while (nRowsRemaining);
 }
 
-void __stdcall D3D_RenderTileComponentsToPixelBuffer(D2TileLibraryEntryStrc * pTileEntry, uint16_t * pwDstPixels, int nPitchPixels) {
+static void __stdcall D3D_RenderTileComponentsToPixelBuffer(D2TileLibraryEntryStrc * pTileEntry, uint16_t * pwDstPixels, int nPitchPixels) {
     uint8_t* pbVar1;
     int nPixelCount;
     uint16_t* pbyDstTile;
@@ -541,7 +541,28 @@ void __stdcall D3D_RenderTileComponentsToPixelBuffer(D2TileLibraryEntryStrc * pT
       psSubtileEntry = &pTileEntry->pSubTiles[nSubtileIndex].nOffsetX;
       pbyDstTile = pwDstPixels + psSubtileEntry[1] * nPitchPixels + (int)*psSubtileEntry;
       if (psSubtileEntry[4] & 1U) {
-        if (!(psSubtileEntry[4] & 4U)) {
+        if (psSubtileEntry[4] & 4U) {
+          pbVar1 = *(uint8_t**)(psSubtileEntry + 8);
+          nRowWidth = 0xf;
+          pbyRLEDst = pbyDstTile;
+          do {
+            nGapPixels = *pbVar1;
+            nRunPixels = pbVar1[1];
+            pbVar1 += 2;
+            if (!nGapPixels && !nRunPixels) {
+              pbyDstTile = pbyRLEDst + nPitchPixels;
+              nRowWidth--;
+              pbyRLEDst = pbyDstTile;
+            } else {
+              pbyDstTile += nGapPixels;
+              for (; nRunPixels; nRunPixels--) {
+                *pbyDstTile = g_Palette16Bit[*pbVar1];
+                pbyDstTile++;
+                pbVar1++;
+              }
+            }
+          } while (nRowWidth);
+        } else {
           pbVar1 = *(uint8_t**)(psSubtileEntry + 8);
           nRowWidth = 4;
           pw16DstPixel = pbyDstTile + 0xe;
@@ -571,27 +592,6 @@ void __stdcall D3D_RenderTileComponentsToPixelBuffer(D2TileLibraryEntryStrc * pT
             pw16DstPixel += nPixelCount;
             nRowCount++;
           } while (nRowCount < 0xf);
-        } else {
-          pbVar1 = *(uint8_t**)(psSubtileEntry + 8);
-          nRowWidth = 0xf;
-          pbyRLEDst = pbyDstTile;
-          do {
-            nGapPixels = *pbVar1;
-            nRunPixels = pbVar1[1];
-            pbVar1 += 2;
-            if (!nGapPixels && !nRunPixels) {
-              pbyDstTile = pbyRLEDst + nPitchPixels;
-              nRowWidth--;
-              pbyRLEDst = pbyDstTile;
-            } else {
-              pbyDstTile += nGapPixels;
-              for (; nRunPixels; nRunPixels--) {
-                *pbyDstTile = g_Palette16Bit[*pbVar1];
-                pbyDstTile++;
-                pbVar1++;
-              }
-            }
-          } while (nRowWidth);
         }
       }
 
@@ -626,7 +626,7 @@ BOOL __fastcall D3D_RenderFloorTileToTexture(D2TileLibraryEntryStrc * pTileLibra
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x19c);
         exit(-1);
       }
-      if (gD3DFloorTextureCache.nMaxNodes <= iVar2 - 1) {
+      if (iVar2 - 1 >= gD3DFloorTextureCache.nMaxNodes) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x19d);
         exit(-1);
       }
@@ -648,11 +648,11 @@ BOOL __fastcall D3D_RenderFloorTileToTexture(D2TileLibraryEntryStrc * pTileLibra
       if (dwSurfaceOpResult) {
         Renderer::DIRECTD3D_LogError("Failed to unlock memory surface", dwSurfaceOpResult);
       }
-      if (!(Renderer::gnD3DTextureCapFlags & 0x400)) {
-        pFloorCacheNodes[iVar2 - 1].pTexture->lpVtbl->Load(pFloorCacheNodes[iVar2 - 1].pTexture, gpD3DFloorTileMemoryTexture);
+      if (Renderer::gnD3DTextureCapFlags & 0x400) {
+        Renderer::RENDERER_D3D_CopySurfacePixels(pFloorCacheNodes[iVar2 - 1].pSurface, gpD3DFloorTileSystemSurface, gnD3DTextureCacheCount);
         pTexture = pFloorCacheNodes[iVar2 - 1].pTexture;
       } else {
-        Renderer::RENDERER_D3D_CopySurfacePixels(pFloorCacheNodes[iVar2 - 1].pSurface, gpD3DFloorTileSystemSurface, gnD3DTextureCacheCount);
+        pFloorCacheNodes[iVar2 - 1].pTexture->lpVtbl->Load(pFloorCacheNodes[iVar2 - 1].pTexture, gpD3DFloorTileMemoryTexture);
         pTexture = pFloorCacheNodes[iVar2 - 1].pTexture;
       }
     } else {
@@ -1718,7 +1718,10 @@ void __fastcall D3D_RenderSubtileToTexture(D2GroundSubTileStrc * pSubTile) {
       if (iVar2 - 1 < 0) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1fc);
         exit(-1);
-      } else if (iVar2 - 1 < gD3DSubtileTextureCache.nMaxNodes) {
+      } else if (!(iVar2 - 1 < gD3DSubtileTextureCache.nMaxNodes)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1fd);
+        exit(-1);
+      } else {
         gD3DSubtileTextureCache.pNodeBuffer[iVar2 - 1].pSubTile = pSubTile;
         sSurfaceDesc.dwSize = 0x7c;
         memset(&sSurfaceDesc.dwFlags, 0, 0x78);
@@ -1732,10 +1735,10 @@ void __fastcall D3D_RenderSubtileToTexture(D2GroundSubTileStrc * pSubTile) {
           if (dwSurfaceResult) {
             Renderer::DIRECTD3D_LogError("Failed to unlock memory surface", dwSurfaceResult);
           }
-          if (!(Renderer::gnD3DTextureCapFlags & 0x400)) {
-            pSubtileNodeBuffer[iVar2 - 1].pTexture->lpVtbl->Load(pSubtileNodeBuffer[iVar2 - 1].pTexture, gpD3DSubtileMemoryTexture);
-          } else {
+          if (Renderer::gnD3DTextureCapFlags & 0x400) {
             Renderer::RENDERER_D3D_CopySurfacePixels(pSubtileNodeBuffer[iVar2 - 1].pSurface, gpD3DSubtileSystemSurface, 0x20);
+          } else {
+            pSubtileNodeBuffer[iVar2 - 1].pTexture->lpVtbl->Load(pSubtileNodeBuffer[iVar2 - 1].pTexture, gpD3DSubtileMemoryTexture);
           }
 
           g_pD3DDevice->lpVtbl->SetTexture(g_pD3DDevice, 0, pSubtileNodeBuffer[iVar2 - 1].pTexture);
@@ -1743,9 +1746,6 @@ void __fastcall D3D_RenderSubtileToTexture(D2GroundSubTileStrc * pSubTile) {
         }
 
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x20b);
-        exit(-1);
-      } else {
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1fd);
         exit(-1);
       }
     }

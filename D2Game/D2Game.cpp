@@ -151,7 +151,7 @@ int __stdcall QSERVER_CountMonstersInFirstActiveGame() {
 
 D2RoomStrc * __stdcall QSERVER_FindRoomInFirstActiveGame(uint8_t byActIndex, int32_t nSubtileX, int32_t nSubtileY) {
     ::SGAMEDATA* pFirstGame = GAME::Server::QSERVER_GetFirstActiveGame();
-    if (4 < byActIndex) {
+    if (5 <= byActIndex) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8d);
       exit(-1);
     }
@@ -479,7 +479,7 @@ D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc 
             iVar4 = (int)uVar1 >> 0x1f;
             if ((int)(uVar1 & -16) < 0x640) {
               lExpTimes75 = __allmul(uVar1, iVar4, 0x4b, 0);
-              lExpTimes75 = __alldiv((uint32_t)lExpTimes75, (uint32_t)((uint64_t)lExpTimes75 >> 0x20), 100, 0);
+              lExpTimes75 = (int64_t)lExpTimes75 / 100;
             } else {
               nExpQuotient = (int)uVar1 / 100 + iVar4;
               lExpTimes75 = (uint64_t)((uint64_t)(uint32_t)nExpQuotient << 32 | (uint64_t)(uint32_t)((nExpQuotient - iVar4) * 0x4b));

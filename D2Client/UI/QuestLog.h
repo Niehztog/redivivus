@@ -89,28 +89,16 @@ namespace D2Client::UI::QuestLog {
 
 // Function declarations
 int32_t __fastcall QUESTLOG_FindQuestIndexById(int32_t nQuestId);
-// Populates quest log entry description text based on quest state. Scans gQuestIconsPerActTable to identify act, reads quest completion/reward/step states via GetQuestState, and formats locale strings based on 20+ quest-specific branches. For Den of Evil (quest 0xe82), appends monster count to description using a 10-wchar buffer and sprintf("%d"). Handles special cases: Prison of Ice step 8/9, Arcane Sanctuary completion, Betrayal of Haggorath step 4, and singleplayer vs multiplayer text variants.
-void QUESTLOG_PopulateQuestEntry(struct D2QuestLogEntryStrc * pEntry);
-void QUESTLOG_SetActiveAct(int32_t nActIndex);
 void __stdcall QUESTLOG_SetActiveActFromPlayerRoom();
 void __stdcall QUESTLOG_ResetState();
 // Lazy-loads all quest log DC6 image assets on first call. Checks INV_GetItemDescDirtyFlag to avoid redundant loads, then conditionally loads 6 DC6 files via IMAGE_LoadDC6Ex: questbackground, questtabs (classic vs expansion variant), questsockets, questdone, invps, and questlast. All file paths are sprintf-formatted into a 260-byte buffer using format strings from gTxtCompilationMemPool.pOverflow with "DATA\\GLOBAL" directory prefix.
 void __stdcall LoadQuestimages();
-void __stdcall FreeQuestImages();
 void __stdcall QUESTLOG_FreeQuestImages_Thunk();
-int32_t QUESTLOG_HitTestCloseButton(int32_t nParam1, int32_t nParam2);
-int32_t QUESTLOG_HitTestQuestIcon(int32_t nX, int32_t nY);
-int32_t QUESTLOG_HitTestOpenButton(int32_t nParam1, int32_t nParam2);
 int __stdcall CloseQuestLogWeird(DWORD dwParam);
-int32_t __stdcall QUESTLOG_HitTestActTab(uint32_t nY, uint32_t nX);
-void __stdcall QUESTLOG_AcknowledgeNewQuests();
 int __fastcall QUESTLOG_ScrollCompleteCallback_ClearButton(void * pUserParam, uint32_t nReason, void * pDismissCallback);
-void QUESTLOG_ShowQuestDescription(uint32_t nActIndex);
 void __stdcall QUESTLOG_OnCloseClick(struct D2UIMouseMsgStrc * pMsg);
 void __fastcall QUESTLOG_HandleSpecialPacket(int32_t nParam);
 void __stdcall QUESTLOG_CloseAndFreeImages();
-uint32_t QUESTLOG_GetDrawPosition(int32_t nBorderType);
-int __stdcall QUESTLOG_IsPointInQuestLog(int32_t nX, int32_t nY);
 void __stdcall QUESTLOG_OnQuestLogMouseDown(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall QUESTLOG_DrawQuestLogButton();
 void __fastcall QUESTLOG_SelectQuestByIndex(int32_t nQuestId);
@@ -127,8 +115,6 @@ void __fastcall QUESTLOG_SetZooSpawnFlag(uint32_t dwParam);
 uint8_t __stdcall QUESTLOG_GetZooSpawnFlag();
 bool QUESTLOG_FindZooDummyMonster();
 void __fastcall QUESTLOG_SpawnZooDummyMonsters(int32_t nSpawnX, int32_t nSpawnY);
-// Loads quest icons for an act from gQuestIconsPerActTable. Reads act index, iterates quest icon range per act, loads DC6 files to global quest icon array. Handles expansion/classic quest sets.
-void __stdcall QUESTLOG_LoadQuestIconsForAct(uint32_t nActIndex, int32_t bResetSelection);
 void __stdcall GameOverWtf();
 // Draws quest log UI. Uses gQuestIconsPerActTable to map act to quest icon ranges, draws quest list with completion status, highlights selected quest. Main rendering loop for quest UI panel.
 void __stdcall DRAW_UI_Quest();

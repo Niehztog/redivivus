@@ -377,9 +377,9 @@ template<> void TSGrowableArray<TSExplicitList<CELLIST, -572662307>>::Destructor
 
 template<> ::CELLIST * TSHashTable<CELLIST, HASHKEY_NONE>::Ptr(uint32_t dwHashVal, HASHKEY_NONE * pKey) {
     uint32_t uBucketHead = this->tSlotListArray.m_data[dwHashVal & this->nSlotMask].m_terminator.m_next;
-    ::CELLIST* pEntry = (::CELLIST*)((int)uBucketHead < 1 ? 0 : uBucketHead);
+    ::CELLIST* pEntry = (::CELLIST*)((int)uBucketHead <= 0 ? 0 : uBucketHead);
     while (true) {
-      if ((int)pEntry < 1) {
+      if ((int)pEntry <= 0) {
         return nullptr;
       }
       if (pEntry->m_hashval == dwHashVal) {

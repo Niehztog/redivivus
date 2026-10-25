@@ -156,7 +156,7 @@ void __fastcall Objects_InitFn78(D2ObjectInitFnArg * pInitArg) {
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a4q2.cpp
 BOOL __fastcall OBJOP_A4Q2_PandemoniumFortressGate(D2ObjectOperateFnArg * pOperation) {
     int32_t nTradeTick;
-    uint8_t aQuestStatePacket[6];
+    struct { uint8_t e0, e1, e2, e3, e4, e5; } aQuestStatePacket;
     ::SGAMEDATA* pGame = pOperation->sArg.pGame;
     if (!pGame->bExpansion) {
       return 0;
@@ -199,13 +199,13 @@ BOOL __fastcall OBJOP_A4Q2_PandemoniumFortressGate(D2ObjectOperateFnArg * pOpera
         if (!nTradeTick) {
           UNIT::SUnit::ClearInteractInfo(pOperation->pAttacker);
           pPlayerData->dwTradeTick = 1;
-          aQuestStatePacket[4] = 0;
-          aQuestStatePacket[5] = 0;
-          aQuestStatePacket[0] = 0x5d;
-          aQuestStatePacket[1] = 0x17;
-          aQuestStatePacket[2] = 2;
-          aQuestStatePacket[3] = 0;
-          GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pPlayerClient, aQuestStatePacket);
+          ((uint8_t*)&aQuestStatePacket)[4] = 0;
+          ((uint8_t*)&aQuestStatePacket)[5] = 0;
+          ((uint8_t*)&aQuestStatePacket)[0] = 0x5d;
+          ((uint8_t*)&aQuestStatePacket)[1] = 0x17;
+          ((uint8_t*)&aQuestStatePacket)[2] = 2;
+          ((uint8_t*)&aQuestStatePacket)[3] = 0;
+          GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pPlayerClient, ((uint8_t*)&aQuestStatePacket));
           GAME::SCmd::NET_D2GS_SERVER_Send_0x61_CanGoToAct(pPlayerClient, 5);
         }
       }
@@ -262,7 +262,7 @@ void __fastcall Objects_InitFn48(D2ObjectInitFnArg * pInitArg) {
 
 // A4Q3 Hell's Forge — Q28_Callback_04 (state-handler slot 4): when the quest is neither Completed, JustCompleted nor RewardAwaits, and the quest is introduced, prior-state != 0xd, and current stateFlag == 0, bump the internal stateFlag to 1 (Hellforge-introduced/started). Drives the early "go smash the soulstone" progression. No QuestRecord writes (internal flag only).
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a4q3.cpp
-void __fastcall Q28_Callback04_ItemPickedUp(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q28_Callback04_ItemPickedUp(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     ::SGAMEDATA* pGame = pQuestData->pGame;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
     D2BitBufferStrc* pBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];
@@ -414,7 +414,7 @@ BOOL __fastcall OBJOP_A4Q3_HellforgeSmash(D2ObjectOperateFnArg * pOperation) {
             if (pItemsTxt->dwCode == 0x20686668) {
               pStrikeCount = &pA4Q3Data->nHammerStrikeCount;
               (*pStrikeCount)++;
-              if (pA4Q3Data->nHammerStrikeCount < 3) {
+              if (pA4Q3Data->nHammerStrikeCount <= 2) {
                 return 0;
               }
 
@@ -457,7 +457,7 @@ BOOL __fastcall OBJOP_A4Q3_HellforgeSmash(D2ObjectOperateFnArg * pOperation) {
 }
 
 // A4Q3 Hell's Forge — Q28_ActiveFilter (fpActiveFilter): predicate deciding if the quest is "active" for a target. True only for Deckard Cain (monstats 0xf6) when Hell's Forge is not Completed/RewardAwaits, the quest is introduced, the internal stateFlag is set, and the player hasn't yet received the hammer (bGotHammer==0). Gates Cain's give-the-hammer gossip. No state writes.
-bool __fastcall Q28_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetClassId, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2UnitStrc * pUnitEx) {
+static bool __fastcall Q28_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetClassId, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2UnitStrc * pUnitEx) {
     if (nTargetClassId != 0xf6) {
       return false;
     }
@@ -477,7 +477,7 @@ bool __fastcall Q28_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetCl
 
 // A4Q3 Hell's Forge — Q28_SequenceFilter (fpSequenceFilter): quest-chain sequencer. If not yet started but introduced, sets internal stateFlag 1. If finished (stateFlag==5) or not introduced, looks up the next quest in the chain (nSequenceQuestId = QUEST_AbleGoToAct4) and invokes ITS sequence filter (with an IsBadCodePtr guard). Propagates quest unlocks down the Act4 chain. No QuestRecord writes.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a4q3.cpp
-void __fastcall Q28_SequenceFilter(D2QuestDataStrc * pQuestData) {
+static void __fastcall Q28_SequenceFilter(D2QuestDataStrc * pQuestData) {
     D2QuestDataStrc* pSeqQuestData;
     BOOL bBadCodePtr;
     if (!pQuestData->nStateFlag && pQuestData->bIsNotIntroduction) {
@@ -550,7 +550,7 @@ void __fastcall Q28_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 
 // A4Q3 Hell's Forge — Q28_Callback_03 (state-handler slot 3): handles the gossip event id 0x67. Removes player from participant list, then if internal stateFlag==2 and the player has not Completed/RewardAwaits Hell's Forge, advances internal stateFlag to 3 (soulstone-on-anvil acknowledged) and re-syncs all players via IteratePlayerOrMonsterUnits(Q28_PlayerUpdateForgeState).
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a4q3.cpp
-void __fastcall Q28_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q28_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     if (pQuestArgs->sQuestArgs.sNpcActivate.pTextControl != (D2GossipTextStrc*)0x67) {
       return;
     }
@@ -579,7 +579,7 @@ void __fastcall Q28_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
 
 // A4Q3 Hell's Forge — Q28_Callback_11 (state-handler slot 0xb): Deckard Cain (monstats 0xf6) gossip handler. msg 0x2a6 -> accept quest (bForgeQuestAccepted=1, stateFlag 2). msg 0x2a7 -> if Cain can give Mephisto's Soulstone reward ('mss ' shield) from inventory: accept + bGotHammer=1, stateFlag>=2. msg 0x2a8 -> turn-in: only if RewardAwaits set; if also JustCompleted and not yet finalized, broadcast state 0xd, set stateFlag 5, run the sequence filter; then set Hell's Forge Completed, clear RewardAwaits, add player to participant list, send gossip packet.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a4q3.cpp
-void __fastcall Q28_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q28_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     BOOL bQuestState;
     int32_t nErrorAddress;
     short int nNpcClassId = pQuestArgs->sQuestArgs.sNpcMessage.nNPCNo;
@@ -662,7 +662,9 @@ void __fastcall Q28_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     BOOL bIsCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_Completed);
     BOOL bIsJustCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_JustCompleted);
     BOOL bRewardAwaits = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_RewardAwaits);
-    if (!bRewardAwaits) {
+    if (bRewardAwaits) {
+      nGossipMsgIdx = 2;
+    } else {
       D2UnitStrc* pQuestItem;
       if (!pQuestArgs->pPlayer) {
         nGossipMsgIdx = -1;
@@ -681,7 +683,7 @@ void __fastcall Q28_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (bIsCompleted == 1) {
         return;
       }
-      if (3 < pQuestData->nStateFlag && !bIsJustCompleted) {
+      if (4 <= pQuestData->nStateFlag && !bIsJustCompleted) {
         return;
       }
 
@@ -701,7 +703,7 @@ void __fastcall Q28_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
         if (pQuestData->pQuestSpecificData.pA4Q3->bGotHammer) {
           return;
         }
-        if (2 < pQuestData->nStateFlagPrev) {
+        if (3 <= pQuestData->nStateFlagPrev) {
           return;
         }
 
@@ -713,7 +715,7 @@ void __fastcall Q28_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (pQuestItem) {
         return;
       }
-      if (2 < pQuestData->nStateFlagPrev) {
+      if (3 <= pQuestData->nStateFlagPrev) {
         return;
       }
       if (pQuestData->pQuestSpecificData.pA4Q3->bGotHammer) {
@@ -721,15 +723,13 @@ void __fastcall Q28_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       }
 
       nGossipMsgIdx = 1;
-    } else {
-      nGossipMsgIdx = 2;
     }
 
     AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, nGossipMsgIdx);
 }
 
 // A4Q3 Hell's Forge — Q28_Callback_02 (state-handler slot 2): on Cain (monstats 0xf6) interaction, if the quest was accepted (bForgeQuestAccepted): broadcast internal state 4 if hammer already obtained else 1, clear bForgeQuestAccepted+eFlags, null out the slot-2 handler (one-shot), and re-sync all players via Q28_PlayerUpdateForgeState.
-void __fastcall Q28_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q28_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     if (!(pQuestArgs->pTarget && (short int)pQuestArgs->pTarget->nClassId == 0xf6)) {
       return;
     }
@@ -752,7 +752,7 @@ void __fastcall Q28_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // A4Q3 Hell's Forge — Q28_DecrementHellforgeWeaponCount (state-handler slot 9, item-removed): when the removed item is the Hellforge Hammer ('hfh '=0x20686668), decrement the cached hammer/weapon counter in the quest-specific data. No QuestRecord writes.
-void __fastcall Q28_DecrementHellforgeWeaponCount(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q28_DecrementHellforgeWeaponCount(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     D2QuestDataA4Q3Strc* pQuestSpecificData = pQuestData->pQuestSpecificData.pA4Q3;
     uint32_t nItemCode = D2Common::ITEMS::Items::ITEM_GetItemsTxt_szCode(pQuestArgs->pTarget);
     /* Horadric Malus 0x20686668 = " hfh" */ if (nItemCode != 0x20686668) {
@@ -774,7 +774,7 @@ void __fastcall Q28_Callback_14_CheckIfGotHammer(D2QuestDataStrc * pQuestData, D
 }
 
 // A4Q3 Hell's Forge — load/join handler (state slot 0xd): reconstructs in-memory stateFlag from the player's persisted QuestRecord on game load or rejoin. Counts Hellforge Hammer in inventory. If quest not Completed/FinishedInPreviousGame and soulstone absent sets stateFlag=1; otherwise maps Step0x05 -> bGotHammer+prev=4+flag=2, Step0x03 -> prev=1+flag=3, Step0x02 -> prev=1+flag=2. No new quest-record writes.
-void __fastcall Q28_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q28_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     ::SGAMEDATA* pGame = pQuestArgs->pGame;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
     D2QuestDataA4Q3Strc* pQuestSpecificData = pQuestData->pQuestSpecificData.pA4Q3;
@@ -828,7 +828,7 @@ void __fastcall Q28_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D
 }
 
 // A4Q3 Hell's Forge — Q28_Callback_08 (state-handler slot 8): if the quest is introduced, force the target's drop to the Hellforge Hammer ('hfh '=0x20686668) and drop it as a PlayerBodyPart-type reward; on success increment the cached hammer counter. This is how the hammer is dropped to the player. No QuestRecord writes.
-void __fastcall Q28_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q28_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int nQuestDataPtr;
     D2QuestDataA4Q3Strc* pQuestSpecificData = pQuestData->pQuestSpecificData.pA4Q3;
     if (!pQuestData->bIsNotIntroduction) {
@@ -1007,15 +1007,20 @@ void __fastcall Q28_TimerCallback_DropForgeRunes(D2QuestDataStrc * pQuestData, D
     }
 
     pQuestSpecificData->nGemQuality--;
-    if (pQuestSpecificData->nGemQuality < 1) {
+    if (pQuestSpecificData->nGemQuality <= 0) {
       pQuestSpecificData->bDropActive = 0;
       pGame = pQuestData->pGame;
       if (pGame->bExpansion) {
         pRuneTable = aRunesListNomal;
-        if (pGame->nDifficulty == 1) {
+        switch (pGame->nDifficulty) {
+        case 1: {
           pRuneTable = aRunesListNightmare;
-        } else if (pGame->nDifficulty == 2) {
+          break;
+        }
+        case 2: {
           pRuneTable = aRunesListHell;
+          break;
+        }
         }
 
         pSeed = GetQuestControlSeed(pGame);

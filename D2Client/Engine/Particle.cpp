@@ -277,12 +277,12 @@ void __stdcall PARTICLE_UpdatePosition(D2UnitStrc * pUnit) {
     nOffsetX1 = iVar1 + pParticle->pOffsets[1].nOffsetZ;
     pParticle->pOffsets[0].nOffsetZ = nOffsetX1;
     if (nFlags & 2) {
-      if (!pParticle->nBounceCount) {
+      if (pParticle->nBounceCount) {
+        pParticle->nBounceCount--;
+      } else {
         pParticle->nFlags = nFlags | 1;
         *pX = 0;
         *pY = 0;
-      } else {
-        pParticle->nBounceCount--;
       }
     }
 
@@ -303,9 +303,12 @@ void __stdcall PARTICLE_UpdatePosition(D2UnitStrc * pUnit) {
         } else {
           eUnitType = pUnit->eUnitType;
         }
-        if (eUnitType == UNIT_MONSTER) {
+        switch (eUnitType) {
+        case UNIT_MONSTER: {
           bySpriteLayer = '\x0e';
-        } else if (eUnitType == UNIT_MISSILE) {
+          break;
+        }
+        case UNIT_MISSILE: {
           if (pOwner->eUnitType != UNIT_MONSTER) {
             Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1a9);
             exit(-1);
@@ -318,6 +321,8 @@ void __stdcall PARTICLE_UpdatePosition(D2UnitStrc * pUnit) {
           }
 
           bySpriteLayer = '\x0e';
+          break;
+        }
         }
 
         Gfx::GFX_GetUnitSpriteOffset(pOwner, bySpriteLayer, &nSpriteOffsetX, &nSpriteOffsetY);
@@ -346,7 +351,7 @@ void __stdcall PARTICLE_UpdatePosition(D2UnitStrc * pUnit) {
       pParticle->nPosZ = iVar2 << 0xb;
       *pY = iVar1 << 0xb;
     } else {
-      if (pParticle->pOffsets[2].nOffsetZ < pParticle->nPosZ >> 0xb) {
+      if (pParticle->nPosZ >> 0xb > pParticle->pOffsets[2].nOffsetZ) {
         goto project_to_screen;
       }
 

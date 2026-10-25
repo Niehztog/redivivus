@@ -49,20 +49,9 @@ int32_t __fastcall GetRadiusX(struct D2LightMapStrc * pLightMap);
 void __fastcall SetRGB(struct D2LightMapStrc * pLightMap, uint8_t nRed, uint8_t nGreen, uint8_t nBlue);
 void __fastcall FreeLightMap(struct D2LightMapStrc * pLightMap);
 void __fastcall LIGHTMAP_ValidateAndReset(struct D2LightMapStrc * pLightMap);
-void __stdcall LIGHTMAP_FillGridRect(int nYStart, uint32_t nColorARGB, int nXStart, int nYEnd, int nXEnd);
 void __fastcall ROOM_GetAmbientLightColor(struct D2RoomStrc * pRoom, uint32_t * pIntensity, char * pRed, char * pGreen, char * pBlue, uint32_t bUseLevel);
 void __stdcall LIGHTMAP_InitFromPlayerAndRooms(uint32_t bForceBlack);
 void __stdcall LIGHTMAP_ClearToBlack();
-void __stdcall LIGHTMAP_AddLightToCell(int nX, int nIntensity, uint8_t nRed, uint8_t nGreen, uint8_t nBlue, int nY);
-void __stdcall LIGHTMAP_ApplyPointLight(int nQuality, struct D2LightMapStrc * pLightMap);
-void __fastcall LIGHTMAP_SampleGridToBuffer(int unused, struct D2LightMapStrc * pLightMap);
-void __stdcall LIGHTMAP_ComputeInterpolationDir(int nSrcX, int nSrcY, struct D2LightMapStrc * pLightMap);
-void LIGHTMAP_InterpolateCell(int nBufferX, int nBufferY);
-void LIGHTMAP_ApplyStaticLightWithShadow(struct D2LightMapStrc * pLightMap);
-void LIGHTMAP_ApplyCollisionOccludedLight(struct D2LightMapStrc * pLightMap);
-void LIGHTMAP_ApplyLightWithPixelMap(struct D2LightMapStrc * pLightMap);
-void __stdcall LIGHTMAP_UpdateSingleLight(int nQuality, struct D2LightMapStrc * pLightMap);
-void __stdcall LIGHTMAP_BuildCollisionFlags();
 int __stdcall LIGHTMAP_GetQualityLevel();
 // Reads the UI player's X/Y through the same
 // static/dynamic path selector, writes the four-value bounding box (x-0x18, y-0x18, x+0x18, y+0x18)

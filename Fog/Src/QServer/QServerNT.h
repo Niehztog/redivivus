@@ -20,16 +20,8 @@ namespace Fog::Src::QServer::QServerNT {
 
 // Function declarations
 void __fastcall AwaitAndClose(struct D2QServerStrc * pQserver);
-BOOL __stdcall BeginAsyncReadForClient(struct D2QServerStrc * pQServer, struct D2QServerClientConnectionStrc * pClient);
-struct D2QServerClientPacketStrc * __stdcall NET_QServerClientPacket_CreateStructAndCopyBytesThere(struct D2QServerClientConnectionStrc * pQServerClient, size_t nSize, char * pBytes);
-int32_t __stdcall AcceptConnection(struct D2QServerStrc * pQServer, sockaddr * pSockAddr, int nWorkerIndex, int * pSockAddrLen);
-int __stdcall BeginAsyncWriteForClient(struct D2QServerStrc * pQServer, struct D2QServerClientConnectionStrc * pClient);
 int __stdcall PopAndFreeCompletedSendPacket(struct D2QServerClientConnectionStrc * pClient);
-// Accept thread entry point for QServer network listener. Polls listening socket with select(), accepts incoming client connections via AcceptConnection(), and periodically sweeps expired hacklist entries to enforce IP-based rate limiting. Telemetry tracks performance of each accept operation substage (hacklist check, connection limit, IP rate, IOCP attachment, initial recv).
-DWORD __stdcall AcceptThreadMain(void * lpThreadParam);
 BOOL __fastcall SendToClientLocal(struct D2QServerStrc * pQServer, struct D2QServerClientConnectionStrc * pQServerClient, char * pBytes, int nSize);
-// NOTE: Register params: pQServer (ECX): D2QServerStrc *, nWorkerIndex (EDX): int
-int __fastcall PumpIoCompletionQueueForWorker(struct D2QServerStrc * pQServer, int nWorkerIndex, uint32_t dwTimeoutMs);
 // lpStartAddress parameter of CreateThread
 DWORD __stdcall IoWorkerThreadMain(void * lpThreadParam);
 int __fastcall PumpIoCompletionQueues(struct D2QServerStrc * pQServer, uint32_t dwTimeoutMs);

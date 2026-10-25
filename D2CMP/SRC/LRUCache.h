@@ -50,10 +50,8 @@ namespace D2CMP::SRC::LRUCache {
 // Function declarations
 // @sourcefile .\SRC\LRUCache.cpp
 void __fastcall LRUCACHE_Init(struct D2LRUCacheStrc * pCache, struct D2PoolManagerStrc * pMemory, uint32_t dwBufSize, pfnLruFreeEntry pfnFreeEntry, int32_t nMaxCount);
-struct D2LRUCacheNodeStrc * LRUCACHE_PopOldest(struct D2LRUCacheStrc * pCache);
 void LRUCACHE_Unlink(struct D2LRUCacheNodeStrc * pNode, struct D2LRUCacheStrc * pCache);
 void __fastcall LRUCACHE_ForEach(struct D2LRUCacheStrc * pCache, fpLRUCacheForEachFn pfnCallback, uint32_t dwCallbackData);
-struct D2LRUCacheNodeStrc * LRUCACHE_AllocEntry(struct D2LRUCacheStrc * pCache, int32_t nEntrySize);
 // @sourcefile .\SRC\LRUCache.cpp
 void __fastcall LRUCACHE_FreeEntry(struct D2LRUCacheStrc * pCache, struct D2LRUCacheNodeStrc * pNode);
 void __fastcall LRUCACHE_MoveToFront(struct D2LRUCacheStrc * pCache, struct D2LRUCacheNodeStrc * pNode);

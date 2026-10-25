@@ -53,9 +53,7 @@ void __stdcall PlacePresetVariants(D2DrlgLevelStrc * pLevel, D2LvlPrestId * pLev
 
     uint32_t nIterCountdown = nVariants;
     do {
-      if (!_bIterateFiles) {
-        Outdoors::SpawnOutdoorLevelPreset(pLevel, pLevelPrestIds[nRandVariantIdx], -1, 0, '\x0f');
-      } else {
+      if (_bIterateFiles) {
         pLvlPrest = DATATBLS::LvlTbls::TXT_LvlPrest_GetLine(pLevelPrestIds[nRandVariantIdx]);
         nFileCount = pLvlPrest->Files;
         nFileIdx = 0;
@@ -65,6 +63,8 @@ void __stdcall PlacePresetVariants(D2DrlgLevelStrc * pLevel, D2LvlPrestId * pLev
             nFileIdx++;
           } while (nFileIdx < nFileCount);
         }
+      } else {
+        Outdoors::SpawnOutdoorLevelPreset(pLevel, pLevelPrestIds[nRandVariantIdx], -1, 0, '\x0f');
       }
 
       nRandVariantIdx = (int)(nRandVariantIdx + 1) % (int)nVariants;
@@ -73,7 +73,7 @@ void __stdcall PlacePresetVariants(D2DrlgLevelStrc * pLevel, D2LvlPrestId * pLev
 }
 
 // Places the Lut Gholein exit preset in Act 2 desert levels. Searches the outdoor room linked list for the town connection (level 0x28), then spawns the appropriate exit preset (0x16A or 0x16B) based on the connection direction.
-void __fastcall DRLGOUTPLACE_PlaceAct2CanyonExitPresets(D2DrlgLevelStrc * pLevel) {
+static void __fastcall DRLGOUTPLACE_PlaceAct2CanyonExitPresets(D2DrlgLevelStrc * pLevel) {
     D2DrlgLevelDataWildernessLevel* pLevelData = pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData;
     D2DrlgOrthStrc* pOutdoorRoom = pLevelData->pOrthData;
     if (!pOutdoorRoom) {
@@ -95,7 +95,7 @@ void __fastcall DRLGOUTPLACE_PlaceAct2CanyonExitPresets(D2DrlgLevelStrc * pLevel
     Outdoors::SpawnOutdoorLevelPresetEx(pLevel, pLevelData->nGridCoordsWidth - 1, 0, 0x16a, -1, 0);
 }
 
-void PlaceCliffs(D2DrlgLevelStrc * pLevel) {
+static void PlaceCliffs(D2DrlgLevelStrc * pLevel) {
     // Static local variables (originally global data)
     static uint32_t gaCliffWallGridOffsets[160] = {
     0x178,
@@ -316,7 +316,7 @@ void PlaceFillsInRockyWaste(D2DrlgLevelStrc * pLevel) {
     PlacePresetVariants(pLevel, nPresetId0, 7, false);
 }
 
-void PlaceFillsInDryHills(D2DrlgLevelStrc * pLevel) {
+static void PlaceFillsInDryHills(D2DrlgLevelStrc * pLevel) {
     D2LvlPrestId nPresetId0[8];
     nPresetId0[4] = 0x18b;
     nPresetId0[5] = 0x19b;
@@ -330,7 +330,7 @@ void PlaceFillsInDryHills(D2DrlgLevelStrc * pLevel) {
     PlacePresetVariants(pLevel, nPresetId0, 4, true);
 }
 
-void PlaceFillsInFarOasis(D2DrlgLevelStrc * pLevel) {
+static void PlaceFillsInFarOasis(D2DrlgLevelStrc * pLevel) {
     D2LvlPrestId nPresetIds[4];
     D2LvlPrestId nPresetIdBonus[1];
     nPresetIds[0] = LVLPREST_ACT_2_DESERT_RUINS_08X08;
@@ -352,7 +352,7 @@ void PlaceRuinsInLostCity(D2DrlgLevelStrc * pLevel) {
     PlacePresetVariants(pLevel, nPresetId0, 4, false);
 }
 
-void PlaceFillsInLostCity(D2DrlgLevelStrc * pLevel) {
+static void PlaceFillsInLostCity(D2DrlgLevelStrc * pLevel) {
     D2LvlPrestId nPresetId0[6];
     nPresetId0[0] = LVLPREST_ACT_2_DESERT_OASIS_1;
     nPresetId0[1] = 400;
@@ -365,17 +365,17 @@ void PlaceFillsInLostCity(D2DrlgLevelStrc * pLevel) {
     PlacePresetVariants(pLevel, nPresetId0 + 5, 1, true);
 }
 
-void PlaceTombEntriesInCanyon(D2DrlgLevelStrc * pLevel) {
+static void PlaceTombEntriesInCanyon(D2DrlgLevelStrc * pLevel) {
     uint32_t* pTombTableEntry = (uint32_t*)&gaTombCanyonPresetOffsets.aTombEntries[0].nY;
     do {
       Outdoors::SpawnOutdoorLevelPresetEx(pLevel, pTombTableEntry[-1], *pTombTableEntry, pTombTableEntry[-3], pTombTableEntry[-2], 0);
       pTombTableEntry += 4;
-    } while ((int)pTombTableEntry < (uintptr_t)((char*)&gaTombCanyonPresetOffsets + 156));
+    } while ((int)pTombTableEntry < (int)((uintptr_t)((char*)&gaTombCanyonPresetOffsets + 156)));
 
     Outdoors::SpawnOutdoorLevelPresetEx(pLevel, 4, 4, 0x18a, -1, 0);
 }
 
-void PlaceFillsInCanyon(D2DrlgLevelStrc * pLevel) {
+static void PlaceFillsInCanyon(D2DrlgLevelStrc * pLevel) {
     D2LvlPrestId nPresetId0[7];
     nPresetId0[0] = LVLPREST_ACT_2_DESERT_FILL_BONE_1;
     nPresetId0[1] = 0x192;

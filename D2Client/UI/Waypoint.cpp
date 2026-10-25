@@ -189,12 +189,12 @@ void __stdcall WAYPOINT_Shutdown() {
     FreeUiImages();
 }
 
-void Waypoint_SetWaypointArea(int32_t nAct) {
+static void Waypoint_SetWaypointArea(int32_t nAct) {
     D2BitBufferStrc* pQuestInfo;
     BOOL bQuestComplete;
     eD2Quests eQuestId;
     eD2QuestState eQuestState;
-    if (gaWaypointRowLayout[0] <= nAct) {
+    if (nAct >= gaWaypointRowLayout[0]) {
       nAct = 0;
     }
 
@@ -248,7 +248,7 @@ void Waypoint_SetWaypointArea(int32_t nAct) {
     WaypointCurrentSelectedAct = 0;
 }
 
-void __stdcall WAYPOINT_PopulateList() {
+static void __stdcall WAYPOINT_PopulateList() {
     // Static local variables (originally global data)
     static uint8_t gaWaypointVisited[55] = {
     0x0,
@@ -326,7 +326,7 @@ void __stdcall WAYPOINT_PopulateList() {
       *pPageEntry = '\0';
       nActIdx = WaypointCurrentSelectedAct;
       pPageEntry += 5;
-    } while ((int)pPageEntry < (uintptr_t)((char*)&gaWaypointListEntries + sizeof(gaWaypointListEntries) + 4));
+    } while ((int)pPageEntry < (int)((uintptr_t)((char*)&gaWaypointListEntries + sizeof(gaWaypointListEntries) + 4)));
 
     if (5 < WaypointCurrentSelectedAct) {
       D2Client::Waypoint::bNeedAllocation = false;
@@ -348,7 +348,7 @@ void __stdcall WAYPOINT_PopulateList() {
             }
 
             byMaxId = gaWaypointVisited[nActOffset + 10];
-            if (gaWaypointVisited[nActOffset + 10] < (uint8_t)(uint8_t)nWaypointIdOut) {
+            if ((uint8_t)(uint8_t)nWaypointIdOut > gaWaypointVisited[nActOffset + 10]) {
               byMaxId = (uint8_t)nWaypointIdOut;
             }
 
@@ -361,7 +361,7 @@ void __stdcall WAYPOINT_PopulateList() {
     }
 
     uint32_t nWaypointIdIter = (uint32_t)gaWaypointVisited[nActIdx * 0xb + 9];
-    if (nWaypointIdIter > gaWaypointVisited[nActIdx * 0xb + 10]) {
+    if ((int)nWaypointIdIter > (int)(gaWaypointVisited[nActIdx * 0xb + 10])) {
       return;
     }
 
@@ -369,14 +369,7 @@ void __stdcall WAYPOINT_PopulateList() {
       uint32_t bIsActivated;
       nWaypointId = (uint16_t)nWaypointIdIter;
       bIsActivated = D2Common::Waypoints::CheckWaypoint(D2Client::Waypoint::pWaypoint, nWaypointId);
-      if (!bIsActivated) {
-        bFound = D2Common::Waypoints::FindLevelIdByWaypointId(nWaypointId, &eDestLevel);
-        if (bFound) {
-          gaWaypointListEntries[MaximumAmountOfWaypointInSelectedAct].eLevelId = eDestLevel;
-          gaWaypointListEntries[MaximumAmountOfWaypointInSelectedAct].bActivated = '\0';
-          MaximumAmountOfWaypointInSelectedAct++;
-        }
-      } else {
+      if (bIsActivated) {
         bFound = D2Common::Waypoints::FindLevelIdByWaypointId(nWaypointId, &nWaypointIdOut);
         if (bFound) {
           gaWaypointListEntries[MaximumAmountOfWaypointInSelectedAct].eLevelId = nWaypointIdOut;
@@ -388,6 +381,13 @@ void __stdcall WAYPOINT_PopulateList() {
             gaWaypointListEntries[MaximumAmountOfWaypointInSelectedAct].bActivated = '\x01';
             MaximumAmountOfWaypointInSelectedAct++;
           }
+        }
+      } else {
+        bFound = D2Common::Waypoints::FindLevelIdByWaypointId(nWaypointId, &eDestLevel);
+        if (bFound) {
+          gaWaypointListEntries[MaximumAmountOfWaypointInSelectedAct].eLevelId = eDestLevel;
+          gaWaypointListEntries[MaximumAmountOfWaypointInSelectedAct].bActivated = '\0';
+          MaximumAmountOfWaypointInSelectedAct++;
         }
       }
 
@@ -541,9 +541,7 @@ void __stdcall DRAW_UI_Waypoint() {
       ActsInGame = gaWaypointListEntries;
       pDrawOffsets = (uint32_t*)(gaWaypointRowLayout + 1);
       do {
-        if (gaWaypointListEntries[nWaypointIndex].bActivated == '\0') {
-          /* Gray = we dont have the waypoint */ dwColor = 5;
-        } else {
+        if (gaWaypointListEntries[nWaypointIndex].bActivated != '\0') {
           if (gaWaypointListEntries[nWaypointIndex].eLevelId == eCurrentLevel) {
             sDrawImageArgs.nFrameNumber = (int)(ClickingDownOnWaypointEntry == nWaypointIndex);
           } else {
@@ -552,6 +550,8 @@ void __stdcall DRAW_UI_Waypoint() {
 
           D2gfx::D2GFX::D2GFX_DrawImage(&sDrawImageArgs, *pDrawOffsets + gnPanelOffsetX, pDrawOffsets[1] - gnPanelOffsetY, -1, DRAW_SOLID, nullptr);
           dwColor = 0;
+        } else {
+          /* Gray = we dont have the waypoint */ dwColor = 5;
         }
         /* Since color 3 is blue, and current selected area is printed blue in the game,
                          this is something about current area */ if (gbWaypointButtonPressed == '\0' && ClickingDownOnWaypointEntry != -1 && nWaypointIndex == ClickingDownOnWaypointEntry) {
@@ -573,7 +573,7 @@ void __stdcall DRAW_UI_Waypoint() {
         pDrawOffsets += 6;
       } while (nWaypointIndex < MaximumAmountOfWaypointInSelectedAct);
     }
-    if (nMouseX - 0x111U < 0x24 && nMouseY - 0x183U < 0x22) {
+    if (nMouseX - 0x111U <= 0x23 && nMouseY - 0x183U <= 0x21) {
       /* Draw cancel hoover */ pwszText = D2Lang::StrTable::strtable::GetLocaleString(0x1022);
       nTextWidth = D2Win::Src::D2WinFont::DRAW_text0(pwszText);
       nMouseX = nTextWidth / 2;

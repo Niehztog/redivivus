@@ -40,33 +40,20 @@ namespace D2Win::Src::D2WinFont {
 
 // Function declarations
 // Constructs full font file path: DATA\LOCAL\Font\{language}\{fontname}. Special case for Korean chat font (index 13). Uses global language code and font name table.
-void __stdcall D2WINFONT_BuildFontPath(char * szPathOut, int32_t nFontIndex, int32_t nBufferSize);
-void __stdcall GetFontTablePath(int32_t nBufSize, int32_t nFontIndex, LPSTR szFontTablePath);
-// @sourcefile .\Src\D2WinFont.cpp
-void InitFontCache(int32_t nFontIndex);
 // @sourcefile .\Src\D2WinFont.cpp
 void __stdcall D2WINFONT_FreeFontCache();
 struct D2FontGlyphStrc * __fastcall FONT_GetCharWidthCallback(uint16_t wCharCode);
-struct D2FontGlyphStrc * __fastcall D2WINFONT_LookupGlyphEntry(uint16_t wCharCode);
 int32_t __fastcall D2WINFONT_GetStringPixelWidthN(uint16_t * pwszString, int32_t nMaxChars);
 int32_t __fastcall D2WINFONT_GetStringPixelWidth(uint16_t * pwszString, int32_t nSize);
 int32_t __fastcall DRAW_text0(uint16_t * wszText);
-int32_t TEXT_CalculateTextWidth(uint16_t * szBuffer);
-int32_t D2WINFONT_GetFirstLinePixelWidth(uint16_t * pwszString);
 int32_t TEXT_CalculateTextHeight(uint16_t * szBuffer);
 uint32_t __stdcall D2WINFONT_GetCurrentFontHeight();
 // Thin wrapper around D2GFX_DrawSolidRectEx. Adjusts Y coordinates and forwards to renderer.
 void __stdcall D2WINFONT_DrawSolidRectFromBottomLeft(int32_t nX, DRAWMODE eDrawMode, int32_t nWidth, int32_t nY, int32_t nHeight, uint32_t dwColor);
-// Core wide string renderer. Processes color codes (0xFF prefix), newlines (0x0A), glyph lookup via gpfnFontGetCharWidth callback, horizontal centering if enabled. Draws each character glyph from font DC6.
-void __stdcall D2WINFONT_DrawWideString(uint16_t * wszText, int32_t nX, int32_t nY, int32_t nWidth, GLOBALPALLETE eGlobalPalette, int32_t bCenterHorizontally);
-// Wide string renderer with custom draw mode (transparency, blending). Processes color codes, newlines, horizontal centering, glyph rendering. Returns pointer to last processed glyph data.
-void * __stdcall D2WINFONT_DrawWideStringWithDrawMode(int32_t nX, uint16_t * wszText, GLOBALPALLETE eGlobalPalette, int32_t nY, int32_t nWidth, int32_t bCenterHorizontally, DRAWMODE eDrawMode);
 // Renders wide string with vertical crop region (startY, endY). Used for scrollable text boxes. Handles color codes, image glyphs (0xFFÿ prefix), newlines. Checks renderer mode and applies vertical clipping per glyph.
 void __fastcall D2WINFONT_DrawVerticalCroppedText(uint16_t * wszText, int32_t nX, uint32_t nY, int32_t nUnused, int32_t nCropStartY, int32_t nCropHeight);
 // Right-to-left text renderer (for RTL languages). Draws glyphs from right edge backwards with horizontal bounds checking. Processes color codes, newlines. Returns pointer to last glyph data.
 void * __fastcall D2WINFONT_DrawWideStringRightToLeft(uint16_t * wszText, int32_t nXStart, int32_t nY, GLOBALPALLETE eGlobalPalette, uint32_t nLeftBound, uint32_t nRightBound);
-// Simplified wide string renderer without color code processing. Skips color code sequences (0xFF + 3 chars), handles newlines, draws glyphs. Uses DRAW_SOLID mode with no palette shift.
-void D2WINFONT_DrawWideStringSimple(uint16_t * wszText, int32_t nX, int32_t nY);
 void __fastcall TEXT_TooltipSetAttributes(uint16_t * wszBuffer, int32_t nTooltipX, int32_t nTooltipY, int32_t nTooltipColor, int32_t nCenterFlag);
 // Sets tooltip attributes (text, position, size, alignment) and custom field 0x810. Wrapper around TEXT_TooltipSetAttributes.
 void __fastcall D2WINFONT_SetTooltipAttributesWithCustomField(uint16_t * wszText, int32_t nFontId, int32_t nX, int32_t nY, int32_t nAlignment, int32_t nCustomField);
@@ -89,8 +76,6 @@ void __fastcall IMAGE_DrawDC6ImageOnScreen(struct DC6 * pDC6, int32_t nPosX, int
 void __fastcall D2WINFONT_DrawTextWithProgressBar(uint16_t * wszText, uint32_t nX, int32_t nY, GLOBALPALLETE eGlobalPalette, uint32_t nAlignMode, int32_t nProgressPercent);
 // @sourcefile .\Src\D2WinFont.cpp
 void __fastcall D2WINFONT_FreeWordWrapList(void * * ppNodeList);
-// @sourcefile .\Src\D2WinFont.cpp
-struct D2TextLineStrc * __stdcall D2WINFONT_AllocWordWrapNode(uint16_t * pwszText, size_t nSize, int32_t bTrimLeadingSpace);
 // @sourcefile .\Src\D2WinFont.cpp
 struct D2TextLineStrc * __fastcall D2WINFONT_WordWrapString(uint16_t * wszText, int * pnLineCount, int32_t nMaxWidth);
 void __stdcall D2WINFONT_InitFontSystem();

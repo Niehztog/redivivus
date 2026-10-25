@@ -90,7 +90,7 @@ void GFXUTIL_PadTokenString(uint32_t dwParam, char * szText1, char * szText2) {
     szText2[3] = ' ';
 }
 
-uint8_t GFXUTIL_GetCompositePaletteIndex(D2UnitStrc * pUnit, uint8_t byComponent) {
+static uint8_t GFXUTIL_GetCompositePaletteIndex(D2UnitStrc * pUnit, uint8_t byComponent) {
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && byComponent < 0x10 && pUnit->pUnitData.pUnitDataMonster)) {
       return 0;
     }
@@ -183,7 +183,7 @@ void __stdcall GFXUTIL_SetMissileCelFile(D2GfxDataStrc * pGfxData, D2UnitStrc * 
     }
 
     int nMissileTxtIdx = pMissile->nClassId;
-    if (!(-1 < nMissileTxtIdx && nMissileTxtIdx < sgptDataTable->nTxtMissilesSize && sgptDataTable->pTxtMissiles + nMissileTxtIdx)) {
+    if (!(0 <= nMissileTxtIdx && nMissileTxtIdx < sgptDataTable->nTxtMissilesSize && sgptDataTable->pTxtMissiles + nMissileTxtIdx)) {
       return;
     }
 
@@ -247,7 +247,7 @@ int32_t __fastcall GFXUTIL_GetUnitToken(D2UnitStrc * pUnitStrc, eD2UnitType eUni
         if ((int)nId < 0) {
           return 0;
         }
-        if (sgptDataTable->nTxtMonStatsSize <= (int)nId) {
+        if ((int)nId >= sgptDataTable->nTxtMonStatsSize) {
           return 0;
         }
         if (sgptDataTable->pTxtMonStats + nId) {
@@ -337,11 +337,11 @@ uint32_t __fastcall GFXUTIL_IsDC6BlockOnScreen(DC6Block * pDC6Block, int32_t nPa
       return 0;
     }
 
-    return (uint32_t)(-1 < nOffsetY + nScreenY + nHeight);
+    return (uint32_t)(0 <= nOffsetY + nScreenY + nHeight);
 }
 
 // @sourcefile .\ENGINE\GfxUtil.cpp
-void GFXUTIL_SetItemGfxFile(D2GfxDataStrc * pGfxData, D2UnitStrc * pUnit) {
+static void GFXUTIL_SetItemGfxFile(D2GfxDataStrc * pGfxData, D2UnitStrc * pUnit) {
     bool bIsIdentified;
     int iVar6;
     D2SetItemsTxt* pSetItemsTxt;
@@ -433,15 +433,15 @@ void GFXUTIL_SetItemGfxFile(D2GfxDataStrc * pGfxData, D2UnitStrc * pUnit) {
     pGfxData->szFilename = pacInvGfx;
 }
 
-int32_t GFXUTIL_GetOverlayNumDirections(int32_t nParam) {
-    if (!(-1 < nParam && nParam < sgptDataTable->nTxtOverlaySize && sgptDataTable->pTxtOverlay + nParam)) {
+static int32_t GFXUTIL_GetOverlayNumDirections(int32_t nParam) {
+    if (!(0 <= nParam && nParam < sgptDataTable->nTxtOverlaySize && sgptDataTable->pTxtOverlay + nParam)) {
       return 1;
     }
 
     return (uint32_t)(uint8_t)sgptDataTable->pTxtOverlay[nParam].NumDirections;
 }
 
-int32_t GFXUTIL_GetBodyLocWeaponToken(int32_t nBodyLoc, D2UnitStrc * pUnit) {
+static int32_t GFXUTIL_GetBodyLocWeaponToken(int32_t nBodyLoc, D2UnitStrc * pUnit) {
     D2UnitStrc* pWeaponUnit;
     D2UnitStrc* pQuiverItem;
     D2ItemsTxt* pItemsTxt;
@@ -449,7 +449,7 @@ int32_t GFXUTIL_GetBodyLocWeaponToken(int32_t nBodyLoc, D2UnitStrc * pUnit) {
     BOOL BVar1;
     D2InventoryStrc* pInventory;
     uint32_t nWeaponClass2;
-    if (0xf < nBodyLoc) {
+    if (0x10 <= nBodyLoc) {
       return 0x2074696c;
     }
     if (!pUnit || !(pUnit->eUnitFlagsEx >> 3 & 1)) {
@@ -504,7 +504,7 @@ int32_t GFXUTIL_GetBodyLocWeaponToken(int32_t nBodyLoc, D2UnitStrc * pUnit) {
     return 0x2074696c;
 }
 
-int32_t __stdcall GFXUTIL_GetNumDirectionsForUnit(D2UnitStrc * pUnit, eD2UnitType eUnitType, int32_t nMode, int32_t nClassId) {
+static int32_t __stdcall GFXUTIL_GetNumDirectionsForUnit(D2UnitStrc * pUnit, eD2UnitType eUnitType, int32_t nMode, int32_t nClassId) {
     uint8_t cNumDirs;
     D2UnitStrc* pPlayerUnit_lcl;
     D2MonStats2Txt* pMonStats2;
@@ -656,7 +656,7 @@ uint32_t __fastcall GFXUTIL_GetCofDrawOrder(uint8_t * pbParam, uint32_t nParam) 
 }
 
 int __fastcall GFXUTIL_IsValidUnitType(D2UnitStrc * pnParam) {
-    if (!(pnParam && -1 < (int)pnParam->eUnitType && (int)pnParam->eUnitType < 3)) {
+    if (!(pnParam && 0 <= (int)pnParam->eUnitType && (int)pnParam->eUnitType <= 2)) {
       return 0;
     }
 
@@ -682,7 +682,7 @@ void __fastcall GFXUTIL_SetGfxInfoComponent(D2UnitStrc * pUnit, int32_t nParam, 
 }
 
 // @sourcefile .\ENGINE\GfxUtil.cpp
-void __stdcall GFXUTIL_UpdateDirectionForMode(uint8_t bParam, int32_t nAnimMode, int32_t nPrevDirection, D2UnitStrc * pUnit, int32_t nNewDirection) {
+static void __stdcall GFXUTIL_UpdateDirectionForMode(uint8_t bParam, int32_t nAnimMode, int32_t nPrevDirection, D2UnitStrc * pUnit, int32_t nNewDirection) {
     int nClassId;
     if (!nAnimMode) {
       return;
@@ -708,7 +708,7 @@ void __stdcall GFXUTIL_UpdateDirectionForMode(uint8_t bParam, int32_t nAnimMode,
     }
 }
 
-void GFXUTIL_ConvertDirectionBits(int32_t nFromDirs, int32_t nToDirs, uint32_t * pnParam) {
+static void GFXUTIL_ConvertDirectionBits(int32_t nFromDirs, int32_t nToDirs, uint32_t * pnParam) {
     uint32_t uVar1;
     if (nToDirs == 8) {
       uint32_t nShiftedDir;
@@ -726,7 +726,7 @@ void GFXUTIL_ConvertDirectionBits(int32_t nFromDirs, int32_t nToDirs, uint32_t *
 void __fastcall GFXUTIL_CalcDirectionAndFrame(int32_t nTypeId, int32_t nCofComponent, uint32_t * pnParam, uint32_t * pnFrameHandler, int * pnParam2, uint32_t nNumDirs, int32_t nAnimMode, D2UnitStrc * pUnit, int32_t nAnimDir) {
     char _cNumDirs;
     char cNumDirs;
-    if (0x3f < *pnParam) {
+    if (0x40 <= *pnParam) {
       *pnParam2 = 1;
       *pnFrameHandler = 0;
       return;
@@ -846,7 +846,7 @@ uint8_t * __fastcall GFXUTIL_GetItemColorForBodyLoc(D2UnitStrc * pUnit, int32_t 
     D2UnitStrc* pOwnerUnit;
     D2InventoryStrc* pInventory;
     char byColorScratch;
-    if (0xf < nParam) {
+    if (0x10 <= nParam) {
       return pDefaultColor;
     }
     if (!pUnit) {
@@ -1176,7 +1176,7 @@ BOOL __stdcall GFXUTIL_BuildCofParams(D2GfxDataStrc * pGfxData, D2UnitStrc * pUn
       default:
         iVar3 = pGfxData->nOverlayId;
       pGfxData->dwFlags |= 2;
-      if (!(-1 < iVar3 && iVar3 < sgptDataTable->nTxtOverlaySize && sgptDataTable->pTxtOverlay + iVar3)) {
+      if (!(0 <= iVar3 && iVar3 < sgptDataTable->nTxtOverlaySize && sgptDataTable->pTxtOverlay + iVar3)) {
         return 1;
       }
 

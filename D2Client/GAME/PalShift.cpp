@@ -145,14 +145,14 @@ int * __fastcall PALSHIFT_FindPalShiftByToken(int32_t nToken) {
 }
 
 // Remaps the blood-color entries in a monster's palette table to green if the monster uses local blood (MonStats2.byLocalBlood == 2). Copies the base 512-byte palette block to an offset within pPaletteData, then applies the PalShift_GreenBlood lookup table across 8 rows of 256 entries, replacing non-zero mapped indices. No-ops for monsters outside the valid MonStats/MonStatsEx range or without local blood.
-void PALSHIFT_ApplyGreenBloodPalette(int32_t pPaletteData, int32_t nMonsterId) {
+static void PALSHIFT_ApplyGreenBloodPalette(int32_t pPaletteData, int32_t nMonsterId) {
     D2GamePalShiftGreenBloodStrc* pGreenBlood;
-    if (!(-1 < nMonsterId && nMonsterId < sgptDataTable->nTxtMonStatsSize)) {
+    if (!(0 <= nMonsterId && nMonsterId < sgptDataTable->nTxtMonStatsSize)) {
       return;
     }
 
     int nMonStatsExId = (int)sgptDataTable->pTxtMonStats[nMonsterId].MonStatsEx;
-    if (!(-1 < nMonStatsExId && nMonStatsExId < sgptDataTable->nTxtMonStatsExSize && sgptDataTable->pTxtMonStatsEx + nMonStatsExId && sgptDataTable->pTxtMonStatsEx[nMonStatsExId].byLocalBlood == 2)) {
+    if (!(0 <= nMonStatsExId && nMonStatsExId < sgptDataTable->nTxtMonStatsExSize && sgptDataTable->pTxtMonStatsEx + nMonStatsExId && sgptDataTable->pTxtMonStatsEx[nMonStatsExId].byLocalBlood == 2)) {
       return;
     }
 

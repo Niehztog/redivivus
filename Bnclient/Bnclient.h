@@ -46,8 +46,6 @@ namespace Bnclient {
 // NOTE: Return type changed void→char (1 callers, MEDIUM confidence)
 char __fastcall D2FILE_VerifyFileSignature(LPCSTR szText);
 int32_t __fastcall D2FILE_VerifySignatureWinTrust(LPCSTR szText);
-// Extracts signer organization from signed file's certificate. Converts file path to wide char, queries certificate store, retrieves X.509 certificate, extracts organization field (OID 2.5.4.10), converts back to ANSI.
-bool __fastcall D2FILE_GetSignerOrganization(LPCSTR szFilePath, LPSTR szOrgOut, int32_t nOrgMaxLen);
 int * __fastcall BNCLIENT_InitFilestream(int * pStream, char * szFilePath);
 void * __fastcall BNCLIENT_DestroyCompressor(void * pCompressor, uint8_t bFreeMemory);
 // Initializes the BNet lobby chat message queue via BNMESSQUEUE_Initialize, then returns a pointer to the global sgBNetClientCallbacks structure used for lobby chat callbacks.

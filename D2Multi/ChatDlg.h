@@ -41,19 +41,15 @@ BOOL __stdcall CHATDLG_OnPressUserListPrevLine(struct D2ControlMsg * pControlMsg
 // Provenance: asm 0043da30 (RET 4); fpOnPressCallback of form record 0070d0f0 (FORM_Button), created in CHATDLG_CreateAllForms at 0043fd15.
 BOOL __stdcall CHATDLG_OnPressUserListNextLine(struct D2ControlMsg * pControlMsg);
 // @sourcefile .\Src\ChatDlg.cpp
-struct D2ChatDlgUnknown_0x10 * __stdcall StoreChatMsg(LPRECT pRect, int32_t nParam, char * pString);
-// @sourcefile .\Src\ChatDlg.cpp
 void CHATDLG_FreeChatMsgNode(void * * pParam);
-void StoreData(LPRECT pRect, int32_t nParam, char * szText);
 // @sourcefile .\Src\ChatDlg.cpp
 void __stdcall CHATDLG_ProcessPendingMessages();
-void __stdcall CHATDLG_FormatFileTimeToDate(FILETIME * pFileTime, int32_t nBufSize, char * szText);
 void __fastcall CHATDLG_DisplayTimestampedMessage(uint32_t nUnixTime, int32_t pszMessage);
 // @sourcefile .\Src\ChatDlg.cpp
 void __stdcall CHATDLG_EnqueueClearMessage();
-void __fastcall CHATDLG_AppendTextToTextBox(uint16_t * wszText, int32_t nParam);
+int __fastcall CHATDLG_AppendTextToTextBox(uint16_t * wszText, int32_t nParam);
 uint32_t __fastcall CHATDLG_AppendTextToTextBox_ForComCallback(uint16_t * wszText, int32_t nParam);
-void __fastcall FORMS_DisplayBattleNetNews(uint16_t * wszText);
+int __fastcall FORMS_DisplayBattleNetNews(uint16_t * wszText);
 // Shows gpCtlChannelOkButton only while gpCtlChannelNameEditBox holds a non-empty name: D2WINMAIN_SetControlVisible(gpCtlChannelOkButton, name non-empty). Run by that edit box's change callback and once at the end of OOGUTIL_OpenChannelDialog.
 // Provenance: asm 0043e660..0043e6b6; change callback installed at 00441097, tail jump at 004411d7.
 void __stdcall CHATDLG_UpdateChannelOkButtonState();
@@ -69,7 +65,7 @@ uint32_t __stdcall CHATDLG_InvokeCallbackIfSet(struct D2ControlMsg * pControlMsg
 // Opens the ladder type menu: background form 0x5d (gpDC6LadderChoiceEXP), title text box 0x5e (string 0x14c5), buttons 0x5f HARDCORE LADDER, 0x61 STANDARD LADDER, 0x62/0x63 expansion hardcore/standard ladder and 0x64 CANCEL (CHATDLG_OnPressCloseDialog); 0x60 is never created.
 // Provenance: asm 0043eb30..0043eb93; called by CHATDLG_DestroyFormsAndShowLadder (lobby LADDER button) and CHATDLG_OnPressCloseDialogRedrawLadder.
 void __stdcall CHATDLG_OpenLadderTypeMenu();
-void __stdcall CHATDLG_UpdateButtonVisibility();
+int __stdcall CHATDLG_UpdateButtonVisibility();
 // Stores the ladder filter byte (0070cd62) = nFilterMode and the selected rank (0070cd7c) = nRank.
 // Provenance: asm 0043ec50..0043ec5c; unreferenced in 1.14d.
 void __fastcall CHATDLG_SetLadderFilterAndRank(uint8_t nFilterMode, int nRank);
@@ -124,13 +120,13 @@ BOOL __stdcall CHATDLG_OnPressChatCommandsOK(struct D2ControlMsg * pControlMsg);
 void __stdcall CHATDLG_RefreshGameNameDisplay();
 // @sourcefile .\Src\ChatDlg.cpp
 void __stdcall CHATDLG_FreePlayerNameList();
-void __stdcall CHATDLG_CancelGameCreate();
+int __stdcall CHATDLG_CancelGameCreate();
 void __stdcall CHATDLG_ParseCommandArgument(int32_t nMaxLen, char * szSource, char * szDest);
 void __stdcall SafeDefaultChannel(char * pszChannel);
 void __stdcall CHATDLG_DestroyAllForms();
 uint32_t __stdcall CHATDLG_SetDestroyCallback(uint32_t dwUnused, ChatDlgCallback pfnCallback);
 int __stdcall CHATDLG_HandleTabCompletion(uint32_t nKeyCode, size_t nSize, char * szText);
-void __fastcall UIMENU_DrawSpecificJoinGameError(uint16_t * wszText, ChatDlgCallback pfnCallback);
+int __fastcall UIMENU_DrawSpecificJoinGameError(uint16_t * wszText, ChatDlgCallback pfnCallback);
 void __stdcall CHATDLG_ResetButtonsAndForms();
 void __stdcall CHATDLG_CreateAllForms();
 // Battle.net game creation and joining functions - handle both realm and open bnet modes
@@ -151,12 +147,9 @@ BOOL __stdcall CHATDLG_OnPressCloseDialog(struct D2ControlMsg * pControlMsg);
 // OnPress handler of the ladder-board button gaPredefinedForms_b[0x6d] (0070e2c0, FORM_Button, string 0x13ef), created by UIMENU_LadderBoard_PrintClassesAndTableHeaders: releases gpCtlLobbyChannelButton, gpCtlLobbyCreateButton and gpCtlLobbyJoinButton, destroys the chat forms (CHATDLG_DestroyAllForms) and reopens the ladder type menu (CHATDLG_OpenLadderTypeMenu); returns 1.
 // Provenance: asm 00440260 (RET 4); FORMS_CreateAnyFormFromListEx(0x6d) at 004406fb.
 BOOL __stdcall CHATDLG_OnPressCloseLadderBoard(struct D2ControlMsg * pControlMsg);
-BOOL __stdcall CHATDLG_UpdateChatRoomList();
 // Callback of the FORM_Timer record gaPredefinedForms_b[0x80] (0070e650), created by UIMENU_LadderBoard_PrintClassesAndTableHeaders: once gdwLadderRankRequestTimeout has passed and the ladder board text box exists, if the chat-room list changed (CHATDLG_UpdateChatRoomList) or a filter change is pending and the selection moved, sends MCP 0x11 RequestLadderData for the selected rank and throttles the next request by 1000 ms; returns 1.
 // Provenance: 1.14d asm 00440350, called as fpOnPress by D2WinTimer DrawEx 004fd8d2.
 BOOL __stdcall CHATDLG_OnTimerRequestLadderData(struct D2ControlMsg * pControlMsg);
-// Updates ladder board display after player click - renders rank cells with class colors and experience
-void __fastcall CHATDLG_HandleChatListClick(int32_t nStartRank, int32_t nRankCount, int32_t nEntryIndex, char nFilterMode, int32_t nLadderData);
 void __stdcall UIMENU_LadderBoard_PrintClassesAndTableHeaders();
 void __stdcall CHATDLG_OpenLadderClassicSoftcore();
 void __stdcall CHATDLG_OpenLadderClassicHardcore();

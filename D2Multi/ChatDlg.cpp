@@ -147,7 +147,7 @@ void CHATDLG_FreeChatMsgNode(void * * pParam) {
     D2_FREE(pParam);
 }
 
-void StoreData(LPRECT pRect, int32_t nParam, char * szText) {
+static void StoreData(LPRECT pRect, int32_t nParam, char * szText) {
     D2ChatDlgUnknown_0x10* pChatNode = StoreChatMsg(pRect, nParam, szText);
     if (!pChatNode) {
       return;
@@ -196,7 +196,7 @@ void __stdcall CHATDLG_ProcessPendingMessages() {
     }
 }
 
-void __stdcall CHATDLG_FormatFileTimeToDate(FILETIME * pFileTime, int32_t nBufSize, char * szText) {
+static void __stdcall CHATDLG_FormatFileTimeToDate(FILETIME * pFileTime, int32_t nBufSize, char * szText) {
     int nZeroCount;
     uint16_t wszWideBuf[256];
     _SYSTEMTIME systemTime;
@@ -265,12 +265,13 @@ void __stdcall CHATDLG_EnqueueClearMessage() {
     LeaveCriticalSection(&lpCriticalSection_0077ae28);
 }
 
-void __fastcall CHATDLG_AppendTextToTextBox(uint16_t * wszText, int32_t nParam) {
+int __fastcall CHATDLG_AppendTextToTextBox(uint16_t * wszText, int32_t nParam) {
     if (!gpChatMessagesTextBox) {
-      return;
+      return 1;
     }
 
     D2Win::Src::D2WinTextBox::SetText(gpChatMessagesTextBox, wszText, nParam, false, 1);
+    return 1;
 }
 
 uint32_t __fastcall CHATDLG_AppendTextToTextBox_ForComCallback(uint16_t * wszText, int32_t nParam) {
@@ -282,13 +283,14 @@ uint32_t __fastcall CHATDLG_AppendTextToTextBox_ForComCallback(uint16_t * wszTex
     return 1;
 }
 
-void __fastcall FORMS_DisplayBattleNetNews(uint16_t * wszText) {
+int __fastcall FORMS_DisplayBattleNetNews(uint16_t * wszText) {
     if (!BattleNetNews) {
-      return;
+      return 1;
     }
 
     D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(BattleNetNews);
     D2Win::Src::D2WinTextBox::SetText(BattleNetNews, wszText, 3, false, 0);
+    return 1;
 }
 
 // Shows gpCtlChannelOkButton only while gpCtlChannelNameEditBox holds a non-empty name: D2WINMAIN_SetControlVisible(gpCtlChannelOkButton, name non-empty). Run by that edit box's change callback and once at the end of OOGUTIL_OpenChannelDialog.
@@ -319,7 +321,7 @@ int32_t __stdcall someStrCompare(char * szText1, char * szText2) {
     pcEnd1 = pcEnd1 + strlen(pcEnd1) + 1;
     char* pcEnd2 = szText2;
     pcEnd2 = pcEnd2 + strlen(pcEnd2) + 1;
-    if ((uint32_t)((int)pcEnd2 - (int)(szText2 + 1)) > (uint32_t)((int)pcEnd1 - (int)(szText1 + 1))) {
+    if ((uint32_t)((int)pcEnd1 - (int)(szText1 + 1)) < (uint32_t)((int)pcEnd2 - (int)(szText2 + 1))) {
       return -1;
     }
 
@@ -416,7 +418,7 @@ BOOL __stdcall CHATDLG_FindSubstringMatch(int32_t nTargetHash, int32_t nWordLen,
 
     do {
       int nCmpTmp;
-      if ((nStart < 1 || (nCmpTmp = isalnum((int)szText[nStart - 1]) , !nCmpTmp)) && (nMaxStart <= nStart || (nCmpTmp = isalnum((int)szText[nWordLen + nStart]) , !nCmpTmp))) {
+      if ((nStart <= 0 || (nCmpTmp = isalnum((int)szText[nStart - 1]) , !nCmpTmp)) && (nStart >= nMaxStart || (nCmpTmp = isalnum((int)szText[nWordLen + nStart]) , !nCmpTmp))) {
         cSaved = szText[nWordLen + nStart];
         szText[nWordLen + nStart] = '\0';
         nCmpTmp = Storm::Source::SSTR::SStrHashHT((uint8_t*)(szText + nStart));
@@ -457,13 +459,7 @@ BOOL __stdcall CHATDLG_DetectCDKeyInString(char * szText) {
       }
 
       cCur = szText[nPos];
-      if ((cCur < 'A' || 'Z' < cCur) && (cCur < 'a' || 'z' < cCur) && 9 < (uint8_t)(cCur - 0x30U)) {
-        if (cCur == '-' || cCur == ' ') {
-          goto check_key_complete;
-        }
-
-        nCharsCollected = 0;
-      } else {
+      if (!((cCur < 'A' || 'Z' < cCur) && (cCur < 'a' || 'z' < cCur) && 9 < (uint8_t)(cCur - 0x30U))) {
         szKeyBuf[nCharsCollected] = cCur;
         nCharsCollected++;
         check_key_complete:
@@ -476,6 +472,12 @@ BOOL __stdcall CHATDLG_DetectCDKeyInString(char * szText) {
 
           nCharsCollected = 0;
         }
+      } else {
+        if (cCur == '-' || cCur == ' ') {
+          goto check_key_complete;
+        }
+
+        nCharsCollected = 0;
       }
 
       nPos++;
@@ -506,7 +508,7 @@ void __stdcall FORMS_DestroyListEx() {
         D2Win::Src::D2WinMain::FORMS_DestroyAnyForm(pForm);
         nIndex++;
         pForm++;
-      } while (nIndex < FORMS_nListExCount);
+      } while ((int)nIndex < (int)FORMS_nListExCount);
     }
 
     FORMS_nListExCount = 0;
@@ -558,7 +560,7 @@ void __stdcall CHATDLG_OpenLadderTypeMenu() {
     D2Win::Src::D2WinMain::D2WINMAIN_SetFormFourth(pControl);
 }
 
-void __stdcall CHATDLG_UpdateButtonVisibility() {
+int __stdcall CHATDLG_UpdateButtonVisibility() {
     uint32_t bConfirmJoinVisible;
     D2Win::Src::D2WinButton::D2WINBUTTON_SetPressed(gpLobbyForm0.pCtlLobbyChannelButton, 0);
     D2Win::Src::D2WinButton::D2WINBUTTON_SetPressed(gpLobbyForm0.pCtlLobbyCreateButton, 0);
@@ -568,14 +570,15 @@ void __stdcall CHATDLG_UpdateButtonVisibility() {
       D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpLobbyForm0.pCtlLobbyCreateButton->sControl, 1);
       D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpLobbyForm0.pCtlLobbyJoinButton->sControl, 1);
     }
-    if (!D2IniData_multiplayer->padding_0x35F[2]) {
-      bConfirmJoinVisible = (uint32_t)!gbLobbyInitialized;
-    } else {
+    if (D2IniData_multiplayer->padding_0x35F[2]) {
       bConfirmJoinVisible = 1;
+    } else {
+      bConfirmJoinVisible = (uint32_t)!gbLobbyInitialized;
     }
 
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpLobbyForm0.pCtlLobbyChannelButton->sControl, bConfirmJoinVisible);
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpLobbyForm0.pCtlLobbyLadderButton->sControl, (uint32_t)!gbIsChannelScreen);
+    return 1;
 }
 
 // Stores the ladder filter byte (0070cd62) = nFilterMode and the selected rank (0070cd7c) = nRank.
@@ -591,10 +594,10 @@ void __fastcall CHATDLG_RequestLadderRank(char * szText, int32_t nParam, int32_t
     }
 
     Storm::Source::SSTR::SStrCopy(gszLadderCharNameFilter, szText, 0x7fffffff);
-    if (!nLadderRequestMode) {
-      g_nLadderFilterMode = nParam ? 0 : 0x9;
-    } else {
+    if (nLadderRequestMode) {
       g_nLadderFilterMode = !nParam * '\b' + 0x13;
+    } else {
+      g_nLadderFilterMode = nParam ? 0 : 0x9;
     }
 
     gnLadderBoardSelectedRank = -1;
@@ -712,16 +715,16 @@ void __stdcall CHATDLG_ClearLadderBoard() {
 // Returns the ladder filter id for class tab nLadderTab (0 Overall .. 7 Assassin) in the same group as nCurrentFilterMode: groups start at 0, 9, 0x13 and 0x1b and hold 8 ids each; any other nCurrentFilterMode halts at line 0x1a23. The eight CHATDLG_OnPressLadder* tab handlers pass their tab and g_nLadderFilterMode and store the result back into it.
 // Provenance: asm 0043f150..0043f1c3 (tab on the stack, filter in EAX).
 int32_t __stdcall CHATDLG_GetLadderFilterForTab(int32_t nLadderTab, uint32_t nCurrentFilterMode) {
-    if (nCurrentFilterMode - 9 < 8) {
+    if (nCurrentFilterMode - 9 <= 7) {
       return nLadderTab + 9;
     }
-    if (nCurrentFilterMode < 8) {
+    if (nCurrentFilterMode <= 7) {
       return nLadderTab;
     }
-    if (nCurrentFilterMode - 0x13 < 8) {
+    if (nCurrentFilterMode - 0x13 <= 7) {
       return nLadderTab + 0x13;
     }
-    if (nCurrentFilterMode - 0x1b < 8) {
+    if (nCurrentFilterMode - 0x1b <= 7) {
       return nLadderTab + 0x1b;
     }
 
@@ -878,7 +881,7 @@ void __stdcall CHATDLG_ClearChatHistory() {
     do {
       (*pbyHistorySlot)[0] = '\0';
       pbyHistorySlot++;
-    } while ((int)pbyHistorySlot < (uintptr_t)((char*)&gaChatDlgHistoryBuffer + sizeof(gaChatDlgHistoryBuffer)));
+    } while ((int)pbyHistorySlot < (int)((uintptr_t)((char*)&gaChatDlgHistoryBuffer + sizeof(gaChatDlgHistoryBuffer))));
 
     gnChatTabCompletionIndex = -1;
     gnChatHistoryEntryCount = 0;
@@ -1008,7 +1011,7 @@ void __stdcall CHATDLG_RefreshGameNameDisplay() {
     if (gpChatPlayerNameListHead) {
       char* pszCursor;
       do {
-        if (0x1ff < nUsedLen) {
+        if (0x200 <= nUsedLen) {
           break;
         }
 
@@ -1045,9 +1048,10 @@ void __stdcall CHATDLG_FreePlayerNameList() {
     gpChatPlayerNameListHead = 0;
 }
 
-void __stdcall CHATDLG_CancelGameCreate() {
+int __stdcall CHATDLG_CancelGameCreate() {
     D2MCPClient::McpConnect::NET_MCP_CLIENT_Send_0x13_CancelGameCreate();
     D2MCPClient::McpConnect::SetIsMPCJoinSuccesfull(0);
+    return 1;
 }
 
 void __stdcall CHATDLG_ParseCommandArgument(int32_t nMaxLen, char * szSource, char * szDest) {
@@ -1130,7 +1134,7 @@ int __stdcall CHATDLG_HandleTabCompletion(uint32_t nKeyCode, size_t nSize, char 
       pcInputEnd = pcInputEnd + strlen(pcInputEnd) + 1;
       pcChannelEnd = __frame0.szChannelName;
       pcChannelEnd = pcChannelEnd + strlen(pcChannelEnd) + 1;
-      if ((int)(pcInputEnd + (int)(pcChannelEnd + (-(int)(__frame0.szChannelName + 1) - (int)(__frame0.szInputText + 1)))) >= 0x100) {
+      if ((int)(pcInputEnd + (int)(pcChannelEnd + (-(int)(__frame0.szChannelName + 1) - (int)(__frame0.szInputText + 1)))) > 0xff) {
         return 0;
       }
 
@@ -1159,7 +1163,7 @@ int __stdcall CHATDLG_HandleTabCompletion(uint32_t nKeyCode, size_t nSize, char 
     return 0;
 }
 
-void __fastcall UIMENU_DrawSpecificJoinGameError(uint16_t * wszText, ChatDlgCallback pfnCallback) {
+int __fastcall UIMENU_DrawSpecificJoinGameError(uint16_t * wszText, ChatDlgCallback pfnCallback) {
     ChatDlg::CHATDLG_DestroyAllForms();
     if (pGameListCache) {
       D2Win::Src::D2WinMain::D2WINMAIN_SetControlActive(&pGameListCache->sControl, 0);
@@ -1172,6 +1176,7 @@ void __fastcall UIMENU_DrawSpecificJoinGameError(uint16_t * wszText, ChatDlgCall
     gpControlJoinGameError = (::D2WinTextBox*)D2Win::Src::D2WinMain::FORMS_CreateAnyForm(gaPredefinedForms_b + 0x1d);
     D2Win::Src::D2WinImage::D2WINTEXTBOX_SetTextW(gpControlJoinGameError, wszText);
     gpfnChatDlgCallback = pfnCallback;
+    return 1;
 }
 
 void __stdcall CHATDLG_ResetButtonsAndForms() {
@@ -1450,13 +1455,13 @@ BOOL __stdcall CHATDLG_OnPressCloseLadderBoard(D2ControlMsg * pControlMsg) {
     return 1;
 }
 
-BOOL __stdcall CHATDLG_UpdateChatRoomList() {
+static BOOL __stdcall CHATDLG_UpdateChatRoomList() {
     bool bMatch;
     char szCell[256];
     int32_t nScrollPos = D2Win::Src::D2WinTextBox::D2WINTEXTBOX_GetScrollPosition(g_pLadderBoardTextBox);
     int32_t iVar1 = D2Win::Src::D2WinTextBox::D2WINTEXTBOX_GetVisibleLineCount(g_pLadderBoardTextBox);
     int32_t nEndLine = iVar1 + nScrollPos;
-    if (gnLadderListRowCount <= nEndLine) {
+    if (nEndLine >= gnLadderListRowCount) {
       nEndLine = gnLadderListRowCount;
     }
 
@@ -1484,7 +1489,7 @@ BOOL __stdcall CHATDLG_OnTimerRequestLadderData(D2ControlMsg * pControlMsg) {
     static uint32_t gnChatRoomListPrevSelectedBase = -0x1;
 
     DWORD DVar1 = GetTickCount();
-    if (!(gdwLadderRankRequestTimeout < DVar1 && g_pLadderBoardTextBox)) {
+    if (!(DVar1 > gdwLadderRankRequestTimeout && g_pLadderBoardTextBox)) {
       return 1;
     }
 
@@ -1504,7 +1509,7 @@ BOOL __stdcall CHATDLG_OnTimerRequestLadderData(D2ControlMsg * pControlMsg) {
 }
 
 // Updates ladder board display after player click - renders rank cells with class colors and experience
-void __fastcall CHATDLG_HandleChatListClick(int32_t nStartRank, int32_t nRankCount, int32_t nEntryIndex, char nFilterMode, int32_t nLadderData) {
+static void __fastcall CHATDLG_HandleChatListClick(int32_t nStartRank, int32_t nRankCount, int32_t nEntryIndex, char nFilterMode, int32_t nLadderData) {
     // Static local variables (originally global data)
     static char * gaszPlayerClassTokens[7] = { s_ama_006d5564, s_sor_006d5568, s_nec_006d556c, s_pal_006d5570, s_bar_006d5574, s_dru_006d5578, s_asn_006d557c };
 
@@ -1567,7 +1572,7 @@ void __fastcall CHATDLG_HandleChatListClick(int32_t nStartRank, int32_t nRankCou
     }
 
     int nEndRank = nStartRank + nRankCount;
-    if (gnLadderListRowCount < nStartRank + nRankCount) {
+    if (nStartRank + nRankCount > gnLadderListRowCount) {
       nEndRank = gnLadderListRowCount;
     }
     if (nStartRank >= nEndRank) {
@@ -1908,7 +1913,7 @@ void __fastcall CHATDLG_StorePlayerName(uint32_t nPlayerId, uint32_t nDataLength
     bool bEmpty;
     bEmpty = !gpChatPlayerNameListHead;
     *(uint32_t*)(pNode + 0x200) = nPlayerId;
-    if (bEmpty || (pCur = pInsertAfter , (int)nPlayerId < *(int*)((int)pInsertAfter + 0x200))) {
+    if (bEmpty || (pCur = pInsertAfter , *(int*)((int)pInsertAfter + 0x200) > (int)nPlayerId)) {
       *(void**)(pNode + 0x204) = (void*)pInsertAfter;
       gpChatPlayerNameListHead = pNode;
     } else {

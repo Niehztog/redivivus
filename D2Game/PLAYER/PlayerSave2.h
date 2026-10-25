@@ -66,7 +66,7 @@ namespace D2Game::PLAYER::PlayerSave2 {
 // Provenance: asm 00568d60..00568d69; unreferenced in 1.14d.
 __time32_t __stdcall PLRSAVE_GetTime32(__time32_t * pTime);
 int32_t __fastcall FindEndOfString(char * szString, int32_t nMaxSize);
-void __stdcall PLAYERSAVE2_LoadOldSavegame_ReturnZero();
+int __stdcall PLAYERSAVE2_LoadOldSavegame_ReturnZero();
 // Returns the 1-based index of the carried item matching nItemGUID in the player's inventory list, by iterating INVENTORY_GetFirstItem/GetNextItem/GetCarriedItem. Returns 0 if GUID is -1, inventory is null, or item not found. Halts with an internal error if the index would exceed 0x7FFE.
 int16_t __fastcall GetItemIndexInList(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nItemGUID);
 void __fastcall SaveMercData(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2SaveFileHeaderStrc * pSaveHeader);
@@ -96,8 +96,6 @@ int __fastcall MakeSaveFile(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint
 int __fastcall CalculateGetFlags(::SGAMEDATA * pGame, uint32_t dwCharacterStatus, struct D2ClientStrc * pClient);
 void __fastcall SetHotkey(struct D2SaveHotKeyStrc * pSaveHotKey, uint32_t * pnParam, uint32_t * pnHand, uint32_t * nItemIndex);
 void __fastcall PLAYERSAVE_LinkPlayerToUnit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2ClientStrc * pClient);
-// Bootstraps a brand-new player unit for a connecting client: creates the unit, links it to the client, sends the init packet, places starting items, sets default left/right skills to Attack, then selects the class-specific start skill from CharStats.txt if present. Fires QUEST_OnPlayerJoinGame for act-0 quests. Outputs the created unit pointer.
-int32_t __stdcall PLAYERSAVE_CreateNewCharacter(struct D2ClientStrc * pSaveContext, ::SGAMEDATA * pGameStrc, struct D2UnitStrc * * dwArg1);
 // Parses the .d2s save-file header during game join/load, validates it, and creates the player's server unit. Verifies the stored checksum (zeroing the checksum field before recomputing), the recorded file size, and the file-version range (0x5c-0x60); confirms the saved character name matches the client's. Applies CalculateGetFlags policy (may reject or return code 2 for a 'hardcore dead' / status-bit-1 file). Sets the client's class, weapon-swap flag, file flags, create time, and current act from the per-difficulty progress byte; recovers the map seed for single-player. Creates the UNIT_PLAYER unit (pOutUnit), links it to the client, sends the init-unit packet, and restores all 16 hotkeys plus the L/R and weapon-swap skill assignments and guild info. ppSaveFileHeader is advanced past the consumed header on success. Returns 0 on success, 2 to signal a status-bit case, or error codes 3-7.
 int32_t __fastcall PLAYERSAVE_ParseHeaderAndCreateUnit(::SGAMEDATA * pGame, struct D2ClientStrc * pClient, struct D2SaveFileHeaderStrc * * ppSaveFileHeader, struct D2SaveFileHeaderStrc * pHeader, struct D2UnitStrc * * pOutUnit);
 int __fastcall PLRSAVE_ReadQuestsFromBuffer(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int * * ppQuestBuffer, int * pnBytesRead, uint32_t dwParam);

@@ -157,7 +157,7 @@ void __stdcall QSSOCKET_SetCallbackHandler2(D2QSSocketStrc * pQSSocket, int nHea
 }
 
 // NOTE: Register param types inferred (medium confidence): pQSSocketStrc (ESI): D2QSSocketStrc *
-void __stdcall QSSOCKET_BlockSocket(D2QSSocketStrc * pQSSocketStrc) {
+static void __stdcall QSSOCKET_BlockSocket(D2QSSocketStrc * pQSSocketStrc) {
     if (!pQSSocketStrc) {
       return;
     }
@@ -174,7 +174,7 @@ void __stdcall QSSOCKET_BlockSocket(D2QSSocketStrc * pQSSocketStrc) {
 }
 
 // Thread-safe socket close with critical section protection
-void __stdcall CloseSocket(D2QSSocketStrc * pQServer) {
+static void __stdcall CloseSocket(D2QSSocketStrc * pQServer) {
     if (!pQServer) {
       return;
     }
@@ -192,7 +192,7 @@ void __stdcall CloseSocket(D2QSSocketStrc * pQServer) {
 }
 
 // Socket receive loop, passed as thread proc to Fog::Safesock::Create_Flag0
-void __stdcall ReceiveLoopCallback(D2QSSocketStrc * pQSSocket) {
+static void __stdcall ReceiveLoopCallback(D2QSSocketStrc * pQSSocket) {
     uint32_t nBytesRecv;
     uint32_t nBufferSpace;
     int nWsaError;
@@ -347,11 +347,11 @@ D2QSSocketStrc * __stdcall STRUCT_D2QSSocket_Init(char * szIpAddress, int nPort,
 
         memset(pD2QSSocket, 0, 0x194);
         Storm::Source::SSTR::SStrCopy(pD2QSSocket->szIpAddress, szIpAddress, 0x104);
-        if (!szName) {
+        if (szName) {
+          dwErrorCode = 4;
+        } else {
           dwErrorCode = 0x40;
           szName = "UNKNOWN";
-        } else {
-          dwErrorCode = 4;
         }
 
         Storm::Source::SSTR::SStrCopy(pD2QSSocket->szName, szName, dwErrorCode);
@@ -454,7 +454,7 @@ int32_t __stdcall NET_MCP_CLIENT_Send(D2QSSocketStrc * pQSocket, char * pBytes, 
       nTotalSendSize = _nDataSizeNoHeader + 3;
     } else {
       __frame0.wPacketLength = nDataSize + 2;
-      if (0x2063 < __frame0.wPacketLength) {
+      if (0x2064 <= __frame0.wPacketLength) {
         ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x71);
         exit(-1);
       }

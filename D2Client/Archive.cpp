@@ -288,11 +288,11 @@ void ARCHIVE_WriteMemoryCheckReport() {
     while (nResult) {
       int**** pNewRec;
       pNewRec = (int****)Storm::SMem::SMemAlloc(0x130, s___AUTALLOCREC___00711480, -2, 8);
-      if (!pNewRec) {
-        pNewRec = 0;
-      } else {
+      if (pNewRec) {
         *pNewRec = 0;
         pNewRec[1] = 0;
+      } else {
+        pNewRec = 0;
       }
 
       pSrcInfo = &sHeapDetails;
@@ -452,7 +452,7 @@ void __fastcall ReadByteOrShort(D2BitBufferStrc * pBitBuffer) {
 
 uint32_t __fastcall UNIT_GetModuloFromSeed(D2SeedStrc * pSeed, uint32_t nModulo) {
     D2SeedStrc DVar2;
-    if ((int)nModulo < 1) {
+    if ((int)nModulo <= 0) {
       return 0;
     }
 
@@ -470,7 +470,7 @@ uint32_t __fastcall UNIT_GetModuloFromSeed(D2SeedStrc * pSeed, uint32_t nModulo)
 
 uint32_t __fastcall RANDOM_RandomNumberSelector(D2SeedStrc * pSeed, uint32_t nModulo) {
     D2SeedStrc DVar1;
-    if ((int)nModulo < 1) {
+    if ((int)nModulo <= 0) {
       return 0;
     }
     if (nModulo & nModulo - 1) {

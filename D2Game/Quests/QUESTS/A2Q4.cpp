@@ -237,7 +237,7 @@ BOOL __fastcall Q12_CheckJournalState(::SGAMEDATA * pGame) {
 }
 
 // A2Q4 - OnJournalActivate. Marks the quest journal entry as active (field_0xe=1) and sets the portal-placement substate to 2, then iterates players running UpdateQuestRecord to persist. If a tracked object exists, refreshes its update flag and removes its collision (opens the way). Called when the Cellar/staff path activates the Sanctuary entrance. Parameter 0 is the A2Q4 record and parameter 1 is the D2QuestDataStrc; they were recorded the wrong way round until 2026.08.30.
-void __stdcall Q12_OnJournalActivate(D2QuestDataA2Q4Strc * pQuestData, D2QuestDataStrc * pQuestContext) {
+static void __stdcall Q12_OnJournalActivate(D2QuestDataA2Q4Strc * pQuestData, D2QuestDataStrc * pQuestContext) {
     short int sVar1;
     *(uint8_t*)(char*)&sVar1 = pQuestData->nPortalPlacedStateLo;
     *(uint8_t*)((char*)&sVar1 + 1) = pQuestData->nPortalPlacedStateHi;
@@ -263,7 +263,7 @@ void __stdcall Q12_OnJournalActivate(D2QuestDataA2Q4Strc * pQuestData, D2QuestDa
 }
 
 // A2Q4 - Callback_11 (NPC-talk handler). Drives the quest from NPC dialogue. Drognan(0x14b): msg 0xba -> set Step0x07; msg 0xbb..0xbd -> set Step0x08. Other NPCs: for the Summoner-aftermath gossip set, send gossip packet and consume RewardAwaits(1) (Unset + add player to participation list). On msg 0x18c (staff/Sanctuary trigger) broadcasts state 5 and, if player is in the right room, spawns the Canyon-of-the-Magi portal and marks record JustCompleted(0xd). Atma(0xb1 msg0x175)->stateFlag 2 + OnJournalActivate; Cain/Jerhyn(0xc9 msg0x179)->stateFlag 3, broadcast state 3, persist.
-void __fastcall Q12_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArg) {
+static void __fastcall Q12_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArg) {
     int32_t nPlayerGUID;
     D2RoomStrc* pDVar3;
     BOOL nPortalId;
@@ -284,7 +284,7 @@ void __fastcall Q12_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
         /* SetQuestState Step0x07 - Drognan first hint about Summoner (msg 0xba) */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheArcaneSanctuary, QUESTSTATE_Step0x07);
         return;
       }
-      if ((nMessageIndex & 0xffff) - 0xbb < 3) {
+      if ((nMessageIndex & 0xffff) - 0xbb <= 2) {
         /* SetQuestState Step0x08 - Drognan tells Summoner location (msg 0xbb-0xbd) */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheArcaneSanctuary, QUESTSTATE_Step0x08);
         return;
       }
@@ -384,7 +384,9 @@ void __fastcall Q12_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     }
 
     BOOL bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheArcaneSanctuary, QUESTSTATE_RewardAwaits);
-    if (!bQuestState) {
+    if (bQuestState) {
+      nGossipLineIndex = 4;
+    } else {
       if (!pQuestArgs->pPlayer) {
         nPlayerGUID = -1;
       } else {
@@ -407,7 +409,7 @@ void __fastcall Q12_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (bQuestState == 1) {
         return;
       }
-      if (4 < pQuestData->nStateFlag) {
+      if (5 <= pQuestData->nStateFlag) {
         bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheArcaneSanctuary, QUESTSTATE_JustCompleted);
         if (!bQuestState) {
           return;
@@ -418,11 +420,9 @@ void __fastcall Q12_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (nGossipLineIndex == -1) {
         return;
       }
-      if (0xb < nGossipLineIndex) {
+      if (0xc <= nGossipLineIndex) {
         return;
       }
-    } else {
-      nGossipLineIndex = 4;
     }
 
     AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, nGossipLineIndex);
@@ -523,7 +523,7 @@ void __fastcall Q12_SequenceFilter(D2QuestDataStrc * pQuestData) {
 }
 
 // A2Q4 - Callback_13 (load/sync handler). Reconstructs in-memory quest stateFlag from the persisted record on game load. If TaintedSun Completed(0) -> mark journal fields. If Sanctuary Completed(0) or RewardAwaits(1): set record JustCompleted(0xd) and mark journal done. If player holds the quest item -> stateFlag 1. Else map step bits to stateFlag: Step0x05->4/4, Step0x04->4/3, Step0x03->3/3, Step0x02->2/2. Also checks HoradricStaff Completed(0) to mark the journal entry.
-void __fastcall Q12_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q12_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     ::SGAMEDATA* pGame;
     pGame = pQuestArgs->pGame;
     D2UnitDataPlayerStrc* pQuestSpecificData;
@@ -605,9 +605,7 @@ void __fastcall Q12_OnHoradricStaffAssembled(::SGAMEDATA * pGame) {
     if (!pQuestContext) {
       return;
     }
-    if (!pQuestContext->bIsNotIntroduction) {
-      Q12_OnJournalActivate(pQuestContext->pQuestSpecificData.pA2Q4, pQuestContext);
-    } else {
+    if (pQuestContext->bIsNotIntroduction) {
       if (!pQuestContext->nStateFlag) {
         QUEST_SetStateFlag(pQuestContext, 1, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a2q4.cpp", 0x3bf);
       }
@@ -616,6 +614,8 @@ void __fastcall Q12_OnHoradricStaffAssembled(::SGAMEDATA * pGame) {
         QUEST_SetStateAndBroadcast(pQuestContext, 1, nullptr, (::fpExecuteOnUnitFunction)Q12_NotifyArcaneComplete, true);
         return;
       }
+    } else {
+      Q12_OnJournalActivate(pQuestContext->pQuestSpecificData.pA2Q4, pQuestContext);
     }
 }
 
@@ -727,7 +727,7 @@ BOOL __fastcall Q14_CheckDurielProximity(::SGAMEDATA * pGame, D2UnitStrc * pUnit
     D2QuestDataStrc* pQuestData = GetQuestDataByQuestNoInternal(pGame, QUESTINT_TheArcaneSanctuary);
     D2QuestDataA2Q4Strc* pA2Q4Data = pQuestData->pQuestSpecificData.pA2Q4;
     uint32_t nDist = Monster::AI::MONSTERAI_GetDistanceToCoords(pUnit, pA2Q4Data->field_0x20, pA2Q4Data->nHaremBlockerY);
-    if (nDist >= 0x1f) {
+    if (nDist > 0x1e) {
       return 0;
     }
 
@@ -894,7 +894,7 @@ void __fastcall Q12_SetObjectOperateState(::SGAMEDATA * pGame, int32_t nParam) {
 }
 
 // A2Q4 - Callback_03 (quest state 3 handler). Index 0x4a: advance stateFlag to 4 (if <4) and broadcast state 4 via QUEST_SetStateAndBroadcast, then persist via UpdateQuestRecord. Index 0x32: directly set record Step0x08+Step0x07. For the Jerhyn (0x28) path: tear down/respawn Jerhyn's monster AI, optionally ReplaceJerhyn at his location, remove player from the participation list, and if not Completed(0)/RewardAwaits(1) and stateFlag==3 advance to 4 + persist.
-void __fastcall Q12_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q12_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     D2UnitDataPlayerStrc* pJerhynUnit;
     D2UnitStrc* pPlayerData;
     D2MonsterAiStrc* pMonsterAi;
@@ -931,11 +931,11 @@ void __fastcall Q12_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
           }
 
           bQuestDone = Monster::MonsterAI::HasAiSub(pMonsterAi);
-          if (!bQuestDone) {
+          if (bQuestDone) {
+            Monster::MonsterAI::ClearAISub(pQuestData->pGame, pPlayerData, nullptr, true);
+          } else {
             GAME::Server::RemoveObjects(pPlayerData, pQuestData->pGame);
             *(bool*)(ptPos.y + 0xc) = false;
-          } else {
-            Monster::MonsterAI::ClearAISub(pQuestData->pGame, pPlayerData, nullptr, true);
           }
         }
       }

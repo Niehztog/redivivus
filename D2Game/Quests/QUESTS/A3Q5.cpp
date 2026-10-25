@@ -100,9 +100,7 @@ void __fastcall Q21_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
 
     pQuestArgs->pTarget->dwDropItemCode = 0x2034336a;
     D2UnitStrc* pPlayerData = ITEMS::Items::Drop::ITEM_RewardItemToDrop(pQuestData->pGame, pQuestArgs->pTarget, ITEMTYPE_Shield, &nDroppedItemGUID, nullptr, -1, 0);
-    if (!pPlayerData) {
-      pQuestSpecificDataA3Q5->bCanDropBird = true;
-    } else {
+    if (pPlayerData) {
       pQuestData->sStateFunctions.fpQuestStateHandler[8] = (QUESTCALLBACKFN)0x0;
       pQuestSpecificDataA3Q5->nBirdItemCount++;
       pQuestSpecificDataA3Q5->bBirdDropEnabled = false;
@@ -115,6 +113,8 @@ void __fastcall Q21_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2Que
         pQuestSpecificDataA3Q5->bBossKillTracking = false;
         return;
       }
+    } else {
+      pQuestSpecificDataA3Q5->bCanDropBird = true;
     }
 
     pQuestSpecificDataA3Q5->bBossKillTracking = false;
@@ -227,7 +227,7 @@ BOOL __fastcall Q22_PlayerUpdateBlackenedTempleState(::SGAMEDATA * pGame, D2Unit
     if (!pQuestData) {
       return 0;
     }
-    if ((uint8_t)(pQuestData->nStateFlag - 2) < 2) {
+    if ((uint8_t)(pQuestData->nStateFlag - 2) <= 1) {
       /* SetQuestState(Blackened Temple=0x15, Step0x02=2): log entry "started" when
                          live stateFlag is 2/3 */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheBlackenedTemple, QUESTSTATE_Step0x02);
     }
@@ -392,7 +392,7 @@ void __fastcall Q22_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
           return;
         }
       }
-      if (5 < pQuestData->nStateFlag) {
+      if (6 <= pQuestData->nStateFlag) {
         if (bQuestCompleted != 1) {
           return;
         }
@@ -443,7 +443,7 @@ void __fastcall Q22_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2Que
 
 // Q22_Callback_03 (BLACKENED TEMPLE) — quest-state[3] gossip/menu handler. On menu index 0x52 in intro with nStateFlag==0: bumps nStateFlag to 1 and arms handler[2]=Q22_Callback_02. On menu index 0x4b (NPC done): removes player from GUID list; if live nStateFlag in {2,3} and record not Completed/Step0x04, broadcasts state 2 (Q22_PlayerNotifyCompleted) when prior flag<3, then advances nStateFlag to 4 or 5 depending on Lam Esen's Tome JustCompleted, and re-syncs all player logs via Q22_PlayerUpdateBlackenedTempleState.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q5.cpp
-void __fastcall Q22_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q22_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int32_t nState;
     uint32_t nSourceLine;
     D2GossipTextStrc* pDVar1 = pQuestArgs->sQuestArgs.sNpcActivate.pTextControl;
@@ -456,7 +456,7 @@ void __fastcall Q22_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
     }
 
     QUESTGUID_RemovePlayerFromQuest(pQuestData, pQuestArgs);
-    if (!(1 < pQuestData->nStateFlag && pQuestData->nStateFlag < 4)) {
+    if (!(1 < pQuestData->nStateFlag && pQuestData->nStateFlag <= 3)) {
       return;
     }
 
@@ -493,7 +493,7 @@ void __fastcall Q22_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
 
 // Q22_Callback_11 (BLACKENED TEMPLE) — quest-state[0xb] NPC-gossip handler, the main Ormus dialog path. Bails if the quest is already Completed. For special NPC 0xff + msg 0x252: sets nStateFlag 2/3 and the bTaintedSunStartedFailed flag (string varies by Lam Esen's Tome completion). For Ormus (class 0xf5) + msg 0x272, only when at Step0x04: if Khalim's Will is done, strips the 5 Khalim's Will items (eye/heart/brain/flail qf1/qf2) from the player; if a JustCompleted flag is pending and live nStateFlag!=7, marks the quest-record JustCompleted, broadcasts live state 0xd, sets nStateFlag 7, runs the sequence filter, then writes record Completed and clears Step0x04, and adds the player to the completion GUID list. Finally sends the NPC gossip packet.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q5.cpp
-void __fastcall Q22_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q22_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     bool _bLamEsenDone;
     bool bLamEsenDone;
     int32_t nSetStateFlag;
@@ -514,12 +514,12 @@ void __fastcall Q22_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 
       /* GetQuestRecordState(Lam Esen's Tome=0x11, JustCompleted=0xd): selects Ormus
                          dialog string + nStateFlag 2 vs 3 */ _bLamEsenDone = QUEST_GetQuestRecordState(pQuestArgs->pGame, QUEST_LamEsensTome, 0xd);
-      if (_bLamEsenDone == 1) {
-        dwSrcLine = 0x1b0;
-        nSetStateFlag = 2;
-      } else {
+      if (_bLamEsenDone != 1) {
         dwSrcLine = 0x1b4;
         nSetStateFlag = 3;
+      } else {
+        dwSrcLine = 0x1b0;
+        nSetStateFlag = 2;
       }
 
       QUEST_SetStateFlag(pQuestData, nSetStateFlag, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q5.cpp", dwSrcLine);
@@ -586,7 +586,7 @@ void __fastcall Q22_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 }
 
 // Q22_SequenceFilter (BLACKENED TEMPLE) — fpSequenceFilter chained to the next quest in the sequence (nSequenceQuestId = QUEST_TheGoldenBird). Only fires once this quest reaches nStateFlag 7 (fully complete) and is past intro; then looks up the sequenced quest's data and invokes its own sequence filter. No quest-record state calls.
-void __fastcall Q22_SequenceFilter(D2QuestDataStrc * pQuestData) {
+static void __fastcall Q22_SequenceFilter(D2QuestDataStrc * pQuestData) {
     if (pQuestData->nStateFlag != 7 && pQuestData->bIsNotIntroduction) {
       return;
     }
@@ -607,7 +607,7 @@ void __fastcall Q22_SequenceFilter(D2QuestDataStrc * pQuestData) {
 
 // Q22_Callback_13 (BLACKENED TEMPLE) — quest-state[0xd] init/resume handler that reconstructs the live nStateFlag from the player's saved quest record when a game (re)loads. Sets bJerhynAiActive if Khalim's Will is done. If the record is Completed OR at Step0x04, marks the shared record JustCompleted and ends intro. Otherwise reads Lam Esen's Tome completion into pPortalSpawnRoom, then maps record Step0x02/Step0x03 to live nStateFlag (2/3 -> Step0x02 partial; 4/5 -> Step0x03), choosing the value by Lam Esen completion. Pure resume logic; one record write (JustCompleted).
 // State flow: derive live nStateFlag {2,3,4,5} from record steps; record Completed/Step0x04 -> SetQuestRecordState JustCompleted + end intro.
-void __fastcall Q22_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q22_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int iVar1;
     ::SGAMEDATA* pGame = pQuestArgs->pGame;
     D2QuestDataA3Q5Strc* pLamEsenResult = pQuestData->pQuestSpecificData.pA3Q5;
@@ -687,7 +687,7 @@ void __fastcall Q22_TrackCouncilKill(::SGAMEDATA * pGame, D2UnitStrc * pKillerUn
     int nKillerGUID;
     nKillerGUID = pQuestSpecificData->nCouncilKillCount;
     pQuestSpecificData->bCouncilTrackingActive = true;
-    if (5 < nKillerGUID) {
+    if (6 <= nKillerGUID) {
       return;
     }
     if (!pKillerUnit) {
@@ -714,7 +714,7 @@ void __fastcall Q22_TrackCouncilKill(::SGAMEDATA * pGame, D2UnitStrc * pKillerUn
     (&pQuestSpecificData->aCouncilKillerGUIDs_0)[nKillerGUID] = nLoopIdx;
     pQuestSpecificData->nCouncilKillCount++;
     pQuestSpecificData->nCouncilKillsRemaining = pQuestSpecificData->nCouncilKillCount;
-    if (pQuestData->nStateFlag < 2) {
+    if (pQuestData->nStateFlag <= 1) {
       if (pQuestData->nStateFlagPrev == 1) {
         goto set_state_by_lam_esen;
       }
@@ -745,7 +745,7 @@ void __fastcall Q22_TrackCouncilKill(::SGAMEDATA * pGame, D2UnitStrc * pKillerUn
 }
 
 // Q22_PlayerCheckKhalimsWillItems (BLACKENED TEMPLE) — per-player tally callback (IteratePlayerOrMonsterUnits). For Act III players whose Khalim's Will is not Completed and who lack the flail items "qf1"/"qf2", increments the Khalim's-Will-needed counter (field 0x3c); also increments a separate counter (0x40) for players missing the "box " (Khalim's Will assembly box). Drives how many quest items the council drop must spawn. Read-only quest-record probe.
-BOOL __fastcall Q22_PlayerCheckKhalimsWillItems(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
+static BOOL __fastcall Q22_PlayerCheckKhalimsWillItems(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
     D2UnitStrc* pPlayerData;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pRoom) {

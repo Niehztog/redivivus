@@ -110,8 +110,8 @@ void __fastcall SOUND_SetEaxEnvironment(int32_t nEnvId) {
         bHas3D = D2Sound::SOUND_GetSound3DFlag();
         nNewEnvId = nEnvId;
         if (bHas3D) {
-          __frame0.nRoomVol = pEnvTxt->EAX_Room_Vol;
           __frame0.nEaxEnviron = pEnvTxt->EAX_Environ;
+          __frame0.nRoomVol = pEnvTxt->EAX_Room_Vol;
           __frame0.nRoomHF = pEnvTxt->EAX_Room_HF;
           __frame0.fEnvSize = (float)pEnvTxt->EAX_Env_Size / 1000.0;
           __frame0.nReverb = pEnvTxt->EAX_Reverb;
@@ -293,7 +293,7 @@ uint32_t __fastcall SOUND_GetPlaybackStatus(int * * ppnParam) {
     return nStatus;
 }
 
-void __stdcall SOUND_ShutdownAudio() {
+static void __stdcall SOUND_ShutdownAudio() {
     if (!pAudioMixerInterface) {
       return;
     }
@@ -310,7 +310,7 @@ void __stdcall SOUND_ShutdownAudio() {
 }
 
 // Initialises the audio mixer's streaming sample channels. Returns 0 immediately if the speaker config is unset, or halts if a mixer is already active. Allocates up to 8 channel slots: the first 4 are always type 1 (music), slots 4+ are type 2 (stereo) if nParam==1, type 6 (surround) if nParam==2, or type 0 otherwise. On success initialises EAX to environment 0 and sets pAudioMixerInterface; on failure calls SOUND_ShutdownAudio and returns 0.
-BOOL SOUND_InitStreamChannels(int32_t nParam) {
+static BOOL SOUND_InitStreamChannels(int32_t nParam) {
     D2SoundSmpStrc* pNewSampleInst;
     IDirectSound* dwSpeakerConfig = D2Sound::SOUND_GetSpeakerConfigFlag();
     if (!dwSpeakerConfig) {
@@ -351,7 +351,7 @@ BOOL SOUND_InitStreamChannels(int32_t nParam) {
 }
 
 // Finds a free or preemptable sound channel for playback. First scans the global sound instance pool for a channel matching pnParam (sound type/category) that is not currently playing and has no active sound. If none found, scans for the best occupied channel that can be preempted via SOUND_IsChannelAvailable; if preemptable, stops the current sample, saves its stream progress, marks the channel free, and returns it. Returns NULL if no channel is available.
-int * * __stdcall SOUND_FindAvailableChannel(uint32_t nParam, int * pnParam) {
+static int * * __stdcall SOUND_FindAvailableChannel(uint32_t nParam, int * pnParam) {
     bool bCanReplace;
     int32_t bIsPlaying;
     uint32_t uPad1;
@@ -492,7 +492,7 @@ int __fastcall SOUND_UpdateChannelParams(int * pSoundChannel) {
         nBytesRemaining -= 4;
         pByteA += 4;
         pByteB += 4;
-      } while (3 < nBytesRemaining);
+      } while (4 <= nBytesRemaining);
 
       if (!nBytesRemaining) {
         position_unchanged:
@@ -654,7 +654,7 @@ D2PoolManagerStrc * * __fastcall SOUND_PlaySoundWithPanning(D2SoundChannelStrc *
     int* pPlayingChannel = SOUND_FindPlayingByIdSafe(pMemory->nSoundId);
     if (pPlayingChannel) {
       nResult = pPlayingChannel[2];
-      if (!*(int*)(nResult + 0x3d) && (uint32_t)(pMemory->nScheduledTime - *(int*)(nResult + 0x34)) < 2 && pMemory->nPriorityByte <= *(uint8_t*)(nResult + 0x3c)) {
+      if (!*(int*)(nResult + 0x3d) && (uint32_t)(pMemory->nScheduledTime - *(int*)(nResult + 0x34)) < 2 && *(uint8_t*)(nResult + 0x3c) >= pMemory->nPriorityByte) {
         return nullptr;
       }
     }
@@ -700,10 +700,10 @@ D2PoolManagerStrc * * __fastcall SOUND_PlaySoundWithPanning(D2SoundChannelStrc *
 
     ppChannel[2] = (D2PoolManagerStrc*)pSoundDesc;
     if ((uint32_t)pPlayingChannel & 4) {
-      if (!pSoundTxt->Reverb) {
-        fReverbLevel = 0.0;
-      } else {
+      if (pSoundTxt->Reverb) {
         fReverbLevel = 1.0;
+      } else {
+        fReverbLevel = 0.0;
       }
 
       D2Sound::Src::D2SoundSmp::SOUNDSMP_SetEaxRoomLevel((D2SoundSmpStrc*)*ppChannel, fReverbLevel);
@@ -732,7 +732,7 @@ D2PoolManagerStrc * * __fastcall SOUND_PlaySoundWithPanning(D2SoundChannelStrc *
 
 // Returns the unit's greeting sound set &gaNpcGreetingSounds[n] by class id (pUnit+4, nClassId), or NULL if pUnit is NULL or the class has none. The callers pass the interacted NPC or the mercenary; every Cain class (0x92, 0xf4-0xf6, 0x109, 0x208) maps to entry 4.
 // Provenance: 004e0378 MOV EAX,[EAX+4]; record values are Sounds.txt <npc>_greeting_* ids.
-D2NpcGreetingSoundsStrc * SOUND_GetNpcGreetingSounds(D2UnitStrc * pUnit) {
+static D2NpcGreetingSoundsStrc * SOUND_GetNpcGreetingSounds(D2UnitStrc * pUnit) {
     // Static local variables (originally global data)
     // also labelled: gaAmbienceSoundGroups, bAmbienceSoundGroupAct1D
 static D2NpcGreetingSoundsStrc gaNpcGreetingSounds[29] = {

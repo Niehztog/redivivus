@@ -54,7 +54,7 @@ void __fastcall Q16_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // Q16_Callback_00 - A2Q8 gossip OFFER handler (state-fn slot 0). When player interacts with NPC 0x17a (Act2 guard), queues gossip line 0x12f via AddGossipMessageOnMonster ONLY in the window: Seven Tombs not yet past step1 (active, stateFlag<2) AND Tainted Sun finished/absent (no longer in-progress) AND Seven Tombs reward NOT awaiting AND NOT completed. I.e. guard gossips only after Tainted Sun is done but before you finish the Seven Tombs / kill Duriel.
-void __fastcall Q16_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q16_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int nTargetClassId = !pQuestArgs->pTarget ? -1 : pQuestArgs->pTarget->nClassId;
     ::SGAMEDATA* pGame = pQuestData->pGame;
     D2UnitDataPlayerStrc* pSevenTombsData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
@@ -69,7 +69,7 @@ void __fastcall Q16_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     }
 
     pPlayerData = GetQuestDataByQuestNoInternal(pQuestData->pGame, QUESTINT_TheTaintedSun);
-    if (!(!pPlayerData || !pPlayerData->bIsNotIntroduction || 3 < pPlayerData->nStateFlag)) {
+    if (!(!pPlayerData || !pPlayerData->bIsNotIntroduction || 4 <= pPlayerData->nStateFlag)) {
       return;
     }
 

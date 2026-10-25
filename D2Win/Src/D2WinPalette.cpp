@@ -64,7 +64,7 @@ void __stdcall DRAW_SetOrReloadPalleteMain() {
     if (gbGammaShiftActive) {
       DWORD dwTickCount;
       dwTickCount = GetTickCount();
-      if (dwTickCount - gdwPaletteShiftStartTick < 0x7d1) {
+      if (dwTickCount - gdwPaletteShiftStartTick <= 0x7d0) {
         return;
       }
 
@@ -237,7 +237,7 @@ BOOL __fastcall D2WINPAL_LoadActPalette(uint8_t nParam) {
     return nResult;
 }
 
-void __stdcall LoadPalette(char * szDatFile, char * szPl2File) {
+int __stdcall LoadPalette(char * szDatFile, char * szPl2File) {
     char szDatFullPath[260];
     if (!szDatFile) {
       char szPl2FullPath[260];
@@ -245,11 +245,12 @@ void __stdcall LoadPalette(char * szDatFile, char * szPl2File) {
       /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szDatFullPath, "%s\\%s", "DATA\\GLOBAL", "palette\\act1\\pal.pl2");
       D2WINPAL_LoadPaletteFiles(szPl2FullPath, szDatFullPath);
       D2Comp::D2COMP_InitEmblemColorTables();
-      return;
+      return 1;
     }
 
     D2WINPAL_LoadPaletteFiles(szDatFile, szPl2File);
     D2Comp::D2COMP_InitEmblemColorTables();
+    return 1;
 }
 
 void __fastcall D2WINPAL_SetGammaRamp(uint32_t dwParam) {

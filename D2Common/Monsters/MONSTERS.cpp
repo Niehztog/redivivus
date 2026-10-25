@@ -102,7 +102,7 @@ eMissilesId __stdcall MONSTER_GetMissileForAnimEvent(D2UnitStrc * pUnit, int32_t
       pCurrentFrame >>= 8;
       nPrevFrameShifted >>= 8;
       nEventFrame = nPrevFrameShifted;
-      if (pCurrentFrame <= nPrevFrameShifted) {
+      if (nPrevFrameShifted >= pCurrentFrame) {
         return ~MISSILE_Arrow;
       }
 
@@ -118,7 +118,7 @@ eMissilesId __stdcall MONSTER_GetMissileForAnimEvent(D2UnitStrc * pUnit, int32_t
         }
       }
 
-      if (pCurrentFrame < nEventFrame) {
+      if (nEventFrame > pCurrentFrame) {
         return ~MISSILE_Arrow;
       }
       if (nEventFrame <= nPrevFrameShifted) {
@@ -140,7 +140,7 @@ eMissilesId __stdcall MONSTER_GetMissileForAnimEvent(D2UnitStrc * pUnit, int32_t
     }
 
     nEventFrame = pMonster->nClassId;
-    if (!(-1 < nEventFrame && nEventFrame < sgptDataTable->nTxtMonStatsSize)) {
+    if (!(0 <= nEventFrame && nEventFrame < sgptDataTable->nTxtMonStatsSize)) {
       return (int)*pMissileTable;
     }
 
@@ -374,7 +374,7 @@ uint32_t __fastcall MONSTER_IsBossOrChampion(D2UnitStrc * pUnit) {
     }
 
     int pMonData = pUnit->nClassId;
-    if (!(-1 < pMonData && pMonData < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + pMonData)) {
+    if (!(0 <= pMonData && pMonData < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + pMonData)) {
       return 0;
     }
     if (!(!sgptDataTable->pTxtMonStats[pMonData].npc && !sgptDataTable->pTxtMonStats[pMonData].inTown)) {
@@ -390,7 +390,7 @@ BOOL __stdcall MONSTER_IsAndarielNormal(D2UnitStrc * pUnit, int32_t nParam) {
       nBaseId = -1;
     } else {
       nBaseId = pUnit->nClassId;
-      if (-1 < nBaseId && nBaseId < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nBaseId) {
+      if (0 <= nBaseId && nBaseId < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nBaseId) {
         nBaseId = (int)sgptDataTable->pTxtMonStats[nBaseId].BaseId;
       }
     }
@@ -407,7 +407,7 @@ uint32_t __stdcall IsDemon(D2UnitStrc * pUnit) {
     }
 
     int pMonStatsTxt = pUnit->nClassId;
-    if (!(-1 < pMonStatsTxt && pMonStatsTxt < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + pMonStatsTxt)) {
+    if (!(0 <= pMonStatsTxt && pMonStatsTxt < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + pMonStatsTxt)) {
       return 0;
     }
 
@@ -421,7 +421,7 @@ BOOL __stdcall MONSTER_IsMonsterUndead(D2UnitStrc * pUnit) {
     }
 
     int pMonStatsTxt = pUnit->nClassId;
-    if (!(-1 < pMonStatsTxt && pMonStatsTxt < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + pMonStatsTxt && (sgptDataTable->pTxtMonStats[pMonStatsTxt].lUndead || sgptDataTable->pTxtMonStats[pMonStatsTxt].hUndead))) {
+    if (!(0 <= pMonStatsTxt && pMonStatsTxt < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + pMonStatsTxt && (sgptDataTable->pTxtMonStats[pMonStatsTxt].lUndead || sgptDataTable->pTxtMonStats[pMonStatsTxt].hUndead))) {
       return 0;
     }
 
@@ -430,7 +430,7 @@ BOOL __stdcall MONSTER_IsMonsterUndead(D2UnitStrc * pUnit) {
 
 uint32_t __stdcall UnitIsMarkedBoss(D2MonStatsTxt * pMonStatsTxt, D2UnitStrc * pUnit) {
     int nClassId;
-    if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && (pMonStatsTxt || (nClassId = pUnit->nClassId , -1 < nClassId && nClassId < sgptDataTable->nTxtMonStatsSize) && (pMonStatsTxt = sgptDataTable->pTxtMonStats + nClassId , pMonStatsTxt != 0)))) {
+    if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && (pMonStatsTxt || (nClassId = pUnit->nClassId , 0 <= nClassId && nClassId < sgptDataTable->nTxtMonStatsSize) && (pMonStatsTxt = sgptDataTable->pTxtMonStats + nClassId , pMonStatsTxt != 0)))) {
       return 0;
     }
 
@@ -453,7 +453,7 @@ int32_t __stdcall SummonOrSpawnMode(D2UnitStrc * pUnit, int32_t nParam1, int32_t
     D2SkillsTxt* pSkillsTxt;
     short int nSpawnId;
     if (!nParam1 || !pUnit || pUnit->eUnitType != UNIT_MONSTER) {
-      if (-1 < nParam2 && nParam2 < sgptDataTable->nTxtSkillsCount) {
+      if (0 <= nParam2 && nParam2 < sgptDataTable->nTxtSkillsCount) {
         pSkillsTxt = sgptDataTable->pTxtSkills + nParam2;
         if (pSkillsTxt && -1 < pSkillsTxt->summon && (int)pSkillsTxt->summon < sgptDataTable->nTxtMonStatsSize) {
           if (pnParam1) {
@@ -481,7 +481,7 @@ int32_t __stdcall SummonOrSpawnMode(D2UnitStrc * pUnit, int32_t nParam1, int32_t
     } else {
       D2MonStatsTxt* pMonStatsTxt;
       nSumModeOrSpawnMode = pUnit->nClassId;
-      if (-1 < nSumModeOrSpawnMode && nSumModeOrSpawnMode < sgptDataTable->nTxtMonStatsSize) {
+      if (0 <= nSumModeOrSpawnMode && nSumModeOrSpawnMode < sgptDataTable->nTxtMonStatsSize) {
         pMonStatsTxt = sgptDataTable->pTxtMonStats + nSumModeOrSpawnMode;
         if (pMonStatsTxt) {
           nSpawnId = pMonStatsTxt->spawn;
@@ -542,7 +542,7 @@ uint8_t __stdcall MONSTERS_GetMaxLightRadiusFromEquipment(D2UnitStrc * pUnit) {
       pComponentOverlay = DATATBLS::OverlayTbls::MONSTER_GetComponentOverlay(pUnitSaved, nComponentIdx, (uint32_t)(uint8_t)pcVar2[nComponentIdx]);
       if (pComponentOverlay && pComponentOverlay != (D2UnitStrc*)0x2074696c && pComponentOverlay != (D2UnitStrc*)0x2064656d && pComponentOverlay != (D2UnitStrc*)0x20797668) {
         pItemsTxt = DATATBLS::ItemTbls::ConvertItemCodeToClassIdAndGetItemsTxtLine((uint32_t)pComponentOverlay, &nClassId);
-        if (pItemsTxt && *(uint8_t*)((char*)&pUnit + 3) < (uint8_t)pItemsTxt->bLightRadius) {
+        if (pItemsTxt && (uint8_t)pItemsTxt->bLightRadius > *(uint8_t*)((char*)&pUnit + 3)) {
           pUnit = (D2UnitStrc*)((uint32_t)(uint8_t)pItemsTxt->bLightRadius << 0x18);
         }
       }
@@ -570,7 +570,7 @@ int32_t __stdcall GetMonsterBaseId(D2RoomStrc * pRoom, int32_t nMonsterId) {
     if (-1 < nMonsterId && nMonsterId < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonsterId) {
       nInputBaseId = (int)sgptDataTable->pTxtMonStats[nMonsterId].BaseId;
     }
-    if (-1 >= nInputBaseId) {
+    if (0 > nInputBaseId) {
       return nMonsterId;
     }
 
@@ -591,7 +591,7 @@ int32_t __stdcall GetMonsterBaseId(D2RoomStrc * pRoom, int32_t nMonsterId) {
       do {
         nMonArrayEntry = (int)*pMonArray;
         nMonBaseId = nMonArrayEntry;
-        if (-1 < nMonArrayEntry && nMonArrayEntry < nMonStatsSize && pMonStatsTable + nMonArrayEntry) {
+        if (0 <= nMonArrayEntry && nMonArrayEntry < nMonStatsSize && pMonStatsTable + nMonArrayEntry) {
           nMonBaseId = (int)pMonStatsTable[nMonArrayEntry].BaseId;
         }
         if (nMonBaseId == nInputBaseId) {
@@ -616,7 +616,7 @@ int32_t __stdcall GetMonsterBaseId(D2RoomStrc * pRoom, int32_t nMonsterId) {
       if (nUpgradedId < 0) {
         return nMonsterId;
       }
-      if (sgptDataTable->nTxtMonStatsSize <= nUpgradedId) {
+      if (nUpgradedId >= sgptDataTable->nTxtMonStatsSize) {
         return nMonsterId;
       }
 
@@ -624,7 +624,7 @@ int32_t __stdcall GetMonsterBaseId(D2RoomStrc * pRoom, int32_t nMonsterId) {
       if (!pMonStatsTxt) {
         return nMonsterId;
       }
-      if (pLevelsTxt->MonLvlEx[0] + 1 < (int)pMonStatsTxt->aLevel[0]) {
+      if ((int)pMonStatsTxt->aLevel[0] > pLevelsTxt->MonLvlEx[0] + 1) {
         return nMonsterId;
       }
 
@@ -642,7 +642,7 @@ uint32_t __stdcall MONSTERS_CheckMonStatFlag0xc_Bit7(D2UnitStrc * pnParam) {
     }
 
     int pMonStatsTxt = pnParam->nClassId;
-    if (!(-1 < pMonStatsTxt && pMonStatsTxt < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + pMonStatsTxt)) {
+    if (!(0 <= pMonStatsTxt && pMonStatsTxt < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + pMonStatsTxt)) {
       return 0;
     }
 
@@ -676,18 +676,18 @@ void __stdcall MONSTERS_GetUpgradeSkillsAndCount(D2UnitStrc * pUnit, uint32_t * 
       exit(-1);
     } else {
       DATATBLS::MonsterTbls::MONSTERTBLS_GetUpgradeDataByMonStatsId(pUnit->nClassId, nullptr, (eD2Skills*)&pUnit);
-      if ((int)pUnit < 4) {
-        if (-1 < (int)pUnit) {
-          *pdwAnimFlags = gdwMonStatAnimFlagsTable[(int)pUnit].dwFlags;
-          *pdwValidFlags = gdwMonStatAnimFlagsTable[(int)pUnit].dwValidFlags;
-          return;
-        }
-
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2c9);
-        exit(-1);
-      } else {
+      if (!((int)pUnit < 4)) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2c8);
         exit(-1);
+      } else {
+        if (!(-1 < (int)pUnit)) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2c9);
+          exit(-1);
+        }
+
+        *pdwAnimFlags = gdwMonStatAnimFlagsTable[(int)pUnit].dwFlags;
+        *pdwValidFlags = gdwMonStatAnimFlagsTable[(int)pUnit].dwValidFlags;
+        return;
       }
     }
 }
@@ -698,7 +698,7 @@ uint32_t __stdcall MONSTER_GetMercType(D2UnitStrc * pUnit) {
     }
 
     uint32_t nClassId = pUnit->nClassId;
-    if (nClassId < 360) {
+    if (nClassId <= 359) {
       if (nClassId == 359) {
         return 3;
       }
@@ -708,7 +708,7 @@ uint32_t __stdcall MONSTER_GetMercType(D2UnitStrc * pUnit) {
       if (nClassId == 338) {
         return 2;
       }
-    } else if (nClassId - 0x230 < 2) {
+    } else if (nClassId - 0x230 <= 1) {
       return 4;
     }
 

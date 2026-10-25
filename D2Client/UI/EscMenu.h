@@ -81,10 +81,6 @@ void __fastcall ESCMENU_InitAutomapCenterItem(struct D2EscMenuItemStrc * pItem, 
 void __fastcall UI_SLIDER_ApplyAutomapParty(struct D2EscMenuItemStrc * pItem, struct D2UIMouseMsgStrc * pMsg);
 void __fastcall ESCMENU_InitAutomapPartyItem(struct D2EscMenuItemStrc * pItem, struct D2UIMouseMsgStrc * pMsg);
 void __fastcall UI_SLIDER_InitAutomapParty(struct D2EscMenuItemStrc * pItem, struct D2UIMouseMsgStrc * pMsg);
-// Converts mouse Y coordinate to menu item index. Iterates visible items to find which contains the Y position, checking enable callbacks. Returns -1 if no valid item hit or if item is disabled.
-int32_t ESCMENU_GetItemIndexFromMouseY(int32_t nParam);
-void __stdcall ESCMENU_ClickMenuItem(struct D2UIMouseMsgStrc * pMsg);
-void ESCMENU_HandleSliderDrag(int32_t nParam1, int32_t nParam2);
 void __stdcall INPUT_EscMenuMouseDown(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_EscMenuMouseUp(struct D2UIMouseMsgStrc * pMsg);
 // Navigates to next menu item (down arrow key). Increments selected index in gpEscMenuItemCount, wrapping to 0 at end. Skips disabled items by checking enable callback. Plays navigation sound.

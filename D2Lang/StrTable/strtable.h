@@ -35,14 +35,10 @@ namespace D2Lang::StrTable::strtable {
 
 // Function declarations
 BOOL __stdcall ARCHIVE_LoadMPQFiles();
-uint16_t * __stdcall STRTABLE_GetStringByIndex(struct D2StringTableTblFileStrc * pStrTable, uint16_t * * ppEntryTable, uint16_t wRawIndex, DWORD dwErrorCode);
 // @sourcefile .\StrTable\strtable.cpp
 void __fastcall STRTABLE_FreeMemory(void * pParam);
 uint32_t __stdcall STRTABLE_HashString(char * szText, uint32_t nBucketCount);
 uint16_t * __fastcall GetLocaleString(uint16_t nParam);
-// @sourcefile .\StrTable\strtable.cpp
-uint16_t * __fastcall STRTABLE_GetTranslatedString(uint8_t * pbParam);
-uint16_t __stdcall STRTABLE_FindStringByKey(uint16_t * * ppHashTable, uint8_t * pbParam, int * pnParam, struct D2StringTableTblFileStrc * pStrTable);
 uint32_t __stdcall STRTABLE_LookupString(uint8_t * pbParam, uint16_t * * ppwszText);
 uint16_t * __fastcall STRTABLE_GetStringByKey(uint8_t * pbParam);
 // @sourcefile .\StrTable\strtable.cpp

@@ -129,14 +129,9 @@ namespace D2Common::INVENTORY::Inventory {
 
 // Function declarations
 // Returns the item's inventory node (&pItemData->pInventory, D2UnitDataItemStrc +0x5c), not a D2InventoryStrc; NULL when pUnit is not an item or has no item data. Provenance: 1.14d asm 0063a7f0 ADD EAX,0x5c.
-struct D2ItemInventoryNodeStrc * INVENTORY_GetItemInventoryNode(struct D2UnitStrc * pUnit);
 // Unlinks an item unit from a doubly-linked inventory list. Updates prev/next pointers in D2UnitDataItemStrc at offsets 0x60/0x64.
-void INVENTORY_UnlinkItemFromList(struct D2UnitStrc * * pItemListHead, struct D2UnitStrc * pItem);
-BOOL __stdcall INVENTORY_IsGridRectEmpty(int32_t nRow, uint32_t nCol, int32_t nStartCol, uint8_t bParam, int32_t pGridInfo);
-void __stdcall INVENTORY_FillGridRect(uint32_t nWidth, int32_t nStartCol, int32_t pGridInfo, uint8_t bParam, uint32_t dwParam, int32_t nStartRow);
 // Unlinks pItem from the doubly-linked page list (prev/next pointers in D2UnitDataItemStrc) and clears the corresponding grid-cell slots in pPageList->pGridCells. When bUseWidthHeight is non-zero, clears all width×height cells occupied by the item; otherwise clears only the single origin cell. Resets eInventoryGrid to INVENTORY_GRID_BODYLOC and nulls the prev/next links.
 // @sourcefile .\INVENTORY\Inventory.cpp
-void __stdcall INVENTORY_RemoveItemFromGrid(struct D2UnitStrc * pItem, struct D2InventoryGridInfoStrc * pPageList, int bUseWidthHeight);
 // Removes an item unit from its owning D2InventoryStrc. Validates inventory signature (0x1020304), removes the item from its grid slot, clears the cursor-item pointer or unlinks it from the item list, zeroes the item's inventory/grid references, clears the owner's stat bonuses via STATLIST_RemoveFromOwnerAndRecalc, and clears dwPrimaryWeaponGUID if it matched. Returns 1 on success, 0 on any validation failure.
 BOOL __fastcall INVENTORY_RemoveItemFromInventory(struct D2UnitStrc * pItem);
 // @sourcefile .\INVENTORY\Inventory.cpp
@@ -146,33 +141,12 @@ struct D2InventoryStrc * __stdcall STRUCT_CreatePlayerInventory(struct D2PoolMan
 void __stdcall STRUCT_FreeInventory(struct D2InventoryStrc * pInventory);
 BOOL __stdcall INVENTORY_CheckDoItemBelongToInventory(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit);
 struct D2UnitStrc * __stdcall ItemBelongsToInventoryOfPlayer(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit);
-// Ensures that grid slot nNewGridSize exists in pInventory and optionally allocates its cell array. If the slot index is within the existing pGrids array, validates or allocates the cell buffer to match pInventorySize (Width x Height). If the slot is beyond the current count, reallocates pGrids to hold the new index and allocates a zeroed cell array. Returns a pointer to the target D2InventoryGridInfoStrc, or NULL on mismatch/failure. Called before any grid read/write to lazily expand the inventory grid table.
-// @sourcefile .\INVENTORY\Inventory.cpp
-struct D2InventoryGridInfoStrc * __stdcall ReinitializeInventoryGrid(struct D2InventoryStrc * pInventory, struct D2InventorySizesStrc * pInventorySize, int32_t nNewGridSize);
 // Links pItem onto the tail of pInventoryStrc's item linked list (pFirstItem/pLastItem chain). Validates that pItem is a unit of type UNIT_ITEM (eUnitType==4) with valid pUnitData and pStatsEx. Sets pUnitDataItem->pInventory to the previous last item and pStatsEx to the inventory pointer.
 void INVENTORY_AppendItemToList(struct D2UnitStrc * pItem, struct D2InventoryStrc * pInventoryStrc);
-void __stdcall INVENTORY_InsertItemInPageList(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pItem, struct D2InventoryGridInfoStrc * pGridInfo);
-// Places an item unit (pUnit, must be UNIT_ITEM with a valid signature 0x1020304 inventory) into a target inventory page grid at cell (nnX,nnY). Reads the item's width/height from D2ItemsTxt; for special pages (nParam1 0=stash-like via UINT_ARRAY_00744660, 1=default config) forces a 1x1 footprint, otherwise resolves the page grid dimensions (GetGridDimensions on eInventoryPage nParam2) and bounds-checks the rect. Reinitializes the grid, requires the target rect empty (INVENTORY_IsGridRectEmpty), then if the item was on the ground (Run anim) removes its room/collision presence, unlinks it from any prior inventory, links it in, fills the grid rect, sets owner GUID and page/location bytes, increments item count, and sets the item's static X/Y. Returns 1 on success, 0 on any validation failure.
-// @sourcefile .\INVENTORY\Inventory.cpp
-BOOL __stdcall INVENTORY_PlaceItemInGrid(int32_t nnX, int32_t nnY, int32_t nParam1, int32_t nParam2, struct D2UnitStrc * pUnit, struct D2InventoryStrc * pInventory);
 BOOL __stdcall PutItemInInventory(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit, uint32_t dwParam);
 struct D2UnitStrc * __stdcall INVENTORY_GetFirstItem(struct D2InventoryStrc * pInventory);
 struct D2UnitStrc * __stdcall INVENTORY_GetLastItem(struct D2InventoryStrc * pInventory);
 uint32_t __stdcall INVENTORY_CheckItemFitsInGrid(uint32_t dwUnused, uint32_t nGridCol, int32_t nY, int32_t nX, uint8_t byItemHeight, int32_t pGridInfo);
-// Scores a candidate inventory grid placement for an item of dimensions (byItemWidth x byItemHeight) at grid position (nStartRow, nStartCol). Counts occupied neighbouring cells on all four sides (left column, right column, top row, bottom row) of the placement rectangle; adds byItemWidth or byItemHeight when the rectangle touches a grid boundary. Returns the score (lower = more isolated = better fit); returns 0xFF if the score equals or exceeds the item perimeter, indicating a fully surrounded or impossible placement. byItemWidth is a single byte: the prologue does MOVZX EDX, CL, so the upper 24 bits of ECX are dead and callers set only CL.
-uint32_t __stdcall INVENTORY_CalcGridPlacementScore(uint8_t byItemWidth, int32_t pGridInfo, int * nStartCol, uint8_t byItemHeight, int32_t nStartRow);
-// Scans the grid (pGridInfo) in reverse column order for an empty rectangle that fits byItemWidth x byItemHeight, scoring each candidate via INVENTORY_CalcGridPlacementScore. Writes the best column and row to *ppnOutX/*pnOutY. Returns 1 if a valid placement was found, 0 otherwise. Exits early with score 1 if a perfect-score (0xFF) slot is found. Companion to INVENTORY_FindBestGridPosition (row-first scan).
-uint32_t __stdcall INVENTORY_FindBestPlacementWithScore(int * * ppnOutX, int * pnOutY, uint8_t byItemWidth, uint8_t byItemHeight, int32_t pGridInfo);
-// Scans the grid (pGridInfo) in reverse column order for the first empty cell where an item of size byItemWidth x byItemHeight fits, verified by INVENTORY_IsGridRectEmpty. Writes the column to *pnOutX and row to *pnOutY. Returns 1 on success, 0 if no slot found. Does not score placements — use INVENTORY_FindBestGridPosition for scored placement.
-BOOL __stdcall INVENTORY_FindFirstEmptySlot(int * pnOutX, int * pnOutY, uint8_t byItemWidth, uint8_t byItemHeight, int32_t pGridInfo);
-BOOL __stdcall INVENTORY_FindPlacementSlot(uint8_t byItemWidth, uint8_t byItemHeight, struct D2InventoryStrc * pInventory, int * pnOutY, int * * ppnOutX, int32_t pGridInfo);
-// Scans the grid (pGridInfo) in row-major order for the highest-scoring empty placement that fits byItemWidth x byItemHeight, using INVENTORY_IsGridRectEmpty and INVENTORY_CalcGridPlacementScore. Writes best column to *ppnOutX and row to *pnOutY. Returns 1 if any valid placement found, 0 otherwise. Exits early on a perfect score (0xFF). Row-major counterpart to INVENTORY_FindBestPlacementWithScore.
-uint32_t __stdcall INVENTORY_FindBestGridPosition(int * * ppnOutX, int * pnOutY, uint8_t byItemWidth, uint8_t byItemHeight, int32_t pGridInfo);
-// Finds the first empty grid slot that fits byItemWidth x byItemHeight for non-player inventories (e.g. stash, cube), iterating column-major. Uses raw field offsets relative to pGridInfo->pOwner instead of the player-side grid accessors. Writes result to *pnOutX / *pnOutY. Returns 1 on success, 0 if no slot found. Note: the pGridInfo parameter is typed D2InventoryStrc* but used as a raw grid info block here.
-BOOL __stdcall INVENTORY_FindBestGridPositionNonPlayer(int * pnOutX, int * pnOutY, uint8_t byItemWidth, uint8_t byItemHeight, struct D2InventoryStrc * pGridInfo);
-BOOL __stdcall INVENTORY_FindGridPositionByOwner(uint8_t byItemWidth, uint8_t byItemHeight, struct D2InventoryStrc * pInventory, int * pnOutY, int * * ppnOutX, int32_t pGridInfo);
-BOOL __stdcall INVENTORY_FindGridPositionByOwner2(uint8_t byItemWidth, uint8_t byItemHeight, int32_t pInventory, int * pnOutY, int * * ppnOutX, int32_t pGridInfo);
-BOOL __stdcall INVENTORY_FindGridPositionByOwner3(uint8_t byItemWidth, uint8_t byItemHeight, int32_t pInventory, int * * ppnOutX, int * pnOutY, int32_t pGridInfo);
 // Finds a valid grid position in pInventory for pUnit (must be UNIT_ITEM) on the inventory page eInvPage. Queries the item's width/height via ITEM_GetItemsTxt_nWidthAndHeight, retrieves or creates the grid via ReinitializeInventoryGrid, then dispatches to INVENTORY_FindPlacementSlot, INVENTORY_FindGridPositionByOwner, INVENTORY_FindGridPositionByOwner2, or INVENTORY_FindGridPositionByOwner3 depending on item/inventory size class. Returns 0 on any validation failure.
 // @sourcefile .\INVENTORY\Inventory.cpp
 int __stdcall INVENTORY_FindItemGridPosition(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit, int32_t eInvPage, int * * ppnOutX, int * pnOutY, uint8_t bParam);
@@ -212,7 +186,6 @@ struct D2UnitStrc * __stdcall INVENTORY_FindSocketableItemInStash(struct D2Inven
 struct D2UnitStrc * __stdcall INVENTORY_FindSocketableItemInMain(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit1, struct D2UnitStrc * pUnit2);
 // Searches the player inventory grid for a tome (ITEMTYPE_Book) that matches pScrollItem's magic suffix and is not yet full (quantity < max stack). Iterates the stash grid's item linked list starting from pStartAfterItem (or from the beginning if NULL). Returns the first matching non-full tome, or NULL if none found. Used when auto-stacking a scroll pickup into an existing tome.
 struct D2UnitStrc * __stdcall INVENTORY_FindMatchingScrollBook(int * pnParam, struct D2UnitStrc * pScrollItem, struct D2UnitStrc * pStartAfterItem);
-BOOL INVENTORY_PlaceItemInBeltSlot(uint32_t nBeltSlot, struct D2InventoryStrc * pInventory, int * pnBeltType);
 // @sourcefile .\INVENTORY\Inventory.cpp
 BOOL __stdcall INVENTORY_CanPlaceItemInBelt(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit, uint32_t nParam);
 void __stdcall INVENTORY_OnBeltChanged_NoOp(struct D2InventoryStrc * dwParam1, uint32_t dwParam2);
@@ -272,19 +245,7 @@ struct D2CorpseStrc * __stdcall INVENTORY_GetNextCorpse(struct D2CorpseStrc * pC
 int32_t __stdcall ROOMCORPSE_GetGUID(struct D2CorpseStrc * pCorpse);
 int32_t __stdcall CORPSE_GetMercClassId(int32_t nParam);
 struct D2RoomStrc * * __stdcall CORPSE_GetData(struct D2RoomStrc * pRoom);
-void ITEM_GetBodyComponents(struct D2UnitStrc * pUnit, uint8_t * pbParam);
-// One-time initializer (guarded by gbItemTypeTableInitialized) that builds gaItemTypeBaseIdTable and gwItemTypeEquivByIndex — a compact lookup table mapping item base-type IDs to their item-type equivalence index. Iterates all Items.txt rows, filters out non-equippable types (no weapons/armor/shields/helms/circlets), deduplicates by base-type ID, and assigns slots by weapon/armor category match. Also seeds gaItemTypeStringBuffer literals ("lit", "med", "hvy") and gnItemTypeAltGfxSentinel=0xFF.
-void __stdcall INVENTORY_InitializeItemTypeTable();
-uint32_t INVENTORY_GetAlternateGfxIndex(int32_t nParam1, int32_t nParam2);
-// Updates the composite (component-layer) weapon graphic index when an item is worn in BODYLOC_R_ARM or BODYLOC_L_ARM. For bow-class weapons with an off-hand item, queries INVENTORY_GetAlternateGfxIndex and writes the result (or 0xFF sentinel) into the composite-param slots at offsets +5/+6. Called when equip state changes.
-void __stdcall INVENTORY_UpdateCompositeWeaponGfx(int32_t nParam1, int32_t nParam2, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
-// Updates the visual appearance arrays (szText1 = component GFX indices, szText2 = color codes) for pItem equipped on pUnit. Determines the item's component slot via ITEM_GetItemsTxt_bComponent, resolves the alternate GFX index via INVENTORY_GetAlternateGfxIndex, and overrides the slot to 5 or 6 for right/left arm weapons. Clears the slot to -1 if no alt-GFX; otherwise writes the GFX index and resolves the color via GetItemColor, then updates composite weapon GFX. Halts fatally if the items-txt entry is missing.
-void __stdcall INVENTORY_SetEquippedItemAppearance(struct D2UnitStrc * pUnit, char * szText1, char * szText2, struct D2UnitStrc * pItem);
 uint8_t __stdcall INVENTORY_CalculateSwapActionCode(int32_t nParam1, int32_t nParam2);
-// Decides whether an item can be equipped alongside the unit's current weapon for dual-wield. pUnit=currently-equipped weapon item, pItem1=item being equipped, pCharUnit=the character. Returns 1 if compatible/allowed, 0 if not. Rejects shoots+ammo mismatches and quivers; blocks two-handers unless the Barbarian's 2H-as-1H check passes; otherwise requires both to be weapons and gates on class (Barbarian dual-wield, Assassin/Druid hand-to-hand) via ValidateClassId. Used by item-equip placement logic.
-BOOL INVENTORY_CanDualWieldItems(struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem1, struct D2UnitStrc * pCharUnit);
-// Determines the equip-swap action code (0-7) when equipping pNewItem into a weapon slot on pUnit1, given the current items pUnit (paired slot) and pUnit2 (current slot). Returns: 0=equip empty, 1=replace, 2=can't dual-wield, 3=move to stash, 4=two-hander blocks, 5=dual-wield swap, 6=socket insert, 7=move to stash (page check). Used by INVENTORY_GetEquipActionForBodySlot to decide what happens when a weapon slot changes.
-uint32_t __stdcall INVENTORY_GetEquipSwapAction(struct D2UnitStrc * pUnit, struct D2UnitStrc * pNewItem, struct D2UnitStrc * pUnit1, uint32_t nParam, struct D2UnitStrc * pUnit2);
 // Returns the equip action code for placing pItem into body slot nParam on pUnit. First validates body location fit and equipment requirements. For arm slots (R_ARM/L_ARM and their swap pairs), retrieves both the current and paired slot items and delegates to INVENTORY_GetEquipSwapAction. For other slots, returns 1 (replace) if the slot is occupied or 1 if placing a new item; returns 3 (move to stash) if clearing an occupied slot. Returns 0 on null unit/inventory or failed fit/req check.
 int32_t __stdcall INVENTORY_GetEquipActionForBodySlot(struct D2UnitStrc * pUnit, eD2BodyLocDWORD nBodyLoc, struct D2UnitStrc * pItem, int nParam2);
 struct D2UnitStrc * __stdcall INVENTORY_GetNextItem(struct D2UnitStrc * pUnit);
@@ -297,11 +258,6 @@ struct D2UnitStrc * __stdcall INVENTORY_IsItemOwnedBy(struct D2InventoryStrc * p
 void __stdcall FreeRecursiveInventorysWithChilds(struct D2InventoryStrc * pInventory);
 // Copies the backpack grid (grid index 2) cell array from pUnit's inventory into pInventory. Looks up the inventory page dimensions via GetInventoryPage + GetGridDimensions, ensures both grids exist and have matching Width x Height, then memcpys the source cell pointer array. Returns 1 on success, 0 if either inventory is invalid, grids are missing, or dimensions mismatch.
 BOOL CopyInventory(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit);
-// Marks a rectangular region of the backpack grid (index 2) in pInventory as occupied (0xFFFFFFFF sentinel) for the item pUnit2. Finds the item's current grid position via INVENTORY_FindItemGridPosition, reads its width/height from items-txt, then fills the corresponding cell range in the grid's pGridCells array. Returns 1 on success, 0 if the inventory is invalid, the position cannot be found, or the rectangle extends out of bounds.
-// @sourcefile .\INVENTORY\Inventory.cpp
-BOOL __stdcall INVENTORY_ReserveGridCells(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
-// Checks whether all items on pUnit2's mercenary inventory page (INVPAGE_MERC) can be reserved into pInventory (owned by pUnit). Iterates the merc's item chain; returns 1 if every merc item fits (INVENTORY_ReserveGridCells succeeds for each), 0 if any item fails placement. Used when transferring merc gear between units.
-BOOL __stdcall INVENTORY_CanTransferMercItems(struct D2UnitStrc * pUnit, struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit2);
 // Determines whether two units can complete a merc-item trade by making temporary inventory copies. Allocates two scratch inventories from pMemory, copies each unit's inventory into them, then calls INVENTORY_CanTransferMercItems in both directions to find which unit is the buyer. Sets *pbMercIsBuyer accordingly (false = pUnit2 buys, true = pUnit buys). Frees both scratch inventories before returning. Returns 1 if a valid transfer direction was found, 0 otherwise.
 // @sourcefile .\INVENTORY\Inventory.cpp
 BOOL __stdcall CreateCopyOfInventoryForTrading(struct D2PoolManagerStrc * pMemory, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, bool * pbMercIsBuyer);

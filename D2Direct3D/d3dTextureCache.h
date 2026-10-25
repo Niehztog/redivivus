@@ -38,9 +38,7 @@ namespace D2Direct3D::d3dTextureCache {
 
 // Function declarations
 void __fastcall D3DTEXCACHE_SetPalette(struct D3DTextureCacheStrc * pCache, void * pPalette);
-void __fastcall D3DTEXCACHE_InsertNodeAtTail(struct D3DTextureCacheNodeStrc * pNode, struct D3DTextureCacheStrc * pCache);
 struct D3DTextureCacheNodeStrc * __fastcall D3DTEXCACHE_RemoveNodeByIndex(struct D3DTextureCacheStrc * pCache, int nIndex);
-int __stdcall D3DTEXCACHE_AllocateNodeFromFreeList(struct D3DTextureCacheStrc * pCache);
 void __fastcall D3DTEXCACHE_InvalidateByIndex(struct D3DTextureCacheStrc * pCache, int nIndex);
 void __fastcall D3DTEXCACHE_InvalidateByTilePtr(struct D3DTextureCacheStrc * pCache);
 // @sourcefile .\Src\d3dTextureCache.cpp

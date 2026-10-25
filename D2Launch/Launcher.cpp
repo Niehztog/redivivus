@@ -58,12 +58,13 @@ typedef void (__stdcall *pfnUIMenuInstance)();
 #endif
 
 namespace D2Launch::Launcher {
+static BOOL __fastcall UpdateSaveFileToExpansion(char * szCharname);
 
 static char * gpszPaletteSkyDat[4] = { 0 };
 static char * gpszPaletteSkyPl2[4] = { 0 };
 
 void __stdcall CHARSEL_ResetCharListUI() {
-    BOOL bDownArrowVisible = D2Client::CharScreen::TotalCurrentChars < 1 || D2Client::CharScreen::nSelectedCharIndex <= gnCharSelLoadMoreEntryIndex ? 0 : 1;
+    BOOL bDownArrowVisible = D2Client::CharScreen::TotalCurrentChars < 1 || (int)D2Client::CharScreen::nSelectedCharIndex <= (int)gnCharSelLoadMoreEntryIndex ? 0 : 1;
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(&gpCtlCharSelDownArrow->sControl, bDownArrowVisible);
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(gpCtlCharSelDeleteButton, (uint32_t)(0 < D2Client::CharScreen::TotalCurrentChars));
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(gpCharSelExitButton, 1);
@@ -79,7 +80,7 @@ void __stdcall CHARSEL_ResetCharListUI() {
     CharSel::CHARSEL_UpdateSelectedCharDisplay();
 }
 
-void __stdcall UIMENU_ChangeHavingMultipleRealmsAsia123() {
+static void __stdcall UIMENU_ChangeHavingMultipleRealmsAsia123() {
     uint16_t* szText;
     int nRealmCount;
     char* szRealmName;
@@ -89,7 +90,9 @@ void __stdcall UIMENU_ChangeHavingMultipleRealmsAsia123() {
     if (OogCurrentCharSelectionMode == CHAR_SELECTION_BNET) {
       BOOL bIsExpansion;
       bIsExpansion = Fog::D2CheckExpansionGame();
-      if (!bIsExpansion) {
+      if (bIsExpansion) {
+        CharSel::UIMENU_ItsLikeRealmSelectionMenuButOffsetToRightSide();
+      } else {
         gpCtlRealmSelectionPanel = MainMenus::FORMS_CreateAnyFormFromList(0x73);
         D2Win::Src::D2WinMain::FORMS_SetGlobalFormImage(gpCtlRealmSelectionPanel, 1);
         D2Win::Src::D2WinMain::SetUnsetFlag0x08(gpCtlRealmSelectionPanel, 1);
@@ -103,8 +106,6 @@ void __stdcall UIMENU_ChangeHavingMultipleRealmsAsia123() {
         D2Win::Src::D2WinMain::SetUnsetFlag0x08(gnRealmSelectionOffset, 1);
         gnCharSelImageOffset = MainMenus::FORMS_CreateAnyFormFromList(0x78);
         D2Win::Src::D2WinMain::SetUnsetFlag0x08(gnCharSelImageOffset, 1);
-      } else {
-        CharSel::UIMENU_ItsLikeRealmSelectionMenuButOffsetToRightSide();
       }
 
       nRealmIndex = 0;
@@ -267,10 +268,10 @@ void __stdcall CHARSEL_ParseRealmCharList(char * szRealmName, char * szText, int
     if (bShouldCache) {
       CharSel::CHARSEL_CacheRealmData(szRealmName, pRecordHeader, (int)aSaveData - (int)pRecordHeader);
     }
-    if (*(uint16_t*)(pRecordHeader + 1) <= nCharCount) {
+    if (nCharCount >= *(uint16_t*)(pRecordHeader + 1)) {
       gnCharSelLoadedCharCount = 1;
     }
-    if (*(uint16_t*)(pRecordHeader + 7) < *(uint16_t*)(pRecordHeader + 3)) {
+    if (*(uint16_t*)(pRecordHeader + 3) > *(uint16_t*)(pRecordHeader + 7)) {
       pwszHeader = D2Lang::StrTable::strtable::GetLocaleString(0x2b3b);
       szText = (char*)((uint32_t)szText & -65536);
       gnCharSelLoadingEntryIndex = D2Client::CharScreen::TotalCurrentChars;
@@ -296,7 +297,8 @@ BOOL __stdcall CHARSEL_OnPressPumpRealmCharListLoad(D2ControlMsg * pControlMsg) 
       gbCharSelScreenWaitTimeout = GetTickCount();
       return 1;
     }
-    if (gnCharSelBNetLoadState == 2) {
+    switch (gnCharSelBNetLoadState) {
+    case 2: {
       uint32_t nMcpThreadStatus;
       CharSel::CHARSEL_ShowWaitTimeout();
       nMcpThreadStatus = MainMenus::MAINMENU_PollMCPThreadStatus();
@@ -312,7 +314,9 @@ BOOL __stdcall CHARSEL_OnPressPumpRealmCharListLoad(D2ControlMsg * pControlMsg) 
         nStatusCode = D2MCPClient::McpConnect::GetD2GSJoinResult();
         CharSel::CHARSEL_SetStatusMessage(nStatusCode);
       }
-    } else if (gnCharSelBNetLoadState == 3) {
+      break;
+    }
+    case 3: {
       CharSel::CHARSEL_ShowWaitTimeout();
       D2MCPClient::McpConnect::NET_MCP_CLIENT_ReadAndParsePacket();
       szText = (char*)D2MCPClient::McpConnect::MCPCONNECT_GetCharListPacket();
@@ -327,12 +331,14 @@ BOOL __stdcall CHARSEL_OnPressPumpRealmCharListLoad(D2ControlMsg * pControlMsg) 
 
       CHARSEL_ParseRealmCharList(gszPendingRealmName, szText, 1);
       return 1;
+      break;
+    }
     }
 
     return 1;
 }
 
-void CHARSEL_RequestRealmCharList(char * szRealmName) {
+static void CHARSEL_RequestRealmCharList(char * szRealmName) {
     CharSel::CHARSEL_DestroyAllCharEntries();
     gbCharSelArrowsHidden = 0;
     D2Win::Src::D2WinMain::D2WINMAIN_SetControlVisible(gpControlCharSelArrows, 1);
@@ -674,7 +680,9 @@ BOOL __stdcall HandleUpdateToExpansion(D2ControlMsg * pControlMsg) {
           bUpgradeOk = MainMenus::MAINMENU_UpgradeCharacterToExpansion(pSelectedCharacter, aszCommandAnsi);
           if (!bUpgradeOk) {
             nJoinResult = D2MCPClient::McpConnect::GetD2GSJoinResult();
-            if (nJoinResult == 0x7b) {
+            if (nJoinResult != 0x7b) {
+              pwszMessage = D2Lang::StrTable::strtable::GetLocaleString(0x145b);
+            } else {
               Fog::File::CONTAINER_InitializeBuffer(awszFormattedMsg, 2, 0x100, MainMenus::STRING_ZeroOneWCHAR);
               Fog::File::CONTAINER_InitializeBuffer(awszCharName, 2, 0x100, MainMenus::STRING_ZeroOneWCHAR);
               D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(awszCharName, pSelectedCharacter->szCharname, 0x100);
@@ -682,8 +690,6 @@ BOOL __stdcall HandleUpdateToExpansion(D2ControlMsg * pControlMsg) {
               pwszFormat = D2Lang::StrTable::strtable::GetLocaleString(0x2b89);
               D2Lang::Unicode::UNISYS::UNICODE_FormatWideString(0x100, awszFormattedMsg, pwszFormat, (uint16_t*)pwszMessage);
               pwszMessage = awszFormattedMsg;
-            } else {
-              pwszMessage = D2Lang::StrTable::strtable::GetLocaleString(0x145b);
             }
 
             MainMenus::MAINMENU_ShowPopupWithCancel(pwszMessage, UIMENU_CharacterSelectAllGameTypes);
@@ -752,9 +758,9 @@ BOOL __stdcall LAUNCHER_StartGameWithSelectedCharacter(D2ControlMsg * pControlMs
     return 1;
 }
 
-void __fastcall LAUNCHER_InitNetworkLobbyQueue(D2IniConfigStrc * pIniConfig) {
+int __fastcall LAUNCHER_InitNetworkLobbyQueue(D2IniConfigStrc * pIniConfig) {
     if (pIniConfig->pBNetClientCallbacks) {
-      return;
+      return 1;
     }
 
     gpBNetCallbacks = Bnclient::NET_InitAndGetLobbyChatQueue();
@@ -765,6 +771,7 @@ void __fastcall LAUNCHER_InitNetworkLobbyQueue(D2IniConfigStrc * pIniConfig) {
 
     pIniConfig->pBNetClientCallbacks = gpBNetCallbacks;
     gpBNetCallbacks->pfnSetLoggingFlag((uint32_t)pIniConfig);
+    return 1;
 }
 
 void __stdcall LAUNCHER_SetBusyFlag() {
@@ -798,7 +805,7 @@ int __stdcall LAUNCHER_CheckRevisionAndShowDialog(int nFrameIndex) {
     return 1;
 }
 
-int __stdcall LAUNCHER_HandleBnetConnect_1(int nFrameIndex) {
+static int __stdcall LAUNCHER_HandleBnetConnect_1(int nFrameIndex) {
     uint32_t dwResponseCtx;
     BOOL bIsConnected = gpBNetCallbacks->pfnWaitForCreateAccountResponse(&dwResponseCtx);
     if (bIsConnected) {
@@ -819,7 +826,7 @@ int __stdcall LAUNCHER_HandleBnetConnect_1(int nFrameIndex) {
     return 1;
 }
 
-int __stdcall LAUNCHER_PumpChangePasswordResponse(int nFrameIndex) {
+static int __stdcall LAUNCHER_PumpChangePasswordResponse(int nFrameIndex) {
     uint32_t dwResponseCtx;
     BOOL bIsConnected = gpBNetCallbacks->pfnWaitForChangePasswordResponse(&dwResponseCtx);
     if (bIsConnected) {
@@ -950,23 +957,23 @@ int __fastcall ShowOogErrorDialog(D2OogErrorDataStrc * pErrorData) {
 
       case OOG_ERROR_CHAR_NAME_DIALOG_2:
         Fog::File::CONTAINER_InitializeBuffer(awszCharName, 2, 0x200, MainMenus::STRING_ZeroOneWCHAR);
-      if (pErrorData->pCustomData) {
-        D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(awszCharName, (char*)pErrorData->pCustomData, 0x200);
-        cchBufferSize = 0x200;
-        pwszClearCursor = D2Lang::StrTable::strtable::GetLocaleString(0x147f);
-        D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(awszTitle, pwszClearCursor, cchBufferSize);
-        cchBufferSize = 0x200;
-        pwszClearCursor = D2Lang::StrTable::strtable::GetLocaleString(pErrorData->eErrorCode != OOG_ERROR_CHAR_NAME_DIALOG ? 0x2aa2 : 0x1450);
-        D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(awszBody, pwszClearCursor, cchBufferSize);
-        cchBufferSize = 0x200;
-        pwszClearCursor = D2Lang::StrTable::strtable::GetLocaleString(0x1451);
-        D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(awszFooter, pwszClearCursor, cchBufferSize);
-        MainMenus::UIMENU_CrashingCantTestIt(awszTitle, awszBody, awszCharName, awszFooter, MainMenus::UIMENU_MainMenu);
-        return 0;
+      if (!pErrorData->pCustomData) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2ad);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2ad);
-      exit(-1);
+      D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(awszCharName, (char*)pErrorData->pCustomData, 0x200);
+      cchBufferSize = 0x200;
+      pwszClearCursor = D2Lang::StrTable::strtable::GetLocaleString(0x147f);
+      D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(awszTitle, pwszClearCursor, cchBufferSize);
+      cchBufferSize = 0x200;
+      pwszClearCursor = D2Lang::StrTable::strtable::GetLocaleString(pErrorData->eErrorCode != OOG_ERROR_CHAR_NAME_DIALOG ? 0x2aa2 : 0x1450);
+      D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(awszBody, pwszClearCursor, cchBufferSize);
+      cchBufferSize = 0x200;
+      pwszClearCursor = D2Lang::StrTable::strtable::GetLocaleString(0x1451);
+      D2Lang::Unicode::UNISYS::WSTRING_PutWideCharIntoBuffer(awszFooter, pwszClearCursor, cchBufferSize);
+      MainMenus::UIMENU_CrashingCantTestIt(awszTitle, awszBody, awszCharName, awszFooter, MainMenus::UIMENU_MainMenu);
+      return 0;
       case OOG_ERROR_11:
         nTitleStrId = 0x147f;
       nBodyStrId = 0x14ec;
@@ -1127,7 +1134,7 @@ int __fastcall ShowOogErrorDialog(D2OogErrorDataStrc * pErrorData) {
     return 0;
 }
 
-void __stdcall LAUNCHER_ShowOogErrorDialog_ForEnterEmail() {
+static void __stdcall LAUNCHER_ShowOogErrorDialog_ForEnterEmail() {
     D2OogErrorDataStrc sErrorData;
     ShowOogErrorDialog(&sErrorData);
 }
@@ -1587,8 +1594,8 @@ uint32_t __fastcall LAUNCHER_LoadCharacterAppearanceFromD2s(char * szCharacterNa
 
     size_t nBytesRead;
     nBytesRead = fread((D2CharSelCompStrc*)&__frame0.dwSaveMagicNumber, 1, 0x2000, pSaveFile);
-    if (7 < nBytesRead && __frame0.dwSaveMagicNumber == 0xaa55aa55) {
-      if (__frame0.dwSaveVersion < 0x5c) {
+    if (8 <= nBytesRead && __frame0.dwSaveMagicNumber == 0xaa55aa55) {
+      if (__frame0.dwSaveVersion <= 0x5b) {
         if (nBytesRead < 0x82 || __frame0.dwSaveVersion < 0x47) {
           goto cleanup;
         }

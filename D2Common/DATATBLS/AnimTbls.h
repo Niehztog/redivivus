@@ -28,11 +28,6 @@ void __fastcall ANIMDATA_FreeAnimDataRecord(void * * pParam);
 // pdwName1 in EDI, pdwName2 in ESI: TRUE when both 8-byte names match as two dwords. Halts (AnimTbls.cpp lines 217/218, StringLength((LPCTSTR)pdwName2) <= 8) on a name longer than 8.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 BOOL __stdcall ANIMDATA_CompareNames(uint32_t * pdwName1, uint32_t * pdwName2);
-// Looks up an AnimData record by name. Uppercases the name, computes a
-// byte-sum hash, then walks the hash bucket comparing 8-byte names.
-// Returns pointer to the matching record or NULL.
-// Source: .\\DATATBLS\\AnimTbls.cpp
-int * ANIMDATA_GetRecordByNameHash(int * pnParam);
 // Gets the AnimData record for a unit. Builds the composit animation
 // name via COMPOSIT_BuildCofPath, then looks it up via ANIMDATA_GetRecordByNameHash.
 // Called by SetAnimData and composit rendering code.

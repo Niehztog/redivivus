@@ -76,7 +76,7 @@ BOOL __fastcall Skills_CltDoFunc_Nec_CurseCenter_StreamMissile(D2UnitStrc * pUni
     D2SkillArgStrc sSkillArg;
     int nTargetY;
     int nTargetX;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -131,7 +131,7 @@ BOOL __fastcall Skills_CltDoFunc_Nec_CurseCenter_StreamMissile(D2UnitStrc * pUni
 }
 
 // Client-side: spawns a single Bone Wall/Prison missile segment at the correct orientation. Gets target coords via GetCooordinates, computes delta from caster to target and distance, calculates a normalized direction for the wall segment. Fills D2SkillArgStrc with the given eMissileId, eSkill, nParam (as nToHit), nFlags=3, and perpendicular velocity components. After MakeMissile, sets the missile's facing via PATH_SetNewDirection to point toward the target. Returns 1 on success, 0 if coords unavailable or missile allocation failed.
-uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam, eMissilesId eMissileId, D2UnitStrc * pUnit) {
+static uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam, eMissilesId eMissileId, D2UnitStrc * pUnit) {
     int nDeltaX;
     int nNormDeltaX;
     int nDeltaY;
@@ -145,7 +145,7 @@ uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam,
     }
 
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nDeltaX = pUnit->pPath.pStaticPath->nPosX;
     } else if (!pUnit->pPath.pDynamicPath) {
       nDeltaX = 0;
@@ -155,7 +155,7 @@ uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam,
 
     nDeltaX = nTargetX - nDeltaX;
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nNormDeltaX = pUnit->pPath.pStaticPath->nPosY;
     } else if (!pUnit->pPath.pDynamicPath) {
       nNormDeltaX = 0;
@@ -165,27 +165,27 @@ uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam,
 
     nNormDeltaX = nTargetY - nNormDeltaX;
     int32_t nDist = D2Common::Collision::GetDistanceToXY(pUnit, nTargetX, nTargetY);
-    if (nDist < 2) {
+    if (nDist <= 1) {
       nDist = 1;
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nDeltaY = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nDeltaY = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nDeltaY = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nDeltaY = 0;
     }
 
     int nDirection = nDeltaX * 2 / nDist;
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nUnitPosY = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nUnitPosY = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nUnitPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nUnitPosY = 0;
     }
 
     memset(&sSkillArg, 0, 0x5c);
@@ -209,12 +209,12 @@ uint32_t __stdcall SKILLSNEC_CltSetBoneWallGfx(eD2Skills eSkill, int32_t nParam,
 }
 
 BOOL __fastcall Skills_CltStFunc_SetBoneWallGraphics(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
 
     eMissilesId eCltMissileC = (eMissilesId)sgptDataTable->pTxtSkills[eSkill].cltmissilec;
-    if (!(-1 < (int)eCltMissileC && (int)eCltMissileC < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)eCltMissileC && (int)eCltMissileC < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
 
@@ -247,12 +247,12 @@ BOOL __fastcall Skills_CltStFunc_CheckCorpseSetPositionParams(D2UnitStrc * pUnit
 
 BOOL __fastcall Skills_CltDoFunc_Nec_TargetedMissileAtParam(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
     D2SkillArgStrc sSkillArg;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return 0;
     }
 
     eMissilesId eVar1 = SkillsAss::SKILLSASS_GetCltMissileByAuraLevel(pUnit, eSkill);
-    if (!(-1 < (int)eVar1 && (int)eVar1 < sgptDataTable->nTxtMissilesSize)) {
+    if (!(0 <= (int)eVar1 && (int)eVar1 < sgptDataTable->nTxtMissilesSize)) {
       return 0;
     }
 
@@ -297,7 +297,7 @@ BOOL __fastcall Skills_CltStFunc_CheckSelectableCorpseSetParams(D2UnitStrc * pUn
     }
 
     eD2UnitType eTargetType = pTarget->eUnitType;
-    if (eTargetType == UNIT_OBJECT || 3 < (int)eTargetType && (int)eTargetType < 6) {
+    if (eTargetType == UNIT_OBJECT || 3 < (int)eTargetType && (int)eTargetType <= 5) {
       nTargetPos = pTarget->pPath.pStaticPath->nPosX;
     } else if (!pTarget->pPath.pDynamicPath) {
       nTargetPos = 0;
@@ -307,7 +307,7 @@ BOOL __fastcall Skills_CltStFunc_CheckSelectableCorpseSetParams(D2UnitStrc * pUn
 
     D2Common::Skills::SKILL_SetParam1(pSkill, nTargetPos);
     eTargetType = pTarget->eUnitType;
-    if (eTargetType == UNIT_OBJECT || 3 < (int)eTargetType && (int)eTargetType < 6) {
+    if (eTargetType == UNIT_OBJECT || 3 < (int)eTargetType && (int)eTargetType <= 5) {
       nTargetPos = pTarget->pPath.pStaticPath->nPosY;
     } else if (!pTarget->pPath.pDynamicPath) {
       nTargetPos = 0;
@@ -329,7 +329,7 @@ int __fastcall SKILLSNEC_CltCreateTeethMissiles(D2UnitStrc * pUnit, eD2Skills eS
     if ((int)eSkill < 0) {
       return 0;
     }
-    if (sgptDataTable->nTxtSkillsCount <= (int)eSkill) {
+    if ((int)eSkill >= sgptDataTable->nTxtSkillsCount) {
       return 0;
     }
 
@@ -344,7 +344,7 @@ int __fastcall SKILLSNEC_CltCreateTeethMissiles(D2UnitStrc * pUnit, eD2Skills eS
     if ((int)eCltMissileId < 0) {
       return 0;
     }
-    if (sgptDataTable->nTxtMissilesSize <= (int)eCltMissileId) {
+    if ((int)eCltMissileId >= sgptDataTable->nTxtMissilesSize) {
       return 0;
     }
     if (!nTargetX) {
@@ -377,13 +377,16 @@ int __fastcall SKILLSNEC_CltCreateTeethMissiles(D2UnitStrc * pUnit, eD2Skills eS
     sSkillArg.nSkillLevel = nSkillLvl;
     sSkillArg.nMissileTxtNo = eCltMissileId;
     sSkillArg.eSkillNo = eSkill;
-    if (!pMonStats2->isSmall) {
+    if (pMonStats2->isSmall) {
+      nScatterMax = 1;
+      nScatterMin = 0;
+    } else {
       D2MissilesTxt* pMissileTxt;
       if (!pMonStats2->large) {
         Skills::SKILLS_CreateMissileScatter(pUnit, &sSkillArg, 2, 2);
         pMissileTxt = GetMissleById(eCltMissileId);
         nSubMissileId = pMissileTxt->SubMissile2;
-        if (nSubMissileId < 1 || sgptDataTable->nTxtMissilesSize <= (int)nSubMissileId) {
+        if (nSubMissileId <= 0 || (int)nSubMissileId >= sgptDataTable->nTxtMissilesSize) {
           goto spawn_target_missiles;
         }
 
@@ -394,7 +397,7 @@ int __fastcall SKILLSNEC_CltCreateTeethMissiles(D2UnitStrc * pUnit, eD2Skills eS
         Skills::SKILLS_CreateMissileScatter(pUnit, &sSkillArg, 3, 3);
         pMissileTxt = GetMissleById(eCltMissileId);
         nSubMissileId = pMissileTxt->SubMissile1;
-        if (nSubMissileId < 1 || sgptDataTable->nTxtMissilesSize <= (int)nSubMissileId) {
+        if (nSubMissileId <= 0 || (int)nSubMissileId >= sgptDataTable->nTxtMissilesSize) {
           goto spawn_target_missiles;
         }
 
@@ -402,9 +405,6 @@ int __fastcall SKILLSNEC_CltCreateTeethMissiles(D2UnitStrc * pUnit, eD2Skills eS
         nScatterMin = 2;
         sSkillArg.nMissileTxtNo = (int)nSubMissileId;
       }
-    } else {
-      nScatterMax = 1;
-      nScatterMin = 0;
     }
 
     Skills::SKILLS_CreateMissileScatter(pUnit, &sSkillArg, nScatterMin, nScatterMax);
@@ -450,7 +450,7 @@ BOOL __fastcall Skills_CltDoFunc_Nec_Teeth(D2UnitStrc * pUnit, eD2Skills eSkill,
 // Client helper that spawns the Bone Spear/Spirit missile on the caster side. Validates skill, primary missile (cltmissilea), and target monster class. Sets UNITFLAG_SKSRVDOFUNC, fires the primary missile, optionally fires a secondary cast-effect missile (cltmissilec), creates a radial burst (cltmissileb) on impact, and plays tgtsound if no confirmed target. Returns 1 on success.
 int __fastcall SKILLSNEC_CltCreateBoneSpearMissile(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl, int32_t nTargetX, int32_t nParam1, int32_t nParam2) {
     D2SkillArgStrc sSkillArg;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -460,7 +460,7 @@ int __fastcall SKILLSNEC_CltCreateBoneSpearMissile(D2UnitStrc * pUnit, eD2Skills
     }
 
     eMissilesId eMissileId = (eMissilesId)pSkillTxt->cltmissilea;
-    if (!(-1 < (int)eMissileId && (int)eMissileId < sgptDataTable->nTxtMissilesSize && -1 < nParam2 && nParam2 < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nParam2)) {
+    if (!(0 <= (int)eMissileId && (int)eMissileId < sgptDataTable->nTxtMissilesSize && 0 <= nParam2 && nParam2 < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nParam2)) {
       return 0;
     }
     if (!(nTargetX && nParam1)) {
@@ -523,7 +523,7 @@ BOOL __fastcall Skills_CltStFunc_CheckCasterRoomNotInTownNec(D2UnitStrc * pUnit,
     if ((int)eSkill < 0) {
       return 0;
     }
-    if (sgptDataTable->nTxtSkillsCount <= (int)eSkill) {
+    if ((int)eSkill >= sgptDataTable->nTxtSkillsCount) {
       return 0;
     }
 

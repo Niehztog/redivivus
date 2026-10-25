@@ -575,7 +575,7 @@ void __fastcall DirectDrawErrorHandler(char * szContext, int32_t nErrorCode) {
     if (!(nErrorCode != -0x7789fe52 && nErrorCode != -0x7789fe3e)) {
       return;
     }
-    if (nErrorCode < -0x7789fefb) {
+    if (nErrorCode <= -0x7789fefc) {
       if (nErrorCode == -0x7789fefc) {
         Fog::Src::LogManager::LOGFILE_WriteStringToFile("***** DirectDraw error: %s - %s (0x%x)", szContext, "DDERR_NOOVERLAYHW", 0x88760104);
         return;
@@ -690,7 +690,7 @@ void __fastcall DirectDrawErrorHandler(char * szContext, int32_t nErrorCode) {
           return;
         }
       }
-    } else if (nErrorCode < -0x7789fde6) {
+    } else if (nErrorCode <= -0x7789fde7) {
       if (nErrorCode == -0x7789fde7) {
         Fog::Src::LogManager::LOGFILE_WriteStringToFile("***** DirectDraw error: %s - %s (0x%x)", szContext, "DDERR_VERTICALBLANKINPROGRESS", 0x88760219);
         return;
@@ -782,7 +782,7 @@ void __fastcall DirectDrawErrorHandler(char * szContext, int32_t nErrorCode) {
           Fog::Src::LogManager::LOGFILE_WriteStringToFile("***** DirectDraw error: %s - %s (0x%x)", szContext, "DDERR_UNSUPPORTEDMASK", nErrorCode);
         return;
       }
-    } else if (nErrorCode < 1) {
+    } else if (nErrorCode <= 0) {
       if (!nErrorCode) {
         Fog::Src::LogManager::LOGFILE_WriteStringToFile("***** DirectDraw error: %s - %s (0x%x)", szContext, "DD_OK", 0);
         return;
@@ -927,7 +927,7 @@ void __fastcall DirectDrawErrorHandler(char * szContext, int32_t nErrorCode) {
     Fog::Src::LogManager::LOGFILE_WriteStringToFile("***** DirectDraw error: %s - %s (0x%x)", szContext, "< unknown >", nErrorCode);
 }
 
-BOOL InternalOpenWindow(int32_t nResolutionMode) {
+static BOOL InternalOpenWindow(int32_t nResolutionMode) {
     // Static local variables (originally global data)
     static uint32_t gdwDirectDrawPaletteSizes[4] = { 0x280, 0x320, 0x320, 0x0 };
     static uint32_t gdwDirectDrawSurfaceWidths[4] = { 0x1e0, 0x258, 0x258, 0x0 };
@@ -936,7 +936,10 @@ BOOL InternalOpenWindow(int32_t nResolutionMode) {
     DDSURFACEDESC ddSurfDesc;
     uint32_t dwDDSCapsBackBuffer;
     int32_t nLine;
-    if (!gbDDrawWindowInitialized) {
+    if (gbDDrawWindowInitialized) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x142);
+      exit(-1);
+    } else {
       HRESULT HVar1;
       if (!nResolutionMode) {
         RENDERER_nWindowWidth = 0x280;
@@ -956,7 +959,9 @@ BOOL InternalOpenWindow(int32_t nResolutionMode) {
       }
       if (pWindowHandleBuffer) {
         nLine = pWindowHandleBuffer->lpVtbl->SetDisplayMode(pWindowHandleBuffer, gnDDrawDisplayModeIndex, gnDDrawSurfaceWidth, 8);
-        if (!nLine) {
+        if (nLine) {
+          szErrorMsg = "SetDisplayMode failed!";
+        } else {
           memset(&ddSurfDesc, 0, 0x6c);
           ddSurfDesc.dwBackBufferCount = 2;
           gnDDrawFlipState = 2;
@@ -997,11 +1002,15 @@ BOOL InternalOpenWindow(int32_t nResolutionMode) {
           memset(&ddSurfDesc, 0, 0x6c);
           ddSurfDesc.dwSize = 0x6c;
           nLine = gpDDrawPrimarySurface->lpVtbl->GetSurfaceDesc(gpDDrawPrimarySurface, &ddSurfDesc);
-          if (!nLine) {
+          if (nLine) {
+            szErrorMsg = "GetSurfaceDesc (primary) failed!";
+          } else {
             ddSurfDesc.dwFlags = 7;
             ddSurfDesc.ddsCaps = 0x840;
             nLine = pWindowHandleBuffer->lpVtbl->CreateSurface(pWindowHandleBuffer, &ddSurfDesc, (void**)&pDirectDrawSurface, nullptr);
-            if (!nLine) {
+            if (nLine) {
+              szErrorMsg = "CreateSurface (render) failed!";
+            } else {
               nLine = gpDDrawPrimarySurface->lpVtbl->SetPalette(gpDDrawPrimarySurface, pDirectDrawPalette);
               if (!nLine) {
                 gbDDrawWindowInitialized = 1;
@@ -1010,14 +1019,8 @@ BOOL InternalOpenWindow(int32_t nResolutionMode) {
               }
 
               szErrorMsg = "SetPalette failed!";
-            } else {
-              szErrorMsg = "CreateSurface (render) failed!";
             }
-          } else {
-            szErrorMsg = "GetSurfaceDesc (primary) failed!";
           }
-        } else {
-          szErrorMsg = "SetDisplayMode failed!";
         }
 
         report_ddraw_failure:
@@ -1028,13 +1031,10 @@ BOOL InternalOpenWindow(int32_t nResolutionMode) {
 
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1da);
       exit(-1);
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x142);
-      exit(-1);
     }
 }
 
-BOOL __stdcall InternalCutsceneWindow() {
+static BOOL __stdcall InternalCutsceneWindow() {
     int32_t nHResult;
     char* szErrorMsg;
     if (gbDDrawWindowInitialized) {
@@ -1274,7 +1274,7 @@ BOOL __fastcall GetBackBuffer(BYTE * pBuffer) {
     return 0;
 }
 
-void __stdcall InternalReleaseWindow() {
+static void __stdcall InternalReleaseWindow() {
     if (!gbDDrawWindowInitialized) {
       return;
     }
@@ -1483,12 +1483,12 @@ uint32_t __stdcall RENDERER_DDRAW_IsDC6OffScreen(int32_t nX, int32_t nY, int32_t
 }
 
 // DirectDraw renderer internal helpers for sprite visibility testing, clip rect computation, debug font rendering, shadow quality query, pixel/line drawing primitives, and smacker video frame blitting.
-BOOL __stdcall RENDERER_DDRAW_ComputeDC6ClipRect(int32_t nY, DC6Block * pDC6Block, int32_t nX, uint32_t * pOutClipRect, uint32_t * pInClipBounds) {
+static BOOL __stdcall RENDERER_DDRAW_ComputeDC6ClipRect(int32_t nY, DC6Block * pDC6Block, int32_t nX, uint32_t * pOutClipRect, uint32_t * pInClipBounds) {
     int32_t nWidth = D2CMP::SRC::CelCmp::GetDC6Width(pDC6Block);
     int32_t nHeight = D2CMP::SRC::CelCmp::GetDC6Height(pDC6Block);
     uint32_t nClipLeft = (int)*pInClipBounds < 1 ? 0 : *pInClipBounds;
     uint32_t nClipRight = pInClipBounds[1];
-    if (RENDERER_nWindowWidth <= (int)nClipRight) {
+    if ((int)nClipRight >= RENDERER_nWindowWidth) {
       nClipRight = RENDERER_nWindowWidth;
     }
     if ((int)nClipLeft > (int)nClipRight) {
@@ -1502,7 +1502,7 @@ BOOL __stdcall RENDERER_DDRAW_ComputeDC6ClipRect(int32_t nY, DC6Block * pDC6Bloc
 
     uint32_t nClipTop = (int)pInClipBounds[2] < 1 ? 0 : pInClipBounds[2];
     uint32_t nClipBottom = pInClipBounds[3];
-    if (RENDERER_nWindowHeight <= (int)pInClipBounds[3]) {
+    if ((int)pInClipBounds[3] >= RENDERER_nWindowHeight) {
       nClipBottom = RENDERER_nWindowHeight;
     }
     if ((int)nClipTop > (int)nClipBottom) {
@@ -1522,17 +1522,17 @@ BOOL __stdcall RENDERER_DDRAW_ComputeDC6ClipRect(int32_t nY, DC6Block * pDC6Bloc
     } else {
       pOutClipRect[2] = 0;
     }
-    if (nDrawBottom - nHeight < (int)nClipTop) {
-      pOutClipRect[3] = nDrawBottom - pOutClipRect[2] - nClipTop + 1;
-    } else {
+    if (!(nDrawBottom - nHeight < (int)nClipTop)) {
       pOutClipRect[3] = nHeight - pOutClipRect[2];
+    } else {
+      pOutClipRect[3] = nDrawBottom - pOutClipRect[2] - nClipTop + 1;
     }
-    if ((int)pOutClipRect[3] >= 1) {
-      return 0;
+    if (!((int)pOutClipRect[3] > 0)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xab);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xab);
-    exit(-1);
+    return 0;
     return 0;
 }
 
@@ -1789,7 +1789,7 @@ void __stdcall D2ddDebugFont_Free() {
 }
 
 // DirectDraw renderer internal helpers for sprite visibility testing, clip rect computation, debug font rendering, shadow quality query, pixel/line drawing primitives, and smacker video frame blitting.
-LPINT __stdcall RENDERER_DDRAW_DrawDebugFontChar(int32_t nX, char cCharacter, int32_t nY) {
+static LPINT __stdcall RENDERER_DDRAW_DrawDebugFontChar(int32_t nX, char cCharacter, int32_t nY) {
     uint8_t* pCurPixel;
     uint8_t cFontByte;
     if (0x280 < nX) {
@@ -1866,12 +1866,12 @@ void __fastcall DrawSolidRectEx(int32_t nXStart, int32_t nYStart, int32_t nXEnd,
     int nDrawMode2;
     uint8_t* pBlendTable = RENDERER_DIRECTDRAW_GetPalettePointer(nDrawMode, (uint32_t*)&nDrawMode2);
     uint32_t nClipRight = RENDERER_nWindowWidth - 1;
-    uint32_t nClipLeft = nXStart < 1 ? 0 : nXStart;
-    if ((int)nClipRight <= (int)nClipLeft) {
+    uint32_t nClipLeft = nXStart <= 0 ? 0 : nXStart;
+    if ((int)nClipLeft >= (int)nClipRight) {
       nClipLeft = nClipRight;
     }
 
-    uint32_t nClipRightEnd = nXEnd < 1 ? 0 : nXEnd;
+    uint32_t nClipRightEnd = nXEnd <= 0 ? 0 : nXEnd;
     if ((int)nClipRightEnd < (int)nClipRight) {
       nClipRight = nClipRightEnd;
     }
@@ -1880,13 +1880,13 @@ void __fastcall DrawSolidRectEx(int32_t nXStart, int32_t nYStart, int32_t nXEnd,
     }
 
     uint32_t nClipBottom = RENDERER_nWindowHeight - 1;
-    nClipRightEnd = nYStart < 1 ? 0 : nYStart;
-    if ((int)nClipBottom <= (int)nClipRightEnd) {
+    nClipRightEnd = nYStart <= 0 ? 0 : nYStart;
+    if ((int)nClipRightEnd >= (int)nClipBottom) {
       nClipRightEnd = nClipBottom;
     }
 
-    uint32_t nClipTop = nYEnd < 1 ? 0 : nYEnd;
-    if ((int)nClipBottom <= (int)nClipTop) {
+    uint32_t nClipTop = nYEnd <= 0 ? 0 : nYEnd;
+    if ((int)nClipTop >= (int)nClipBottom) {
       nClipTop = nClipBottom;
     }
     if (nClipTop == nClipRightEnd) {
@@ -1943,22 +1943,22 @@ void __fastcall DrawSolidRectEx(int32_t nXStart, int32_t nYStart, int32_t nXEnd,
 // Draws a solid rectangle with alpha blending transparency
 void __fastcall DrawSolidRectAlpha(int nXStart, int nYStart, int nXEnd, int nYEnd, DWORD dwColor, BYTE nAlpha) {
     int32_t nDrawMode;
-    if (nAlpha < 0xc0) {
-      if (nAlpha < 0x80) {
-        if (nAlpha < 0x40) {
+    if (!(nAlpha < 0xc0)) {
+      nDrawMode = 5;
+    } else {
+      if (!(nAlpha < 0x80)) {
+        nDrawMode = 2;
+      } else {
+        if (!(nAlpha < 0x40)) {
+          nDrawMode = 1;
+        } else {
           if (nAlpha == '\0') {
             return;
           }
 
           nDrawMode = 0;
-        } else {
-          nDrawMode = 1;
         }
-      } else {
-        nDrawMode = 2;
       }
-    } else {
-      nDrawMode = 5;
     }
 
     DirectDraw::DrawSolidRectEx(nXStart, nYStart, nXEnd, nYEnd, dwColor, nDrawMode);
@@ -1966,7 +1966,7 @@ void __fastcall DrawSolidRectAlpha(int nXStart, int nYStart, int nXEnd, int nYEn
 
 // DirectDraw renderer internal helpers for sprite visibility testing, clip rect computation, debug font rendering, shadow quality query, pixel/line drawing primitives, and smacker video frame blitting.
 void __fastcall RENDERER_DDRAW_DrawPixel(int32_t nX, int32_t nY, BYTE nPaletteIndex) {
-    if (!(-1 < nX && nX < RENDERER_nWindowWidth && -1 < nY && nY < RENDERER_nWindowHeight)) {
+    if (!(0 <= nX && nX < RENDERER_nWindowWidth && 0 <= nY && nY < RENDERER_nWindowHeight)) {
       return;
     }
 
@@ -2020,11 +2020,11 @@ void __fastcall DrawLine(int32_t nXStart, int32_t nYStart, int32_t nXEnd, int32_
         do {
           nXStart += nXEnd;
           nError += nDeltaY;
-          if (nDeltaX < nError) {
+          if (nError > nDeltaX) {
             nYStart += nYEnd;
             nError -= nDeltaX;
           }
-          if (-1 < nXStart && nXStart < RENDERER_nWindowWidth && -1 < nYStart && nYStart < RENDERER_nWindowHeight) {
+          if (0 <= nXStart && nXStart < RENDERER_nWindowWidth && 0 <= nYStart && nYStart < RENDERER_nWindowHeight) {
             gpRenderBackBufferBits[nXStart + RENDERER_nWindowWidth * nYStart] = (uint8_t)dwColor;
           }
 
@@ -2063,9 +2063,9 @@ void __fastcall RENDERER_DDRAW_DrawLine(int * pStartPoint, int * pEndPoint, BYTE
     nAccumulatorX = 0;
     int nPixelsDrawn = 0;
     int nCurrentY = nStepX;
-    while (nStepX < 0 || RENDERER_nWindowHeight <= nStepX || nCurrentX < 0 || RENDERER_nWindowWidth <= nCurrentX) {
+    while (nStepX < 0 || nStepX >= RENDERER_nWindowHeight || nCurrentX < 0 || nCurrentX >= RENDERER_nWindowWidth) {
       nAccumulatorX += nDeltaX;
-      if (0xffff < nAccumulatorX || nAccumulatorX < -0xffff) {
+      if (0x10000 <= nAccumulatorX || nAccumulatorX <= -0x10000) {
         nStepX = (int)(nAccumulatorX + (nAccumulatorX >> 0x1f & 0xffffU)) >> 0x10;
         nCurrentX += nStepX;
         nAccumulatorX += nStepX * -0x10000;
@@ -2073,13 +2073,13 @@ void __fastcall RENDERER_DDRAW_DrawLine(int * pStartPoint, int * pEndPoint, BYTE
       }
 
       nAccumulatorY += nDeltaY;
-      if (0xffff < nAccumulatorY || nAccumulatorY < -0xffff) {
+      if (0x10000 <= nAccumulatorY || nAccumulatorY <= -0x10000) {
         nStepY = (int)(nAccumulatorY + (nAccumulatorY >> 0x1f & 0xffffU)) >> 0x10;
         nStepX = nCurrentY + nStepY;
         nAccumulatorY += nStepY * -0x10000;
         nCurrentY = nStepX;
       }
-      if (nLineLength <= nPixelsDrawn) {
+      if (nPixelsDrawn >= nLineLength) {
         return;
       }
 
@@ -2095,7 +2095,7 @@ void __fastcall RENDERER_DDRAW_DrawLine(int * pStartPoint, int * pEndPoint, BYTE
 
     while (true) {
       nAccumulatorX += nDeltaX;
-      if (0xffff < nAccumulatorX || nAccumulatorX < -0xffff) {
+      if (0x10000 <= nAccumulatorX || nAccumulatorX <= -0x10000) {
         nStepX = (int)(nAccumulatorX + (nAccumulatorX >> 0x1f & 0xffffU)) >> 0x10;
         nCurrentX += nStepX;
         pPixelDst += nStepX;
@@ -2104,12 +2104,12 @@ void __fastcall RENDERER_DDRAW_DrawLine(int * pStartPoint, int * pEndPoint, BYTE
       if (nCurrentX < 0) {
         return;
       }
-      if (RENDERER_nWindowWidth <= nCurrentX) {
+      if (nCurrentX >= RENDERER_nWindowWidth) {
         return;
       }
 
       nAccumulatorY += nDeltaY;
-      if (0xffff < nAccumulatorY || nAccumulatorY < -0xffff) {
+      if (0x10000 <= nAccumulatorY || nAccumulatorY <= -0x10000) {
         nStepX = (int)(nAccumulatorY + (nAccumulatorY >> 0x1f & 0xffffU)) >> 0x10;
         nCurrentY += nStepX;
         pPixelDst += RENDERER_nWindowWidth * nStepX;
@@ -2118,13 +2118,13 @@ void __fastcall RENDERER_DDRAW_DrawLine(int * pStartPoint, int * pEndPoint, BYTE
       if (nCurrentY < 0) {
         break;
       }
-      if (RENDERER_nWindowHeight <= nCurrentY) {
+      if (nCurrentY >= RENDERER_nWindowHeight) {
         return;
       }
 
       nPixelsDrawn++;
       *pPixelDst = nPaletteIndex;
-      if (nLineLength <= nPixelsDrawn) {
+      if (nPixelsDrawn >= nLineLength) {
         return;
       }
     }
@@ -2147,7 +2147,7 @@ void __fastcall DrawRect(RECT * pRect, BYTE nColor) {
     __frame0_t __frame0;
     int32_t nLine;
     __frame0.nLeft = pRect->left;
-    if (pRect->right < __frame0.nLeft) {
+    if (__frame0.nLeft > pRect->right) {
       nLine = 0x12d;
     } else {
       uint32_t nWidth;
@@ -2195,7 +2195,7 @@ void __fastcall DrawRectEx(RECT * pRect, BYTE nColor) {
     static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 32, "frame group __frame0_t must reproduce the Ghidra frame layout");
     __frame0_t __frame0;
     __frame0.nLeftSave = pRect->left;
-    if (pRect->right < __frame0.nLeftSave) {
+    if (__frame0.nLeftSave > pRect->right) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x149);
       exit(-1);
     } else {
@@ -2236,19 +2236,19 @@ void __fastcall DrawSolidRect(RECT * pRect, BYTE nPaletteIndex) {
       nTop = pRect->top;
       nBottom = pRect->bottom;
       if (nTop <= nBottom) {
-        if (!(-1 < nLeft && iVar1 < RENDERER_nWindowWidth && -1 < nBottom && nTop < RENDERER_nWindowHeight)) {
+        if (!(0 <= nLeft && iVar1 < RENDERER_nWindowWidth && 0 <= nBottom && nTop < RENDERER_nWindowHeight)) {
           return;
         }
         if (iVar1 < 0) {
           pRect->left = 0;
         }
-        if (RENDERER_nWindowWidth <= nLeft) {
+        if (nLeft >= RENDERER_nWindowWidth) {
           pRect->right = RENDERER_nWindowWidth - 1;
         }
         if (nTop < 0) {
           pRect->top = 0;
         }
-        if (RENDERER_nWindowHeight <= nBottom) {
+        if (nBottom >= RENDERER_nWindowHeight) {
           pRect->bottom = RENDERER_nWindowHeight - 1;
         }
 
@@ -2352,10 +2352,10 @@ BOOL __fastcall DrawShadowTile(D2TileLibraryEntryStrc * pTile, int32_t nPosX, in
       if (nClipLeft <= nSubtileX && nSubtileX < nClipRight && -0x21 < nSubtileY && nSubtileY < iVar1) {
         bAnyDrawn = 1;
         bBlendEnabled = RENDERER_DDRAW_AreBlendedShadowsEnabled();
-        if (!bBlendEnabled) {
-          D2GfxRendereInitFunctionsStrc->nfpDrawVisTile(pTile->pSubTiles[nSubtileIndex].pPixelData, nSubtileX, nSubtileY);
-        } else {
+        if (bBlendEnabled) {
           D2GfxRendereInitFunctionsStrc->nfpDrawBlendedVisTile((int)pTile->pSubTiles[nSubtileIndex].pPixelData, nSubtileX, nSubtileY, 0xc0);
+        } else {
+          D2GfxRendereInitFunctionsStrc->nfpDrawVisTile(pTile->pSubTiles[nSubtileIndex].pPixelData, nSubtileX, nSubtileY);
         }
       }
 
@@ -2396,10 +2396,15 @@ BOOL __fastcall DrawTransWallTile(D2TileLibraryEntryStrc * pTile, int32_t nPosX,
     __frame0.nClipBottom = RENDERER_nWindowHeight + 0x20;
     __frame0.nClipLeft = -0x20;
     __frame0.nClipRight = RENDERER_nWindowWidth;
-    if (nScreenPanels == 1) {
+    switch (nScreenPanels) {
+    case 1: {
       __frame0.nClipRight = RENDERER_nWindowWidth - RENDERER_nWindowWidth / 2;
-    } else if (nScreenPanels == 2) {
+      break;
+    }
+    case 2: {
       __frame0.nClipLeft = RENDERER_nWindowWidth / 2 - 0x20;
+      break;
+    }
     }
 
     nScreenPanels = 0;
@@ -2458,10 +2463,15 @@ BOOL __fastcall DrawWallTile(D2TileLibraryEntryStrc * pTile, int32_t nPosX, int3
     __frame0.nClipBottom = RENDERER_nWindowHeight + 0x20;
     __frame0.nClipLeft = -0x20;
     __frame0.nClipRight = RENDERER_nWindowWidth;
-    if (nScreenPanels == 1) {
+    switch (nScreenPanels) {
+    case 1: {
       __frame0.nClipRight = RENDERER_nWindowWidth - RENDERER_nWindowWidth / 2;
-    } else if (nScreenPanels == 2) {
+      break;
+    }
+    case 2: {
       __frame0.nClipLeft = RENDERER_nWindowWidth / 2 - 0x20;
+      break;
+    }
     }
 
     nScreenPanels = 0;
@@ -2529,7 +2539,7 @@ void __fastcall CloseSmacker(D2SmackerContextStrc * pContext) {
 }
 
 // DirectDraw renderer internal helpers for sprite visibility testing, clip rect computation, debug font rendering, shadow quality query, pixel/line drawing primitives, and smacker video frame blitting.
-void __stdcall RENDERER_DDRAW_BlitSmackerFrame(int32_t nHeight, int32_t nWidth, D2SmackerContextStrc * pDestRect) {
+static void __stdcall RENDERER_DDRAW_BlitSmackerFrame(int32_t nHeight, int32_t nWidth, D2SmackerContextStrc * pDestRect) {
     uint8_t* pPixelSrc;
     int32_t nPixelCount;
     if (!*(uint32_t*)((char*)&gaSmackerPaletteRemap + 256)) {

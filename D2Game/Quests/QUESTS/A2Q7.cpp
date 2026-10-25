@@ -237,12 +237,12 @@ uint8_t __fastcall Q14_TimerCreatePortal(::SGAMEDATA * pGame, D2QuestDataStrc * 
         if (pDVar1) {
           nObjectsReady = 1;
           if (pDVar1->eAnimMode.ePlayerMode == Death) {
-            if (!pQuestSpecific->nStateResumeFlag) {
+            if (pQuestSpecific->nStateResumeFlag) {
+              D2Common::Units::SetupUpdateFlag(pDVar1, 2);
+            } else {
               D2Common::Units::SetupUpdateFlag(pDVar1, 1);
               pOrificeTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pDVar1->nClassId);
               GAME::Event::SetEvent(pQuestData->pGame, pDVar1, 1, (pOrificeTxt->FrameCnt[1] >> 8) + pQuestData->pGame->dwGameFrame, 0, 0);
-            } else {
-              D2Common::Units::SetupUpdateFlag(pDVar1, 2);
             }
           }
         }
@@ -259,14 +259,14 @@ uint8_t __fastcall Q14_TimerCreatePortal(::SGAMEDATA * pGame, D2QuestDataStrc * 
             pUnit = UNIT::SUnit::CreateUnit(UNIT_OBJECT, 100, nOrificeX - 0xd, nOrificeY + 3, pGame, pNearbyRoom, 1, 1, nullptr);
             if (pUnit) {
               nObjectsReady++;
-              if (!pQuestSpecific->nStateResumeFlag) {
+              if (pQuestSpecific->nStateResumeFlag) {
+                D2Common::Units::SetupUpdateFlag(pUnit, 2);
+              } else {
                 D2Common::Units::SetupUpdateFlag(pUnit, 1);
                 bReset = 1;
                 pRoom = D2Common::Units::UNITS_GetRoom(pDVar1);
                 D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pRoom, bReset);
                 D2Common::DUNGEON::Dungeon::ToggleHasPortalFlagRoom(pNearbyRoom, 1);
-              } else {
-                D2Common::Units::SetupUpdateFlag(pUnit, 2);
               }
             }
           }
@@ -535,7 +535,7 @@ void __fastcall Q14_OnStaffUsedInOrifice(::SGAMEDATA * pGame, D2UnitStrc * pUnit
     }
 
     NotifyPlayersAboutEvent(pGame, 3);
-    if (sgptDataTable->nTxtMissilesSize < 0x153) {
+    if (sgptDataTable->nTxtMissilesSize <= 0x152) {
       pMissileTxt = 0;
     } else {
       pMissileTxt = sgptDataTable->pTxtMissiles + 0x152;
@@ -559,21 +559,21 @@ void __fastcall Q14_OnStaffUsedInOrifice(::SGAMEDATA * pGame, D2UnitStrc * pUnit
     }
 
     eD2UnitType eUnitType = pUnit2->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nPosY = pUnit2->pPath.pStaticPath->nPosY;
-    } else if (!pUnit2->pPath.pDynamicPath) {
-      nPosY = 0;
-    } else {
+    } else if (pUnit2->pPath.pDynamicPath) {
       nPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit2->pPath.pDynamicPath);
+    } else {
+      nPosY = 0;
     }
 
     eUnitType = pUnit2->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nPosX = pUnit2->pPath.pStaticPath->nPosX;
-    } else if (!pUnit2->pPath.pDynamicPath) {
-      nPosX = 0;
-    } else {
+    } else if (pUnit2->pPath.pDynamicPath) {
       nPosX = D2Common::PATH::DynamicPath::GetXPos(pUnit2->pPath.pDynamicPath);
+    } else {
+      nPosX = 0;
     }
 
     D2RoomStrc* pRoom_00 = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom(pRoom, nPosX - 0xd, nPosY + 3);
@@ -700,7 +700,7 @@ void __fastcall Q15_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // Q15 (Act2Guard4Gossip / Jerhyn gossip) message-handler. On a dialog with Jerhyn (NPC 0x179): for the special intro lines 0x3b/0x3c set the gossip record to JustCompleted and arm the state-2 cleanup handler; for any other line set it to Completed. This records "player has spoken to Jerhyn" in the quest-record bitbuffer.
-void __fastcall Q15_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q15_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     if (pQuestArgs->sQuestArgs.sNpcMessage.nNPCNo != 0x179) {
       return;
     }
@@ -774,7 +774,7 @@ void __fastcall Q15_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     pick_random_gossip:
     DVar1 = D2_SEED_NEXT(pPlayer->sSeed);
     pPlayer->sSeed = DVar1;
-    AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, 0x179, DVar1.nSeedLow + (int)(((uint64_t)d2_bits_of(DVar1) & 0xffffffff) / 3) * -3 + 2);
+    AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, 0x179, DVar1.nSeedLow % 3 + 2);
 }
 
 // Q15 (Act2Guard4Gossip) state-8 handler: empty stub. No behavior.

@@ -36,7 +36,7 @@
 namespace D2Common::Merc {
 
 // Returns the animation index for the weapon currently held by a mercenary unit by walking the global gaMercWeaponAnimMap table (14 entries) and matching nWeaponClass. Returns -1 if no match found.
-int32_t MERC_GetWeaponAnimIndex(D2UnitStrc * pUnit) {
+static int32_t MERC_GetWeaponAnimIndex(D2UnitStrc * pUnit) {
     // Static local variables (originally global data)
     static D2MercWeaponAnimMapStrc gaMercWeaponAnimMap[14] = {
     {
@@ -112,7 +112,7 @@ int32_t MERC_GetWeaponAnimIndex(D2UnitStrc * pUnit) {
 }
 
 // Returns the D2MonSeqMonsterTbls entry for the unit's current skill sequence. For player-type units (mercs), resolves via apFixedSequenceTable indexed by weapon anim index. For monster units, looks up the monster's MonStats entry then retrieves by sequence ID. Returns null if no current skill or sequence ID &lt; 1.
-D2MonSeqMonsterTbls * __stdcall GetMonsterSequenceTable(D2UnitStrc * pUnit) {
+static D2MonSeqMonsterTbls * __stdcall GetMonsterSequenceTable(D2UnitStrc * pUnit) {
     // Static local variables (originally global data)
     static D2MonSeqMonsterTbls * apFixedSequenceTable[24] = {
     nullptr,
@@ -162,12 +162,12 @@ D2MonSeqMonsterTbls * __stdcall GetMonsterSequenceTable(D2UnitStrc * pUnit) {
       D2MonSeqMonsterTbls* pFixedSeqTable;
       pFixedSeqTable = apFixedSequenceTable[nSequenceId];
       nWeaponAnimIndex = MERC_GetWeaponAnimIndex(pUnit);
-      if (nWeaponAnimIndex != -1) {
-        return pFixedSeqTable + nWeaponAnimIndex;
+      if (nWeaponAnimIndex == -1) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x533);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x533);
-      exit(-1);
+      return pFixedSeqTable + nWeaponAnimIndex;
       return pFixedSeqTable + nWeaponAnimIndex;
     }
     if (eUnitType != UNIT_MONSTER) {
@@ -538,7 +538,7 @@ uint32_t __fastcall MERC_GenerateStatsFromSeed(int32_t nSeed, D2MercRolledStatsS
 
     uint32_t nRandResult2;
     D2SeedStrc rollSeed;
-    if (!(nSeed && pMercStats && nDifficulty < 3)) {
+    if (!(nSeed && pMercStats && nDifficulty <= 2)) {
       return 0;
     }
 
@@ -626,7 +626,7 @@ uint16_t * __fastcall GetMercTypeString(uint32_t nIndex) {
     0xd2f
 };
 
-    if (!(-1 < (int)nIndex && nIndex < 9 && aMercTypeLocaleStringIds[nIndex])) {
+    if (!(0 <= (int)nIndex && nIndex < 9 && aMercTypeLocaleStringIds[nIndex])) {
       return nullptr;
     }
 
@@ -673,8 +673,7 @@ BOOL __fastcall RollMercStats(int32_t nVersion, D2UnitStrc * pUnit, int32_t nMer
     int nCost;
     D2UnitStrc* pBuyer = pUnit;
     Seed::SEED_InitDefault(&nRollSeed);
-    nRollSeed.nSeedLow = nMercSeed;
-    nRollSeed.nSeedHigh = 0x29a;
+    D2Common::Seed::InitSeed_Param_666(&nRollSeed, nMercSeed);
     uint32_t nHirelingIdx = 0;
     pHirelingList[0] = 0;
     D2HirelingTxt* pHirelingTxt = DATATBLS::MonsterTbls::GetHirelingDataTable(nVersion, nAct, nDifficulty, nullptr);
@@ -706,47 +705,47 @@ BOOL __fastcall RollMercStats(int32_t nVersion, D2UnitStrc * pUnit, int32_t nMer
     pHireData->nLevel = nMercLevel;
     int nHp = pSelectedHireling->hp + pSelectedHireling->hpPerlvl * nLevelDiff;
     pHireData->nHp = nHp;
-    if (nHp < 0x29) {
+    if (nHp <= 0x28) {
       nHp = 0x28;
     }
 
     pHireData->nHp = nHp;
     int nStrength = pSelectedHireling->str + (pSelectedHireling->strPerlvl * nLevelDiff >> 3);
     pHireData->nStrength = nStrength;
-    if (nStrength < 0xb) {
+    if (nStrength <= 0xa) {
       nStrength = 10;
     }
 
     pHireData->nStrength = nStrength;
     int nDexterity = pSelectedHireling->dex + (pSelectedHireling->dexPerlvl * nLevelDiff >> 3);
     pHireData->nDexterity = nDexterity;
-    if (nDexterity < 0xb) {
+    if (nDexterity <= 0xa) {
       nDexterity = 10;
     }
 
     pHireData->nDexterity = nDexterity;
     nHp = (nLevelDiff * 0xf + 100) * pSelectedHireling->gold / 100;
     pHireData->nCost = nHp;
-    if (nHp < pSelectedHireling->gold) {
+    if (pSelectedHireling->gold > nHp) {
       nHp = pSelectedHireling->gold;
     }
 
     pHireData->nCost = nHp;
     int nExperience = (nMercLevel + 1) * pSelectedHireling->expPerLvl * nMercLevel * nMercLevel;
-    pHireData->nExperience = nExperience < 1 ? 0 : nExperience;
+    pHireData->nExperience = nExperience <= 0 ? 0 : nExperience;
     int nDefense = pSelectedHireling->defPerlvl * nLevelDiff + pSelectedHireling->defense;
-    pHireData->nDefense = nDefense < 1 ? 0 : nDefense;
+    pHireData->nDefense = nDefense <= 0 ? 0 : nDefense;
     int nMinDamage = (pSelectedHireling->dmgPerlvl * nLevelDiff >> 3) + pSelectedHireling->dmgMin;
-    pHireData->nMinDamage = nMinDamage < 1 ? 0 : nMinDamage;
+    pHireData->nMinDamage = nMinDamage <= 0 ? 0 : nMinDamage;
     int nMaxDamage = (pSelectedHireling->dmgPerlvl * nLevelDiff >> 3) + pSelectedHireling->dmgMax;
     pHireData->nMaxDamage = nMaxDamage;
-    if (nMaxDamage < 2) {
+    if (nMaxDamage <= 1) {
       nMaxDamage = 1;
     }
 
     pHireData->nMaxDamage = nMaxDamage;
-    pHireData->nShare = pSelectedHireling->share < 1 ? 0 : pSelectedHireling->share;
-    pHireData->nResists = pSelectedHireling->resist < 1 ? 0 : pSelectedHireling->resist;
+    pHireData->nShare = pSelectedHireling->share <= 0 ? 0 : pSelectedHireling->share;
+    pHireData->nResists = pSelectedHireling->resist <= 0 ? 0 : pSelectedHireling->resist;
     pHireData->nHireDescription = (uint32_t)pSelectedHireling->hiredesc;
     pHireData->field13_0x34 = 1;
     pHireData->field14_0x38 = 0;

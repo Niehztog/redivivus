@@ -273,7 +273,7 @@ BOOL __fastcall Q18_PlayerUpdateTomeState(::SGAMEDATA * pGame, D2UnitStrc * pUni
 }
 
 // Q18_Callback_00 — Lam Esen's Tome, state-0 gossip handler. Chooses which Alkor gossip line to show: if quest Completed and NOT JustCompleted, bail (already done). If player carries the Tome -> line 3 ("bring it to me"). Else if Completed and player participated -> line 4 (thanks). Else (intro active) -> line indexed by nStateFlag via gdwQ16QuestStateMessages. Emits the line via AddGossipMessageOnMonster. Read-only on record.
-void __fastcall Q18_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q18_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     // Static local variables (originally global data)
     static int32_t gdwQ16QuestStateMessages[6] = { -0x1, 0x0, 0x1, 0x2, 0x3, 0x4 };
 
@@ -314,7 +314,7 @@ void __fastcall Q18_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (!pQuestData->bIsNotIntroduction) {
         return;
       }
-      if (3 < pQuestData->nStateFlag) {
+      if (4 <= pQuestData->nStateFlag) {
         return;
       }
 
@@ -322,7 +322,7 @@ void __fastcall Q18_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (nGossipIndex == -1) {
         return;
       }
-      if (5 < nGossipIndex) {
+      if (6 <= nGossipIndex) {
         return;
       }
     } else {
@@ -333,7 +333,7 @@ void __fastcall Q18_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
 }
 
 // CompleteQuestStates — Lam Esen's Tome, per-player completion writer (run via IteratePlayerOrMonsterUnits when Alkor is handed the tome). For each player who is in a room and is in Act III and not already Completed/RewardAwaits, persist the three completion flags JustCompleted + Completed + RewardAwaits into the record, then send full quest info to the unit. This is the actual "quest done" commit.
-BOOL __fastcall CompleteQuestStates(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
+static BOOL __fastcall CompleteQuestStates(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pRoom) {
       return 0;
@@ -411,7 +411,7 @@ void __fastcall Q18_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 
 // Q18_Callback_03 — Lam Esen's Tome, state-3 handler (Alkor dialog progression). On gossip index 0x4f during intro with nStateFlag==0, bumps nStateFlag to 1 (quest started). On text-control 0x4b: removes the player from the GUID list and, if nStateFlag==2 and the player record is not yet Completed, broadcasts state 1, sets live state flag to 3 (a3q1.cpp:0x166), and re-syncs every player via Q18_PlayerUpdateTomeState. Reads record (Completed); writes only nStateFlag + GUID list.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q1.cpp
-void __fastcall Q18_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q18_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     D2GossipTextStrc* pTextControl = pQuestArgs->sQuestArgs.sNpcActivate.pTextControl;
     if (pQuestArgs->sQuestArgs.sNpcActivate.nIndex == 0x4f && pQuestData->bIsNotIntroduction && !pQuestData->nStateFlag) {
       pQuestData->nStateFlag = 1;
@@ -535,7 +535,7 @@ void __fastcall Q18_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 
 // Q18_Callback_04 — Lam Esen's Tome, state-4 handler ("tome acquired"). On the tome being picked up during an active (non-intro) quest: debug-print "tome acquired", broadcast state 2, set live state flag to 4 (a3q1.cpp:0x26c), and add the picking player to the quest GUID sub-list. No player quest-record bits touched.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q1.cpp
-void __fastcall Q18_Callback04_ItemPickedUp(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q18_Callback04_ItemPickedUp(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     D2QuestDataA3Q1Strc* pvVar1 = pQuestData->pQuestSpecificData.pA3Q1;
     if (!pQuestData->bIsNotIntroduction) {
       return;
@@ -630,7 +630,7 @@ void __fastcall Q18_Callback09_PlayerDroppedWithQuestItem(D2QuestDataStrc * pQue
     D2QuestDataA3Q1Strc* pA2Q3Data = pQuestData->pQuestSpecificData.pA3Q1;
     int32_t* piVar1 = &pA2Q3Data->nPlayersInArea;
     (*piVar1)--;
-    if (!(!*piVar1 && pQuestData->bIsNotIntroduction && pA2Q3Data->bNotifiedPlayers && pQuestData->nStateFlag < 4)) {
+    if (!(!*piVar1 && pQuestData->bIsNotIntroduction && pA2Q3Data->bNotifiedPlayers && pQuestData->nStateFlag <= 3)) {
       return;
     }
 

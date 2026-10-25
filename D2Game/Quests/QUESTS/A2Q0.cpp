@@ -69,7 +69,7 @@ void __fastcall Q08_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // A2Q0 QUEST_SpokeToJerhyn — state-handler 0x00 (gossip-select / NPC-talk entry). Branches on target NPC classId. Jerhyn (0xc9): if SpokeToJerhyn not yet Completed, queue his gossip line (string 0). Meshif (0xf4, boat to Act3): only if QUEST_TheSearchForCain is CannotCompleteQuestInGame (Cain already freed elsewhere) AND this player isn't already in the A2Q0 GUID list -> queue Meshif gossip (string 1) and remove player from the A1Q4 (Cain) list. Read-only quest gating; no state writes.
-void __fastcall Q08_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q08_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     BOOL BVar1;
     int32_t nPlayerGUID;
     int nTargetClassId;
@@ -140,7 +140,7 @@ void __fastcall Q08_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 }
 
 // A2Q0 QUEST_SpokeToJerhyn — state-handler 0x0d (re-sync on join/refresh). If SpokeToJerhyn is already Completed for this difficulty, re-broadcast JustCompleted so the Warriv->Act3 travel option is (re)opened for the player.
-void __fastcall Q08_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q08_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     ::SGAMEDATA* pGame = pQuestArgs->pGame;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
     BOOL bQuestState = D2Common::QuestRecord::GetQuestState(pPlayerData->pQuestRecord[pGame->nDifficulty], QUEST_SpokeToJerhyn, QUESTSTATE_Completed);

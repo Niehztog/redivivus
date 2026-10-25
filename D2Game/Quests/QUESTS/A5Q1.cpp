@@ -116,7 +116,7 @@ bool __fastcall Q31_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUni
       *pbyIconFlag = '\f';
       return true;
     }
-    if (4 < pQuestData->nStateFlag) {
+    if (5 <= pQuestData->nStateFlag) {
       return true;
     }
 
@@ -125,7 +125,7 @@ bool __fastcall Q31_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUni
 }
 
 // A5Q1 state-2 handler variant: when talking to Larzuk (class 0x1ff), flush deferred flags - if bLarzukTalked broadcast state 1 (intro/quest-given), if bRewardAccepted broadcast state 4 (reward-claimed). Clears each flag after.
-void __fastcall Q31_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q31_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     if (!(pQuestArgs->pTarget && (short int)pQuestArgs->pTarget->nClassId == 0x1ff)) {
       return;
     }
@@ -204,7 +204,7 @@ BOOL __fastcall Q31_SyncQuestProgress(::SGAMEDATA * pGame, D2UnitStrc * pUnit, v
 
 // A5Q1: Larzuk (NPC 0x1ff) dialog-select handler. Two menu strings: 0x4e6d = first conversation -> set in-memory stateFlag=2 and persist via Q31_SyncQuestProgress, then send gossip packet. 0x4e7a = "accept the reward": only if RewardAwaits(1) set -> mark bRewardAccepted, clear all Step bits, set Step0x05(5) (reward-given marker). If also JustCompleted(0xd) and stateFlag!=5, advance stateFlag to 5, chain the sequence filter, and broadcast state 0xd; finally register the player in the quest GUID list.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a5q1.cpp
-void __fastcall Q31_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q31_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     short int nMessageIndex = pQuestArgs->sQuestArgs.sNpcMessage.nMessageIndex;
     D2QuestDataA5Q1Strc* pA5Q1Data = pQuestData->pQuestSpecificData.pA5Q1;
     if (pQuestArgs->sQuestArgs.sNpcMessage.nNPCNo != 0x1ff) {
@@ -259,7 +259,7 @@ void __fastcall Q31_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // A5Q1 gossip-text builder (state 0). Picks which monster/NPC gossip line to add based on persisted state: if RewardAwaits(1) and NOT Step0x05(5) -> line 3 (claim reward); else if not Completed(0), progress<4 (or JustCompleted), intro shown -> map nStateFlag via table to a gossip index. Read-only on quest state.
-void __fastcall Q31_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q31_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     // Static local variables (originally global data)
     static int32_t gdwQuestCallbackAddressQ31[6] = { -0x1, 0x0, 0x1, 0x2, 0x3, 0x4 };
 
@@ -276,19 +276,19 @@ void __fastcall Q31_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     }
 
     BOOL bRewardAwaits = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_RewardAwaits);
-    if (!bRewardAwaits) {
+    if (bRewardAwaits) {
+      bCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_Step0x05);
+      if (!bCompleted) {
+        AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nNPCClassId, 3);
+        return;
+      }
+    } else {
       uint32_t nGossipLineIdx;
       if (bCompleted != 1 && (pQuestData->nStateFlag < 4 || bJustCompleted) && pQuestData->bIsNotIntroduction) {
         nGossipLineIdx = gdwQuestCallbackAddressQ31[pQuestData->nStateFlag];
         if (nGossipLineIdx != -1 && nGossipLineIdx < 8) {
           AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nNPCClassId, nGossipLineIdx);
         }
-      }
-    } else {
-      bCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_Step0x05);
-      if (!bCompleted) {
-        AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nNPCClassId, 3);
-        return;
       }
     }
 }
@@ -304,7 +304,7 @@ void __fastcall Q31_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 }
 
 // A5Q1: per-player "am I near Shenk's room?" check, run after Shenk dies. Skips if quest already Completed. Compares player's current room (and its adjacent rooms) against the saved Shenk-room GUID; if the player witnessed the kill, sets RewardAwaits(1) + JustCompleted(0xd) on their quest record so Larzuk will offer the socket reward. Iterator cb, returns 0.
-BOOL __fastcall Q31_CheckNearShenk(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
+static BOOL __fastcall Q31_CheckNearShenk(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
     D2RoomStrc** pAdjacentRooms;
     uint32_t nAdjRoomCount;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
@@ -329,7 +329,7 @@ BOOL __fastcall Q31_CheckNearShenk(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void
       uint32_t nAdjRoomIdx;
       D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pAdjacentRooms, (int*)&nAdjRoomCount);
       nAdjRoomIdx = 0;
-      if (nAdjRoomCount) {
+      if ((uint32_t)nAdjRoomCount > 0) {
         do {
           if (pAdjacentRooms[nAdjRoomIdx] == pA5Q1Data->pShenkRoom) {
             bIsNearShenkRoom = '\x01';
@@ -478,7 +478,7 @@ void __fastcall Q31_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
     BOOL bQuestState;
     D2BitBufferStrc* pBitBuffer;
     ::SGAMEDATA* pGame;
-    if (pQuestArgs->sQuestArgs.sNpcActivate.nIndex - 0x6eU < 3) {
+    if (pQuestArgs->sQuestArgs.sNpcActivate.nIndex - 0x6eU <= 2) {
       if (pQuestData->bIsNotIntroduction && (pQuestData->nStateFlag == 1 || pQuestData->nStateFlag == 2)) {
         QUEST_SetStateFlag(pQuestData, 3, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a5q1.cpp", 0x229);
         UNIT::SUnit::IteratePlayerOrMonsterUnits(pQuestData->pGame, 0, nullptr, (::fpExecuteOnUnitFunction)Q31_SyncQuestProgress);
@@ -508,7 +508,7 @@ void __fastcall Q31_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
 }
 
 // A5Q1 active filter for Larzuk (class 0x1ff): returns true (quest is interactable) if RewardAwaits(1) and reward not yet given (Step0x05 unset), OR if intro shown, in-progress, and not Completed(0)/RewardAwaits(1). Read-only.
-bool __fastcall Q31_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetClassId, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2UnitStrc * pUnitEx) {
+static bool __fastcall Q31_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetClassId, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2UnitStrc * pUnitEx) {
     if (nTargetClassId != 0x1ff) {
       return false;
     }
@@ -538,7 +538,7 @@ bool __fastcall Q31_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetCl
 }
 
 // A5Q1 sequence filter: chains to the next quest's sequence filter (nSequenceQuestId). Only proceeds when this quest reached stateFlag 5 (reward given) or intro shown; validates the chained fn ptr before calling. No quest-state bit reads.
-void __fastcall Q31_SequenceFilter(D2QuestDataStrc * pQuestData) {
+static void __fastcall Q31_SequenceFilter(D2QuestDataStrc * pQuestData) {
     if (pQuestData->nStateFlag != 5 && pQuestData->bIsNotIntroduction) {
       return;
     }
@@ -558,7 +558,7 @@ void __fastcall Q31_SequenceFilter(D2QuestDataStrc * pQuestData) {
 }
 
 // A5Q1: on game load, rebuild volatile in-memory state (nStateFlagPrev@+0xb, nStateFlag@+0xc) from the player's persisted quest-record bits. Priority: Completed(0)/FinishedPrev(0xf)/RewardAwaits(1) -> prev=5 (done); Step0x04(4) -> prev2,flag3; Step0x03(3) -> prev1,flag3; Step0x02(2) -> prev1,flag2; else if player has spoken with Larzuk-intro NPC 0x201 and intro shown -> flag=1. Decompiler shows nQuestIdReal via [ESI+0xe0].
-void __fastcall Q31_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q31_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     ::SGAMEDATA* pGame = pQuestArgs->pGame;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
     D2BitBufferStrc* pBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];

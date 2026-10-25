@@ -55,7 +55,7 @@ void __fastcall GFX_FreeAllCacheEntries(D2PoolManagerStrc * pMemory, int32_t nPa
       }
 
       nBucketIdx++;
-      if (0x1ff < nBucketIdx) {
+      if (0x200 <= nBucketIdx) {
         return;
       }
     }

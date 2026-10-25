@@ -20,7 +20,7 @@
 namespace D2Client::DataTbls {
 
 D2SoundsTxt * __fastcall TXT_sounds_GetLineBySoundId(int32_t nSoundId) {
-    if (!(pTxtSounds && -1 < nSoundId && nSoundId < nTxtSoundsSize)) {
+    if (!(pTxtSounds && 0 <= nSoundId && (int)nSoundId < (int)nTxtSoundsSize)) {
       return nullptr;
     }
 
@@ -28,7 +28,7 @@ D2SoundsTxt * __fastcall TXT_sounds_GetLineBySoundId(int32_t nSoundId) {
 }
 
 D2CharStatsTxt * __fastcall INV_GetCharStatsTxtLine(int32_t nParam) {
-    if (!(-1 < nParam && nParam < sgptDataTable->nTxtCharStatsSize)) {
+    if (!(0 <= nParam && nParam < sgptDataTable->nTxtCharStatsSize)) {
       return nullptr;
     }
 
@@ -36,7 +36,7 @@ D2CharStatsTxt * __fastcall INV_GetCharStatsTxtLine(int32_t nParam) {
 }
 
 D2SetsTxt * __fastcall GetSetsLine(int32_t nSetId) {
-    if (!(-1 < nSetId && nSetId < sgptDataTable->nTxtSetsSize)) {
+    if (!(0 <= nSetId && nSetId < sgptDataTable->nTxtSetsSize)) {
       return nullptr;
     }
 
@@ -44,7 +44,7 @@ D2SetsTxt * __fastcall GetSetsLine(int32_t nSetId) {
 }
 
 D2SetItemsTxt * __fastcall GetSetItemsLine(int32_t nSetItemId) {
-    if (!(-1 < nSetItemId && nSetItemId < sgptDataTable->nTxtSetItemsSize)) {
+    if (!(0 <= nSetItemId && nSetItemId < sgptDataTable->nTxtSetItemsSize)) {
       return nullptr;
     }
 
@@ -52,7 +52,7 @@ D2SetItemsTxt * __fastcall GetSetItemsLine(int32_t nSetItemId) {
 }
 
 D2UniqueItemsTxt * __fastcall INV_GetUniqueItemsTxtLine(int32_t nParam) {
-    if (!(-1 < nParam && nParam < sgptDataTable->nTxtUniqueItemsSize)) {
+    if (!(0 <= nParam && nParam < sgptDataTable->nTxtUniqueItemsSize)) {
       return nullptr;
     }
 
@@ -60,12 +60,12 @@ D2UniqueItemsTxt * __fastcall INV_GetUniqueItemsTxtLine(int32_t nParam) {
 }
 
 D2SkillDescTxt * __fastcall GetSkillDescription(eD2Skills eSkillId) {
-    if (!(-1 < (int)eSkillId && (int)eSkillId < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkillId)) {
+    if (!(0 <= (int)eSkillId && (int)eSkillId < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkillId)) {
       return nullptr;
     }
 
     int nSkillDescIdx = (int)sgptDataTable->pTxtSkills[eSkillId].skilldesc;
-    if (!(-1 < nSkillDescIdx && nSkillDescIdx < sgptDataTable->nTxtSkillDescSize)) {
+    if (!(0 <= nSkillDescIdx && nSkillDescIdx < sgptDataTable->nTxtSkillDescSize)) {
       return nullptr;
     }
 
@@ -74,7 +74,7 @@ D2SkillDescTxt * __fastcall GetSkillDescription(eD2Skills eSkillId) {
 
 int32_t __fastcall SKILL_GetMaxLevelForSkill(int32_t skillId) {
     int32_t nMaxLevel;
-    if (!(skillId < 0 || sgptDataTable->nTxtSkillsCount <= skillId || (nMaxLevel = (int32_t)sgptDataTable->pTxtSkills[skillId].maxlvl , nMaxLevel < 1))) {
+    if (!(skillId < 0 || skillId >= sgptDataTable->nTxtSkillsCount || (nMaxLevel = (int32_t)sgptDataTable->pTxtSkills[skillId].maxlvl , nMaxLevel <= 0))) {
       return nMaxLevel;
     }
 
@@ -83,7 +83,7 @@ int32_t __fastcall SKILL_GetMaxLevelForSkill(int32_t skillId) {
 }
 
 int32_t __fastcall CheckMonStatId(int32_t nMonStatsId) {
-    if (!(nMonStatsId < 0 || sgptDataTable->nTxtMonStatsSize <= nMonStatsId)) {
+    if (!(nMonStatsId < 0 || nMonStatsId >= sgptDataTable->nTxtMonStatsSize)) {
       return nMonStatsId;
     }
 
@@ -92,7 +92,7 @@ int32_t __fastcall CheckMonStatId(int32_t nMonStatsId) {
 }
 
 int32_t __fastcall TXT_Skills_GetSkillRange(eD2Skills eSkill, int32_t pnSkillLevel) {
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 

@@ -103,7 +103,7 @@ void __stdcall Roll(::SGAMEDATA * pGame, D2RoomStrc * pRoom, D2DrlgCoordsStrc * 
 
           nObjSizeY = __frame0.pObjectsTxt->SizeY;
           nCurY += nObjSizeY * 2;
-          if (__frame0.nYEnd <= nCurY) {
+          if (nCurY >= __frame0.nYEnd) {
             return;
           }
         } while (true);

@@ -27,23 +27,10 @@ namespace Storm::_3rdparty::zlib::trees {
 
 // Function declarations
 void tr_static_init();
-void __fastcall init_block(deflate_state * pDeflateState);
-void __stdcall pqdownheap(int32_t nIndex, deflate_state * pDeflateState, ct_data * pTree);
-void gen_bitlen(tree_desc * pTreeDesc, deflate_state * pDeflateState);
-void __stdcall scan_tree(int32_t nMaxCode, deflate_state * pDeflateState, ct_data * pTree);
-void send_tree(int32_t nMaxCode, ct_data * pTree, deflate_state * pDeflateState);
-void __stdcall send_all_trees(int32_t nLCodes, int32_t nDCodes, int32_t nBlCodes, deflate_state * pDeflateState);
 uint32_t __fastcall _tr_tally(deflate_state * pDeflateState, int32_t nDist, int32_t nLc);
-void __stdcall compress_block(ct_data * pLTree, ct_data * pDTree, deflate_state * pDeflateState);
-BOOL detect_data_type(deflate_state * pDeflateState);
 uint32_t __fastcall bi_reverse(uint32_t nCode, int nLen);
-void bi_flush(deflate_state * pDeflateState);
 void bi_windup(deflate_state * pDeflateState);
-void __stdcall copy_block(int32_t nLen, uint8_t * pbBuf, int32_t bWriteHeader, deflate_state * pDeflateState);
 void __fastcall _tr_init(deflate_state * pDeflateState);
-void __stdcall gen_codes(ct_data * pTree, int32_t nMaxCode, uint16_t * pBlCount);
-void __stdcall build_tree(tree_desc * pTreeDesc, deflate_state * pDeflateState);
-int32_t build_bl_tree(deflate_state * pDeflateState);
 void __fastcall _tr_stored_block(deflate_state * pDeflateState, char * pbBuf, uint32_t nStoredLen, int32_t nLast);
 void __fastcall _tr_flush_bits(deflate_state * pDeflateState);
 void __fastcall _tr_align(deflate_state * pDeflateState);

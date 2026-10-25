@@ -148,6 +148,7 @@ typedef int (__fastcall *pfnTextScrollComplete)(void * pUserParam, uint32_t nRea
 #endif
 
 namespace D2Client::UI::ui {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca05c(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
 
 static bool gbUIStatButtonHovered = 0;
 static bool gbUISkillButtonHovered = 0;
@@ -317,7 +318,7 @@ uint16_t * __fastcall UI_WrapStringWithColorCodes(uint16_t * wszText, char cStar
     }
 
     int32_t nLength = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszText);
-    if (499 < nLength) {
+    if (500 <= nLength) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x39a);
       exit(-1);
     }
@@ -426,7 +427,7 @@ int32_t __fastcall UI_GetMonsterHpBarValue(D2UnitStrc * pUnit) {
     bIsInteractable = false;
     compute_hp_bar_value:
     nMaxHp = GAME::RosterPets::GetRosterPerHPPercent(pUnit->nUnitGUID);
-    if (bIsInteractable || nMaxHp < 1) {
+    if (bIsInteractable || nMaxHp <= 0) {
       nMaxHp = D2Common::Stats::StatsEx::GetTxtMaxHp(pUnit);
       if (!nMaxHp) {
         return 0x80;
@@ -507,7 +508,7 @@ void UI_BuildUberBossImmunityString(D2UnitStrc * pUnit) {
     do {
       uint16_t wszLine[256];
       nResist = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, ((D2UberBossImmunityStrc*)(pImmunityTblEntry - 2))->nStat, 0);
-      if (99 < nResist) {
+      if (100 <= nResist) {
         bHasPrevious = wszBuffer[0] != L'\0';
         pWszFill = wszLine;
         for (nResist = 0x80; nResist; nResist--) {
@@ -633,13 +634,13 @@ void __fastcall UI_FormatItemNameWithQuality(D2UnitStrc * pUnit, uint16_t * wszT
 
       AppendAsWideChar(&__frame0.wszGoldName, (char)nColorCode);
       nStrLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(&__frame0.wszGoldName);
-      if (nStrLen < nMaxLength) {
-        D2Lang::Unicode::UNISYS::STRING_CopyWideString(pTmpStr, &__frame0.wszGoldName);
-        return;
+      if (!(nStrLen < nMaxLength)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5e0);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5e0);
-      exit(-1);
+      D2Lang::Unicode::UNISYS::STRING_CopyWideString(pTmpStr, &__frame0.wszGoldName);
+      return;
     } else {
       __frame0.wszItemName = L'\0';
       Fog::File::CONTAINER_InitializeBuffer(__frame0.wszItemNameTail, 2, 0x7f, D2Launch::MainMenus::STRING_ZeroOneWCHAR);
@@ -652,13 +653,13 @@ void __fastcall UI_FormatItemNameWithQuality(D2UnitStrc * pUnit, uint16_t * wszT
 
       AppendAsWideChar(&__frame0.wszItemName, (char)nColorCode);
       nStrLen = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(&__frame0.wszItemName);
-      if (nStrLen < nMaxLength) {
-        D2Lang::Unicode::UNISYS::STRING_CopyWideString(pTmpStr, &__frame0.wszItemName);
-        return;
+      if (!(nStrLen < nMaxLength)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5eb);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x5eb);
-      exit(-1);
+      D2Lang::Unicode::UNISYS::STRING_CopyWideString(pTmpStr, &__frame0.wszItemName);
+      return;
     }
 }
 
@@ -737,9 +738,7 @@ void __stdcall UI_ShowMonsterNameBar(int32_t bStoreMode, D2UnitStrc * pUnit) {
     int nScreenX = nHealthBarScreenX;
     int nScreenY = gnMercenaryHealthBarScreenY - 0x48;
     uint16_t* pwszMonsterName = UNIT::CUnit::GetName(pUnit);
-    if (!bStoreMode) {
-      D2Win::Src::D2WinFont::D2WINFONT_SetTooltipAttributesWithCustomField(pwszMonsterName, nScreenX, nScreenY, 0, 1, nHpBarValue);
-    } else {
+    if (bStoreMode) {
       UNICODE_007a2c80[0] = L'\0';
       if (pwszMonsterName) {
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(UNICODE_007a2c80, pwszMonsterName);
@@ -748,6 +747,8 @@ void __stdcall UI_ShowMonsterNameBar(int32_t bStoreMode, D2UnitStrc * pUnit) {
         gnTooltipHpBarValue = nHpBarValue;
         return;
       }
+    } else {
+      D2Win::Src::D2WinFont::D2WINFONT_SetTooltipAttributesWithCustomField(pwszMonsterName, nScreenX, nScreenY, 0, 1, nHpBarValue);
     }
 }
 
@@ -931,7 +932,7 @@ void __stdcall UI_DrawStoredTooltip() {
     if (nDrawX < 0) {
       nDrawX = 0;
     }
-    if (ScreenSizeX < nDrawX + nWidth) {
+    if (nDrawX + nWidth > ScreenSizeX) {
       nDrawX = ScreenSizeX - nWidth;
     }
 
@@ -939,7 +940,7 @@ void __stdcall UI_DrawStoredTooltip() {
     if ((int)(gnTooltipScreenY + 2 - (nFontHeight + 7)) < 0) {
       nWidth = nFontHeight + 7;
     }
-    if (ScreenSizeY - 0x1f < nWidth) {
+    if (nWidth > ScreenSizeY - 0x1f) {
       nWidth = ScreenSizeY - 0x1f;
     }
 
@@ -1004,7 +1005,10 @@ void __stdcall DRAW_UI_DeathMessage() {
 
     uint32_t nIngameUIFlags;
     nIngameUIFlags = ClientModeInGame::CLIENTMODE_GetIngameUIFlags();
-    if (!nIngameUIFlags) {
+    if (nIngameUIFlags) {
+      pDwFill = D2Lang::StrTable::strtable::GetLocaleString(0x13e8);
+      D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszDeathMessage, pDwFill);
+    } else {
       uint16_t* pnGoldLostArg;
       nGoldLost = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_goldlost, 0);
       if (!nGoldLost) {
@@ -1014,9 +1018,6 @@ void __stdcall DRAW_UI_DeathMessage() {
       pnGoldLostArg = (uint16_t*)D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_goldlost, 0);
       pDwFill = D2Lang::StrTable::strtable::GetLocaleString(0x13e6);
       D2Lang::Unicode::UNISYS::UNICODE_FormatWideString(0x100, wszDeathMessage, pDwFill, pnGoldLostArg);
-    } else {
-      pDwFill = D2Lang::StrTable::strtable::GetLocaleString(0x13e8);
-      D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszDeathMessage, pDwFill);
     }
 
     nDrawY = nCenterY + 2;
@@ -1141,9 +1142,9 @@ void __stdcall UI_DrawPlayerStateOverlays() {
           pStateTxt = DataTbls::MonsterTbls::TXT_States_GetLine(eState);
           if (pStateTxt && pStateTxt->pgsv && 0 < pStateTxt->pgsvoverlay && (int)pStateTxt->pgsvoverlay < sgptDataTable->nTxtOverlaySize) {
             nStatId = pStateTxt->stat;
-            if (-1 < nStatId && (int)nStatId <= sgptDataTable->nTxtItemStatCostSize) {
+            if (0 <= nStatId && (int)nStatId <= sgptDataTable->nTxtItemStatCostSize) {
               nStatValue = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pPlayerUnit_lcl, (int)nStatId, 0);
-              if (nStatValue - 1U < 3) {
+              if (nStatValue - 1U <= 2) {
                 Engine::GfxInfo::GFX_DrawOverlayOnUnit(pPlayerUnit_lcl, pStateTxt->pgsvoverlay - 1 + nStatValue, nScreenX, nScreenY);
                 nScreenX -= gnStateOverlayXSpacing;
               }
@@ -1180,7 +1181,7 @@ void UI_SetMultipleButtonKeyBindings(D2UIKeyBindingSetStrc * pnButtonIndices) {
       nBoundKey = CmdTbl::CMD_IsCommandBound(0x16, 1);
       if (nBoundKey) {
         uVar2 = CmdTbl::CMD_GetKeyForCommand(0x16, 1);
-        if (uVar2 != 0xffff && uVar2 < 0xe0) {
+        if (uVar2 != 0xffff && uVar2 <= 0xdf) {
           pnButtonIndices->pHandlers[iVar1].nMessageOrKeyCode = (uint32_t)uVar2;
           goto bind_cmd26_slot1;
         }
@@ -1195,7 +1196,7 @@ void UI_SetMultipleButtonKeyBindings(D2UIKeyBindingSetStrc * pnButtonIndices) {
       nBoundKey = CmdTbl::CMD_IsCommandBound(0x26, 1);
       if (nBoundKey) {
         uVar2 = CmdTbl::CMD_GetKeyForCommand(0x26, 1);
-        if (uVar2 != 0xffff && uVar2 < 0xe0) {
+        if (uVar2 != 0xffff && uVar2 <= 0xdf) {
           pnButtonIndices->pHandlers[iVar1].nMessageOrKeyCode = (uint32_t)uVar2;
           goto bind_cmd29_slot1;
         }
@@ -1210,7 +1211,7 @@ void UI_SetMultipleButtonKeyBindings(D2UIKeyBindingSetStrc * pnButtonIndices) {
       nBoundKey = CmdTbl::CMD_IsCommandBound(0x29, 1);
       if (nBoundKey) {
         uVar2 = CmdTbl::CMD_GetKeyForCommand(0x29, 1);
-        if (uVar2 != 0xffff && uVar2 < 0xe0) {
+        if (uVar2 != 0xffff && uVar2 <= 0xdf) {
           pnButtonIndices->pHandlers[iVar1].nMessageOrKeyCode = (uint32_t)uVar2;
           goto bind_cmd2c_slot1;
         }
@@ -1227,7 +1228,7 @@ void UI_SetMultipleButtonKeyBindings(D2UIKeyBindingSetStrc * pnButtonIndices) {
         nBoundKey = CmdTbl::CMD_IsCommandBound(0x2c, 1);
         if (nBoundKey) {
           uVar2 = CmdTbl::CMD_GetKeyForCommand(0x2c, 1);
-          if (uVar2 != 0xffff && uVar2 < 0xe0) {
+          if (uVar2 != 0xffff && uVar2 <= 0xdf) {
             pnButtonIndices->pHandlers[iVar1].nMessageOrKeyCode = (uint32_t)uVar2;
             goto bind_cmd16_slot0;
           }
@@ -1243,7 +1244,7 @@ void UI_SetMultipleButtonKeyBindings(D2UIKeyBindingSetStrc * pnButtonIndices) {
       nBoundKey = CmdTbl::CMD_IsCommandBound(0x16, 0);
       if (nBoundKey) {
         uVar2 = CmdTbl::CMD_GetKeyForCommand(0x16, 0);
-        if (uVar2 != 0xffff && uVar2 < 0xe0) {
+        if (uVar2 != 0xffff && uVar2 <= 0xdf) {
           pnButtonIndices->pHandlers[iVar1].nMessageOrKeyCode = (uint32_t)uVar2;
           goto bind_cmd26_slot0;
         }
@@ -1258,7 +1259,7 @@ void UI_SetMultipleButtonKeyBindings(D2UIKeyBindingSetStrc * pnButtonIndices) {
       nBoundKey = CmdTbl::CMD_IsCommandBound(0x26, 0);
       if (nBoundKey) {
         uVar2 = CmdTbl::CMD_GetKeyForCommand(0x26, 0);
-        if (uVar2 != 0xffff && uVar2 < 0xe0) {
+        if (uVar2 != 0xffff && uVar2 <= 0xdf) {
           pnButtonIndices->pHandlers[iVar1].nMessageOrKeyCode = (uint32_t)uVar2;
           goto bind_cmd29_slot0;
         }
@@ -1273,7 +1274,7 @@ void UI_SetMultipleButtonKeyBindings(D2UIKeyBindingSetStrc * pnButtonIndices) {
       nBoundKey = CmdTbl::CMD_IsCommandBound(0x29, 0);
       if (nBoundKey) {
         uVar2 = CmdTbl::CMD_GetKeyForCommand(0x29, 0);
-        if (uVar2 != 0xffff && uVar2 < 0xe0) {
+        if (uVar2 != 0xffff && uVar2 <= 0xdf) {
           pnButtonIndices->pHandlers[iVar1].nMessageOrKeyCode = (uint32_t)uVar2;
           goto bind_cmd2c_slot0;
         }
@@ -1296,7 +1297,7 @@ void UI_SetMultipleButtonKeyBindings(D2UIKeyBindingSetStrc * pnButtonIndices) {
     nBoundKey = CmdTbl::CMD_IsCommandBound(0x2c, 0);
     if (nBoundKey) {
       uVar2 = CmdTbl::CMD_GetKeyForCommand(0x2c, 0);
-      if (uVar2 != 0xffff && uVar2 < 0xe0) {
+      if (uVar2 != 0xffff && uVar2 <= 0xdf) {
         pnButtonIndices->pHandlers[iVar1].nMessageOrKeyCode = (uint32_t)uVar2;
         return;
       }
@@ -1306,12 +1307,12 @@ void UI_SetMultipleButtonKeyBindings(D2UIKeyBindingSetStrc * pnButtonIndices) {
 }
 
 BOOL __fastcall GetUIFlag(eD2UIvars eUI) {
-    if (UI_RECIPESCROLL >= eUI) {
-      return (&GFX_bShowUIFlag.Game)[eUI];
+    if (!(UI_RECIPESCROLL >= eUI)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc34);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc34);
-    exit(-1);
+    return (&GFX_bShowUIFlag.Game)[eUI];
     return (&GFX_bShowUIFlag.Game)[eUI];
 }
 
@@ -1341,7 +1342,7 @@ uint32_t UI_HandleKeyInputAndDismiss(int32_t nKeyAction, int32_t nUIFlagToCheck)
       }
 
       dwTickCount = GetTickCount();
-      if (dwTickCount < gdwQuestResurrectDismissThrottle) {
+      if (gdwQuestResurrectDismissThrottle > dwTickCount) {
         return 0;
       }
       if (nUIFlagToCheck == 9) {
@@ -1380,11 +1381,11 @@ uint32_t UI_HandleKeyInputAndDismiss(int32_t nKeyAction, int32_t nUIFlagToCheck)
       if ((&GFX_bShowUIFlag.Game)[eCurrentUI] == 1) {
         if (false) {
           default_case:
-          if (nUIFlagToCheck) {
-            return 0;
+          if (!nUIFlagToCheck) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x13e6);
+            exit(-1);
           }
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x13e6);
-          exit(-1);
+          return 0;
         }
 
         switch (*(uint32_t*)(gUIFlagDismissModeTable[eCurrentUI]->aHeader + nUIFlagToCheck * 4)) {
@@ -1684,11 +1685,11 @@ int __stdcall UI_GoldDialogScrollCallback() {
     uint32_t uMaxGoldAvailable = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, eUnitStat, nLayer);
     if (nScrollDirection == 1) {
       uGoldAmount += uScrollDelta;
-      if (uMaxGoldAvailable < uGoldAmount) {
+      if (uGoldAmount > uMaxGoldAvailable) {
         uGoldAmount = uMaxGoldAvailable;
       }
     } else if (nScrollDirection == 2) {
-      if (uGoldAmount < uScrollDelta) {
+      if (uScrollDelta > uGoldAmount) {
         uGoldAmount = 0;
       } else if (uGoldAmount) {
         uGoldAmount -= uScrollDelta;
@@ -2040,28 +2041,28 @@ bool __stdcall UI_ShowPopupDialog() {
     return bNotCancelled;
 }
 
-int UI_GetCursorFrameOffset(int32_t nCursorIndex) {
+static int UI_GetCursorFrameOffset(int32_t nCursorIndex) {
     if (gnCursorDataCount == 7) {
-      if (nCursorIndex < 7) {
-        return CursorData[nCursorIndex].nFrameOffset;
+      if (!(nCursorIndex < 7)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x90);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x90);
-      exit(-1);
+      return CursorData[nCursorIndex].nFrameOffset;
     } else {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8f);
       exit(-1);
     }
 }
 
-int32_t UI_GetCursorMaxFrames(int32_t nCursorIndex) {
+static int32_t UI_GetCursorMaxFrames(int32_t nCursorIndex) {
     if (gnCursorDataCount == 7) {
-      if (nCursorIndex < 7) {
-        return CursorData[nCursorIndex].nMaxFrames << 8;
+      if (!(nCursorIndex < 7)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9b);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9b);
-      exit(-1);
+      return CursorData[nCursorIndex].nMaxFrames << 8;
     } else {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9a);
       exit(-1);
@@ -2160,7 +2161,7 @@ void __fastcall UI_InitializeCursor(int32_t nCursorType) {
       *ppCursorDC6 = pCursorDC6;
       ppszCursorName += 7;
       ppCursorDC6++;
-    } while ((int)ppszCursorName < (uintptr_t)((char*)&CursorData + sizeof(CursorData) + 24));
+    } while ((int)ppszCursorName < (int)((uintptr_t)((char*)&CursorData + sizeof(CursorData) + 24)));
 
     gnCursorInitialized = 1;
     ItemTypeOnHand = 1;
@@ -2185,10 +2186,10 @@ void __stdcall UI_FreeCursor() {
       }
 
       ppCursorDC6++;
-    } while ((int)ppCursorDC6 < (uintptr_t)((char*)&Cursor::pCursorsDC6 + sizeof(Cursor::pCursorsDC6)));
+    } while ((int)ppCursorDC6 < (int)((uintptr_t)((char*)&Cursor::pCursorsDC6 + sizeof(Cursor::pCursorsDC6))));
 }
 
-void __stdcall UI_AnimateCursorForward() {
+static void __stdcall UI_AnimateCursorForward() {
     D2SeedStrc sNewSeed;
     D2UnitStrc* pPlayerUnit_lcl = UNIT::Player::GetPlayerUnit_UI();
     int nSavedCursorIndex = Cursor::nCursorDataIndex;
@@ -2206,7 +2207,7 @@ void __stdcall UI_AnimateCursorForward() {
     }
 
     int32_t nMaxFrames = UI_GetCursorMaxFrames(nSavedCursorIndex);
-    if (nMaxFrames > gCursorAnimationFrame) {
+    if (gCursorAnimationFrame < nMaxFrames) {
       return;
     }
 
@@ -2261,7 +2262,7 @@ void __stdcall UI_UpdateCursorAnimation() {
     DWORD dwTickCount = GetTickCount();
     if (gnCursorDataCount == 7) {
       if (Cursor::nCursorDataIndex < 7) {
-        if (CursorData[Cursor::nCursorDataIndex].bAnimated && gdwCursorAnimLastTick + 0x10 < dwTickCount) {
+        if (CursorData[Cursor::nCursorDataIndex].bAnimated && dwTickCount > gdwCursorAnimLastTick + 0x10) {
           gdwCursorAnimLastTick = dwTickCount;
           if (ItemTypeOnHand == 3) {
             UI_AnimateCursorBackward();
@@ -2295,7 +2296,7 @@ void __stdcall MOUSE_DrawCursorSprite() {
       nPositionY = 0;
     } else {
       nPositionY = MouseY;
-      if (ScreenSizeY - 1 < MouseY) {
+      if (MouseY > ScreenSizeY - 1) {
         nPositionY = ScreenSizeY - 1;
       }
     }
@@ -2305,7 +2306,7 @@ void __stdcall MOUSE_DrawCursorSprite() {
       int nMaxX;
       nMaxX = ScreenSizeX - gnCursorType - 1;
       nPositionX = nMouseX;
-      if (nMaxX < nMouseX) {
+      if (nMouseX > nMaxX) {
         nPositionX = nMaxX;
       }
     }
@@ -2336,7 +2337,7 @@ void __stdcall DrawCursor() {
     if (!gnCursorInitialized) {
       return;
     }
-    if (!pCursorItem || pCursorItem->eUnitType != UNIT_ITEM || 5 < ItemTypeOnHand || 7 < ItemTypeOnHand) {
+    if (!pCursorItem || pCursorItem->eUnitType != UNIT_ITEM || 6 <= ItemTypeOnHand || 8 <= ItemTypeOnHand) {
       CursorData[Cursor::nCursorDataIndex].pFunction();
     } else {
       int32_t nResult;
@@ -2345,16 +2346,16 @@ void __stdcall DrawCursor() {
       if (nResult) {
         nSpriteLoaded = D2CMP::SRC::SpriteCache::SPRITECACHE_GetOrLoadSprite(&sGfxData, 0, 1);
         if (nSpriteLoaded) {
-          if (sGfxData.pDC6Block) {
-            nDimension = D2CMP::SRC::CelCmp::GetDC6Height(sGfxData.pDC6Block);
-            nSpriteLoaded = MouseY - (nDimension >> 1);
-            nDimension = D2CMP::SRC::CelCmp::GetDC6Width(sGfxData.pDC6Block);
-            Engine::GfxInfo::DrawItemGfx(pCursorItem, gnCursorType - (nDimension >> 1) + MouseX, nSpriteLoaded);
-            return;
+          if (!sGfxData.pDC6Block) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x27d);
+            exit(-1);
           }
 
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x27d);
-          exit(-1);
+          nDimension = D2CMP::SRC::CelCmp::GetDC6Height(sGfxData.pDC6Block);
+          nSpriteLoaded = MouseY - (nDimension >> 1);
+          nDimension = D2CMP::SRC::CelCmp::GetDC6Width(sGfxData.pDC6Block);
+          Engine::GfxInfo::DrawItemGfx(pCursorItem, gnCursorType - (nDimension >> 1) + MouseX, nSpriteLoaded);
+          return;
         }
       }
     }
@@ -2392,7 +2393,7 @@ void __stdcall UI_DrawCursorWithItem() {
         if (gnCursorType <= nMouseX) {
           nMaxX = gnCursorItemAnimDrawOffset - gnCursorType - 1;
           nPositionX = nMouseX;
-          if (nMaxX < nMouseX) {
+          if (nMouseX > nMaxX) {
             nPositionX = nMaxX;
           }
         }
@@ -2411,16 +2412,16 @@ void __stdcall UI_DrawCursorWithItem() {
       if (nClampedY) {
         nCursorIndex = D2CMP::SRC::SpriteCache::SPRITECACHE_GetOrLoadSprite(&sGfxData, 0, 1);
         if (nCursorIndex) {
-          if (sGfxData.pDC6Block) {
-            nDimension = D2CMP::SRC::CelCmp::GetDC6Height(sGfxData.pDC6Block);
-            nCursorIndex = MouseY - (nDimension >> 1);
-            nDimension = D2CMP::SRC::CelCmp::GetDC6Width(sGfxData.pDC6Block);
-            Engine::GfxInfo::DrawItemGfx(pCursorItem, gnCursorType - (nDimension >> 1) + MouseX, nCursorIndex);
-            return;
+          if (!sGfxData.pDC6Block) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 699);
+            exit(-1);
           }
 
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 699);
-          exit(-1);
+          nDimension = D2CMP::SRC::CelCmp::GetDC6Height(sGfxData.pDC6Block);
+          nCursorIndex = MouseY - (nDimension >> 1);
+          nDimension = D2CMP::SRC::CelCmp::GetDC6Width(sGfxData.pDC6Block);
+          Engine::GfxInfo::DrawItemGfx(pCursorItem, gnCursorType - (nDimension >> 1) + MouseX, nCursorIndex);
+          return;
         }
       }
     }
@@ -2501,7 +2502,7 @@ void __stdcall UI_HandleMousePositionUpdate(D2UIMouseMsgStrc * pMsg) {
       uVar1 = MouseX;
       if (!bWindowActive) {
         nMaxX = ScreenSizeX - 1;
-        if ((int)nMaxX < (int)MouseX) {
+        if ((int)MouseX > (int)nMaxX) {
           MouseX = nMaxX;
         }
 
@@ -2938,7 +2939,7 @@ int64_t __stdcall UI_GetControlConfigRowCount() {
     int nRows = gnUICtrlConfigTotalRows;
     do {
       nRows--;
-      if (nRows < 1) {
+      if (nRows <= 0) {
         return (uint64_t)nScrollExtra << 0x20;
       }
 
@@ -3097,7 +3098,7 @@ int32_t UI_GetControlConfigRowAtY(int32_t nParam) {
       nCurrentRowY = (WindowSizeY - 0x1a4) / 2 + 0x3a;
       nCurRow = gnUICtrlConfigScrollOffset;
       do {
-        if (0xe < i) {
+        if (0xf <= i) {
           if (nCurRow < gnUICtrlConfigTotalRows) {
             return nCurRow;
           }
@@ -3115,7 +3116,7 @@ int32_t UI_GetControlConfigRowAtY(int32_t nParam) {
     }
 
     i = gnUICtrlConfigTotalRows;
-    if (-1 >= gnUICtrlConfigTotalRows) {
+    if (0 > gnUICtrlConfigTotalRows) {
       return i;
     }
 
@@ -3138,7 +3139,7 @@ int32_t UI_GetControlConfigTabIndex(int32_t nMouseX, int32_t nMouseY) {
     while (nMouseX < *(int*)&g_UIConfigTabTable[nMatchedTabIndex].aBounds[0] || *(int*)&g_UIConfigTabTable[nMatchedTabIndex].aBounds[4] < nMouseX || nMouseY < *(int*)&g_UIConfigTabTable[nMatchedTabIndex].aBounds[8] || *(int*)&g_UIConfigTabTable[nMatchedTabIndex].aBounds[12] < nMouseY) {
       nTabByteOffset += 0x1a;
       nMatchedTabIndex++;
-      if (0x4d < nTabByteOffset) {
+      if (0x4e <= nTabByteOffset) {
         return nMatchedTabIndex;
       }
     }
@@ -3222,7 +3223,7 @@ BOOL UI_IsMouseOverControlConfigTab(int32_t nMouseX, int32_t nMouseY) {
     return (uint32_t)(iVar1 != 3);
 }
 
-uint32_t UI_IsControlConfigCellClickable(int32_t nMousePosY, int32_t nMousePosX) {
+static uint32_t UI_IsControlConfigCellClickable(int32_t nMousePosY, int32_t nMousePosX) {
     int bInArea = UI_IsMouseInControlConfigArea(nMousePosX, nMousePosY);
     if (!bInArea) {
       return 0;
@@ -3457,7 +3458,7 @@ void __stdcall UI_ConfigKeyBindModeCancelAndRevert() {
 
 // Control config click handler. Reads mouse button from params, updates g_nControlConfigMouseButtonState[0] to track primary button state. Entry point for config UI mouse interaction.
 // ECX is not an argument: first written at 004a5e6e (MOV ECX,EBX) before any read.
-void UI_ConfigHandleMouseClick(int32_t nMouseX, int32_t nMouseY) {
+static void UI_ConfigHandleMouseClick(int32_t nMouseX, int32_t nMouseY) {
     int32_t nTabIndex;
     if (gaControlConfigRegionMouseState[0]) {
       uint32_t bCellClickable;
@@ -3702,13 +3703,13 @@ void __stdcall INPUT_ConfigMouseWheelScroll(D2UIMouseMsgStrc * pMsg) {
     if (nScrollTicks != iVar1) {
       pMsg = 0;
       bExitFlag = CmdTbl::CMD_SetKeyBinding(gpStatDescriptorTable[g_ControlConfigUIState].nCmdIndex, nConfigControlSelected, (nScrollTicks - iVar1 < 0) + 0x103, (uint16_t*)&pMsg);
-      if (!bExitFlag) {
+      if (bExitFlag) {
+        UI_ConfigKeyBindModeDisable(1);
+      } else {
         if ((short int)(uintptr_t)pMsg) {
           *(uint16_t*)(char*)&gnUICtrlConfigPendingKeyStrId = (short int)(uintptr_t)pMsg;
           gdwUICtrlConfigKeyBindTimestamp = GetTickCount();
         }
-      } else {
-        UI_ConfigKeyBindModeDisable(1);
       }
     }
 
@@ -3788,7 +3789,7 @@ BOOL __fastcall UI_IsMouseOnStatButton(int32_t nPanelMode, int32_t nMouseX, int3
       if (nMouseX <= ScreenSizeX / 2 + 0x28) {
         return 0;
       }
-      if (ScreenSizeX / 2 + 0x4a <= nMouseX) {
+      if (nMouseX >= ScreenSizeX / 2 + 0x4a) {
         return 0;
       }
     } else if (0x20 < nMouseX - 0x29U) {
@@ -3844,15 +3845,13 @@ void __stdcall INPUT_StatScreenButtonDown(D2UIMouseMsgStrc * pMsg) {
 
     uint32_t eBorderType = Path::DRAW_GetTypeOfBorder();
     eResMode = D2gfx::D2GFX::D2GFX_GetResolutionMode();
-    if (eResMode == 2) {
-      bOnButton = UI_GetNewStatPointsCount();
-    } else {
+    if (eResMode != 2) {
       uint16_t nMouseY = pMsg->uLParam.sMousePos.nMouseY;
       bOnButton = UI_IsMouseOnStatButton(eBorderType, (uint32_t)nMouseX, (uint32_t)nMouseY);
-    }
-    if (!bOnButton) {
-      pMsg->bHandled = 0;
     } else {
+      bOnButton = UI_GetNewStatPointsCount();
+    }
+    if (bOnButton) {
       gbUIStatButtonHovered = 1;
       Sound::SOUND_PlaySound(SOUND_CURSOR_BUTTON_CLICK, nullptr, 0, 0, 0);
       UI_HandleCursorMouseMove((uint8_t*)pMsg);
@@ -3862,6 +3861,8 @@ void __stdcall INPUT_StatScreenButtonDown(D2UIMouseMsgStrc * pMsg) {
         Storm::SMsgBreakHandlerChain(pMsg);
         return;
       }
+    } else {
+      pMsg->bHandled = 0;
     }
 }
 
@@ -3876,15 +3877,13 @@ void __stdcall INPUT_SkillTreeButtonDown(D2UIMouseMsgStrc * pMsg) {
 
     uint32_t eBorderType = Path::DRAW_GetTypeOfBorder();
     eResMode = D2gfx::D2GFX::D2GFX_GetResolutionMode();
-    if (eResMode == 2) {
-      bOnButton = UI_GetNewSkillPointsCount();
-    } else {
+    if (eResMode != 2) {
       uint16_t nMouseY = pMsg->uLParam.sMousePos.nMouseY;
       bOnButton = UI_IsMouseOnSkillButton(eBorderType, (uint32_t)nMouseX, (uint32_t)nMouseY);
-    }
-    if (!bOnButton) {
-      pMsg->bHandled = 0;
     } else {
+      bOnButton = UI_GetNewSkillPointsCount();
+    }
+    if (bOnButton) {
       gbUISkillButtonHovered = 1;
       Sound::SOUND_PlaySound(SOUND_CURSOR_BUTTON_CLICK, nullptr, 0, 0, 0);
       UI_HandleCursorMouseMove((uint8_t*)pMsg);
@@ -3894,6 +3893,8 @@ void __stdcall INPUT_SkillTreeButtonDown(D2UIMouseMsgStrc * pMsg) {
         Storm::SMsgBreakHandlerChain(pMsg);
         return;
       }
+    } else {
+      pMsg->bHandled = 0;
     }
 }
 
@@ -4144,7 +4145,7 @@ void __stdcall DRAW_UI_NewStatPoints_II() {
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nBaseX + 3, ScreenSizeY - 0x6d, -1, DRAW_SOLID, nullptr);
 }
 
-uint32_t __stdcall UI_GetNewSkillPointsForClass(int32_t nCharClass, uint32_t bResult) {
+static uint32_t __stdcall UI_GetNewSkillPointsForClass(int32_t nCharClass, uint32_t bResult) {
     if (nCharClass == 3) {
       return (uint32_t)((uint32_t)((uint32_t)((int32_t)((uint32_t)(bResult >> 8) << 8) >> 8) & 0xffffffu) << 8 | (uint32_t)(uint8_t)1);
     }
@@ -4307,7 +4308,7 @@ void __fastcall UI_DrawTextCentered(int32_t nPositionXStart, int32_t nParam1, in
     D2Win::Src::D2WinFont::DRAW_text(wszMessage, nPositionXStart, nParam1, nParam2, 0);
 }
 
-int32_t UI_GetStatDescriptionStringId(int32_t nUnit) {
+static int32_t UI_GetStatDescriptionStringId(int32_t nUnit) {
     eD2ItemTypes eItemType;
     D2StatStrc aBonusStringIds[32];
     int nCandidateStringId;
@@ -4344,7 +4345,7 @@ int32_t UI_GetStatDescriptionStringId(int32_t nUnit) {
     return nBestStringId;
 }
 
-void __fastcall DRAW_UI_StatWindow_III(int32_t nX, int32_t nY, int32_t nValue) {
+static void __fastcall DRAW_UI_StatWindow_III(int32_t nX, int32_t nY, int32_t nValue) {
     int32_t iVar1;
     int iClearIdx;
     uint16_t wszMessage[128];
@@ -4400,13 +4401,13 @@ void __fastcall DRAW_UI_StatWindow_III(int32_t nX, int32_t nY, int32_t nValue) {
     D2Win::Src::D2WinFont::D2WINFONT_DrawTextWithBackgroundRect(wszMessage, gnPanelOffsetX + 0x8b, gnPanelOffsetY - 0x13b + ScreenSizeY, (uint32_t)(uint8_t)gbUIStatWindowDrawFlag, DRAW_LESSTRANSPARENT, 0);
 }
 
-int32_t __stdcall CHAR_AddClassToHitFactor(D2UnitStrc * pUnit, int32_t nValue) {
+static int32_t __stdcall CHAR_AddClassToHitFactor(D2UnitStrc * pUnit, int32_t nValue) {
     if (!(pUnit && pUnit->eUnitType == UNIT_PLAYER)) {
       return nValue;
     }
 
     int iVar1 = pUnit->nClassId;
-    if (!(-1 < iVar1 && iVar1 < sgptDataTable->nTxtCharStatsSize && sgptDataTable->pTxtCharStats + iVar1)) {
+    if (!(0 <= iVar1 && iVar1 < sgptDataTable->nTxtCharStatsSize && sgptDataTable->pTxtCharStats + iVar1)) {
       return nValue;
     }
 
@@ -4416,7 +4417,7 @@ int32_t __stdcall CHAR_AddClassToHitFactor(D2UnitStrc * pUnit, int32_t nValue) {
 
 // Body continues at 004a7354, the JNZ target of 004a734a - a branch, not a call. Ghidra had a CALL_RETURN flow override there and a separate function named 'UI_FormatStatTooltip'; that made EBP look like a parameter and turned this frame's locals into wild pointers.
 // Retired notes from 'UI_FormatStatTooltip':
-int32_t __stdcall UI_GetStatValueForDisplay(int32_t nUnit) {
+static int32_t __stdcall UI_GetStatValueForDisplay(int32_t nUnit) {
     // Frame -68..-12 is ONE object: a call writes 56 literal bytes starting at &aiStack_44.
     // Separate locals let the compiler reorder them, and the write would run off the frame.
     struct __frame0_t {
@@ -4546,7 +4547,7 @@ int32_t __stdcall UI_BuildStatWindowDescriptions() {
     if (nMonIdx < 0) {
       return 0;
     }
-    if (sgptDataTable->nTxtMonStatsSize <= nMonIdx) {
+    if (nMonIdx >= sgptDataTable->nTxtMonStatsSize) {
       return 0;
     }
 
@@ -4649,7 +4650,7 @@ int __fastcall UI_AppendColorCodeToString(void * pWszString, void * pNextLineOut
     }
 
     *(uint16_t*)((int)pWszString + nIdx * 2) = 0;
-    if (nStrLen <= nIdx) {
+    if (nIdx >= nStrLen) {
       return 0;
     }
 
@@ -4657,7 +4658,7 @@ int __fastcall UI_AppendColorCodeToString(void * pWszString, void * pNextLineOut
     return 1;
 }
 
-int INPUT_HighResLeftPanelClick(D2UIMouseMsgStrc * pMsg) {
+static int INPUT_HighResLeftPanelClick(D2UIMouseMsgStrc * pMsg) {
     DWORD dwResMode = D2gfx::D2GFX::D2GFX_GetResolutionMode();
     if (dwResMode != 2) {
       return 0;
@@ -4768,17 +4769,17 @@ void __stdcall INPUT_StatScreenMouseUp(D2UIMouseMsgStrc * pMsg) {
         if (nBtnY - 0x1f6 < nMouseY && nMouseY < nBtnY - 0x1e0 && (int)(pBtnEntry[-1] + gnPanelOffsetX) < nMouseX && nMouseX < (int)(pBtnEntry[-1] + gnPanelOffsetX + 0x28)) {
           dwScreenSizeY = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_statpts, 0);
           /* int nVirtKey for GetKeyState */ wShiftKey = GetKeyState(0x10);
-          if (wShiftKey < 0) {
+          if (!(wShiftKey < 0)) {
+            dwScreenSizeY = 1;
+          } else {
             if (!dwScreenSizeY) {
               break;
             }
-          } else {
-            dwScreenSizeY = 1;
           }
 
           do {
             nBtnY = dwScreenSizeY;
-            if (0x1f < dwScreenSizeY) {
+            if (0x20 <= dwScreenSizeY) {
               nBtnY = 0x20;
             }
 
@@ -4791,7 +4792,7 @@ void __stdcall INPUT_StatScreenMouseUp(D2UIMouseMsgStrc * pMsg) {
 
         nBtnIdx++;
         pBtnEntry = (uint32_t*)((int)pBtnEntry + 0xe);
-      } while ((int)pBtnEntry < (uintptr_t)((char*)&gaStatScreenButtons + sizeof(gaStatScreenButtons) + 4));
+      } while ((int)pBtnEntry < (int)((uintptr_t)((char*)&gaStatScreenButtons + sizeof(gaStatScreenButtons) + 4)));
     }
 
     GAME::Game::GAMEDATA_ClearQueuedClicks();
@@ -4824,7 +4825,7 @@ void __stdcall CHAR_FreePanelAssets_NoOp() {
 
 }
 
-void __stdcall DRAW_UI_StatWindow_II(int32_t bUpperEnabled, int32_t bLowerEnabled, int32_t nMouseX, int32_t nMouseY) {
+static void __stdcall DRAW_UI_StatWindow_II(int32_t bUpperEnabled, int32_t bLowerEnabled, int32_t nMouseX, int32_t nMouseY) {
     // Static local variables (originally global data)
     static int gaStatWindowRowLayout[12] = {
     0x9a,
@@ -4895,17 +4896,17 @@ void __stdcall DRAW_UI_StatWindow_II(int32_t bUpperEnabled, int32_t bLowerEnable
     pClearPtr = D2Lang::StrTable::strtable::GetLocaleString(0x103f);
     D2Win::Src::D2WinFont::DRAW_text(pClearPtr, nX, nMonsterIdx, dwColor, bMultiLineCenter);
     nMonsterIdx = GAME::Select::SELECT_GetConstant13_X();
-    if (-1 < nMonsterIdx && nMonsterIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonsterIdx) {
-      uint16_t* wszFmt;
-      pClearPtr = D2Lang::StrTable::strtable::GetLocaleString(sgptDataTable->pTxtMonStats[nMonsterIdx].NameStr);
-      wszFmt = D2Lang::StrTable::strtable::GetLocaleString(0x2777);
-      D2Lang::Unicode::UNISYS::UNICODE_FormatWideString(0x80, wszMonNameTooltip, wszFmt, (uint16_t*)pClearPtr, bUpperEnabled);
-      D2Win::Src::D2WinFont::DRAW_text(wszMonNameTooltip, gaStatWindowRowLayout[nBtnIndex * 6 + 4] + gnPanelOffsetX, gaStatWindowRowLayout[nBtnIndex * 6 + 5] + gnPanelOffsetY - 0x1e0 + ScreenSizeY, 0, 0);
-      return;
+    if (!(0 <= nMonsterIdx && nMonsterIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonsterIdx)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xec);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xec);
-    exit(-1);
+    uint16_t* wszFmt;
+    pClearPtr = D2Lang::StrTable::strtable::GetLocaleString(sgptDataTable->pTxtMonStats[nMonsterIdx].NameStr);
+    wszFmt = D2Lang::StrTable::strtable::GetLocaleString(0x2777);
+    D2Lang::Unicode::UNISYS::UNICODE_FormatWideString(0x80, wszMonNameTooltip, wszFmt, (uint16_t*)pClearPtr, bUpperEnabled);
+    D2Win::Src::D2WinFont::DRAW_text(wszMonNameTooltip, gaStatWindowRowLayout[nBtnIndex * 6 + 4] + gnPanelOffsetX, gaStatWindowRowLayout[nBtnIndex * 6 + 5] + gnPanelOffsetY - 0x1e0 + ScreenSizeY, 0, 0);
+    return;
 }
 
 void __stdcall DRAW_UI_StatWindow_I() {
@@ -5229,7 +5230,7 @@ void __stdcall DRAW_UI_StatWindow_I() {
     if (pUnit_00 && pUnit_00->eUnitType == UNIT_PLAYER) {
       char* pRosterName;
       nMouseXCast = pUnit_00->nClassId;
-      if (nMouseXCast < 0 || sgptDataTable->nTxtCharStatsSize <= nMouseXCast) {
+      if (nMouseXCast < 0 || nMouseXCast >= sgptDataTable->nTxtCharStatsSize) {
         pCharStatsTxtOrFont = 0;
       } else {
         pCharStatsTxtOrFont = sgptDataTable->pTxtCharStats + nMouseXCast;
@@ -5271,7 +5272,7 @@ void __stdcall DRAW_UI_StatWindow_I() {
       D2Win::Src::D2WinFont::SetAndReturnLastFont(1);
     }
 
-    for (nStatEntryIdx = 0; nStatEntryIdx <= 0x11; nStatEntryIdx++) {
+    for (nStatEntryIdx = 0; nStatEntryIdx < 0x12; nStatEntryIdx++) {
       nColorIdx = 0;
       bResistAtCap = false;
       nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit_00, gaStatPanelRows[nStatEntryIdx].nStatId, 0);
@@ -5290,7 +5291,7 @@ void __stdcall DRAW_UI_StatWindow_I() {
         switch (gaStatPanelRows[nStatEntryIdx].nStatId) {
           case 6:
             pUnit = UNIT::Player::GetPlayerUnit_UI();
-          if (pUnit && pUnit->eUnitType == UNIT_PLAYER && pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Dead && nDisplayVal < 2) {
+          if (pUnit && pUnit->eUnitType == UNIT_PLAYER && pUnit->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Dead && nDisplayVal <= 1) {
             nDisplayVal = 1;
           }
 
@@ -5379,7 +5380,7 @@ void __stdcall DRAW_UI_StatWindow_I() {
           }
 
           /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szValueAscii, "%ld", nDisplayVal);
-          if (999 < (int)nDisplayVal || (nLangCode = D2Lang::StrTable::strtable::MISC_GetLanguageCode() , nLangCode == 6)) {
+          if (1000 <= (int)nDisplayVal || (nLangCode = D2Lang::StrTable::strtable::MISC_GetLanguageCode() , nLangCode == 6)) {
             bResistAtCap = true;
           }
 
@@ -5671,12 +5672,12 @@ void UI_ScrollNpcMenuList(int32_t nParam1, D2DialogStrc * pDialog) {
     int iSelectedIndex = pDialog->nSelectedLine;
     do {
       iSelectedIndex += nParam1;
-      if (iSelectedIndex < pDialog->nSubCounter) {
+      if (!(iSelectedIndex < pDialog->nSubCounter)) {
+        iSelectedIndex = 0;
+      } else {
         if (iSelectedIndex < 0) {
           iSelectedIndex = pDialog->nSubCounter - 1;
         }
-      } else {
-        iSelectedIndex = 0;
       }
     } while (!pDialog->aStringData[iSelectedIndex].nCallbackParam);
 
@@ -5880,7 +5881,7 @@ int __stdcall TRADE_GetTradeStatus() {
     return 0;
 }
 
-void __stdcall UI_CloseHoradricCubeWindow() {
+static void __stdcall UI_CloseHoradricCubeWindow() {
     gnPlayerCashDisplay = 0;
     D2UnitStrc* pCursorItem_lcl = UNIT::Player::GetPlayerUnit_UI();
     if (!pCursorItem_lcl) {
@@ -6216,18 +6217,18 @@ BOOL __fastcall UI_DrawGroundItemTooltip(int * pnX, int * pnY, int * pnRight, in
     }
 
     int iEntry = *pnRight;
-    if (nMaxX <= iEntry) {
+    if (iEntry >= nMaxX) {
       nOverlapDelta = iEntry - nMaxX + 1;
       *pnRight = iEntry - nOverlapDelta;
       *pnX -= nOverlapDelta;
     }
 
     iEntry = *pnBottom;
-    if (nScreenBottom <= iEntry) {
+    if (iEntry >= nScreenBottom) {
       *pnBottom = iEntry - (iEntry - nScreenBottom);
       *pnY -= iEntry - nScreenBottom;
     }
-    if (0x1f < gItemDrawFlags) {
+    if (0x20 <= gItemDrawFlags) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x47);
       exit(-1);
     }
@@ -6284,7 +6285,7 @@ BOOL __fastcall UI_DrawGroundItemTooltip(int * pnX, int * pnY, int * pnRight, in
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca05c(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca05c(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 

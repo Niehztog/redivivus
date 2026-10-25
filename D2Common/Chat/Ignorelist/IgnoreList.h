@@ -94,7 +94,6 @@ namespace D2Common::Chat::Ignorelist::IgnoreList {
 int32_t CloseAppendFile(::IgnoreList * pThis);
 int32_t GetPersistentSetting(::IgnoreList * pThis);
 void SavePersistentSetting(::IgnoreList * pThis, int32_t nPersistent);
-int32_t AppendLineToFile(::IgnoreList * pThis, char * szLine);
 // Writes the ignore list to its file: one ignored name pattern per line, then each ignored account prefixed with '!'.
 int32_t SaveToFile(::IgnoreList * pThis);
 void ClearAccountMappings(::IgnoreList * pThis);

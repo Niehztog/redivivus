@@ -4057,17 +4057,12 @@ uint32_t __stdcall LVLTBLS_GetNoPer(uint32_t nParam);
 bool __stdcall LEVEL_CanHaveMud(eD2LevelId eLevel);
 void __stdcall LVLTBLS_FreeLevelsTxt();
 int32_t __stdcall TXT_Levels_GetMonLvlForDifficulty(eD2LevelId eLevel, eD2Difficulty nDifficulty, BOOL bIsExpansion);
-// Scans the LevelDefs table for levels with the Portal flag set, counts them, allocates a server array (gpPortalLevelArray) of that size, and fills it with the level indices. Used at startup to build the list of portal-accessible levels. Halts if write index exceeds the counted portal level count.
-// @sourcefile .\DATATBLS\LvlTbls.cpp
-void LVLTBLS_BuildPortalLevelArray(struct D2LevelDefsTxt * pTxtLevelDefs);
 eD2LevelId * __fastcall GetPortalLevelArrayFromPortalFlags(uint32_t * pdwParam);
 // Loads and compiles the leveldefs.txt data table. Builds a stack array of D2BinFieldInputStrc field descriptors mapping each leveldefs column (QuestFlag, Layer, SizeX/Y per difficulty, Offset, Depend, DrlgType, LevelType, SubType/Theme/Waypoint/Shrine, Vis0-7, Warp0-7, light RGB/Intensity, Portal, Position, SaveMonsters, LOSDraw) to its struct offset and field type, then calls CompileTxt to parse the file into sgtDataTable.pTxtLevelDefs. Finally calls LVLTBLS_BuildPortalLevelArray to derive the portal-level lookup. Allocates from the supplied D2PoolManagerStrc; one-time table init at startup.
 void __fastcall TXT_AllocTxt_leveldefs(struct D2PoolManagerStrc * pMemory);
 // @sourcefile .\DATATBLS\LvlTbls.cpp
 void __stdcall LVLTBLS_FreeLevelDefsTxt();
 struct D2LevelDefsTxt * __fastcall TXT_LevelDefs_GetLine(eD2LevelId eLevel);
-// Converts all forward slashes '/' in a level path string to backslashes '\\' in-place, then prepends the data directory prefix via wsprintfA. Used to normalize DS1/DT1 file paths loaded from level text tables to Windows path format.
-void __fastcall LVLTBLS_FixPathSlashes(char * szText, char * szPathPrefix);
 // Loads and compiles lvltypes.txt into the global pTxtLvlTypes / nTxtLvlTypesSize table. Builds a D2BinFieldInputStrc schema describing the row layout: 32 "File N" ASCII path fields (0x3b bytes each), plus Act (char) and Expansion (int), terminated by an END field; row stride 0x788. Calls CompileTxt to parse the txt via pMemory pool, then post-processes every row converting forward to back slashes in all 32 file-path strings via LVLTBLS_FixPathSlashes. Part of D2Common data-table init.
 void __fastcall TXT_AllocTxt_lvltypes(struct D2PoolManagerStrc * pMemory);
 void __stdcall thunk_UnloadBin_DataTbls();
@@ -4101,10 +4096,6 @@ struct D2LvlSubTxt * __fastcall TXT_LvlSub_GetLineFromSubType(int32_t nSubType);
 void __stdcall TXT_LoadExpansionLvlTbls();
 // @sourcefile .\DATATBLS\LvlTbls.cpp
 void __stdcall TXT_FreeExpansionLvlTbls();
-// Looks up the automap level ID for a given level name string by linearly scanning a hardcoded name table (stride 0x10, ending before 0x6E7F8F). Returns the zero-based index of the matching entry, or 0 if the input starts with '0'. Halts with an internal error if the table end is exceeded.
-int32_t LVLTBLS_GetAutomapLevelId(char * szLevelName);
-// Linear search through a hardcoded table of tile-name strings (e.g. "fl") to resolve an automap tile name to its integer tile ID. Returns 0 if the name starts with '0' or matches the first entry; halts with an internal error if the table end is overrun. In: szTileName (EDI). Out: matching tile ID or 0.
-int32_t LVLTBLS_GetAutomapTileId(char * szTileName);
 // Loads and compiles automap.txt into the runtime AutoMap level tables. Initializes the data-table seed, declares the column schema (LevelName, TileName, Style, Start/EndSequence, Cel1-4), and compiles it via CompileTxt. Allocates a 32-byte-per-row AutoMapLvlTbls array, then per row resolves the automap level id and tile id, copies style/sequence and cel fields, and counts the valid (non -1) cels (halts if a row has zero cels). Then resets the gpaAutoMapRelated index table to -1 and builds, per level type, the start index + count of contiguous same-type rows. Side effects: allocates server memory, fills global automap tables; unrecoverable-halt on bad rows. Server-side D2Common DataTbls (LvlTbls).
 // @sourcefile .\DATATBLS\LvlTbls.cpp
 void __fastcall TXT_AllocTxt_automap(struct D2PoolManagerStrc * pMemory);

@@ -59,7 +59,6 @@ void BnetLog_WriteLine(char * Format, ...) {
 
     Storm::Source::SSComp::SLogWrite(gnBnetLogFileHandle, szBuf);
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00881860);
-    Fog::Debug::GuardStack();
 }
 
 void StaticFini_CriticalSection_00881860() {

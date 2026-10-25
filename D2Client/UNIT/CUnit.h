@@ -38,14 +38,6 @@ void __fastcall SetPalShiftIndex(struct D2UnitStrc * pUnit, int32_t nPalShiftInd
 int32_t __fastcall GetPalShiftIndex(struct D2UnitStrc * pUnit);
 // Tests whether screen point (nClickX, nClickY) falls within the clickable bounding box of a warp unit. Fetches the room's shadow/bounds data, transforms the warp's map position to screen coords, and returns 1 if the point is inside the bounds rectangle defined by pShadowBounds[1..4]. Halts fatally if called on a non-UNIT_WARP unit.
 BOOL __fastcall WARP_IsPointInClickArea(struct D2UnitStrc * pUnit, int32_t nClickX, int32_t nClickY);
-uint32_t __stdcall CUNIT_IsClickInSpriteBounds(int32_t nClickY, int * pUnit, struct D2ObjectsTxt * pObjectsTxt, int32_t nClickX);
-// Computes the screen-space bounding rectangle [left, top, right, bottom] for a unit's sprite at the given animation frame and mode. Loads the DC6 cel via SPRITECACHE_GetOrLoadSprite, reads DC6 offset/width/height, maps to target-screen coords, enforces a minimum 32x32 extent, and applies particle-system offsets. Returns 1 on success, 0 if the anim mode is absent or the sprite cannot be loaded.
-uint32_t __stdcall CUNIT_CalculateSpriteBounds(uint32_t nFrame, uint32_t nAnimMode, struct D2UnitStrc * pUnit, int * pBoundsRect);
-// Calls the skill's SelectProc handler with ECX = pUnit (the caster, loaded at 004642e7) and EDX = pTargetUnit, which is never written here and reaches the handler unchanged (1.14d asm).
-uint32_t __stdcall SKILL_ExecuteSelectProc(struct D2UnitStrc * pUnit, eD2Skills eSkill, struct D2UnitStrc * pTargetUnit);
-// pTargetUnit is the hovered unit (HitTestScreen sets ESI from it at 00466913) and must be a monster (dwUnitType == 1 at 00464316); pUnit is the player whose left then right skill's SelectProc is tried.
-// @sourcefile .\UNIT\CUnit.cpp
-uint32_t SKILL_CheckActiveSkillSelectProc(struct D2UnitStrc * pUnit, struct D2UnitStrc * pTargetUnit);
 uint32_t __fastcall IsSelected(struct D2UnitStrc * pUnit);
 // TRUE when pUnit->eUnitType is UNIT_PLAYER or UNIT_MONSTER; halts (CUnit.cpp line 1939) on NULL.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
@@ -54,7 +46,6 @@ void __fastcall SetTargetByTypeAndGUID(struct D2UnitStrc * pUnit, eD2UnitType eU
 void __fastcall FacePlayer(struct D2UnitStrc * pUnit);
 // Rotates the local player unit to face pUnit when the player is in Neutral or TownNeutral anim mode. Reads pUnit's position (static or dynamic path) and calls PATH_SetDirectionToTarget on the player's dynamic path. No-ops if the player is moving or has no dynamic path (halts fatally on null path).
 void __fastcall CLIENT_TurnPlayerToFaceUnit(struct D2UnitStrc * pUnit);
-uint32_t __stdcall SKILL_IsSequenceInputReady(struct D2UnitStrc * pUnit, struct D2SkillStrc * pSkillUnused);
 // Returns TRUE if the player unit's current animation mode allows an incoming skill-interrupt. Returns FALSE immediately if the player is holding a cursor item. Blocks interrupts during Death, GetHit, Attack, Block, Cast, Throw, Kick, Dead, KnockBack, and class-specific Skill modes (Paladin Skill1, Assassin Skill2, Barb/Assassin/Druid Skill3-4). For Sequence mode, delegates to SKILL_IsSequenceInputReady.
 BOOL __fastcall PlayerCanBeInterrupted(struct D2UnitStrc * pUnit, struct D2SkillStrc * pSkill);
 struct D2RoomStrc * __stdcall GetCurrentRoom();
@@ -72,7 +63,6 @@ void __fastcall FreeLightMap(struct D2UnitStrc * pUnit);
 void __fastcall CUNIT_IterateServerUnitsWithCallback(int32_t nParam);
 void __fastcall CUNIT_IterateMissilesWithCallback(fnUnitIterCallback pfnCallback);
 void __fastcall CUNIT_IterateItemsWithCallback(fnUnitIterCallback pfnCallback);
-struct D2UnitStrc * CUNIT_IterateUntilWarp(int * pnParam);
 uint16_t * __fastcall ROOM_GetWarpDestinationName(struct D2RoomStrc * pRoom, struct D2UnitStrc * pWarpUnit);
 // Returns the localized display name (WCHAR*) of a unit by its type. Monsters: returns the player-owner override name if set, else the monstats NameStr locale string. Items: the items.txt wNameStr locale string. Objects: for open-warp objects walks the current and adjacent rooms to find the linked warp unit and returns its destination name; for shrines returns the shrine name string, for lockable/locked objects a generic locked string, doors map their anim mode to closed/open/destroyed strings, otherwise the objects.txt NameWideString. Halts (unrecoverable error) if pUnit is NULL; returns NULL for unknown unit types.
 uint16_t * __fastcall GetName(struct D2UnitStrc * pUnit);
@@ -82,8 +72,6 @@ void __fastcall CUNIT_SetUnitFlag3(int32_t pUnit);
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 uint32_t __fastcall CUNIT_GetStartLight(struct D2UnitStrc * pUnit);
 void __fastcall SetLightRadius(struct D2UnitStrc * pUnit, int32_t nLightRadiusX);
-uint32_t __stdcall CUNIT_IsItemInUnitInventory(struct D2UnitStrc * pExcludeUnit, struct D2UnitStrc * pUnit, struct D2UnitStrc * pContainerUnit);
-uint32_t __stdcall CUNIT_IsItemInAnyInventory(struct D2UnitStrc * pExcludeUnit, struct D2UnitStrc * pUnit);
 // @wasnamed MonsterDiedTrigger
 // @basis behaviour-confirmed and caller-corroborated. The old name was wrong in both halves and was flagged by the preceding pass. Body: null-check, then GFX_AddOverlayToUnit(pUnit, eOverlay, type, 0, nDuration, 0,0,0) with type 1 when nDuration > 0 and type 2 (engine default duration) otherwise, plus a fixed sound for OVERLAY_steallife and OVERLAY_stealmana. Nothing counts, reports or reacts to a death, and the subject is a plain D2UnitStrc, not a monster - MonsterMessage passes non-monster units through five of the six call sites' shared path.
 // "UnitDoOverlay" is a descriptive name taken from the Blizzard packet verb SCMD_UNIT_DOOVERLAY, which names opcode 0x11, whose handler NET_D2GS_CLIENT_Incoming0x11_UnitDoOverlay (0045d11c) is one of this function's six callers.
@@ -93,16 +81,10 @@ uint32_t __fastcall SKILL_IsTargetOwnedPet(struct D2UnitStrc * pUnit, int * pnSk
 // Returns 1 if pUnit has an allied-targeting skill (flags4 bit 2 set in skills.txt) equipped in either hand AND the skill target (pnSkillParams[3]) is in the same party/owned-by the caster. Returns 0 for non-player units unless pnSkillParams[1] matches. Used by skill targeting logic to allow friendly-fire bypass.
 // @sourcefile .\UNIT\CUnit.cpp
 uint32_t __fastcall SKILL_IsTargetAlliedUnit(struct D2UnitStrc * pUnit, int * pnSkillParams);
-// Single-player only (halts otherwise): copies an incoming server-authoritative dynamic path snapshot onto the corresponding local client unit's path. Resolves the local unit by type/GUID via QSERVER_FindUnitInFirstActiveGame, then bulk-copies coords, screen pos, path points, target/prev/saved targets, velocity/acceleration, distance, direction vectors and the 0x20 path flags from the local path into the server-path buffer (pServerPath), fixing up the room via DRLGROOM_FindBetterNearbyRoom + PATH_GetCollisionTypeAt if the tile changed. Then reconciles animation mode (Neutral/Walk/Run/Town* transitions, town-awareness) and skill-cast flags between the two paths and triggers a unit update. Clears the path's 0x2000 flag on exit. Effectively the SP-loopback bridge keeping client and 'server' unit paths in sync.
-void __fastcall CLIENT_SyncPathFromServer(struct D2DynamicPathStrc * pDynamicPath);
 int16_t __fastcall GetPlayerUnitPartyId(struct D2UnitStrc * pUnit);
 struct D2RoomStrc * __fastcall FindRoom(int32_t nX, int32_t nY);
 // Client-side teleport/warp of a unit to (nX,nY). Clears selection if moving the local player, finds the destination room, and validates the unit is alive and not in a death/kick anim. For the local player it also handles cross-room perspective (LVLTBLS_GetNoPer -> D2GFX_SetPerspectiveCapable), act-palette reload when crossing into a level with a different Pal, dungeon pop updates, and optional warp-fade timer (bWarpFade, skipped if current skill has flag 0x40). Snaps to a free collision-valid coordinate via GetFreeCoordinates_WithNeighboorRooms, refreshes the automap, clears weather particles for the player, and sends an idle-player message. Halts via Fog::ErrorManager on invalid path/room/collision states.
 void __fastcall CLIENT_TeleportUnitToPosition(struct D2UnitStrc * pUnit, int32_t nX, int32_t nY, int32_t bWarpFade);
-// Client-side dispatcher for skill visual side-effects keyed by a numeric effect ID. Handles Hydra overlays (0x15f-0x161), Charged-Bolt clone particles (0x154-0x157), Worldstone-shake particle (0x209), Rise-from-grave particle (0x196), Feral-Rage overlay (0x1a1-0x1a2), poison-hit overlay (0x21f), and Mephisto/Blizzard overlays (0xf2/0x2c0). No-ops for unrecognised IDs.
-void CLIENT_PlaySkillVisualEffect(struct D2UnitStrc * pUnit, int32_t nEffectId);
-// Client-side unit teardown dispatcher. Frees the unit's light maps (primary + skill swap), particles, and sound FX, then dispatches on eUnitType: players and monsters free hover text and call type-specific free fns + sound iteration; objects also free static path; missiles call MISSILE_FreeClientMissile; items free item unit + item data; warps remove from room. Finally frees event list, server cmd, clears pPlayerUnit if applicable, and calls Units::Free.
-void FreeAny(struct D2UnitStrc * pUnit);
 // Frees every unit in all server-side and client-side unit hash tables (128 buckets each, all 5 unit types), following gFreeUnitsOrder. Calls FreeAny on each unit and clears the bucket entry. Called during game teardown.
 void __stdcall FreeAllUnits();
 // Client-side per-frame graphics update: iterates all client unit hash tables (objects, missiles, players, items) calling CLIENT_UpdateUnitFrame, then clears changed-stat flags on selected units/items/players. In singleplayer, also syncs server-side path data to client for players and missiles.
@@ -113,11 +95,6 @@ uint32_t __fastcall CanInteractWith(struct D2UnitStrc * pUnit, struct D2UnitStrc
 void RemoveObject(int32_t nIndex, struct D2UnitStrc * * ppUnitTable, eD2UnitType eUnitType, int32_t nUnitGUID);
 void RemoveObjectFromServerObjectTable(eD2UnitType eUnitType, uint32_t nUnitGUID);
 void __fastcall UNITS_RemoveFromClientHashTable(uint32_t dwUnitGUID, int32_t nUnitType);
-// Inserts a newly allocated unit into the server-side hash table. If insertion fails due to a GUID collision, evicts the existing unit and retries. If the retry also fails, frees pUnit and returns null. Returns pUnit on success.
-struct D2UnitStrc * FinalizeCreation(struct D2UnitStrc * pUnit);
-// Client-side unit initialisation, counterpart to the server's CreateUnit. Populates a pre-allocated D2UnitStrc with GUID, class, type, expansion flag, seeds, and act/room from map coordinates. Dispatches to type-specific init routines (JoinRoomSetup for players, AllocObjectData for objects, MISSILE_InitMissileUnit for missiles, ITEM_SetAnimModeAndPlace for items, static-path + collision for warps). Monsters are not supported client-side and halt with an error. Finalises via FinalizeCreation and adds visual overlays for objects.
-// @sourcefile .\UNIT\CUnit.cpp
-struct D2UnitStrc * __stdcall InitCommonData(struct D2UnitStrc * pUnit, int32_t nUnitGUID, int32_t nClassId, int32_t nX, int32_t nY, eD2UnitType eUnitType, int32_t nItemAnimMode, uint32_t nObjectAnimMode);
 struct D2UnitStrc * __fastcall UNIT_CreateWarp(int32_t nUnitGUID, int32_t nClassId, int32_t nX, int32_t nY, eD2UnitType eUnitType, int32_t nItemAnimMode);
 // Allocates and fully initialises a new player unit: sets class/GUID/expansion flag, finds the room at (nX,nY), seeds the unit RNG from the room seed, calls JoinRoomSetup + WALL2_InitUnitGfx + UpdateAnimSpeed, finalises insertion into the hash table, then sets the player name. Returns the new unit or null on failure.
 // @sourcefile .\UNIT\CUnit.cpp

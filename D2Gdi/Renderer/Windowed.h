@@ -46,8 +46,6 @@ BOOL __fastcall InitPerspective(struct D2GfxSettingsStrc * pSettings, ::D2GfxHel
 // @sourcefile .\Src\gdiCore.cpp
 BOOL Release();
 void ClearCaches();
-// Allocates the GDI DIB section for windowed software rendering. Maps resolution mode (0=640×480, 1/2=800×600, 3=1360×700) to window dimensions, creates BITMAPINFO header with 8-bit indexed color, calls CreateDIBSection to allocate shared bitmap memory. Stores HBITMAP handle in RENDERER_WINDOWED_hDIBitmap global and pixel buffer pointer in ppvBits_007c9154. Initializes Y-buffer table via fpFillYBufferTable callback.
-void __stdcall RENDERER_WINDOWED_AllocateDIBSection(int nResolutionMode);
 BOOL __fastcall CreateWindow(HWND hWnd, int nResolutionMode);
 BOOL __stdcall BeginCutScene();
 void __fastcall PlayCutScene(char * szFile, int nResolutionMode, void * fpFrame);
@@ -88,8 +86,6 @@ BYTE * __fastcall RENDERER_WINDOWED_GetPalettePointer(int nDrawMode, uint32_t * 
 void __fastcall RENDERER_WINDOWED_UpdateScaleFactor(int nParam);
 // Windowed GDI renderer helper functions - DIB section allocation, palette conversion, line drawing (Bresenham), crop rect calculation, Smacker video blitting
 void __stdcall RENDERER_WINDOWED_ValidateDC6Visibility(struct DC6Block * pDC6Block, int nScreenX, int nScreenY, int nParam3);
-// Calculates clipped crop rectangle for DC6 image rendering. Takes input crop rect + DC6 position/dimensions, clamps to window bounds, calculates top/bottom skip lines for partial draws. Outputs adjusted crop rect (nClippedLeft, nClippedRight, skipTop, visibleHeight) to pOutput array. Used to optimize blits by pre-calculating which scanlines to draw.
-int __fastcall RENDERER_WINDOWED_CalculateCropRect(uint32_t * pCropRect, struct DC6Block * pDC6Block, int nPosY, int nPosX, uint32_t * pOutput);
 BOOL __fastcall DrawImage(struct D2GfxDataStrc * pData, int nPosX, int nPosY, DWORD dwGamma, int nDrawMode, BYTE * pPalette);
 void __fastcall DrawShiftedImage(struct D2GfxDataStrc * pData, int nPosX, int nPosY, DWORD dwGamma, int nDrawMode, int nGlobalPaletteShift);
 void __fastcall DrawVerticalCropImage(struct D2GfxDataStrc * pData, int nPosX, int nPosY, int nSkipLines, int nDrawLines, int nDrawMode);

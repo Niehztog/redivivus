@@ -53,12 +53,12 @@ void __fastcall FORMS_DestroyD2WinScrollbar(::D2WinScrollbar * pScrollbar) {
 
 // Returns scrollbar maximum value (field 0x12). Validates form type FORM_Scrollbar (5).
 int32_t __fastcall D2WINSCROLLBAR_GetMaxValue(::D2WinScrollbar * pScrollbar) {
-    if (pScrollbar->sControl.neD2FormType == FORM_Scrollbar) {
-      return pScrollbar->nMaxValue;
+    if (pScrollbar->sControl.neD2FormType != FORM_Scrollbar) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4b);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4b);
-    exit(-1);
+    return pScrollbar->nMaxValue;
     return pScrollbar->nMaxValue;
 }
 
@@ -69,7 +69,7 @@ BOOL __fastcall D2WINSCROLLBAR_SetMaxValue(::D2WinScrollbar * pScrollbar, uint32
       exit(-1);
     }
 
-    pScrollbar->nMaxValue = (int)nMaxValue < 1 ? 0 : nMaxValue;
+    pScrollbar->nMaxValue = (int)nMaxValue <= 0 ? 0 : nMaxValue;
     return 1;
 }
 
@@ -79,7 +79,7 @@ BOOL __fastcall D2WINSCROLLBAR_SetPosition(::D2WinScrollbar * pScrollbar, int32_
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x65);
       exit(-1);
     }
-    if (pScrollbar->nMaxValue < nPosition) {
+    if (nPosition > pScrollbar->nMaxValue) {
       nPosition = pScrollbar->nMaxValue;
     }
 
@@ -89,12 +89,12 @@ BOOL __fastcall D2WINSCROLLBAR_SetPosition(::D2WinScrollbar * pScrollbar, int32_
 
 // Returns scrollbar current position (field 0x13). Validates form type FORM_Scrollbar (5).
 int32_t __fastcall D2WINSCROLLBAR_GetPosition(::D2WinScrollbar * pScrollbar) {
-    if (pScrollbar->sControl.neD2FormType == FORM_Scrollbar) {
-      return pScrollbar->nPosition;
+    if (pScrollbar->sControl.neD2FormType != FORM_Scrollbar) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x74);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x74);
-    exit(-1);
+    return pScrollbar->nPosition;
     return pScrollbar->nPosition;
 }
 
@@ -140,7 +140,7 @@ BOOL __fastcall D2WINSCROLLBAR_HandleMouseWheel(D2UIMouseMsgStrc * pMsg, ::D2Win
     }
     if (pScrollbar->nPosition < 0) {
       pScrollbar->nPosition = 0;
-    } else if (pScrollbar->nMaxValue < pScrollbar->nPosition) {
+    } else if (pScrollbar->nPosition > pScrollbar->nMaxValue) {
       pScrollbar->nPosition = pScrollbar->nMaxValue;
     }
     if (pScrollbar->pLinkedTextBox) {
@@ -166,12 +166,12 @@ void __fastcall D2WINSCROLLBAR_SetStyle(::D2WinScrollbar * pScrollbar, int32_t n
 
 // Returns scrollbar style flags (field 0x14). Validates form type FORM_Scrollbar (5).
 int32_t __fastcall D2WINSCROLLBAR_GetStyle(::D2WinScrollbar * pScrollbar) {
-    if (pScrollbar->sControl.neD2FormType == FORM_Scrollbar) {
-      return pScrollbar->nStyle;
+    if (pScrollbar->sControl.neD2FormType != FORM_Scrollbar) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd2);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd2);
-    exit(-1);
+    return pScrollbar->nStyle;
     return pScrollbar->nStyle;
 }
 
@@ -209,7 +209,7 @@ BOOL __stdcall Push(D2ControlMsg * pScrollbar) {
     nMaxValue = D2Client::Mouse::nPosX - pCtrl->sControl.dwPosX;
     int nMouseRelY;
     nMouseRelY = nPosY - pCtrl->sControl.dwPosY + D2Client::Mouse::nPosY;
-    if (nMaxValue < 0 || pCtrl->sControl.dwSizeX < nMaxValue) {
+    if (nMaxValue < 0 || nMaxValue > pCtrl->sControl.dwSizeX) {
       return 0;
     }
 
@@ -224,7 +224,7 @@ BOOL __stdcall Push(D2ControlMsg * pScrollbar) {
     if (nMouseRelY < 0xb && !pCtrl->bDownArrowPressed && !pCtrl->nWheelLockFlag) {
       pCtrl->bUpArrowPressed = 1;
       nCurPos = iVar2 - 1;
-    } else if (nPosY - 10 < nMouseRelY && !pCtrl->bUpArrowPressed && !pCtrl->nWheelLockFlag) {
+    } else if (nMouseRelY > nPosY - 10 && !pCtrl->bUpArrowPressed && !pCtrl->nWheelLockFlag) {
       pCtrl->bDownArrowPressed = 1;
       nCurPos = iVar2 + 1;
     } else {
@@ -265,7 +265,7 @@ BOOL __stdcall Push(D2ControlMsg * pScrollbar) {
     clamp_and_notify:
     if (pCtrl->nPosition < 0) {
       pCtrl->nPosition = 0;
-    } else if (pCtrl->nMaxValue < pCtrl->nPosition) {
+    } else if (pCtrl->nPosition > pCtrl->nMaxValue) {
       pCtrl->nPosition = pCtrl->nMaxValue;
     }
     if (pCtrl->pLinkedTextBox && pScrollbar->uMsg == 0x201) {

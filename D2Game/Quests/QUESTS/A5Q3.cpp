@@ -119,7 +119,7 @@ BOOL __fastcall Q33_NotifyQuestState(::SGAMEDATA * pGame, D2UnitStrc * pUnit, vo
 // Q33_UpdateQuestStep (PrisonOfIce): per-unit iterator callback. If quest not Completed and not yet RewardAwaits,
 // mirrors the in-memory quest stateFlag into the player's QuestRecord bits: stateFlag==2 -> set Step0x02 (talked to Malah / intro),
 // stateFlag==3 -> set Step0x03 (Anya found/in progress).
-BOOL __fastcall Q33_UpdateQuestStep(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
+static BOOL __fastcall Q33_UpdateQuestStep(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
     D2BitBufferStrc* pBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];
     BOOL bQuestState = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_PrisonOfIce, QUESTSTATE_Completed);
@@ -151,7 +151,7 @@ BOOL __fastcall Q33_UpdateQuestStep(::SGAMEDATA * pGame, D2UnitStrc * pUnit, voi
 // Q33_Callback_02 (PrisonOfIce, state-2 quest handler). Fires on interaction with Malah (MonStatsId 0x201).
 // If Malah was talked to -> advance to stateFlag 1 (broadcast). If quest active && Scroll-of-Resistance collected && prev<4
 // -> advance to stateFlag 4 (Anya freed / scroll obtained), broadcasting via Q33_NotifyQuestState.
-void __fastcall Q33_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q33_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     short int nTargetClassId = !pQuestArgs->pTarget ? -1 : (short int)pQuestArgs->pTarget->nClassId;
     D2QuestDataA5Q3Strc* pA5Q3Data = pQuestData->pQuestSpecificData.pA5Q3;
     if (nTargetClassId != 0x201) {
@@ -175,21 +175,21 @@ void __fastcall Q33_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2Que
 // Used as the AI-sub clear callback when the frozen-Anya monster (0x20f) is killed.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a5q3.cpp
 void __fastcall Q33_SendQuestStatePacket(D2UnitStrc * pUnit) {
-    uint8_t aPacketBuf[8];
-    aPacketBuf[4] = 0;
-    aPacketBuf[5] = 0;
-    aPacketBuf[0] = 0x5d;
-    aPacketBuf[1] = 0x21;
-    aPacketBuf[2] = 0x20;
-    aPacketBuf[3] = 0;
+    struct { uint8_t e0, e1, e2, e3, e4, e5, e6, e7; } aPacketBuf;
+    ((uint8_t*)&aPacketBuf)[4] = 0;
+    ((uint8_t*)&aPacketBuf)[5] = 0;
+    ((uint8_t*)&aPacketBuf)[0] = 0x5d;
+    ((uint8_t*)&aPacketBuf)[1] = 0x21;
+    ((uint8_t*)&aPacketBuf)[2] = 0x20;
+    ((uint8_t*)&aPacketBuf)[3] = 0;
     D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a5q3.cpp", 0x11e);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pClient, aPacketBuf);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pClient, ((uint8_t*)&aPacketBuf));
 }
 
 // Q33_OnFrozenAnyaKilled (PrisonOfIce): iterator callback over the frozen-Anya monster placeholder (classId 0x20f).
 // If it still has an AI sub, clears it (Q33_SendQuestStatePacket cb). Otherwise forces Dead skill + lifecycle transition
 // (kills it) and marks pA5Q3->field_0xE3=1. Used when reward is granted to despawn the captive Anya monster.
-BOOL __fastcall Q33_OnFrozenAnyaKilled(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
+static BOOL __fastcall Q33_OnFrozenAnyaKilled(::SGAMEDATA * pGame, D2UnitStrc * pUnit, void * pArg) {
     D2MonsterAiStrc* pMonsterAi;
     D2MonsterKillStrc sKillInfo;
     if (!pUnit || pUnit->nClassId != 0x20f) {
@@ -248,7 +248,7 @@ void __fastcall Q33_SequenceFilter(D2QuestDataStrc * pQuestData) {
 // Q33_SpawnAnyaAndPortal (PrisonOfIce): when the frozen-Anya OBJECT exists, spawns the rescued-Anya MONSTER (0x200)
 // at its coords, hands over the preset/DRLG map AI, then creates a town portal OBJECT (classId 0xbd) in a nearby room.
 // Records GUIDs in pA5Q3. Re-runs Q33_SequenceFilter afterward. Drives the post-rescue Anya escort/portal sequence.
-void __stdcall Q33_SpawnAnyaAndPortal(D2QuestDataStrc * pQuestData, D2QuestDataA5Q3Strc * pA5Q3) {
+static void __stdcall Q33_SpawnAnyaAndPortal(D2QuestDataStrc * pQuestData, D2QuestDataA5Q3Strc * pA5Q3) {
     int nPosX;
     int nPosY;
     POINT sAnyaCoords;
@@ -263,21 +263,21 @@ void __stdcall Q33_SpawnAnyaAndPortal(D2QuestDataStrc * pQuestData, D2QuestDataA
 
     D2RoomStrc* pAnyaRoom = D2Common::Units::UNITS_GetRoom(pAnyaMonster);
     eD2UnitType eUnitType = pAnyaMonster->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nPosX = pAnyaMonster->pPath.pStaticPath->nPosX;
-    } else if (!pAnyaMonster->pPath.pDynamicPath) {
-      nPosX = 0;
-    } else {
+    } else if (pAnyaMonster->pPath.pDynamicPath) {
       nPosX = D2Common::PATH::DynamicPath::GetXPos(pAnyaMonster->pPath.pDynamicPath);
+    } else {
+      nPosX = 0;
     }
 
     eUnitType = pAnyaMonster->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nPosY = pAnyaMonster->pPath.pStaticPath->nPosY;
-    } else if (!pAnyaMonster->pPath.pDynamicPath) {
-      nPosY = 0;
-    } else {
+    } else if (pAnyaMonster->pPath.pDynamicPath) {
       nPosY = D2Common::PATH::DynamicPath::GetYPos(pAnyaMonster->pPath.pDynamicPath);
+    } else {
+      nPosY = 0;
     }
     if (pA5Q3->bFrozenAnyaSpawned) {
       return;
@@ -315,7 +315,7 @@ void __stdcall Q33_SpawnAnyaAndPortal(D2QuestDataStrc * pQuestData, D2QuestDataA
 // Q33_KillMonsterHelper (PrisonOfIce): generic helper to instantly kill a monster — clears AI sub, zeroes path,
 // fires AITHINK timer, sets hitpoints=0, applies Dead skill + lifecycle transition, relinks to update list.
 // Used to despawn quest monsters (frozen/rescued Anya placeholders).
-void __fastcall A5Q3_KillMonsterInstantly(D2UnitStrc * pUnitStrc, ::SGAMEDATA * * pGameStrc) {
+static void __fastcall A5Q3_KillMonsterInstantly(D2UnitStrc * pUnitStrc, ::SGAMEDATA * * pGameStrc) {
     D2MonsterAiStrc* pMonsterAi;
     D2MonsterKillStrc sKillInfo;
     if (!pUnitStrc || pUnitStrc->eUnitType != UNIT_MONSTER || !pUnitStrc->pUnitData.pUnitDataMonster) {
@@ -343,7 +343,7 @@ void __fastcall A5Q3_KillMonsterInstantly(D2UnitStrc * pUnitStrc, ::SGAMEDATA * 
 // Q33_CleanupQuestMonsters (PrisonOfIce): tears down the spawned Anya quest units. For the rescued-Anya monster (0x200)
 // and the second Anya unit (0x202): finds it (or removes the inactive record), clears AI sub, applies Dead + lifecycle
 // transition, frees DRLG/collision and removes from room. Clears the spawned/active flags in pA5Q3.
-void Q33_CleanupQuestMonsters(D2QuestDataStrc * pQuestData) {
+static void Q33_CleanupQuestMonsters(D2QuestDataStrc * pQuestData) {
     D2UnitStrc* pAnyaUnit;
     BOOL bHasAiSubsystem;
     D2RoomStrc* pUnitRoom;
@@ -354,9 +354,7 @@ void Q33_CleanupQuestMonsters(D2QuestDataStrc * pQuestData) {
     if (pSpecificData->bFrozenAnyaSpawned && pSpecificData->nAnyaState != 2) {
       D2MonsterAiStrc* pMonsterAi;
       pAnyaUnit = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_MONSTER, pSpecificData->nFrozenAnyaGUID);
-      if (!pAnyaUnit) {
-        UNIT::SUnitInactive::SUNITINACTIVE_RemoveInactiveUnitByTypeAndId(pQuestData->pGame, 1, 0x200, 4);
-      } else {
+      if (pAnyaUnit) {
         if (pAnyaUnit->eUnitType == UNIT_MONSTER && pAnyaUnit->pUnitData.pUnitDataMonster) {
           pMonsterAi = pAnyaUnit->pUnitData.pUnitDataMonster->pMonsterAi;
         } else {
@@ -376,20 +374,22 @@ void Q33_CleanupQuestMonsters(D2QuestDataStrc * pQuestData) {
         D2Common::DUNGEON::Dungeon::AllocDrlgDelete(pUnitRoom, eUnitType, nAnyaGUID);
         D2Common::Units::RemoveCollision_Vector(pAnyaUnit);
         D2Common::Unit::RemoveUnitFromRoom(pAnyaUnit);
+      } else {
+        UNIT::SUnitInactive::SUNITINACTIVE_RemoveInactiveUnitByTypeAndId(pQuestData->pGame, 1, 0x200, 4);
       }
 
       pSpecificData->bFrozenAnyaSpawned = 0;
     }
     if (pSpecificData->bAnyaMonsterAlive) {
       pAnyaUnit = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_MONSTER, pSpecificData->nAnyaCorpseGUID);
-      if (!pAnyaUnit) {
-        UNIT::SUnitInactive::SUNITINACTIVE_RemoveInactiveUnitByTypeAndId(pQuestData->pGame, 1, 0x202, 4);
-      } else {
+      if (pAnyaUnit) {
         A5Q3_KillMonsterInstantly(pAnyaUnit, (::SGAMEDATA**)pQuestData);
         pAnyaUnit = UNIT::SUnit::FindUnitFromTable(pQuestData->pGame, UNIT_OBJECT, pSpecificData->nNihlathakObjectGUID);
         if (pAnyaUnit) {
           GAME::Event::SetEvent(pQuestData->pGame, pAnyaUnit, 7, pQuestData->pGame->dwGameFrame + 1, 0, 0);
         }
+      } else {
+        UNIT::SUnitInactive::SUNITINACTIVE_RemoveInactiveUnitByTypeAndId(pQuestData->pGame, 1, 0x202, 4);
       }
 
       pSpecificData->bAnyaMonsterAlive = 0;
@@ -532,7 +532,7 @@ void __fastcall Q33_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
     struct __frame0_t {
       uint32_t nNpcNo;
       short int wDropSound;
-      uint8_t __pad6[2];
+      struct { uint8_t e0, e1; } __pad6;
       uint32_t nMessageIndex;
       D2QuestDataA5Q3Strc* pRewardList;
     };
@@ -547,7 +547,7 @@ void __fastcall Q33_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
     int32_t nRewardLevel;
     D2ItemsTxt* pItemTxt;
     int nPlayerClassId;
-    char nRewardClassId[4];
+    struct { char e0, e1, e2, e3; } nRewardClassId;
     eD2ItemQuality eRewardQuality;
     int32_t* pnIceScrollCount;
     __frame0.nMessageIndex = (uint32_t)(uint16_t)pQuestArgs->sQuestArgs.sNpcMessage.nMessageIndex;
@@ -606,16 +606,16 @@ void __fastcall Q33_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
             __frame0.nNpcNo = 0x2215d;
             GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pClient, (uint8_t*)&__frame0.nNpcNo);
             bQuestStateResult = D2Common::QuestRecord::GetQuestState(pBitBufferRecord, QUEST_PrisonOfIce, QUESTSTATE_Step0x09);
-            if (!bQuestStateResult) {
-              if (pQuestData->bIsNotIntroduction && pQuestData->nStateFlagPrev < 6) {
-                pQuestData->nQuestPacketFlags = '\0';
-                QUEST_SetStateAndBroadcast(pQuestData, 6, nullptr, (::fpExecuteOnUnitFunction)Q33_NotifyQuestState, true);
-              }
-            } else {
+            if (bQuestStateResult) {
               /* UnsetQuestState(RewardAwaits): both Malah(Step0x08) and Anya(Step0x09) parts
                          done -> clear pending-reward */ D2Common::QuestRecord::UnsetQuestState(pBitBufferRecord, QUEST_PrisonOfIce, QUESTSTATE_RewardAwaits);
               /* SetQuestState(Completed): PrisonOfIce fully finished (Malah + Anya rewards
                          both claimed) */ D2Common::QuestRecord::SetQuestState(pBitBufferRecord, QUEST_PrisonOfIce, QUESTSTATE_Completed);
+            } else {
+              if (pQuestData->bIsNotIntroduction && pQuestData->nStateFlagPrev < 6) {
+                pQuestData->nQuestPacketFlags = '\0';
+                QUEST_SetStateAndBroadcast(pQuestData, 6, nullptr, (::fpExecuteOnUnitFunction)Q33_NotifyQuestState, true);
+              }
             }
 
             pDVar1 = __frame0.pRewardList;
@@ -704,11 +704,11 @@ void __fastcall Q33_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 
       pSeed = GetQuestControlSeed(pQuestArgs->pGame);
       nRandIndex = D2Client::Archive::UNIT_GetModuloFromSeed(pSeed, __frame0.pRewardList->sQuestGUID.aPlayerGUID[nPlayerClassId * 2 + 1]);
-      memcpy(nRewardClassId, (const void*)(__frame0.pRewardList->sQuestGUID.aPlayerGUID[nPlayerClassId * 2] + nRandIndex * 4), sizeof(nRewardClassId));
+      memcpy(((char*)&nRewardClassId), (const void*)(__frame0.pRewardList->sQuestGUID.aPlayerGUID[nPlayerClassId * 2] + nRandIndex * 4), sizeof(nRewardClassId));
       bQuestStateResult = 1;
       eRewardQuality = QUALITY_RARE;
       nRewardLevel = ITEMS::Items::Drop::GetLevel(pQuestArgs->pPlayer, LEVEL_None);
-      pQuestSpecificData = ITEM_RewardItemInInventory(pQuestArgs->pGame, pQuestArgs->pPlayer, (int32_t)nRewardClassId, nRewardLevel, eRewardQuality, bQuestStateResult);
+      pQuestSpecificData = ITEM_RewardItemInInventory(pQuestArgs->pGame, pQuestArgs->pPlayer, (int32_t)((char*)&nRewardClassId), nRewardLevel, eRewardQuality, bQuestStateResult);
       if (!pQuestSpecificData) {
         return;
       }
@@ -863,31 +863,7 @@ void __fastcall Q33_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     }
 
     bQuestStateResult = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_RewardAwaits);
-    if (!bQuestStateResult) {
-      int32_t nPlayerGUID = !pQuestArgs->pPlayer ? -1 : pQuestArgs->pPlayer->nUnitGUID;
-      bQuestStateResult = QUEST_HasPlayerParticipated(pQuestData, nPlayerGUID);
-      if (bQuestStateResult == 1) {
-        AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, 6);
-        return;
-      }
-      if (bIsJustCompleted == 1) {
-        return;
-      }
-      if (4 < pQuestData->nStateFlag && !bIsCompleted) {
-        return;
-      }
-      if (!pQuestData->bIsNotIntroduction) {
-        return;
-      }
-
-      nGossipIndex = gdwQuestCallbackAddressQ33[pQuestData->nStateFlag];
-      if (nGossipIndex == -1) {
-        return;
-      }
-      if (9 < nGossipIndex) {
-        return;
-      }
-    } else {
+    if (bQuestStateResult) {
       if (nTargetClassId == 0x200) {
         eQuestState = QUESTSTATE_Step0x09;
         bQuestStateResult = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_PrisonOfIce, eQuestState);
@@ -903,6 +879,30 @@ void __fastcall Q33_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       }
 
       nGossipIndex = 5;
+    } else {
+      int32_t nPlayerGUID = !pQuestArgs->pPlayer ? -1 : pQuestArgs->pPlayer->nUnitGUID;
+      bQuestStateResult = QUEST_HasPlayerParticipated(pQuestData, nPlayerGUID);
+      if (bQuestStateResult == 1) {
+        AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, 6);
+        return;
+      }
+      if (bIsJustCompleted == 1) {
+        return;
+      }
+      if (5 <= pQuestData->nStateFlag && !bIsCompleted) {
+        return;
+      }
+      if (!pQuestData->bIsNotIntroduction) {
+        return;
+      }
+
+      nGossipIndex = gdwQuestCallbackAddressQ33[pQuestData->nStateFlag];
+      if (nGossipIndex == -1) {
+        return;
+      }
+      if (10 <= nGossipIndex) {
+        return;
+      }
     }
 
     AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, nTargetClassId, nGossipIndex);
@@ -910,7 +910,7 @@ void __fastcall Q33_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
 
 // Q33_Callback_10 (PrisonOfIce, state-0xa handler): on player leave/cleanup, removes the player GUID from both quest
 // GUID lists; if the player still holds the "ice " Scroll-of-Resistance quest item, decrements the held-scroll counter.
-void __fastcall Q33_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q33_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int32_t nPlayerGUID = !pQuestArgs->pPlayer ? -1 : pQuestArgs->pPlayer->nUnitGUID;
     QUESTGUID_RemovePlayerFromList(&pQuestData->sQuestGUID, nPlayerGUID);
     D2QuestDataA5Q3Strc* pQuestGUID = pQuestData->pQuestSpecificData.pA5Q3;
@@ -935,7 +935,7 @@ void __fastcall Q33_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 // stateFlag<5: mark every player CannotComplete (Q33_SetCannotComplete) and set stateFlag=6. nodes 0x71/0x72 advance via
 // SetStateFlag 3 + cleanup. (Decompiler duplicated the shared tail across branches.)
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a5q3.cpp
-void __fastcall Q33_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q33_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     D2UnitDataPlayerStrc* pPlayerData;
     BOOL bQuestStateResult;
     ::SGAMEDATA* pGame;
@@ -995,7 +995,7 @@ void __fastcall Q33_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
 
       UNIT::SUnit::IteratePlayerOrMonsterUnits(pQuestData->pGame, 0, nullptr, (::fpExecuteOnUnitFunction)Q33_UpdateQuestStep);
     }
-    if (!(nNpcIndex - 0x79U < 4 && pQuestData->bIsNotIntroduction && pQuestData->nStateFlag < 5)) {
+    if (!(nNpcIndex - 0x79U <= 3 && pQuestData->bIsNotIntroduction && pQuestData->nStateFlag < 5)) {
       return;
     }
 
@@ -1011,7 +1011,7 @@ void __fastcall Q33_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
 }
 
 // fpActiveFilter callback for A5Q3 Prison of Ice: decides per-NPC whether a quest interaction icon is shown. Malah (0x201): show if RewardAwaits and Step0x08 not set; hide if Completed or RewardAwaits without active state; show on stateFlag==1; gate on scroll count when stateFlag==4. Frozen Anya monster (0x20f): show only while quest is active (bIsNotIntroduction), stateFlag<=4, and the player does not carry the ice scroll. Rescued Anya (0x200): show if RewardAwaits and Step0x09 not set.
-bool __fastcall Q33_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetClassId, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2UnitStrc * pUnitEx) {
+static bool __fastcall Q33_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetClassId, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2UnitStrc * pUnitEx) {
     BOOL bQuestStateResult;
     int nScrollCountOrStepState;
     if (nTargetClassId == 0x201) {
@@ -1046,7 +1046,7 @@ bool __fastcall Q33_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetCl
         if (!pQuestData->bIsNotIntroduction) {
           return false;
         }
-        if (4 < pQuestData->nStateFlag) {
+        if (5 <= pQuestData->nStateFlag) {
           return false;
         }
 
@@ -1170,15 +1170,15 @@ void __fastcall Q33_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D
     }
 
     bQuestStateResult = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_Step0x03);
-    if (!bQuestStateResult) {
+    if (bQuestStateResult) {
+      pQuestData->nStateFlag = 3;
+    } else {
       bQuestStateResult = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_Step0x02);
       if (!bQuestStateResult) {
         goto apply_held_potion_state;
       }
 
       pQuestData->nStateFlag = 2;
-    } else {
-      pQuestData->nStateFlag = 3;
     }
 
     pQuestData->nStateFlagPrev = 1;
@@ -1200,7 +1200,7 @@ void __fastcall Q33_Callback14_PlayerJoinedGame(D2QuestDataStrc * pQuestData, D2
       pnScrollCount = &pQuestData->pQuestSpecificData.pA5Q3->nIceItemCount;
       (*pnScrollCount)++;
     }
-    if (!(!pQuestData->bIsNotIntroduction || 4 < pQuestData->nStateFlag)) {
+    if (!(!pQuestData->bIsNotIntroduction || 5 <= pQuestData->nStateFlag)) {
       return;
     }
 
@@ -1254,7 +1254,7 @@ void __fastcall Q33_CheckPlayerHasScrollOfResistance(::SGAMEDATA * pGame, D2Unit
 
 // Q33_CheckPartyHasScrollOfResistance (PrisonOfIce): returns 1 if this player holds the "ice " scroll, else scans the
 // whole party via Q33_CheckPlayerHasScrollOfResistance and returns whether anyone holds it (field_0xE2).
-uint32_t Q33_CheckPartyHasScrollOfResistance(int32_t nParam, D2UnitStrc * pUnit) {
+static uint32_t Q33_CheckPartyHasScrollOfResistance(int32_t nParam, D2UnitStrc * pUnit) {
     D2UnitStrc* pScrollItem = ITEMS::Items::Drop::HasQuestItem(*(::SGAMEDATA**)(nParam + 4), pUnit, 0x20656369);
     if (pScrollItem) {
       return 1;
@@ -1272,7 +1272,7 @@ uint32_t Q33_CheckPartyHasScrollOfResistance(int32_t nParam, D2UnitStrc * pUnit)
 }
 
 // A5Q3 (Prison of Ice) fpStatusFilter callback. Writes a quest-log display sub-state byte into *nUnknown based on the player's per-difficulty bit-buffer. If Completed: returns true with *nUnknown=0. If RewardAwaits/JustCompleted: maps Step0x08/Step0x09 flags to values 5/6/0xd. Otherwise: checks party for Scroll of Resistance (4), CannotComplete (0xc), or falls back to nStateFlagPrev. Always returns true.
-bool __fastcall Q33_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2BitBufferStrc * pBitBufferEx, BYTE * nUnknown) {
+static bool __fastcall Q33_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2BitBufferStrc * pBitBufferEx, BYTE * nUnknown) {
     bool bQuestStateResult;
     *nUnknown = '\0';
     BOOL bQuestState = D2Common::QuestRecord::GetQuestState(pBitBufferEx, QUEST_PrisonOfIce, QUESTSTATE_Completed);
@@ -1300,7 +1300,7 @@ bool __fastcall Q33_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUni
           *nUnknown = '\f';
           return true;
         }
-        if (4 < pQuestData->nStateFlag) {
+        if (5 <= pQuestData->nStateFlag) {
           return true;
         }
 
@@ -1489,9 +1489,12 @@ void __fastcall Q33_AnyaTimerCallback(D2QuestDataStrc * pQuestData, D2UnitStrc *
     } else {
       eCurrentMode = pUnit->eAnimMode.ePlayerMode;
     }
-    if (eCurrentMode == eD2PlayerAnimMode_ns::Neutral) {
+    switch (eCurrentMode) {
+    case eD2PlayerAnimMode_ns::Neutral: {
       nAnimMode = Walk;
-    } else if (eCurrentMode == Walk) {
+      break;
+    }
+    case Walk: {
       pA5Q3Data = pQuestData->pQuestSpecificData.pA5Q3;
       pUnitRoom = D2Common::Units::UNITS_GetRoom(pUnit);
       eLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pUnitRoom);
@@ -1512,12 +1515,16 @@ void __fastcall Q33_AnyaTimerCallback(D2QuestDataStrc * pQuestData, D2UnitStrc *
 
         nAnimMode = eD2PlayerAnimMode_ns::Run;
       }
-    } else {
+      break;
+    }
+    default: {
       if (eCurrentMode != eD2PlayerAnimMode_ns::Run) {
         goto rearm_timer;
       }
 
       nAnimMode = eD2PlayerAnimMode_ns::GetHit;
+      break;
+    }
     }
 
     D2Common::Units::SetupUpdateFlag(pUnit, nAnimMode);
@@ -1703,7 +1710,7 @@ void __fastcall Objects_InitFn74(D2ObjectInitFnArg * pInitArg) {
 // MONSTER (classId 0x20f). Step1: stop/derender the ice object. Step2: spawn the Anya monster at the object's coords, take
 // over its DRLG map AI, delete the ice object, store GUIDs, mark bShieldDropActive, re-run Q33_SequenceFilter. Plays the
 // "Anya thaws out of the ice" sequence after the Scroll of Resistance is used.
-uint8_t __fastcall Q33_TransformFrozenAnya(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
+static uint8_t __fastcall Q33_TransformFrozenAnya(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
     D2RoomStrc* pAnyaRoom;
     D2UnitStrc* pAnyaMonster;
     D2MapAIStrc** ppMapAi;

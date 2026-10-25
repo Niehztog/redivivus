@@ -39,9 +39,7 @@ namespace D2Common::Merc {
 
 // Function declarations
 // Returns the animation index for the weapon currently held by a mercenary unit by walking the global gaMercWeaponAnimMap table (14 entries) and matching nWeaponClass. Returns -1 if no match found.
-int32_t MERC_GetWeaponAnimIndex(struct D2UnitStrc * pUnit);
 // Returns the D2MonSeqMonsterTbls entry for the unit's current skill sequence. For player-type units (mercs), resolves via apFixedSequenceTable indexed by weapon anim index. For monster units, looks up the monster's MonStats entry then retrieves by sequence ID. Returns null if no current skill or sequence ID &lt; 1.
-struct D2MonSeqMonsterTbls * __stdcall GetMonsterSequenceTable(struct D2UnitStrc * pUnit);
 // 2022.01.09 - dzik
 struct D2MonSeqTxt * __stdcall MERC_GetSequenceTxt(struct D2UnitStrc * pUnit);
 // 2022.01.09 - dzik

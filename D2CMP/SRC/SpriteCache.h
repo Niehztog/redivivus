@@ -108,27 +108,13 @@ void __fastcall SPRITECACHE_ReleaseHashEntry(int * pHashEntry);
 char * __stdcall IMAGE_ReturnImageExtension(int32_t nParam);
 void __stdcall SPRITECACHE_BuildPath(char * szText1, int32_t nParam, char * szText2, va_list vaArgs);
 void __stdcall SetCompressedDataGlobalAndSaveItToRegistry(BOOL bUseCompressedData);
-BOOL SPRITECACHE_FindOrLoad(char * szText, struct D2GfxDataStrc * pGfxData);
-BOOL __stdcall SPRITECACHE_LoadDC6(char * szText, struct D2GfxDataStrc * pGfxData, LPSTR szText2);
-struct D2CelFileCacheEntryStrc * __stdcall SPRITECACHE_LoadDCC(char * szText, char * szCelName, struct D2GfxDataStrc * pGfxData);
-// Returns the DC6Block of frame pGfxData->nFrameNumber in the decoded buffer pFrameData: picks the direction slot
-// from pDecodeState->aDirOffsets, then walks the frame blocks (each 0x23 + [+0x14] + [+0x1c] bytes) validating
-// width/height <= 0x100; NULL on any bad header.
-struct DC6Block * __stdcall SPRITECACHE_FindFrameBlock(struct D2GfxDataStrc * pGfxData, uint8_t * pFrameData, struct D2CelDecodeStateStrc * pDecodeState);
-// Waits for the cache block's async load, copies nFramesPerDir into pGfxData->nFrameCount and returns
-// SPRITECACHE_FindFrameBlock over the loaded buffer. No hash is involved.
-struct DC6Block * SPRITECACHE_GetFrameBlock(struct D2CelCacheBlockStrc * pCacheBlock, struct D2GfxDataStrc * pGfxData);
-// @sourcefile .\SRC\SpriteCache.cpp
-void __stdcall SPRITECACHE_LoadAndCacheDC6(struct D2CelFileCacheEntryStrc * pCelEntry, struct D2GfxDataStrc * pGfxData, struct D2CelCacheBlockStrc * pCacheBlock);
 uint32_t __stdcall SPRITECACHE_GetTotalEntries();
 void * __stdcall SPRITECACHE_GetCacheSize();
 BYTE * __stdcall SPRITECACHE_GetMaxSize();
 BYTE * __stdcall SPRITECACHE_GetCurrentSize();
 // @sourcefile .\SRC\SpriteCache.cpp
 void __fastcall GFX_AllocSpriteCache(struct D2GfxMemoryStrc * pGfxMemory, struct D2PoolManagerStrc * pMemory, void * pMaxMemory, fnSpriteCacheEntryRelease pfnReleaseEntry);
-void __stdcall SPRITECACHE_EvictOldest(int32_t nParam1, int32_t nParam2, int32_t nParam3);
 int32_t __fastcall SPRITECACHE_AddToLRU(uint32_t dwParam, int32_t nParam, int32_t bPriority);
-void SPRITECACHE_RemoveFromLRU(int32_t nParam1, int32_t nParam2);
 // Counts the LRU cache blocks whose async load has not completed (ASYNCDATA_IsComplete == 0); halts on a block with no pAsyncData.
 // It frees nothing, it only counts (returns nPendingCount).
 int32_t __stdcall SPRITECACHE_CountPendingLoads();
@@ -138,18 +124,10 @@ BOOL __stdcall SPRITECACHE_IsLoadPending(eD2UnitType eUnitType, int32_t nMode, i
 // Frees the async request of every LRU cache block whose load is still pending and clears tDecode.pAsyncData.
 // Completed blocks are left untouched.
 void __stdcall SPRITECACHE_CancelPendingLoads();
-int32_t __stdcall SPRITECACHE_Query(int32_t nParam1, int32_t nParam2, struct D2GfxMemoryStrc * pGfxMemory);
 // @sourcefile .\SRC\SpriteCache.cpp
 struct D2SpriteCacheEntryStrc * __fastcall SPRITECACHE_EvictEntry(struct D2GfxMemoryStrc * pGfxMemory, struct D2SpriteCacheEntryStrc * pCandidate, uint32_t bPreferOld);
 void __fastcall SPRITECACHE_AllocateMemory(void * pCache, int32_t nParam2);
 void __fastcall SPRITECACHE_FreeMemory(struct D2GfxMemoryStrc * pGfxMemory, void * pParam, int32_t nFreedSize, uint32_t bEvictPriority);
-uint32_t __stdcall SPRITECACHE_DecodeFrameByIndex(uint32_t * pReadBuffer, size_t nReadSize, struct D2SpriteDecodeRequestStrc * pRequest);
-// Load CEL sprite from archive into cache with optional palette override. Custom calling convention: ECX=path, EDX=codec header, EDI=cache entry, 3 stdcall stack params.
-// @sourcefile .\SRC\SpriteCache.cpp
-void __stdcall SPRITECACHE_LoadCelFileAndCache(char * szCelPath, struct D2CelFileCacheEntryStrc * pCelEntry, struct D2CelCacheBlockStrc * pCacheEntry, struct D2GfxDataStrc * pGfxData, int32_t nDirection, int32_t nFrameCount);
-// Load sprite data from archive into bit buffer with decompression
-// @sourcefile .\SRC\SpriteCache.cpp
-uint32_t __stdcall SPRITECACHE_LoadFromArchive(struct D2GfxDataStrc * pGfxData, int nFrameStep, struct D2CelCacheBlockStrc * pCacheEntry, struct D2CelFileCacheEntryStrc * pCelEntry, int nFrameGroupIndex, char * szFileName);
 // @sourcefile .\SRC\SpriteCache.cpp
 void __fastcall SPRITECACHE_ReleaseMemory(struct D2GfxMemoryStrc * pGfxMemory);
 // @sourcefile .\SRC\SpriteCache.cpp
@@ -157,9 +135,6 @@ void * * __fastcall SPRITECACHE_AllocEntry2(struct D2GfxMemoryStrc * pGfxMemory,
 // Initialises the sprite/CEL data cache. All four parameters are stack scalars, none a pointer: dwCacheBytes (0x800000) and dwUnitCacheBytes (0x7d000) are byte counts, the latter forwarded as a size to 00609020. dwAvailMemOverride, when 0, makes the function query system memory and apply SUB EAX,0xb00000 / CMP EAX,0x4000000. Typed as pointers, the 0x800000 byte count was emitted as a pointer into whatever object happened to contain that address.
 void __stdcall GFX_InitCelDataCache(uint32_t nFlags, uint32_t dwCacheBytes, uint32_t dwUnitCacheBytes, uint32_t dwAvailMemOverride);
 void __stdcall SPRITECACHE_Shutdown(int32_t nParam);
-uint32_t __stdcall SPRITECACHE_LoadDCCAndCache(struct D2CelFileCacheEntryStrc * pCelEntry, int32_t nParam1, int32_t nParam2, char * szText, struct D2GfxDataStrc * pGfxData);
-BOOL __stdcall SPRITECACHE_LoadCelAndCache(struct D2CelFileCacheEntryStrc * pCelEntry, int32_t dwParam, int32_t nParam1, char * szText, struct D2GfxDataStrc * pGfxData);
-void __stdcall SPRITECACHE_LoadSpriteWithConversion(struct D2CelFileCacheEntryStrc * pCelEntry, struct D2GfxDataStrc * pGfxData, int32_t nParam1, uint32_t nParam, char * szText, int32_t nParam2, LPSTR szText2);
 int __stdcall SPRITECACHE_GetOrLoadSprite(struct D2GfxDataStrc * pGfxData, int32_t bCheckOnly, int32_t nParam2);
 // Server sprite precache sync. GuardStack tail confirms BOOL return: GuardStack(1) on two early-out success paths, GuardStack(nLoadResult) on the cache-and-load path, GuardStack(0) on failure.
 BOOL __stdcall SPRITECACHE_PrecacheSpriteSync(struct D2GfxDataStrc * pGfxData);

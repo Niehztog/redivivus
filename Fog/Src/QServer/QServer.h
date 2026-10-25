@@ -383,8 +383,6 @@ void QSERVER_LOG(char * szModul, char * szFormatString, ...);
 void __stdcall _unused_SetupDefaultValues(int * pnParam);
 void __stdcall StartListening(struct D2QServerStrc * pQServer, uint32_t nToken);
 int __stdcall SwapWorkerSlotValue(struct D2QServerStrc * pQServer, int nWorkerIndex, int nNewSlotValueOrZero);
-// @sourcefile .\Src\QServer\QServer.cpp
-bool __stdcall ClearModePacketQueues(struct D2QServerStrc * pQServer);
 int __stdcall GetConnectedClients(struct D2QServerStrc * pQServer);
 uint32_t __stdcall IsSingleplayer(struct D2QServerStrc * pQServer);
 void __stdcall SetPerIpConnectionLimit(struct D2QServerStrc * pQServer, int nPerIpConnectionLimit);
@@ -397,12 +395,8 @@ void __fastcall LeaveCriticalSection_QServer(LPCRITICAL_SECTION * ppCriticalSect
 struct D2QServerClientConnectionStrc * __fastcall FindClientByClientId(struct D2QServerStrc * pQServer, int nClientId);
 struct D2QServerClientConnectionStrc * __fastcall FindClientBySocket(struct D2QServerStrc * pQServer, SOCKET Socket);
 void __fastcall IncrementClientRefCount(struct D2QServerStrc * pQServer, struct D2QServerClientConnectionStrc * pQServerClient);
-// @sourcefile .\Src\QServer\QServer.cpp
-void __stdcall NET_QServerClientPacket_FreeAllPackets(struct D2QServerClientConnectionStrc * pQServerClient);
 void __stdcall LogHackList(int nHacklistSize);
 void __fastcall SweepExpiredHackEntries(struct D2QServerStrc * pQServer);
-// @sourcefile .\Src\QServer\QServer.cpp
-void __fastcall HACKL_RemoveIpFromHacklist(struct D2QServerStrc * pQServer, uint32_t nIpAddress, uint32_t dwParam3);
 int HACKL_CheckAndResetHacklistEntry(struct D2QServerStrc * pQServer, uint32_t nIpAddress);
 // Checks whether the given IP currently has at least the configured per-IP connection limit.
 BOOL __fastcall IsPerIpLimitReached(struct D2QServerStrc * pQServer, in_addr * pClientIp);
@@ -431,18 +425,6 @@ void __stdcall SetReservedHook(struct D2QServerStrc * pQServer, void * pfnHook);
 void __stdcall SetClientServerTokenByClientId(struct D2QServerStrc * pQServer, int nClientId, uint32_t nServerToken);
 uint32_t __stdcall GetClientServerTokenByClientId(struct D2QServerStrc * pQServer, uint32_t nClientId);
 // @sourcefile .\Src\QServer\QServer.cpp
-void FreeHacklistBuckets(struct D2QServerStrc * pQServer);
-// Increments active-connection counter for a client IP in QServer's per-IP hash table.
-// @sourcefile .\Src\QServer\QServer.cpp
-int IncrementPerIpConnCount(struct D2QServerStrc * pQServer, in_addr * pClientIp);
-// Decrements active-connection counter for a client IP and removes hash entry when count reaches zero.
-// @sourcefile .\Src\QServer\QServer.cpp
-int NET_QServer_DecrementPerIpConnectionCount(in_addr * pClientIp, struct D2QServerStrc * pQServer);
-// @sourcefile .\Src\QServer\QServer.cpp
-void PruneIpRateList(struct D2QServerStrc * pQServer);
-// @sourcefile .\Src\QServer\QServer.cpp
-void FreeIpRateList(struct D2QServerStrc * pQServer);
-// @sourcefile .\Src\QServer\QServer.cpp
 int __stdcall SendPacketToClient(struct D2QServerStrc * pQServer, char * pBytes, int nSize, int nClientId);
 void __stdcall SetHackMode(struct D2QServerStrc * pQServer, BOOL bUseQServerHack);
 void Listen98Nt(struct D2QServerStrc * pQServer, int pPort);
@@ -469,16 +451,12 @@ struct D2QServerStrc * __stdcall NET_QServer_Init(eD2GSConnectionType neD2GSConn
 int __stdcall BroadcastToAllClients(struct D2QServerStrc * pQServer, char * pBytes, int nSize);
 // @sourcefile .\Src\QServer\QServer.cpp
 struct D2QServerClientContainerStrc * __fastcall AddClient(struct D2QServerStrc * pQServer, SOCKET pSock, uint32_t nIp);
-// Removes a client from the QServer by token ID. Finds the client in the token hash bucket, unlinks it from the chain, decrements the connection count, and frees the client structure.
-void __stdcall RemoveClient(struct D2QServerStrc * pQServer, uint32_t nClientToken);
 void __fastcall BanIpAddress(struct D2QServerStrc * pQServer, char * szFile, uint32_t nIpAddress, int nLine);
 // @sourcefile .\Src\QServer\QServer.cpp
 int __fastcall CheckIpConnectionRate(struct D2QServerStrc * pQServer, in_addr * pIpAddress);
-// NOTE: Register param types inferred (medium confidence): pQServerClientConnectionStrc (ESI): D2QServerClientConnectionStrc *
-BOOL __stdcall QSSpamCheck(struct D2QServerClientConnectionStrc * pQServerClientConnectionStrc, struct D2QServerStrc * pQServer, int nBytes);
 // Shuts down and frees QServer structure. Optionally broadcasts final packet to all clients before cleanup. Closes all worker threads, frees hash-map buckets, deletes critical sections, closes sockets, and invokes WSACleanup. Iterates through mode packet free list and hacklist free list to release all pooled allocations.
 // @sourcefile .\Src\QServer\QServer.cpp
-void __stdcall Shutdown(struct D2QServerStrc * pQServer, char * pBytes, int nSize);
+int __stdcall Shutdown(struct D2QServerStrc * pQServer, char * pBytes, int nSize);
 // Decrements pClient refcount via InterlockedDecrement. If zero: invokes optional cleanup callback at pQServer+0xBC8, removes client from server, and frees all queued packets.
 // @sourcefile .\Src\QServer\QServer.cpp
 void __fastcall RemoveClientAndClearLog(struct D2QServerStrc * pQServer, struct D2QServerClientConnectionStrc * pClient);
@@ -490,8 +468,6 @@ void __stdcall DisconnectAndBanIp(struct D2QServerStrc * pQServer, uint32_t nIpA
 // @evidence __stdcall shim whose whole body forwards its four arguments to 006c0420.
 void __stdcall thunk_CloseRemoteConnection(struct D2QServerStrc * pQServer, int nParam1, char * szText, int nParam2);
 void __stdcall QSDisconnectIP(struct D2QServerStrc * pQServer, in_addr addr, char * szText, int nParam);
-// pQServerStrc arrives in EDI; the other three arguments are on the stack (RET 0xc).
-void __stdcall HACKL_DisconnectAndBanClient(int nClientToken, char * pReason, int nParam, struct D2QServerStrc * pQServerStrc);
 // @sourcefile .\Src\QServer\QServer.cpp
 int __fastcall CheckIfPlayerIsBannedByAddress(struct D2QServerStrc * pQServer, in_addr * pAddr, char * szFile, int32_t nLine);
 // @sourcefile .\Src\QServer\QServer.cpp

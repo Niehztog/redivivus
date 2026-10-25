@@ -19,6 +19,9 @@ typedef _EXCEPTION_DISPOSITION (*pfnEHHandlerRoutine)(EHExceptionRecord * pExcep
 #endif
 
 namespace Storm::Source::SSignature {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9f28(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9ef8(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
+static void __fastcall CryptRSA_Prepare(void * pModulusBytes, uint32_t nModulusLen, void * pExponentBytes, uint32_t nExponentLen, BigData * * ppKey);
 
 BigData * * __fastcall SSIG_InitBigNum(BigData * * pBigNum) {
     SBig::SBigNew(pBigNum);
@@ -29,7 +32,7 @@ void __fastcall SSIG_FreeBigNum(void * * pBigNum) {
     SBig::SBigDel((BigData*)*pBigNum);
 }
 
-BOOL SSIG_FindSignatureMarker(int32_t nOffset, uint32_t nTotalSize, int32_t pBuffer, int * pnFoundOffset) {
+static BOOL SSIG_FindSignatureMarker(int32_t nOffset, uint32_t nTotalSize, int32_t pBuffer, int * pnFoundOffset) {
     int nMarkerOffset = nTotalSize - nOffset - 4;
     *pnFoundOffset = nMarkerOffset;
     if (!(nOffset + 4U <= nTotalSize && *(int*)(nMarkerOffset + pBuffer) == 0x5349474e)) {
@@ -39,13 +42,12 @@ BOOL SSIG_FindSignatureMarker(int32_t nOffset, uint32_t nTotalSize, int32_t pBuf
     return 1;
 }
 
-void __stdcall SSIG_HashData(uint32_t nDataLen, uint8_t * pData, int32_t pDigestOut) {
+static void __stdcall SSIG_HashData(uint32_t nDataLen, uint8_t * pData, int32_t pDigestOut) {
     D2Sha1ContextStrc shaContext;
     uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     Fog::Source::SSignature::Sha1_Initialize(&shaContext);
     Sha1_Append(pData, nDataLen, &shaContext);
     Sha1_Finalize((uint8_t*)pDigestOut, &shaContext);
-    Fog::Debug::GuardStack();
 }
 
 // @sourcefile .\SOURCE\SSignature.cpp
@@ -640,7 +642,6 @@ int __fastcall Sha1_Finalize(uint8_t * pDigest, D2Sha1ContextStrc * pCtx) {
       nWordsLeft--;
     } while (nWordsLeft);
 
-    Fog::Debug::GuardStack();
     return uVar1 >> 0x18;
 }
 
@@ -673,7 +674,7 @@ void __fastcall SSIGNATURE_RsaLoadComponent(void * pBytes, uint32_t nParam, BigD
 // @oracle 2026-08-28 pass 5. Oracle: Mac PPC 1.10b Storm.
 // Was SBIG_RSA_LoadKeyPair. Oracle: ".Prepare__Q25Crypt3RSAFPCvUlPCvUl" @100a2a50 = Crypt::RSA::Prepare(const void*, unsigned long, const void*, unsigned long). Basis: PPC body is exactly two bl .SBigFromBinary calls on this[0] and this[4], and reads r3..r7 = this+4 args; this function is byte-for-byte the same shape with this+4 params. So the object is a pair of BigBuffer handles at +0 and +4.
 // ppKey[0] is the modulus and ppKey[1] the exponent: CryptRSA_Process calls SBigPowMod(out, in, ppKey[1], ppKey[0]). SSignatureGenerate passes one modulus with its private then its public exponent, so neither pair is 'public' or 'private' as a whole.
-void __fastcall CryptRSA_Prepare(void * pModulusBytes, uint32_t nModulusLen, void * pExponentBytes, uint32_t nExponentLen, BigData * * ppKey) {
+static void __fastcall CryptRSA_Prepare(void * pModulusBytes, uint32_t nModulusLen, void * pExponentBytes, uint32_t nExponentLen, BigData * * ppKey) {
     SBig::SBigFromBinary(*ppKey, pModulusBytes, nModulusLen);
     SBig::SBigFromBinary(ppKey[1], pExponentBytes, nExponentLen);
 }
@@ -707,12 +708,12 @@ void __fastcall CryptRSA_Process(void * pData, uint32_t nDataLen, BigData * * pp
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9ef8(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9ef8(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9f28(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9f28(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 

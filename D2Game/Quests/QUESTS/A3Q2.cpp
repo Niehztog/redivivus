@@ -178,15 +178,15 @@ void __fastcall Q19_SequenceFilter(D2QuestDataStrc * pQuestData) {
 // Q19_SendQuestStatePacket (Khalim's Will). Builds and sends the 0x5D quest-state packet to the player's client conveying which Khalim's Will sub-stage/relic message to display. No QuestRecord transitions; pure client notification.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q2.cpp
 void __fastcall Q19_SendQuestStatePacket(uint32_t dwQuestStateWord, uint8_t bStateByte, D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
-    uint8_t aPacketFrame[8];
-    aPacketFrame[4] = 0;
-    aPacketFrame[5] = 0;
-    aPacketFrame[3] = bStateByte;
-    aPacketFrame[2] = pQuestData->nQuestPacketFlags;
-    aPacketFrame[0] = 0x5d;
-    aPacketFrame[1] = 0x10;
+    struct { uint8_t e0, e1, e2, e3, e4, e5, e6, e7; } aPacketFrame;
+    ((uint8_t*)&aPacketFrame)[4] = 0;
+    ((uint8_t*)&aPacketFrame)[5] = 0;
+    ((uint8_t*)&aPacketFrame)[2] = pQuestData->nQuestPacketFlags;
+    ((uint8_t*)&aPacketFrame)[3] = bStateByte;
+    ((uint8_t*)&aPacketFrame)[0] = 0x5d;
+    ((uint8_t*)&aPacketFrame)[1] = 0x10;
     D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pQuestArgs->pPlayer, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a3q2.cpp", 0x238);
-    GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pClient, aPacketFrame);
+    GAME::SCmd::NET_D2GS_SERVER_Send_0x5D_QuestState(pClient, ((uint8_t*)&aPacketFrame));
 }
 
 // Q19_Callback_04 (Khalim's Will). Item-interaction handler fired when player handles a Khalim relic / assembled Khalim's Will. Gates on QUEST_AbleGoToAct3=Completed and quest not already Completed. Inspects which of the 4 relics (Flail 0x20316671, Eye 0x20796571, Brain 0x20726271, Heart 0x20726871) and the combined Khalim's Will (0x20326671) the player holds, plus sub-steps 0x02-0x07, then sends the appropriate Q19_SendQuestStatePacket message. Reads quest state only; no SetQuestState here.
@@ -574,7 +574,7 @@ BOOL __fastcall OBJOP_A3Q2_KhalimsRelicPortalDrop1(D2ObjectOperateFnArg * pOpera
     int iHeartDropIdx = 0;
     D2SeedStrc seedNext = D2_SEED_NEXT(*pControlSeed);
     *pControlSeed = seedNext;
-    int iVar2 = seedNext.nSeedLow + (int)(((uint64_t)d2_bits_of(seedNext) & 0xffffffff) / 5) * -5 + 5;
+    int iVar2 = seedNext.nSeedLow % 5 + 5;
     if (0 < iVar2) {
       do {
         Objects::ObjectsMode::SpawnDrop(pOperation->sArg.pGame, pOperation->sArg.pVictim, 0x20646c67, QUALITY_NORMAL);
@@ -619,7 +619,7 @@ BOOL __fastcall OBJOP_A3Q2_KhalimsRelicPortalDrop2(D2ObjectOperateFnArg * pOpera
     int iEyeDropIdx = 0;
     D2SeedStrc seedNext = D2_SEED_NEXT(*pControlSeed);
     *pControlSeed = seedNext;
-    int iVar2 = seedNext.nSeedLow + (int)(((uint64_t)d2_bits_of(seedNext) & 0xffffffff) / 5) * -5 + 5;
+    int iVar2 = seedNext.nSeedLow % 5 + 5;
     if (0 < iVar2) {
       do {
         Objects::ObjectsMode::SpawnDrop(pOperation->sArg.pGame, pOperation->sArg.pVictim, 0x20646c67, QUALITY_NORMAL);
@@ -664,7 +664,7 @@ BOOL __fastcall OBJOP_A3Q2_KhalimsRelicPortalDrop3(D2ObjectOperateFnArg * pOpera
     int iBrainDropIdx = 0;
     D2SeedStrc seedNext = D2_SEED_NEXT(*pControlSeed);
     *pControlSeed = seedNext;
-    int iVar2 = seedNext.nSeedLow + (int)(((uint64_t)d2_bits_of(seedNext) & 0xffffffff) / 5) * -5 + 5;
+    int iVar2 = seedNext.nSeedLow % 5 + 5;
     if (0 < iVar2) {
       do {
         Objects::ObjectsMode::SpawnDrop(pOperation->sArg.pGame, pOperation->sArg.pVictim, 0x20646c67, QUALITY_NORMAL);
@@ -917,7 +917,7 @@ bool __fastcall Q19_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUni
 
     /* GetQuestState(KhalimsWill, Step0x02): quest-started bit gates the "in
                          progress" status flag */ bQuestState = D2Common::QuestRecord::GetQuestState(pBitBufferEx, QUEST_KhalimsWill, QUESTSTATE_Step0x02);
-    if (bQuestState || pQuestData->bIsNotIntroduction && 1 < pQuestData->nStateFlag) {
+    if (bQuestState || pQuestData->bIsNotIntroduction && 2 <= pQuestData->nStateFlag) {
       *nUnknown = '\x01';
     }
 

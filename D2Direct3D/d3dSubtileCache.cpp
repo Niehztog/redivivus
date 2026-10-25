@@ -106,7 +106,7 @@ void __fastcall D3DSUBTILE_SetPalette(D3DSubtileCacheStrc * pCache, void * pPale
 
     while (!(int)pCache->pNodeBuffer[nNodeIndex].pSurface || (pSurface = pCache->pNodeBuffer[nNodeIndex].pSurface , nResult = pSurface->lpVtbl->SetPalette(pSurface, (IDirectDrawPalette*)pPalette) , !nResult)) {
       nNodeIndex++;
-      if (pCache->nMaxNodes - 1 <= nNodeIndex) {
+      if (nNodeIndex >= pCache->nMaxNodes - 1) {
         return;
       }
     }
@@ -114,7 +114,7 @@ void __fastcall D3DSUBTILE_SetPalette(D3DSubtileCacheStrc * pCache, void * pPale
     Renderer::DIRECTD3D_LogError("SetPalette (subtile surface)", nResult);
 }
 
-void __fastcall D3DSUBTILE_InsertNodeAtTail(D3DSubtileCacheNodeStrc * pNode, D3DSubtileCacheStrc * pCache) {
+static void __fastcall D3DSUBTILE_InsertNodeAtTail(D3DSubtileCacheNodeStrc * pNode, D3DSubtileCacheStrc * pCache) {
     if (!pCache->pUsedHead) {
       pCache->pUsedHead = pNode;
       pCache->pUsedTail = pNode;
@@ -165,7 +165,7 @@ D3DSubtileCacheNodeStrc * __fastcall D3DSUBTILE_RemoveNodeByIndex(D3DSubtileCach
     return (D3DSubtileCacheNodeStrc*)pTargetNode;
 }
 
-int __stdcall D3DSUBTILE_AllocateNodeFromFreeList(D3DSubtileCacheStrc * pCache) {
+static int __stdcall D3DSUBTILE_AllocateNodeFromFreeList(D3DSubtileCacheStrc * pCache) {
     if (pCache->nUsedCount == pCache->nMaxNodes) {
       return 0;
     }
@@ -206,24 +206,24 @@ int __stdcall D3DSUBTILE_AllocateNodeFromFreeList(D3DSubtileCacheStrc * pCache) 
 // Provenance: 1.14d asm 006bacb0; Direct3D twin of GLSUBTILE_PromoteNodeToMRU (0050f0f0).
 void __fastcall D3DSUBTILE_PromoteNodeToMRU(D3DSubtileCacheStrc * pCache, int nIndex) {
     D3DSubtileCacheNodeStrc* pNode;
-    if (pCache->nUsedCount < 2) {
+    if (pCache->nUsedCount <= 1) {
       return;
     }
     if (!nIndex) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 199);
       exit(-1);
-    } else if (pCache->nMaxNodes < nIndex) {
+    } else if (nIndex > pCache->nMaxNodes) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 200);
       exit(-1);
     } else {
-      if (0 < nIndex) {
-        pNode = D3DSUBTILE_RemoveNodeByIndex(pCache, nIndex - 1);
-        D3DSUBTILE_InsertNodeAtTail(pNode, pCache);
-        return;
+      if (!(1 <= nIndex)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc9);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc9);
-      exit(-1);
+      pNode = D3DSUBTILE_RemoveNodeByIndex(pCache, nIndex - 1);
+      D3DSUBTILE_InsertNodeAtTail(pNode, pCache);
+      return;
     }
 }
 

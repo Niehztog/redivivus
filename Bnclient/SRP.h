@@ -62,15 +62,10 @@ struct D2Srp * __fastcall SRP_ConstructContext(struct D2Srp * pSrp);
 // the 20-byte digest to aRandomPoolB (this+0x20), and clears aOutputBuffer (20 bytes) and nBytesAvailable.
 // Provenance: 1.14d asm 00527dd0..00527e60 (SHA1_Update(ctx, &sSeedEntropy, 0xc) at 00527e0c..00527e14).
 void __fastcall SRP_InitializeRandomState(struct D2Srp * pThis, uint32_t dwSeed);
-void SRP_ExtractSessionKeyBytes(void * pThis, void * pDst, uint32_t nBytes);
 void __stdcall SRP_ComputePasswordHash(void * pParam, char * szText1, char * szText2, int * pnParam);
 void __fastcall SRP_ComputeScramblingParam(int32_t pThis, struct BigData * * ppBase, struct BigData * * pnParam);
 void __stdcall SRP_HashBigNumToU32(struct BigData * * ppBigNum, uint32_t * pdwOut);
-int __fastcall SRP_ClientComputeSharedSecret(int32_t pSrp, struct BigData * * pPrivateKey, struct BigData * * pnParam1, struct BigData * * pnParam2, struct BigData * * pnParam3);
-int __fastcall SRP_ServerComputeSharedSecret(struct D2Srp * pThis, struct BigData * * ppClientPublic, int * pnParam, struct BigData * * pnParam1, struct BigData * * pnParam2, struct BigData * * pnParam3);
 void __fastcall SRP_ComputeClientProof(int32_t pThis, char * szUsername, void * pParam1, void * pParam2, void * pParam3, void * pParam4, int32_t nParam);
-void __stdcall SRP_ComputeServerProof(void * pParam1, void * pParam2, void * pParam3, int32_t nParam);
-BOOL SRP_IsContextInitialized(struct D2Srp * pSrp);
 // @sourcefile .\SRP.cpp
 void __fastcall SRP_CreateContext(struct D2Srp * * ppSrp);
 BOOL SRP_ExportPublicValues(struct D2Srp * * ppSrp, uint32_t * pnGeneratorLen, void * pGeneratorOut, uint32_t * pnModulusLen, void * pModulusOut);

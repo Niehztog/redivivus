@@ -62,7 +62,7 @@ static_assert(sizeof(void*) != 4 || sizeof(::D2MonsterRegionStrc) == 0x2e4, "D2_
 namespace D2Game::Monster::MonsterRegion {
 
 // Picks the per-region monster type roster for a level. Copies the level's normal (mon) or nightmare/hell (nmon) candidate class-id pool into a stack buffer, then draws up to NumMon (capped 13) distinct entries using the seed RNG, removing each picked id from the pool. For the first pick on a rangedspawn level it retries (up to ~4 attempts) until it lands a ranged (rangedtype) monster. Each accepted spawnable (isSpawn) MonStats id is written into pMonsterRegion->pMonData with its Rarity, accumulating nTotalRarity/nSpawnCount/nCounter. Server-side seed-deterministic so all clients agree on the region's monster set.
-void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2MonsterRegionStrc * pMonsterRegion, D2LevelsTxt * pTxtLevels, D2SeedStrc * pSeed) {
+static void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2MonsterRegionStrc * pMonsterRegion, D2LevelsTxt * pTxtLevels, D2SeedStrc * pSeed) {
     short int* pMonList;
     D2MonStatsTxt* pMonStats;
     uint32_t nCopyWords;
@@ -126,7 +126,7 @@ void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2Mon
       int nMonStatIdx;
       do {
         nValidMonCount = nRandPick;
-        if ((int)nRandPick < 1) {
+        if ((int)nRandPick <= 0) {
           break;
         }
 
@@ -146,7 +146,7 @@ void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2Mon
           nRangedRetryCount = 0;
           do {
             nMonStatIdx = (int)(short int)nMonClassId;
-            if (-1 < nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
+            if (0 <= nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
               break;
             }
 
@@ -163,7 +163,7 @@ void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2Mon
 
             nMonClassId = aMonIdPool[nRandPick];
             nMonStatIdx = (int)(short int)nMonClassId;
-            if (-1 < nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
+            if (0 <= nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
               break;
             }
 
@@ -180,7 +180,7 @@ void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2Mon
 
             nMonClassId = aMonIdPool[nRandPick];
             nMonStatIdx = (int)(short int)nMonClassId;
-            if (-1 < nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
+            if (0 <= nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
               break;
             }
 
@@ -197,7 +197,7 @@ void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2Mon
 
             nMonClassId = aMonIdPool[nRandPick];
             nMonStatIdx = (int)(short int)nMonClassId;
-            if (-1 < nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
+            if (0 <= nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
               break;
             }
 
@@ -214,7 +214,7 @@ void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2Mon
 
             nMonClassId = aMonIdPool[nRandPick];
             nMonStatIdx = (int)(short int)nMonClassId;
-            if (-1 < nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
+            if (0 <= nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatIdx && sgptDataTable->pTxtMonStats[nMonStatIdx].rangedtype) {
               break;
             }
 
@@ -240,7 +240,7 @@ void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2Mon
         }
 
         nMonStatIdx = (int)(short int)nMonClassId;
-        if (-1 < nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize) {
+        if (0 <= nMonStatIdx && nMonStatIdx < sgptDataTable->nTxtMonStatsSize) {
           pMonStats = sgptDataTable->pTxtMonStats + nMonStatIdx;
           if (pMonStats && pMonStats->isSpawn) {
             pMonField->nClassId = nMonClassId;
@@ -257,7 +257,6 @@ void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, D2Mon
       } while (nMonsPicked < (int)nMaxMons);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 // Allocates and populates a D2MonsterRegionStrc for every level (index 1..nTxtLevelsSize-1) in the game. Per level: pool-allocates a zeroed region, fills monster density/boss counts/wander/quest flags from LevelsTxt, rolls monster types via MONREGION_PopulateMonsterTypes, then seeds champion-pack data for each monster slot. Halts with fatal error 0x83 if DifficultyLevels txt lookup fails.
@@ -268,8 +267,7 @@ void __fastcall AllocMonsterRegion(D2PoolManagerStrc * pMemory, D2Row_D2MonsterR
     int i;
     int* pMonRegionListEntry;
     short int nMonLevel;
-    pSeed->nSeedLow = nSeedLow;
-    pSeed->nSeedHigh = 0x29a;
+    D2Common::Seed::InitSeed_Param_666(pSeed, nSeedLow);
     uint32_t nDifficulty_00 = (uint32_t)nDifficulty;
     D2DifficultyLevelsTxt* pDiffLevels = D2Common::DATATBLS::DataTbls::GetDifficultyLevels(nDifficulty_00);
     if (pDiffLevels) {
@@ -384,18 +382,18 @@ short * __fastcall InitializeSpawnCount(D2MonsterRegionStrc * * ppMonsterRegion,
         pMonData++;
       } while ((int)pMatchedMonData < (int)(uint32_t)pMonsterRegion->nSpawnCount);
 
-      if (12 < (int)pMatchedMonData) {
+      if (13 <= (int)pMatchedMonData) {
         return nullptr;
       }
     }
 
     pMatchedMonData = pMonData;
-    if (!(-1 < nMonStatId && nMonStatId < sgptDataTable->nTxtMonStatsSize)) {
+    if (!(0 <= nMonStatId && nMonStatId < sgptDataTable->nTxtMonStatsSize)) {
       return (short int*)pMatchedMonData;
     }
 
     nMonStatId = (int)sgptDataTable->pTxtMonStats[nMonStatId].MonStatsEx;
-    if (!(-1 < nMonStatId && nMonStatId < sgptDataTable->nTxtMonStatsExSize && sgptDataTable->pTxtMonStatsEx + nMonStatId && 2 < (uint8_t)sgptDataTable->pTxtMonStatsEx[nMonStatId].TotalPieces)) {
+    if (!(0 <= nMonStatId && nMonStatId < sgptDataTable->nTxtMonStatsExSize && sgptDataTable->pTxtMonStatsEx + nMonStatId && 2 < (uint8_t)sgptDataTable->pTxtMonStatsEx[nMonStatId].TotalPieces)) {
       return (short int*)pMatchedMonData;
     }
 
@@ -495,12 +493,7 @@ void __fastcall UpdateMonsterRegion(D2MonsterRegionStrc * * ppMonsterRegion, eD2
     uint32_t bIsUnique;
     uint32_t* pnSpawnCount;
     D2MonsterRegionStrc* pNewRegion = ppMonsterRegion[eLevel2];
-    if (!pUnit) {
-      if (!nParam && !bIsDead && !nMonFlags) {
-        pnSpawnCount = (uint32_t*)&ppMonsterRegion[eLevel]->dwMonSpawnCount;
-        (*pnSpawnCount)--;
-      }
-    } else {
+    if (pUnit) {
       int32_t nAlignment;
       if (pNewRegion != ppMonsterRegion[eLevel]) {
         SetLevelId(pUnit, eLevel);
@@ -515,6 +508,11 @@ void __fastcall UpdateMonsterRegion(D2MonsterRegionStrc * * ppMonsterRegion, eD2
             return;
           }
         }
+      }
+    } else {
+      if (!nParam && !bIsDead && !nMonFlags) {
+        pnSpawnCount = (uint32_t*)&ppMonsterRegion[eLevel]->dwMonSpawnCount;
+        (*pnSpawnCount)--;
       }
     }
 }

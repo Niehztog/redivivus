@@ -10,7 +10,7 @@ namespace D2Launch::Source::SBig {
 
 void __fastcall CRYPTO_ByteSwap16Array(uint16_t * pArray, uint32_t nCount) {
     uint32_t nIndex = 0;
-    if (!nCount) {
+    if ((uint32_t)nCount <= 0) {
       return;
     }
 

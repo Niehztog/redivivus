@@ -89,7 +89,6 @@ void __stdcall LIB_LoadAdvapi32() {
       /* PSID pSid for FreeSid */ FreeSid(pSid);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 } // namespace Storm::Engine::Application

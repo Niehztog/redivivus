@@ -23,25 +23,9 @@ int __stdcall SELECT_GetConstant13_Y();
 void SetSelectedUnit_I(struct D2UnitStrc * pUnit);
 void __stdcall ClearSelectedUnit();
 void __stdcall SetCanBeSelectedToFalse();
-// Returns 1 if the player has double-clicked a warp unit. Checks that pUnit2 is a UNIT_WARP, both click points land inside its click area, the player is in moving mode, a queued primary click exists, and the tick-count deadline has not expired. On a valid second click it resets the 500 ms deadline window and returns 1; otherwise records the first click in *pnDoubleClickState and returns 0.
-BOOL __stdcall SELECT_IsWarpDoubleClicked(uint32_t dwUnused, int32_t nClick1X, struct D2UnitStrc * pUnit, int32_t nClick1Y, int32_t nClick2X, int32_t nClick2Y, int * pnDoubleClickState, struct D2UnitStrc * pUnit2);
-void __stdcall SELECT_ScreenToWorldCoords(int * pnX, int * pnY);
-// Client-side mouse-input gate for the selection system. If the UI border type is 3 (full-screen/npc-scroll), handles NPC menu deselection and warp deselection, then returns 1 (input consumed). Otherwise reads raw mouse X/Y, clamps to the playable area excluding the HUD exclusion rect and split-screen half, projects through SELECT_ScreenToWorldCoords, and returns 0 (pass through). Clears the selected unit when the cursor is over UI chrome.
-BOOL SELECT_HandleMouseInput(int * pnMouseX, int * pnMouseY);
-uint32_t __stdcall SELECT_IsDoorBlockingUnit(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
-// Returns 1 if pUnit (target) is on the far side of a door object (pUnit2) relative to the local player. Returns 0 immediately if the door is not in Death mode (i.e. not open/destroyed). Uses the door's Orientation field from ObjectsTxt to choose the X or Y axis, then compares the door coordinate against the player and target coordinates to determine occlusion.
-uint32_t __stdcall SELECT_IsUnitBehindDoor(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
-int32_t SELECT_GetDistanceSquared(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 void __fastcall SELECT_SetPetSeedTimestamp(int32_t bEnabled, struct D2UnitStrc * pUnit, int32_t nTimestamp);
 void __fastcall SELECT_SetExclusionRect(uint32_t * pRect);
-// Finds the closest valid target unit within a 9-tile radius around a given (X,Y) coordinate, for the server-side skill targeting system. Handles Iron Golem specially (ignores non-socketed metal items, excludes quest items). For each candidate it calls HitTestScreen and GetDistanceToXY, returning the nearest hit. Writes the resolved X/Y back into pX/pY. pSkillsTxt.flags4 bit-0 controls whether an already-active target is accepted immediately.
-// @sourcefile .\GAME\Select.cpp
-struct D2UnitStrc * __stdcall SKILL_FindTargetInRange(struct D2SkillStrc * pSkill, struct D2UnitStrc * pUnit, int * pX, int * pY, struct D2SkillsTxt * pSkillsTxt);
 int __fastcall UnitIsOfTypeMonster(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame);
-// Scans the direction-offset table (gnGameSelectPathState/gnGameSelectGameState) starting from the player's current facing direction to find an interactable unit (monster, object, or NPC) in that direction. Checks collision, unit type, MonStats2 flags (e.g. selectable), and CanInteractWith. Returns the first matching D2UnitStrc* and registers it as the player's dynamic-path target, or null if none found within the table bounds.
-struct D2UnitStrc * __stdcall SELECT_FindTargetInFacingDirection(struct D2UnitStrc * pPlayerUnit_lcl, int pSkillsTxt);
-// Resolves world coordinates for a click target. If pUnit is null, reads X/Y directly from pnOutX/pnOutY. Otherwise extracts the unit's position from its static or dynamic path. Then checks the local player's room for movement collision; if blocked, calls GetFreeCoordinates_WithMaxDistance (radius 7) to find the nearest walkable tile and writes the adjusted coords back to pnOutX/pnOutY. Returns null on success, or pUnit if no adjustment was needed.
-int * __stdcall SELECT_GetTargetCoords(int * pnOutX, int * pUnit, int * pnOutY);
 // Client-side skill targeting resolver (D2Game::Game::Select). Given a candidate target unit and the requested cast position (*pX/*pY), returns the unit/coords the skill should actually act on. If the candidate is an already-active player it is kept as-is; otherwise (for non-flags4&1 skills) the candidate is dropped and its dynamic-path coords are substituted. If the requested position equals the local player's own position, it is nudged to the tile in front of the player (GetPositionNextToPlayerDirection). Suppresses targeting while moving for certain bUseFlags combos. Finally, if the player can use the skill (PLRSKILLS_CanUseSkillCheck) it applies skill-flag-driven target selection: flag 0x40 -> SKILL_FindTargetInRange, flag 0x20 + bAllowDirectional -> facing-direction target, flag 0x80 -> ground coords. Returns the resolved target unit (may be null) and writes resolved coords back through pX/pY.
 struct D2UnitStrc * __fastcall SKILL_ValidateTarget(struct D2SkillStrc * pSkill, struct D2UnitStrc * pUnit, int32_t * pX, int32_t * pY, uint8_t bUseFlags, int32_t bAllowDirectional);
 void __stdcall SELECT_InitConstants();

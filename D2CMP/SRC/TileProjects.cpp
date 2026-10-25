@@ -78,7 +78,7 @@ void __stdcall Free() {
     gpTileProjectListHead = 0;
 }
 
-D2TileProjectStrc * TILEPROJECT_FindByFilename(char * szFilename) {
+static D2TileProjectStrc * TILEPROJECT_FindByFilename(char * szFilename) {
     int nCmpResult;
     uint8_t* pSearchCursor;
     D2TileProjectStrc* pCacheNode = gpTileProjectListHead;

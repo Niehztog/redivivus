@@ -300,37 +300,37 @@ uint8_t * * __stdcall VIEW_AllocPalettePointerTable2(uint32_t nDim, int32_t nSte
 }
 
 void __stdcall VIEW_InitLookupTables() {
-    if (!gpViewPalPointerTable32x8) {
-      if (!gpViewPalByteTable32x16) {
-        if (!gpViewPalByteTable16x32) {
-          if (!gpViewPalPointerTable32x32) {
-            if (!gpViewPalByteTable32x40) {
-              D2Win::Src::D2WinPalette::D2WINPAL_CopyPalette(gPaletteTransitionTable);
-              gpViewPalPointerTable32x8 = VIEW_AllocPalettePointerTable(0x20, 8);
-              gpViewPalByteTable32x16 = VIEW_AllocByteTable(0x20, 0x10);
-              gpViewPalByteTable16x32 = VIEW_AllocByteTable(0x20, 0x20);
-              gpViewPalPointerTable32x32 = VIEW_AllocPalettePointerTable2(0x20, 0x20);
-              gpViewPalByteTable32x40 = VIEW_AllocByteTable(0x20, 0x28);
-              return;
-            }
-
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xce);
-            exit(-1);
-          } else {
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcd);
-            exit(-1);
-          }
-        } else {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcc);
-          exit(-1);
-        }
-      } else {
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcb);
-        exit(-1);
-      }
-    } else {
+    if (gpViewPalPointerTable32x8) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xca);
       exit(-1);
+    } else {
+      if (gpViewPalByteTable32x16) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcb);
+        exit(-1);
+      } else {
+        if (gpViewPalByteTable16x32) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcc);
+          exit(-1);
+        } else {
+          if (gpViewPalPointerTable32x32) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcd);
+            exit(-1);
+          } else {
+            if (gpViewPalByteTable32x40) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xce);
+              exit(-1);
+            }
+
+            D2Win::Src::D2WinPalette::D2WINPAL_CopyPalette(gPaletteTransitionTable);
+            gpViewPalPointerTable32x8 = VIEW_AllocPalettePointerTable(0x20, 8);
+            gpViewPalByteTable32x16 = VIEW_AllocByteTable(0x20, 0x10);
+            gpViewPalByteTable16x32 = VIEW_AllocByteTable(0x20, 0x20);
+            gpViewPalPointerTable32x32 = VIEW_AllocPalettePointerTable2(0x20, 0x20);
+            gpViewPalByteTable32x40 = VIEW_AllocByteTable(0x20, 0x28);
+            return;
+          }
+        }
+      }
     }
 }
 
@@ -483,7 +483,7 @@ void __fastcall GAMEVIEW_PrepareScene(D2GameViewStrc * pGameView, uint32_t nFlag
     pGameView->nFlags &= -2;
 }
 
-void __stdcall VIEW_GenerateRandomViewParams(int32_t nStarIndex, int32_t bRespawn) {
+static void __stdcall VIEW_GenerateRandomViewParams(int32_t nStarIndex, int32_t bRespawn) {
     uint32_t nStarXPos;
     uint32_t nYPos;
     D2SeedStrc seed;
@@ -520,7 +520,7 @@ void __stdcall VIEW_GenerateRandomViewParams(int32_t nStarIndex, int32_t bRespaw
 }
 
 // Renders the animated star-field overlay used in the Arcane Sanctuary. On first call, seeds a PRNG from SHAKE_StartTickcount, generates 8 brightness-graduated palette entries into gaArcaneStarColorTable, then calls VIEW_GenerateRandomViewParams for each of the 256 stars. Each frame, draws all 256 stars as single-pixel lines using D2GFX_DrawLine. Every 40 ms (tick delta > 0x28), advances each star's X position by its velocity; stars that fall off-screen are re-randomised via VIEW_GenerateRandomViewParams.
-void __stdcall DRAW_Overlay_ArcaneStars() {
+static void __stdcall DRAW_Overlay_ArcaneStars() {
     // Static local variables (originally global data)
     static unsigned int gdwArcaneStarsLastUpdateTick;
     static uint32_t gbArcaneStarsInitialized;
@@ -539,8 +539,7 @@ void __stdcall DRAW_Overlay_ArcaneStars() {
       D2Common::Seed::SEED_InitDefault(gpArcaneStarsSeed);
       nInitSeedLow = D2Common::Seed::SEED_GenerateRandomSeed(SHAKE_StartTickcount);
       pSeed = gpArcaneStarsSeed;
-      gpArcaneStarsSeed->nSeedLow = nInitSeedLow;
-      pSeed->nSeedHigh = 0x29a;
+      D2Common::Seed::InitSeed_Param_666(pSeed, nInitSeedLow);
       nColorIdx = 0;
       nBrightness = 0;
       do {
@@ -608,7 +607,7 @@ void __stdcall DRAW_Overlay_ArcaneStars() {
 }
 
 // Draws Ancients arena background with parallax scrolling summit (summit01.dc6, 4-tile wrap) and animated clouds (cloud01.dc6, 10 instances with RNG positions/velocities). Cloud positions stored in gAncientsBackgroundCellPtrs array. Scroll offset calculated from player X position delta divided by 8. Supports 800x600 and higher resolutions.
-void DRAW_Background_Ancients(D2UnitStrc * pPlayerUnit) {
+static void DRAW_Background_Ancients(D2UnitStrc * pPlayerUnit) {
     // Static local variables (originally global data)
     static D2SeedStrc * gpAncientsCloudSeed = (D2SeedStrc *)&gAncientsCloudSeed;
     static int gaAncientsCloudYPos[10] = {
@@ -790,8 +789,7 @@ void DRAW_Background_Ancients(D2UnitStrc * pPlayerUnit) {
       dwResMode = GetTickCount();
       nCloudSeedVal = D2Common::Seed::SEED_GenerateRandomSeed(dwResMode);
       pAncientsCloudSeed = gpAncientsCloudSeed;
-      gpAncientsCloudSeed->nSeedLow = nCloudSeedVal;
-      pAncientsCloudSeed->nSeedHigh = 0x29a;
+      D2Common::Seed::InitSeed_Param_666(pAncientsCloudSeed, nCloudSeedVal);
       pAncientsCloudSeed = gpAncientsCloudSeed;
       nScrollOffset = 0;
       do {
@@ -799,7 +797,7 @@ void DRAW_Background_Ancients(D2UnitStrc * pPlayerUnit) {
         *(uint32_t*)((int)gaAncientsCloudXPos + nScrollOffset) = nCloudSeedVal;
         ullSeedValue = D2_SEED_NEXT(*pAncientsCloudSeed);
         *pAncientsCloudSeed = ullSeedValue;
-        *(uint32_t*)((int)gaAncientsCloudYPos + nScrollOffset) = ullSeedValue.nSeedLow + (int)(((uint64_t)d2_bits_of(ullSeedValue) & 0xffffffff) / 0xfa) * -0xfa;
+        *(uint32_t*)((int)gaAncientsCloudYPos + nScrollOffset) = ullSeedValue.nSeedLow % 0xfa;
         ullSeedValue = D2_SEED_NEXT(*pAncientsCloudSeed);
         *pAncientsCloudSeed = ullSeedValue;
         *(uint32_t*)((int)gaAncientsCloudVelocities + nScrollOffset) = (ullSeedValue.nSeedLow & 0xf) + 8;
@@ -813,11 +811,11 @@ void DRAW_Background_Ancients(D2UnitStrc * pPlayerUnit) {
     do {
       nCloudIdx = WindowSizeX;
       *(int*)((int)gaAncientsCloudXPos + nScrollOffset) += *(int*)((int)gaAncientsCloudVelocities + nScrollOffset);
-      if ((nCloudIdx + 0x170) * 0x10 < *(int*)((int)gaAncientsCloudXPos + nScrollOffset)) {
+      if (*(int*)((int)gaAncientsCloudXPos + nScrollOffset) > (nCloudIdx + 0x170) * 0x10) {
         *(uint32_t*)((int)gaAncientsCloudXPos + nScrollOffset) = -5888;
         ullSeedValue = D2_SEED_NEXT(*pAncientsCloudSeed);
         *pAncientsCloudSeed = ullSeedValue;
-        *(uint32_t*)((int)gaAncientsCloudYPos + nScrollOffset) = ullSeedValue.nSeedLow + (int)(((uint64_t)d2_bits_of(ullSeedValue) & 0xffffffff) / 300) * -300;
+        *(uint32_t*)((int)gaAncientsCloudYPos + nScrollOffset) = ullSeedValue.nSeedLow % 300;
       }
 
       nScrollOffset += 4;
@@ -836,19 +834,12 @@ void DRAW_Background_Ancients(D2UnitStrc * pPlayerUnit) {
 }
 
 // Adjusts the looping screen-shake rumble sound (SOUND_BABOONDEMON_HIT_4) to match the current shake intensity. Converts nShakeIntensity (0–20) to a 0–255 target volume, starts the channel if not already playing, stops it if volume reaches 0, otherwise ramps the current volume toward the target by ±6 per call via SOUND_SetChannelPriority.
-void SHAKE_UpdateShakeSoundVolume(int32_t nShakeIntensity) {
+static void SHAKE_UpdateShakeSoundVolume(int32_t nShakeIntensity) {
     uint32_t nNewVolume;
     uint32_t nTargetVolume;
     nTargetVolume = nShakeIntensity * 0xff / 0x14;
-    nTargetVolume = (int)nTargetVolume < 1 ? 0 : nTargetVolume;
-    if ((int)nTargetVolume < 0xff) {
-      if (nTargetVolume) {
-        goto ensure_sound_playing;
-      }
-      if (!gnSoundShakeVolume) {
-        return;
-      }
-    } else {
+    nTargetVolume = (int)nTargetVolume <= 0 ? 0 : nTargetVolume;
+    if (!((int)nTargetVolume < 0xff)) {
       nTargetVolume = 0xff;
       ensure_sound_playing:
       if (!gnSoundShakeVolume) {
@@ -861,6 +852,13 @@ void SHAKE_UpdateShakeSoundVolume(int32_t nShakeIntensity) {
         if (!gnSoundShakeVolume) {
           return;
         }
+      }
+    } else {
+      if (nTargetVolume) {
+        goto ensure_sound_playing;
+      }
+      if (!gnSoundShakeVolume) {
+        return;
       }
     }
 
@@ -950,8 +948,20 @@ D2GameViewStrc * __stdcall AllocGameView() {
         return pGameView;
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x11b);
-      exit(-1);
+      pGameView = (D2GameViewStrc*)Fog::Memory::AllocClientMemory(0xeabc, ".\\GAME\\View.cpp", 0x11d, 0);
+      /* int yBottom for SetRect */ /* int xRight for SetRect */ /* int yTop for SetRect */ /* int xLeft for SetRect */ /* LPRECT lprc for SetRect */ SetRect(&pGameView->pView, 0, 0, 0, 0);
+      pPalByteTable16x32 = gpViewPalByteTable16x32;
+      pPalByteTable32x16 = gpViewPalByteTable32x16;
+      pPalPointerTable = gpViewPalPointerTable32x8;
+      pGameView->nFlags = 0;
+      pGameView->pPalPointerTable32x8 = pPalPointerTable;
+      pGameView->pPalByteTable32x16 = pPalByteTable32x16;
+      pGameView->pPalByteTable16x32 = pPalByteTable16x32;
+      Wall2::WALL2_OnAllocGameView_NoOp();
+      Wall2::ResetWall2Data(pGameView);
+      pGameView->nFlags |= 1;
+      gnLastLightmapUpdateFrame = 0;
+      return pGameView;
     }
 }
 
@@ -998,7 +1008,7 @@ void __fastcall ViewDraw2(D2GameViewStrc * pGameView) {
     }
 
     uint32_t nRecordingFrame = Game::gnRecordingIndex();
-    if (gnLastLightmapUpdateFrame < nRecordingFrame) {
+    if (nRecordingFrame > gnLastLightmapUpdateFrame) {
       gnLastLightmapUpdateFrame = nRecordingFrame;
       D2Client::Draw::LightMap::dLightMapUpdate();
     }
@@ -1056,7 +1066,7 @@ void __fastcall SHAKE_AdjustCenterByShake(uint32_t * pCenterX, uint32_t * pCente
     nTicks = nCurrentTickCount - SHAKE_StartTickcount;
     uint32_t nSoundIntensity;
     nSoundIntensity = 0;
-    if (SHAKE_Arg2 + SHAKE_Arg1 + SHAKE_Arg3 < nTicks) {
+    if (nTicks > SHAKE_Arg2 + SHAKE_Arg1 + SHAKE_Arg3) {
       SHAKE_UpdateShakeSoundVolume(0);
       SHAKE_Amplitude = 0;
       SHAKE_OFFSET_X = 0;

@@ -155,7 +155,7 @@ void DRLGLOGIC_PopulateGridCoordIndices(int * pnParam) {
     int nWidth = *(int*)(*pnParam + 0x3c);
     int nHeight = *(int*)(*pnParam + 0x40);
     int nGridY = 0;
-    if (-1 >= nHeight) {
+    if (0 > nHeight) {
       return;
     }
 
@@ -223,7 +223,7 @@ BOOL __fastcall DRLGGRID_IsGridValid(D2DrlgGridStrc * pDrlgGrid) {
 }
 
 BOOL __fastcall IsPointInsideGridArea(D2DrlgGridStrc * pDrlgGrid, int32_t nX, int32_t nY) {
-    if (!(-1 < nX && nX < pDrlgGrid->nWidth && -1 < nY && nY < pDrlgGrid->nHeight)) {
+    if (!(0 <= nX && nX < pDrlgGrid->nWidth && 0 <= nY && nY < pDrlgGrid->nHeight)) {
       return 0;
     }
 
@@ -420,7 +420,7 @@ void __fastcall DRLGGRID_SetLineFlagsWithWidth(D2DrlgGridStrc * pDrlgGrid, D2Drl
     int nError = 0;
     int nGridOffsetX = nY - pDrlgCoords->WorldPosition.y;
     int nRowOffsetY = 0;
-    if (nDx < nDy) {
+    if (nDy > nDx) {
       if (0 < nLineWidth) {
         do {
           _bInside = DrlgRoom::AreXYInsideCoordinates(pDrlgCoords, nRowOffsetY + nX, nY);
@@ -482,7 +482,7 @@ void __fastcall DRLGGRID_SetLineFlagsWithWidth(D2DrlgGridStrc * pDrlgGrid, D2Drl
         do {
           nX += nSignX;
           nError += nDy;
-          if (nDx < nError) {
+          if (nError > nDx) {
             nY += nSignY;
             nError -= nDx;
           }

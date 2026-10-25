@@ -89,17 +89,17 @@ D2RosterStrc * __stdcall GetPlayerRoster() {
     }
 
     D2RosterStrc* pRoster = GetRosterPlayerByGUID(nGUID);
-    if (pRoster) {
-      return pRoster;
+    if (!pRoster) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x75);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x75);
-    exit(-1);
+    return pRoster;
     return pRoster;
 }
 
 // Searches the global gpRosterPlayers linked list for a roster entry matching either nRosterGUID or szPlayerName. For each node, first checks the GUID (fast path); if it differs, performs a two-bytes-at-a-time strcmp on szRosterName. Returns the matching D2RosterStrc* on success, or null if the list is exhausted.
-D2RosterStrc * GetRosterByGuidOrName(char * szPlayerName, int32_t nRosterGUID) {
+static D2RosterStrc * GetRosterByGuidOrName(char * szPlayerName, int32_t nRosterGUID) {
     int nCmp;
     uint8_t* pInputCursor;
     D2RosterStrc* pRoster = gpRosterPlayers;
@@ -125,7 +125,7 @@ D2RosterStrc * GetRosterByGuidOrName(char * szPlayerName, int32_t nRosterGUID) {
 }
 
 // Writes identity/party/guild fields into a D2RosterStrc. 004793c4..004793c6 read EAX, EDI and EBX without ever loading them: the roster, the player name and the clan tag all arrive in registers. Modelled as locals, the reconstruction wrote the roster through an uninitialised pointer.
-void __stdcall ROSTER_InitializeFields(D2RosterStrc * pRoster, char * szPlayerName, char * szClanTag, int32_t nRosterGUID, int32_t nCharType, int16_t nUnitLevel, int16_t nPartyId, int32_t bInParty, int16_t nGuildFlags, char * szGuildTag) {
+static void __stdcall ROSTER_InitializeFields(D2RosterStrc * pRoster, char * szPlayerName, char * szClanTag, int32_t nRosterGUID, int32_t nCharType, int16_t nUnitLevel, int16_t nPartyId, int32_t bInParty, int16_t nGuildFlags, char * szGuildTag) {
     char cChar;
     char* pSrcCursor = szPlayerName;
     do {
@@ -233,12 +233,12 @@ D2RosterStrc * __fastcall GetNextRosterPlayer(D2RosterStrc * pRoster) {
 }
 
 char * __fastcall GetRosterName(D2RosterStrc * pRoster) {
-    if (pRoster) {
-      return pRoster->pRosterName;
+    if (!pRoster) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x174);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x174);
-    exit(-1);
+    return pRoster->pRosterName;
     return pRoster->pRosterName;
 }
 
@@ -353,7 +353,7 @@ void AllocRosterPartyList(int16_t nPartyId) {
 }
 
 // @sourcefile .\GAME\Roster.cpp
-void __stdcall FreeRosterPartyList() {
+static void __stdcall FreeRosterPartyList() {
     D2RosterPartyListStrc* pMemoryToFree = pRosterPartyList;
     while (pMemoryToFree) {
       D2RosterPartyListStrc* pSavedNext;
@@ -365,7 +365,7 @@ void __stdcall FreeRosterPartyList() {
     pRosterPartyList = 0;
 }
 
-D2RosterStrc * ROSTER_CollectPartiesIntoPartyList(D2RosterPartyListStrc * pRosterPartyList) {
+static D2RosterStrc * ROSTER_CollectPartiesIntoPartyList(D2RosterPartyListStrc * pRosterPartyList) {
     D2RosterStrc** ppNextLink;
     D2RosterStrc* ppRosterNext;
     D2RosterStrc* pNextRoster = 0;
@@ -436,7 +436,7 @@ void __stdcall ROSTER_SortPartyListsByPartyId() {
 }
 
 // Promotes the party entry matching nPartyId to the front of pRosterPartyList, then within that party's pOwner chain promotes the roster node matching nRosterGUID to the front. Used to prioritize a specific player in the party display order. No-ops if nPartyId is -1 or the entries are not found.
-void __stdcall ROSTER_MoveRosterPlayerToFrontOfParty(int16_t nPartyId, int32_t nRosterGUID) {
+static void __stdcall ROSTER_MoveRosterPlayerToFrontOfParty(int16_t nPartyId, int32_t nRosterGUID) {
     D2RosterStrc* pCurrent;
     D2RosterStrc* pPrevious;
     D2RosterStrc* pNext;
@@ -490,7 +490,7 @@ void __stdcall ROSTER_MoveRosterPlayerToFrontOfParty(int16_t nPartyId, int32_t n
 }
 
 // @sourcefile .\GAME\Roster.cpp
-void __stdcall ROSTER_GroupPlayersIntoParties() {
+static void __stdcall ROSTER_GroupPlayersIntoParties() {
     D2RosterPartyListStrc* pRosterPartyList;
     short int nPartyId;
     D2RosterPartyListStrc* pPartyListHead;
@@ -525,10 +525,10 @@ void __stdcall ROSTER_SortAllParties() {
     for (pPartyIter = pRosterPartyList; pPartyIter; pPartyIter = pPartyIter->pNext) {
       int32_t bIsArena;
       bIsArena = CLIENT_IsArenaLevel();
-      if (!bIsArena) {
-        pSortedOwner = ROSTER_SortByName(pPartyIter->pOwner);
-      } else {
+      if (bIsArena) {
         pSortedOwner = ROSTER_SortByLevel(pPartyIter->pOwner);
+      } else {
+        pSortedOwner = ROSTER_SortByName(pPartyIter->pOwner);
       }
 
       pPartyIter->pOwner = pSortedOwner;
@@ -543,11 +543,11 @@ void __stdcall ROSTER_FlattenPartyListsIntoSingleRosterChain() {
     D2RosterStrc* pWalkNext;
     D2RosterStrc* pChainTail = 0;
     for (pPartyList = pRosterPartyList; pPartyList; pPartyList = pPartyList->pNext) {
-      if (!pChainTail) {
+      if (pChainTail) {
+        pChainTail->pNext = pPartyList->pOwner;
+      } else {
         pChainTail = pPartyList->pOwner;
         gpRosterPlayers = pChainTail;
-      } else {
-        pChainTail->pNext = pPartyList->pOwner;
       }
 
       pPartyList->pOwner = 0;
@@ -566,7 +566,7 @@ void __stdcall ROSTER_FlattenPartyListsIntoSingleRosterChain() {
     }
 }
 
-void ROSTER_MoveRosterPlayerToFront(int32_t nRosterGUID) {
+static void ROSTER_MoveRosterPlayerToFront(int32_t nRosterGUID) {
     D2RosterStrc* pCur;
     D2RosterStrc* pPrev = 0;
     for (pCur = gpRosterPlayers; pCur; pCur = pCur->pNext) {
@@ -580,7 +580,7 @@ void ROSTER_MoveRosterPlayerToFront(int32_t nRosterGUID) {
     }
 }
 
-void __stdcall ROSTER_RebuildPlayerParty() {
+static void __stdcall ROSTER_RebuildPlayerParty() {
     int nRosterGUID;
     short int nPartyId;
     D2UnitStrc* pPlayerUnit_lcl = UNIT::Player::GetPlayerUnit_UI();
@@ -591,10 +591,10 @@ void __stdcall ROSTER_RebuildPlayerParty() {
     }
 
     D2RosterStrc* pRoster = GetRosterPlayerByGUID(nRosterGUID);
-    if (!pRoster) {
-      nPartyId = -1;
-    } else {
+    if (pRoster) {
       nPartyId = pRoster->nPartyId;
+    } else {
+      nPartyId = -1;
     }
 
     ROSTER_GroupPlayersIntoParties();
@@ -769,7 +769,7 @@ BOOL __fastcall GetRosterInPartyBool(D2RosterStrc * pRoster) {
     return *(BOOL*)&pRoster->bInParty;
 }
 
-void ROSTER_TogglePlayerFlag(D2RosterStrc * pRoster, int16_t nFlags) {
+static void ROSTER_TogglePlayerFlag(D2RosterStrc * pRoster, int16_t nFlags) {
     int nPlayerGUID;
     D2UnitStrc* pPlayer = UNIT::Player::GetPlayerUnit_UI();
     if (!pPlayer) {
@@ -901,7 +901,7 @@ void __fastcall ClickParty_i(D2RosterStrc * pRoster) {
     UI::Party::ResetPartyUi();
 }
 
-D2RosterStrc * __stdcall ROSTER_LeaveParty() {
+static D2RosterStrc * __stdcall ROSTER_LeaveParty() {
     int nGUID;
     D2UnitStrc* pPlayer = UNIT::Player::GetPlayerUnit_UI();
     if (!pPlayer) {
@@ -1238,8 +1238,11 @@ void __fastcall AllocRosterOther(int32_t nOwnerGUID, int32_t nRosterGUID) {
       return;
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x698);
-    exit(-1);
+    pRosterLinkList->pNext = 0;
+    pRosterLinkList->nRosterGUID = nRosterGUID;
+    pRosterLinkList->pNext = pRoster->pRosterLinkList;
+    pRoster->pRosterLinkList = pRosterLinkList;
+    return;
 }
 
 // @sourcefile .\GAME\Roster.cpp
@@ -1396,7 +1399,7 @@ BOOL __fastcall RosterIsFemale(D2RosterStrc * pRoster) {
     }
 
     int nCharType = pRoster->nCharType;
-    if (!(-1 < nCharType && (nCharType < 2 || nCharType == 6))) {
+    if (!(0 <= nCharType && (nCharType <= 1 || nCharType == 6))) {
       return 1;
     }
 
@@ -1517,10 +1520,10 @@ void __fastcall PlayerLeft(int32_t nPlayerUid) {
         }
       }
 
-      if (!pPrevious) {
-        gpRosterPlayers = pCurrent->pNext;
-      } else {
+      if (pPrevious) {
         pPrevious->pNext = pCurrent->pNext;
+      } else {
+        gpRosterPlayers = pCurrent->pNext;
       }
 
       UNIT::PlayerList::FreePlayerList(pCurrent->pPlayerList);

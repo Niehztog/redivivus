@@ -71,12 +71,12 @@ void __fastcall DRLGROOMTILE_CountAnimTilesFromGrid(D2RoomExStrc * pRoomEx, D2Dr
             if (pOrientGrid) {
               pOrientation = (D2DrlgCoordStrc*)DrlgGrid::GetGridFlags(pOrientGrid, nCellX, nKillEdgeY);
             }
-            if (!nGridFlags) {
-              nMainIndex = 0;
-              nSubIndex = 0;
-            } else {
+            if (nGridFlags) {
               nMainIndex = (uint8_t)(nGridFlags >> 0x14) & 0x3f;
               nSubIndex = nGridFlags >> 8;
+            } else {
+              nMainIndex = 0;
+              nSubIndex = 0;
             }
 
             nMatchCount = D2CMP::DUNGEON::Dungeon::TILEPROJECT_LookupTilesInAllProjects(pRoomExCtx->apTiles, (int32_t)pOrientation, (uint32_t)nMainIndex, nSubIndex & 0xff, aTileResults, 0x28);
@@ -85,10 +85,10 @@ void __fastcall DRLGROOMTILE_CountAnimTilesFromGrid(D2RoomExStrc * pRoomEx, D2Dr
               if (nTileLibFlags & 0x100) {
                 nCellY = nMatchCount - 1;
                 if (!(nGridFlags & 2)) {
-                  if (!(nGridFlags & 1)) {
-                    pTileGrid->nRoofTilesMax += nCellY;
-                  } else {
+                  if (nGridFlags & 1) {
                     pTileGrid->nWallTilesMax += nCellY;
+                  } else {
+                    pTileGrid->nRoofTilesMax += nCellY;
                   }
                 } else {
                   pTileGrid->nFloorTilesMax += nCellY;
@@ -108,7 +108,7 @@ void __fastcall DRLGROOMTILE_CountAnimTilesFromGrid(D2RoomExStrc * pRoomEx, D2Dr
     } while (nKillEdgeY < nCellY);
 }
 
-void AnimateTile(D2RoomExStrc * pRoomEx) {
+static void AnimateTile(D2RoomExStrc * pRoomEx) {
     D2DrlgAnimTileGridStrc* pAnimTile;
     int* dwTmp;
     if (!(pRoomEx->eRoomExFlags & 0x8000000U && pRoomEx->pRoomTiles)) {
@@ -251,7 +251,7 @@ void __fastcall DRLGANIM_AllocAnimatedTiles(D2DrlgGridStrc * pGrids, D2RoomExStr
                     }
                   }
 
-                  if (nMatchCount <= nIndex) {
+                  if (nIndex >= nMatchCount) {
                     Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcb);
                     exit(-1);
                   }

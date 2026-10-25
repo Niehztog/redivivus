@@ -121,7 +121,7 @@ short * __fastcall FOG_GetDataArrayEntry(D2DataArrayStrc * pDataArray, int nHand
     if (nHandle == -1) {
       return nullptr;
     }
-    if (nHandle < 0 || (nHighWord = (int)(short int)((uint32_t)nHandle >> 0x10) , pDataArray->numObjects <= nHighWord)) {
+    if (nHandle < 0 || (nHighWord = (int)(short int)((uint32_t)nHandle >> 0x10) , nHighWord >= pDataArray->numObjects)) {
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0xdb);
       exit(-1);
     } else {

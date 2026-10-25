@@ -65,7 +65,7 @@ void __stdcall SEVT_CopyIdHashTable(uint32_t * * pDstTable, int * pSrcTable) {
 
 // @sourcefile .\SOURCE\SEVT.CPP
 // @blizzard DeleteIdHashTable (SEVT.CPP)
-void SEVT_DeleteIdHashTable(void * * pTable) {
+static void SEVT_DeleteIdHashTable(void * * pTable) {
     void* pObject;
     void* nBucket = 0;
     if (pTable[1]) {
@@ -89,7 +89,7 @@ void SEVT_DeleteIdHashTable(void * * pTable) {
 }
 
 // @blizzard FindTypeHashEntry (SEVT.CPP)
-uint32_t * SEVT_FindTypeHashEntry(uint32_t dwUnused, uint32_t nSubId, uint32_t nEventId) {
+static uint32_t * SEVT_FindTypeHashEntry(uint32_t dwUnused, uint32_t nSubId, uint32_t nEventId) {
     uint32_t* pEvent;
     if (!gpEventHashBuckets || !gaEventRegistryHead) {
       pEvent = 0;
@@ -194,7 +194,7 @@ void __stdcall SEvtPushState(uint32_t nEventId, uint32_t nSubId) {
 // @ghidra-gap 0042644a is NOT a separate function. It is reached only by the JNZ at 00426439 and is the fall-through body of this one; Ghidra split it. Named SEVT_RegisterHandler_Body until the split is repaired. Its @sourcefile stamp .\SOURCE\SEVT.CPP therefore belongs to this function as well.
 // @sourcefile .\SOURCE\SEVT.CPP
 // @ghidra-repair 2026-08-28: 0042644a was a spurious second function (SEVT_RegisterHandler_Body). It had no prologue, its only inbound reference in the whole program was the JNZ at 00426439 inside this function, and it read its arguments off this function's EBP frame with the same 20-byte purge. Merged back in, so this function's body is now the whole 00426420-00426710 span. The fragment's old plate read: @function SEVT_RegisterHandler_Body | @address Game.exe.ram:0042644a | @date 2026.06.13 | @description NOT A FUNCTION. This is the fall-through body of SEvtRegisterHandler at 00426420: its only inbound reference is the CONDITIONAL_JUMP from the argument check at 00426439, it has no prologue of its own, and it reads its arguments off the caller's EBP frame (EBP+8 eventId, +0xc subId, +0x10 key, +0x18 pfnHandler). Ghidra created a spurious function here. Descriptive name only - it makes no Storm API claim. | @body Creates the event hash table on first use and rehashes it when load exceeds 1/2; creates or grows the event's handler table the same way; allocates a 0x10-byte handler node {key, ++pEvent[2] as priority, pfnHandler, next} and links it into the handler bucket, incrementing the handler count at pEvent[3]+8 and setting gnSevtSnapshotActive. | @former-name SEVT_RegisterEventCallback | @ghidra-gap The correct repair is to delete this function and let 00426420's body extend over it. Not done here - that is a function-boundary change, not a rename. | @sourcefile .\SOURCE\SEVT.CPP | @sourcefile-basis Blizzard __FILE__ literal referenced from inside this body (9 sites: 004264a6, 0042651d, 00426542, 00426561, 004265c7, 004265e0, ...). First-party 1.14d evidence, not inferred and not from D2R.
-void __stdcall SEvtRegisterHandler(uint32_t dwEventId, uint32_t dwSubId, uint32_t dwKey, int dwReserved, pfnSEvtHandler pfnHandler) {
+int __stdcall SEvtRegisterHandler(uint32_t dwEventId, uint32_t dwSubId, uint32_t dwKey, int dwReserved, pfnSEvtHandler pfnHandler) {
     void* pNewBuckets;
     int* pTailSlot;
     uint32_t* pNode;
@@ -209,7 +209,7 @@ void __stdcall SEvtRegisterHandler(uint32_t dwEventId, uint32_t dwSubId, uint32_
     uint32_t* ppNodeNext;
     if (!(pfnHandler ? (dwReserved != 0) - 1 : 0)) {
       SErr::SErrSetLastError(0x57);
-      return;
+      return 0;
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_0077930c);
@@ -217,7 +217,7 @@ void __stdcall SEvtRegisterHandler(uint32_t dwEventId, uint32_t dwSubId, uint32_
     if (!pEvent) {
       pNewBuckets = gpEventHashBuckets;
       pvVar1 = gaEventRegistryHead;
-      if ((uint32_t)gaEventRegistryHead >> 1 <= gnSevtRegisteredEventCount) {
+      if (gnSevtRegisteredEventCount >= (uint32_t)gaEventRegistryHead >> 1) {
         nBucketIndex = 1;
         dwReserved = 1;
         if (gnSevtRegisteredEventCount * 2 != -2) {
@@ -274,7 +274,7 @@ void __stdcall SEvtRegisterHandler(uint32_t dwEventId, uint32_t dwSubId, uint32_
     }
 
     nBucketIndex = *(uint32_t*)(pEvent[3] + 4);
-    if (nBucketIndex >> 1 <= *(uint32_t*)(pEvent[3] + 8)) {
+    if (*(uint32_t*)(pEvent[3] + 8) >= nBucketIndex >> 1) {
       int* ppNewHandlerTails;
       nNewHandlerCapacity = 1;
       dwEventId = 1;
@@ -339,6 +339,7 @@ void __stdcall SEvtRegisterHandler(uint32_t dwEventId, uint32_t dwSubId, uint32_
     (*(int*)(pEvent[3] + 8))++;
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ gnSevtSnapshotActive = 1;
     LeaveCriticalSection(&lpCriticalSection_0077930c);
+    return 0;
 }
 
 // Removes one registered handler from an event type.
@@ -498,13 +499,13 @@ int __stdcall SEvtBreakHandlerChain(void * pUnderMouse) {
     uint32_t uPrevLink;
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_0077930c);
     StormLinkStrc* pNode = (StormLinkStrc*)SMem::SMemAlloc(0xc, s___AUBREAKCMD___007088d8, -2, 8);
-    if (!pNode) {
-      pNewNode = 0;
-      pNode = (StormLinkStrc*)&gpSevtBreakCmdListHead.pPrevLink;
-    } else {
+    if (pNode) {
       pNode->pPrevLink = 0;
       pNode->pNext = 0;
       pNewNode = pNode;
+    } else {
+      pNewNode = 0;
+      pNode = (StormLinkStrc*)&gpSevtBreakCmdListHead.pPrevLink;
     }
 
     StormLinkStrc* nNextNode = pNode->pPrevLink;

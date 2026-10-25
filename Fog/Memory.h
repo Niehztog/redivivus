@@ -39,16 +39,9 @@ namespace Fog::Memory {
 void OutOfMemoryHandler(char * format, ...);
 int32_t ComputeSizeClassIndex(int32_t nParam);
 int32_t FindFirstFreeBit(uint32_t nParam);
-int32_t FindFreeSlotInBitmap(uint32_t * pnBitmap, uint32_t nTotalBits);
-void __stdcall InsertBlockIntoSortedArray(uint32_t * pBlock, int32_t nManager);
-void __stdcall RemoveBlockFromSortedArray(uint32_t * pBlock, int32_t nManager);
-LPVOID * __stdcall AllocatePoolBlock(LPVOID pPool, int32_t nManager);
-int32_t __stdcall FindOrCreateBlockWithFreeSlots(LPVOID * ppOutBlock, int32_t nManager, LPVOID pPool);
 void * __fastcall POOL_AllocOverflowBlock(struct D2PoolManagerStrc * pMemory, int32_t nSize, char * szFile, int32_t nFileLine);
 void __fastcall FreeTrackedAllocation(int32_t nManager, int32_t nUserPtr, char * szFile, int32_t nLine);
 int __fastcall ReallocTrackedAllocation(struct D2PoolManagerStrc * pManager, void * pUserPtr, int32_t nNewSize, char * szFile, int32_t nLine);
-uint32_t __stdcall FindBlockContainingAddress(uint32_t nAddress, int32_t nManager);
-void PromoteBlockToFreeListHead(struct D2PoolStrc * pPool, struct D2PoolBlockStrc * pBlock);
 void __fastcall Free(struct D2PoolManagerStrc * pMemory, void * * pStruct, char * szFile, int32_t Line0);
 void InitializeMemoryManagers(struct D2PoolManagerStrc * pMemory);
 void FreeMemoryPool(struct D2PoolManagerStrc * pMemory);

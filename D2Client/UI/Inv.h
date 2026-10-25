@@ -109,7 +109,6 @@ extern D2InventoryScreenCoordinates pNpcInventoryScreenCoordinates;
 namespace D2Client::UI::Inv {
 
 // Function declarations
-void __stdcall InitializeiInventoryPages();
 void __stdcall InitializeColors();
 void __stdcall DrawItemSolidBackground(uint8_t nGridX, uint8_t nGridY, int32_t nParam1, int32_t nColorIndex, int32_t nParam2, struct D2GridScreenCoordinates * pCoords);
 void INV_DrawBodySlotHighlight(int * pnParam, int32_t nColorIndex);
@@ -121,40 +120,10 @@ BOOL IsInBankPageScreenRangeOpenTop(int32_t nX, int32_t nY);
 BOOL IsInTransmogrifyScreenRange(int32_t nX, int32_t nY);
 void __stdcall INV_DrawGridPlacementHighlight(struct D2InventoryStrc * pInventory, struct D2UnitStrc * pUnit, uint32_t byColor, int32_t nGridIndex, int32_t pGridCoords);
 BOOL __stdcall INV_IsPlayerInventoryMode();
-void __stdcall INV_DrawSocketedItems(struct D2UnitStrc * pUnit, struct D2GridScreenCoordinates * pGridCoords, int32_t nBaseX, int32_t nBaseY);
-BOOL INV_IsQuestItemConsumable(int32_t pUnit);
-void __stdcall DRAW_UI_InventoryContent(struct D2UnitStrc * pUnit);
-uint32_t __fastcall ITEM_CanTheseBeSocketed(struct D2UnitStrc * pUnit);
-void INV_DrawBodySlotCursorHighlight(struct D2InventoryStrc * pInventory);
 void InitInventory();
-uint16_t * INV_GetInventoryPageName(uint32_t nPageIndex);
-void __stdcall INV_FormatEtherealSocketedText(struct D2UnitStrc * pUnit, uint16_t * wszText);
-// Formats personalized item text by appending the player's name in possessive form (e.g., "John's Sword"). Checks if item has PLAYERNAME flag and quality is NOT Set/Unique, then converts the stored char* player name to wide string and applies language-specific possessive formatting.
-void INV_FormatPlayerNameOnItem(uint16_t * wszText, struct D2UnitStrc * pUnit);
-BOOL __stdcall INV_FormatPlayerNameWithBase(uint16_t * wszText1, uint16_t * wszText2, struct D2UnitStrc * pUnit);
-void __stdcall INV_FormatQuantityText(int32_t pQualityRecord, uint16_t * wszText, struct D2UnitStrc * pUnit);
-void INV_FormatDurabilityText(uint16_t * wszText, struct D2UnitStrc * pUnit);
-void __stdcall INV_FormatStackCountText(int32_t nStackCount, uint16_t * wszText);
-// Writes the item's required strength (ItemsTxt nReqStr + nReqAdjust) as label + value; empty when the sum is < 1. Callers gate it on the requirement being non-zero and colour it red when unmet.
-void __stdcall INV_FormatReqStrText(struct D2ItemsTxt * pItemsTxt, int32_t nReqAdjust, uint16_t * wszText);
-// Writes the item's required dexterity (ItemsTxt wReqDex + nReqAdjust) as label + value; empty when the sum is < 1. Callers gate it on the requirement being non-zero and colour it red when unmet.
-void __stdcall INV_FormatReqDexText(struct D2ItemsTxt * pItemsTxt, int32_t nReqAdjust, uint16_t * wszText);
-void __stdcall INV_CalcWeaponDamageRange(struct D2UnitStrc * pUnit, eD2UnitStat eMinDmgStat, eD2UnitStat eMaxDmgStat, int * pnOutMin, int * pnOutMax, int * pbOutModified, struct D2UnitStrc * pItem);
 // Formats weapon damage text for item tooltips, handling one-handed, two-handed, barbarian dual-wield, throwable, and missile potion damage display. Calculates min/max damage based on weapon type, applies color coding for modified stats, and formats elemental damage for missile potions with duration scaling.
 void __stdcall szPrintfBuffer(struct D2UnitStrc * pUnit, uint16_t * wszText);
-void __stdcall INV_FormatBlockChanceText(uint16_t * wszText, struct D2ItemsTxt * pItemsTxt, struct D2UnitStrc * pUnit);
-// Formats defense range text for shields and boots, displaying min-max defense values. For shields, checks if Holy Shield skill is active and adds its defense bonus to both min and max values before formatting the output string.
-void __stdcall INV_FormatDefenseRangeText(struct D2UnitStrc * pUnit, uint32_t pStatRecord, uint16_t * wszText);
 void __stdcall INV_FormatArmorClassText(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, uint16_t * wszText);
-// Appends quantity text to item tooltip for stackable items (arrows, bolts, keys, etc.). Checks item's quantity stat (UNITSTAT_quantity) or max stack size, formats the number, and appends it to the output buffer with proper separators.
-void AppendQuanity(uint16_t * wszText, struct D2UnitStrc * pUnit);
-void __stdcall INV_FormatAttackSpeedText(uint16_t * wszText, struct D2UnitStrc * pUnit);
-void __stdcall INV_FormatItemSpellDescText(uint32_t nValue, struct D2ItemsTxt * pItemsTxt, uint16_t * wszText);
-void INV_FormatSocketFillerDesc(uint16_t * wszText);
-void __stdcall INV_FormatRunewordName(uint16_t * wszText, int32_t pItem);
-struct D2UnitStrc * GetSetItem(int32_t nId, struct D2InventoryStrc * pInventory);
-BOOL __stdcall INV_IsMouseInRect(int32_t nWidth, int32_t nHeight, int32_t nBottomY, int32_t nLeftX);
-BOOL INV_IsMouseOverWeaponSwapSlot(int32_t nX, int32_t nY);
 void __stdcall INV_LoadBodySlotImages();
 void __stdcall INV_FreeBodySlotImages();
 int32_t __stdcall INV_GetGoldButtonX();
@@ -168,39 +137,28 @@ BOOL INV_IsMouseOverGoldButton(int32_t nX, int32_t nY);
 BOOL INV_IsMouseOverCloseButton(int32_t nParam1, int32_t nParam2);
 void __stdcall INV_HandleHighResDropClick(int32_t nMouseY, struct D2UIMouseMsgStrc * pMsg, int32_t nMouseX);
 void __stdcall INV_HandleInventoryRightClick(struct D2UIMouseMsgStrc * pMsg);
-void __stdcall INV_UpdateItemUnderCursor(struct D2UnitStrc * pUnit, struct D2InventoryStrc * pInventory, struct D2UnitStrc * pCursorItem, uint32_t nMouseX, int32_t nMouseY, uint32_t nPage, struct D2GridScreenCoordinates * pGridLayout);
-void __stdcall INV_UpdateBodySlotUnderCursor(int32_t nBodyLoc, struct D2UnitStrc * pUnit, struct D2InventoryStrc * pInventory);
 void __stdcall INV_HandleMouseMove(struct D2UIMouseMsgStrc * pMsg);
-int32_t __stdcall ClickItemRight(struct D2UnitStrc * pItem, struct D2InventoryStrc * pGridCoords, int32_t nPage, struct D2UnitStrc * pPlayer, struct D2InventoryStrc * pInventory);
 // Resets the shop/inventory panel UI state. Fifty-six bytes whose only writes are stores to globals through EAX, so it preserves ECX. Typed __stdcall, the decompiler treated ECX as killed by the call, and INV_HandleShopLeftClick carries its button-loop stride there across two calls to this function - the stride became an unassigned local and the shop button scan advanced by garbage.
 void INV_ResetHoverAndContextState();
 void __fastcall INV_ClearItemDescription(struct D2UnitStrc * pUnit);
-void __stdcall INV_SetShopPageFromNpc(uint8_t bParam);
 void __stdcall INV_ResetInventoryState();
 void __stdcall INV_SetRefreshFlag();
 void __stdcall INV_SetMercInventoryMode();
 void __stdcall INV_HandleShopAction(DWORD nAction, int32_t pTarget, struct D2UnitStrc * pUnit, DWORD dwParam1, DWORD dwParam2, DWORD dwParam3, DWORD dwParam4);
-void __stdcall INV_EnterShopMode();
 void __stdcall INV_ReturnToShopFromRepair();
 void __stdcall INV_SetRepairMode();
 void __stdcall INV_TrySetRepairMode();
 void __stdcall INV_SelectDefaultNpcButton();
 void __stdcall INV_SetIdentifyMode();
 void __stdcall INV_ExitIdentifyMode();
-void INV_SetNpcButtonBuy(int32_t nButtonIndex);
-void INV_SetNpcButtonSell(int32_t nButtonIndex);
-void INV_ClearNpcButton(int32_t nButtonIndex);
-void __stdcall INV_InitNpcButtonsByClass();
 // Draws gold amount and coin icon in inventory UI for three contexts: stash (param=0), inventory (param=1), and trade (param=2). Retrieves player's gold from appropriate stat (UNITSTAT_goldbank for stash, UNITSTAT_gold for inventory), formats the number, renders text and animated coin icon at context-specific screen coordinates.
 void __fastcall DRAW_UI_INVENTORY_Gold(int32_t nParam);
 void __stdcall DRAW_UI_Inventory_DrawShop();
-void __stdcall INV_DrawNpcButtonTooltip();
 BOOL __stdcall INV_CanReturnToShop();
 void __stdcall INV_HandleShopEscapeKey(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INV_HandleShopMouseMove(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INV_HandleShopLeftClick(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INV_ConsumeInputEvent(struct D2UIMouseMsgStrc * pMsg);
-void INV_UpdateNpcButtonHighlightState(uint32_t nParam);
 void __stdcall INV_HandleShopEnterKey(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INV_HandleShopRightClick(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INV_HandleShopReturnAction();
@@ -212,8 +170,6 @@ void __stdcall INV_LoadShopTabImages();
 void __stdcall INV_FreeShopTabImages();
 // Initializes trade mode UI. Clears gbInventoryDragInProgress flag, sets up trade window inventory grids, loads partner inventory data. Called when trade UI opens.
 void __fastcall INV_InitTradeMode(int32_t nParam);
-BOOL INV_IsMouseOverAcceptTradeBtn(int32_t nMouseY, int32_t nMouseX);
-BOOL INV_IsMouseOverCancelTradeBtn(int32_t nMouseY, int32_t nMouseX);
 void __stdcall INV_HandleTradeMouseMove(struct D2UIMouseMsgStrc * pMsg);
 // Handles left-click in trade window. Sets/clears gbInventoryDragInProgress based on cursor state. Picks up item from trade grid or places item, sends trade update packet to partner.
 void __stdcall INV_HandleTradeLeftClick(struct D2UIMouseMsgStrc * pMsg);
@@ -226,22 +182,16 @@ BOOL __stdcall INV_GetGambleFlag();
 void __stdcall INV_StashOpened();
 void __stdcall INV_StashOpenedWithGold();
 void __fastcall INV_SetInventoryActive(int32_t nParam);
-BOOL INV_IsMouseOverStashCloseBtn(int32_t nMouseX, int32_t nMouseY);
-BOOL INV_IsMouseOverStashGoldBtn(int32_t nMouseY, int32_t nMouseX);
 void __stdcall INV_HandleStashMouseMove(struct D2UIMouseMsgStrc * pMsg);
 // Handles left-click in stash window. Sets/clears gbInventoryDragInProgress based on cursor state. Picks up item from stash grid or places item, sends stash update packet to server.
 void __stdcall INV_HandleStashLeftClick(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INV_HandleStashEscapeKey(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INV_HandleStashRightClick(struct D2UIMouseMsgStrc * pMsg);
-void __fastcall INV_SetStashNpcGuid(struct D2UnitStrc * pUnit);
 void __stdcall CloseStash2();
 // Loads stash UI images (invstash.dc6 and invstashex.dc6 for Expansion) from DATA\GLOBAL directory. Clears the inventory overlay flag and constructs file paths using format strings from global text pool before loading DC6 graphics via IMAGE_LoadDC6Ex.
 void __stdcall INV_LoadStashImages();
 void __stdcall INV_FreeStashImages();
 void __stdcall CloseStash();
-BOOL INV_IsMouseOverTransmuteBtn(uint32_t dwUnused, int32_t nY, int32_t nX);
-BOOL CheckSomeCoords(int32_t nX, int32_t nY);
-void __stdcall CloseCube();
 void __fastcall Transmute(int32_t nParam);
 void __stdcall INV_HandleCubeMouseMove(struct D2UIMouseMsgStrc * pMsg);
 // Handles left-click in cube window. Sets/clears gbInventoryDragInProgress based on cursor state. Picks up item from cube grid or places item, validates cube placement rules.
@@ -269,14 +219,8 @@ void __stdcall INV_ClearItemDescPending();
 void __stdcall INV_ToggleExpansionTab();
 void __stdcall INV_SwapWeaponSet();
 BOOL __stdcall INV_IsMouseInRectLTRB(int32_t nLeft, int32_t nTop, int32_t nRight, int32_t nBottom);
-void __stdcall INV_DrawHirelingName(struct D2UnitStrc * pUnit);
 void __stdcall INV_DrawHirelingStatLabels();
-// Renders mercenary stat panel text for 12 different stats (HP, damage, defense, resistances, etc.). Loops through stat array, retrieves values from unit, applies color coding for modified/degraded stats, handles special cases like HP percentage display and two-handed weapon damage calculations, and formats each stat with appropriate alignment and font.
-void INV_DrawHirelingStats(struct D2UnitStrc * pUnit);
 void __stdcall INV_DrawHirelingEmptySlots(struct D2UnitStrc * pUnit);
-int32_t __stdcall INV_CanHirelingEquipItem(struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem, bool * pbSlotMatch);
-void __fastcall INV_DrawHirelingCursorHighlight(struct D2UnitStrc * pUnit);
-void INV_DrawHirelingEquippedItems(struct D2UnitStrc * pMercUnit);
 void __stdcall INV_HandleMercInvLeftDown(struct D2UIMouseMsgStrc * pMsg);
 // Handles left-click events in mercenary inventory UI. Checks for close button click, then iterates through mercenary equipment slots to handle item equipping/unequipping. Validates item compatibility with mercenary, removes items client-side, sends 0x61 packet to server, and plays appropriate success/failure sounds.
 void __stdcall INV_HandleMercInvLeftClick(struct D2UIMouseMsgStrc * pMsg);
@@ -294,7 +238,6 @@ void __fastcall ITEM_BuildSetItemTooltip(struct D2UnitStrc * pUnit);
 void __stdcall INV_ShowTransmogrifyTooltip();
 void __stdcall LoadItemDesc(struct D2UnitStrc * pUnit, int32_t bUsePlayer);
 void __stdcall DRAW_UI_Inventory();
-BOOL __stdcall ClickItemLeft(struct D2UnitStrc * pUnit, struct D2InventoryStrc * pInventory, DWORD x, DWORD y, struct D2UnitStrc * targetItem, struct D2InventoryLayout * pInvLayout, uint32_t nPage);
 uint32_t __fastcall EQUIP_ItemRight(struct D2UnitStrc * pUnit, struct D2InventoryStrc * pInventory, uint32_t nBodySlot);
 // Handles left-click equip action for inventory items. Checks equipment restrictions and sends network packets.
 uint32_t __fastcall EQUIP_ItemLeft(struct D2UnitStrc * pUnit, struct D2InventoryStrc * pInventory, uint32_t nBodySlot);

@@ -167,7 +167,7 @@ void __fastcall DeactivateRespecQuest(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
 // - Gossip msg 0x40 (player accepts the quest): sets bAcceptedQuest, advances server quest flag to 2, re-syncs steps to all players (Q01_SyncQuestStepToPlayer), and sends the gossip packet.
 // - Gossip msg 0x4c (player returns for the reward, only if RewardAwaits is set): if also JustCompleted and not yet at state 5, finalizes the quest (runs the sequence filter to unlock the next quest, broadcasts final state 0x0d). Then on the player's record it sets QUESTSTATE_Completed, clears QUESTSTATE_RewardAwaits, and on the Respec sub-quest sets JustCompleted+RewardAwaits, clears the Den step sub-states, and grants the actual reward: STATLIST_AddUnitStat(UNITSTAT_newskills, +1) -- the free skill point Akara gives for clearing the Den. Records the player GUID and sends the gossip packet.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q1.cpp
-void __fastcall Q01_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q01_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int32_t nErrorAddr;
     short int nMessageIndex = pQuestArgs->sQuestArgs.sNpcMessage.nMessageIndex;
     D2QuestDataA1Q1Strc* pQuestDataA1Q1 = pQuestData->pQuestSpecificData.pA1Q1;
@@ -236,7 +236,7 @@ void __fastcall Q01_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 
 // A1Q1 (Den of Evil) state-0 callback (Q01_Callback_00) -- chooses which gossip/quest-log line to show. Reads the player's QUEST_DenOfEvil record: Completed, JustCompleted, RewardAwaits.
 // If RewardAwaits is set -> message index 3 (the "return to Akara for your reward" line). Otherwise: if the player has not participated and the quest is not completed/too-far-along, it maps the server quest flag (nStateFlag) through gdwQuestCallbackAddressQ37[] to pick the intro/progress message index; -1 (or >7) means "say nothing". Participants get the generic message 4. Final line is rendered via AddGossipMessageOnMonster.
-void __fastcall Q01_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q01_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     // Static local variables (originally global data)
     static int32_t gdwQuestCallbackAddressQ37[6] = { -0x1, 0x0, 0x1, 0x2, 0x3, 0x4 };
 
@@ -254,7 +254,9 @@ void __fastcall Q01_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     }
 
     BOOL bRewardAwaits = D2Common::QuestRecord::GetQuestState(pBitBuffer, pQuestData->nQuestIdReal, QUESTSTATE_RewardAwaits);
-    if (!bRewardAwaits) {
+    if (bRewardAwaits) {
+      nMessageIndex = 3;
+    } else {
       int32_t nPlayerId = !pQuestArgs->pPlayer ? -1 : pQuestArgs->pPlayer->nUnitGUID;
       bRewardAwaits = QUEST_HasPlayerParticipated(pQuestData, nPlayerId);
       if (bRewardAwaits == 1) {
@@ -264,7 +266,7 @@ void __fastcall Q01_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       /* If quest completed, return */ if (bQuestCompleted == 1) {
         return;
       }
-      if (3 < pQuestData->nStateFlag && !bQuestJustCompleted) {
+      if (4 <= pQuestData->nStateFlag && !bQuestJustCompleted) {
         return;
       }
       if (!pQuestData->bIsNotIntroduction) {
@@ -275,11 +277,9 @@ void __fastcall Q01_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (nMessageIndex == -1) {
         return;
       }
-      if (7 < nMessageIndex) {
+      if (8 <= nMessageIndex) {
         return;
       }
-    } else {
-      nMessageIndex = 3;
     }
 
     AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, iTargetClassId, nMessageIndex);
@@ -386,7 +386,7 @@ void __fastcall Q01_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 }
 
 // A1Q1 (Den of Evil) -- deferred-completion timer callback (Q01_TimerNotifyCompletion), armed by Q01_Callback_08 after the Den is cleared. When it fires, if the server quest flag is still 4 ("just cleared"), it broadcasts the final completion state 5 via QUEST_SetStateAndBroadcast(MarkCompleteQuest). Clears bNotifiedCompletion and returns 1 (timer done).
-uint8_t __fastcall Q01_TimerNotifyCompletion(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
+static uint8_t __fastcall Q01_TimerNotifyCompletion(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
     D2QuestDataA1Q1Strc* pQuestDataA1Q1 = pQuestData->pQuestSpecificData.pA1Q1;
     if (pQuestData->nStateFlag == 4) {
       pQuestData->nQuestPacketFlags = '\0';
@@ -399,7 +399,7 @@ uint8_t __fastcall Q01_TimerNotifyCompletion(::SGAMEDATA * pGame, D2QuestDataStr
 
 // A1Q1 (Den of Evil) state-8 callback (Q01_Callback_08) -- the core monster-kill / clear-detection handler, fired on monster-death events in the Den. Looks up the Den-of-Evil monster region, recomputes nDenMonstersLeftToKillCount = dwMonSpawnCount - dwMonKillCount, and records the participating player's GUID. When every Den room is populated AND dwMonKillCount == dwMonSpawnCount (all monsters dead = Den cleared), it: logs "Finished quest", advances server quest flag to 4, sets QUESTSTATE_JustCompleted on the quest record, runs QUEST_SetSuccessFinishStates, and iterates all players to propagate the reward (Q01_PropagateRewardToParty -> party gets the skill point), mark non-participants CannotCompleteQuestInGame (Q01_SetCannotCompleteInGame), and play the completion sound (Q01_PlayCompletionSound); then arms Q01_TimerNotifyCompletion to broadcast final state 5. If not fully cleared but <6 monsters remain (or coming back from flag 4 with >5 left) it sets the "almost done" UI flag (eFlags=0x20) and re-broadcasts state 4.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q1.cpp
-void __fastcall Q01_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q01_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int32_t nPopulatedRooms;
     eD2Quests eDenQuestId;
     if (!pQuestData->bIsNotIntroduction) {
@@ -516,7 +516,7 @@ void __fastcall Q01_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
 }
 
 // A1Q1 (Den of Evil) active-filter (Q01_ActiveFilter, fpActiveFilter) -- decides whether the quest icon/dialog is "active" for Akara (NPC 0x94). Reads the player's QUEST_DenOfEvil record. Returns false if QUESTSTATE_Completed. Returns true if the quest has been introduced (bIsNotIntroduction) and is in progress (nStateFlag != 0) and the reward is not yet awaiting; also returns true if QUESTSTATE_RewardAwaits (player should return to Akara). Otherwise / for any other NPC, returns false.
-bool __fastcall Q01_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetClassId, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2UnitStrc * pUnitEx) {
+static bool __fastcall Q01_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetClassId, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2UnitStrc * pUnitEx) {
     /* If target is Akara */ if (nTargetClassId != 0x94) {
       /* Otherwise: inactive */ return false;
     }
@@ -542,7 +542,7 @@ bool __fastcall Q01_ActiveFilter(D2QuestDataStrc * pQuestData, int32_t nTargetCl
 }
 
 // A1Q1 (Den of Evil) sequence-filter (Q01_SequenceFilter, fpSequenceFilter) -- chains quest activation. Only proceeds once Den of Evil is finished (nStateFlag==5 or fully introduced); then looks up the next quest in the chain (nSequenceQuestId = QUEST_SistersBurialGrounds, set in Q01_InitData) and invokes its sequence filter, so completing the Den unlocks/advances A1Q2. No direct quest-record state ops; it drives quest progression via the chain.
-void __fastcall Q01_SequenceFilter(D2QuestDataStrc * pQuestData) {
+static void __fastcall Q01_SequenceFilter(D2QuestDataStrc * pQuestData) {
     if (pQuestData->nStateFlag != 5 && pQuestData->bIsNotIntroduction) {
       return;
     }
@@ -562,7 +562,7 @@ void __fastcall Q01_SequenceFilter(D2QuestDataStrc * pQuestData) {
 }
 
 // A1Q1 (Den of Evil) state-0x0d callback (Q01_Callback_13) -- reconstructs the server-side progress flags (nStateFlag / nStateFlagPrev) from a player's saved quest record on (re)load, so a returning player resumes at the right step. If the player's QUEST_DenOfEvil record is not Completed and not FinishedInPreviousGame, it reads the journal step sub-states: Step0x04 -> flag 3, prev 2 (den cleared, return to Akara); Step0x03 -> flag 3, prev 1 (entered the Den); Step0x02 -> flag 2, prev 1 (talked to Akara). The inverse of Q01_SyncQuestStepToPlayer.
-void __fastcall Q01_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q01_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     ::SGAMEDATA* pGame = pQuestArgs->pGame;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
     D2BitBufferStrc* pBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];

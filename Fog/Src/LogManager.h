@@ -33,12 +33,9 @@ struct D2HighResTimestampStrc {
 namespace Fog::Src::LogManager {
 
 // Function declarations
-int __stdcall DetectCpuVendor();
 void __stdcall DecodeCpuModelName(uint32_t nModel, int32_t nBrandId, char * pOutName, int32_t nVendor, int32_t nFamily, int32_t nType);
 int64_t __stdcall GetTimestamp();
 uint32_t __stdcall BenchmarkCpuSpeed();
-uint64_t __stdcall GetCpuVersionInfo();
-uint32_t __stdcall GetCpuBrandId();
 uint32_t __fastcall DispatchCpuidCall(int32_t nParam);
 void __stdcall LogCpuInfo();
 BOOL __stdcall GetLoggerState_Stub();
@@ -57,9 +54,6 @@ void __fastcall WriteRealmStartupHeader(FILE * pFile);
 // Returns the open log file for a name, opening it in a free slot and writing its header when it is new.
 FILE * __fastcall FindOrOpenLogFileSlot(uint8_t * szFileName, uint32_t * pnSlotIndex);
 void __fastcall FILETOOLS_GetUserMyDocumentsDiabloIIGameLogsFolder(char * szGameLogsPath, int32_t nGameLogsPathLength);
-// Writes a log record whose body is a hex dump to its log file, one formatted line at a time.
-void __fastcall WriteHexDumpLogEntry(int32_t pLogRecord);
-void __stdcall CloseStaleLogFileHandles();
 void __fastcall DeleteOldLogFile(int32_t pRefFileTime, char * szFileName);
 void __fastcall CloseLogFileByName(uint8_t * szFileName);
 uint32_t __fastcall ComputeAbsoluteFromRelative(int * pBase, int * pNode);
@@ -67,13 +61,10 @@ void __fastcall FILETOOLS_SetLogFilePathWithoutDateAndExtension2(FILE * szSuffix
 long __fastcall GetLogFileSize(uint8_t * szFileName);
 // @sourcefile .\Src\LogManager.cpp
 struct D2CharSelCompStrc * __fastcall ReadLogFileRange(uint8_t * szFileName, int32_t nStartOffset, int32_t nEndOffset);
-// Writes one log record to its log file, prefixed with the record's time of day.
-void __fastcall LogToFile(uint32_t pLogRecord);
 void __fastcall UnlinkListNode(int * pNode);
 int32_t __fastcall NormalizeListNodePointer(int32_t pThis, int32_t pNodePtr);
 void __stdcall ExitOrCrashCleanup();
 void __stdcall ExitOrCrashCleanUpJmp();
-void __stdcall DeleteOldLogFiles();
 void __fastcall UnlinkListNodeDouble(int * pNode);
 void __fastcall InitListHead(int * pListHead);
 void __fastcall InsertListNode(int * * pNode, int32_t bInsertAtHead, int * * ppTarget, int * * ppListHead);
@@ -106,22 +97,12 @@ void LOGMGR_DeleteHighResTimerLock();
 // Atomic 64-bit store of *pllValue into *pllTarget: LOCK CMPXCHG8B retried until it succeeds, so the old value is never kept (ECX=target, EDX=value).
 // @renamed-from AtomicCompareExchange64 (asm 004107be JNZ loops back to the CMPXCHG8B)
 void __fastcall Atomic64Store(int64_t * pllTarget, int64_t * pllValue);
-// Atomic 64-bit read of *pllSource into *pllResult via LOCK CMPXCHG8B: the comparand EDX:EAX is the don't-care ECX:EBX, and either path leaves the current value in EDX:EAX (ECX=result, EDX=source). The EBX half is not a parameter: callers at 00410a1c and 00410a9a set only ECX and EDX.
-// @renamed-from AtomicExchange64 (it never changes *pllSource)
-void __fastcall Atomic64Load(int64_t * pllResult, int64_t * pllSource);
 void __stdcall GetFreeDiskSpaceForSavePath();
 void GetGlobalMemoryStatus(LPMEMORYSTATUS pMemoryStatus);
 int __stdcall IsWindowsNT();
 void InitHighResTimer();
 // Returns the current wall-clock second count in EAX (base seconds + elapsed ticks/1000). Takes no arguments: the former EBX parameter was a phantom propagated from AtomicExchange64's don't-care comparand.
 uint32_t LOGMGR_GetHighResolutionTime();
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d08(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d3b(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d98(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9dc8(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e11(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e38(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-int SehHandler_6c9e6a(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
 void __stdcall LOGMGR_InitMessageQueue();
 void StaticFini_gLogMessageQueueCS();
 void StaticFini_gLogFileCS();

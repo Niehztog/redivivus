@@ -77,7 +77,7 @@ uint32_t __stdcall D2WINPOPUP_AddMessage(D2WinPopupEntry * pnParam) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x74);
       exit(-1);
     }
-    if (7 < gpD2WinPopupControl->nMessageCount) {
+    if (8 <= gpD2WinPopupControl->nMessageCount) {
       return 0;
     }
 
@@ -92,7 +92,7 @@ uint32_t __stdcall D2WINPOPUP_AddMessage(D2WinPopupEntry * pnParam) {
     D2WinFont::SetAndReturnLastFont(1);
     nNewWidth = D2WinFont::DRAW_text0(pnParam->wszText);
     nCopyCount = pPopup->sControl.dwSizeX;
-    if (nNewWidth < nCopyCount) {
+    if (nCopyCount > nNewWidth) {
       nNewWidth = nCopyCount;
     }
 
@@ -138,7 +138,7 @@ BOOL __fastcall DrawEx(::D2WinPopup * pPopup) {
     pPopup->bCentered = -1;
     int iVar1 = D2Client::Mouse::nPosX - pPopup->sControl.dwPosX;
     int nRelX = nSizeY - pPopup->sControl.dwPosY + D2Client::Mouse::nPosY;
-    if (!(-1 < iVar1 && iVar1 <= pPopup->sControl.dwSizeX && -1 < nRelX && nRelX <= nSizeY)) {
+    if (!(0 <= iVar1 && iVar1 <= pPopup->sControl.dwSizeX && 0 <= nRelX && nRelX <= nSizeY)) {
       return 1;
     }
 

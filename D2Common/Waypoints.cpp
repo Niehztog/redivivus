@@ -89,16 +89,16 @@ uint32_t __stdcall CheckWaypoint(D2WaypointStrc * pWaypoint, uint16_t nWaypointI
     if (!pWaypoint) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdd);
       exit(-1);
-    } else if (D2Client::Waypoint::nWaypointsBitMasksSize == 0x70) {
-      if (nWaypointId < 112) {
-        return (uint32_t)(pWaypoint->aWaypointBits[D2Client::Waypoint::aaWaypointsBitMasks[nWaypointId][0] - 1] & D2Client::Waypoint::aaWaypointsBitMasks[nWaypointId][1]);
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe1);
-      exit(-1);
-    } else {
+    } else if (D2Client::Waypoint::nWaypointsBitMasksSize != 0x70) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xde);
       exit(-1);
+    } else {
+      if (!(nWaypointId < 112)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe1);
+        exit(-1);
+      }
+
+      return (uint32_t)(pWaypoint->aWaypointBits[D2Client::Waypoint::aaWaypointsBitMasks[nWaypointId][0] - 1] & D2Client::Waypoint::aaWaypointsBitMasks[nWaypointId][1]);
     }
 }
 
@@ -106,17 +106,17 @@ void __stdcall EnableWaypoint(D2WaypointStrc * pWaypoint, uint16_t nWaypointId) 
     if (!pWaypoint) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xed);
       exit(-1);
-    } else if (D2Client::Waypoint::nWaypointsBitMasksSize == 0x70) {
-      if (nWaypointId < 0x70) {
-        pWaypoint->aWaypointBits[D2Client::Waypoint::aaWaypointsBitMasks[nWaypointId][0] - 1] |= D2Client::Waypoint::aaWaypointsBitMasks[nWaypointId][1];
-        return;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf1);
-      exit(-1);
-    } else {
+    } else if (D2Client::Waypoint::nWaypointsBitMasksSize != 0x70) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xee);
       exit(-1);
+    } else {
+      if (!(nWaypointId < 0x70)) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf1);
+        exit(-1);
+      }
+
+      pWaypoint->aWaypointBits[D2Client::Waypoint::aaWaypointsBitMasks[nWaypointId][0] - 1] |= D2Client::Waypoint::aaWaypointsBitMasks[nWaypointId][1];
+      return;
     }
 }
 

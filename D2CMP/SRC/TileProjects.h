@@ -296,7 +296,6 @@ namespace D2CMP::SRC::TileProjects {
 // Function declarations
 // @sourcefile .\SRC\TileProjects.cpp
 void __stdcall Free();
-struct D2TileProjectStrc * TILEPROJECT_FindByFilename(char * szFilename);
 int __stdcall TILEPROJECT_GetProjectId(char * szText);
 // @sourcefile .\SRC\TileProjects.cpp
 struct D2TileLibraryHeaderStrc * __stdcall Alloc(struct D2TileLibraryHashStrc * * ppHash, char * szFilename);

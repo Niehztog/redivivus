@@ -114,7 +114,7 @@ bool __fastcall Q10_IsRadamentCompleted(::SGAMEDATA * pGame) {
 // Returns 1 (quest "live"/should be shown) when NOT yet Completed and NOT
 // FinishedInPreviousGame, OR when JustCompleted/CannotCompleteQuestInGame is set;
 // returns 0 once fully closed out. Drives whether to push a quest-log update to client.
-BOOL __stdcall Q10_CheckHoradricStaffState(D2UnitStrc * pUnit, ::SGAMEDATA * pGame) {
+static BOOL __stdcall Q10_CheckHoradricStaffState(D2UnitStrc * pUnit, ::SGAMEDATA * pGame) {
     D2UnitDataPlayerStrc* pDVar1 = D2Common::Units::GetPlayerData(pUnit);
     D2BitBufferStrc* pBitBuffer = pDVar1->pQuestRecord[pGame->nDifficulty];
     BOOL BVar2 = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheHoradricStaff, QUESTSTATE_Completed);
@@ -141,13 +141,14 @@ BOOL __stdcall Q10_CheckHoradricStaffState(D2UnitStrc * pUnit, ::SGAMEDATA * pGa
 // Q10_NotifyHoradricStaffActive. If Q10_CheckHoradricStaffState says the quest is
 // live, send quest-log update (msg 9 = The Horadric Staff) to the player. Pure
 // notification wrapper; no state changes.
-void __stdcall Q10_NotifyHoradricStaffActive(D2UnitStrc * pUnit, ::SGAMEDATA * pGame) {
+static int __stdcall Q10_NotifyHoradricStaffActive(D2UnitStrc * pUnit, ::SGAMEDATA * pGame) {
     BOOL bIsQuestLive = Q10_CheckHoradricStaffState(pUnit, pGame);
     if (!bIsQuestLive) {
-      return;
+      return 0;
     }
 
     QUEST_SendQuestUpdateToPlayer(pGame, pUnit, 9);
+    return 0;
 }
 
 // Q10_CheckQuestItemsForDialog. Inspects which quest items the player holds and
@@ -397,7 +398,9 @@ void __fastcall Q10_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
     }
 
     BOOL bIsCompleted = D2Common::QuestRecord::GetQuestState(pBitBuffer, QUEST_TheHoradricStaff, QUESTSTATE_RewardAwaits);
-    if (!bIsCompleted) {
+    if (bIsCompleted) {
+      nGossipMsgIndex = 4;
+    } else {
       bool bHasQuestItem;
       bHasQuestItem = (bool)Q10_CheckQuestItemsForDialog(pQuestArgs->pPlayer, pQuestData, &byItemDialogMsg);
       if (!bHasQuestItem || byItemDialogMsg == 0xff) {
@@ -408,7 +411,9 @@ void __fastcall Q10_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
         }
 
         bIsCompleted = QUEST_HasPlayerParticipated(pQuestData, nPlayerGUID);
-        if (!bIsCompleted) {
+        if (bIsCompleted) {
+          nGossipMsgIndex = 5;
+        } else {
           if (bRewardAwaits == 1) {
             if (!bIsJustCompleted) {
               return;
@@ -427,14 +432,10 @@ void __fastcall Q10_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
           }
 
           nGossipMsgIndex = (uint32_t)byItemDialogMsg;
-        } else {
-          nGossipMsgIndex = 5;
         }
       } else {
         nGossipMsgIndex = (uint32_t)byItemDialogMsg;
       }
-    } else {
-      nGossipMsgIndex = 4;
     }
 
     AddGossipMessageOnMonster(pQuestData, pQuestArgs->sQuestArgs.sNpcActivate.pTextControl, 0xf4, nGossipMsgIndex);
@@ -786,7 +787,7 @@ void __fastcall Q10_OnStaffAssembledViaCube(::SGAMEDATA * pGame, D2UnitStrc * pU
 //  - Else (in progress) it inspects held items (rt1/msf/box/vip/tsh) and the
 //    Step0x03/04/05/06/10 bits to pick status 1,2,3,4,6,9. Status 9 = "ready to
 //    build staff" (has cube+amulet pieces, counts satisfied / TaintedSun flag).
-bool __fastcall Q10_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2BitBufferStrc * pBitBufferEx, BYTE * nUnknown) {
+static bool __fastcall Q10_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer, D2BitBufferStrc * pBitBufferEx, BYTE * nUnknown) {
     D2UnitStrc* pItemMsf;
     D2UnitStrc* pItemVip;
     D2UnitStrc* pItemBox;
@@ -862,7 +863,7 @@ bool __fastcall Q10_StatusFilter(D2QuestDataStrc * pQuestData, D2UnitStrc * pUni
 }
 
 // A2Q2 (Horadric Staff) inventory-recount handler, handler index 0xd. Increments per-piece counters in D2QuestDataA2Q2Strc for each staff component (msf/box/vip/tsh) the player currently holds. If quest not Completed, Seven Tombs introduced, Izual not set, and player lacks the Staff of Kings, clears step bits Step0x04/0x05/0x06 so the relevant dialog re-offers.
-void __fastcall Q10_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q10_Callback13_PlayerStartedGame(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     ::SGAMEDATA* pGame;
     pGame = pQuestArgs->pGame;
     D2UnitDataPlayerStrc* pSevenTombsData;
@@ -977,12 +978,12 @@ void __fastcall Q10_Callback14_PlayerJoinedGame(D2QuestDataStrc * pQuestData, D2
 // Izual/Arcane-Sanctuary spawn condition is satisfied (piece counters + TaintedSun
 // state) and, on first satisfaction, sets Seven Tombs' bIzualLocationSet and seeds
 // pIzualUnit (SP vs MP variant). No QuestRecord writes.
-void __fastcall Q10_Callback09_PlayerDroppedWithQuestItem(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q10_Callback09_PlayerDroppedWithQuestItem(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     D2QuestDataStrc* pOtherQuestData;
     eD2HostGameType eGameType;
     D2QuestDataA2Q2Strc* pA2Q2Data = pQuestData->pQuestSpecificData.pA2Q2;
     uint32_t dwItemCode = D2Common::ITEMS::Items::ITEM_GetItemsTxt_szCode(pQuestArgs->pTarget);
-    if (dwItemCode < 0x20747369) {
+    if (dwItemCode <= 0x20747368) {
       switch (dwItemCode) {
         case 0x20747368:
           {

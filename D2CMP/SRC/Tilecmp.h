@@ -104,7 +104,6 @@ uint32_t __stdcall TILECMP_ExportCacheToBuffer(struct D2TileCmpTileSetListStrc *
 // @sourcefile .\SRC\Tilecmp.cpp
 void __stdcall TILECMP_FreeTileCache(struct D2TileLibraryHeaderStrc * pTileLibrary, int32_t nUnused);
 int32_t __fastcall TILECMP_CalculateCacheSize(int32_t nUnused, int32_t pTileCmpHdr);
-size_t TILECMP_CopyTileNodes(void * pDstBuf, int32_t pTileSetEntry);
 // @sourcefile .\SRC\Tilecmp.cpp
 void __fastcall TILECMP_DeserializeAndFixup(int32_t pThis, void * pTileSetData, void * * ppDstBuffer, size_t * pSizeOut);
 void __stdcall TILECMP_FixupPointersInPlace(int * pTileCmpHdr, int * * ppTileCmpHdrOut, char * szText);

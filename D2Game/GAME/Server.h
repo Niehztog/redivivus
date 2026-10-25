@@ -236,7 +236,6 @@ void __stdcall QSERVER_PutNewGameOnTokenList(::SGAMEDATA * dwGameServerAddr, uin
 uint16_t __stdcall QSERVER_GenerateToken();
 // Loads DRLG act and transitions client to state 2 (LoadingAct). Ensures act's dungeon generation is initialized, tells client to load act graphics/data, then advances connection state. Called after character validation during join flow.
 void __fastcall CLIENT_LoadActAndSetState2(::SGAMEDATA * pGame, struct D2ClientStrc * pClient);
-void CLIENT_SendGameFlagsAndSetState1(::SGAMEDATA * pGame, struct D2ClientStrc * pClient);
 void __stdcall RollSeed(::SGAMEDATA * pGamee);
 void __stdcall GAME_SetForcedGameSeed(uint32_t dwForcedSeed);
 BOOL __fastcall SetupGameChecks(int32_t nClientID2, struct D2GSMsg67GameLogonSPStrc * pMsg);
@@ -257,8 +256,6 @@ void __fastcall GAME_DestroyGame(int32_t nGameToken, ::SGAMEDATA * pGame);
 uint32_t __fastcall NET_IsClientAllowedToLeave(uint32_t nParam);
 // Game-cleanup save: force-saves the disconnecting client's character (SaveGameAllGameTypes with bForceFullSave=1), then iterates all remaining clients in the game and soft-saves each (bForceFullSave=0). For non-singleplayer games, also invokes BattleNetServerService->fpUpdateCharacterLadder with the player's level, experience, char status, guild info, and file-time pointer so the ladder record stays current. No-ops if pClient or its player unit is null.
 void __fastcall SavePlayerOnCleanUp(struct D2ClientStrc * pClient, ::SGAMEDATA * pGame);
-// Saves all connected players to persistent storage. Iterates client list, gets player unit for each, calls SaveGameAllGameTypes to write character data (inventory/stats/quests/waypoints). For BNet non-singleplayer games, also updates ladder ranking via fpUpdateCharacterLadder callback with level, experience, character status, guild info (rank/emblem), and file timestamp. Called every 8192 frames (5.5 minutes) or on disconnects/timeouts. Critical for preventing rollback on crashes.
-void __fastcall SaveAllPlayers(::SGAMEDATA * pGame);
 // Gracefully disconnects a single client from a game. Broadcasts a 0x5A leave-game event message with char name and account name, calls CleanUpClient to remove the client from game state, sends 0xB0 ConnectionTerminated packet, then calls QSERVER_KillConnection to close the network connection. nDisconnectReason byte is embedded in the event packet.
 void __fastcall SERVER_DisconnectClient(::SGAMEDATA * pGame, struct D2ClientStrc * pClient, uint32_t nDisconnectReason);
 BOOL __fastcall FindMe_6E_Handler(int32_t nParam);
@@ -287,27 +284,15 @@ void __stdcall QSERVER_CleanupUnitChain(struct D2UnitStrc * * pUnitHead, ::SGAME
 // NOTE: Callee-saved register params inferred (medium confidence): pRoomStrc (ESI): D2RoomStrc*, pGameStrc (EDI): SGAMEDATA*
 void __stdcall UnusedInitFunctions(struct D2RoomStrc * pRoomStrc, ::SGAMEDATA * pGameStrc);
 void __fastcall SetSomeRoomFlags(::SGAMEDATA * pGame, struct D2RoomStrc * pRoom);
-// Initializes newly activated rooms across all 5 acts. For each act with dirty rooms (bRoomDirty flag), iterates all active rooms and populates uninitialized rooms (eFlags & 1 == 0) with wandering monsters, preset units, inactive units, objects, and room monsters. Also reinitializes inactive units for already-initialized rooms if not yet processed. Clears bRoomDirty flag after processing each act. Critical for dynamic content spawning as players explore.
-void InitNewRooms(::SGAMEDATA * pGame);
-// Frees idle rooms across all 5 acts to conserve memory. For each act, iterates active rooms and checks idle tick count via DRLGROOM_GetIdleTicks. Rooms idle for 10+ frames and passing TestRoomCanUntile (no players nearby) are candidates for cleanup. Moves all units in room to inactive lists via SERVER_GAME_UNIT_method, then removes room from act via RemoveRoomFromAct. Called every 12 frames from GAME_ServerGameLoop. Critical for dynamic memory management in large games.
-void __stdcall CleanupIdleRooms(::SGAMEDATA * pGame);
 // Frees unused dropped items every 1500 frames (60 seconds at 25 FPS). When dwGameFrame is exact multiple of 0x5dc (1500), iterates all 5 acts and calls FreeUnusedItems + SUNITINACTIVE_FreeUnusedItems for each. Removes items that have been on ground too long or in inactive state. Prevents memory leaks from abandoned loot in long-running games. Returns frame counter / 1500.
 int32_t FreeUnusedItems(::SGAMEDATA * pGamee);
 // Checks all clients for connection timeouts. If timeout exceeded and client has file flag 0x4 set with 10+ heartbeat samples and 10+ seconds idle, OR 45+ seconds idle, OR forced timeout flag set, saves that player and disconnects them. Two timeout thresholds: strict (10 seconds with heartbeat monitoring) and lenient (45 seconds absolute). Sets *pnParam if any disconnects occur, triggering full game save. Only active when gnClientTimeoutCheckInterval enabled.
 void __stdcall CheckClientTimeouts(::SGAMEDATA * pGame, int * pnParam);
-// Processes all clients and sends state updates. Checks timeouts, saves all players every 8192 frames. For clients in state 3 (WAITING_ROOMS), waits for all nearby rooms to activate, then transitions to state 4 (FULLY_PLAYING), recalcs inventory, broadcasts 0x5a player join event with char/account names. For state 4, runs GAME_UpdateSingleClient which builds visibility lists and generates compressed update packets (0x6D positions, 0x51 vitals, 0x95 skills, 0xAC spawns). For state 5 (CHANGING_ACT), waits for rooms then transitions back to state 4. Calls BNet EnterGame callback on join completion.
-void UpdateClients(::SGAMEDATA * pGame);
-// Tracks game performance metrics and memory usage. Every 1000+ milliseconds, calculates cycles per second (FPS metric) as (cycle_count * 1000) / elapsed_ticks, resets cycle counter and updates dwTickCount. Samples memory pool usage and updates global peak memory tracker. Resets peak memory tracking every 10 seconds (0x2711 ticks). Increments dwCycleCount every call. Used for server monitoring and diagnostics.
-void UpdatePerformanceMetrics(::SGAMEDATA * pGame);
 // Updates day/night environment cycle for all 5 acts. For each act, checks if cycle index changed via DRLGENV_UpdateCycleIndex. When cycle changes, extracts new cycle index/tick count/eclipse flag, refreshes all player item states (charges/durability based on light level), and broadcasts 0x53 Darkness packet to all clients in that act. Environment cycles affect visibility, light radius, and missile behavior.
 void __fastcall UpdateActEnvironments(::SGAMEDATA * pGame);
 // Core 25 FPS server game loop. Updates environment→metrics→rooms→timers(missiles/players/monsters/objects/items)→clients→unit flags. Periodic cleanup: quests every 20 frames, idle rooms every 12 frames, dungeon levels every 11 frames, dropped items every 1500 frames (60 seconds). Debug modes 1-4 trigger crashes/allocs for testing. Called from QSERVER_TickAllGames (cooperative loop) or TASK_GameTickCallback (BNet task scheduler).
 // @sourcefile .\GAME\Game.cpp
 void __fastcall ServerGameLoop(::SGAMEDATA * pGame);
-// Sends player vital stats (life/mana/stamina/position). The client arrives in ESI - 0052d982 MOV ECX,ESI reads it on entry. Modelled as a local, the reconstruction read it uninitialised and faulted on the server thread before the packet flush, so no 0x04 SCMD_STARTACT ever reached the client.
-void __stdcall GAME_SendPlayerVitalStats(struct D2ClientStrc * pClient);
-// Sends nearby unit position updates (0x6D packet). The client arrives in EDI - note this differs from GAME_SendPlayerVitalStats, which takes it in ESI. Modelled as a local, the reconstruction read it uninitialised.
-void GAME_SendNearbyUnitPositions(struct D2ClientStrc * pClient);
 void __fastcall Unlock(::SGAMEDATA * pGame);
 // Body is only the halt at line 4453.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
@@ -316,14 +301,10 @@ BOOL __stdcall Return1_GameSetup_0();
 BOOL __stdcall Return1_GameSetup_1();
 BOOL __fastcall CLIENT_ReceiveUploadedSave(uint32_t nClientId, struct D2GSMsg6CUploadSaveStrc * pMsg);
 void __stdcall QSERVER_GetMemoryUsage(uint32_t * pOutCurrent, uint32_t * pOutMax);
-int32_t GetUnitCount(struct D2UnitStrc * * ppUnitBuckets);
 uint32_t __stdcall ReturnArgument(uint32_t dwParam);
 // Returns the dword at 00731008 (initialised to 100, never written). Nothing calls or references this getter and it is the global's only reader; the meaning of the 100 is not proven.
 // Provenance: 1.14d asm 0052dc10 MOV EAX,[0x00731008]; RET, no code or data reference to 0052dc10 (byte scan).
 uint32_t __stdcall GAME_GetUnusedServerConstant();
-// GAME_TrackGameStatistics - Tracks per-game statistics (win/loss counters per game ID). Called periodically from game loop.
-// @sourcefile .\GAME\Game.cpp
-void __stdcall GAME_TrackGameStatistics(struct D2Game_Line0x13af * pStatRoot, int32_t nGameToken, int32_t nNodeValue);
 // Writes the ASCII class name string for a given player class ID (eD2PlayerClassIDDWORD) into a caller-supplied 16-byte buffer via inline byte stores. Handles all 7 classes (Amazon, Sorceress, Necromancer, Paladin, Barbarian, Druid, Assassin); unknown class writes "Invalid Class". Used to produce human-readable class labels, e.g. for logging or save-file headers.
 void __fastcall _TableNullSub25(char * szText, int32_t nId);
 void __fastcall MonsterIdToName(char * szText, int32_t nId);
@@ -345,14 +326,11 @@ void * __fastcall QSERVER_GetTaskQueuePointer(int32_t pQServer);
 // @sourcefile .\GAME\Game.cpp
 void __stdcall NET_D2GS_SERVER_Send_0xB3_SendSaveFile(::SGAMEDATA * pGame, struct D2ClientStrc * pClient);
 void __fastcall SendSaveFileToClient(::SGAMEDATA * pGame);
-// Flushes the server-side outbound packet queue for one client. If nParam != 0 and the client is connected (state 4), optionally sends nearby unit positions and player vital stats first. For OBNet/LAN games also sends the save-file packet (0xB3). Then drains the client's dispatch list by calling NET_D2GS_SERVER_SendPacketToClient in a loop; on send failure increments a retry counter and requeues the list, disconnecting the client after 3 consecutive failures. Halts with an internal error if pGame or pClient is NULL.
-void __stdcall FlushClientPackets(::SGAMEDATA * pGame, int32_t nParam, struct D2ClientStrc * pClient);
 void __fastcall FlushAllClientPackets(::SGAMEDATA * pGame);
 // Destroys a game by token using lock escalation. Locks csGameHash, looks up game, optionally notifies BattleNet service (fpCloseGame callback with player count and game time in seconds), acquires per-game lock, calls GAME_DestroyGame to tear down all units/rooms/quests, then frees game from hash-map and releases all locks.
 void __fastcall QSERVER_DestroyGameByToken(uint32_t nToken);
 // Locks global csGameHash, looks up game by token in hash-map, acquires per-game critical section, then releases global lock. Returns locked SGAMEDATA pointer or NULL if not found. Lock escalation pattern: global -> per-game -> release global, ensuring deadlock-free access to individual game state.
 ::SGAMEDATA * __fastcall QSERVER_FindAndLockGame(uint32_t nToken);
-void __stdcall RequestHostedGames(int32_t nParam);
 void __fastcall NET_RequestHostedGames(int32_t nParam);
 // Server shutdown routine: iterates the global 1024-slot game-token table and destroys every active game. For each game, saves every connected player (SaveGameAllGameTypes), sends save-file data for open-BNet/LAN hosts (0xB3 packets until CLIENT_HasSaveData is false), sends a disconnect byte, cleans up the client, then calls QSERVER_DestroyGameByToken. Also frees all task slots via TASK_FreeAllSlots before iterating.
 void __stdcall QSERVER_ShutdownAllGames();
@@ -421,7 +399,7 @@ void __stdcall QSERVER_DisconnectClientFromGame(uint32_t nClientId);
 void __fastcall NET_D2GS_SERVER_LeaveServer(uint32_t nClientId, int32_t bBroadcastLeave);
 // Removes a client from the server by token, cleaning up their connection state.
 void __fastcall LeaveServer(struct D2QServerStrc * pQServer, uint32_t nClientToken);
-void __stdcall QSERVER_InitializeServerState();
+int __stdcall QSERVER_InitializeServerState();
 // Callback invoked when the character-server (CS) delivers save data for a joining client (JOIN step 3). Accumulates chunked save data; on completion with nCsResult==0 stores file-time fields into pClient and sends state-command 2 to advance the join sequence. On CS error or stale pClientContainer, triggers disconnect.
 // @sourcefile .\GAME\Game.cpp
 uint32_t __stdcall CLIENT_OnDatabaseCharacterReceived(uint32_t nClientId, void * pParam, uint16_t nChunkSize, uint32_t nTotalSize, int32_t nCsResult, uint32_t dwCharFlags, int * pFileTimeData, void * pClientContainer);

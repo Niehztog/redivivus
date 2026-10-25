@@ -149,7 +149,6 @@ namespace Fog::Debug {
 
 // Function declarations
 // Loads dbghelp.dll once and resolves its 64-bit symbol APIs into globals. Returns true when the library is (already) loaded and every API resolved, in AL.
-bool __stdcall DEBUG_LoadDbgHelp64Apis();
 int __stdcall InitializeDebugSymbols();
 // NOTE: Return type changed void→char (1 callers, MEDIUM confidence)
 bool __stdcall GetModuleInfoForAddress(uint32_t dwQueryAddr, uint32_t * pdwModuleBase, char * szModuleName);
@@ -161,10 +160,6 @@ int __fastcall FindSymbolFile(char * szSearchPath, char * szFileName, uint32_t n
 int __stdcall LoadModuleSymbols(HANDLE hFile, char * szImageName, char * szModuleName, uint32_t dwBaseOfDll, uint32_t dwSizeOfDll, uint32_t dwBaseHigh);
 uint32_t __stdcall UnloadModuleSymbols(uint32_t dwBaseOfDll, uint32_t dwBaseHigh);
 bool __stdcall WalkStackFrame(HANDLE hThread, uint32_t pStackFrame, uint32_t pContextRecord);
-// Write crash dump via background thread - wrapper for MiniDumpWriteDump on Windows
-void __stdcall WriteCrashDumpViaThread();
-// lpStartAddress parameter of CreateThread
-DWORD __stdcall DEBUG_CrashDumpRequestThreadProc(void * lpThreadParam);
 bool __fastcall CrashDumpWriterThread(LPCSTR szDumpPath, uint32_t pExceptionPtrs, uint32_t nEventHandle, DWORD dwThreadId);
 void __stdcall InitializeDebugSubsystem();
 uint32_t __stdcall DEBUG_GetDbgHelpModuleRange(LPVOID * ppBaseOfDll, DWORD * pdwSizeOfImage);
@@ -174,51 +169,22 @@ void __stdcall ZeroStruct16Bytes(void * pStruct);
 void __stdcall ZeroStruct16BytesDuplicate(void * pStruct);
 void __fastcall SKILLSTXT_ZeroOutFields(struct D2SkillsTxt * pSkillsTxt);
 int CompareUintDescending(LPCVOID pParam1, LPCVOID pParam2);
-void FormatModuleDebugString(char * szText, struct D2QuestDataA1Q1Strc * pQuestDataA1Q1);
 void __fastcall FormatAddressDebugString(uint32_t * pAddrInfo, char * pSymInfo, char * szOutput);
 void __fastcall EnumerateAndDumpAllFunctions(fnCrashOutputLine pOutputCallback, ::Report * pReport);
-void InitializeDebugInfoTable(int32_t pTable);
-void __stdcall DEBUG_UnloadStackCrawlDbgHelp();
+int __stdcall DEBUG_UnloadStackCrawlDbgHelp();
 void __fastcall DumpThreadContext(HANDLE hHandle);
-BOOL __stdcall GetSourceLineWithRetry(HANDLE hProcess, DWORD nAddress, void * pdwDisplacement, void * pLine);
-// @sourcefile .\Src\Exceptions.cpp
-// Frees a D2FogModuleNodeStrc list (next at +0x20c); both callers pass the module list from LoadSymbolsForAllModules/EnumerateModulesPsapi.
-void __fastcall FOG_FreeModuleList(struct D2FogModuleNodeStrc * pModuleList);
-// @sourcefile .\Src\Exceptions.cpp
-struct D2FogModuleNodeStrc * __stdcall EnumerateModulesToolhelp32(uint32_t dwProcessId);
-// Enumerates process modules using PSAPI library. Loads PSAPI.DLL, queries module list, retrieves module paths and base names, constructs sorted list of module information for debugging.
-// @sourcefile .\Src\Exceptions.cpp
-struct D2FogModuleNodeStrc * __stdcall EnumerateModulesPsapi(HANDLE hProcess);
-struct D2FogModuleNodeStrc * __stdcall EnumerateAndLogModules(HANDLE hProcess, uint32_t dwProcessId);
 struct D2FogModuleNodeStrc * __fastcall FindModuleContainingAddress(uint32_t nAddress, struct D2FogModuleNodeStrc * pModuleList);
 // Dumps stack memory with symbol annotations. Formats raw stack bytes as hex, identifies pointer values, and looks up module/symbol information for each dword.
 void __fastcall DumpAnnotatedStackMemory(HANDLE hSymHandle, CONTEXT * pContext, struct D2FogModuleNodeStrc * pModuleListHead);
-struct D2FogModuleNodeStrc * __stdcall LoadSymbolsForAllModules(HANDLE hProcess, uint32_t dwProcessId);
 BOOL __fastcall FILETOOLS_GetExecutableFolderPath(LPSTR lpFilename, DWORD nSize);
-int BuildSymbolSearchPath(char * szSearchPath);
-// @sourcefile .\Src\Exceptions.cpp
-int __stdcall InitializeSymbolsWithRefcount();
-int __fastcall CleanupSymbolsWithRefcount(int32_t bForceCleanup);
-BOOL __fastcall QuickStackWalkWithSymbols(char * szSearchPath, HANDLE hProcess, CONTEXT * pContext);
 void __fastcall FullStackWalkWithAnnotations(HANDLE hThread, CONTEXT * pContext);
 void __fastcall WriteCrashDump(uint32_t dwHeader0, uint32_t dwHeader1, uint32_t dwRecordType, int32_t nDwordCount, void * pData);
 // @sourcefile .\Src\Exceptions.cpp
+BOOL __fastcall QuickStackWalkWithSymbols(char * szSearchPath, HANDLE hProcess, CONTEXT * pContext);
 BOOL __fastcall LoadPreviousCrashDump(uint8_t * pOutBuffer, int * pnBufferSize);
-void HandleExceptionWithStackDump(uint32_t dwUnused, struct _EXCEPTION_POINTERS * pExceptionPointers);
 BOOL __stdcall DEBUG_LoadStackCrawlDbgHelp();
 void __fastcall TriggerManualStackDump(char * szCategory);
 // Security cookie check (MSVC /GS __security_check_cookie). Compares ECX against the stored security cookie and halts on mismatch. Touches no register, so the caller's return value in EAX (and EDX) survives the call; modelled with the __stdcall_noclobber convention.
 void GuardStack();
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca575(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca595(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca5b5(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca5d5(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca5f5(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca615(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca635(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca655(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca675(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca695(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6ca6c5(struct EHExceptionRecord * pExceptionRecord, struct EHRegistrationNode * pRegistrationNode, struct _CONTEXT * pContext, void * pDispatcherContext);
 
 } // namespace Fog::Debug

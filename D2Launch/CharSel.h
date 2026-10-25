@@ -90,21 +90,14 @@ void __stdcall CHARSEL_FreeCachedRealmData();
 void __stdcall UIMENU_ItsLikeRealmSelectionMenuButOffsetToRightSide();
 void CHARSEL_SelectRealmInDropdown(char * szText);
 char * __stdcall GetPreferedRealm();
-uint32_t CHARSEL_IsBetaRealm(uint16_t * wszText);
-void CHARSEL_GetClassNameString(int nClassId, uint16_t * wszText);
-BOOL CHARSEL_ClassHasAlternateDeath(int nPlayerClass);
 // @sourcefile .\Src\CharSel.cpp
 void __stdcall CHARSEL_DestroySelectedChar();
-uint32_t CHARSEL_GetDaysUntilExpiry(uint32_t nExpiryTime);
-// Draws local character slots in selection screen. Iterates gaCharSelScreenSlotControls[0-7] to render each slot's character name, level, class, and hardcore/expansion flags. Highlights selected slot, draws character preview sprite, and handles expired characters.
-void __stdcall DRAW_LocalCharsInSelectionScreen();
 void __stdcall DRAW_LocalCharsInSelectionScreen0();
 // @sourcefile .\Src\CharSel.cpp
 BOOL __stdcall SAVEFILE_ParseSaveData(char * szRealmName, char * szCharacterName, char * aSaveData, uint32_t dwRealmParam, FILETIME ftLastWriteTime);
 // @sourcefile .\Src\CharSel.cpp
 void __stdcall CHARSEL_DestroyAllCharEntries();
 void __stdcall CHARSEL_EnumerateLocalSaves();
-void __stdcall CHARSEL_UpdateSelectionExpansion();
 // @sourcefile .\Src\CharSel.cpp
 BOOL __stdcall CHARSEL_UpdateSelectedCharDisplay();
 void __fastcall UIMENU_SelectDifficultySinglePlayerOrTcpip(int32_t nCharLevel, int32_t bExpansion);
@@ -125,7 +118,7 @@ void CHARSEL_SetStatusMessage(int32_t nStatusCode);
 void __stdcall CHARSEL_ShowWaitTimeout();
 BOOL __stdcall CHARSEL_InitRealmSelection();
 // @sourcefile .\Src\CharSel.cpp
-void __stdcall CHARSEL_CreateCharEntry(uint16_t * wszCharName, uint16_t * wszCommandString, int32_t nEntryType, bool ePlayerClass);
+int __stdcall CHARSEL_CreateCharEntry(uint16_t * wszCharName, uint16_t * wszCommandString, int32_t nEntryType, bool ePlayerClass);
 void __stdcall CHARSEL_AddCreateNewEntry();
 void __stdcall CHARSEL_AddRetrievingEntry();
 // @sourcefile .\Src\CharSel.cpp

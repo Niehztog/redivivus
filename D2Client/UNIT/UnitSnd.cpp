@@ -66,7 +66,7 @@
 
 namespace D2Client::UNIT::UnitSnd {
 
-DWORD GetSndUnitClassId(D2UnitStrc * pUnit) {
+static DWORD GetSndUnitClassId(D2UnitStrc * pUnit) {
     DWORD nClassId;
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
@@ -85,7 +85,7 @@ DWORD GetSndUnitClassId(D2UnitStrc * pUnit) {
     return nClassId;
 }
 
-eD2UnitType GetSndUnitType(D2UnitStrc * pUnit) {
+static eD2UnitType GetSndUnitType(D2UnitStrc * pUnit) {
     int nClassId;
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
@@ -104,7 +104,7 @@ eD2UnitType GetSndUnitType(D2UnitStrc * pUnit) {
     return eUnitType;
 }
 
-int * GetSndUnitMode(D2UnitStrc * pUnit) {
+static int * GetSndUnitMode(D2UnitStrc * pUnit) {
     int nClassId;
     eD2UnitType eUnitType = UNIT_COUNT;
     if (!pUnit) {
@@ -123,18 +123,18 @@ int * GetSndUnitMode(D2UnitStrc * pUnit) {
     return nAnimMode;
 }
 
-int * UNITSND_GetBaseSoundId(uint32_t nUnitClassId) {
-    if (6 >= nUnitClassId) {
-      return gaUnitSoundTableByClassId[nUnitClassId];
+static int * UNITSND_GetBaseSoundId(uint32_t nUnitClassId) {
+    if (!(7 > nUnitClassId)) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb22);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb22);
-    exit(-1);
+    return gaUnitSoundTableByClassId[nUnitClassId];
     return gaUnitSoundTableByClassId[nUnitClassId];
 }
 
 // Returns the D2MonSoundsTxt record for a unit's sound set. For monsters, resolves in priority order: super-unique boss sound override (MonSound), unique/minion UMonSound field, then base MonStats sound. Returns line 0 (silent) if pUnit is null or class ID is out of range.
-D2MonSoundsTxt * TxtGetSoundIdLineFromUnit(D2UnitStrc * pUnit) {
+static D2MonSoundsTxt * TxtGetSoundIdLineFromUnit(D2UnitStrc * pUnit) {
     uint16_t nBossId;
     D2MonSoundsTxt* pMonSoundsResult;
     uint32_t bIsSuperUnique;
@@ -195,7 +195,7 @@ int __fastcall UNITSND_GetSkillCastSound(D2UnitStrc * pUnit, uint32_t nAnimMode)
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb5c);
       exit(-1);
     } else {
-      if ((nAnimMode & 0xf) < 0xe) {
+      if ((nAnimMode & 0xf) <= 0xd) {
         return gaUnitSoundTable[(nAnimMode & 0xf) * 2];
       }
 
@@ -210,7 +210,7 @@ uint32_t __fastcall UNITSND_GetSkillStartSound(D2UnitStrc * pUnit, uint32_t nAni
       exit(-1);
     } else {
       uint32_t nAnimFrames;
-      if ((nAnimMode & 0xf) < 0xe) {
+      if ((nAnimMode & 0xf) <= 0xd) {
         nAnimFrames = (uint32_t)pUnit->nAnimSpeed;
         if (nAnimFrames) {
           return (gaUnitSoundTable[(nAnimMode & 0xf) * 2 + 1] * 0x100 + 0x80U) / nAnimFrames;
@@ -360,12 +360,12 @@ int __fastcall UNITSND_GetHitSound(int32_t pSoundTable, uint32_t nAnimMode) {
 // Returns the address of pUnit's client-side pUnitSfxData list head (+0x78); halts (UnitSnd.cpp line 3116, ptUnit) on NULL.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 void * * __stdcall UNITSND_GetSfxDataListHead(D2UnitStrc * pUnit) {
-    if (pUnit) {
-      return (void**)((uintptr_t)&pUnit->uSideData + 0x14);
+    if (!pUnit) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc2c);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc2c);
-    exit(-1);
+    return (void**)((uintptr_t)&pUnit->uSideData + 0x14);
     return (void**)((uintptr_t)&pUnit->uSideData + 0x14);
 }
 
@@ -474,12 +474,12 @@ void __fastcall UNITSND_UpdatePositionalAudio(D2UnitStrc * pUnit) {
 // Returns pUnit's client-side bUnitSfx byte (+0x70); halts (UnitSnd.cpp line 3215, ptUnit) on NULL.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 int __stdcall UNITSND_GetUnitSfxFlag(D2UnitStrc * pUnit) {
-    if (pUnit) {
-      return (uint32_t)pUnit->uSideData.pClientSide.bUnitSfx;
+    if (!pUnit) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc8f);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xc8f);
-    exit(-1);
+    return (uint32_t)pUnit->uSideData.pClientSide.bUnitSfx;
     return (uint32_t)pUnit->uSideData.pClientSide.bUnitSfx;
 }
 
@@ -513,17 +513,17 @@ void __stdcall UNITSND_Unused_Placeholder_4(uint32_t dwParam, int32_t nParam) {
     *(uint32_t*)(nParam + 0x74) = dwParam;
 }
 
-uint32_t GetSfxTicks(int32_t nParam) {
-    if (nParam) {
-      return *(uint32_t*)(nParam + 0x7c);
+static uint32_t GetSfxTicks(int32_t nParam) {
+    if (!nParam) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcbb);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcbb);
-    exit(-1);
+    return *(uint32_t*)(nParam + 0x7c);
     return *(uint32_t*)(nParam + 0x7c);
 }
 
-void __stdcall SetSfxTicks(uint32_t dwParam, D2UnitStrc * pUnit) {
+static void __stdcall SetSfxTicks(uint32_t dwParam, D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcc6);
       exit(-1);
@@ -532,17 +532,17 @@ void __stdcall SetSfxTicks(uint32_t dwParam, D2UnitStrc * pUnit) {
     pUnit->uSideData.pClientSide.dwSfxTicks = dwParam;
 }
 
-uint32_t GetSfxAsyncTicks(int32_t nParam) {
-    if (nParam) {
-      return *(uint32_t*)(nParam + 0x80);
+static uint32_t GetSfxAsyncTicks(int32_t nParam) {
+    if (!nParam) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcd1);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcd1);
-    exit(-1);
+    return *(uint32_t*)(nParam + 0x80);
     return *(uint32_t*)(nParam + 0x80);
 }
 
-void __stdcall SetSfxAsyncTicks(uint32_t dwParam, int32_t nParam) {
+static void __stdcall SetSfxAsyncTicks(uint32_t dwParam, int32_t nParam) {
     if (!nParam) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcdc);
       exit(-1);
@@ -554,16 +554,16 @@ void __stdcall SetSfxAsyncTicks(uint32_t dwParam, int32_t nParam) {
 // Returns pUnit's client-side dwSfxStepTicks (+0x84, the field SetSfxStepTicks writes); halts (UnitSnd.cpp line 3303) on NULL.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 uint32_t __stdcall UNITSND_GetSfxStepTicks(D2UnitStrc * pUnit) {
-    if (pUnit) {
-      return pUnit->uSideData.pClientSide.dwSfxStepTicks;
+    if (!pUnit) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xce7);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xce7);
-    exit(-1);
+    return pUnit->uSideData.pClientSide.dwSfxStepTicks;
     return pUnit->uSideData.pClientSide.dwSfxStepTicks;
 }
 
-void __stdcall SetSfxStepTicks(uint32_t dwParam, int32_t nParam) {
+static void __stdcall SetSfxStepTicks(uint32_t dwParam, int32_t nParam) {
     if (!nParam) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcf2);
       exit(-1);
@@ -575,12 +575,12 @@ void __stdcall SetSfxStepTicks(uint32_t dwParam, int32_t nParam) {
 // Returns the dword at pUnit's client-side +0x88 (bHasActiveSound, read as 4 bytes); halts (UnitSnd.cpp line 3325, ptUnit) on NULL.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 BOOL __stdcall UNITSND_HasActiveSound(D2UnitStrc * pUnit) {
-    if (pUnit) {
-      return pUnit->uSideData.pClientSide.bHasActiveSound;
+    if (!pUnit) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcfd);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xcfd);
-    exit(-1);
+    return pUnit->uSideData.pClientSide.bHasActiveSound;
     return pUnit->uSideData.pClientSide.bHasActiveSound;
 }
 
@@ -595,7 +595,7 @@ void __stdcall SetHasActiveSound(D2UnitStrc * pUnit, BOOL bHasActiveSound) {
     pUnit->uSideData.pClientSide.bHasActiveSound = bHasActiveSound;
 }
 
-int * UNITSND_GetTileDataAtPosition(int32_t nPosX, D2RoomStrc * pRoom, int32_t nPosY) {
+static int * UNITSND_GetTileDataAtPosition(int32_t nPosX, D2RoomStrc * pRoom, int32_t nPosY) {
     D2DrlgRoomCoordsStrc local_28;
     uint32_t nTileCount;
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetRoomCoordinates(pRoom, &local_28);
@@ -618,7 +618,7 @@ int * UNITSND_GetTileDataAtPosition(int32_t nPosX, D2RoomStrc * pRoom, int32_t n
     return nullptr;
 }
 
-uint32_t UNITSND_GetGroundMaterialType(int32_t pUnit) {
+static uint32_t UNITSND_GetGroundMaterialType(int32_t pUnit) {
     if (!*(int*)(pUnit + 0x18)) {
       return 0;
     }
@@ -663,21 +663,21 @@ int32_t __fastcall UNITSND_GetGroundMaterial(D2UnitStrc * pUnit) {
     }
 
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nPosX = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nPosX = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nPosX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nPosX = 0;
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nPosY = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nPosY = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nPosY = 0;
     }
 
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
@@ -724,7 +724,7 @@ int32_t __fastcall UNITSND_GetFootstepSound(D2UnitStrc * pUnit, int32_t bIsRunni
     if (eUnitType == UNIT_PLAYER) {
       DWORD nClassId;
       nClassId = GetSndUnitClassId(pUnit);
-      if (6 < nClassId) {
+      if (7 <= nClassId) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb22);
         exit(-1);
       }
@@ -789,7 +789,7 @@ D2MonSoundsTxt * __fastcall PlayUnitFootstepSound(D2UnitStrc * pUnit) {
     nUnitMode = GetSndUnitMode(pUnit);
     if (eUnitType == UNIT_MONSTER) {
       nMonClassIdOrSounds = (D2MonSoundsTxt*)GetSndUnitClassId(pUnit);
-      if ((int)nMonClassIdOrSounds < 0 || sgptDataTable->nTxtMonStatsSize <= (int)nMonClassIdOrSounds) {
+      if ((int)nMonClassIdOrSounds < 0 || (int)nMonClassIdOrSounds >= sgptDataTable->nTxtMonStatsSize) {
         nMonClassIdOrSounds = (D2MonSoundsTxt*)-1;
       }
 
@@ -855,10 +855,10 @@ D2MonSoundsTxt * __fastcall PlayUnitFootstepSound(D2UnitStrc * pUnit) {
     nSoundChannelPrev = Sound::SOUND_PlayFootstepSound(nCurrentFrame, nFsOffset, nFrameCount);
     nSoundChannelNext = Sound::SOUND_PlayFootstepSound(nCurrentFrame + nAnimSpeed, nFsOffset, nFrameCount);
     nMonClassIdOrSounds = (D2MonSoundsTxt*)Sound::SOUND_PlayFootstepSound(nCurrentFrame - nAnimSpeed, nFsOffset, nFrameCount);
-    if (nSoundChannelNext <= nSoundChannelPrev) {
+    if (nSoundChannelPrev >= nSoundChannelNext) {
       return nMonClassIdOrSounds;
     }
-    if ((int)nMonClassIdOrSounds <= nSoundChannelPrev) {
+    if (nSoundChannelPrev >= (int)nMonClassIdOrSounds) {
       return nMonClassIdOrSounds;
     }
 
@@ -889,7 +889,7 @@ D2MonSoundsTxt * __fastcall PlayUnitFootstepSound(D2UnitStrc * pUnit) {
       if (pUnit != pLocalPlayer) {
         nFrameCount = 200;
       }
-      if (nStepInterval * 3 >> 1 < nElapsedTicks) {
+      if (nElapsedTicks > nStepInterval * 3 >> 1) {
         nFrameCount = nFrameCount * 0xa0 / 0xff;
       }
 
@@ -974,7 +974,7 @@ void __stdcall UNITSND_UpdateNeutralSound(D2UnitStrc * pUnit, int32_t bForceStop
     exit(-1);
 }
 
-void __stdcall UNITSND_StopAllCombatSounds(D2UnitStrc * pUnit) {
+static void __stdcall UNITSND_StopAllCombatSounds(D2UnitStrc * pUnit) {
     int32_t nSoundIdx;
     eD2UnitType eUnitType = GetSndUnitType(pUnit);
     if (eUnitType != UNIT_MONSTER) {
@@ -1019,7 +1019,7 @@ eD2Sounds __stdcall UNITSND_GetModeChangeSound(int32_t nPrevMode, D2UnitStrc * p
 }
 
 // Returns the eD2Sounds special-sound override for a unit in a given animation mode (0–7). Looks up the unit's sound table by class ID; returns SOUND_NONE if no override is configured or class ID / mode is out of range. Special-cases class 0x3D via a separate gaUnitSoundTableSpecialMode table.
-eD2Sounds UNITSND_GetSpecialSoundByMode(D2UnitStrc * pUnit, int32_t nMode) {
+static eD2Sounds UNITSND_GetSpecialSoundByMode(D2UnitStrc * pUnit, int32_t nMode) {
     // Static local variables (originally global data)
     static eD2Sounds gaUnitSoundTableSpecialMode[12] = {
     SOUND_NONE,
@@ -1037,7 +1037,7 @@ eD2Sounds UNITSND_GetSpecialSoundByMode(D2UnitStrc * pUnit, int32_t nMode) {
 };
 
     DWORD nSndClassId = GetSndUnitClassId(pUnit);
-    if (0x23c < nSndClassId || 7 < nMode) {
+    if (0x23d <= nSndClassId || 8 <= nMode) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe86);
       exit(-1);
     }
@@ -1134,7 +1134,7 @@ void __fastcall UpdateUnitSfxOnModeChange(D2UnitStrc * pUnit) {
 
     int iVar1;
     iVar1 = Player::TXT_MonStats_GetBaseId(pUnit);
-    if (iVar1 < 0 || sgptDataTable->nTxtMonStatsSize <= iVar1) {
+    if (iVar1 < 0 || iVar1 >= sgptDataTable->nTxtMonStatsSize) {
       iVar1 = -1;
     }
 
@@ -1174,17 +1174,17 @@ void __fastcall UpdateUnitSfxOnModeChange(D2UnitStrc * pUnit) {
     }
 
     nSndOrResult = UNITSND_GetMissileSound(pUnit, eNeutralSound);
-    if (!(!nSndOrResult && gnSoundInitCooldown <= nCurrentTick - gnSoundLastInitTick)) {
+    if (!(!nSndOrResult && nCurrentTick - gnSoundLastInitTick >= gnSoundInitCooldown)) {
       return;
     }
 
     uint32_t nRandRoll = GetSfxTicks((int32_t)pUnit);
-    if (nNeuTime > nCurrentTick - nRandRoll) {
+    if (nCurrentTick - nRandRoll < nNeuTime) {
       return;
     }
 
     nRandRoll = GetSfxAsyncTicks((int32_t)pUnit);
-    if (nNeuTime > nCurrentTick - nRandRoll) {
+    if (nCurrentTick - nRandRoll < nNeuTime) {
       return;
     }
 
@@ -1227,7 +1227,7 @@ void __fastcall UNITSND_PlayAttackSound(D2UnitStrc * pUnit, int32_t nAttackMode,
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb5c);
         exit(-1);
       } else {
-        if ((nHitClass & 0xf) < 0xe) {
+        if ((nHitClass & 0xf) <= 0xd) {
           nSoundId = gaUnitSoundTable[(nHitClass & 0xf) * 2];
           nHitClass = UNITSND_GetSkillStartSound(pUnit, nHitClass);
           if (!bPlayDelayed) {
@@ -1316,7 +1316,7 @@ void __fastcall UNITSND_PlayAttackSound(D2UnitStrc * pUnit, int32_t nAttackMode,
     Sound::SOUND_SetChannelPriority(nWeaponDelay, nWeaponVolume);
 }
 
-void UNITSND_PlayGetHitSound(D2UnitStrc * pUnit) {
+static void UNITSND_PlayGetHitSound(D2UnitStrc * pUnit) {
     eD2Sounds nSoundId = UNITSND_GetHitSound((int32_t)pUnit, pUnit->dwLastHitClass);
     Sound::SOUND_PlaySound(nSoundId, pUnit, 0, 0, 0);
     uint32_t nRecordingIdx = GAME::Game::gnRecordingIndex();
@@ -1325,7 +1325,7 @@ void UNITSND_PlayGetHitSound(D2UnitStrc * pUnit) {
 }
 
 // Plays the appropriate skill sound for a monster unit based on its animation mode (Skill1–Skill4). Looks up the sound ID from MonSounds.txt via TxtGetSoundIdLineFromUnit. For sound ID 0 (SOUND_ALKOR_ACT3_GOSSIP_4 used as sentinel for throttled sounds), enforces a 25-frame cooldown via pUnit->dwSfxTicks. Calls SOUND_PlaySound and updates gdwSoundChannelIndex on success.
-void UNITSND_PlayMonsterSkillSound(D2UnitStrc * pUnit, eD2MonsterAnimMode nAnimMode) {
+static void UNITSND_PlayMonsterSkillSound(D2UnitStrc * pUnit, eD2MonsterAnimMode nAnimMode) {
     eD2Sounds nSoundId;
     eD2UnitType eUnitType = GetSndUnitType(pUnit);
     if (eUnitType != UNIT_MONSTER) {
@@ -1387,7 +1387,7 @@ void UNITSND_PlayMonsterSkillSound(D2UnitStrc * pUnit, eD2MonsterAnimMode nAnimM
     gdwSoundChannelIndex = GAME::Game::gnRecordingIndex();
 }
 
-void UNITSND_PlayFleeSound(D2UnitStrc * pUnit) {
+static void UNITSND_PlayFleeSound(D2UnitStrc * pUnit) {
     eD2UnitType eUnitType = GetSndUnitType(pUnit);
     if (eUnitType != UNIT_MONSTER) {
       return;
@@ -1399,7 +1399,7 @@ void UNITSND_PlayFleeSound(D2UnitStrc * pUnit) {
     }
 
     int32_t nRecordingIdx = GAME::Game::gnRecordingIndex();
-    if (3 >= nRecordingIdx - gdwSoundChannelIndex) {
+    if (4 > nRecordingIdx - gdwSoundChannelIndex) {
       return;
     }
 
@@ -1440,13 +1440,13 @@ void __fastcall UNITSND_PlayPlayerSound(D2UnitStrc * pUnit, uint32_t nAnimModePa
         return;
       }
     }
-    if (nAnimModeBase - 0x19 < 8) {
+    if (nAnimModeBase - 0x19 <= 7) {
       nResult = Sound::SOUND_FindChannelForSound((int32_t)pUnit);
       if (!nResult) {
         eSoundId = piVar1[8] - 0x32 + nAnimModeBase * 2;
       }
     }
-    if (nAnimModeBase - 0x21 < 0x33) {
+    if (nAnimModeBase - 0x21 <= 0x32) {
       eSoundId = piVar1[9] - 0x21 + nAnimModeBase;
       if (nAnimModeBase == 0x23) {
         GAME::Wall2::WALL2_ScheduleSoundSequence(0x1250, 0, 300, 1, eSoundId, 0xfa, 1);
@@ -1662,7 +1662,7 @@ void __fastcall UNITSND_PlaySoundForMercenary(int32_t nUnitGUID, uint8_t eUnitTy
       if (!pSkillsTxtLine) {
         return;
       }
-      if (pSkillsTxtLine->stsound < 1) {
+      if (pSkillsTxtLine->stsound <= 0) {
         return;
       }
 
@@ -1809,7 +1809,7 @@ void __fastcall MuteOrUnmuteUnitSounds(D2UnitStrc * pUnit, int32_t nMuteDelta) {
       }
     } else if (nUnitType == 2) {
       DVar2 = GetSndUnitClassId(pUnit);
-      if (0x23c < DVar2) {
+      if (0x23d <= DVar2) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1213);
         exit(-1);
       }
@@ -1864,7 +1864,7 @@ void __stdcall SOUND_UpdateAmbientMusic() {
 
     eD2LevelId eCurrentLevelId;
     eCurrentLevelId = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
-    if (sgptDataTable->nTxtLevelsSize <= (int)eCurrentLevelId) {
+    if ((int)eCurrentLevelId >= sgptDataTable->nTxtLevelsSize) {
       return;
     }
     if (eCurrentLevelId == geLastProcessedAmbientMusicLevelId) {
@@ -1981,7 +1981,7 @@ void __fastcall PlayUnitInitSound(D2UnitStrc * pUnit) {
 }
 
 // Plays the sound effect(s) triggered when a unit (player or monster) changes animation mode (nMode). Skips for invisible monsters. Resolves and plays the base mode-change sound(s) via UNITSND_ResolveSoundFromFlags + SOUND_PlaySound, boosting channel priority to 0xFF for the local player. On mode 0 for monsters it stops/mutes combat sounds. Skips further sounds while frozen or when the unit's last-hit class nibble == 0xA0. For monsters, looks up the MonSounds.txt row and plays the Hit (modes 3/0xD) or Death sound with its delay (special-cases goatman hit chaining); for players it plays from the class base-sound table (modes 4/0x13 use entry[0] else entry[1]). Finally records the current client tick into the unit's dwSfxTicks and the global gdwSoundChannelIndex. Client-side audio; custom register args (pUnit@EAX, nMode on stack).
-void __stdcall UNITSND_PlayModeChangeSound(int32_t nMode, D2UnitStrc * pUnit) {
+static void __stdcall UNITSND_PlayModeChangeSound(int32_t nMode, D2UnitStrc * pUnit) {
     eD2States eUnitState;
     D2MonSoundsTxt* pMonSoundsLine;
     DWORD nClassId;

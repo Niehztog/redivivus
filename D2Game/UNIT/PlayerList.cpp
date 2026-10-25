@@ -53,7 +53,7 @@ typedef void (__fastcall *fpSUnitIterateCallback)(::SGAMEDATA * pGame, D2UnitStr
 
 namespace D2Game::UNIT::PlayerList {
 
-DWORD * PLAYERLIST_FindEntry(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+static DWORD * PLAYERLIST_FindEntry(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     D2UnitPlayerListStrc* pDVar1;
     int nTargetGUID;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
@@ -150,10 +150,10 @@ void __fastcall PLAYERLIST_RemoveFromList(::SGAMEDATA * pGame, D2UnitStrc * pUni
       }
     }
 
-    if (!pPrevEntry) {
-      pPlayerData->pPlayerList = pMemoryToFree->pNext;
-    } else {
+    if (pPrevEntry) {
       pPrevEntry->pNext = pMemoryToFree->pNext;
+    } else {
+      pPlayerData->pPlayerList = pMemoryToFree->pNext;
     }
 
     D2_FREE_POOL(pGame->pMemoryPool, pMemoryToFree);
@@ -401,7 +401,7 @@ void __fastcall PARTY_SendRelationshipForPlayer(::SGAMEDATA * pGame, D2UnitStrc 
 }
 
 // Establishes a bidirectional player-list relationship between pUnit and pOtherPlayer: allocates entries for both directions, sends packet 0x8D (AssignPlayerToParty), clears bIsPartied flags, updates party membership based on current party ID, and broadcasts the full relationship table of pUnit to pOtherPlayer via 0x8C packets.
-void __fastcall PLAYERLIST_AddBothWays(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pOtherPlayer) {
+static void __fastcall PLAYERLIST_AddBothWays(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pOtherPlayer) {
     D2UnitPlayerListStrc* pListEntry;
     int nOtherGUID;
     uint32_t nUnitGUID;

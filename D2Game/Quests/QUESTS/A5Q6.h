@@ -40,9 +40,6 @@ void __fastcall Q36_Callback00_NpcActivate(struct D2QuestDataStrc * pQuestData, 
 void __fastcall Q36_SetCompleteForPartyMember(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
 // A5Q6 Eve of Destruction (state-fn slot 0xa). Player-leaves cleanup: remove the player's GUID from both the quest's and the A5Q6-specific participant GUID lists (uses -1 if no player). Keeps the Baal-fight participant tracking consistent on disconnect/leave.
 void __fastcall Q36_Callback10_PlayerLeavesGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A5Q6 Eve of Destruction. Marks one player's quest fully complete: set record JustCompleted(0xd) + Completed(0), push client status 5 (act-V complete), and bump a counter on the quest-specific data. Called from Q36_CheckWorldstoneChamber when a player is present in the Worldstone Chamber as Baal dies.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a5q6.cpp
-void __stdcall Q36_CompleteQuestAndSetStatus(struct D2UnitStrc * pUnit, struct D2BitBufferStrc * pBitBuffer, ::SGAMEDATA * pGame);
 // A5Q6 Eve of Destruction. Per-player iterate callback: if this player's quest is JustCompleted(0xd), look up their party and propagate Baal-kill credit to every party member via ExecuteFunctionForEveryPartyMember(Q36_SetCompleteForPartyMember).
 BOOL __fastcall Q36_PropagateCompleteToParty(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, void * pArg);
 // A5Q6 Eve of Destruction. Per-player iterate callback: for any player whose quest is not RewardAwaits(1), set record CannotCompleteQuestInGame(0xe) and send the quest-state packet (quest 0x24). Marks players who were not present for the Baal kill so they can't re-complete it in this game instance.
@@ -64,13 +61,6 @@ BOOL __fastcall Q36_SendQuestSpecialPacketCallback(::SGAMEDATA * pGame, struct D
 void __fastcall Q36_Callback03_ChangedLevel(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A5Q6 Eve of Destruction. fpActiveFilter: returns true if the given NPC/monster class should currently offer this quest's gossip (a "!" indicator). True for the Ancients statues 0x219..0x21b once A5Q5 cleared them and Anya not yet transformed; or, once quest Completed, for act-V NPCs (0x1ff/0x200/0x201/0x203/0x208/0x209) whose corresponding journal Step bit (Step0x04..Step0x09) is NOT yet set — i.e. the player still has someone to talk to about Baal. Class 0x208 also suppressed once Step0x10 set.
 bool __fastcall Q36_ActiveFilter(struct D2QuestDataStrc * pQuestData, eD2MonsterClassId nTargetClassId, struct D2UnitStrc * pUnit, struct D2BitBufferStrc * pBitBuffer, struct D2UnitStrc * pUnitEx);
-// A5Q6 Eve of Destruction. fpSequenceFilter (linked to prerequisite QUEST_PrisonOfIce / Anya rescue). When this quest is active and not yet started (nStateFlag==0), latch bAnyaTransformed, force live nStateFlag=2, broadcast "in progress" (state 1), and push sub-steps to all players. Kicks the final quest into motion once Anya/prereq conditions are met.
-void __fastcall Q36_SequenceFilter(struct D2QuestDataStrc * pQuestData);
-// A5Q6 Eve of Destruction (state-fn slot 0xe). If the player's quest is Completed(0), set Step0x10 (the "departed act V / acknowledged completion" bit). Small post-completion bookkeeping callback.
-void __fastcall Q36_Callback14_PlayerJoinedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// A5Q6 Eve of Destruction (state-fn slot 0xd). Quest-load / late-join reconciliation. If the player has NOT completed (not Completed, not FinishedInPreviousGame, not RewardAwaits) but has progressed (Step0x03 set, or Step0x02 -> mark bAnyaTransformed): restore live quest nStateFlag to 3 (in-progress). If already completed/finished: set Step0x10 and push client status 5 (act done). Reconstructs quest progression for a joining/loading player.
-// @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a5q6.cpp
-void __fastcall Q36_Callback13_PlayerStartedGame(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // A5Q6 Eve of Destruction — quest INIT (nInitNo=4). Allocates the 0xa8-byte A5Q6 quest-specific struct, wires up the state-handler vtable (slots: 0=Callback_00 gossip, 2=Callback_02 tentacle, 3=Callback_03 accept, 8=Callback_08 Baal death, 0xa=Callback_10 leave, 0xb=Callback_11 dialog, 0xd=Callback_13 load, 0xe=Callback_14), sets the act-V NPC gossip table (monstats 0x1ff/0x208/0x201/0x203/0x200), nQuestIdReal=QUEST_EveOfDestruction, fpActiveFilter=Q36_ActiveFilter, fpSequenceFilter=Q36_SequenceFilter, nSequenceQuestId=QUEST_PrisonOfIce. Zeroes the struct + GUID list.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a5q6.cpp
 void __fastcall Q36_InitData(struct D2QuestDataStrc * pQuestData);

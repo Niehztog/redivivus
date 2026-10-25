@@ -59,11 +59,12 @@ HWND __stdcall WND_GetActiveWindow() {
 }
 
 // @blizzard SMsgPopRegisterState (SMSG.CPP)
-void __stdcall SMsgPopRegisterState(char * szText) {
+int __stdcall SMsgPopRegisterState(char * szText) {
     Source::SEVT::SEvtPopState((char*)0x534d5348, szText);
     Source::SEVT::SEvtPopState((char*)0x534d5349, szText);
     Source::SEVT::SEvtPopState((char*)0x534d534a, szText);
     Source::SEVT::SEvtPopState((char*)0x534d5347, szText);
+    return 1;
 }
 
 // @blizzard SMsgPushRegisterState (SMSG.CPP)
@@ -154,7 +155,7 @@ void __fastcall WND_InsertListNode(int * * pNode, int32_t nMode, int * * ppAncho
 
 uint32_t __fastcall WND_GetNodeMaskedOffset(int32_t pThis, int32_t pNode) {
     if (pNode) {
-      return (int)*(uint32_t*)(pNode + 4) < 1 ? 0 : *(uint32_t*)(pNode + 4);
+      return (int)*(uint32_t*)(pNode + 4) <= 0 ? 0 : *(uint32_t*)(pNode + 4);
     }
 
     pNode = pThis + 4;
@@ -289,13 +290,13 @@ void __stdcall SMSG_AddWindow(uint32_t hWnd) {
     StormLinkStrc* pEntry;
     uint32_t nOffset;
     StormLinkStrc* pRecord = (StormLinkStrc*)SMem::SMemAlloc(0xc, s___AUWNDREC___00708850, -2, 8);
-    if (!pRecord) {
-      pEntry = 0;
-      pRecord = (StormLinkStrc*)&gpWndTrackingListHead.pPrevLink;
-    } else {
+    if (pRecord) {
       pRecord->pPrevLink = 0;
       pRecord->pNext = 0;
       pEntry = pRecord;
+    } else {
+      pEntry = 0;
+      pRecord = (StormLinkStrc*)&gpWndTrackingListHead.pPrevLink;
     }
 
     StormLinkStrc* nNext = pRecord->pPrevLink;
@@ -321,7 +322,7 @@ void __stdcall SMSG_AddWindow(uint32_t hWnd) {
     pEntry[1].pPrevLink = (StormLinkStrc*)hWnd;
 }
 
-uint32_t __fastcall WND_RemoveAndFreeRecord(void * pListHead, int * pRecord) {
+static uint32_t __fastcall WND_RemoveAndFreeRecord(void * pListHead, int * pRecord) {
     int* pBacklink = pRecord;
     if (!pRecord) {
       pBacklink = (int*)((int)pListHead + 4);
@@ -350,9 +351,9 @@ uint32_t __fastcall WND_RemoveAndFreeRecord(void * pListHead, int * pRecord) {
 
 // @blizzard FindWindow (SMSG.CPP)
 uint32_t __fastcall SMSG_FindWindow(int32_t nHandle) {
-    uint32_t nRecord = gpWndTrackingListHead.pNext < 1 ? 0 : gpWndTrackingListHead.pNext;
+    uint32_t nRecord = gpWndTrackingListHead.pNext <= 0 ? 0 : gpWndTrackingListHead.pNext;
     while (true) {
-      if ((int)nRecord < 1) {
+      if ((int)nRecord <= 0) {
         return 0;
       }
       if (*(int*)(nRecord + 8) == nHandle) {
@@ -366,7 +367,7 @@ uint32_t __fastcall SMSG_FindWindow(int32_t nHandle) {
 }
 
 // @blizzard DeleteWindow (SMSG.CPP)
-void SMSG_DeleteWindow(uint32_t hWnd) {
+static void SMSG_DeleteWindow(uint32_t hWnd) {
     if (hWnd == gpActiveWindow) {
       gpActiveWindow = 0;
     }
@@ -384,10 +385,10 @@ void SMSG_DeleteWindow(uint32_t hWnd) {
 }
 
 // @blizzard InternalRegister (SMSG.CPP)
-void __stdcall SMSG_InternalRegister(uint32_t hWnd, int32_t pCallback, uint32_t dwEventTag, uint32_t dwContext) {
+static int __stdcall SMSG_InternalRegister(uint32_t hWnd, int32_t pCallback, uint32_t dwEventTag, uint32_t dwContext) {
     if (!pCallback) {
       Source::SErr::SErrSetLastError(0x57);
-      return;
+      return 0;
     }
 
     uint32_t nRecord = SMSG_FindWindow(hWnd);
@@ -396,10 +397,11 @@ void __stdcall SMSG_InternalRegister(uint32_t hWnd, int32_t pCallback, uint32_t 
     }
 
     Source::SEVT::SEvtRegisterHandler(dwEventTag, hWnd, dwContext, 0, (pfnSEvtHandler)pCallback);
+    return 0;
 }
 
 // @blizzard InternalUnregister (SMSG.CPP)
-void __stdcall SMSG_InternalUnregister(uint32_t nEventId, char * szText1, char * szText2, HWND hWnd) {
+static void __stdcall SMSG_InternalUnregister(uint32_t nEventId, char * szText1, char * szText2, HWND hWnd) {
     uint32_t nRecord = SMSG_FindWindow((int32_t)hWnd);
     if (!nRecord) {
       SMSG_AddWindow((uint32_t)hWnd);
@@ -510,7 +512,7 @@ void __stdcall SMsgUnregisterMessage(uint32_t hWnd, char * szText1, char * szTex
     SMSG_InternalUnregister(0x534d5347, szText1, szText2, (HWND)hWnd);
 }
 
-LRESULT __stdcall WndProcC(HWND hWnd, uint32_t nParam1, uint32_t nParam2, LPARAM lParam) {
+static LRESULT __stdcall WndProcC(HWND hWnd, uint32_t nParam1, uint32_t nParam2, LPARAM lParam) {
     BOOL bHandled = 0;
     int32_t lOutResult = 0;
     BOOL bDispatched = SMsgDispatchMessage(hWnd, nParam1, nParam2, lParam, &bHandled, (LRESULT*)&lOutResult);

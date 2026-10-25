@@ -98,7 +98,7 @@ void __stdcall MINIPANEL_DrawButton(int32_t nParam1, int32_t nParam2, int32_t nP
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, nParam2, nParam3, -1, DRAW_SOLID, nullptr);
 }
 
-void MINIPANEL_CalculateButtonPositions(int32_t bIsExpansion) {
+static void MINIPANEL_CalculateButtonPositions(int32_t bIsExpansion) {
     int bSinglePlayer = gbMiniPanelSinglePlayer;
     uint32_t nButtonCount = 8;
     if (gbMiniPanelSinglePlayer) {
@@ -156,7 +156,7 @@ void MINIPANEL_CalculateButtonPositions(int32_t bIsExpansion) {
     } while ((int)uVar1 < (int)nButtonCount);
 }
 
-void __stdcall MINIPANEL_DrawAllButtons(int32_t bVisible) {
+static void __stdcall MINIPANEL_DrawAllButtons(int32_t bVisible) {
     D2GfxDataStrc sGfxData2;
     D2GfxDataStrc sGfxData;
     int nButtonCount = 8;
@@ -331,7 +331,7 @@ BOOL __stdcall IsRightScreenOpen() {
     return 1;
 }
 
-void MINIPANEL_HandleButtonClick(int32_t nButtonId) {
+static void MINIPANEL_HandleButtonClick(int32_t nButtonId) {
     bool _bFlagActive;
     bool bFlagActive;
     eD2GSGameType eGameType;
@@ -553,13 +553,13 @@ void __stdcall INPUT_MiniPanelMouseDown(D2UIMouseMsgStrc * pMsg) {
     if (nMouseX <= nButtonIndex - 0x54) {
       return;
     }
-    if (nButtonIndex + 0x59 <= nMouseX) {
+    if (nMouseX >= nButtonIndex + 0x59) {
       return;
     }
     if (nMouseY <= ScreenSizeY - 0x45) {
       return;
     }
-    if (ScreenSizeY - 0x2f <= nMouseY) {
+    if (nMouseY >= ScreenSizeY - 0x2f) {
       return;
     }
 
@@ -570,7 +570,7 @@ void __stdcall INPUT_MiniPanelMouseDown(D2UIMouseMsgStrc * pMsg) {
 
     while (nMouseX <= (int)gnMiniPanelButtonX[nButtonIndex] || (int)(gnMiniPanelButtonX[nButtonIndex] + 0x14) <= nMouseX) {
       nButtonIndex++;
-      if (nButtonCount <= nButtonIndex) {
+      if (nButtonIndex >= nButtonCount) {
         return;
       }
     }
@@ -695,7 +695,7 @@ BOOL __stdcall WAYPOINT_IsMouseInMiniPanel() {
     return 1;
 }
 
-void __stdcall MINIPANEL_ShowTooltip(int32_t nX, int32_t nY, int32_t nButtonFrame) {
+static void __stdcall MINIPANEL_ShowTooltip(int32_t nX, int32_t nY, int32_t nButtonFrame) {
     int i;
     uint16_t nStringIndex;
     uint16_t wszTooltip[200];
@@ -779,7 +779,7 @@ void __stdcall MINIPANEL_ShowTooltip(int32_t nX, int32_t nY, int32_t nButtonFram
     D2Win::Src::D2WinFont::TEXT_TooltipSetAttributes(wszTooltip, nX - 3, nY - 0x1a, 0, 1);
 }
 
-void MINIPANEL_HandleMouseHover(int32_t nLayout) {
+static void MINIPANEL_HandleMouseHover(int32_t nLayout) {
     int nMouseX = ui::GetMouseX();
     int nMouseY = ui::GetMouseY();
     int nButtonIndex = 0;

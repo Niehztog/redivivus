@@ -127,19 +127,10 @@ int * __stdcall SOUND_GetChannelArray();
 // pSoundInst in ESI: when +0x30 is 1, calls SOUND_StopAndDetach on the channel at +0x2c; then halts (SoundInst.cpp line 147, !ptInst->hChannel) if the channel is still set.
 // Unreferenced in 1.14d (entry: aligned start after padding); was undefined code hidden by a CALL_RETURN override on its halt call. Lines from docs/data/win-assert-oracle.tsv.
 void __stdcall SOUNDINST_StopChannel(int * pSoundInst);
-void SOUND_ReleaseChannel(struct D2SoundChannelStrc * pdwParam);
 uint32_t __fastcall SOUND_GetSoundId(int32_t nChannelHandle);
 int __fastcall SOUND_GetSoundByIndex(int32_t nChannelHandle);
 int __fastcall SOUND_StopSound(int32_t nSoundId);
 int32_t __fastcall SOUND_IsChannelPlaying(int32_t nSoundGroup);
-int32_t __stdcall SOUND_SetChannelProperties(int32_t nSoundGroup, int32_t pListKey, int32_t nExcludeChannel);
-// Returns the first active sound channel other than pExcludeChannel that is in streaming play mode (nPlayMode 1), has nSoundId in 0xb76..0x1230 and, when nListKey is non-zero, holds nListKey in its list; NULL if there is none.
-// @provenance 1.14d asm 004b9700 (RET 4, key in EBX); formerly misnamed SOUND_SetChannelVolume.
-struct D2SoundChannelStrc * __stdcall SOUND_FindActiveStreamChannel(struct D2SoundChannelStrc * pExcludeChannel, int32_t nListKey);
-int32_t __fastcall SOUND_CalculateDistance(int32_t pThis, int32_t nExcludeChannel);
-void __stdcall SOUND_CalculateUnitDirection(struct D2UnitStrc * pUnit, int32_t nSoundId, float * pfDirection);
-float __fastcall SOUND_CalculateUnitDistance(int32_t pThis, struct D2UnitStrc * pUnit);
-void SOUND_Calculate3DPosition(float * pfPosition, struct D2SoundChannelStrc * pChannel);
 void __fastcall SOUND_PlayEnvironmentSound(int32_t nSoundId, int32_t nPosX, int32_t nPosY, int32_t nPosZ);
 int __fastcall SOUND_PlaySound(eD2Sounds nSoundId, struct D2UnitStrc * pUnit, int32_t nDelay, int32_t nVolume, int32_t nParam);
 int __fastcall SOUND_SetMasterVolume(int32_t nSoundId);
@@ -156,7 +147,6 @@ bool __fastcall SOUND_IsChannelAvailable(uint32_t pChanA, uint32_t pChanB, int32
 uint32_t __fastcall SOUND_FindChannelForSound(int32_t nSoundId);
 void __fastcall SOUND_StopChannelGracefully(int32_t nSoundId, int32_t nFadeTarget, int32_t nFadeDelay, uint32_t nFadeDuration);
 void __fastcall SOUND_UpdateAllChannels(uint32_t nFrameTime);
-void SOUND_StopUnitSound(int32_t nParam);
 void __fastcall SOUND_StopUnitSoundByIndex(int32_t nParam, struct D2UnitStrc * pUnit, int32_t bForceStop);
 void __fastcall SOUND_StopById(int32_t nParam);
 void __fastcall SOUND_FadeOutMusic(int32_t nParam);
@@ -169,8 +159,6 @@ void __stdcall SoundChaosDebug();
 BOOL __stdcall SOUND_IsDirectSoundAvailable();
 BOOL __stdcall SOUND_IsEaxAvailable();
 int32_t __fastcall SOUND_PlayFootstepSound(uint32_t nParam1, uint32_t nParam2, uint32_t nModulus);
-void SOUND_SetVolumeForChannel(int32_t nChannelIndex);
-void __stdcall SOUND_TogglePauseAll();
 // @wasnamed SOUND_UpdateAllChannels - one name on two different functions.
 // @evidence Calls GetSoundEnvironLine, Day_/Night_Ambience and _Event,
 // WEATHER_CanHaveRain, SOUND_SetEaxEnvironment, Material_1/2. It touches no channel list at all.

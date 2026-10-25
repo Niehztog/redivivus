@@ -77,9 +77,9 @@ void __stdcall SaveAndUnload(D2BNetGatewayAccessStr * pGatewayAccess) {
     pGatewayAccess->pRealmsData = 0;
 }
 
-char * Nth(void * pThis, int nIndex) {
+static char * Nth(void * pThis, int nIndex) {
     char* szDataCursor = *(char**)((int)pThis + 0x10);
-    if (!(szDataCursor && 0 < nIndex && nIndex <= *(int*)((int)pThis + 8))) {
+    if (!(szDataCursor && 1 <= nIndex && nIndex <= *(int*)((int)pThis + 8))) {
       return (char*)pThis;
     }
 
@@ -112,7 +112,7 @@ char * __stdcall DNS(D2BNetGatewayAccessStr * pGatewayAccess, int nIndex) {
     return pGatewayEntry;
 }
 
-int32_t __stdcall GMT(D2BNetGatewayAccessStr * pGatewayAccess, int nIndex) {
+static int32_t __stdcall GMT(D2BNetGatewayAccessStr * pGatewayAccess, int nIndex) {
     char* szGatewayEntry = Nth(pGatewayAccess, nIndex);
     if (*szGatewayEntry != '\0') {
       uint32_t nDnsStrLen;
@@ -170,7 +170,7 @@ char * __stdcall Realm(D2BNetGatewayAccessStr * pGatewayAccess, int32_t nParam) 
 }
 
 void __stdcall SetCurGateway(int32_t nParam1, int32_t nParam2) {
-    /* 0x118150  19  ?SetCurGateway@BNGatewayAccess@@QAGXH@Z */ if (!(*(int*)(nParam1 + 0x10) && 0 < nParam2 && nParam2 <= *(int*)(nParam1 + 8))) {
+    /* 0x118150  19  ?SetCurGateway@BNGatewayAccess@@QAGXH@Z */ if (!(*(int*)(nParam1 + 0x10) && 1 <= nParam2 && nParam2 <= *(int*)(nParam1 + 8))) {
       return;
     }
     if (99 < nParam2) {
@@ -188,7 +188,7 @@ void __stdcall SetCurGateway(int32_t nParam1, int32_t nParam2) {
 // Load falls to UpdateGatewaysFromIni -> assert (see 0x518850).
 // An "Override.." value name sets bIsOverride=1 @0x51827f.
 // @sourcefile .\BNetGW.cpp
-void GetGatewayList(void * pThis, char * szText) {
+static void GetGatewayList(void * pThis, char * szText) {
     bool _bRegReadResult;
     bool bRegReadResult;
     uint32_t* dwRegDataSize;
@@ -311,7 +311,7 @@ char * __stdcall SkipEOL(char * szText1, char * szText2) {
     return szText1;
 }
 
-char * __stdcall FindSection(char * szText1, char * szText2) {
+static char * __stdcall FindSection(char * szText1, char * szText2) {
     char* pIniCursor = szText1;
     char* pBufEnd = pIniCursor + strlen(pIniCursor);
     pIniCursor = pBufEnd + 1;
@@ -382,7 +382,7 @@ char * __stdcall FindKey(char * szText1, char * szText2) {
     return nullptr;
 }
 
-void PickClosestZone(void * pThis, int32_t nGmtMinutes) {
+static void PickClosestZone(void * pThis, int32_t nGmtMinutes) {
     // Frame slots -24..-4 are ONE object: &szStrtolEnd is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -436,7 +436,7 @@ void PickClosestZone(void * pThis, int32_t nGmtMinutes) {
     pcVar1 = Nth(pThis, nBestGatewayIdx);
     Bnet::BnetLog_WriteLine("Gateway %d (%s at GMT %02d) is closest to %02d.%02d", nBestGatewayIdx, pcVar1, nGmtOffset, nGmtMinutes / 0x3c, __frame0.nMinutes);
     Bnet::BNET_LogIndent(2, -4);
-    if (!(*(int*)((int)pThis + 0x10) && 0 < nBestGatewayIdx && nBestGatewayIdx <= *(int*)((int)pThis + 8))) {
+    if (!(*(int*)((int)pThis + 0x10) && 1 <= nBestGatewayIdx && nBestGatewayIdx <= *(int*)((int)pThis + 8))) {
       return;
     }
     if (99 < nBestGatewayIdx) {
@@ -472,10 +472,10 @@ void __stdcall Load(D2BNetGatewayAccessStr * pGatewayAccess) {
     GetBattlenetRealmsList((int32_t)pGatewayAccess);
     pGatewayAccess_00->bIsOverride = 0;
     GetGatewayList(pGatewayAccess_00, "Override Battle.net gateways");
-    if (!pGatewayAccess_00->pGatewayData) {
-      GetGatewayList(pGatewayAccess_00, "Diablo II Battle.net gateways");
-    } else {
+    if (pGatewayAccess_00->pGatewayData) {
       pGatewayAccess_00->bIsOverride = 1;
+    } else {
+      GetGatewayList(pGatewayAccess_00, "Diablo II Battle.net gateways");
     }
     if (pGatewayAccess_00->pGatewayData) {
       if (pGatewayAccess_00->nFormatVersion < 1000) {
@@ -520,7 +520,7 @@ void __stdcall Load(D2BNetGatewayAccessStr * pGatewayAccess) {
         nCurGateway = strtoul(pCur + pStrLen + 1, &pEndPtr, 10);
         pGatewayAccess_00->nCurGatewayIdx = nCurGateway;
         pGatewayAccess_00->bDirty = 0;
-        if (!((int)nCurGateway < 1 || pGatewayAccess_00->nGatewayCount < (int)nCurGateway)) {
+        if (!((int)nCurGateway < 1 || (int)nCurGateway > pGatewayAccess_00->nGatewayCount)) {
           return;
         }
 
@@ -586,16 +586,15 @@ void __stdcall UpdateGatewaysFromIni(D2BNetGatewayAccessStr * pClientSideData, c
         nIniVersion = strtoul(pCur, &__frame0.nTmp4, 10);
         __frame0.nGatewayIniIdx = nIniVersion;
         if (nIniVersion <= pClientSideData->nFormatVersion) {
-          Fog::Debug::GuardStack();
           return;
         }
 
         Bnet::BnetLog_WriteLine("Parsing new gateway list (version %d)", nIniVersion);
-        if (!pClientSideData->pGatewayData) {
-          __frame0.nSystemGmtBias = GetSystemTimeZone();
-        } else {
+        if (pClientSideData->pGatewayData) {
           nLine = GMT(pClientSideData, pClientSideData->nCurGatewayIdx);
           __frame0.nSystemGmtBias = nLine * 0x3c;
+        } else {
+          __frame0.nSystemGmtBias = GetSystemTimeZone();
         }
 
         pClientSideData->bDirty = 0;
@@ -627,27 +626,27 @@ void __stdcall UpdateGatewaysFromIni(D2BNetGatewayAccessStr * pClientSideData, c
           if (pZoneVal) {
             __frame0.nTmp1 = pCur + 1 + (int)__frame0.nTmp1;
             pCur = FindKey(pZoneVal, "ZONE");
-            if (!pCur) {
-              nFieldLen = 2;
-              pCur = "0";
-              nZoneLen = 1;
-            } else {
+            if (pCur) {
               pEnuLineEnd = SkipToEOL(pCur, __frame0.nTmp2);
               nZoneLen = (int)pEnuLineEnd - (int)pCur;
               nFieldLen = nZoneLen + 1;
+            } else {
+              nFieldLen = 2;
+              pCur = "0";
+              nZoneLen = 1;
             }
 
             Storm::Source::SSTR::SStrCopy(__frame0.nTmp1, pCur, nFieldLen);
             __frame0.nTmp1 = __frame0.nTmp1 + nZoneLen + 1;
             pCur = FindKey(pZoneVal, "ENU");
-            if (!pCur) {
+            if (pCur) {
+              pZoneVal = SkipToEOL(pCur, __frame0.nTmp2);
+              nFieldLen = (int)pZoneVal - (int)pCur;
+            } else {
               pCur = __frame0.nTmp3;
               pCur = pCur + strlen(pCur) + 1;
               nFieldLen = (int)pCur - (int)(__frame0.nTmp3 + 1);
               pCur = __frame0.nTmp3;
-            } else {
-              pZoneVal = SkipToEOL(pCur, __frame0.nTmp2);
-              nFieldLen = (int)pZoneVal - (int)pCur;
             }
 
             Storm::Source::SSTR::SStrCopy(__frame0.nTmp1, pCur, nFieldLen + 1);
@@ -661,22 +660,21 @@ void __stdcall UpdateGatewaysFromIni(D2BNetGatewayAccessStr * pClientSideData, c
 
         *pCur = '\0';
         pCur += 1 - (int)pRegMultiSzBuf;
-        if ((int)pCur < (int)nSize) {
-          if (pRegMultiSzBuf[(int)(pCur - 1)] == '\0' && pRegMultiSzBuf[(int)(pCur - 2)] == '\0') {
-            pClientSideData->pGatewayData = pRegMultiSzBuf;
-            pClientSideData->nGatewayDataSize = (uint32_t)pCur;
-            PickClosestZone(pClientSideData, __frame0.nSystemGmtBias);
-            SaveAndUnload(pClientSideData);
-            Load(pClientSideData);
-            Fog::Debug::GuardStack();
-            return;
-          }
-
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2e8);
-          exit(-1);
-        } else {
+        if (!((int)pCur < (int)nSize)) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2e6);
           exit(-1);
+        } else {
+          if (!(pRegMultiSzBuf[(int)(pCur - 1)] == '\0' && pRegMultiSzBuf[(int)(pCur - 2)] == '\0')) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2e8);
+            exit(-1);
+          }
+
+          pClientSideData->pGatewayData = pRegMultiSzBuf;
+          pClientSideData->nGatewayDataSize = (uint32_t)pCur;
+          PickClosestZone(pClientSideData, __frame0.nSystemGmtBias);
+          SaveAndUnload(pClientSideData);
+          Load(pClientSideData);
+          return;
         }
       }
     }

@@ -42,9 +42,7 @@ int32_t __fastcall SKILL_GetSequenceEventFrame(struct D2UnitStrc * pUnit);
 BOOL __fastcall Skills_CltDoFunc_Pal_HolyBolt_Melee(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 void __fastcall SKILL_StopAndClearUninterruptable(struct D2UnitStrc * pUnit, eD2Skills eSkill);
 BOOL __fastcall Skills_CltDoFunc_Pal_RateThrottledBloodParticles(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
-// Executes a skill cast triggered by an item (e.g. charged item, wand). Saves and restores the unit's current target/SP1 and SKSRVDOFUNC flag around the cast. Handles corpse-state suppression for corpse-targeting skills, plays the item cast sound and overlay, then calls SKILL_ExecuteClientDoFunc. Returns the client do-func result.
-void __fastcall SKILL_ExecuteItemCast(struct D2UnitStrc * pUnit, eD2Skills eSkill, short * pDoFuncData, struct D2UnitStrc * pTargetUnit, int16_t nParam1, int16_t nParam2, uint16_t nParam);
 void __fastcall SKILL_ExecuteItemCastOnUnit(struct D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, struct D2UnitStrc * pTargetUnit, uint16_t nParam);
-void __fastcall SKILL_ExecuteItemCastAtCoords(struct D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, int32_t nTargetX, int32_t nTargetY, uint16_t nItemParam);
+int __fastcall SKILL_ExecuteItemCastAtCoords(struct D2UnitStrc * pUnit, eD2Skills eSkill, short * pSkillLevelData, int32_t nTargetX, int32_t nTargetY, uint16_t nItemParam);
 
 } // namespace D2Client::SKILLS::SkillsPal

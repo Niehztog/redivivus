@@ -133,7 +133,7 @@ BOOL __stdcall D2WINIMAGE_SetFrame(::D2WinImage * pImage, int32_t nFrame) {
     }
 
     nErrAddr = D2CMP::SRC::CelCmp::IMAGE_GetFramesCount(pImage->sControl.pDC6);
-    if (nErrAddr - 1 < nFrame) {
+    if (nFrame > nErrAddr - 1) {
       nFrame = nErrAddr - 1;
     }
     if (nFrame < 0) {
@@ -214,7 +214,7 @@ BOOL __fastcall Draw(::D2WinImage * pImage) {
         nTileRowCount--;
       } while (nTileRowCount);
     }
-    if (!(-1 < nTilesY && 0 < nTilesX)) {
+    if (!(0 <= nTilesY && 0 < nTilesX)) {
       return 1;
     }
 
@@ -268,12 +268,12 @@ void __stdcall D2WinImage_Draw(D2GfxTileRectStrc * pScreenRect, D2GfxTileRectStr
         __frame0.nSrcX1 = __frame0.nTileCountY;
         do {
           __frame0.nClipX0 = pDstRect->nX0 + iVar1;
-          if (__frame0.nClipX0 < pScreenRect->nX0) {
+          if (pScreenRect->nX0 > __frame0.nClipX0) {
             __frame0.nClipX0 = pScreenRect->nX0;
           }
 
           __frame0.nClipX1 = pScreenRect->nX1;
-          if (__frame0.nClipX0 + nTileCountX <= pScreenRect->nX1) {
+          if (pScreenRect->nX1 >= __frame0.nClipX0 + nTileCountX) {
             __frame0.nClipX1 = __frame0.nClipX0 + nTileCountX;
           }
 

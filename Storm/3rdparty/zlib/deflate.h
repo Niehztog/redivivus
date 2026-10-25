@@ -147,19 +147,13 @@ uint32_t __fastcall deflatePrime(z_stream * pStream, int32_t nBits, uint32_t uVa
 uint32_t __fastcall deflateTune(z_stream * pStream, uint32_t nGoodMatch, uint32_t nMaxLazyMatch, int32_t nNiceMatch, uint32_t nMaxChainLen);
 int32_t __fastcall deflateBound(z_stream * pStream, uint32_t nSourceLen);
 void putShortMSB(deflate_state * pDeflateState, uint32_t wValue);
-void flush_pending(z_stream * pStream);
 uint32_t __fastcall deflateEnd(z_stream * pStream);
 uint32_t __fastcall deflateCopy(z_stream * pDestStream, z_stream * pSrcStream);
 uint32_t __fastcall read_buf(z_stream * pStream, uint8_t * pBuf, uint32_t nSize);
-void lm_init(deflate_state * pDeflateState);
-char * __stdcall longest_match(uint32_t nCurMatch, deflate_state * pDeflateState);
-void fill_window(deflate_state * pDeflateState);
 int32_t __fastcall deflate_stored(deflate_state * pDeflateState, int32_t nFlush);
 // zlib deflate_fast() - hash-chain matching, single pass compression strategy
 int32_t __fastcall deflate_fast(deflate_state * pDeflateState, int32_t nFlush);
 int32_t __fastcall deflate_slow(deflate_state * pDeflateState, int32_t nFlush);
-block_state __stdcall deflate_rle(int32_t nFlush, deflate_state * pDeflateState);
-block_state __stdcall deflate_huff(int32_t nFlush, deflate_state * pDeflateState);
 int __fastcall deflateSetDictionary(z_stream * pStream, uint8_t * pDictionary, uint32_t nDictLength);
 int32_t __fastcall deflateReset(z_stream * pStream);
 uint32_t __fastcall deflate(z_stream * pStream, int32_t nFlush);

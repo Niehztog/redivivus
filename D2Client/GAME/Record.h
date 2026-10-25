@@ -28,7 +28,6 @@ namespace D2Client::GAME::Record {
 // Function declarations
 // @sourcefile .\GAME\Record.cpp
 void __stdcall AllocGameRecord();
-void __stdcall AddGameEntry(uint32_t uMsg, WPARAM wParam, LPARAM lParam);
 // Game-record WndProc filter: if recording is active (SettedUp != 0), accepts WM_CLOSE (0x10), WM_KEYDOWN (0x100), WM_KEYUP (0x101), WM_CHAR (0x102), WM_COMMAND (0x111), and mouse button/move messages (0x200–0x205), forwarding them to AddGameEntry for playback recording. All other messages are silently dropped.
 void __fastcall HandleWinProcMsg(uint32_t uMsg, WPARAM wParam, LPARAM lParam);
 void __stdcall SaveGameRecordToFile();

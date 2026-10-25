@@ -42,7 +42,7 @@ BOOL __stdcall SOUND_IsAmbientStreaming() {
     return 1;
 }
 
-void __stdcall SOUND_ResetAmbientSoundFlags() {
+static void __stdcall SOUND_ResetAmbientSoundFlags() {
     int i = 0;
     DWORD dwLangCode = gnAmbientSoundLanguageCode;
     int nCount = gaAmbientSoundFlags;
@@ -62,7 +62,7 @@ void __stdcall SOUND_ResetAmbientSoundFlags() {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x52);
         exit(-1);
       }
-      if (nCount <= i) {
+      if (i >= nCount) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x53);
         exit(-1);
       }
@@ -118,7 +118,7 @@ void __stdcall SOUND_FadeOutMusic() {
     D2SoundSmp::SOUNDSMP_StartFade(gpMusicStreamBuffer, 0, 200);
 }
 
-void __stdcall SOUND_PlayNextAmbientSound() {
+int __stdcall SOUND_PlayNextAmbientSound() {
     uint32_t dwVolume;
     int* pAmbientEntry;
     BOOL BVar1;
@@ -130,7 +130,7 @@ void __stdcall SOUND_PlayNextAmbientSound() {
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&gSoundSmpCs);
     if (!gpMusicStreamBuffer || (dwVolume = D2SoundSmp::SOUNDSMP_GetEffectiveVolume() , !dwVolume) || gpMusicStreamBuffer && (dwVolume = D2SoundSmp::SOUNDSMP_IsStreaming(gpMusicStreamBuffer) , dwVolume != 0)) {
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&gSoundSmpCs);
-      return;
+      return 0;
     }
 
     bool bResetDone;
@@ -152,13 +152,17 @@ void __stdcall SOUND_PlayNextAmbientSound() {
       if (bResetDone) {
         /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ gnMusicEnabled = 0;
         LeaveCriticalSection(&gSoundSmpCs);
-        return;
+        return 0;
       }
 
       SOUND_ResetAmbientSoundFlags();
       bResetDone = true;
       play_unplayed_track:
-      if (!gbSoundFastPathActive) {
+      if (gbSoundFastPathActive) {
+        pAmbientEntry = Sound::SOUND_GetAmbientSoundEntry(0);
+        gbSoundFastPathActive = 0;
+        nAmbientCount = gaAmbientSoundFlags;
+      } else {
         nRandIdx = rand();
         nRandIdx %= gaAmbientSoundFlags;
         nAmbientCount = gaAmbientSoundFlags;
@@ -174,7 +178,7 @@ void __stdcall SOUND_PlayNextAmbientSound() {
             Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x52);
             exit(-1);
           }
-          if (nAmbientCount <= nRandIdx) {
+          if (nRandIdx >= nAmbientCount) {
             Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x53);
             exit(-1);
           }
@@ -185,7 +189,7 @@ void __stdcall SOUND_PlayNextAmbientSound() {
           }
           if (pAmbientEntry[1]) {
             nRandIdx++;
-            if (nAmbientCount <= nRandIdx) {
+            if (nRandIdx >= nAmbientCount) {
               nRandIdx = 0;
             }
 
@@ -194,10 +198,6 @@ void __stdcall SOUND_PlayNextAmbientSound() {
 
           break;
         }
-      } else {
-        pAmbientEntry = Sound::SOUND_GetAmbientSoundEntry(0);
-        gbSoundFastPathActive = 0;
-        nAmbientCount = gaAmbientSoundFlags;
       }
       bHasStreamBuffer = gpMusicStreamBuffer != 0;
       szSoundFile = (char*)*pAmbientEntry;
@@ -215,12 +215,13 @@ void __stdcall SOUND_PlayNextAmbientSound() {
             nAmbientCount = gaAmbientSoundFlags;
             if (BVar1) {
               /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&gSoundSmpCs);
-              return;
+              return 0;
             }
           }
         }
       }
     } while (true);
+    return 0;
 }
 
 void __stdcall SOUND_LoadRegistrySettings() {
@@ -237,17 +238,17 @@ void __stdcall SOUND_LoadRegistrySettings() {
     }
 
     bReadMasterVol = Storm::Source::SReg::SRegLoadValue("Diablo II", "Master Volume", 0, (int32_t*)&dwRegValue);
-    if (bReadMasterVol && dwRegValue < 0x65) {
+    if (bReadMasterVol && dwRegValue <= 0x64) {
       g_nSoundMasterVolume = dwRegValue;
     }
 
     bReadMasterVol = Storm::Source::SReg::SRegLoadValue("Diablo II", "Music Volume", 0, (int32_t*)&dwRegValue);
-    if (bReadMasterVol && dwRegValue < 0x65) {
+    if (bReadMasterVol && dwRegValue <= 0x64) {
       g_nSoundMusicVolume = dwRegValue;
     }
 
     bReadMasterVol = Storm::Source::SReg::SRegLoadValue("Diablo II", "Positional Bias", 0, (int32_t*)&dwRegValue);
-    if (bReadMasterVol && dwRegValue < 0x65) {
+    if (bReadMasterVol && dwRegValue <= 0x64) {
       g_nSoundPositionalBias = dwRegValue;
     }
 
@@ -257,7 +258,7 @@ void __stdcall SOUND_LoadRegistrySettings() {
     }
 
     bReadMasterVol = Storm::Source::SReg::SRegLoadValue("Diablo II", "Options Music", 0, (int32_t*)&dwRegValue);
-    if (!(bReadMasterVol && dwRegValue < 2)) {
+    if (!(bReadMasterVol && dwRegValue <= 1)) {
       return;
     }
 

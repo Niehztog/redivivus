@@ -39,8 +39,6 @@ int __fastcall GetAiArgument(struct D2UnitStrc * pMonster, int32_t nArgNumber);
 struct D2MonsterAiCmdStrc * __fastcall CreateAiCmdStrc(::SGAMEDATA * pGame, struct D2UnitStrc * pMonster);
 // @sourcefile .\Ai\AiGeneral.cpp
 void __fastcall FreeAi(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-// @sourcefile .\Ai\AiGeneral.cpp
-void FreeAiCmds(struct D2AiGeneralStrc * pAiGeneral, ::SGAMEDATA * pGame);
 // Drains and frees all pending AI command nodes (D2MonsterAiCmdStrc) from a monster unit's AiGeneral command ring. Iterates pCmdLast, unlinks each node from the doubly-linked circular list, then frees it via FreeServerMemory. No-ops if unit is null, non-monster, or has no AiGeneral/command list.
 // @sourcefile .\Ai\AiGeneral.cpp
 void __fastcall ResetAiGeneralStrc(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
@@ -69,8 +67,6 @@ void __fastcall ClearMinionList(::SGAMEDATA * pGame, struct D2MonsterDataMinionL
 void __fastcall CallForEachMinion(struct D2UnitStrc * pUnit, void * pContext, struct D2UnitStrc * pArgument, pfnMinionForEachCallback pfnProc);
 void __fastcall GetAndRemoveMinionList(struct D2UnitStrc * pUnit, int * pOwnerId, eD2UnitType * pType, uint32_t * nFlagBit1, uint32_t * nFlagBit2, struct D2MonsterDataMinionList * * pMinionList);
 void __fastcall ReplaceMinionList(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nUnitGUID, eD2UnitType eUnitType, int32_t nParam, BOOL bTransferBoss, struct D2MonsterDataMinionList * pMinionList);
-// Wires a newly joined monster into an existing AI minion group. Scans pTargetAi's minionList for the first live monster, promotes it to group leader (sets AI flags 1+2, eOwnerTypeEx/nOwnerGUIDEx), updates pOwner's AI back-link to point at the leader, calls AddMinionToList for the leader+owner pair, then iterates all remaining minion-list entries and chains each live non-leader monster to the leader via AddMinionToList.
-void __stdcall AddMinionToAi(struct D2UnitStrc * pOwner, struct D2AiGeneralStrc * pTargetAi);
 // Conditionally manages minion ownership based on AI flags 1 and 2. If flag 1 is set and flag 2 is NOT set, detaches all minions from the owner (resets their nOwnerGUIDEx to -1). If both flags are set, calls AddMinionToAi instead. No-ops when flag 1 is clear.
 void __fastcall RemoveMinionsFromAiIfFlag1Set2Not(struct D2UnitStrc * pUnit);
 int32_t __fastcall MONSTER_GetUnitData_AiGeneral_Offset0x3C(struct D2UnitStrc * pUnit);

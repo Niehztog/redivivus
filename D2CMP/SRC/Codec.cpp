@@ -648,7 +648,7 @@ BOOL __fastcall CODEC_EncodeRLE(int32_t nParam1, int32_t nParam2, uint8_t * pOut
         if (0 < nZeroEnd) {
           do {
             nNonZeroEnd = nRunStart;
-            if (nZeroEnd <= nRunStart) {
+            if (nRunStart >= nZeroEnd) {
               break;
             }
 
@@ -660,11 +660,11 @@ BOOL __fastcall CODEC_EncodeRLE(int32_t nParam1, int32_t nParam2, uint8_t * pOut
               nNonZeroEnd++;
             } while (nNonZeroEnd < nZeroEnd);
 
-            if (nZeroEnd <= nNonZeroEnd) {
+            if (nNonZeroEnd >= nZeroEnd) {
               break;
             }
 
-            for (; nRunStart < nNonZeroEnd; nRunStart += nZeroEnd) {
+            for (; nNonZeroEnd > nRunStart; nRunStart += nZeroEnd) {
               nZeroEnd = nNonZeroEnd - nRunStart;
               if (0x7f < nZeroEnd) {
                 nZeroEnd = 0x7f;
@@ -685,7 +685,7 @@ BOOL __fastcall CODEC_EncodeRLE(int32_t nParam1, int32_t nParam2, uint8_t * pOut
                 nZeroEnd++;
               } while (nZeroEnd < *(int*)(nParam1 + 4));
 
-              for (; nNonZeroEnd = nZeroEnd , nRunStart < nNonZeroEnd; nRunStart += nRunLen) {
+              for (; nNonZeroEnd = nZeroEnd , nNonZeroEnd > nRunStart; nRunStart += nRunLen) {
                 nRunLen = nNonZeroEnd - nRunStart;
                 if (0x7f < (int)nRunLen) {
                   nRunLen = 0x7f;
@@ -4603,7 +4603,6 @@ void * __fastcall CODEC_DecompressAllFrames(uint32_t * pnParam, D2PoolManagerStr
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_008f03cc);
-    Fog::Debug::GuardStack();
     return pvVar2;
 }
 

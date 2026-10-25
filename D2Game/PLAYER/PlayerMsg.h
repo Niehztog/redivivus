@@ -641,49 +641,24 @@ void __fastcall PLRMSG_SendPlayerStopToOtherClient(::SGAMEDATA * pGame, struct D
 void __fastcall DispatchPlayerModeNetMsg(::SGAMEDATA * pGameStrc, struct D2UnitStrc * pUnit, struct D2ClientStrc * pClient);
 // @sourcefile .\PLAYER\PlrMsg.cpp
 void __fastcall SendAttributeUpdate(struct D2UnitStrc * pUnit, uint16_t nStatId, uint32_t dwStatValue, struct D2UnitStrc * pOwnerUnit);
-uint8_t GetHPRegen(struct D2UnitStrc * pUnit);
-// Computes projected mana percentage after applying active mana-pot regen. Factors in the CharStats base ManaRegen rate (scaled by 25), UNITSTAT_manarecovery, UNITSTAT_manarecoverybonus, elapsed game frames since the mana pot was applied (from StatList pointer arithmetic), and current/max mana. Returns 0–100 (clamped), or 0 if no mana-pot state active, zero max mana, or invalid class ID.
-uint8_t GetMPRegen(struct D2UnitStrc * pUnit);
 // Server-side per-tick player vitals/position delta sync. For player pUnit observed by pUnit2's client, reads HP/mana/stamina/gold/exp stats and current XY (plus velocity from dynamic path), then sends the cheapest matching update packet vs the cached D2PlayerBasicsData: 0x18 PlayerHPMP if regen changed, else 0x95 LifeManaUpdate if HP/mana changed, else 0x96 WalkVerify for position; suppresses tiny HP changes (<10% delta) unless bForceUpdate; also fires 0x19 gold and 0x1A/1B/1C experience packets on change. Updates the cached basics and SkipTick throttle. Returns 1 if anything updated, 0 if skipped/invalid.
 // @sourcefile .\PLAYER\PlrMsg.cpp
 BOOL __fastcall NET_D2GS_SERVER_Send_LifeManaStaminaLocationUpdate(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, int32_t bForceUpdate);
 void __fastcall SendInitUpdateAttributes(struct D2UnitStrc * pUnit, struct D2ClientStrc * pClient);
 void __stdcall StartModeID(eD2Skills eSkillId, ::SGAMEDATA * pGame, eD2UnitType eUnitType, struct D2UnitStrc * pUnit, DWORD nUid);
-// Returns SERVERSTATUS_OK (0) when both units are in the same act, or 2 when they differ - the act check every cross-act packet handler gates on.
-// Returns a FULL 32-bit value. The single return path is SBB EBX,EBX / AND EBX,0x2 / MOV EAX,EBX at 00548ab1-00548ab6, which writes the whole of EAX.
-int32_t __stdcall IsOtherAct(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 uint32_t __fastcall PLAYER_AreInDifferentActs(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 // Server-side interact/pickup dispatcher: given a source player pUnit, a target eUnitType and its uuid, resolves the target via FindUnitFromTable and acts based on type and distance. PLAYER: pickup corpse if dead+not-trading else open trade (or walk if >8). MONSTER: trigger NPC AI think/interact if interact+npc, begin NPC interaction when close, else walk. OBJECT: validate range/LOS then Interact(mode 2) or walk. ITEM: SERVER_PickToCursor/SERVER_PickToInventory (per bSetting) when adjacent and unobstructed, else walk. WARP: TakeStairs when adjacent. Beyond ~0x33 tiles it bails. Returns eD2ServerIncomingStatus (OK / BAD_PARAMS / BAD_TARGET).
 eD2ServerIncomingStatus __fastcall SERVER_InteractOrPick(struct D2UnitStrc * pUnit, eD2UnitType eUnitType, uint32_t uuid, BOOL bSetting, ::SGAMEDATA * pGame);
 uint8_t __stdcall PLAYERMSG_GetMessageType(int32_t nParam1, int32_t nParam2);
 int32_t __stdcall PLAYERMSG_GetMessagePriority(uint32_t nParam);
-// Validates that tile coordinates (nX, nY) are within a Chebyshev (max-norm) distance of nRange from the unit's current position. Returns a non-zero eD2ServerIncomingStatus if both axis deltas are within range. Used by movement packet handlers to guard against teleport/warp exploits.
-eD2ServerIncomingStatus __stdcall CheckIfCoordsAreInRange(struct D2UnitStrc * pUnit, int32_t nRange, uint16_t nX, uint16_t nY);
 // Checks whether pUnit is within nRange tiles (Chebyshev) of a target unit identified by (eUnitType, nUid). Also validates same-act placement and, for item targets, that the player is not already holding the item. Returns a non-zero status if in range, 0 (via CheckIfCoordsAreInRange) otherwise. Used to gate walk-to-entity and interact packet processing.
 eD2ServerIncomingStatus __stdcall CloseEnoughToInteract(::SGAMEDATA * pGame, eD2UnitType eUnitType, struct D2UnitStrc * pUnit, uint32_t nUid, int32_t nRange);
-eD2ServerIncomingStatus SERVER_IsItemOnCursor(void * pThis, struct D2UnitStrc * pUnit, uint32_t dwParam);
-eD2ServerIncomingStatus IsPlayerTheOwner(void * pThis, struct D2UnitStrc * pOwner, uint32_t nItemGid);
-eD2ServerIncomingStatus ItemBelongsToUnit(void * pThis, struct D2UnitStrc * pOwner, uint32_t nItemGid);
-eD2ServerIncomingStatus __stdcall ItemIsOfPlayerAndNotOnCursor(uint32_t nItemGid, struct D2UnitStrc * pPlayer, ::SGAMEDATA * pGame);
 uint8_t __stdcall MONSTER_SetAlignmentCallback(int32_t nParam1, int32_t nParam2);
-eD2ServerIncomingStatus ItemBelongsToInventoryOf(void * pThis, struct D2UnitStrc * pPlayer, uint32_t nItemGid);
-// Validates that an item (by GID) is accessible to the acting player for an interaction. Looks up the item unit; for ground/dropped states (Death/Neutral/Walk/GetHit modes) delegates to ItemIsOfPlayerAndNotOnCursor. For the Run mode (item on ground in another act area) calls IsOtherAct and CheckIfCoordsAreInRange (range 10). Returns 0 on success or a non-zero eD2ServerIncomingStatus error code (SERVERSTATUS_BAD_TARGET if item not found).
-uint32_t __stdcall IsAccessableCheck(DWORD nItemGid, ::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 int32_t __stdcall MONSTER_FindNearbyAllyUnit(::SGAMEDATA * pGame, int32_t bCheckRange, struct D2UnitStrc * * ppUnit, struct D2UnitStrc * pUnit, DWORD nUnitId);
-// Validates that a unit may cast a given skill id: rejects a negative id or one past the SkillsTxt row count with 2, an unbound skill with 3, and otherwise returns 0 when the unit has the skill points for it.
-// Returns a FULL 32-bit value. All three return paths write the whole of EAX - MOV EAX,0x3 at 005494ae, MOV EAX,0x2 at 005494d1, and the SBB EAX,EAX / AND EAX,0xfffffffd / ADD EAX,0x3 sequence at 005494c8.
-int32_t CheckIfCanBeSkilled(struct D2UnitStrc * pUnit, eD2Skills eSkill);
-eD2ServerIncomingStatus __stdcall OrficeStaffCheck(uint32_t pUid, int16_t nParam, struct D2UnitStrc * pUnit, uint32_t dwParam, ::SGAMEDATA * pGame);
-// Validates whether a player can interact with a waypoint object. Returns 1 if waypoint GID not found, 2 if waypoint is in a different act, nonzero range error if player is too far (range 10, or 22 for Sorceress). If in range and nAreaId is provided, looks up the waypoint ID for that level and checks whether the player already has it unlocked; returns 0 if activating new waypoint, 2 if already owned, 3 if level has no waypoint entry.
-int32_t __stdcall PlayerCanInteractWithWaypoint(::SGAMEDATA * pGame, uint16_t nAreaId, DWORD nGid, struct D2UnitStrc * pUnit);
-// Movement-packet range validator with anti-cheat reassign. Reads target (nX, nY) from raw packet bytes, calls CheckIfCoordsAreInRange(range=0x32). If out of range and more than 25 frames have elapsed since last frame-stamp, sends packet 0x15 (ReassignPlayer) to snap the client back to the server-authoritative position. If in range, stamps nGameFrame and writes nX/nY to outNx/outNy for further processing. Returns SERVERSTATUS_OK on success.
-// Returns a FULL 32-bit value, not a one-byte enum. All four return paths write the whole of EAX - MOV EAX,0x3 at 0054970f, MOV EAX,0x2 at 00549728, XOR EAX,EAX at 005497d3 and MOV EAX,EBX at 005497b3, where EBX can be OR EBX,0xffffffff (-1) from 00549789.
-int32_t __stdcall CheckIfInrangeAndReassign(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit2, uint16_t * outNx, uint16_t * outNy, struct D2UnitStrc * pUnit, uint8_t * pPacket);
 // C->S Packet 0x01 - Walk to XY (5 bytes)
 // [op:1][x:u16][y:u16]
 // Calls MoveToLocation(mode=2).
 eD2ServerIncomingStatus __fastcall SCMD_0x01_WalkToLocation(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x01_WalkToLocation * pPacket, size_t nSize);
-eD2ServerIncomingStatus __stdcall AnyPacketClickOnMap(::SGAMEDATA * pGame, size_t nSize, eD2UnitType * peUnitTypeOut, size_t * nSizeEx, struct D2UnitStrc * pUnit, uint8_t * pPacket);
 // Handles C→S packet 0x02 (Walk To Entity, 9 bytes: [op][unitType:u32][GUID:u32]). Validates packet size, unit type < 6, and proximity via CloseEnoughToInteract(range=0x32). If valid and in range, calls PLRMODES_StartModeID with walk mode 2 targeting the entity. Returns SERVERSTATUS_OK on success, error codes for bad size/type/range.
 eD2ServerIncomingStatus __fastcall SCMD_0x02_WalkToEntity(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x02_WalkToEntity * pPacket, size_t nSize);
 // C->S Packet 0x03 - Run to XY (5 bytes)
@@ -694,16 +669,10 @@ eD2ServerIncomingStatus __fastcall SCMD_0x03_RunToLocation(::SGAMEDATA * pGame, 
 // [op:1][unitType:u32][GUID:u32]
 // Validates range 0x32, calls StartModeID(mode=3).
 eD2ServerIncomingStatus __fastcall SCMD_0x04_RunToEntity(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x04_RunToEntity * pPacket, size_t nSize);
-// For dual-wielding players using SKILL_Attack, checks both weapon slots are valid non-broken non-missile weapons. If so, swaps to SKILL_LeftHandSwing on odd strikes (param4 cycles 0→5→0) to alternate hands. Returns pSkill unchanged for all other skills or single-weapon setups. Halts on missing LeftHandSwing skill data.
-// @sourcefile .\PLAYER\PlrMsg.cpp
-struct D2SkillStrc * __stdcall GetDualSwingSkill(struct D2SkillStrc * pSkill, struct D2UnitStrc * pPlayer);
 // @sourcefile .\PLAYER\PlrMsg.cpp
 void __fastcall PLAYER_SendInventoryFullMessage(struct D2UnitStrc * pUnit);
 // Validates player is alive, resolves dual-swing skill alternation via GetDualSwingSkill, checks skill usability (falling back to SKILL_Attack if skill has flag4 bit4 set and CanUseSkill returns 1-2 or 4). On success calls PLRMODES_MoveToLocation with the resolved skill mode; on mana-full sends inventory-full message. Returns SERVERSTATUS_OK or SERVERSTATUS_BAD_DATA.
 eD2ServerIncomingStatus __stdcall CastSkillOnLocation(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, int32_t nTargetX, int32_t nTargetY, struct D2SkillStrc * pSkill);
-// Server-side skill dispatch for player targeting an entity. Resolves dual-swing substitution, checks skill usability (SKILLS_CanUseSkill), and if a skill is blocked by a flags4 condition falls back to SKILL_Attack. On usability==0 with a valid mode, looks up the target unit, follows attached-unit ownership, validates melee/range weapon class against target proximity, then routes to StartModeID or PLRMODES_StartModeID. Returns 0 on success, 2 on failure.
-// @sourcefile .\PLAYER\PlrMsg.cpp
-void __stdcall PLAYER_ProcessSkillOnEntity(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, eD2UnitType eUnitType, DWORD dwParam, int32_t nParam, struct D2SkillStrc * pSkill);
 // C->S Packet 0x05 - Left Skill on Location (5 bytes)
 // [op:1][x:u16][y:u16]
 // Gets left skill, increments pierce_idx, CastSkillOnLocation.
@@ -766,8 +735,6 @@ eD2ServerIncomingStatus __fastcall SCMD_0x12_CancelChanneledSkill(::SGAMEDATA * 
 // Frees existing hover text, sets UNITFLAG_HASTXTMSG, schedules FREEHOVER event at expiry frame.
 // Input sanitized via STRING_CutStringBeginingTillFoundString — filtered messages silently dropped.
 eD2ServerIncomingStatus __fastcall SCMD_0x14_OverheadMessage(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x14_OverheadMessage * pPacket, size_t nSize);
-// Checks if a unit's current interact target is a different player than the given one. Used by chat broadcast to suppress messages when sender or recipient is in a private interaction (trade, NPC dialog with another player).
-BOOL __stdcall CHAT_IsInteractingWithOtherPlayer(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, struct D2UnitStrc * pOtherUnit);
 // ForEachClient callback for public chat broadcast. Checks squelch/mute flags and ignore list between sender and recipient, then sends 0x26 chat packet if not blocked.
 void __fastcall CHAT_BroadcastToClient(struct D2ClientStrc * pClient, char * * pContext);
 // ForEachClient callback for whisper delivery. Compares each client's character name to the target name. If matched and not squelched, delivers whisper via 0x26 packet and sets g_bWhisperDelivered=1. If matched but squelched, sets g_bWhisperSquelched=1.
@@ -920,7 +887,6 @@ eD2ServerIncomingStatus __fastcall SCMD_0x42_StaffInOrifice1(::SGAMEDATA * pGame
 eD2ServerIncomingStatus __fastcall SCMD_0x43_StaffInOrifice2(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, char * pBytes, size_t nSize);
 eD2ServerIncomingStatus __fastcall SCMD_0x44_StaffInOrifice(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x44_StaffInOrifice * pPacket, size_t nSize);
 eD2ServerIncomingStatus __fastcall SCMD_0x45_Unused(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, char * pBytes, size_t nSize);
-eD2ServerIncomingStatus __stdcall CanInteractWithMerc(int32_t nCmdArg1, int32_t nCmdArg2, int32_t nCmdId, struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, uint32_t nMercGUID);
 eD2ServerIncomingStatus __fastcall SCMD_0x46_NpcInteractMerc(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x46_NpcInteractMerc * pPacket, size_t nSize);
 // C2S packet 0x47 handler (13 bytes): [opcode:1][mercGUID:u32][targetX:u16][pad:2][targetY:u16][pad:2]. Issues an AI command to the player's mercenary. Validates the unit is the player's hired merc (PETTYPE_hireable), player is within 50 units of target coords, then resets AI state and injects a new command with the target coordinates. Sent when player directs their merc to a location.
 eD2ServerIncomingStatus __fastcall SCMD_0x47_CommandMercenary(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x47_CommandMercenary * pPacket, size_t nSize);
@@ -949,20 +915,10 @@ eD2ServerIncomingStatus __fastcall SCMD_0x54_StopRunning(::SGAMEDATA * pGame, st
 eD2ServerIncomingStatus __fastcall SCMD_0x58_MarkQuestDone(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x58_MarkQuestDone * pPacket, size_t nSize);
 // C->S 0x59 Command NPC (17 bytes): [op:1][unitType:u32][unitGUID:u32][x:u32][y:u32]. Finds target unit within distance 0x32, verifies it is an interactable NPC (MonStats interact+npc flags), clears its path, fires AITHINK event, schedules next AI tick at gameFrame+1, and sets AI args 1/2/3 to 0x28/Y/X to direct the NPC toward the requested coordinates.
 eD2ServerIncomingStatus __fastcall SCMD_0x59_CommandNPC(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x59_CommandNPC * pPacket, size_t nSize);
-// Checks if target position is reachable by temporarily overriding path settings (collision=0x409, pathType=0xf, maxDist=77), calculating a path, then restoring originals. Returns 1 only if final path point exactly matches destination (fully walkable, no obstacles).
-uint32_t __stdcall ValidateSyncWarpPath(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t nX, uint32_t nY);
-// Relocates player to target position and applies STATE_sync_warped for a random duration. Records warp timestamp; if 5+ warps within 90 seconds on BNet, rolls penalty delay from weighted table: 50% chance 1500 frames (60s), 25% chance 3000 frames (2min), 25% chance 4500 frames (3min). Default delay 125 frames (5s) for non-BNet or under rate limit.
-BOOL __stdcall RelocateAndApplySyncWarp(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t nX, uint32_t nY);
 // Client-to-server position sync correction. When client detects desync with server position, sends [x:u16, y:u16]. Distance 15-45: validates walkable path then relocates instantly via SUNIT_RelocateUnit. Distance 5-14 or 46+: falls through to normal walk/run. Distance 0-4: rejected. On BNet, rate-limited: 5+ sync warps in 90 seconds triggers randomized lockout (50% 60s, 25% 2min, 25% 3min) via STATE_sync_warped.
 // @sourcefile .\PLAYER\PlrMsg.cpp
 eD2ServerIncomingStatus __fastcall SCMD_0x5F_SyncPosition(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, char * pPacket, size_t nSize);
 eD2ServerIncomingStatus __fastcall SCMD_0x60_WeaponSwap(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2GSPacketClt0x60_WeaponSwap * pPacket, size_t nSize);
-// Server-side: equips an item onto a hireling/mercenary, swapping out whatever it currently has in the matching body location(s). Expansion-only (returns 3 in classic). pUnit=owning player, pUnit1=item to equip, pUnit2=merc, pGame=game. Resolves the item's BodyLoc1/BodyLoc2; for Iron Wolf mercs (classId 0x167) a shield routes to the secondary slot. If a slot is occupied, validates the new item's equip requirements (ITEM_CheckEquipRequirements): on success it removes the old item to the player's cursor and unequips it; on failure it returns the old item to the merc's inventory and aborts. Then clones the new item onto the merc, equips it via SERVER_EquipItemToBodyLoc, refreshes stats, fires PERIODICSTATS/STATREGEN timer triggers, and schedules a follow-up event. Returns 1 on a completed swap, 0 on no-op/abort, 3 in classic. Side effects: item clone/free, inventory mutation, stat recalc, event scheduling.
-BOOL __stdcall MERC_SwapEquippedItem(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit1, ::SGAMEDATA * pGame, struct D2UnitStrc * pUnit2);
-eD2ServerIncomingStatus __stdcall EquipOrUnequipMercItem(struct D2UnitStrc * pUnit, int32_t eBodyLoc, struct D2UnitStrc * pUnit2, ::SGAMEDATA * pGame);
-// Server check (PlrMsg) for whether a mercenary can take/use the item the player is offering, and performs the resulting action. Expansion-only (returns 3 in classic). Rejects unidentified or broken items. Potions (healing/thawing/antidote) are cast on the merc via SKILLITEM_DispatchItemSpell then moved to cursor (return 1). Otherwise checks the item type against the merc's class id: armor/helm allowed for all; Rogue(0x167) sword(1H)/shield; Desert(0x152) spear/polearm; Iron Wolf(0x10f) bow; Barbarian(0x230) 1H axe/helm; (0x231) 1H sword. If type allowed and ITEM_CheckEquipRequirements passes, swaps it onto the merc (MERC_SwapEquippedItem) firing sound event 0x57 (return 1) or 0x56 on swap failure (return 0); disallowed type fires sound 0x55 (return 0).
-// @sourcefile .\PLAYER\PlrMsg.cpp
-void __stdcall MERC_CanEquipItem(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame, struct D2UnitStrc * pUnit1, struct D2UnitStrc * pUnit2);
 // C->S 0x61 Merc Equip Item (3 bytes, Expansion only)
 // [op:1][bodyLoc:u16]
 // If cursor empty and bodyLoc!=0, equip/unequip merc item. Otherwise validate cursor item vs merc.

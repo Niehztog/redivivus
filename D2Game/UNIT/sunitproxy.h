@@ -90,20 +90,12 @@ struct D2GameNpcStrc * __fastcall GetGameNpcbyClassId(::SGAMEDATA * pGame, int32
 struct D2GameNpcStrc * __fastcall GetGameNpcByUnit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int * pNpcIndex);
 // @sourcefile .\UNIT\sunitproxy.cpp
 void __fastcall SUNITPROXY_AddItemToNpcProxy(struct D2UnitStrc * pNpcUnit, ::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t dwTradeParam);
-// @sourcefile .\UNIT\sunitproxy.cpp
-void SUNITPROXY_InitNpcTradeItems(int32_t nParam1, ::SGAMEDATA * pGame, void * * pParam);
 // Server-side init of the game's NPC control table. Allocates the D2GameNpcControlStrc and its 0x1100-byte NPC array from the game pool, seeds its RNG from the game seed, and iterates every monstats.txt row: for each monster flagged as an NPC (npc bit), allocates a player-style inventory, assigns a control-table slot (max 64, halts via ErrorManager if exceeded), and copies init data (flags/name) from the static gpNpcControlInitTable. For trade-enabled NPCs (flag==1) it dispatches on monster id to SUNITPROXY_InitNpcTradeItems with the per-vendor store index and marks the slot tradeable/repair. Stores the result in pGame->pNpcControl. __fastcall(pGame).
 // @sourcefile .\UNIT\sunitproxy.cpp
 void __fastcall SUNITPROXY_AllocNpcControl(::SGAMEDATA * pGame);
-void __stdcall SUNITPROXY_FreeInventoryItems(::SGAMEDATA * pGame, struct D2InventoryStrc * pInventory);
-// Frees all server-side proxy data for a single NPC entry (pNpcEntry) within pGame. Walks and frees the trade inventory linked list (unk0x08), calling SUNITPROXY_FreeInventoryItems + STRUCT_FreeInventory on each node, then frees the NPC's own inventory. Also walks a second linked list (unk0x14) deleting any owned items via ITEM_DeleteItemAndFreeUnit. All nodes freed from pGame->pMemoryPool.
-// @sourcefile .\UNIT\sunitproxy.cpp
-void __stdcall SUNITPROXY_FreeNpcProxyData(struct D2GameNpcStrc * pNpcEntry, ::SGAMEDATA * pGame);
 // Tears down pGame->pNpcControl entirely. For each of nNpcCount NPC entries: frees the interaction linked list, calls SUNITPROXY_FreeNpcProxyData, and frees two auxiliary memory blocks. Finally frees the NPC array and the control struct itself from pGame->pMemoryPool, then nulls pGame->pNpcControl.
 // @sourcefile .\UNIT\sunitproxy.cpp
 void __fastcall FreeNpcControl(::SGAMEDATA * pGame);
-// @sourcefile .\UNIT\sunitproxy.cpp
-void __stdcall SUNITPROXY_AddTradeQueueEntry(struct D2UnitStrc * pUnit, uint32_t dwTradeParam, int32_t nAction, ::SGAMEDATA * pGame, struct D2GameNpcStrc * pNpc);
 void __fastcall SUNITPROXY_QueueTradeAction(struct D2UnitStrc * pNpcUnit, ::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, uint32_t dwTradeParam, uint32_t nTradeAction);
 // IterateAllUnits callback: when pUnit has a room (UNITS_GetRoom) whose level
 // (DRLGROOM_GetLevelIdFromRoom) equals pArgs->eLevelId (+0), increments pArgs->nCount (+4).
@@ -124,9 +116,6 @@ struct D2InventoryStrc * __fastcall SUNITPROXY_GetPlayerProxyInventory(::SGAMEDA
 // Finds or creates this player's interaction node on an NPC proxy and RETURNS THE NODE. The node is the 12 bytes allocated at 00536cef with EDX = 0xc: player GUID at +0, a flag the trade path reads at +4, next at +8. On the found path the search loop at 00536cd0 jumps to the epilogue with the node still in EAX; on the allocate path the new node is in EAX and the code falls into the same epilogue, so both exits return it. It had been typed void, which left its caller SUNITNPC_OpenTradeScreen at 00579360 reading a declared-but-never-assigned local, taking the identified-item branch for the merchant's own unidentified stock and returning null - no vendor item ever reached the client.
 int32_t __fastcall SUNITPROXY_AddPlayerInteraction(::SGAMEDATA * pGame, struct D2GameNpcStrc * pNpcProxy, struct D2UnitStrc * pPlayerUnit);
 void __fastcall SUNITPROXY_ResetNpcProxy(::SGAMEDATA * pGame, struct D2GameNpcStrc * pNpcProxy, struct D2UnitStrc * pUnit);
-// One-time initialisation of the trade and quest item tables for a specific NPC vendor (by nNpcIndex). Guards against re-entry via gbaNpcItemTableBuilt. Scans the Items.txt table twice: first pass counts trade vs quest items for the NPC; allocates gpaNpcTradeItemTable (12 bytes/entry) and gpaNpcQuestItemTable (4 bytes/entry); second pass fills both tables with item class IDs, flags, and level data from the txt rows. Quest items (non-zero npcquest column) go to the quest table; all others to the trade table.
-// @sourcefile .\UNIT\sunitproxy.cpp
-void __stdcall SUNITPROXY_BuildNpcItemTables(int32_t nNpcIndex);
 // One-time startup initializer that walks the full monster stats table and calls SUNITPROXY_BuildNpcItemTables for every monster flagged as interactive (interact != 0). Maps well-known NPC monster IDs (Akara, Charsi, Gheed, Drognan, etc. through Act 5 vendors) to their fixed NPC item table indices (0..0x10). NPCs without a recognised ID are silently skipped.
 void __stdcall SUNITPROXY_InitAllNpcItemTables();
 // @sourcefile .\UNIT\sunitproxy.cpp
@@ -134,8 +123,6 @@ void __stdcall SUNITPROXY_FreeAllNpcItemTables();
 // Removes a specific player's proxy trade inventory from an NPC's trade list. Looks up the NPC by pProxyUnit->nClassId, then searches the trade-node linked list (unk0x08) for the node matching pPlayerUnit->nUnitGUID. If found, unlinks the node, frees its inventory via SUNITPROXY_FreeInventoryItems + STRUCT_FreeInventory, and returns the memory to pGame->pMemoryPool.
 // @sourcefile .\UNIT\sunitproxy.cpp
 void __fastcall SUNITPROXY_RemovePlayerProxyInventory(::SGAMEDATA * pGame, struct D2UnitStrc * pProxyUnit, struct D2UnitStrc * pPlayerUnit);
-// Refreshes all NPC proxies that belong to act nAct. When bResult==0 and 240 s have elapsed since last update, marks the proxy dirty. When bResult!=0, verifies the backing live monster still exists with the correct class; if not, resets the proxy inventory; if yes and no AI-counted monsters remain, resets via SUNITPROXY_ResetNpcProxy; otherwise marks proxy dirty. Iterates pGame->pNpcControl->pNpc using GetTickCount for time checks.
-void __stdcall SUNITPROXY_UpdateNpcProxiesForAct(::SGAMEDATA * pGame, char nAct, BOOL bResult);
 // Called when a player enters an act town level. For the town level (eLevel), counts the players already in that level (IterateAllUnits walks pUnitList[0], the player list) and updates the NPC proxy table for the corresponding act (acts I–V). For the destination level (eLevelIdTwo), fills the intro-NPC packet for the act; also force-starts Act I quest 4, The Search for Cain (A1Q4::ForceStartQuest, a1q4.cpp), when entering Lut Gholein.
 void __fastcall IterateNpcIntroUnits(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2LevelId eLevel, eD2LevelId eLevelIdTwo);
 void __fastcall SERVER_InitClassicTowns(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);

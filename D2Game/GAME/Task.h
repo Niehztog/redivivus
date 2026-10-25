@@ -54,15 +54,9 @@ struct D2TaskQueueSlotStrc * __stdcall TASK_EnterQueueCriticalSection(uint32_t n
 // halts (line 151) when the index is >= 32. Counterpart of TASK_EnterQueueCriticalSection (00564390).
 // Unreferenced in 1.14d (entry: aligned start after padding); lines from docs/data/win-assert-oracle.tsv.
 void __stdcall TASK_LeaveQueueCriticalSection(struct D2TaskQueueSlotStrc * pSlot);
-// Inserts pTaskNode into pSlot->sTaskList in timestamp order. Register call: pSlot@ECX, pTaskNode@EDX, nDelay@EAX. Adds nDelay to the node's timestamp (+0), walks sTaskList along its +0 links past entries whose timestamp is later (signed difference > 0), and links the node's list link (pTaskNode+0xc) in before the first entry that is not later. Halts at line 0x6c if the walk ends on NULL, 0x6d if the node link is NULL.
-// Provenance: asm 00564400..00564459.
-void TASK_InsertTaskAtTimestamp(struct D2TaskQueueSlotStrc * pSlot, struct D2TaskNodeStrc * pTaskNode, int32_t nDelay);
 // Moves queued tasks from the existing slots into pSlot, then appends pSlot to the slot ring. avg = gnTaskQueueTailIndex / gnTaskQueueSlotCounter. For each slot on the gsTaskQueueListHead ring (walked along sSlotLink+4), under aTaskQueueCriticalSections[nSlotIndex] it steps along sTaskList a count derived from the slot's nTaskCount, avg and the remainder gnTaskQueueTailIndex % gnTaskQueueSlotCounter, and cuts the list there; outside the lock the cut-off nodes are merged into pSlot->sTaskList by timestamp. Finally links pSlot->sSlotLink into the ring at gsTaskQueueListHead+4; halts at line 0x78 if that link is NULL. Called by TASK_AllocateTaskQueue (005649e2).
 // Provenance: asm 00564460..005645da.
 void __stdcall TASK_MoveTasksToSlotAndLinkSlot(struct D2TaskQueueSlotStrc * pSlot);
-// Scheduled-task callback that drives one game's server tick. Looks up+locks the game by token (pTaskNode->dwUserData), runs ServerGameLoop and FlushAllClientPackets, then either reschedules itself in the per-bucket task queue (nParam&0x1f) for the next tick, or — if the game is empty/expired (idle >300s or frame in the shutdown window) — disconnects all clients (0xB0 ConnectionTerminated + cleanup), destroys the game by token, and unlinks/frees its task node. Uses the task-queue critical sections; halts via Fog ErrorManager on queue-invariant violations.
-// @sourcefile .\GAME\Task.cpp
-void __stdcall TASK_GameTickCallback(uint32_t nParam, struct D2TaskNodeStrc * pTaskNode);
 // @sourcefile .\GAME\Task.cpp
 void __stdcall TASK_FreeAllSlots();
 // @sourcefile .\GAME\Task.cpp

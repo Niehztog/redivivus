@@ -1090,7 +1090,7 @@ void __stdcall COMPRESS_Implode(void * pAddress, char * szModulePath, int * pnSe
 
       nSectionIdx++;
       pSectionHeader += 10;
-      if (*(uint16_t*)((int)pNtHeader + 6) <= nSectionIdx) {
+      if (nSectionIdx >= *(uint16_t*)((int)pNtHeader + 6)) {
         return;
       }
     }

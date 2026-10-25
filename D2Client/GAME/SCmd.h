@@ -79,9 +79,6 @@ struct D2SkillsTxt * __fastcall TXT_Skills_GetLine(eD2Skills eSkill);
 struct D2ItemStatCostTxt * __fastcall TXT_ItemStatCost_GetLine(eD2UnitStat eUnitStat);
 // Writes the character save data to disk. Constructs the full .d2s file path from the save directory and character name, validates the save buffer signature (0xaa55aa55), extracts the player status byte from the appropriate offset based on version (offset 0x18 for version <92, 0x24 for version >=92), then writes the entire raw save buffer to the file.
 void __stdcall SaveCharacter();
-// Processes one chunk of an in-flight character save upload from the client (SCmd handler). Allocates or reuses D2Game::Save::pRawSaveBuffer on the first chunk (pBytes[2]==0 skips realloc). Appends pBytes[1] bytes from the packet payload into the buffer, advancing nRawSaveBufferSize. When nRawSaveBufferSize reaches the declared total length (pBytes+3), calls SaveCharacter() and frees the buffer.
-// @sourcefile .\GAME\SCmd.cpp
-void DownloadSave(char * pBytes);
 // CLIENT CONNECTION PACKET HANDLER (0xAF-0xB4)
 //   0xAF: Connection established (D2GS_Connected = 1)
 //   0xB0: Connection terminated (D2GS_Connected = 0)
@@ -167,11 +164,8 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x16_UPDATE(char * pBytes);
 void __fastcall NET_D2GS_CLIENT_Incoming0x28_INTERACTION_ENABLE(struct D2GSPacketSrv0x28 * pBytes);
 void __fastcall NET_D2GS_CLIENT_Incoming0x62_INTERACTION_STOP(char * pBytes);
 void __fastcall NET_D2GS_CLIENT_Incoming0x29_GAMEQUESTRECORD(char * pBytes);
-// Constructs a fake S2C 0x47 packet from a unit's type/GUID and feeds it directly to ITEM_CltRecalcAllEquippedItems. Used client-side when stat changes are detected locally (e.g., level-up via SCMD_HandleStatChangeEffect) without waiting for the server packet.
-void ITEM_CltRecalcEquippedFromUnit(struct D2UnitStrc * pUnit);
 // Recomputes stat contributions of all items in pUnit's inventory. Snapshots the unit's current left/right skills, iterates every item via INVENTORY_GetFirstItem/GetNextItem, and for each carried item whose owner is confirmed, strips and re-applies its stat list via STATLIST_RemoveFromOwnerAndRecalc + STATLIST_SetItemStatActive. Finally re-selects the saved left/right skills to update skill state. Called after inventory changes that may alter active stats.
 void __fastcall SCMD_RecalcInventoryItemStats(struct D2UnitStrc * pUnit);
-void __stdcall SCMD_HandleStatChangeEffect(struct D2UnitStrc * pUnit, eD2UnitStat eUnitStat, int32_t nValue);
 // Server→client handler for stat-update opcodes 0x9E–0xA2 targeting a monster unit. Decodes the stat id (byte 1) and a value (bytes 6+, width varies by opcode: byte/word/dword). Opcodes 0xA1/0xA2 add to the stat (STATLIST_AddUnitStat); others set it (STATLIST_SetUnitStat). If the stat is UNITSTAT_level, also triggers ITEM_CltRecalcEquippedFromUnit to refresh item-level requirements.
 void __fastcall NET_D2GS_CLIENT_Incoming0x9Eto0xA2(char * pBytes);
 void __fastcall NET_D2GS_CLIENT_Incoming0xA3_PROGRESSIVE_SKILL(char * pBytes);
@@ -181,11 +175,8 @@ void __fastcall NET_D2GS_CLIENT_Incoming0xA4_PRELOAD_MONSTER(char * pBytes);
 void __fastcall NET_D2GS_CLIENT_Incoming0x19_STATCHANGE_CONTROL_GOLD_BYTE_DELTA(char * pBytes);
 void __fastcall NET_D2GS_CLIENT_Incoming0x20(char * pBytes);
 void __stdcall SCMD_DecodeRelativeCoordinates(uint16_t nByteY, int16_t nBaseX, int16_t nBaseY, short * pOutX, short * pOutY, uint16_t nByteX);
-void __stdcall DecodeIncoming0x18(struct D2GSPacket0x18Decoded * pDest, char * pBytes);
 void __fastcall NET_D2GS_CLIENT_Incoming0x18_PLAYERCOMMONSTATCHANGE_BIG(char * pBytes);
-void __stdcall DecodeIncoming0x95(struct D2GSPacket0x95Decoded * pDest, char * pBytes);
 void __fastcall NET_D2GS_CLIENT_Incoming0x95_PLAYERCOMMONSTATCHANGE_MEDIUM(char * pBytes);
-void __stdcall DecodeIncoming0x96(struct D2GSPacket0x96Decoded * pDest, char * pBytes);
 void __fastcall NET_D2GS_CLIENT_Incoming0x96_PlayerLeave(char * pBytes);
 // @sourcefile .\GAME\SCmd.cpp
 void __fastcall NET_D2GS_CLIENT_Incoming0x21_SETSKILLLEVEL(char * pBytes);
@@ -280,10 +271,6 @@ void __fastcall NET_D2GS_CLIENT_Incoming0xAB(char * pBytes);
 // Client-side handler for server packet 0xAC (assign/create monster unit). Reads fixed header (unitGUID@+1, monstatId@+5, x@+7, y@+9, hp byte@+0xb) then a bit stream from +0xd: unit type, optional component/equipment bytes per MonStats2 layout, monster-type flags (Champion/Unique/SuperUnique/Minion/Ghostly), optional super-unique index and name, nameId and owner GUID. Calls UNIT_CreateMonster to instantiate the client unit, resets its anim frame cache, seeds maxhp/hitpoints and a packed x+y pierce-idx stat, stores owner info, then drains a (statId,value[,param]) list per ItemStatCost sendBits into a freshly attached stat list. Skips HP seeding for the local player's hireling. NOTE: pUnit is read after UNIT_CreateMonster but the call's return is not visibly assigned to it in this decompile (likely an out/return artifact).
 void __fastcall NET_D2GS_CLIENT_Incoming0xAC(char * pPacketData);
 void __fastcall NET_D2GS_CLIENT_Incoming0xAE_WARDENDATA(char * pBytes);
-// Allocates or grows the D2ServerCmdStrc packet buffer array for pUnit. On first call, scans NET_D2GS_CLIENT_INCOMING to find the largest packet size and caches it in nD2PacketsClientBufferSize (+5 bytes overhead). If pUnit has no D2ServerCmdStrc yet, allocates one. Grows the buffer array by 5 slots (alloc + memcpy old data + free old), updates nBufferArraySize, and returns the D2ServerCmdStrc pointer.
-// @sourcefile .\GAME\SCmd.cpp
-struct D2ServerCmdStrc * STRUCT_CreateAndPreprareServerCmd(struct D2UnitStrc * pUnit);
-void __stdcall NET_D2GS_CLIENT_PutIncomingBytesIntoServerCmdStructure(size_t nExpectedSize, struct D2UnitStrc * pUnit, char * pBytes);
 // CLIENT S2C PACKET DISPATCHER (game packets 0x00-0xAE)
 // Table: NET_D2GS_CLIENT_INCOMING at 0x007114D0 (175 entries, 12 bytes each)
 // Entry: {fpHandler:4, nExpectedSize:4, fpHandlerUnit:4}

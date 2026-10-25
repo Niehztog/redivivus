@@ -61,11 +61,11 @@ BOOL __stdcall ARCHIVE_LoadMPQFiles() {
     return 0;
 }
 
-uint16_t * __stdcall STRTABLE_GetStringByIndex(D2StringTableTblFileStrc * pStrTable, uint16_t * * ppEntryTable, uint16_t wRawIndex, DWORD dwErrorCode) {
+static uint16_t * __stdcall STRTABLE_GetStringByIndex(D2StringTableTblFileStrc * pStrTable, uint16_t * * ppEntryTable, uint16_t wRawIndex, DWORD dwErrorCode) {
     uint16_t _wRawIndex;
     uint16_t wBoundedIndex = wRawIndex;
     _wRawIndex = (uint32_t)wRawIndex;
-    if (pStrTable->wIndexCount <= wBoundedIndex) {
+    if (wBoundedIndex >= pStrTable->wIndexCount) {
       _wRawIndex = 500;
     }
 
@@ -117,7 +117,7 @@ uint16_t * __fastcall GetLocaleString(uint16_t nParam) {
     uint16_t* pResult;
     uint16_t wParamHigh;
     DWORD dwRawIndex = (uint32_t)(uint32_t)(uint16_t)nParam;
-    if (19999 < nParam) {
+    if (20000 <= nParam) {
       if (!gpStringTableExpansion) {
         dwRawIndex = 0x2b46;
       } else {
@@ -129,23 +129,23 @@ uint16_t * __fastcall GetLocaleString(uint16_t nParam) {
     }
 
     uint16_t wClampedIndex = (uint16_t)dwRawIndex;
-    if (gpStringTablePatchD2 && 9999 < wClampedIndex) {
+    if (gpStringTablePatchD2 && 10000 <= wClampedIndex) {
       pResult = STRTABLE_GetStringByIndex(gpStringTablePatchD2, gpStringIndexPatchD2, wClampedIndex + 0xd8f0, dwRawIndex);
       if (pResult) {
         return pResult;
       }
     }
-    if (gpStringTableBase) {
-      pResult = STRTABLE_GetStringByIndex(gpStringTableBase, gpStringIndexBase, wClampedIndex, dwRawIndex);
-      return pResult;
+    if (!gpStringTableBase) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x246);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x246);
-    exit(-1);
+    pResult = STRTABLE_GetStringByIndex(gpStringTableBase, gpStringIndexBase, wClampedIndex, dwRawIndex);
+    return pResult;
 }
 
 // @sourcefile .\StrTable\strtable.cpp
-uint16_t * __fastcall STRTABLE_GetTranslatedString(uint8_t * pbParam) {
+static uint16_t * __fastcall STRTABLE_GetTranslatedString(uint8_t * pbParam) {
     int nCmp;
     uint8_t* pbKeyCopy;
     char* pcFormatted;
@@ -228,7 +228,7 @@ uint16_t * __fastcall STRTABLE_GetTranslatedString(uint8_t * pbParam) {
     } while (true);
 }
 
-uint16_t __stdcall STRTABLE_FindStringByKey(uint16_t * * ppHashTable, uint8_t * pbParam, int * pnParam, D2StringTableTblFileStrc * pStrTable) {
+static uint16_t __stdcall STRTABLE_FindStringByKey(uint16_t * * ppHashTable, uint8_t * pbParam, int * pnParam, D2StringTableTblFileStrc * pStrTable) {
     int nCmp;
     int iVar1 = (uint32_t)pStrTable->wIndexCount * 2;
     uint32_t nProbeCount = 0;
@@ -244,13 +244,13 @@ uint16_t __stdcall STRTABLE_FindStringByKey(uint16_t * * ppHashTable, uint8_t * 
       if (*pcSlot == '\x01') {
         nCmp = strcmp((char*)(uint8_t*)((uintptr_t)&pStrTable->wCRC + *(int*)(pcSlot + 7)), (char*)pbParam);
         if (!nCmp) {
-          if (ppHashTable[nHashIdx]) {
-            *pnParam = (int)ppHashTable[nHashIdx];
-            return *(uint16_t*)((uintptr_t)&pStrTable[1].wCRC + nHashIdx * 0x11 + 1 + iVar1);
+          if (!ppHashTable[nHashIdx]) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x296);
+            exit(-1);
           }
 
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x296);
-          exit(-1);
+          *pnParam = (int)ppHashTable[nHashIdx];
+          return *(uint16_t*)((uintptr_t)&pStrTable[1].wCRC + nHashIdx * 0x11 + 1 + iVar1);
         }
       }
 
@@ -392,7 +392,7 @@ void STRTABLE_UpdateCRC(uint16_t * pwCRC, uint8_t byData) {
 
 void __stdcall STRTABLE_CalculateCRC(uint16_t * pwCRC, int32_t pBuffer, uint32_t nOffset, uint32_t nEndOffset) {
     uint8_t* pbData;
-    if (nEndOffset <= nOffset) {
+    if (nOffset >= nEndOffset) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x3ea);
       exit(-1);
     }
@@ -467,7 +467,7 @@ uint32_t __stdcall MISC_GetLanguageCode() {
       gnLanguageCode = (uint32_t)*pMemoryToFree;
       D2_FREE(pMemoryToFree);
     }
-    if (0xd >= (int)gnLanguageCode) {
+    if (0xe > (int)gnLanguageCode) {
       return gnLanguageCode;
     }
 
@@ -793,7 +793,7 @@ void __stdcall TABLES_GetLangAbbreviation(char * szOutAbbrev, int32_t nFormat) {
         nLangIdx++;
       } while ((int)&gaLanguageTable[nLangIdx].dwLangId < (uintptr_t)((char*)&gaLanguageTable + sizeof(gaLanguageTable) + 20));
 
-      if (0xd < nLangIdx) {
+      if (0xe <= nLangIdx) {
         nLangIdx = 0;
       }
     }
@@ -877,7 +877,6 @@ void __stdcall STRTABLE_FormatNumber(uint16_t * wszText, uint32_t nValue, int32_
 
           nOutPos = nOutPos2;
           if (!nRawDigitCount) {
-            Fog::Debug::GuardStack();
             return;
           }
         }
@@ -891,7 +890,6 @@ void __stdcall STRTABLE_FormatNumber(uint16_t * wszText, uint32_t nValue, int32_
     wszFallback[1] = 0;
     UTF8_ConvertToWideChar(wszFallback, "*", 2);
     Unicode::UNISYS::STRING_CopyWideString(pwszOut, wszFallback);
-    Fog::Debug::GuardStack();
 }
 
 void __stdcall STRTABLE_FormatInt64(uint16_t * wszText, int32_t nParam1, int32_t nParam2, int32_t nParam3) {
@@ -911,11 +909,11 @@ void __stdcall STRTABLE_FormatInt64(uint16_t * wszText, int32_t nParam1, int32_t
     char cChar;
     __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     int nCommaCounter = 0;
-    if (nParam3 < 3) {
+    if (nParam3 <= 2) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x519);
       exit(-1);
     }
-    if (nParam2 < 1 && (nParam2 < 0 || false)) {
+    if (nParam2 <= 0 && (nParam2 < 0 || false)) {
       *wszText = L'-';
       wszText++;
       nParam3--;
@@ -930,7 +928,7 @@ void __stdcall STRTABLE_FormatInt64(uint16_t * wszText, int32_t nParam1, int32_t
     int nDigitCount = (int)pcDigit - (int)(__frame0.szDigitBuf + 2);
     if (nDigitCount) {
       nOutPos = (nDigitCount - 1) / 3 + nDigitCount;
-      if (0 < nOutPos && nOutPos < nParam3 - 1) {
+      if (1 <= nOutPos && nOutPos < nParam3 - 1) {
         wszText[nOutPos] = L'\0';
         while (nOutPos) {
           pcDigit = __frame0.szDigitBuf + nDigitCount;
@@ -948,7 +946,6 @@ void __stdcall STRTABLE_FormatInt64(uint16_t * wszText, int32_t nParam1, int32_t
 
           nOutPos = nOutPos2;
           if (!nDigitCount) {
-            Fog::Debug::GuardStack();
             return;
           }
         }
@@ -963,7 +960,6 @@ void __stdcall STRTABLE_FormatInt64(uint16_t * wszText, int32_t nParam1, int32_t
     __frame0.szDigitBuf[0] = '\0';
     UTF8_ConvertToWideChar(&__frame0.wcFallback, "*", 2);
     Unicode::UNISYS::STRING_CopyWideString(wszText, &__frame0.wcFallback);
-    Fog::Debug::GuardStack();
 }
 
 void __stdcall STRTABLE_FormatUInt64WithAbbrev(uint16_t * wszText, uint32_t dwParam1, uint32_t dwParam2, int32_t nParam) {
@@ -985,7 +981,7 @@ void __stdcall STRTABLE_FormatUInt64WithAbbrev(uint16_t * wszText, uint32_t dwPa
     __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     int nCommaCounter;
     nCommaCounter = 0;
-    if (nParam < 3) {
+    if (nParam <= 2) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x54b);
       exit(-1);
     }
@@ -1005,17 +1001,17 @@ void __stdcall STRTABLE_FormatUInt64WithAbbrev(uint16_t * wszText, uint32_t dwPa
       Unicode::UNISYS::STRING_CopyWideString(wszText, &__frame0.wcFallback);
     } else {
       nMagnitude = (nDigitCount - 1) / 3 - 1;
-      if (nMagnitude < 4) {
+      if (!(nMagnitude < 4)) {
+        nMagnitude = 4;
+      } else {
         if (nMagnitude < 0) {
           nMagnitude = 0;
         }
-      } else {
-        nMagnitude = 4;
       }
 
       nDigitCount += nMagnitude * -3;
       nOutPos = (nDigitCount - 1) / 3 + nDigitCount;
-      if (nOutPos < 1 || nParam - 2 <= nOutPos) {
+      if (nOutPos < 1 || nOutPos >= nParam - 2) {
         goto write_placeholder;
       }
 
@@ -1049,7 +1045,7 @@ void __stdcall STRTABLE_FormatUInt64WithAbbrev(uint16_t * wszText, uint32_t dwPa
           nMagnitude = nOutPos - 1;
           nCommaCounter++;
           wszText[nMagnitude] = (short int)*pcDigit;
-          if (2 < nCommaCounter) {
+          if (3 <= nCommaCounter) {
             nCommaCounter = 0;
             if (0 < nMagnitude) {
               nMagnitude = nOutPos - 2;
@@ -1059,7 +1055,6 @@ void __stdcall STRTABLE_FormatUInt64WithAbbrev(uint16_t * wszText, uint32_t dwPa
 
           nOutPos = nMagnitude;
           if (!nDigitCount) {
-            Fog::Debug::GuardStack();
             return;
           }
         }
@@ -1069,7 +1064,6 @@ void __stdcall STRTABLE_FormatUInt64WithAbbrev(uint16_t * wszText, uint32_t dwPa
       }
     }
 
-    Fog::Debug::GuardStack();
 }
 
 void STRTABLE_LoadAbbreviationSymbols(DWORD dwParam) {
@@ -1115,12 +1109,10 @@ void STRTABLE_LoadAbbreviationSymbols(DWORD dwParam) {
             pszScanPtr = pszScanPtr + strlen(pszScanPtr) + 1;
             if (1 < (uint32_t)((int)pszScanPtr - (int)(szAbbrevBuf + 1))) {
               gcAbbrevTrilSymbol = 0x54;
-              Fog::Debug::GuardStack();
               return;
             }
 
             gcAbbrevTrilSymbol = (short int)szAbbrevBuf[0];
-            Fog::Debug::GuardStack();
             return;
           }
         }
@@ -1152,11 +1144,11 @@ uint16_t * __fastcall STRTABLE_LoadStringTableFile(char * szFileName) {
 
     uint32_t* pdwNodeStringOffset = (uint32_t*)((uintptr_t)&pArchive[1].dwDataStartOffset + (uint32_t)pArchive->wIndexCount * 2 + 2);
     do {
-      if (pArchive->dwFileSize <= pdwNodeStringOffset[-1]) {
+      if (pdwNodeStringOffset[-1] >= pArchive->dwFileSize) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe0);
         exit(-1);
       }
-      if (pArchive->dwFileSize <= *pdwNodeStringOffset) {
+      if (*pdwNodeStringOffset >= pArchive->dwFileSize) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe1);
         exit(-1);
       }
@@ -1186,18 +1178,17 @@ int __fastcall TABLES_LoadStrings(D2PoolManagerStrc * pPoolManager, char * szTex
     uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     if (gpStringTableBase) {
       gnStringTableRefCount++;
-      Fog::Debug::GuardStack();
       return 1;
     }
-    if (!szText) {
-      TABLES_GetLangAbbreviation(l, 0);
-    } else {
+    if (szText) {
       i = -(int)szText;
       do {
         cCurChar = *szText;
         szText[(int)(l + i)] = cCurChar;
         szText++;
       } while (cCurChar != '\0');
+    } else {
+      TABLES_GetLangAbbreviation(l, 0);
     }
 
     i = __stricmp(l, "JPN");
@@ -1229,7 +1220,6 @@ int __fastcall TABLES_LoadStrings(D2PoolManagerStrc * pPoolManager, char * szTex
     D2StringTableTblFileStrc* pTblFile = (D2StringTableTblFileStrc*)STRTABLE_LoadStringTableFile(szPathBuf);
     gpStringTableBase = pTblFile;
     if (!pTblFile) {
-      Fog::Debug::GuardStack();
       return 0;
     }
 
@@ -1362,7 +1352,6 @@ int __fastcall TABLES_LoadStrings(D2PoolManagerStrc * pPoolManager, char * szTex
       POOLPROBE("expansion-convert-loop-done");
       STRTABLE_LoadAbbreviationSymbols((DWORD)pEntryData);
       POOLPROBE("abbrev-symbols-done");
-      Fog::Debug::GuardStack();
       return 1;
     }
 

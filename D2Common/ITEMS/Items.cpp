@@ -206,17 +206,17 @@ void __stdcall SetModSeed(D2UnitStrc * pUnit, int32_t nModSeed) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x187);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      if (pUnit->pUnitData.pUnitDataItem) {
-        pUnit->pUnitData.pUnitDataItem->nModSeed = nModSeed;
-        return;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x18b);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x188);
       exit(-1);
+    } else {
+      if (!pUnit->pUnitData.pUnitDataItem) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x18b);
+        exit(-1);
+      }
+
+      pUnit->pUnitData.pUnitDataItem->nModSeed = nModSeed;
+      return;
     }
 }
 
@@ -561,7 +561,7 @@ int32_t __stdcall ITEMTYPE_IsShoots(int32_t nItemType) {
 }
 
 int32_t __stdcall ITEMTYPE_IsQuiver(int32_t nItemType) {
-    if (!(-1 < nItemType && nItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + nItemType)) {
+    if (!(0 <= nItemType && nItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + nItemType)) {
       return 0;
     }
 
@@ -569,7 +569,7 @@ int32_t __stdcall ITEMTYPE_IsQuiver(int32_t nItemType) {
 }
 
 BOOL __stdcall ITEMTYPE_IsAutostack(int32_t nItemType) {
-    if (!(-1 < nItemType && nItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + nItemType)) {
+    if (!(0 <= nItemType && nItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + nItemType)) {
       return 0;
     }
 
@@ -594,17 +594,17 @@ int32_t __stdcall ITEM_GetItemsTxt_dw2HandedWClass(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x608);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return pItemsTxt->dw2HandedWClass;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x60c);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x609);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x60c);
+        exit(-1);
+      }
+
+      return pItemsTxt->dw2HandedWClass;
     }
 }
 
@@ -613,17 +613,17 @@ uint32_t __stdcall ITEM_GetItemsTxt_szCode(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x61a);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return pItemsTxt->dwCode;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x61e);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x61b);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x61e);
+        exit(-1);
+      }
+
+      return pItemsTxt->dwCode;
     }
 }
 
@@ -632,7 +632,10 @@ int32_t __stdcall ITEM_GetItemsTxt_dwAlternateGfxIfExists(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x627);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x628);
+      exit(-1);
+    } else {
       pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
       if (pItemsTxt) {
         if (!pItemsTxt->dwAlternateGfx) {
@@ -644,9 +647,6 @@ int32_t __stdcall ITEM_GetItemsTxt_dwAlternateGfxIfExists(D2UnitStrc * pUnit) {
 
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x62b);
       exit(-1);
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x628);
-      exit(-1);
     }
 }
 
@@ -655,17 +655,17 @@ uint8_t __stdcall ITEM_GetItemsTxt_bComponent(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x634);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return pItemsTxt->bComponent;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x638);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x635);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x638);
+        exit(-1);
+      }
+
+      return pItemsTxt->bComponent;
     }
 }
 
@@ -685,12 +685,12 @@ void __stdcall ITEM_GetItemsTxt_nWidthAndHeight(D2UnitStrc * pUnit, char * pWidt
 
 eD2ItemTypes __stdcall TXT_Items_GetType(uint32_t nItemClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return (int)pItemsTxt->wType;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x68d);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x68d);
-    exit(-1);
+    return (int)pItemsTxt->wType;
     return (int)pItemsTxt->wType;
 }
 
@@ -699,17 +699,17 @@ uint8_t __stdcall ITEM_GetItemsTxt_nLevel(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x696);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return pItemsTxt->nLevel;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x69a);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x697);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x69a);
+        exit(-1);
+      }
+
+      return pItemsTxt->nLevel;
     }
 }
 
@@ -746,7 +746,7 @@ int32_t __stdcall IITEM_GetItemsTxt_dwNormCode(D2UnitStrc * pUnit) {
     }
 }
 
-int __stdcall ITEMS_nullsub(int nMaxLvlReq, D2MagicAffixTxt * pAffixTxt, D2UnitStrc * pPlayer) {
+static int __stdcall ITEMS_nullsub(int nMaxLvlReq, D2MagicAffixTxt * pAffixTxt, D2UnitStrc * pPlayer) {
     uint8_t bVar1;
     if (!pAffixTxt) {
       return nMaxLvlReq;
@@ -765,7 +765,7 @@ int __stdcall ITEMS_nullsub(int nMaxLvlReq, D2MagicAffixTxt * pAffixTxt, D2UnitS
 }
 
 BOOL __stdcall TXT_ItemTypes_CheckIfTypeIsThrowable(int32_t nItemType) {
-    if (!(-1 < nItemType && nItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + nItemType)) {
+    if (!(0 <= nItemType && nItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + nItemType)) {
       return 0;
     }
 
@@ -792,12 +792,12 @@ uint8_t __stdcall ITEM_GetItemsTxt_nRangeAdder(D2UnitStrc * pUnit) {
 
 BOOL __stdcall TXT_Items_ConfirmWClass(uint32_t nClassId, int32_t dwWClass) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nClassId);
-    if (pItemsTxt) {
-      return (uint32_t)(pItemsTxt->dwWClass == dwWClass);
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8eb);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x8eb);
-    exit(-1);
+    return (uint32_t)(pItemsTxt->dwWClass == dwWClass);
     return (uint32_t)(pItemsTxt->dwWClass == dwWClass);
 }
 
@@ -812,12 +812,12 @@ BOOL __stdcall HasWeaponClass(D2UnitStrc * pUnit, int32_t dwWClass) {
 
 BOOL __stdcall TXT_Items_Getb2Handed(uint32_t nClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nClassId);
-    if (pItemsTxt) {
-      return (uint32_t)pItemsTxt->b2Handed;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x906);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x906);
-    exit(-1);
+    return (uint32_t)pItemsTxt->b2Handed;
     return (uint32_t)pItemsTxt->b2Handed;
 }
 
@@ -838,12 +838,12 @@ BOOL __stdcall IsStackable(D2UnitStrc * pUnit) {
     }
 
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-    if (pItemsTxt) {
-      return (uint32_t)pItemsTxt->bStackable;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x922);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x922);
-    exit(-1);
+    return (uint32_t)pItemsTxt->bStackable;
     return (uint32_t)pItemsTxt->bStackable;
 }
 
@@ -936,7 +936,10 @@ BOOL __stdcall INVENTORY_CheckIfItemCanBeAutoBelted(D2InventoryStrc * pInventory
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9a6);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9a7);
+      exit(-1);
+    } else {
       pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
       if (pItemsTxt) {
         if (pItemsTxt->bAutoBelt != '\0') {
@@ -953,9 +956,6 @@ BOOL __stdcall INVENTORY_CheckIfItemCanBeAutoBelted(D2InventoryStrc * pInventory
 
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9a9);
       exit(-1);
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9a7);
-      exit(-1);
     }
 }
 
@@ -966,12 +966,12 @@ int32_t __stdcall IsUseable(D2UnitStrc * pUnit) {
     }
 
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-    if (pItemsTxt) {
-      return (uint32_t)pItemsTxt->bUseable;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9c4);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9c4);
-    exit(-1);
+    return (uint32_t)pItemsTxt->bUseable;
     return (uint32_t)pItemsTxt->bUseable;
 }
 
@@ -980,17 +980,17 @@ int32_t __stdcall IsUnique(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9cd);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return (uint32_t)pItemsTxt->bUnique;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9d1);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9ce);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9d1);
+        exit(-1);
+      }
+
+      return (uint32_t)pItemsTxt->bUnique;
     }
 }
 
@@ -999,17 +999,17 @@ int32_t __stdcall IsQuestItem(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9da);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return (uint32_t)pItemsTxt->bQuest;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9de);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9db);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9de);
+        exit(-1);
+      }
+
+      return (uint32_t)pItemsTxt->bQuest;
     }
 }
 
@@ -1056,7 +1056,7 @@ int32_t __fastcall ITEMS_CalcChargedSkillPriceModifier(D2UnitStrc * pUnit, int32
 
 // Adds an item's stat-driven cost to its three prices. Copies the item's stats (up to 511), and for each nonzero stat (shifted by ItemStatCost valshift) takes cost multiply/add from its ItemStatCost row by encode: 1 = SkillsTxt costmult/costadd of the stat's skill, 2/3 = same for a charged skill (packed sub-index), 4 = ITEMMODS_CalculateRepairCost min/max average, otherwise ItemStatCost multiply/add. The per-stat cost scales the incoming sell price (>>10), buy price (>>12 for skill encodes, >>10 otherwise) and repair price (>>10); each sum is divided by nDivisor and added to *pnSellPrice, *pnBuyPrice and *pnRepairPrice.
 // Provenance: 1.14d asm 00628e70; sole caller ITEMS_CalcTransactionCost 0062f81a passes (pItem, &nSellPrice, &nBuyPrice, &nRepairPrice, nMaxStack).
-void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice, int * pnBuyPrice, int * pnRepairPrice, uint32_t nDivisor) {
+static void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice, int * pnBuyPrice, int * pnRepairPrice, uint32_t nDivisor) {
     int nCostAdd;
     int nCostTmp;
     int nRepairCostTmp;
@@ -1098,11 +1098,11 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
 
             switch (pStatCostTxt->encode) {
               case '\x01':
-                if (false || sgptDataTable->nTxtSkillsCount <= (int)(uint32_t)(uint16_t)aStatBuf[nStatIdx].wSubIndex || (pSkillsTxt = sgptDataTable->pTxtSkills + (uint16_t)aStatBuf[nStatIdx].wSubIndex , !pSkillsTxt)) {
+                if (false || (int)(uint32_t)(uint16_t)aStatBuf[nStatIdx].wSubIndex >= sgptDataTable->nTxtSkillsCount || (pSkillsTxt = sgptDataTable->pTxtSkills + (uint16_t)aStatBuf[nStatIdx].wSubIndex , !pSkillsTxt)) {
                   continue;
                 }
               nCostTmp = *pnSellPriceSaved * nStatVal;
-              if (nCostTmp < 0x10000 || !pSkillsTxt->costmult) {
+              if (nCostTmp <= 0xffff || !pSkillsTxt->costmult) {
                 nCostTmp = pSkillsTxt->costmult;
                 nRepairCostTmp = pSkillsTxt->costadd;
                 nCostAdd = nCostTmp * *pnSellPriceSaved * nStatVal;
@@ -1126,7 +1126,7 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
               case '\x03':
                 nCostTmp = (int)(uint32_t)(uint16_t)aStatBuf[nStatIdx].wSubIndex >> ((uint8_t)sgptDataTable->nChargedSkillLevelBits & 0x1f);
               nAvgDmgCost = sgptDataTable->dwChargedSkillLevelMask & (uint32_t)(uint16_t)aStatBuf[nStatIdx].wSubIndex;
-              if (nCostTmp < 0 || sgptDataTable->nTxtSkillsCount <= nCostTmp) {
+              if (nCostTmp < 0 || nCostTmp >= sgptDataTable->nTxtSkillsCount) {
                 pSkillsTxt = 0;
               } else {
                 pSkillsTxt = sgptDataTable->pTxtSkills + nCostTmp;
@@ -1158,7 +1158,7 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
                 ItemMods::ITEMMODS_CalculateRepairCost(nStatVal, 0, 0, &nRepairCost, &nRepairMinDmg, &nRepairMaxDmg);
               nAvgDmgCost = (nRepairMinDmg + nRepairMaxDmg) / 2;
               nCostTmp = *pnSellPriceSaved * nAvgDmgCost;
-              if (nCostTmp < 0x10000 || !pStatCostTxt->multiply) {
+              if (nCostTmp <= 0xffff || !pStatCostTxt->multiply) {
                 nCostTmp = pStatCostTxt->multiply;
                 nCostAdd = pStatCostTxt->add;
                 nRepairCostTmp = nCostTmp * *pnSellPriceSaved * nAvgDmgCost;
@@ -1179,7 +1179,7 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
               break;
               default:
                 nCostTmp = *pnSellPriceSaved * nStatVal;
-              if (nCostTmp < 0x10000 || !pStatCostTxt->multiply) {
+              if (nCostTmp <= 0xffff || !pStatCostTxt->multiply) {
                 nCostTmp = pStatCostTxt->multiply;
                 nCostAdd = pStatCostTxt->add;
                 nRepairCostTmp = nCostTmp * *pnSellPriceSaved * nStatVal;
@@ -1211,7 +1211,7 @@ void __fastcall ITEM_AddStatCostsToPrices(D2UnitStrc * pItem, int * pnSellPrice,
     *pnRepairPrice += nRepairCostSum / nDivisor;
 }
 
-void __stdcall ITEMS_AddInventoryValueToTotal(int * pTotal1, int * pTotal2, int * pTotal3, D2UnitStrc * pOwnerUnit) {
+static void __stdcall ITEMS_AddInventoryValueToTotal(int * pTotal1, int * pTotal2, int * pTotal3, D2UnitStrc * pOwnerUnit) {
     D2ItemsTxt* pItemsTxt;
     int nHalfCost;
     int nCostSum1 = 0;
@@ -1241,7 +1241,7 @@ void __stdcall ITEMS_AddInventoryValueToTotal(int * pTotal1, int * pTotal2, int 
 }
 
 // Computes the gold cost to gamble an item at a vendor. Resolves the item's normal-quality base via normcode, then looks up uber and ultra upgrade tiers. Weights each tier by how many levels above its minimum level requirement the player is (clamped to 0). Combines a level-scaled base formula with a weighted average of base/uber/ultra costs and stack size. Ring and amulet items ("rin " / "amu " codes) bypass the calculation and return the fixed GambleCost field directly.
-int32_t __stdcall ITEMS_CalculateGamblePrice(int32_t nLevel, D2UnitStrc * pItem) {
+static int32_t __stdcall ITEMS_CalculateGamblePrice(int32_t nLevel, D2UnitStrc * pItem) {
     D2ItemsTxt* pUberItemsTxt;
     uint32_t nItemClassId = IITEM_GetItemsTxt_dwNormCode(pItem);
     nItemClassId = DATATBLS::ItemTbls::TXT_Items_ConvertItemCodeToItemClassId(nItemClassId);
@@ -1302,12 +1302,12 @@ int32_t __stdcall ITEMS_CalculateGamblePrice(int32_t nLevel, D2UnitStrc * pItem)
 
 int32_t __stdcall TXT_Items_GetMaxStack(uint32_t nItemClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return pItemsTxt->dwMaxStack;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd4f);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd4f);
-    exit(-1);
+    return pItemsTxt->dwMaxStack;
     return pItemsTxt->dwMaxStack;
 }
 
@@ -1323,7 +1323,7 @@ int __stdcall ITEM_GetMaxStack(D2UnitStrc * pUnit) {
         nLine = TXT_Items_GetMaxStack(pUnit->nClassId);
         nMaxStack = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_extra_stack, 0);
         nMaxStack = nLine + nMaxStack;
-        if (0x1fe >= nMaxStack) {
+        if (0x1ff > nMaxStack) {
           return nMaxStack;
         }
 
@@ -1338,12 +1338,12 @@ int __stdcall ITEM_GetMaxStack(D2UnitStrc * pUnit) {
 
 int32_t __stdcall TXT_Items_GetSpawnStack(uint32_t nItemClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return pItemsTxt->dwSpawnStack;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd6c);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd6c);
-    exit(-1);
+    return pItemsTxt->dwSpawnStack;
     return pItemsTxt->dwSpawnStack;
 }
 
@@ -1353,24 +1353,24 @@ int32_t __stdcall ITEM_GetItemsTxt_dwSpawnStack(D2UnitStrc * pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd7b);
       exit(-1);
     } else {
-      if (pUnit->eUnitType == UNIT_ITEM) {
-        nLine = TXT_Items_GetSpawnStack(pUnit->nClassId);
-        return nLine;
+      if (pUnit->eUnitType != UNIT_ITEM) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd7c);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd7c);
-      exit(-1);
+      nLine = TXT_Items_GetSpawnStack(pUnit->nClassId);
+      return nLine;
     }
 }
 
 int32_t __stdcall TXT_Items_GetMinStack(uint32_t nItemClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return pItemsTxt->dwMinStack;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd8a);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd8a);
-    exit(-1);
+    return pItemsTxt->dwMinStack;
     return pItemsTxt->dwMinStack;
 }
 
@@ -1380,13 +1380,13 @@ int32_t __stdcall ITEM_GetItemsTxt_dwMinStack(D2UnitStrc * pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd93);
       exit(-1);
     } else {
-      if (pUnit->eUnitType == UNIT_ITEM) {
-        nLine = TXT_Items_GetMinStack(pUnit->nClassId);
-        return nLine;
+      if (pUnit->eUnitType != UNIT_ITEM) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd94);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd94);
-      exit(-1);
+      nLine = TXT_Items_GetMinStack(pUnit->nClassId);
+      return nLine;
     }
 }
 
@@ -1395,17 +1395,17 @@ uint32_t __stdcall TXT_Items_GetBitFieldAnd0x08(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd9d);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return pItemsTxt->dwBitfield1 & 8;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xda0);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xd9e);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xda0);
+        exit(-1);
+      }
+
+      return pItemsTxt->dwBitfield1 & 8;
     }
 }
 
@@ -1414,17 +1414,17 @@ bool __stdcall ITEM_GetItemsTxt_bDurWarning(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdc3);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return pItemsTxt->bDurWarning;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdc6);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdc4);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdc6);
+        exit(-1);
+      }
+
+      return pItemsTxt->bDurWarning;
     }
 }
 
@@ -1433,17 +1433,17 @@ bool __stdcall ITEM_GetItemsTxt_bQntWarning(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdcf);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return pItemsTxt->bQntWarning;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdd2);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdd0);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdd2);
+        exit(-1);
+      }
+
+      return pItemsTxt->bQntWarning;
     }
 }
 
@@ -1512,7 +1512,7 @@ uint32_t __stdcall ITEM_CheckIfItemHasDurability(D2UnitStrc * pUnit) {
     }
 
     int nMaxDurabilityFromStats = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_indesctructible, 0);
-    return (uint32_t)(nMaxDurabilityFromStats < 1);
+    return (uint32_t)(nMaxDurabilityFromStats <= 0);
 }
 
 bool __stdcall TXT_Items_GetGemSockets(uint32_t nItemClassId) {
@@ -1530,24 +1530,24 @@ int32_t __stdcall ITEM_GetSocketsCount(D2UnitStrc * pUnit) {
       exit(-1);
     } else {
       int nSocketCount;
-      if (pUnit->eUnitType == UNIT_ITEM) {
-        nSocketCount = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_numsockets, 0);
-        return nSocketCount;
+      if (pUnit->eUnitType != UNIT_ITEM) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xea7);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xea7);
-      exit(-1);
+      nSocketCount = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_numsockets, 0);
+      return nSocketCount;
     }
 }
 
 uint32_t __stdcall TXT_Items_GetGemApplyType(uint32_t nItemClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return (uint32_t)pItemsTxt->bGemApplyType;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf28);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf28);
-    exit(-1);
+    return (uint32_t)pItemsTxt->bGemApplyType;
     return (uint32_t)pItemsTxt->bGemApplyType;
 }
 
@@ -1558,13 +1558,13 @@ uint32_t __stdcall ITEM_GetItemsTxt_bGemApplyType(D2UnitStrc * pUnit) {
       exit(-1);
     } else {
       uint32_t uVar1;
-      if (pUnit->eUnitType == UNIT_ITEM) {
-        uVar1 = TXT_Items_GetGemApplyType(pUnit->nClassId);
-        return uVar1;
+      if (pUnit->eUnitType != UNIT_ITEM) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf3e);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xf3e);
-      exit(-1);
+      uVar1 = TXT_Items_GetGemApplyType(pUnit->nClassId);
+      return uVar1;
     }
 }
 
@@ -1631,34 +1631,34 @@ uint32_t __stdcall ITEMS_IsA(D2UnitStrc * pUnit, eD2ItemTypes eItemType) {
 
 uint32_t __stdcall TXT_Items_GetBitFieldAnd0x01(uint32_t nItemClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return pItemsTxt->dwBitfield1 & 1;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1040);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1040);
-    exit(-1);
+    return pItemsTxt->dwBitfield1 & 1;
     return pItemsTxt->dwBitfield1 & 1;
 }
 
 uint32_t __stdcall TXT_Items_GetBitFieldAnd0x02(uint32_t nItemClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return pItemsTxt->dwBitfield1 & 2;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x104a);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x104a);
-    exit(-1);
+    return pItemsTxt->dwBitfield1 & 2;
     return pItemsTxt->dwBitfield1 & 2;
 }
 
 uint32_t __stdcall TXT_Items_GetBitFieldAnd0x04(uint32_t nItemClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return pItemsTxt->dwBitfield1 & 4;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1054);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1054);
-    exit(-1);
+    return pItemsTxt->dwBitfield1 & 4;
     return pItemsTxt->dwBitfield1 & 4;
 }
 
@@ -1680,16 +1680,16 @@ int __stdcall ITEM_GetItemData_nFileIndex(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1070);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      if (pUnit->pUnitData.pUnitDataItem) {
-        return pUnit->pUnitData.pUnitDataItem->nFileIndex;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1073);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1071);
       exit(-1);
+    } else {
+      if (!pUnit->pUnitData.pUnitDataItem) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1073);
+        exit(-1);
+      }
+
+      return pUnit->pUnitData.pUnitDataItem->nFileIndex;
     }
 }
 
@@ -1697,17 +1697,17 @@ void __stdcall ITEM_SetItemData_nFileIndex(D2UnitStrc * pUnit, DWORD dwFileIndex
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x107c);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      if (pUnit->pUnitData.pUnitDataItem) {
-        pUnit->pUnitData.pUnitDataItem->nFileIndex = dwFileIndex;
-        return;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x107f);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x107d);
       exit(-1);
+    } else {
+      if (!pUnit->pUnitData.pUnitDataItem) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x107f);
+        exit(-1);
+      }
+
+      pUnit->pUnitData.pUnitDataItem->nFileIndex = dwFileIndex;
+      return;
     }
 }
 
@@ -1748,17 +1748,17 @@ void __stdcall ITEM_SetItemData_nPlayerGUID(D2UnitStrc * pUnit, int32_t nPlayerG
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10bc);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      if (pUnit->pUnitData.pUnitDataObject) {
-        pUnit->pUnitData.pUnitDataObject->nActivatingPlayerGUID = nPlayerGUID;
-        return;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10bf);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10bd);
       exit(-1);
+    } else {
+      if (!pUnit->pUnitData.pUnitDataObject) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10bf);
+        exit(-1);
+      }
+
+      pUnit->pUnitData.pUnitDataObject->nActivatingPlayerGUID = nPlayerGUID;
+      return;
     }
 }
 
@@ -1766,16 +1766,16 @@ int32_t __stdcall ITEM_GetItemData_nPlayerGUID(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10c7);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      if (pUnit->pUnitData.pUnitDataItem) {
-        return pUnit->pUnitData.pUnitDataItem->nPlayerGUID;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10ca);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10c8);
       exit(-1);
+    } else {
+      if (!pUnit->pUnitData.pUnitDataItem) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x10ca);
+        exit(-1);
+      }
+
+      return pUnit->pUnitData.pUnitDataItem->nPlayerGUID;
     }
 }
 
@@ -1787,7 +1787,7 @@ BOOL __stdcall TXT_Items_CheckIfHasClass(uint32_t nItemClassId) {
     }
 
     eD2ItemTypes eType = (eD2ItemTypes)pItemsTxt->wType;
-    if (!(-1 < (int)eType && (int)eType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eType)) {
+    if (!(0 <= (int)eType && (int)eType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eType)) {
       return 0;
     }
 
@@ -1862,12 +1862,12 @@ int16_t __stdcall ITEM_GetWeaponAnimClass(D2UnitStrc * pUnit) {
 
 BOOL __stdcall TXT_Items_CheckTransmogrify(uint32_t nItemClassId) {
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return (uint32_t)pItemsTxt->bTransmogrify;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1155);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1155);
-    exit(-1);
+    return (uint32_t)pItemsTxt->bTransmogrify;
     return (uint32_t)pItemsTxt->bTransmogrify;
 }
 
@@ -1878,13 +1878,13 @@ int32_t __stdcall ITEM_CheckItemsTxt_bTransmogrify(D2UnitStrc * pUnit) {
       exit(-1);
     } else {
       BOOL BVar1;
-      if (pUnit->eUnitType == UNIT_ITEM) {
-        BVar1 = TXT_Items_CheckTransmogrify(pUnit->nClassId);
-        return BVar1;
+      if (pUnit->eUnitType != UNIT_ITEM) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1163);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1163);
-      exit(-1);
+      BVar1 = TXT_Items_CheckTransmogrify(pUnit->nClassId);
+      return BVar1;
     }
 }
 
@@ -1928,17 +1928,17 @@ uint8_t __stdcall ITEM_GetItemsTxt_bHitClass(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x118f);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-      if (pItemsTxt) {
-        return pItemsTxt->bHitClass;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1192);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1190);
       exit(-1);
+    } else {
+      pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
+      if (!pItemsTxt) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1192);
+        exit(-1);
+      }
+
+      return pItemsTxt->bHitClass;
     }
 }
 
@@ -1970,15 +1970,15 @@ int32_t __stdcall BARBARIAN_CheckItemData_b1or2Handed_isTrue(D2UnitStrc * pUnit,
     }
 }
 
-char ITEMS_ValidateItemQualityCode(uint32_t nQuality, int32_t nCode) {
-    if (!(nCode - 1U < 8 && nQuality < 0x15)) {
+static char ITEMS_ValidateItemQualityCode(uint32_t nQuality, int32_t nCode) {
+    if (!(nCode - 1U <= 7 && nQuality <= 0x14)) {
       return '\0';
     }
 
     return (char)nCode * ' ' + ((uint8_t)nQuality & 0x1f);
 }
 
-BOOL ITEMS_HasSocketedItems(D2UnitStrc * pItem) {
+static BOOL ITEMS_HasSocketedItems(D2UnitStrc * pItem) {
     D2UnitStrc* pCurItem = INVENTORY::Inventory::INVENTORY_GetFirstItem(pItem->pInventory);
     while (true) {
       D2UnitStrc* pSocketedItem;
@@ -1997,20 +1997,20 @@ BOOL ITEMS_HasSocketedItems(D2UnitStrc * pItem) {
     return 1;
 }
 
-BOOL ITEMS_GetCompactSaveFlag(D2UnitStrc * pItem) {
+static BOOL ITEMS_GetCompactSaveFlag(D2UnitStrc * pItem) {
     uint32_t nItemClassId = !pItem ? -1 : pItem->nClassId;
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nItemClassId);
-    if (pItemsTxt) {
-      return (uint32_t)(uint8_t)pItemsTxt->bCompactSave;
+    if (!pItemsTxt) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x12e0);
+      exit(-1);
     }
 
-    Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x12e0);
-    exit(-1);
+    return (uint32_t)(uint8_t)pItemsTxt->bCompactSave;
     return (uint32_t)(uint8_t)pItemsTxt->bCompactSave;
 }
 
-BOOL QualityCanHaveSockets(eD2ItemQuality eQuality) {
-    if (!(eQuality != QUALITY_INVALID && ((int)eQuality < 4 || 9 < (int)eQuality))) {
+static BOOL QualityCanHaveSockets(eD2ItemQuality eQuality) {
+    if (!(eQuality != QUALITY_INVALID && ((int)eQuality <= 3 || 9 < (int)eQuality))) {
       return 0;
     }
 
@@ -2023,18 +2023,18 @@ BOOL __stdcall ITEM_ValidateItemQuantity(D2UnitStrc * pUnit) {
     }
 
     int nQuantity = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_quantity, 0);
-    if (nQuantity >= 1) {
+    if (nQuantity > 0) {
       return 1;
     }
 
     int32_t nThrowableMinVal = Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pUnit, UNITSTAT_item_throwable, 0);
-    if (!nThrowableMinVal) {
+    if (nThrowableMinVal) {
+      Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_quantity, 0, 0);
+    } else {
       nQuantity = ITEM_GetMaxStack(pUnit);
       if (0 < nQuantity) {
         return 0;
       }
-    } else {
-      Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_quantity, 0, 0);
     }
 
     return 1;
@@ -2105,7 +2105,7 @@ D2SetItemsTxt * __stdcall GetSetItemsLine(D2UnitStrc * pUnit) {
     }
 
     int nSetItemId = ITEM_GetItemData_nFileIndex(pUnit);
-    if (!(-1 < nSetItemId && nSetItemId < sgptDataTable->nTxtSetItemsSize)) {
+    if (!(0 <= nSetItemId && nSetItemId < sgptDataTable->nTxtSetItemsSize)) {
       return nullptr;
     }
 
@@ -2213,16 +2213,16 @@ int16_t __stdcall ITEM_GetItemData_wItemVersion(D2UnitStrc * pUnit) {
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1504);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      if (pUnit->pUnitData.pUnitDataItem) {
-        return pUnit->pUnitData.pUnitDataItem->wItemVersion;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1507);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1505);
       exit(-1);
+    } else {
+      if (!pUnit->pUnitData.pUnitDataItem) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1507);
+        exit(-1);
+      }
+
+      return pUnit->pUnitData.pUnitDataItem->wItemVersion;
     }
 }
 
@@ -2230,17 +2230,17 @@ void __stdcall ITEM_SetItemData_wItemVersion(D2UnitStrc * pUnit, int16_t wItemVe
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x150f);
       exit(-1);
-    } else if (pUnit->eUnitType == UNIT_ITEM) {
-      if (pUnit->pUnitData.pUnitDataItem) {
-        pUnit->pUnitData.pUnitDataItem->wItemVersion = wItemVersion;
-        return;
-      }
-
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1512);
-      exit(-1);
-    } else {
+    } else if (pUnit->eUnitType != UNIT_ITEM) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1510);
       exit(-1);
+    } else {
+      if (!pUnit->pUnitData.pUnitDataItem) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1512);
+        exit(-1);
+      }
+
+      pUnit->pUnitData.pUnitDataItem->wItemVersion = wItemVersion;
+      return;
     }
 }
 
@@ -2265,10 +2265,7 @@ int __stdcall ITEM_CalcWeaponAttackSpeed(D2UnitStrc * pUnit, D2UnitStrc * pItem)
     int iVar2;
     uint32_t nTrigger;
     __frame0.nSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    if (!pItem || pItem->eUnitType != UNIT_ITEM) {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x151d);
-      exit(-1);
-    } else {
+    if (!(!pItem || pItem->eUnitType != UNIT_ITEM)) {
       _bIsWeapon = ITEMS_IsA(pItem, ITEMTYPE_Weapon);
       if (!_bIsWeapon) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x151e);
@@ -2284,21 +2281,22 @@ int __stdcall ITEM_CalcWeaponAttackSpeed(D2UnitStrc * pUnit, D2UnitStrc * pItem)
         COMPOSIT::Composit::COMPOSIT_BuildCofPath(pUnit, pUnit->nClassId, 7, pUnit->eUnitType, pUnit->pInventory, (LPSTR)__frame0.szCofPath, &__frame0.nWClass, 0, 0);
         nAttackSpeedResult = DATATBLS::AnimTbls::ANIMDATA_GetFramesSpeedAndTrigger(__frame0.szCofPath, &__frame0.nFrames, &__frame0.nAnimSpeed, &nTrigger);
         if (!nAttackSpeedResult) {
-          Fog::Debug::GuardStack();
           return 0x2d;
         }
-        if (__frame0.nFrames) {
-          nFastAttackStat = Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pItem, UNITSTAT_item_fasterattackrate, 0);
-          iVar1 = Stats::StatsEx::STATSEX_GetCurrentStat(pItem, UNITSTAT_attackrate, 0);
-          iVar2 = (nFastAttackStat + 100 + iVar1) * __frame0.nAnimSpeed;
-          iVar1 = __frame0.nFrames << 8;
-          Fog::Debug::GuardStack();
-          return iVar1 / (iVar2 / 100);
+        if (!__frame0.nFrames) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1538);
+          exit(-1);
         }
 
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1538);
-        exit(-1);
+        nFastAttackStat = Stats::StatsEx::ITEM_GetMinimalStatValueShifted(pItem, UNITSTAT_item_fasterattackrate, 0);
+        iVar1 = Stats::StatsEx::STATSEX_GetCurrentStat(pItem, UNITSTAT_attackrate, 0);
+        iVar2 = (nFastAttackStat + 100 + iVar1) * __frame0.nAnimSpeed;
+        iVar1 = __frame0.nFrames << 8;
+        return iVar1 / (iVar2 / 100);
       }
+    } else {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x151d);
+      exit(-1);
     }
 }
 
@@ -2355,7 +2353,7 @@ uint32_t ITEM_GetItemData_eD2ItemFlag_IsEthereal(D2UnitStrc * pUnit) {
     return pUnit->pUnitData.pUnitDataItem->dwItemFlags & ITEMFLAG_ETHEREAL;
 }
 
-int32_t ITEMS_CountContainerItems(D2UnitStrc * pItem) {
+static int32_t ITEMS_CountContainerItems(D2UnitStrc * pItem) {
     int nCount = 0;
     if (!(pItem && pItem->eUnitType == UNIT_ITEM)) {
       return 0;
@@ -2544,7 +2542,7 @@ int __stdcall ITEMS_DeserializeItemHeader(int32_t bIsOnGround, uint32_t nFileVer
 }
 
 // Reads one item stat from a bit-buffer during .d2s / stash deserialization. Applies legacy file-version fixups (versions below 0x58/0x5a/0x5d remap specific stats and narrow their bit-widths), reads the param-lo nibble if the stat has a size field, then calls D2AddStatToStatsListEx to append the decoded stat to pStatList.
-void __stdcall ITEMS_DeserializeSingleStat(uint32_t nFileVersion, eD2UnitStat eUnitStat, D2BitBufferStrc * pBitBuffer, D2StatListExStrc * pStatList, int32_t pItemStatCost, int32_t nStatIndex) {
+static void __stdcall ITEMS_DeserializeSingleStat(uint32_t nFileVersion, eD2UnitStat eUnitStat, D2BitBufferStrc * pBitBuffer, D2StatListExStrc * pStatList, int32_t pItemStatCost, int32_t nStatIndex) {
     uint32_t uVar1;
     int nSize = *(int*)(pItemStatCost + 0x24 + nStatIndex * 4);
     uint32_t nSaveBits = (uint32_t)*(uint8_t*)(pItemStatCost + 0x19 + nStatIndex);
@@ -2552,29 +2550,29 @@ void __stdcall ITEMS_DeserializeSingleStat(uint32_t nFileVersion, eD2UnitStat eU
     int32_t nParamLo = 0;
     switch (eUnitStat) {
       case UNITSTAT_secondary_mindamage:
-        if (nFileVersion < 0x5a) {
+        if (nFileVersion <= 0x59) {
           nSaveBits = 5;
         }
       break;
       case UNITSTAT_secondary_maxdamage:
-        if (nFileVersion < 0x5a) {
+        if (nFileVersion <= 0x59) {
           nSaveBits = 6;
         }
       break;
       case UNITSTAT_hpregen:
-        if (nFileVersion < 0x5a) {
+        if (nFileVersion <= 0x59) {
           nSaveBits = 5;
           nSaveAdd = 10;
         }
       break;
       case UNITSTAT_item_goldbonus:
-        if (nFileVersion < 0x5a) {
+        if (nFileVersion <= 0x59) {
           nSaveBits = 8;
           nSaveAdd = 0x14;
         }
       break;
       case UNITSTAT_item_magicbonus:
-        if (nFileVersion < 0x5a) {
+        if (nFileVersion <= 0x59) {
           nSaveBits = 7;
           nSaveAdd = 0x14;
         }
@@ -2672,7 +2670,7 @@ BOOL __stdcall ReadInfoFromStreamVersioned(uint8_t * pBytesAfterId, size_t size,
     }
     /* is item not an ear? */ if ((itemFlags & ITEMFLAG_BODYPART) == ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD)) {
       t = Fog::BitBuffer::ReadUnsigned(&bitBuffer, 0x20);
-      /* "nec " */ if (nFileVersion < 0x5d && t == 0x2063656e) {
+      /* "nec " */ if (nFileVersion <= 0x5c && t == 0x2063656e) {
         t = 0x2067656e;
       }
     } else {
@@ -2704,7 +2702,7 @@ void __fastcall ITEMS_WriteClampedValueToBitBuffer(int32_t nBits, uint32_t nValu
 }
 
 // Serializes the "simple"/header portion of an item unit into a D2BitBuffer for the item save/network format. The item arrives in EAX (0062af85 MOV ESI,EAX) and the bit buffer in EBX; both were modelled as locals, so the reconstruction serialised items through uninitialised pointers. Writes item version (10 bits, clamped 0x3ff), anim mode (3 bits), and position - full 16-bit world X/Y for dropped items, otherwise 4-bit grid X/Y plus a 3-bit body-loc/inv-page. Then for non-player-owned items the 32-bit type code, and for gold a 1-bit large flag plus a clamped amount; for ear items the file index (3 bits), ear level (7 bits) and 7-bit-per-char name.
-void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuffer, D2StatListExStrc * pStatListEx) {
+static void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuffer, D2StatListExStrc * pStatListEx) {
     uint32_t nClassId;
     int nQuestDifficulty;
     eD2PlayerAnimMode eAnimModeClamp;
@@ -2732,7 +2730,7 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
     wVersion = ITEM_GetItemData_wItemVersion(pItem);
     uint32_t uVal;
     uVal = wVersion ? (uint32_t)wVersion : 0;
-    if (0x3fe < uVal) {
+    if (0x3ff <= uVal) {
       uVal = 0x3ff;
     }
 
@@ -2773,7 +2771,7 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
       }
 
       uVal = uVal ? uVal : 0;
-      if (0xe < uVal) {
+      if (0xf <= uVal) {
         uVal = 0xf;
       }
 
@@ -2791,7 +2789,7 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
       }
 
       uVal = uVal ? uVal : 0;
-      if (0xe < uVal) {
+      if (0xf <= uVal) {
         uVal = 0xf;
       }
 
@@ -2803,7 +2801,7 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
       }
 
       uVal = (int)(char)(eVar1 + INVPAGE_CORPSE) ? (int)(char)(eVar1 + INVPAGE_CORPSE) : 0;
-      if (6 < uVal) {
+      if (7 <= uVal) {
         uVal = 7;
       }
 
@@ -2819,7 +2817,7 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
       }
 
       eUnitType = pItem->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         uVal = pItem->pPath.pStaticPath->nPosX;
       } else if (!pItem->pPath.pDynamicPath) {
         uVal = 0;
@@ -2828,13 +2826,13 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
       }
 
       uVal = uVal ? uVal : 0;
-      if (0xfffe < uVal) {
+      if (0xffff <= uVal) {
         uVal = 0xffff;
       }
 
       Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, uVal, 0x10);
       eUnitType = pItem->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         uVal = pItem->pPath.pStaticPath->nPosY;
       } else if (!pItem->pPath.pDynamicPath) {
         uVal = 0;
@@ -2843,7 +2841,7 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
       }
 
       uVal = uVal ? uVal : 0;
-      if (0xfffe < uVal) {
+      if (0xffff <= uVal) {
         uVal = 0xffff;
       }
 
@@ -2875,7 +2873,7 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
 
       uVal = ITEM_GetItemData_nFileIndex(pItem);
       uVal = uVal ? uVal : 0;
-      if (6 < uVal) {
+      if (7 <= uVal) {
         uVal = 7;
       }
 
@@ -2887,14 +2885,14 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
       }
 
       uVal = uVal ? uVal : 0;
-      if (0x7e < uVal) {
+      if (0x7f <= uVal) {
         uVal = 0x7f;
       }
 
       Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, uVal, 7);
       do {
         uVal = (int)*pcName ? (int)*pcName : 0;
-        if (0x7e < uVal) {
+        if (0x7f <= uVal) {
           uVal = 0x7f;
         }
 
@@ -2905,7 +2903,7 @@ void __stdcall SerializeSimpleItem(D2UnitStrc * pItem, D2BitBufferStrc * pBitBuf
       } while (cNameChar != '\0');
     }
     if (txtLine->bQuest && txtLine->bQuestDiffCheck != '\0') {
-      if (sgptDataTable->nTxtItemStatCostSize < 0x165 || (pStatCostTxt = sgptDataTable->pTxtItemStatCost , pStatCostTxt == (D2ItemStatCostTxt*)-115344)) {
+      if (sgptDataTable->nTxtItemStatCostSize <= 0x164 || (pStatCostTxt = sgptDataTable->pTxtItemStatCost , pStatCostTxt == (D2ItemStatCostTxt*)-115344)) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1c7a);
         exit(-1);
       }
@@ -2938,7 +2936,7 @@ int32_t __stdcall ITEM_GetTxtSetItems_setIndex(D2UnitStrc * pUnit) {
     }
 
     int nFileIndex = ITEM_GetItemData_nFileIndex(pUnit);
-    if (!(-1 < nFileIndex && nFileIndex < sgptDataTable->nTxtSetItemsSize && sgptDataTable->pTxtSetItems + nFileIndex)) {
+    if (!(0 <= nFileIndex && nFileIndex < sgptDataTable->nTxtSetItemsSize && sgptDataTable->pTxtSetItems + nFileIndex)) {
       return -1;
     }
 
@@ -2958,7 +2956,7 @@ eD2ItemTypes __stdcall ITEM_GetItemData_wType(D2UnitStrc * pUnit) {
     return eItemType;
 }
 
-void __stdcall ITEMS_SumSocketedItemStats(eD2UnitStat eUnitStat, int * pOutTotal, D2UnitStrc * pItem) {
+static void __stdcall ITEMS_SumSocketedItemStats(eD2UnitStat eUnitStat, int * pOutTotal, D2UnitStrc * pItem) {
     D2UnitStrc* pUnit_00;
     eD2PlayerAnimMode eAnimMode;
     int nStatVal;
@@ -3013,18 +3011,18 @@ void __stdcall ITEM_ValidateAndGetClass(D2UnitStrc * pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x78c);
       exit(-1);
     } else {
-      if (pUnit->eUnitType == UNIT_ITEM) {
-        ITEMS_CheckIfUpgradeable(pUnit->nClassId);
-        return;
+      if (pUnit->eUnitType != UNIT_ITEM) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x78d);
+        exit(-1);
       }
 
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x78d);
-      exit(-1);
+      ITEMS_CheckIfUpgradeable(pUnit->nClassId);
+      return;
     }
 }
 
 // Computes the effective required character level to use an item (pUnit), optionally relative to a player (pUnit2) for class-specific affix requirements. Takes the max over: the item-quality contribution (magic prefix/suffix/automagic, set/unique/crafted lvlReq, rare affix level requirements using classlevelreq when the affix is class-restricted and matches the player class), the base Items.txt level requirement, the requirements of all socketed/contained items (recursive), the reqlevel of any +skill stats on the item (stat 0x6b) and +skilltab stats (stat 0x61, +6 unless the tab matches the player's class), plus the item_levelreq stat bonus. Returns the clamped (>=0) result. __fastcall, recursive over inventory contents.
-uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+static uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     uint16_t wPrefix;
     eD2ItemQuality uAffix;
     D2MagicAffixTxt* pAffixTxt;
@@ -3237,7 +3235,7 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
       nClassId = pUnit->nClassId;
     }
     D2ItemsTxt* pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(nClassId);
-    if (pItemsTxt && nMaxLvlReq < (int)(uint32_t)(uint8_t)pItemsTxt->bLevelReq) {
+    if (pItemsTxt && (int)(uint32_t)(uint8_t)pItemsTxt->bLevelReq > nMaxLvlReq) {
       nMaxLvlReq = (uint32_t)(uint8_t)pItemsTxt->bLevelReq;
     }
     if (pUnit->pInventory) {
@@ -3289,7 +3287,7 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
             } else {
               nClassId = (uint32_t)pSkillTxt->reqlevel;
             }
-            if (nMaxLvlReq < (int)nClassId) {
+            if ((int)nClassId > nMaxLvlReq) {
               nMaxLvlReq = nClassId;
             }
           }
@@ -3315,7 +3313,7 @@ int32_t __stdcall ITEM_GetTxtItemTypes_throwable(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -3328,7 +3326,7 @@ int32_t __stdcall ITEM_GetTxtItemTypes_beltable(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -3351,12 +3349,12 @@ int __stdcall ITEM_GetSpellIcon(D2UnitStrc * pUnit) {
           bIsScrollOrBook = ITEMS_IsA(pUnit, ITEMTYPE_Book);
           if (!bIsScrollOrBook) {
             pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pUnit->nClassId);
-            if (pItemsTxt) {
-              return (uint32_t)(uint8_t)pItemsTxt->bSpellIcon;
+            if (!pItemsTxt) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdb8);
+              exit(-1);
             }
 
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xdb8);
-            exit(-1);
+            return (uint32_t)(uint8_t)pItemsTxt->bSpellIcon;
           }
         }
         if (pUnit->eUnitType == UNIT_ITEM && pUnit->pUnitData.pUnitDataItem) {
@@ -3384,7 +3382,7 @@ int32_t __stdcall ITEM_GetTxtItemTypes_staffmods(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 7;
     }
 
@@ -3400,7 +3398,7 @@ char __stdcall ITEM_GetMaxSockCount(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize)) {
       return '\0';
     }
 
@@ -3417,9 +3415,9 @@ char __stdcall ITEM_GetMaxSockCount(D2UnitStrc * pUnit) {
     }
 
     int32_t nLevel = ITEM_GetItemData_nItemLevel(pUnit);
-    if (nLevel < 26) {
+    if (nLevel <= 25) {
       nLvlMaxSock = (int)(uint8_t)pItemTypesTxt->maxsock1;
-    } else if (nLevel < 41) {
+    } else if (nLevel <= 40) {
       nLvlMaxSock = (int)(uint8_t)pItemTypesTxt->maxsock25;
     } else {
       nLvlMaxSock = (int)(uint8_t)pItemTypesTxt->maxsock40;
@@ -3501,12 +3499,12 @@ void __stdcall ITEM_RollSocketCount(D2UnitStrc * pUnit, uint32_t nMaxSocksRandom
     }
 
     uint32_t nMinSockets = nSocketArea;
-    if ((int)nSocketArea < 2) {
+    if ((int)nSocketArea <= 1) {
       nMinSockets = 1;
     }
-    if ((int)nMinSockets < (int)nMaxAllowed && (nMaxAllowed = nSocketArea , (int)nSocketArea < 2)) {
+    if ((int)nMinSockets < (int)nMaxAllowed && (nMaxAllowed = nSocketArea , (int)nSocketArea <= 1)) {
       nMaxAllowed = 1;
-    } else if ((int)nMaxAllowed < 1) {
+    } else if ((int)nMaxAllowed <= 0) {
       return;
     }
     if (pUnit_00->eUnitType == UNIT_ITEM && pUnit_00->pUnitData.pUnitDataItem) {
@@ -3544,10 +3542,10 @@ void __stdcall ITEM_SetSocketCount(D2UnitStrc * pUnit, uint32_t nSockCount) {
       bDim = ITEM_GetMaxSockCount(pUnit_00);
       nMaxAllowed = (uint32_t)bDim;
     }
-    if ((int)nSockCount < 2) {
+    if ((int)nSockCount <= 1) {
       nSockCount = 1;
     }
-    if ((int)nMaxAllowed <= (int)nSockCount) {
+    if ((int)nSockCount >= (int)nMaxAllowed) {
       nSockCount = nMaxAllowed;
     }
     if (pUnit_00->eUnitType == UNIT_ITEM && pUnit_00->pUnitData.pUnitDataItem) {
@@ -3582,7 +3580,7 @@ D2RuneTableStrc * __stdcall CalculateRunewordByItem(D2UnitStrc * pItem) {
                          be */ if (!pItem) {
       return nullptr;
     }
-    if (pItem->eUnitType == UNIT_ITEM && pItem->pUnitData.pUnitDataItem && (uint32_t)(pItem->pUnitData.pUnitDataItem->eQuality - QUALITY_MAGIC) < 6) {
+    if (pItem->eUnitType == UNIT_ITEM && pItem->pUnitData.pUnitDataItem && (pItem->pUnitData.pUnitDataItem->eQuality >= QUALITY_MAGIC && pItem->pUnitData.pUnitDataItem->eQuality <= QUALITY_MAGIC + 5)) {
       return nullptr;
     }
 
@@ -3639,7 +3637,7 @@ D2RuneTableStrc * __stdcall CalculateRunewordByItem(D2UnitStrc * pItem) {
         nRuneSlot = 0;
         pRuneEntry = &runeTableRow->rune1;
         do {
-          if (*pRuneEntry < 1) {
+          if (*pRuneEntry <= 0) {
             break;
           }
           if ((int)nSocketedItemCount < nRuneSlot || anSocketedClassIds[nRuneSlot] != *pRuneEntry) {
@@ -3650,7 +3648,7 @@ D2RuneTableStrc * __stdcall CalculateRunewordByItem(D2UnitStrc * pItem) {
           pRuneEntry++;
         } while (nRuneSlot < 6);
 
-        if ((int)nSocketCount <= nRuneSlot) {
+        if (nRuneSlot >= (int)nSocketCount) {
           nRuneSlot = 0;
           pTypeEntry = &runeTableRow->etype1;
           do {
@@ -3705,7 +3703,7 @@ int32_t __stdcall TXT_ItemTypes_CheckClass(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -3719,7 +3717,7 @@ eD2PlayerClassIDDWORD __stdcall TXT_ItemTypes_GetClass(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return CLASS_COUNT;
     }
 
@@ -3758,7 +3756,7 @@ int32_t __stdcall GetItemColor(D2UnitStrc * pUnit, D2UnitStrc * pItem, char * pC
         do {
           eStateId = (eD2States)sgptDataTable->pStatesItemTypesDataTbl[nStateOrAffixIdx].nStateId;
           eUnitState = DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, eStateId);
-          if (eUnitState != STATE_none && -1 < (int)eStateId && (int)eStateId < sgptDataTable->nTxtStatesSize) {
+          if (eUnitState != STATE_none && 0 <= (int)eStateId && (int)eStateId < sgptDataTable->nTxtStatesSize) {
             pDVar1 = sgptDataTable->pTxtStates + eStateId;
             if (pDVar1 && (uint8_t)pDVar1->itemtrans < 0x15) {
               bIsType = ITEMS_IsA(pItem, (int)pDVar1->itemtype);
@@ -3935,7 +3933,7 @@ int32_t __stdcall GetItemColor(D2UnitStrc * pUnit, D2UnitStrc * pItem, char * pC
 
     apply_affix_color:
     pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pItem->nClassId);
-    if ((uint32_t)((uint8_t)pItemsTxt->bTransform - 1) < 8 && (uint8_t)pAffix->transformcolor < 0x15) {
+    if ((uint32_t)((uint8_t)pItemsTxt->bTransform - 1) <= 7 && (uint8_t)pAffix->transformcolor <= 0x14) {
       bValidColor = pItemsTxt->bTransform * ' ' + (pAffix->transformcolor & 0x1fU);
     } else {
       bValidColor = '\0';
@@ -5580,20 +5578,20 @@ int32_t __stdcall ITEM_LoadFromSaveData(D2UnitStrc * pUnit, uint8_t * pbParam, s
 }
 
 // Returns 1 if pUnit (item) is replenishable (throwable, stackable, non-ethereal, and its ItemTypesTxt entry has the repair flag set). Returns 0 for non-item units or items that fail any condition. Halts on null pUnit.
-BOOL ITEM_IsReplenishable(D2UnitStrc * pUnit) {
+static BOOL ITEM_IsReplenishable(D2UnitStrc * pUnit) {
     int32_t nErrAddress;
     eD2ItemTypes eItemType;
     if (!pUnit) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x67d);
       exit(-1);
     }
-    if (pUnit->eUnitType == UNIT_ITEM) {
+    if (pUnit->eUnitType != UNIT_ITEM) {
+      eItemType = ITEMTYPE_None1;
+    } else {
       eItemType = TXT_Items_GetType(pUnit->nClassId);
       if ((int)eItemType < 0) {
         return 0;
       }
-    } else {
-      eItemType = ITEMTYPE_None1;
     }
     if (!((int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType && sgptDataTable->pTxtItemTypes[eItemType].repair != '\0')) {
       return 0;
@@ -5667,7 +5665,7 @@ int32_t __stdcall ITEM_GetTxtItemTypes_shoots(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -5680,7 +5678,7 @@ int32_t __stdcall ITEM_GetTxtItemTypes_quiver(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -5693,7 +5691,7 @@ uint32_t __stdcall ITEM_GetTxtItemTypes_autostack(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -5706,7 +5704,7 @@ uint32_t __stdcall ITEM_GetTxtItemTypes_reload(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -5719,7 +5717,7 @@ uint32_t __stdcall ITEM_GetTxtItemTypes_reequip(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -5732,7 +5730,7 @@ uint8_t __stdcall ITEM_GetTxtItemTypes_storepage(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0xff;
     }
 
@@ -5750,7 +5748,7 @@ uint8_t __stdcall ITEM_GetTxtItemTypes_varinvgfx(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -5766,7 +5764,7 @@ D2Row_char_32 * __stdcall ITEM_GetTxtItemTypes_invgfx(D2UnitStrc * pUnit, uint32
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize)) {
       return (D2Row_char_32*)(char (*)[32])gpszItemNoInvGfx;
     }
 
@@ -5776,7 +5774,7 @@ D2Row_char_32 * __stdcall ITEM_GetTxtItemTypes_invgfx(D2UnitStrc * pUnit, uint32
     }
 
     uint32_t nMaxGfxIdx = (uint8_t)pItemTypesTxt->varinvgfx - 1;
-    uint32_t nClampedGfxIdx = (int)nParam < 1 ? 0 : nParam;
+    uint32_t nClampedGfxIdx = (int)nParam <= 0 ? 0 : nParam;
     if ((int)nClampedGfxIdx >= (int)nMaxGfxIdx) {
       return pItemTypesTxt->invgfx + nMaxGfxIdx;
     }
@@ -5791,7 +5789,7 @@ uint32_t __stdcall ITEM_GetTxtItemTypes_rare(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -5804,7 +5802,7 @@ uint32_t __stdcall ITEM_GetTxtItemTypes_magic(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -5817,7 +5815,7 @@ uint32_t __stdcall ITEM_GetTxtItemTypes_normal(D2UnitStrc * pUnit) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 1;
     }
 
@@ -5832,7 +5830,7 @@ void __stdcall ITEM_GetTxtItemTypes_BodyLoc1andBodyLoc2(D2UnitStrc * pUnit, eD2B
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pUnit);
-    if (-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize) {
+    if (0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize) {
       D2ItemTypesTxt* pItemTypesTxt;
       pItemTypesTxt = sgptDataTable->pTxtItemTypes + eItemType;
       if (pItemTypesTxt) {
@@ -5913,7 +5911,7 @@ BOOL __stdcall ITEM_CheckEquipRequirements(D2UnitStrc * pUnit, D2UnitStrc * pCha
       } else if (bIncludeSocketedStats && (pOwner = Stats::StatsEx::SEVER_ITEM_GetOwner(pUnit, nullptr) , pOwner != 0)) {
         nSocketedStrSum = 0;
         ITEMS_SumSocketedItemStats(UNITSTAT_strength, &nSocketedStrSum, pUnit);
-        if (nStatValue - nSocketedStrSum < 1 || nStatValue - nSocketedStrSum < nAdjustedReq) {
+        if (nStatValue - nSocketedStrSum <= 0 || nStatValue - nSocketedStrSum < nAdjustedReq) {
           _bStrOk = 0;
         }
       }
@@ -5994,7 +5992,7 @@ int32_t __stdcall ITEMS_CheckBodyLocationFit(D2UnitStrc * pItem, uint32_t eBodyL
 }
 
 // Adjusts buy/sell/repair prices in-place for items whose type has a staffmods class restriction. Iterates the item's skill-bonus stat list (stat 0x6b), and for each qualifying skill entry scales the price deltas using the skill's costmult/costadd fields and the skill level (2*lvl-1). The accumulated deltas are divided by nDivisor before being added to *pBuy, *pSell, and *pRepair. No-ops if pItem is null, not an item unit, or the item type has no staffmods class.
-void __stdcall ITEMS_CalcStaffModsPriceModifier(int * pBuy, int * pSell, int * pRepair, uint32_t nDivisor, D2UnitStrc * pItem) {
+static void __stdcall ITEMS_CalcStaffModsPriceModifier(int * pBuy, int * pSell, int * pRepair, uint32_t nDivisor, D2UnitStrc * pItem) {
     int nCostMult;
     D2StatStrc aSkillBonusBuf[64];
     int nCostAdd;
@@ -6109,7 +6107,7 @@ int32_t __fastcall ITEMS_CalcTransactionCost(D2UnitStrc * pUnit, D2UnitStrc * pI
 
     int nReducedPrices;
     nReducedPrices = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_item_reducedprices, 0);
-    if (0x62 < nReducedPrices) {
+    if (0x63 <= nReducedPrices) {
       nReducedPrices = 99;
     }
     if (nTransactionType == 2) {
@@ -6135,7 +6133,13 @@ int32_t __fastcall ITEMS_CalcTransactionCost(D2UnitStrc * pUnit, D2UnitStrc * pI
     nMaxStack = 1;
     eD2ItemFlag eItemFlags;
     eItemFlags = ITEM_GetItemData_eD2ItemFlag(pItem);
-    if ((eItemFlags & ITEMFLAG_BODYPART) == ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD)) {
+    if ((eItemFlags & ITEMFLAG_BODYPART) != ~(ITEMFLAG_TAGGED | ITEMFLAG_DROW | ITEMFLAG_CURSED | ITEMFLAG_STAFFMODS | ITEMFLAG_MAGICAL | ITEMFLAG_RUNEWORD | ITEMFLAG_CRUDE | ITEMFLAG_PLAYERNAME | ITEMFLAG_SAVED | ITEMFLAG_ETHEREAL | ITEMFLAG_COMPACT | ITEMFLAG_100000 | ITEMFLAG_SERVER | ITEMFLAG_RESTRICT | ITEMFLAG_BEGINNER | ITEMFLAG_BODYPART | ITEMFLAG_HARDCORE | ITEMFLAG_DISABLED | ITEMFLAG_NEW | ITEMFLAG_MONSTER | ITEMFLAG_SOCKETED | ITEMFLAG_SORTED | ITEMFLAG_RESTORED | ITEMFLAG_BROKEN | ITEMFLAG_TAKEN | ITEMFLAG_ADDED | ITEMFLAG_REMOVED | ITEMFLAG_IDENTIFIED | ITEMFLAG_IGNORE | ITEMFLAG_CURSOR | ITEMFLAG_BOUGHT | ITEMFLAG_RELOAD)) {
+      uint8_t nEarLevel;
+      nEarLevel = ITEM_GetItemData_nEarLevel(pItem);
+      iVar1 = (uint32_t)nEarLevel * pItemsTxt->dwCost;
+      __frame0.nSellPrice = iVar1;
+      __frame0.nBuyPrice = iVar1;
+    } else {
       uVar2 = ITEMS_IsA(pItem, ITEMTYPE_BodyPart);
       if (!uVar2) {
         uVar2 = ITEMS_IsA(pItem, ITEMTYPE_Book);
@@ -6189,12 +6193,6 @@ int32_t __fastcall ITEMS_CalcTransactionCost(D2UnitStrc * pUnit, D2UnitStrc * pI
           __frame0.nBuyPrice = iVar1;
         }
       }
-    } else {
-      uint8_t nEarLevel;
-      nEarLevel = ITEM_GetItemData_nEarLevel(pItem);
-      iVar1 = (uint32_t)nEarLevel * pItemsTxt->dwCost;
-      __frame0.nSellPrice = iVar1;
-      __frame0.nBuyPrice = iVar1;
     }
 
     /* ITEMS_IsA(pItem, ITEMTYPE_AnyArmor): 0x32 is ITEMTYPE_AnyArmor in
@@ -6593,7 +6591,7 @@ uint32_t __fastcall ITEMS_GetRequiredBodyType(D2UnitStrc * pItem) {
     }
 
     eD2ItemTypes eItemType = ITEM_GetItemData_wType(pItemUnit);
-    if (!(-1 < (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
+    if (!(0 <= (int)eItemType && (int)eItemType < sgptDataTable->nTxtItemTypesSize && sgptDataTable->pTxtItemTypes + eItemType)) {
       return 0;
     }
 
@@ -6678,7 +6676,7 @@ uint32_t __stdcall ITEM_IsActiveCharm(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
 }
 
 // Serialize item data to bit buffer including properties, stats, and identification flags
-void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pBitBuffer, D2StatListExStrc * pStatListEx, uint32_t bIncludeNorm) {
+static void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pBitBuffer, D2StatListExStrc * pStatListEx, uint32_t bIncludeNorm) {
     eD2ItemQuality eQuality;
     int nStatValue;
     uint32_t bIsOfType;
@@ -6726,7 +6724,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     uint32_t nBitValue;
     nBitValue = (uint32_t)(uint16_t)pItemUnit->pUnitData.pUnitDataItem->wItemVersion;
     nBitValue = nBitValue ? nBitValue : 0;
-    if (0x3fe < nBitValue) {
+    if (0x3ff <= nBitValue) {
       nBitValue = 0x3ff;
     }
 
@@ -6784,7 +6782,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
 
       Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, 4);
       eUnitType = pItemUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
         nStatValue = pItemUnit->pPath.pStaticPath->nPosX;
         clamp_grid_x:
         if (!nStatValue || (nBitValue = D2Client::Units::GetXPosFromDynamicPathUnit(pItemUnit) , nBitValue < 0xf)) {
@@ -6871,7 +6869,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, uTmpBits, 0x20);
     nBitValue = ITEMS_CountContainerItems(pItemUnit);
     nBitValue = nBitValue ? nBitValue : 0;
-    if (6 < nBitValue) {
+    if (7 <= nBitValue) {
       nBitValue = 7;
     }
 
@@ -6907,7 +6905,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     }
 
     nBitValue = nBitValue ? nBitValue : 0;
-    if (0x7e < nBitValue) {
+    if (0x7f <= nBitValue) {
       nBitValue = 0x7f;
     }
 
@@ -6936,7 +6934,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
       }
 
       nBitValue = nBitValue ? nBitValue : 0;
-      if (6 < nBitValue) {
+      if (7 <= nBitValue) {
         nBitValue = 7;
       }
 
@@ -6952,7 +6950,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     } else {
       wAutoMagic = 0;
     }
-    if (nStatValue < (int)(uint32_t)wAutoMagic) {
+    if ((int)(uint32_t)wAutoMagic > nStatValue) {
       wAutoMagic -= (short int)nStatValue;
     }
 
@@ -6960,7 +6958,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, (uint32_t)(wAutoMagic != 0), 1);
     if (wAutoMagic) {
       nBitValue = wAutoMagic ? (uint32_t)wAutoMagic : 0;
-      if (0x7fe < nBitValue) {
+      if (0x7ff <= nBitValue) {
         nBitValue = 0x7ff;
       }
 
@@ -7145,7 +7143,10 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
         }
 
         Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, nErrLine);
-        if (pItemUnit->eUnitType == UNIT_ITEM && pItemUnit->pUnitData.pUnitDataPlayer && (wAutoMagic = *(uint16_t*)(pItemUnit->pUnitData.pUnitDataPlayer->szCharName + nStatValue) , wAutoMagic != 0)) {
+        if (!(pItemUnit->eUnitType == UNIT_ITEM && pItemUnit->pUnitData.pUnitDataPlayer && (wAutoMagic = *(uint16_t*)(pItemUnit->pUnitData.pUnitDataPlayer->szCharName + nStatValue) , wAutoMagic != 0))) {
+          nErrLine = 1;
+          nBitValue = 0;
+        } else {
           Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, 1, 1);
           nBitValue = wAutoMagic ? (uint32_t)wAutoMagic : 0;
           if (0x7fe < nBitValue) {
@@ -7153,9 +7154,6 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
           }
 
           nErrLine = 0xb;
-        } else {
-          nErrLine = 1;
-          nBitValue = 0;
         }
 
         Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, nErrLine);
@@ -7197,7 +7195,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
       }
 
       nBitValue = nBitValue ? nBitValue : 0;
-      if (0xfffe < nBitValue) {
+      if (0xffff <= nBitValue) {
         nBitValue = 0xffff;
       }
 
@@ -7210,31 +7208,7 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
     } else {
       eItemFlags = UNIT_PLAYER;
     }
-    if ((eItemFlags & 0x10000) == UNIT_PLAYER) {
-      if (eUnitType == UNIT_ITEM && pItemUnit->pUnitData.pUnitDataMissile) {
-        eItemFlags = pItemUnit->pUnitData.pUnitDataMissile->eOwnerType;
-      } else {
-        eItemFlags = UNIT_PLAYER;
-      }
-      if ((eItemFlags & 0x1000000) != UNIT_PLAYER) {
-        if (eUnitType == UNIT_ITEM && pItemUnit->pUnitData.pUnitDataItem) {
-          szPlayerName = pItemUnit->pUnitData.pUnitDataItem->szPlayerName;
-        } else {
-          szPlayerName = 0;
-        }
-
-        do {
-          nBitValue = (int)*szPlayerName ? (int)*szPlayerName : 0;
-          if (0x7e < nBitValue) {
-            nBitValue = 0x7f;
-          }
-
-          Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, 7);
-          cCurChar = *szPlayerName;
-          szPlayerName++;
-        } while (cCurChar != '\0');
-      }
-    } else {
+    if ((eItemFlags & 0x10000) != UNIT_PLAYER) {
       if (eUnitType == UNIT_ITEM && pItemUnit->pUnitData.pUnitDataItem) {
         szPlayerName = pItemUnit->pUnitData.pUnitDataItem->szPlayerName;
       } else {
@@ -7259,14 +7233,14 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
       }
 
       nBitValue = nBitValue ? nBitValue : 0;
-      if (0x7e < nBitValue) {
+      if (0x7f <= nBitValue) {
         nBitValue = 0x7f;
       }
 
       Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, 7);
       do {
         nBitValue = (int)*szPlayerName ? (int)*szPlayerName : 0;
-        if (0x7e < nBitValue) {
+        if (0x7f <= nBitValue) {
           nBitValue = 0x7f;
         }
 
@@ -7274,6 +7248,30 @@ void __stdcall SerializeComplexItem(D2UnitStrc * pItemUnit, D2BitBufferStrc * pB
         cCurChar = *szPlayerName;
         szPlayerName++;
       } while (cCurChar != '\0');
+    } else {
+      if (eUnitType == UNIT_ITEM && pItemUnit->pUnitData.pUnitDataMissile) {
+        eItemFlags = pItemUnit->pUnitData.pUnitDataMissile->eOwnerType;
+      } else {
+        eItemFlags = UNIT_PLAYER;
+      }
+      if ((eItemFlags & 0x1000000) != UNIT_PLAYER) {
+        if (eUnitType == UNIT_ITEM && pItemUnit->pUnitData.pUnitDataItem) {
+          szPlayerName = pItemUnit->pUnitData.pUnitDataItem->szPlayerName;
+        } else {
+          szPlayerName = 0;
+        }
+
+        do {
+          nBitValue = (int)*szPlayerName ? (int)*szPlayerName : 0;
+          if (0x7f <= nBitValue) {
+            nBitValue = 0x7f;
+          }
+
+          Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nBitValue, 7);
+          cCurChar = *szPlayerName;
+          szPlayerName++;
+        } while (cCurChar != '\0');
+      }
     }
     if (pStatListEx) {
       nRunewordFlag = 0;
@@ -7699,19 +7697,19 @@ void __fastcall SerializeItemToBitBuffer(D2UnitStrc * pUnit, D2BitBufferStrc * p
       if (bIsCrude) {
         nValue = nValue & -4194305 | ITEMFLAG_CRUDE;
       }
-      if (!pStatListEx) {
+      if (pStatListEx) {
+        Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, 0x4d4a, 0x10);
+      } else {
         if ((nValue & ITEMFLAG_IDENTIFIED) == UNIT_PLAYER) {
           nValue &= -2049;
         }
-      } else {
-        Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, 0x4d4a, 0x10);
       }
 
       Fog::BitBuffer::WriteValueToBitBuffer(pBitBuffer, nValue, 0x20);
-      if ((nValue & ITEMFLAG_COMPACT) == UNIT_PLAYER) {
-        SerializeComplexItem(pUnit, pBitBuffer, pStatListEx, bIsCrude);
-      } else {
+      if ((nValue & ITEMFLAG_COMPACT) != UNIT_PLAYER) {
         SerializeSimpleItem(pUnit, pBitBuffer, pStatListEx);
+      } else {
+        SerializeComplexItem(pUnit, pBitBuffer, pStatListEx, bIsCrude);
       }
       if (!bIsCrude && bAllItems && pUnit->pInventory) {
         for (pUnit_00 = INVENTORY::Inventory::INVENTORY_GetFirstItem(pUnit->pInventory); pUnit_00; pUnit_00 = INVENTORY::Inventory::INVENTORY_GetNextItem(pUnit_00)) {

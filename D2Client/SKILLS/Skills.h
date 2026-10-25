@@ -52,8 +52,6 @@ struct D2UnitStrc * __fastcall CastAttackWithDistanceCheck(struct D2UnitStrc * p
 BOOL __fastcall SKILLS_CltCheckThrowableAmmo(struct D2UnitStrc * pUnit);
 void __stdcall MISSILE_SetSpeedByDistance(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 void __fastcall AssignProperLight(struct D2UnitStrc * pUnit, int32_t nMissileId);
-// Selects the player attack animation mode for the current attack. Returns Attack1 (1), Attack2 (8 for large monsters), or Throw (7 if no weapon equipped). Consults target monster height from MonStats2Txt and uses COMPOSIT_HasWeaponDrawn to detect bow/crossbow. For large targets, uses the unit's RNG seed to randomly pick Attack1 vs Attack2 with 50% probability.
-int PLAYER_ChooseAttackAnimation(struct D2UnitStrc * pUnit);
 // MISSILE SPAWN: Creates D2UnitStrc (UNIT_MISSILE).
 // Fills D2SkillArgStrc with owner, skill, level, position, target
 // → Calls UNIT_CreateMissile
@@ -62,11 +60,9 @@ int PLAYER_ChooseAttackAnimation(struct D2UnitStrc * pUnit);
 // → 71 hit handlers apply damage/effects
 // This connects skills → simulation loop.
 struct D2UnitStrc * __fastcall MakeMissile(eMissilesId neMissilesId, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLevel, int32_t nOffsetX, int32_t nOffsetY, int32_t nX, int32_t nY);
-int32_t SKILL_CanTargetDeadMonster(struct D2UnitStrc * pUnit, eD2Skills eSkills);
 uint32_t __fastcall SKILLS_GetTargetTypeForSkill(int32_t nParam, int * pnParam);
 // Tests whether pUnit2 is a legal skill target for caster pUnit under the skill's target-flags bitmask (nTargetFlags). Switches on the target's unit type, requiring the matching allow-bit (player/monster/object/missile/item) and checking liveness/anim-mode (e.g. dead/death rejected unless the corpse-target bit 0x1000 is set). Applies optional filters per bit: undead-only (0x4), exclude-boss (0x4000), monster-stat flag (0x40000), not-in-town (0x100), skill-target-type & non-NPC (0x10000), CanInteractWith (0x8000), in-melee-range (0x20000), not just-hit (0x80000), and line-of-sight wall collision (0x200). Returns 1 if the target passes all applicable checks, 0 otherwise.
 uint32_t __fastcall SKILL_ValidateTarget(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, uint32_t nTargetFlags);
-uint32_t ROOM_IsPointInRadius(struct D2RoomStrc * pRoom, int32_t nX, int32_t nY, int32_t nRadius);
 // Iterates all units in adjacent rooms within nRadius of (nCenterX, nCenterY) and invokes fpCallback for each valid target. Builds a room list via DRLGROOM_GetAdjacentRoomsList, skips town rooms if nTargetFlags has bit 0x2000, filters by distance-squared, calls SKILL_ValidateTarget with nTargetFlags, optionally skips aura-immune monsters (bExcludeAuraImmune), and passes a D2fpSkillFuncArg to the callback. Accumulates hit count in sCallbackArg.nSize.
 void __fastcall SKILL_ForEachUnitInRadius(struct D2UnitStrc * pUnit, int32_t nCenterX, int32_t nCenterY, int32_t nRadius, uint32_t nTargetFlags, fpSkillsFunc fpCallback, struct D2fpSkillFuncSub * pCallbackData, int32_t bExcludeAuraImmune);
 BOOL __fastcall SKILLS_RadiusCallback_IncrementCounter(struct D2fpSkillFuncArg * pFuncArg, struct D2UnitStrc * pUnit);
@@ -91,8 +87,6 @@ void __fastcall SKILLS_CltSetSkillFromCurrent(struct D2UnitStrc * pUnit);
 void __fastcall SKILL_ExecuteClientProgressFunc(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, eD2Skills eSkill, int32_t nSkillLevel, int32_t nTargetX, int32_t nTargetY, uint8_t bDirection);
 // Drives a unit through a skill's client progressive sequence while maintaining its aura state. Validates eSkill against D2SkillsTxt; lazily allocates/attaches the aura statlist for the skill's aurastate and seeds aurastat[0]. Saves the unit's SP1 path target/confirmed target and (when a Y-less X is supplied) nInitSeed, retargets to pUnit2 or the supplied X/Y, then for FLAG 0x80 skills steps the cltprgfunc table up to nProgressIndex, dispatching SKILLCLTDOFUNCS by unit type. Spawns the skill's client missile (cltmissile, plain or offset variant), runs the final progress-overlay func, and on success plays dosound/tgtsound and adds tgtoverlay to the confirmed target. Restores saved target/SP1/initseed before returning. Client-side cosmetic progression; no damage.
 void __fastcall SKILL_ExecuteClientProgressWithAura(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, eD2Skills eSkill, int32_t nSkillLevel, int32_t nTargetX, int32_t nTargetY, int32_t nProgressIndex);
-// Toggles dual-wield alternating attack for players carrying a usable weapon in both arm slots. If *pSwapState==0 and both arms hold a non-broken, non-potion weapon, reads SKILL_Attack param4 as the swap counter: if 0 sets it to 5 and switches active skill to SKILL_LeftHandSwing; otherwise resets param4 to 0 and restores SKILL_Attack. No-ops if pSwapState is already non-zero (mid-sequence).
-void __stdcall SKILLS_HandleDualWieldWeaponSwap(int * pSwapState, struct D2UnitStrc * pUnit);
 // @sourcefile .\SKILLS\Skills.cpp
 int32_t __fastcall SKILLS_CltStartSkillCast(struct D2DynamicPathStrc * pDynamicPath, int * pnParam);
 int32_t __fastcall SKILL_ProcessCastFromPacket(struct D2UnitStrc * pUnit, int * pnParam);

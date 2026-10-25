@@ -16,17 +16,9 @@ namespace D2Common::Drlg::OutDesr {
 // Function declarations
 // Given an array of nVariants preset IDs, rolls the level seed to pick a starting index, then iterates all variants calling SpawnOutdoorLevelPreset for each. If bIterateFiles is set, expands each preset ID to all its LvlPrest file entries and spawns each file separately.
 void __stdcall PlacePresetVariants(struct D2DrlgLevelStrc * pLevel, D2LvlPrestId * pLevelPrestIds, uint32_t nVariants, bool bIterateFiles);
-// Places the Lut Gholein exit preset in Act 2 desert levels. Searches the outdoor room linked list for the town connection (level 0x28), then spawns the appropriate exit preset (0x16A or 0x16B) based on the connection direction.
-void __fastcall DRLGOUTPLACE_PlaceAct2CanyonExitPresets(struct D2DrlgLevelStrc * pLevel);
-void PlaceCliffs(struct D2DrlgLevelStrc * pLevel);
 void __fastcall AddExits(struct D2DrlgLevelStrc * pLevel);
 void PlaceFillsInRockyWaste(struct D2DrlgLevelStrc * pLevel);
-void PlaceFillsInDryHills(struct D2DrlgLevelStrc * pLevel);
-void PlaceFillsInFarOasis(struct D2DrlgLevelStrc * pLevel);
 void PlaceRuinsInLostCity(struct D2DrlgLevelStrc * pLevel);
-void PlaceFillsInLostCity(struct D2DrlgLevelStrc * pLevel);
-void PlaceTombEntriesInCanyon(struct D2DrlgLevelStrc * pLevel);
-void PlaceFillsInCanyon(struct D2DrlgLevelStrc * pLevel);
 // DRLG outdoor-level generator dispatcher for Act 2 wilderness levels. Applies common outdoor setup (SetOutGridLinkFlags, PlaceAct1245OutdoorBorders) then switches on pLevel->eD2LevelId to run the per-level placement for Rocky Waste (0x29), Dry Hills (0x2a), Far Oasis (0x2b), Lost City (0x2c), Canyon of the Magi (0x2e), etc.: placing cliffs/ruins/tomb-entries/preset variants, secondary borders, exits, waypoints, Act1/2 shrines, and level-specific fills. Level 0x86 spawns an extra outdoor preset. Out-of-range/intermediate ids fall through to a no-op return.
 void __fastcall InitAct2OutdoorLevel(struct D2DrlgLevelStrc * pLevel);
 

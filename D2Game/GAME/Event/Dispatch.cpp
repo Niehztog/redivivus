@@ -41,7 +41,9 @@ void EVENT_RemoveAndRecycleTimer(D2TimerStrc * pTimer, ::SGAMEDATA * pGame) {
     if (pTimer == pEventControl->pTimerTemp) {
       pEventControl->pTimerTemp = pTimer->pNextTimerList;
     }
-    if (!pTimer->pPrevTimerList) {
+    if (pTimer->pPrevTimerList) {
+      pTimer->pPrevTimerList->pNextTimerList = pTimer->pNextTimerList;
+    } else {
       uint32_t nFrameBucket;
       if (pTimer->nFrame == -1) {
         ppBucket = pGame->pTimerQueue->pTimerListByType + aTimerIndexUnitTypeLookupTable[pTimer->eUnitType];
@@ -55,10 +57,10 @@ void EVENT_RemoveAndRecycleTimer(D2TimerStrc * pTimer, ::SGAMEDATA * pGame) {
       }
 
       *ppBucket = pTimer->pNextTimerList;
-    } else {
-      pTimer->pPrevTimerList->pNextTimerList = pTimer->pNextTimerList;
     }
-    if (!pTimer->pNextTimerList) {
+    if (pTimer->pNextTimerList) {
+      pTimer->pNextTimerList->pPrevTimerList = pTimer->pPrevTimerList;
+    } else {
       if (pTimer->nFrame != -1) {
         nFrame = pTimer->nFrame & 0x8000003f;
         if ((int)nFrame < 0) {
@@ -70,17 +72,15 @@ void EVENT_RemoveAndRecycleTimer(D2TimerStrc * pTimer, ::SGAMEDATA * pGame) {
           *ppBucket = pTimer->pPrevTimerList;
         }
       }
-    } else {
-      pTimer->pNextTimerList->pPrevTimerList = pTimer->pPrevTimerList;
     }
     if (pTimer->pUnit) {
       if (pTimer->pNextTimerOnUnit) {
         pTimer->pNextTimerOnUnit->pPrevTimerOnUnit = pTimer->pPrevTimerOnUnit;
       }
-      if (!pTimer->pPrevTimerOnUnit) {
-        UNIT::SUnit::SetTimerListIfUnitExists(pTimer->pUnit, pTimer->pNextTimerOnUnit);
-      } else {
+      if (pTimer->pPrevTimerOnUnit) {
         pTimer->pPrevTimerOnUnit->pNextTimerOnUnit = pTimer->pNextTimerOnUnit;
+      } else {
+        UNIT::SUnit::SetTimerListIfUnitExists(pTimer->pUnit, pTimer->pNextTimerOnUnit);
       }
     }
 
@@ -194,10 +194,10 @@ void __stdcall EVENT_DispatchObjectTimers(D2TimerQueueStrc * pTimerQueue, ::SGAM
       while (pTimer) {
         pTimerQueue->pTimerTemp = pTimer->pNextTimerList;
         pTimer->nFlags |= 1;
-        if (!pTimer->nfpTimerFunction) {
-          Objects::ObjectsMode::OBJECTEVENT_DefaultCallback(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType);
-        } else {
+        if (pTimer->nfpTimerFunction) {
           pTimer->nfpTimerFunction(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType, pTimer->nArg1, pTimer->nArg2);
+        } else {
+          Objects::ObjectsMode::OBJECTEVENT_DefaultCallback(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType);
         }
 
         pTimer->nFlags &= 0xfffe;
@@ -212,10 +212,10 @@ void __stdcall EVENT_DispatchObjectTimers(D2TimerQueueStrc * pTimerQueue, ::SGAM
         pTimerQueue->pTimerTemp = pTimer->pNextTimerList;
         if (pTimer->nFrame == pGame->dwGameFrame) {
           pTimer->nFlags |= 1;
-          if (!pTimer->nfpTimerFunction) {
-            Objects::ObjectsMode::OBJECTEVENT_DefaultCallback(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType);
-          } else {
+          if (pTimer->nfpTimerFunction) {
             pTimer->nfpTimerFunction(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType, pTimer->nArg1, pTimer->nArg2);
+          } else {
+            Objects::ObjectsMode::OBJECTEVENT_DefaultCallback(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType);
           }
 
           pTimer->nFlags &= 0xfffe;
@@ -236,10 +236,10 @@ void __stdcall EVENT_DispatchMissileTimers(D2TimerQueueStrc * pTimerQueue, ::SGA
       while (pTimer) {
         pTimerQueue->pTimerTemp = pTimer->pNextTimerList;
         pTimer->nFlags |= 1;
-        if (!pTimer->nfpTimerFunction) {
-          MISSILES::MissilesMode::MISSILEEVENT_DefaultCallback(pGame, pTimer->pUnit, (uint32_t)pTimer->nTimerType);
-        } else {
+        if (pTimer->nfpTimerFunction) {
           pTimer->nfpTimerFunction(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType, pTimer->nArg1, pTimer->nArg2);
+        } else {
+          MISSILES::MissilesMode::MISSILEEVENT_DefaultCallback(pGame, pTimer->pUnit, (uint32_t)pTimer->nTimerType);
         }
 
         /* Sets nFlags 1st byte to 0 */ pTimer->nFlags &= 0xfffe;
@@ -254,10 +254,10 @@ void __stdcall EVENT_DispatchMissileTimers(D2TimerQueueStrc * pTimerQueue, ::SGA
         pTimerQueue->pTimerTemp = pTimer->pNextTimerList;
         if (pTimer->nFrame == pGame->dwGameFrame) {
           pTimer->nFlags |= 1;
-          if (!pTimer->nfpTimerFunction) {
-            MISSILES::MissilesMode::MISSILEEVENT_DefaultCallback(pGame, pTimer->pUnit, (uint32_t)pTimer->nTimerType);
-          } else {
+          if (pTimer->nfpTimerFunction) {
             pTimer->nfpTimerFunction(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType, pTimer->nArg1, pTimer->nArg2);
+          } else {
+            MISSILES::MissilesMode::MISSILEEVENT_DefaultCallback(pGame, pTimer->pUnit, (uint32_t)pTimer->nTimerType);
           }
 
           pTimer->nFlags &= 0xfffe;
@@ -278,10 +278,10 @@ void __stdcall EVENT_DispatchItemTimers(D2TimerQueueStrc * pTimerQueue, ::SGAMED
       while (pTimer) {
         pTimerQueue->pTimerTemp = pTimer->pNextTimerList;
         pTimer->nFlags |= 1;
-        if (!pTimer->nfpTimerFunction) {
-          ITEMS::ItemMode::ITEMEVENT_DefaultCallback(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType);
-        } else {
+        if (pTimer->nfpTimerFunction) {
           pTimer->nfpTimerFunction(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType, pTimer->nArg1, pTimer->nArg2);
+        } else {
+          ITEMS::ItemMode::ITEMEVENT_DefaultCallback(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType);
         }
 
         pTimer->nFlags &= 0xfffe;
@@ -296,10 +296,10 @@ void __stdcall EVENT_DispatchItemTimers(D2TimerQueueStrc * pTimerQueue, ::SGAMED
         pTimerQueue->pTimerTemp = pTimer->pNextTimerList;
         if (pTimer->nFrame == pGame->dwGameFrame) {
           pTimer->nFlags |= 1;
-          if (!pTimer->nfpTimerFunction) {
-            ITEMS::ItemMode::ITEMEVENT_DefaultCallback(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType);
-          } else {
+          if (pTimer->nfpTimerFunction) {
             pTimer->nfpTimerFunction(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType, pTimer->nArg1, pTimer->nArg2);
+          } else {
+            ITEMS::ItemMode::ITEMEVENT_DefaultCallback(pGame, pTimer->pUnit, (eD2TimerTypeDWORD)pTimer->nTimerType);
           }
 
           pTimer->nFlags &= 0xfffe;

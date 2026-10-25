@@ -38,7 +38,7 @@ struct D2DamageStrc {
     /* 0x60 */ int dwHitClass;
     /* 0x64 */ uint8_t nHitClassActiveSet;
     /* 0x65 */ uint8_t nConvType;
-    /* 0x66 */ uint8_t nReserved66[2];
+    /* 0x66 */ struct { uint8_t e0, e1; } nReserved66;
     /* 0x68 */ int dwConvPct;
     /* 0x6C */ int nOverlay;
 };

@@ -110,11 +110,13 @@ void __fastcall SUNITEVENT_RemoveEventsByQueueAndOwner(::SGAMEDATA * pGame, D2Un
 
       pNextEvent = pMemoryToFree->pNext;
       if (pMemoryToFree->nQueueNo == nQueueNo && pMemoryToFree->nOwnerKey == nOwnerKey) {
-        if (!(pMemoryToFree->nFlags & 1)) {
-          if (!pMemoryToFree->pPrev) {
-            pUnit->uSideData.pServerSide.pSrvUnitEventList = pNextEvent;
-          } else {
+        if (pMemoryToFree->nFlags & 1) {
+          pMemoryToFree->nFlags |= 2;
+        } else {
+          if (pMemoryToFree->pPrev) {
             pMemoryToFree->pPrev->pNext = pNextEvent;
+          } else {
+            pUnit->uSideData.pServerSide.pSrvUnitEventList = pNextEvent;
           }
           if (pMemoryToFree->pNext) {
             pMemoryToFree->pNext->pPrev = pMemoryToFree->pPrev;
@@ -170,10 +172,10 @@ int32_t __fastcall UNITEVENT_DispatchEventsByType(::SGAMEDATA * pGame, uint32_t 
         pMemoryToFree->nFlags &= 0xfffe;
         pNextEvent = pMemoryToFree->pNext;
         if (pMemoryToFree->nFlags & 2 || !pMemoryToFree->nQueueNo) {
-          if (!pMemoryToFree->pPrev) {
-            pUnit->uSideData.pServerSide.pSrvUnitEventList = pNextEvent;
-          } else {
+          if (pMemoryToFree->pPrev) {
             pMemoryToFree->pPrev->pNext = pNextEvent;
+          } else {
+            pUnit->uSideData.pServerSide.pSrvUnitEventList = pNextEvent;
           }
           if (pMemoryToFree->pNext) {
             pMemoryToFree->pNext->pPrev = pMemoryToFree->pPrev;

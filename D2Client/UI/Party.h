@@ -20,39 +20,20 @@ namespace D2Client::UI::Party {
 void __stdcall SetPartyColors();
 void __stdcall SetRedToBlack();
 void __stdcall UI_DrawPartyPanelBackground();
-void UI_DrawPartyMemberSeparatorBar(int32_t nBaseY);
-void __stdcall UI_DrawPartyButtonFrame(struct DC6 * pDC6, int32_t nParam1, int32_t nParam2, int32_t nParam3);
 void __stdcall FreeAllUiParty();
 void __stdcall UI_InitializePartyButtonStruct(uint32_t nX, uint32_t nY, uint32_t nDC6OrCallback, uint32_t nFrame, uint32_t nButtonType, uint32_t nData1, uint32_t nData2, uint32_t * pdwParam);
-void SetupPartyButtons(struct D2RosterStrc * pRoster, struct D2UiPartyStrc * pUiParty, int32_t nPositionY);
-void AllocUiPartyFromRoster(struct D2RosterStrc * pRoster, int32_t nPositionY);
 void __fastcall UI_DrawPartyMemberName(char * pszName, struct D2UiPartyStrc * pUiParty, int32_t nScreenY, int32_t nColor, int32_t bNarrowMode);
-void __stdcall UI_DrawPartyMemberClass(int32_t nScreenY, int32_t nCharType, int32_t nColor);
-void __fastcall UI_DrawPartyButtonLabelText(int32_t eButtonType, int32_t nBaseY, int32_t bHostileMode, int16_t nPartyId);
 void __stdcall UI_DrawPartyLeaveButton();
-void __stdcall UI_DrawPlayerNameInParty();
 int32_t __stdcall ResetPartyUi();
 void __stdcall UI_DrawPartyButtons(struct D2UiPartyStrc * pUiParty);
-void __stdcall UI_DrawPartyMemberLevelName(struct D2UiPartyStrc * pUiParty, int32_t nColor, int32_t nScreenY);
 void __stdcall UI_DrawPartyAcceptButton();
 void __stdcall SetEachPlayerRosterGlobalPartyId();
 BOOL __stdcall UI_CheckMouseInRectangle(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight);
 int32_t __fastcall UI_CalculateCenteredTextXPosition(uint16_t nLocaleId, int32_t nCenterX);
-void __stdcall ShowToolTipOnPartyButtons(int16_t nLocaleIdLine1, int16_t nLocaleIdLine2, int32_t nOffsetX, int32_t bIsTwoLiner);
-void __stdcall DRAW_UI_PartyWindow_II();
-void __stdcall UI_DrawPartyButtonTextWithTooltip(uint16_t nLocaleId1, uint16_t nLocaleId2, uint32_t dwUnused, int32_t nLine2Y, int32_t nColor, int32_t nOffsetX, int32_t nLine1Y);
-void ROSTER_DrawPlayerTooltip(struct D2RosterStrc * pRoster);
-void __stdcall UI_HandlePartyButtonTooltips();
-uint32_t ClickParty_II(int32_t eButtonType, struct D2RosterStrc * pRoster);
-void UI_HandlePartyButtonClick(struct D2UiPartyStrc * pUiParty, struct D2RosterStrc * pRoster, int32_t nButtonIdx);
 void __stdcall INPUT_PartyScreenLeftClick(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_PartyScreenMouseUp(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall LoadPartyDC6();
 void __stdcall FreePartyDC6();
-// Draws the party-panel level line for one member: string 0xd28 plus separators 0xf9d/0xf9b, then nCharLevel as %2u, at gnPanelOffsetX+0x10a, row nY.
-// Provenance: the only caller (UI_DrawPartyMembers 0049c354) pushes pUiParty->nCharLevel.
-void __stdcall UI_DrawPartyMemberLevel(uint32_t nCharLevel, int32_t dwColor, int32_t nY);
-void __stdcall UI_DrawPartyMembers();
 void __stdcall DRAW_UI_PartyWindow();
 
 } // namespace D2Client::UI::Party

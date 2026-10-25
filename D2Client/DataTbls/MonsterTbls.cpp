@@ -19,7 +19,7 @@
 namespace D2Client::DataTbls::MonsterTbls {
 
 D2MonStatsTxt * __fastcall TXT_MonStats_GetLine(int32_t nMonStatsId) {
-    if (!(-1 < nMonStatsId && nMonStatsId < sgptDataTable->nTxtMonStatsSize)) {
+    if (!(0 <= nMonStatsId && nMonStatsId < sgptDataTable->nTxtMonStatsSize)) {
       return nullptr;
     }
 
@@ -27,12 +27,12 @@ D2MonStatsTxt * __fastcall TXT_MonStats_GetLine(int32_t nMonStatsId) {
 }
 
 D2MonStats2Txt * __fastcall TXT_MonStats_GetMonStats2(int32_t nClassId) {
-    if (!(-1 < nClassId && nClassId < sgptDataTable->nTxtMonStatsSize)) {
+    if (!(0 <= nClassId && nClassId < sgptDataTable->nTxtMonStatsSize)) {
       return nullptr;
     }
 
     int nMonStats2Id = (int)sgptDataTable->pTxtMonStats[nClassId].MonStatsEx;
-    if (!(-1 < nMonStats2Id && nMonStats2Id < sgptDataTable->nTxtMonStatsExSize)) {
+    if (!(0 <= nMonStats2Id && nMonStats2Id < sgptDataTable->nTxtMonStatsExSize)) {
       return nullptr;
     }
 
@@ -40,7 +40,7 @@ D2MonStats2Txt * __fastcall TXT_MonStats_GetMonStats2(int32_t nClassId) {
 }
 
 D2StatesTxt * __fastcall TXT_States_GetLine(eD2States eState) {
-    if (!(-1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return nullptr;
     }
 
@@ -48,7 +48,7 @@ D2StatesTxt * __fastcall TXT_States_GetLine(eD2States eState) {
 }
 
 BOOL __fastcall TXT_MonStats_GetFlagsByBitOffset(int32_t nMonStatsId, TxtMonStatsField0x0c nBitOffset) {
-    if (!(-1 < nMonStatsId && nMonStatsId < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatsId)) {
+    if (!(0 <= nMonStatsId && nMonStatsId < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nMonStatsId)) {
       return 0;
     }
 

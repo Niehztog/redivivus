@@ -12,12 +12,11 @@ namespace D2Sound::Src::D2SoundFast {
 
 // Function declarations
 BOOL __stdcall SOUND_IsAmbientStreaming();
-void __stdcall SOUND_ResetAmbientSoundFlags();
 void __fastcall SOUND_SetMusicEnabled(int32_t nEnabled);
 BOOL __stdcall SOUND_GetMusicEnabled();
 void __stdcall SOUND_StopMusic();
 void __stdcall SOUND_FadeOutMusic();
-void __stdcall SOUND_PlayNextAmbientSound();
+int __stdcall SOUND_PlayNextAmbientSound();
 void __stdcall SOUND_LoadRegistrySettings();
 uint32_t __stdcall SOUND_GetSoundMixer();
 int32_t __fastcall SOUND_SetSoundMixer(int32_t nMixerType);

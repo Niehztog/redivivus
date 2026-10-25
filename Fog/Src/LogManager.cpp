@@ -39,11 +39,17 @@ typedef BOOL (__stdcall *pfnGetDiskFreeSpaceEx)(LPCSTR lpDirectoryName, void * l
 #endif
 
 namespace Fog::Src::LogManager {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e38(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e11(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9dc8(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d98(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d3b(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d08(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext);
 
 static char gLogFileNameArray_0__1_[20][16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 static char gLogFileNameArray_0__2_[20][16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-int __stdcall DetectCpuVendor() {
+static int __stdcall DetectCpuVendor() {
     // Frame slots -24..-4 are ONE object: &dwVendorPart0 is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -334,21 +340,21 @@ uint32_t __stdcall BenchmarkCpuSpeed() {
     /* LARGE_INTEGER * lpFrequency for QueryPerformanceFrequency */ QueryPerformanceFrequency(&qpcFreq);
     nMhz = __allmul((uint32_t)(nMhz - nTscStart), (int)((uint64_t)(nMhz - nTscStart) >> 0x20), qpcFreq.u.LowPart, qpcFreq.u.HighPart);
     nMhz = __alldiv((uint32_t)nMhz, (uint32_t)((uint64_t)nMhz >> 0x20), qpcEnd.u.LowPart - *(uint32_t*)(char*)&qpcStart, qpcEnd.u.HighPart - *(uint32_t*)((char*)&qpcStart + 4) - (uint32_t)(qpcEnd.u.LowPart < qpcStart.u.LowPart));
-    nMhz = __alldiv((uint32_t)nMhz, (uint32_t)((uint64_t)nMhz >> 0x20), 1000000, 0);
+    nMhz = (int64_t)nMhz / 1000000;
     return (uint32_t)nMhz;
 }
 
-uint64_t __stdcall GetCpuVersionInfo() {
+static uint64_t __stdcall GetCpuVersionInfo() {
     uint32_t* pVersionInfo = (uint32_t*)D2_Cpuid(1);
     return (uint64_t)((uint64_t)(uint32_t)pVersionInfo[2] << 32 | (uint64_t)(uint32_t)*pVersionInfo);
 }
 
-uint32_t __stdcall GetCpuBrandId() {
+static uint32_t __stdcall GetCpuBrandId() {
     uint32_t nBrandId = 0;
     uint64_t nVersionInfo = GetCpuVersionInfo();
     uint32_t nFamily = (uint32_t)nVersionInfo >> 8 & 0xf;
     int nVendor = DetectCpuVendor();
-    if (!(nVendor == 1 && (6 < nFamily || nFamily == 6 && 0x7f < ((uint32_t)nVersionInfo & 0xf0)))) {
+    if (!(nVendor == 1 && (7 <= nFamily || nFamily == 6 && 0x80 <= ((uint32_t)nVersionInfo & 0xf0)))) {
       return nBrandId;
     }
 
@@ -472,9 +478,7 @@ void __stdcall LogCpuInfo() {
     uint64_t uVar1;
     char szModelName[256];
     char* Format;
-    if (gSystemInfo.wProcessorLevel == 3) {
-      Format = "Intel 386";
-    } else {
+    if (gSystemInfo.wProcessorLevel != 3) {
       int nVendorIndex;
       if (gSystemInfo.wProcessorLevel != 4) {
         nVendorIndex = DetectCpuVendor();
@@ -489,15 +493,15 @@ void __stdcall LogCpuInfo() {
         LOGFILE_WriteStringToFile("Version: %s (Type %X, Family %X, Model %X, Stepping %X, Brand %X)", szModelName, nType, nFamily, nModel, nVersionLow & 0xf, nBrandId & 0xff);
         nBrandId = BenchmarkCpuSpeed();
         LOGFILE_WriteStringToFile("Speed: Approx. %d MHz", nBrandId);
-        Debug::GuardStack();
         return;
       }
 
       Format = "Intel 486";
+    } else {
+      Format = "Intel 386";
     }
 
     LOGFILE_WriteStringToFile(Format);
-    Debug::GuardStack();
 }
 
 BOOL __stdcall GetLoggerState_Stub() {
@@ -521,14 +525,14 @@ void __fastcall InitCriticalSection(void * pElement) {
 
 void __fastcall InitLogFilePathPointers(uint8_t * * pPathPtrArray, uint32_t nCount) {
     uint32_t nIndex = 0;
-    if (!nCount) {
+    if ((uint32_t)nCount <= 0) {
       return;
     }
 
     char (*pPathSlot)[260] = gLogFilePathArray;
     uint32_t nByteOffset = 0;
     do {
-      if (0x144f < nByteOffset) {
+      if (0x1450 <= nByteOffset) {
         return;
       }
 
@@ -560,7 +564,6 @@ int __fastcall OpenLogFileWithTimestamp(char * szFilePrefix, LPSYSTEMTIME pSyste
     }
 
     pFile = fopen(szLogFilePath, szOpenMode);
-    Debug::GuardStack();
     return (int)pFile;
 }
 
@@ -585,7 +588,6 @@ void __fastcall WriteLogFileHeader(FILE * pFile, SYSTEMTIME * pTime) {
     fprintf(pFile, "---------------------------------------------------------------\n");
     fprintf(pFile, "%s %04d-%02d-%02d\n", __frame0.szComputerName, (uint32_t)pTime->wYear, (uint32_t)pTime->wMonth, (uint32_t)pTime->wDay);
     fprintf(pFile, "---------------------------------------------------------------\n");
-    Debug::GuardStack();
 }
 
 // Writes the realm-startup banner to a log file: a rule, the computer name and the local time, and a closing rule.
@@ -609,7 +611,6 @@ void __fastcall WriteRealmStartupHeader(FILE * pFile) {
     fprintf(pFile, "---------------------------------------------------------------\n");
     fprintf(pFile, "%s Realm startup at %04d-%02d-%02d %02d:%02d:%02d.%03u\n", __frame0.szComputerName, (uint32_t)gLogRealmStartupLocalTime.wYear, (uint32_t)gLogRealmStartupLocalTime.wMonth, (uint32_t)gLogRealmStartupLocalTime.wDay, (uint32_t)gLogRealmStartupLocalTime.wHour, (uint32_t)gLogRealmStartupLocalTime.wMinute, (uint32_t)gLogRealmStartupLocalTime.wSecond, (uint32_t)gLogRealmStartupLocalTime.wMilliseconds);
     fprintf(pFile, "---------------------------------------------------------------\n");
-    Debug::GuardStack();
 }
 
 // Returns the open log file for a name, opening it in a free slot and writing its header when it is new.
@@ -653,7 +654,7 @@ FILE * __fastcall FindOrOpenLogFileSlot(uint8_t * szFileName, uint32_t * pnSlotI
           if (pOpenedFile) {
             goto report_slot;
           }
-          if (-1 < (int)nSlot) {
+          if (0 <= (int)nSlot) {
             goto open_in_slot;
           }
 
@@ -669,11 +670,11 @@ FILE * __fastcall FindOrOpenLogFileSlot(uint8_t * szFileName, uint32_t * pnSlotI
           nFreeHandleSlotTmp = nSlot;
           if (-1 < (int)nFreeHandleSlot) {
             nFreeHandleSlotTmp = nFreeHandleSlot;
-            if (gLogFileLastAccessTimeArray[nFreeHandleSlot] < dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nSlotOffset)) {
+            if (dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nSlotOffset) > gLogFileLastAccessTimeArray[nFreeHandleSlot]) {
               nFreeHandleSlotTmp = nSlot;
             }
           }
-        } else if (dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nIsNewFile) < dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nSlotOffset)) {
+        } else if (dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nSlotOffset) > dwNow - *(int*)((int)gLogFileLastAccessTimeArray + nIsNewFile)) {
           nIsNewFile = nSlotOffset;
           nLruSlot = nSlot;
         }
@@ -687,10 +688,10 @@ FILE * __fastcall FindOrOpenLogFileSlot(uint8_t * szFileName, uint32_t * pnSlotI
       } while ((int)pStoredName < (uintptr_t)((char*)&gLogFileNameArray + sizeof(gLogFileNameArray)));
 
       nSlot = nEmptySlot;
-      if (-1 < (int)nEmptySlot) {
+      if (0 <= (int)nEmptySlot) {
         goto open_in_slot;
       }
-      if (-1 < (int)nFreeHandleSlot) {
+      if (0 <= (int)nFreeHandleSlot) {
         nLruSlot = nFreeHandleSlot;
       }
     }
@@ -704,7 +705,7 @@ FILE * __fastcall FindOrOpenLogFileSlot(uint8_t * szFileName, uint32_t * pnSlotI
 
     open_in_slot:
     pNameEnd = Storm::Source::SSTR::SStrLen((char*)szFileName);
-    if (0xf < pNameEnd) {
+    if (0x10 <= pNameEnd) {
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x34c);
       exit(-1);
     }
@@ -746,18 +747,17 @@ void __fastcall FILETOOLS_GetUserMyDocumentsDiabloIIGameLogsFolder(char * szGame
     uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     *szGameLogsPath = '\0';
     int nResult = SHGetFolderPathA(0, 5, 0, 0, szMyDocuments);
-    if (-1 < nResult) {
+    if (0 <= nResult) {
       Storm::Source::SSTR::SStrCopy(szGameLogsPath, szMyDocuments, nGameLogsPathLength);
       Source::SFile::SFILE_EnsurePathEndsWithBackslash(szGameLogsPath, nGameLogsPathLength);
       Storm::Source::SSTR::SStrPack(szGameLogsPath, "Diablo II\\GameLogs\\", nGameLogsPathLength);
       Source::SFile::SafeCreateDirectoryTree(szGameLogsPath);
     }
 
-    Debug::GuardStack();
 }
 
 // Writes a log record whose body is a hex dump to its log file, one formatted line at a time.
-void __fastcall WriteHexDumpLogEntry(int32_t pLogRecord) {
+static void __fastcall WriteHexDumpLogEntry(int32_t pLogRecord) {
     // Frame slots -352..-4 are ONE object: &local_160 is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -829,13 +829,15 @@ void __fastcall WriteHexDumpLogEntry(int32_t pLogRecord) {
           fprintf(__frame0.pLogFile, pRecordBody, pLineCursor, pDumpHeader + 0x14, iVar1);
           __frame0.local_160 = 0;
           nChunkLen = __frame0.nBytesRemaining;
-          if (0xf < __frame0.nBytesRemaining) {
+          if (0x10 <= __frame0.nBytesRemaining) {
             nChunkLen = 0x10;
           }
 
           /* UINT_PTR ucb for IsBadReadPtr */ /* void * lp for IsBadReadPtr */ __frame0.szLineBuf[0] = '\0';
           bBadPtr = IsBadReadPtr(pbVar2, nChunkLen);
-          if (!bBadPtr) {
+          if (bBadPtr) {
+            Storm::Source::SSTR::SStrCopy(__frame0.szLineBuf, "<unreadable>", 0x7fffffff);
+          } else {
             nColumn = 0;
             if (nChunkLen) {
               do {
@@ -879,8 +881,6 @@ void __fastcall WriteHexDumpLogEntry(int32_t pLogRecord) {
               pLineCursor[(int)(__frame0.szLineBuf + (nColumn - (int)(__frame0.szLineBuf + 1)))] = '\0';
               pDumpHeader = __frame0.pDumpHeaderSaved;
             }
-          } else {
-            Storm::Source::SSTR::SStrCopy(__frame0.szLineBuf, "<unreadable>", 0x7fffffff);
           }
 
           fprintf(__frame0.pLogFile, "%s\n", __frame0.szLineBuf);
@@ -890,7 +890,6 @@ void __fastcall WriteHexDumpLogEntry(int32_t pLogRecord) {
         }
       }
 
-      Debug::GuardStack();
       return;
     }
 
@@ -898,7 +897,7 @@ void __fastcall WriteHexDumpLogEntry(int32_t pLogRecord) {
     exit(-1);
 }
 
-void __stdcall CloseStaleLogFileHandles() {
+static void __stdcall CloseStaleLogFileHandles() {
     DWORD dwNow = GetTickCount();
     int nSlotOffset = 0;
     do {
@@ -910,7 +909,6 @@ void __stdcall CloseStaleLogFileHandles() {
       nSlotOffset++;
     } while (nSlotOffset < 20);
 
-    Debug::GuardStack();
 }
 
 void __fastcall DeleteOldLogFile(int32_t pRefFileTime, char * szFileName) {
@@ -938,7 +936,7 @@ void __fastcall DeleteOldLogFile(int32_t pRefFileTime, char * szFileName) {
     sysTimeHead.wMonth = nMonth[0];
     /* LPFILETIME lpFileTime for SystemTimeToFileTime */ /* SYSTEMTIME * lpSystemTime for SystemTimeToFileTime */ *(uint32_t*)((char*)&sysTimeHead + 4) = (uint32_t)nDay[0] << 0x10;
     SystemTimeToFileTime(&sysTimeHead, &fileTime);
-    if (!(fileTime.dwHighDateTime <= *(uint32_t*)(pRefFileTime + 4) && 0x4b6 < *(uint32_t*)(pRefFileTime + 4) - fileTime.dwHighDateTime)) {
+    if (!(*(uint32_t*)(pRefFileTime + 4) >= fileTime.dwHighDateTime && 0x4b7 <= *(uint32_t*)(pRefFileTime + 4) - fileTime.dwHighDateTime)) {
       return;
     }
 
@@ -993,7 +991,6 @@ void __fastcall FILETOOLS_SetLogFilePathWithoutDateAndExtension2(FILE * szSuffix
     uint32_t uStack8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     FILETOOLS_GetUserMyDocumentsDiabloIIGameLogsFolder(szLogsFolder, 0x104);
     Storm::Source::SSTR::SStrPrintf(gszLogFilePath, 0x104, "%s%s", szLogsFolder, (char*)szSuffix);
-    Debug::GuardStack();
 }
 
 long __fastcall GetLogFileSize(uint8_t * szFileName) {
@@ -1037,7 +1034,7 @@ D2CharSelCompStrc * __fastcall ReadLogFileRange(uint8_t * szFileName, int32_t nS
 }
 
 // Writes one log record to its log file, prefixed with the record's time of day.
-void __fastcall LogToFile(uint32_t pLogRecord) {
+static void __fastcall LogToFile(uint32_t pLogRecord) {
     uint32_t nSlot = pLogRecord;
     if (*(int*)(pLogRecord + 0xc) != 1) {
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x2a1);
@@ -1103,7 +1100,7 @@ void __stdcall ExitOrCrashCleanup() {
     uint32_t uElapsed = dwTickCountB - dwTickCountA;
     while (uElapsed < 1000) {
       /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&gLogMessageQueueCS);
-      /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ nQueueCount = gLogMessageQueueHead.pNext < 1 ? 0 : gLogMessageQueueHead.pNext;
+      /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ nQueueCount = gLogMessageQueueHead.pNext <= 0 ? 0 : gLogMessageQueueHead.pNext;
       LeaveCriticalSection(&gLogMessageQueueCS);
       if (!nQueueCount) {
         break;
@@ -1124,7 +1121,7 @@ void __stdcall ExitOrCrashCleanup() {
 
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&gLogFileCS);
       openFileHandleArray++;
-    } while ((int)openFileHandleArray < (uintptr_t)((char*)&globalOpenFileHandleArray + sizeof(globalOpenFileHandleArray)));
+    } while ((int)openFileHandleArray < (int)((uintptr_t)((char*)&globalOpenFileHandleArray + sizeof(globalOpenFileHandleArray))));
 }
 
 // JMP thunk
@@ -1132,7 +1129,7 @@ void __stdcall ExitOrCrashCleanUpJmp() {
     ::Fog::Src::LogManager::ExitOrCrashCleanup();
 }
 
-void __stdcall DeleteOldLogFiles() {
+static void __stdcall DeleteOldLogFiles() {
     // Static local variables (originally global data)
     static uint32_t gLogCleanupLastTickCount;
 
@@ -1146,7 +1143,7 @@ void __stdcall DeleteOldLogFiles() {
     char szSearchPattern[260];
     char szLogsFolder[260];
     uint32_t local_8 = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    if (!gLogCleanupLastTickCount || (dwTickCount = GetTickCount() , 86399999 < dwTickCount - gLogCleanupLastTickCount)) {
+    if (!gLogCleanupLastTickCount || (dwTickCount = GetTickCount() , 86400000 <= dwTickCount - gLogCleanupLastTickCount)) {
       gLogCleanupLastTickCount = GetTickCount();
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&gLogFileCS);
       ExitOrCrashCleanup();
@@ -1167,7 +1164,6 @@ void __stdcall DeleteOldLogFiles() {
       }
     }
 
-    Debug::GuardStack();
 }
 
 void __fastcall UnlinkListNodeDouble(int * pNode) {
@@ -1549,7 +1545,7 @@ DWORD __stdcall LOGMANAGER_LogWriterThreadProc(void * lpThreadParam) {
         }
 
         dwSleepMs = GetTickCount();
-        if (14999 < dwSleepMs - dwStopStartTick) {
+        if (15000 <= dwSleepMs - dwStopStartTick) {
           ExceptionList = pPrevExceptionList;
           return 1;
         }
@@ -1560,10 +1556,15 @@ DWORD __stdcall LOGMANAGER_LogWriterThreadProc(void * lpThreadParam) {
         dwSleepMs = 0x32;
       } else {
         /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&gLogFileCS);
-        if (pNode[3] == 1) {
+        switch (pNode[3]) {
+        case 1: {
           LogToFile((uint32_t)pNode);
-        } else if (pNode[3] == 2) {
+          break;
+        }
+        case 2: {
           WriteHexDumpLogEntry((int32_t)pNode);
+          break;
+        }
         }
 
         /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&gLogFileCS);
@@ -1767,7 +1768,7 @@ void __fastcall Atomic64Store(int64_t * pllTarget, int64_t * pllValue) {
 // Atomic 64-bit read of *pllSource into *pllResult via LOCK CMPXCHG8B: the comparand EDX:EAX is the don't-care ECX:EBX, and either path leaves the current value in EDX:EAX (ECX=result, EDX=source). The EBX half is not a parameter: callers at 00410a1c and 00410a9a set only ECX and EDX.
 // @renamed-from AtomicExchange64 (it never changes *pllSource)
 // [override: replace]
-void __fastcall Atomic64Load(int64_t * pllResult, int64_t * pllSource) {
+static void __fastcall Atomic64Load(int64_t * pllResult, int64_t * pllSource) {
     // Hand-supplied body. Ghidra address 004107d0. ECX = pllResult, EDX = pllSource.
     //
     //   004107d4  MOV EAX,EBX ; 004107d6 MOV EDX,ECX   comparand EDX:EAX = new value ECX:EBX
@@ -1815,7 +1816,6 @@ void __stdcall GetFreeDiskSpaceForSavePath() {
         __frame0.local_418 = 0;
         (*npfnGetDiskFreeSpaceEx)(szSavePath, &__frame0.anDiskInfo, &__frame0.dwFreeBytesLo, &__frame0.dwTotalBytesLo);
         /* HMODULE hLibModule for FreeLibrary */ FreeLibrary(hModule);
-        Debug::GuardStack();
         return;
       }
     }
@@ -1835,7 +1835,6 @@ void __stdcall GetFreeDiskSpaceForSavePath() {
     local_414[1] = 0;
     __frame0.dwBytesPerSector = 0;
     GetDiskFreeSpaceA(szSavePath, local_414 + 2, local_414, local_414 + 1, &__frame0.dwBytesPerSector);
-    Debug::GuardStack();
 }
 
 void GetGlobalMemoryStatus(LPMEMORYSTATUS pMemoryStatus) {
@@ -1856,11 +1855,9 @@ int __stdcall IsWindowsNT() {
     /* LPOSVERSIONINFOA lpVersionInformation for GetVersionExA */ sVersionInfo.dwOSVersionInfoSize = 0x94;
     BOOL bGotVersion = GetVersionExA(&sVersionInfo);
     if (!bGotVersion) {
-      Debug::GuardStack();
       return 0;
     }
 
-    Debug::GuardStack();
     return (uint32_t)(sVersionInfo.dwPlatformId == 2);
 }
 
@@ -1913,37 +1910,37 @@ uint32_t LOGMGR_GetHighResolutionTime() {
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d08(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d08(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d3b(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d3b(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d98(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9d98(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9dc8(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9dc8(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e11(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e11(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-_EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e38(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static _EXCEPTION_DISPOSITION __GSHandlerCheck_EH_6c9e38(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 
 // compiler-generated C++ EH handler; its frame is never registered with the OS
-int SehHandler_6c9e6a(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
+static int SehHandler_6c9e6a(EHExceptionRecord * pExceptionRecord, EHRegistrationNode * pRegistrationNode, _CONTEXT * pContext, void * pDispatcherContext) {
     return ExceptionContinueSearch;
 }
 

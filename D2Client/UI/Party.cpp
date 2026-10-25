@@ -93,7 +93,7 @@ void __stdcall UI_DrawPartyPanelBackground() {
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, gnPanelOffsetX + 0x100, gnPanelOffsetY - 0x30 + ScreenSizeY, -1, DRAW_SOLID, nullptr);
 }
 
-void UI_DrawPartyMemberSeparatorBar(int32_t nBaseY) {
+static void UI_DrawPartyMemberSeparatorBar(int32_t nBaseY) {
     D2GfxDataStrc sGfxData;
     memset(&sGfxData, 0, 0x48);
     sGfxData.pDC6 = pMenu_partybar;
@@ -104,7 +104,7 @@ void UI_DrawPartyMemberSeparatorBar(int32_t nBaseY) {
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, gnPanelOffsetX + 0x10b, nBaseY - gnPanelOffsetY, -1, DRAW_SOLID, nullptr);
 }
 
-void __stdcall UI_DrawPartyButtonFrame(DC6 * pDC6, int32_t nParam1, int32_t nParam2, int32_t nParam3) {
+static void __stdcall UI_DrawPartyButtonFrame(DC6 * pDC6, int32_t nParam1, int32_t nParam2, int32_t nParam3) {
     D2GfxDataStrc sGfxData;
     memset(&sGfxData, 0, 0x48);
     sGfxData.pDC6 = pDC6;
@@ -135,7 +135,7 @@ void __stdcall UI_InitializePartyButtonStruct(uint32_t nX, uint32_t nY, uint32_t
     pdwParam[6] = nData2;
 }
 
-void SetupPartyButtons(D2RosterStrc * pRoster, D2UiPartyStrc * pUiParty, int32_t nPositionY) {
+static void SetupPartyButtons(D2RosterStrc * pRoster, D2UiPartyStrc * pUiParty, int32_t nPositionY) {
     pUiParty->nScreenY = nPositionY + 0xd;
     BOOL bInParty = GAME::Roster::GetRosterInPartyBool(pRoster);
     pUiParty->pPartyButtons[0].pDC6 = pMenu_partybuttons;
@@ -181,7 +181,7 @@ void SetupPartyButtons(D2RosterStrc * pRoster, D2UiPartyStrc * pUiParty, int32_t
     pUiParty->nRosterGUID = nRosterGUID;
 }
 
-void AllocUiPartyFromRoster(D2RosterStrc * pRoster, int32_t nPositionY) {
+static void AllocUiPartyFromRoster(D2RosterStrc * pRoster, int32_t nPositionY) {
     D2UiPartyStrc* pUiParty;
     char cChar;
     D2UiPartyStrc* pUiPartyGlobal = Party::pUiParty;
@@ -254,24 +254,24 @@ void __fastcall UI_DrawPartyMemberName(char * pszName, D2UiPartyStrc * pUiParty,
     __frame0.local_8 = 0;
     int32_t nTextWidth;
     nTextWidth = D2Win::Src::D2WinFont::DRAW_text0(wszName);
-    if (!bNarrowMode) {
-      if (nTextWidth < 0x88) {
-        goto draw_name;
-      }
-
-      i = D2Win::Src::D2WinFont::DRAW_text0(wszName);
-      while (0x87 < i) {
-        pTruncate--;
-        *pTruncate = L'\0';
-        i = D2Win::Src::D2WinFont::DRAW_text0(wszName);
-      }
-    } else {
-      if (nTextWidth < 0x60) {
+    if (bNarrowMode) {
+      if (nTextWidth <= 0x5f) {
         goto draw_name;
       }
 
       i = D2Win::Src::D2WinFont::DRAW_text0(wszName);
       while (0x5f < i) {
+        pTruncate--;
+        *pTruncate = L'\0';
+        i = D2Win::Src::D2WinFont::DRAW_text0(wszName);
+      }
+    } else {
+      if (nTextWidth <= 0x87) {
+        goto draw_name;
+      }
+
+      i = D2Win::Src::D2WinFont::DRAW_text0(wszName);
+      while (0x87 < i) {
         pTruncate--;
         *pTruncate = L'\0';
         i = D2Win::Src::D2WinFont::DRAW_text0(wszName);
@@ -284,7 +284,7 @@ void __fastcall UI_DrawPartyMemberName(char * pszName, D2UiPartyStrc * pUiParty,
     D2Win::Src::D2WinFont::DRAW_text(wszName, gnPanelOffsetX + 0x24, nScreenY - gnPanelOffsetY - 2, nColor, 0);
 }
 
-void __stdcall UI_DrawPartyMemberClass(int32_t nScreenY, int32_t nCharType, int32_t nColor) {
+static void __stdcall UI_DrawPartyMemberClass(int32_t nScreenY, int32_t nCharType, int32_t nColor) {
     uint16_t nLocaleId;
     /* Player Classes */ switch (nCharType) {
       case 0:
@@ -319,7 +319,7 @@ void __stdcall UI_DrawPartyMemberClass(int32_t nScreenY, int32_t nCharType, int3
     D2Win::Src::D2WinFont::DRAW_text(wMessage, nX, nY, nColor, bMultiLineCenter);
 }
 
-void __fastcall UI_DrawPartyButtonLabelText(int32_t eButtonType, int32_t nBaseY, int32_t bHostileMode, int16_t nPartyId) {
+static void __fastcall UI_DrawPartyButtonLabelText(int32_t eButtonType, int32_t nBaseY, int32_t bHostileMode, int16_t nPartyId) {
     uint16_t nLocaleId;
     int32_t nTextFlags = 0;
     int nX = 0xbe;
@@ -331,14 +331,14 @@ void __fastcall UI_DrawPartyButtonLabelText(int32_t eButtonType, int32_t nBaseY,
         if (nPartyId == -1) {
           return;
         }
-      if (!bHostileMode) {
-        nLocaleId = 0x1035;
-        nTextFlags = 8;
-        nX = 0xaf;
-      } else {
+      if (bHostileMode) {
         nLocaleId = 0x1034;
         nTextFlags = 2;
         nX = 0x9b;
+      } else {
+        nLocaleId = 0x1035;
+        nTextFlags = 8;
+        nX = 0xaf;
       }
 
       break;
@@ -377,7 +377,7 @@ void __stdcall UI_DrawPartyLeaveButton() {
     D2Win::Src::D2WinFont::SetAndReturnLastFont(1);
 }
 
-void __stdcall UI_DrawPlayerNameInParty() {
+static void __stdcall UI_DrawPlayerNameInParty() {
     char cChar;
     D2UnitStrc* pUnit = UNIT::Player::GetPlayerUnit_UI();
     if (!pUnit) {
@@ -507,7 +507,7 @@ void __stdcall UI_DrawPartyButtons(D2UiPartyStrc * pUiParty) {
     } while (true);
 }
 
-void __stdcall UI_DrawPartyMemberLevelName(D2UiPartyStrc * pUiParty, int32_t nColor, int32_t nScreenY) {
+static void __stdcall UI_DrawPartyMemberLevelName(D2UiPartyStrc * pUiParty, int32_t nColor, int32_t nScreenY) {
     // Frame slots -16..-6 are ONE object: &wszEllipsis is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -548,7 +548,7 @@ void __stdcall UI_DrawPartyMemberLevelName(D2UiPartyStrc * pUiParty, int32_t nCo
       __frame0.wLastChar = wLastCharTmp;
       nPixelWidth = D2Win::Src::D2WinFont::DRAW_text0(&__frame0.wszEllipsis);
       iVar3 = D2Win::Src::D2WinFont::DRAW_text0(wszLevelName);
-      while (0x8b - nPixelWidth < iVar3) {
+      while (iVar3 > 0x8b - nPixelWidth) {
         pTruncate--;
         *pTruncate = L'\0';
         iVar3 = D2Win::Src::D2WinFont::DRAW_text0(wszLevelName);
@@ -632,7 +632,7 @@ int32_t __fastcall UI_CalculateCenteredTextXPosition(uint16_t nLocaleId, int32_t
     return nCenterX - nTextWidth / 2;
 }
 
-void __stdcall ShowToolTipOnPartyButtons(int16_t nLocaleIdLine1, int16_t nLocaleIdLine2, int32_t nOffsetX, int32_t bIsTwoLiner) {
+static void __stdcall ShowToolTipOnPartyButtons(int16_t nLocaleIdLine1, int16_t nLocaleIdLine2, int32_t nOffsetX, int32_t bIsTwoLiner) {
     int nBoxY;
     uint16_t wszLine1[100];
     uint16_t* puVar5 = wszLine1;
@@ -673,7 +673,7 @@ void __stdcall ShowToolTipOnPartyButtons(int16_t nLocaleIdLine1, int16_t nLocale
     Engine::GfxInfo::D2GFX_DrawSolidRectExBySize(gnPanelOffsetX - nWidth2 / 2 - 5 + nOffsetX, nBoxY - gnPanelOffsetY, nWidth2 + 10, nSizeY, (uint32_t)cRed, DRAW_LESSTRANSPARENT);
 }
 
-void __stdcall DRAW_UI_PartyWindow_II() {
+static void __stdcall DRAW_UI_PartyWindow_II() {
     int nTmp;
     int nTmpX;
     uint16_t* pText;
@@ -807,7 +807,7 @@ void __stdcall DRAW_UI_PartyWindow_II() {
     }
 }
 
-void __stdcall UI_DrawPartyButtonTextWithTooltip(uint16_t nLocaleId1, uint16_t nLocaleId2, uint32_t dwUnused, int32_t nLine2Y, int32_t nColor, int32_t nOffsetX, int32_t nLine1Y) {
+static void __stdcall UI_DrawPartyButtonTextWithTooltip(uint16_t nLocaleId1, uint16_t nLocaleId2, uint32_t dwUnused, int32_t nLine2Y, int32_t nColor, int32_t nOffsetX, int32_t nLine1Y) {
     int32_t nCenterX;
     uint16_t* pText;
     int nX2;
@@ -840,7 +840,7 @@ void __stdcall UI_DrawPartyButtonTextWithTooltip(uint16_t nLocaleId1, uint16_t n
     D2Win::Src::D2WinFont::DRAW_text(pText, nX, nX2, nColor, bCenter);
 }
 
-void ROSTER_DrawPlayerTooltip(D2RosterStrc * pRoster) {
+static void ROSTER_DrawPlayerTooltip(D2RosterStrc * pRoster) {
     // Static local variables (originally global data)
     static short gawRosterTooltipOffsetX[4] = { 0x2783, 0x277f, 0x2781, 0x277e };
     static short gawRosterTooltipOffsetY[4] = { 0x2783, 0x2780, 0x2782, 0x277e };
@@ -926,11 +926,11 @@ void ROSTER_DrawPlayerTooltip(D2RosterStrc * pRoster) {
     BOOL bInLoot = GAME::Roster::ROSTER_HasIncomingLoot(pRoster);
     BOOL bIsFemale = GAME::Roster::RosterIsFemale(pRoster);
     if (BVar1 == bInHostile) {
-      if (!bIsFemale) {
-        pSrc = D2Lang::StrTable::strtable::GetLocaleString(gawRosterTooltipOffsetY[bInHostile + BVar1 * 2]);
+      if (bIsFemale) {
+        pSrc = D2Lang::StrTable::strtable::GetLocaleString(gawRosterTooltipOffsetX[bInHostile + BVar1 * 2]);
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszLine1, pSrc);
       } else {
-        pSrc = D2Lang::StrTable::strtable::GetLocaleString(gawRosterTooltipOffsetX[bInHostile + BVar1 * 2]);
+        pSrc = D2Lang::StrTable::strtable::GetLocaleString(gawRosterTooltipOffsetY[bInHostile + BVar1 * 2]);
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszLine1, pSrc);
       }
     } else {
@@ -952,11 +952,11 @@ void ROSTER_DrawPlayerTooltip(D2RosterStrc * pRoster) {
       nBoxHeight = 0x1e;
       if (bOutLoot == bInLoot) {
         bIsFemale = GAME::Roster::RosterIsFemale(pRoster);
-        if (!bIsFemale) {
-          pSrc = D2Lang::StrTable::strtable::GetLocaleString(gwRosterSizeMax[bInLoot + bOutLoot * 2]);
+        if (bIsFemale) {
+          pSrc = D2Lang::StrTable::strtable::GetLocaleString(gwRosterCountMax[bInLoot + bOutLoot * 2]);
           D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszLine2, pSrc);
         } else {
-          pSrc = D2Lang::StrTable::strtable::GetLocaleString(gwRosterCountMax[bInLoot + bOutLoot * 2]);
+          pSrc = D2Lang::StrTable::strtable::GetLocaleString(gwRosterSizeMax[bInLoot + bOutLoot * 2]);
           D2Lang::Unicode::UNISYS::STRING_CopyWideString(wszLine2, pSrc);
         }
       } else {
@@ -988,7 +988,7 @@ void ROSTER_DrawPlayerTooltip(D2RosterStrc * pRoster) {
     int32_t nPixelWidth1 = D2Win::Src::D2WinFont::DRAW_text0(wszLine1);
     int32_t nPixelWidth2 = D2Win::Src::D2WinFont::DRAW_text0(wszLine2);
     bOutHostile = nPixelWidth2 + 10;
-    if (nPixelWidth2 + 10 < nPixelWidth1 + 10) {
+    if (nPixelWidth1 + 10 > nPixelWidth2 + 10) {
       bOutHostile = nPixelWidth1 + 10;
     }
 
@@ -997,7 +997,7 @@ void ROSTER_DrawPlayerTooltip(D2RosterStrc * pRoster) {
     D2Win::Src::D2WinFont::DRAW_text(wszLine2, gnPanelOffsetX + 0x29, 0x41 - gnPanelOffsetY, nColorLine2, 0);
 }
 
-void __stdcall UI_HandlePartyButtonTooltips() {
+static void __stdcall UI_HandlePartyButtonTooltips() {
     BOOL bResult;
     int nTmpX;
     int nTmpY;
@@ -1244,7 +1244,7 @@ void __stdcall UI_HandlePartyButtonTooltips() {
     } while (true);
 }
 
-uint32_t ClickParty_II(int32_t eButtonType, D2RosterStrc * pRoster) {
+static uint32_t ClickParty_II(int32_t eButtonType, D2RosterStrc * pRoster) {
     uint32_t nUiFlags;
     D2BNetClientCallbacksStrc* pDVar1;
     char* pszName;
@@ -1332,7 +1332,7 @@ uint32_t ClickParty_II(int32_t eButtonType, D2RosterStrc * pRoster) {
     return nResultFlag;
 }
 
-void UI_HandlePartyButtonClick(D2UiPartyStrc * pUiParty, D2RosterStrc * pRoster, int32_t nButtonIdx) {
+static void UI_HandlePartyButtonClick(D2UiPartyStrc * pUiParty, D2RosterStrc * pRoster, int32_t nButtonIdx) {
     if (pUiParty->pPartyButtons[nButtonIdx].bIsActive == 1) {
       return;
     }
@@ -1605,7 +1605,7 @@ void __stdcall FreePartyDC6() {
 
 // Draws the party-panel level line for one member: string 0xd28 plus separators 0xf9d/0xf9b, then nCharLevel as %2u, at gnPanelOffsetX+0x10a, row nY.
 // Provenance: the only caller (UI_DrawPartyMembers 0049c354) pushes pUiParty->nCharLevel.
-void __stdcall UI_DrawPartyMemberLevel(uint32_t nCharLevel, int32_t dwColor, int32_t nY) {
+static void __stdcall UI_DrawPartyMemberLevel(uint32_t nCharLevel, int32_t dwColor, int32_t nY) {
     int i;
     char szLevel[100];
     uint16_t wszLine[100];
@@ -1631,7 +1631,7 @@ void __stdcall UI_DrawPartyMemberLevel(uint32_t nCharLevel, int32_t dwColor, int
     D2Win::Src::D2WinFont::DRAW_text(wszLine, gnPanelOffsetX + 0x10a, nY - gnPanelOffsetY, dwColor, 0);
 }
 
-void __stdcall UI_DrawPartyMembers() {
+static void __stdcall UI_DrawPartyMembers() {
     D2UiPartyStrc* pUiParty;
     int16_t nPartyIdCheck;
     BOOL bHasHostile;

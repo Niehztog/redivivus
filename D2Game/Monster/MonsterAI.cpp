@@ -165,10 +165,10 @@ void __fastcall MERC_ApplyLevelStats(::SGAMEDATA * pGame, D2UnitStrc * pPlayer, 
 
         nTmp = nLevel - pHirelingTxt->level;
         nCalc = D2Common::DATATBLS::DataTbls::TXT_Experience_GetMaxLevel(0);
-        if (nLevel < nCalc - 1) {
-          nCalc = D2Common::Merc::GetBaseExperience(nLevel + 1, pHirelingTxt->expPerLvl);
-        } else {
+        if (!(nLevel < nCalc - 1)) {
           nCalc = 0;
+        } else {
+          nCalc = D2Common::Merc::GetBaseExperience(nLevel + 1, pHirelingTxt->expPerLvl);
         }
 
         D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pMerc, UNITSTAT_nextexp, nCalc, 0);
@@ -225,10 +225,10 @@ void __fastcall MERC_ApplyLevelStats(::SGAMEDATA * pGame, D2UnitStrc * pPlayer, 
         pSkillEntry = pHirelingTxt->nSkillId;
         for (nLevelDiff = 0; nLevelDiff < 6; pSkillEntry++ , nLevelDiff++) {
           eSkill = *pSkillEntry;
-          if ((int)eSkill < 1) {
+          if ((int)eSkill <= 0) {
             return;
           }
-          if (sgptDataTable->nTxtSkillsCount <= (int)eSkill) {
+          if ((int)eSkill >= sgptDataTable->nTxtSkillsCount) {
             return;
           }
           if ('\x0f' < (char)pHirelingTxt->nSkillMode[nLevelDiff]) {
@@ -236,15 +236,15 @@ void __fastcall MERC_ApplyLevelStats(::SGAMEDATA * pGame, D2UnitStrc * pPlayer, 
           }
 
           pSkillTxt = D2Client::GAME::SCmd::TXT_Skills_GetLine(eSkill);
-          if (pSkillTxt && pSkillTxt->reqlevel <= nLevel) {
+          if (pSkillTxt && nLevel >= pSkillTxt->reqlevel) {
             uVar1 = ((char)pHirelingTxt->nSkillLvlPerLvl[nLevelDiff] * nTmp >> 5) + (int)(char)pHirelingTxt->nSkillLevel[nLevelDiff];
-            uVar1 = (int)uVar1 < 1 ? 0 : uVar1;
-            if ((int)uVar1 < 0x20) {
-              if ((int)uVar1 < 1) {
+            uVar1 = (int)uVar1 <= 0 ? 0 : uVar1;
+            if (!((int)uVar1 < 0x20)) {
+              uVar1 = 0x20;
+            } else {
+              if ((int)uVar1 <= 0) {
                 continue;
               }
-            } else {
-              uVar1 = 0x20;
             }
 
             SKILLS::SkillsServer::SetSkill(pMerc, *pSkillEntry, uVar1, 0);
@@ -281,7 +281,7 @@ void __fastcall FreeMonsterAi(::SGAMEDATA * pGame, D2MonsterAiStrc * pMonster) {
 
 // Initiates a player-NPC interaction on the server. Guards against double-interaction (checks existing pAiSub list and GetInteractedNpc), verifies the NPC is interactable (MonStats interact flag) and not in Death/Kick mode, and that the player is not already trading. Allocates a D2MonsterAiSubStrc to track the interaction participant, sends the mercenary hire list (SendMercForHireList, first-time flag), sets the interact info on the player unit, then sends 0x27 NPC-info and 0x28 player-quest-info packets. Also triggers QUEST_OnNpcInteraction for quest dialogue and 0x29 quest-log prep.
 // @sourcefile .\MONSTER\MonsterAI.cpp
-uint32_t __stdcall NPC_BeginInteraction(::SGAMEDATA * pGame, D2MonsterAiStrc * pAi, uint8_t questActionType, D2UnitStrc * pPlayer, D2UnitStrc * pNpcUnit) {
+static uint32_t __stdcall NPC_BeginInteraction(::SGAMEDATA * pGame, D2MonsterAiStrc * pAi, uint8_t questActionType, D2UnitStrc * pPlayer, D2UnitStrc * pNpcUnit) {
     bool _bFirstInteraction;
     bool bIsTrading;
     uint32_t dwTmp;
@@ -500,7 +500,7 @@ void __fastcall FreeAndResetAiSub(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2Uni
     do {
       D2MonsterAiSubStrc** ppSubAiNext;
       if (pSubAi->pUnit == pUnit) {
-        if (0 < (int)pSubAi->nState) {
+        if (1 <= (int)pSubAi->nState) {
           if (!pPrevSubAi) {
             pMonsterAi->pAiSub = pSubAi->pNext;
           } else {
@@ -556,7 +556,7 @@ BOOL UnitHasSwitchAiSet(D2UnitStrc * pMonster) {
     }
 
     int32_t nClassId = pMonster->nClassId;
-    if (!(-1 < nClassId && nClassId < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nClassId && sgptDataTable->pTxtMonStats[nClassId].switchai)) {
+    if (!(0 <= nClassId && nClassId < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + nClassId && sgptDataTable->pTxtMonStats[nClassId].switchai)) {
       return 0;
     }
 

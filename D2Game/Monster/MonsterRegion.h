@@ -28,7 +28,6 @@ namespace D2Game::Monster::MonsterRegion {
 
 // Function declarations
 // Picks the per-region monster type roster for a level. Copies the level's normal (mon) or nightmare/hell (nmon) candidate class-id pool into a stack buffer, then draws up to NumMon (capped 13) distinct entries using the seed RNG, removing each picked id from the pool. For the first pick on a rangedspawn level it retries (up to ~4 attempts) until it lands a ranged (rangedtype) monster. Each accepted spawnable (isSpawn) MonStats id is written into pMonsterRegion->pMonData with its Rarity, accumulating nTotalRarity/nSpawnCount/nCounter. Server-side seed-deterministic so all clients agree on the region's monster set.
-void __stdcall MONREGION_PopulateMonsterTypes(BOOL bIsNotNormalDifficulty, struct D2MonsterRegionStrc * pMonsterRegion, struct D2LevelsTxt * pTxtLevels, struct D2SeedStrc * pSeed);
 // Allocates and populates a D2MonsterRegionStrc for every level (index 1..nTxtLevelsSize-1) in the game. Per level: pool-allocates a zeroed region, fills monster density/boss counts/wander/quest flags from LevelsTxt, rolls monster types via MONREGION_PopulateMonsterTypes, then seeds champion-pack data for each monster slot. Halts with fatal error 0x83 if DifficultyLevels txt lookup fails.
 // @sourcefile .\MONSTER\MonsterRegion.cpp
 void __fastcall AllocMonsterRegion(struct D2PoolManagerStrc * pMemory, D2Row_D2MonsterRegionStrc_1024 * pMonsterRegionList, struct D2SeedStrc * pSeed, int32_t nSeedLow, eD2Difficulty nDifficulty, BOOL bExpansion);

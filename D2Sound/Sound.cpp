@@ -98,7 +98,7 @@ void __stdcall SOUND_ShutdownDirectSound() {
 }
 
 // Initializes DirectSound 8 with EAX 3.0 support - creates primary buffer, configures format, tests environment presets
-void __stdcall SOUND_InitDirectSound() {
+static void __stdcall SOUND_InitDirectSound() {
     // Static local variables (originally global data)
     static DSCAPS gDSoundCapsBuffer = {
     /* .dwSize = */ 0,
@@ -360,7 +360,10 @@ int * SOUND_GetAmbientSoundEntry(int32_t nIndex) {
       gbAmbientSoundLangInitialized = 1;
       gnAmbientSoundLanguageCode = SOUND_GetLanguageCode();
     }
-    if (gaAmbientSoundFlags == gnAmbientSoundCount) {
+    if (gaAmbientSoundFlags != gnAmbientSoundCount) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x52);
+      exit(-1);
+    } else {
       int* pAmbientEntry;
       if (nIndex < gaAmbientSoundFlags) {
         pAmbientEntry = gaAmbientSoundEntryTable + nIndex * 2;
@@ -373,9 +376,6 @@ int * SOUND_GetAmbientSoundEntry(int32_t nIndex) {
       }
 
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x53);
-      exit(-1);
-    } else {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x52);
       exit(-1);
     }
 }

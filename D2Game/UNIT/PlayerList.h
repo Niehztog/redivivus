@@ -27,7 +27,6 @@ struct D2UnitPlayerListStrc {
 namespace D2Game::UNIT::PlayerList {
 
 // Function declarations
-DWORD * PLAYERLIST_FindEntry(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 // @wasnamed AllocPlayerList - one name on two different functions.
 // @evidence Allocates a 0x14-byte D2UnitPlayerListStrc (PlayerList.cpp:0x6d),
 // guards with PLAYERLIST_FindEntry and links it into pPlayerData->pPlayerList. 004dc270 allocates the
@@ -46,8 +45,6 @@ uint32_t __fastcall PLAYERLIST_IsPartied(struct D2UnitStrc * pUnit, struct D2Uni
 void __fastcall Send0x8bRelationshipStatus(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 // Looks up the relationship list entry for pOtherUnit in pUnit's player list and sends packet 0x8C (RelationshipUpdate) with the current nRelationshipFlags to pOtherUnit's client. Read-only: does not modify flags. No-op if units are the same or no entry exists.
 void __fastcall PARTY_SendRelationshipForPlayer(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pOtherUnit);
-// Establishes a bidirectional player-list relationship between pUnit and pOtherPlayer: allocates entries for both directions, sends packet 0x8D (AssignPlayerToParty), clears bIsPartied flags, updates party membership based on current party ID, and broadcasts the full relationship table of pUnit to pOtherPlayer via 0x8C packets.
-void __fastcall PLAYERLIST_AddBothWays(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pOtherPlayer);
 void __fastcall PARTY_BroadcastPlayerToAllUnits(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 DWORD __fastcall GetHostileDelay(struct D2UnitStrc * pUnit, struct D2UnitStrc * pPlayer);
 void __fastcall PLAYERLIST_SetHostileDelay(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2, int32_t nDelayFrames);

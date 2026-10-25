@@ -53,20 +53,15 @@ int32_t __stdcall DRAW_GetBottomPanelY();
 void __stdcall DRAW_RegisterDrawHandlers();
 void __stdcall DRAW_RefreshNpcDialog();
 uint32_t __stdcall DRAW_IsDialogActive();
-void __stdcall DRAW_CenteredText(int32_t nFontId, int32_t nY, DWORD dwColor, uint16_t * wszText);
-void __stdcall DRAW_MonsterUnderCursorImmunites();
 void __fastcall DRAW_MonsterHealthBar(struct D2UnitStrc * pUnit);
 // Draw UI label showing unit name/life under mouse cursor during gameplay
 void __fastcall DRAW_UnitUnderMouse(struct D2UnitStrc * pUnit);
-void __stdcall DRAW_UnitUModsUnderCursor();
-void __stdcall DRAW_Overlay_EnteringAreaX();
 void __fastcall SetUiFlagInit(eD2UIvars eUIVar);
 void __fastcall UI_UnregisterHandlersForPanel(eD2UIvars ePanel);
 DWORD __fastcall SetUIFlag(eD2UIvars eUI, eD2UIvarsSetType neD2UIvarsSetType, DWORD bAdjustMouse);
 BOOL __fastcall UI_CloseActivePanels(int32_t bForceAutomap, int32_t bAdjustMouse);
 void __stdcall LoadingsScreen();
 void __fastcall Draw_UI_LoadGame(int32_t bAdvanceFrame);
-void __stdcall UI_ToggleMiniPanel();
 void __stdcall InitializeUI();
 void __stdcall FreeDraw();
 // UI rendering layer. Drawn AFTER world, BEFORE cursor.

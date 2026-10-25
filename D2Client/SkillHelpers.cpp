@@ -22,7 +22,7 @@ uint16_t * __fastcall INV_SkipColorCodeSuffix(uint16_t * wszText) {
     }
 
     skip_color_code:
-    if (2 < nCharIndex && wszText[nCharIndex - 3] == L'[') {
+    if (3 <= nCharIndex && wszText[nCharIndex - 3] == L'[') {
       return wszText + nCharIndex + 1;
     }
     return wszText;

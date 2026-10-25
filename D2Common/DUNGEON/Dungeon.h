@@ -88,8 +88,6 @@ void __stdcall DRLGROOM_GetAdjacentRoomsList(struct D2RoomStrc * pRoom, struct D
 // Allocates and zero-initializes a D2RoomStrc (0x80 bytes) from the server memory pool.
 // @sourcefile .\DUNGEON\Dungeon.cpp
 struct D2RoomStrc * __fastcall DRLGROOM_AllocRoomStrc(struct D2PoolManagerStrc * pMemory);
-// @sourcefile .\DUNGEON\Dungeon.cpp
-void __stdcall DRLGROOM_UpdateRoomsNearAndCount(struct D2PoolManagerStrc * pMemory, struct D2RoomStrc * pRoom);
 // Allocates and initialises a D2RoomStrc (0x80 bytes) from the act memory pool. Copies coordinate data from pDrlgCoords, seeds the RNG with nInitSeed/0x29A, links the room into the act's room list, marks the act dirty, sets pRoomEx back-pointer, updates neighbour counts, allocates the collision grid, and fires the act callback if set. Halts if pDrlgAct is null.
 // @sourcefile .\DUNGEON\Dungeon.cpp
 struct D2RoomStrc * __fastcall AllocRoom(struct D2DrlgActStrc * pDrlgAct, struct D2RoomExStrc * pRoomEx, struct D2DrlgCoordsStrc * pDrlgCoords, struct D2DrlgRoomTilesStrc * pRoomTiles, int32_t nInitSeed, int32_t eFlags);
@@ -146,14 +144,11 @@ int32_t __stdcall DRLGROOM_IsUnitInactiveProcessed(struct D2RoomStrc * pRoom);
 void __stdcall DRLGROOM_SetUnitInactiveProcessed(struct D2RoomStrc * pRoom, BOOL bSet);
 // Validates the client list of a room by checking that all entries in the client array (offset 0x48) are non-null. Halts if any entry is null.
 BOOL __fastcall DRLGROOM_ValidateClientList(struct D2RoomStrc * pRoom);
-// Sorts the client list of a room using bubble sort by client ID. Validates the list first, halts on error.
-int DRLGROOM_SortClientList(struct D2RoomStrc * pRoom);
 // Adds nClientId to the room's pClients array. Grows the array by 4 slots via ReAllocServerMemory when at capacity (nClientsMax). Appends the client ID, increments nClientsCount, then re-sorts the client list. Validates the room and client ID are non-null/non-zero before proceeding; halts on assertion failure. Called when a client enters a room's visibility range.
 // @sourcefile .\DUNGEON\Dungeon.cpp
 void __stdcall DRLGROOM_AddClientToRoom(struct D2RoomStrc * pRoom, int32_t nClientId);
 // Removes nClientId from the room's pClients array by linear search. Fills the vacated slot with the last element, decrements nClientsCount, then re-sorts the client list. Halts if the room pointer is null, the client ID is zero, the client is not found (assertion 0x490), or validation fails. Each halt pushes its __LINE__ and enters the shared tail DRLGROOM_RemoveClientFromRoom_HaltTail.
 void __stdcall DRLGROOM_RemoveClientFromRoom(struct D2RoomStrc * pRoom, int32_t nClientId);
-void __stdcall DRLGROOM_RemoveClientFromRoom_HaltTail(int nLine);
 int32_t __stdcall DRLGROOM_GetIdleTicks(struct D2RoomStrc * pRoom);
 // Checks whether room2's client list contains any client ID not present in room1's list. Returns 1 if a unique client is found, 0 otherwise.
 BOOL __fastcall DRLGROOM_HasUniqueClient(struct D2RoomStrc * pRoom1, struct D2RoomStrc * pRoom2);
@@ -206,8 +201,6 @@ void __stdcall SaveKilledUnitGUID(struct D2RoomStrc * pRoom, int32_t nUnitGUID);
 void __stdcall FreeAct(struct D2DrlgActStrc * pDrlgAct);
 struct D2RoomStrc * __stdcall SpawnUnit(struct D2DrlgActStrc * pDrlgAct, eD2LevelId eLevel, int32_t nParam, int * pnParam1, int * pnParam2, uint32_t nParam2);
 int32_t __stdcall GetGridIndex(struct D2RoomStrc * pRoom, int32_t nX, int32_t nY);
-// Initializes a RoomEx's runtime data: sets up near rooms and vis tiles if not already done, initializes grid cells, sets up tile data for DRLG type, rolls the room seed, and increments the actmisc activation counters.
-void DRLGROOMEX_InitRoomExData(struct D2PoolManagerStrc * pMemory, struct D2RoomExStrc * pRoomEx);
 // Moves a D2RoomExStrc to a different activation priority list. Unlinks from current pStatusPrev/pStatusNext chain and relinks into the sentinel list at pDrlg->aSubA0[nNewStatus].
 struct D2RoomExStrc * DRLGROOMEX_MoveToActivationList(struct D2RoomExStrc * pRoomEx, uint8_t nNewStatus);
 // Sets RoomEx activation priority to 0 (highest). Wrapper for DRLGROOMEX_MoveToActivationList(pRoomEx, 0).
@@ -222,12 +215,6 @@ void __fastcall DUNGEON_ActivationHandler0_SetRoomExPriority0(struct D2RoomExStr
 void __fastcall DRLGROOMEX_ActivateRoomEx(struct D2RoomExStrc * pRoomEx);
 // Ensure tile data and monster presets are initialized for RoomEx. If fRoomStatus > 3, move room into activation list (decompiler omits args).
 void __fastcall DRLGROOMEX_InitTileDataAndPresets(struct D2RoomExStrc * pRoomEx);
-// Recursively activates nearby RoomEx neighbours up to depth 3. For each adjacent room within pRoomEx->ppDrlgRoomsExNear[], calls DRLGROOMEX_InitNearRoomsAndVisTiles if not yet populated, increments the room's reference count at the current priority level, and dispatches gaRoomExActivationHandlers[priority] when the room's fRoomStatus meets the recursion priority threshold.
-void __stdcall InitNearRooms(struct D2PoolManagerStrc * pMemory, struct D2RoomExStrc * pRoomEx, uint32_t nRecursion, struct D2DrlgStrc * pDrlg);
-// Initializes room data for the given room extension at the specified recursion depth. Allocates near rooms and populates tile data via preset/outdoor/maze handlers.
-void AddRoomDataActual(struct D2RoomExStrc * pRoomEx, uint8_t nInitDepth);
-// Recalculates which activation priority list a RoomEx belongs to. Scans priorities 0-3 looking for the first one with a non-zero ref count, and moves the RoomEx to that list.
-void DRLGROOMEX_RecalcPriority(struct D2RoomExStrc * pRoomEx);
 void __fastcall DRLGROOMEX_RecalcPriority_Case4(struct D2RoomExStrc * pRoomEx);
 void __fastcall DRLGROOMEX_RecalcPriority_Case5(struct D2RoomExStrc * pRoomEx);
 void __fastcall DRLGROOMEX_RecalcPriority_Case6(struct D2RoomExStrc * pRoomEx);

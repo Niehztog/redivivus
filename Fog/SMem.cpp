@@ -636,7 +636,7 @@ void __stdcall SMEM_TitleCaseString(mcp0x03data * pMcpData) {
 
     do {
       char cCurChar;
-      if (0x3ff < nIndex) {
+      if (0x400 <= nIndex) {
         Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Src::ErrorManager::GetInstructionPointer(), 0x78);
         exit(-1);
       }
@@ -960,7 +960,7 @@ uint8_t * __fastcall SMemEscapeString(uint8_t * pbDst, uint8_t * pbSrc, size_t n
                 while (true) {
                   pbWrite2 = pbWrite;
                   nRemaining2 = nRemaining;
-                  if (nRemaining < 1 || (bySrcByte = *pbSrc , !bySrcByte)) {
+                  if (nRemaining <= 0 || (bySrcByte = *pbSrc , !bySrcByte)) {
                     goto close_quote_and_terminate;
                   }
 
@@ -1080,7 +1080,7 @@ char * __fastcall SMemFormat64BitWithSeparators(char * szText, uint32_t nWidth, 
     char* pcWrite2 = pcWrite;
     while (nValueLo || nValueHi) {
       nWidthCopy = nClampedWidth;
-      if (szTempBuf + (nClampedWidth - 1) <= pcWrite2) {
+      if (pcWrite2 >= szTempBuf + (nClampedWidth - 1)) {
         memset(szText, 0x2a, nClampedWidth - 1);
         szText[nWidthCopy - 1] = '\0';
         Debug::GuardStack();

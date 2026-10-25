@@ -21,6 +21,6 @@ void __fastcall D2GFX_DrawGroundTileBasic(int32_t nClipOriginX, int32_t nScreenY
 void __fastcall D2GFX_DrawGroundTileWithPerspective(int32_t nClipOriginX, int32_t nScreenYStart, uint8_t * pbTileData, int32_t nDstRowBase, int32_t nLightAccumX, int32_t nLightStepX, int32_t nLightAccumY, int32_t nLightStepY, int32_t nRowCount, uint8_t byShift);
 void __fastcall D2GFX_FillYBufferFast(int32_t nScreenWidth, int32_t nScreenHeight);
 void __stdcall D2GFX_ClearYBuffer();
-void __stdcall INIT_SetWndProcBGlobalPointer(::WndProcB pWndProcB);
+int __stdcall INIT_SetWndProcBGlobalPointer(::WndProcB pWndProcB);
 
 } // namespace D2Client::D2GFX

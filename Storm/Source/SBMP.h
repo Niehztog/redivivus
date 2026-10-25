@@ -45,50 +45,24 @@ namespace Storm::Source::SBMP {
 BOOL __stdcall SBMP_ValidateTGAHeader(struct D2UnitDataItemDetailsStrc * descriptor);
 // Decodes TGA color map (palette) into RGBA format. Reads palette entries from file, converts BGR(A) to RGBA byte order, and pads with alpha channel if needed. Supports 3 or 4 bytes per palette entry.
 BOOL SBMP_DecodeTGAPalette(void * pThis, int nPaletteDataSize, uint32_t * pPaletteOut, uint8_t * pPaletteData);
-// Decodes TGA pixel data into output buffer. Handles both uncompressed (type 1/2) and RLE-compressed (type 9/10) formats. Supports horizontal/vertical flipping via image descriptor flags. Processes raw runs and repeat runs for RLE.
-BOOL __fastcall SBMP_DecodeTGAPixels(uint8_t * pSrcData, uint8_t * pTgaHeader, int nSrcDataSize, uint8_t * pDstPixels, int nMaxBytes);
 // Reads Targa (.tga) image file from MPQ into memory. Validates TGA header, extracts width/height/bpp, reads palette (if present), and decodes pixel data (uncompressed or RLE-compressed).
 // @sourcefile .\SOURCE\SBMP.CPP
 int __fastcall SBMP_ReadTGA(struct D2PoolManagerStrc * hFile, uint32_t * pWidth, void * palette, uint8_t * pixels, int nMaxPixelBytes, uint32_t * pHeight, uint32_t * pBpp);
 int __stdcall SBMP_LoadFromMemory(uint8_t * pData, uint32_t dataSize, uint32_t * pPaletteOut, uint8_t * pixels, int nMaxPixelBytes, uint32_t * pWidth, uint32_t * pHeight, uint32_t * pBpp);
 int SBMP_WriteTGA(void * pPixels, void * hFile, int nPalettePtr, int width, int height, int bpp, uint32_t stride);
-// @blizzard FlipImage (SBMP.CPP)
-void SBMP_FlipImage(int numRows, void * dst, void * src, int dstSize, int rowWidth, int srcStride);
 // @blizzard FlushPacket (SBMP.CPP)
 void __stdcall SBMP_FlushPacket(int * pState, int * ppOutput);
 // @blizzard Output (SBMP.CPP)
 void __fastcall SBMP_Output(int value, int * ppOutput, int * pState);
 // @blizzard CompressPcxRow (SBMP.CPP)
 void __fastcall SBMP_CompressPcxRow(int count, int * ppInput, int * ppOutput);
-// Write bitmap data to PCX format file with RLE compression and palette
-// @sourcefile .\SOURCE\SBMP.CPP
-// @blizzard EncodePcx256File (SBMP.CPP)
-int __fastcall SBMP_EncodePcx256File(int nWidth, int nHeight, HANDLE hFile, int nPalettePtr, void * pPixels);
-// @blizzard UncompressPcxImage (SBMP.CPP)
-void __fastcall SBMP_UncompressPcxImage(int dstSize, uint8_t * dst, int srcSize, uint8_t * src, uint32_t width, uint32_t stride, int bytesPerPixel);
-// @blizzard FindExtension (SBMP.CPP)
-char * __stdcall SBMP_FindExtension(char * path);
-// @blizzard DetermineImageType (SBMP.CPP)
-int SBMP_DetermineImageType(short magic);
-// @blizzard DecodeBmpFile (SBMP.CPP)
-int SBMP_DecodeBmpFile(int * pWidth, void * palette, struct D2PoolManagerStrc * hFile, void * pixels, int nDstStride, int * pHeight, uint32_t * pBpp);
 // Load a BMP from a raw in-memory file blob; pData points at the BITMAPFILEHEADER (14 bytes) followed immediately by BITMAPINFOHEADER and palette/pixel data
 // @blizzard DecodeBmpMem (SBMP.CPP)
 int __fastcall SBMP_DecodeBmpMem(int * pWidth, int * pHeight, uint32_t * pBpp, uint8_t * pData, int palette, void * pixels, int dstSize);
 // @blizzard EncodeBmp256File (SBMP.CPP)
 int __stdcall SBMP_EncodeBmp256File(int nPalettePtr, uint32_t nSrcStride, HANDLE hFile, void * pixels, int height);
-// @blizzard ClearBlock (SBMP.CPP)
-void __stdcall SBMP_ClearBlock(int * pState, int pDstBuf);
-// @blizzard CompressGifByte (SBMP.CPP)
-void __stdcall SBMP_CompressGifByte(int * pState, int pDstBuf, uint32_t nNewCode);
 // @blizzard CompressGifImage (SBMP.CPP)
 int __fastcall SBMP_CompressGifImage(int nSrcLen, uint8_t * pSrcPixels, int pDstBuf);
-// @blizzard EncodeGif256File (SBMP.CPP)
-int SBMP_EncodeGif256File(int width, void * hFile, int palette, uint8_t * pixels, int height);
-// @blizzard DecodePcxFile (SBMP.CPP)
-int __fastcall SBMP_DecodePcxFile(struct D2PoolManagerStrc * hFile, uint8_t * pixels, int * pHeight, int palette, int nParam, uint32_t * pWidth, int * pBpp);
-// @blizzard DecodePcxMem (SBMP.CPP)
-int SBMP_DecodePcxMem(uint32_t * pWidth, void * gifData, int dataSize, int palette, uint8_t * pixels, int dstSize, int * pHeight, int * pBpp);
 // Decodes an image already held in memory. With nFormat 0 it sniffs the first two bytes via SBMP_DetectFormat, then dispatches to SBMP_LoadBMPFromMemory / SBMP_LoadGIFFromMemory / SBMP_LoadFromMemory (TGA).
 // @oracle SBmpDecodeImage
 // @oracle-source Storm export vector SBmpDecodeImage @100cbc64 -> code 10004d00 = the traceback-named function .SBmpDecodeImage, in Mac PPC 1.10b Storm

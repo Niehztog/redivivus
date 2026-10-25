@@ -72,7 +72,18 @@ int32_t __fastcall MessageGameLoop(::fpGameLoopFunction nfpGameLoopFunction) {
       D2CONTROL_Pump();
       BOOL bHasMessage;
       /* UINT wRemoveMsg for PeekMessageA */ /* UINT wMsgFilterMax for PeekMessageA */ /* UINT wMsgFilterMin for PeekMessageA */ /* HWND hWnd for PeekMessageA */ /* LPMSG lpMsg for PeekMessageA */ bHasMessage = PeekMessageA(&msg, (HWND)0x0, 0, 0, 0);
-      if (!bHasMessage) {
+      if (bHasMessage) {
+        /* UINT wMsgFilterMax for GetMessageA */ /* UINT wMsgFilterMin for GetMessageA */ /* HWND hWnd for GetMessageA */ /* LPMSG lpMsg for GetMessageA */ getMessageResult = GetMessageA(&msg, (HWND)0x0, 0, 0);
+        if (getMessageResult && gbLanguageDllLoaded) {
+          lpMsg = &msg;
+          hAccTable = gbLanguageDllLoaded;
+          /* LPMSG lpMsg for TranslateAcceleratorA */ /* HACCEL hAccTable for TranslateAcceleratorA */ hWnd = D2gfx::D2GFX::GetHwnd();
+          /* HWND hWnd for TranslateAcceleratorA */ TranslateAcceleratorA(hWnd, hAccTable, lpMsg);
+        }
+
+        /* MSG * lpMsg for TranslateMessage */ TranslateMessage(&msg);
+        /* MSG * lpMsg for DispatchMessageA */ DispatchMessageA(&msg);
+      } else {
         if (nfpGameLoopFunction) {
           nCallbackResult = (*nfpGameLoopFunction)(tickIndex);
           tickIndex++;
@@ -88,17 +99,6 @@ int32_t __fastcall MessageGameLoop(::fpGameLoopFunction nfpGameLoopFunction) {
         if (!gnLastMouseButtonEventType && eD2GSGameType_007a0610 != GAMETYPE_OBNET_HOST && eD2GSGameType_007a0610 != GAMETYPE_LAN_HOST) {
           /* DWORD dwMilliseconds for Sleep */ Sleep(10);
         }
-      } else {
-        /* UINT wMsgFilterMax for GetMessageA */ /* UINT wMsgFilterMin for GetMessageA */ /* HWND hWnd for GetMessageA */ /* LPMSG lpMsg for GetMessageA */ getMessageResult = GetMessageA(&msg, (HWND)0x0, 0, 0);
-        if (getMessageResult && gbLanguageDllLoaded) {
-          lpMsg = &msg;
-          hAccTable = gbLanguageDllLoaded;
-          /* LPMSG lpMsg for TranslateAcceleratorA */ /* HACCEL hAccTable for TranslateAcceleratorA */ hWnd = D2gfx::D2GFX::GetHwnd();
-          /* HWND hWnd for TranslateAcceleratorA */ TranslateAcceleratorA(hWnd, hAccTable, lpMsg);
-        }
-
-        /* MSG * lpMsg for TranslateMessage */ TranslateMessage(&msg);
-        /* MSG * lpMsg for DispatchMessageA */ DispatchMessageA(&msg);
       }
     } while (getMessageResult);
 
@@ -111,13 +111,13 @@ void __fastcall MESSAGE_RegisterEventHandler(HWND hWnd, int32_t eEventType, int3
       switch (eEventType) {
         case 0:
           {
-            if (nMessageOrKeyCode != 0x111) {
-              Storm::WindowHandle::SMsgRegisterMessage((uint32_t)hWnd, nMessageOrKeyCode, pfHandler);
-              return;
+            if (nMessageOrKeyCode == 0x111) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x114);
+              exit(-1);
             }
 
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x114);
-            exit(-1);
+            Storm::WindowHandle::SMsgRegisterMessage((uint32_t)hWnd, nMessageOrKeyCode, pfHandler);
+            return;
           }
         case 1:
           Storm::WindowHandle::SMsgRegisterCommand((uint32_t)hWnd, nMessageOrKeyCode, pfHandler);
@@ -142,13 +142,13 @@ void __fastcall MESSAGE_UnregisterEventHandler(HWND hWnd, int32_t eEventType, ch
       switch (eEventType) {
         case 0:
           {
-            if (nMessageOrKeyCode != (char*)0x111) {
-              Storm::WindowHandle::SMsgUnregisterMessage((uint32_t)hWnd, nMessageOrKeyCode, pfHandler);
-              return;
+            if (nMessageOrKeyCode == (char*)0x111) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x135);
+              exit(-1);
             }
 
-            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x135);
-            exit(-1);
+            Storm::WindowHandle::SMsgUnregisterMessage((uint32_t)hWnd, nMessageOrKeyCode, pfHandler);
+            return;
           }
         case 1:
           Storm::WindowHandle::SMsgUnregisterCommand(hWnd, nMessageOrKeyCode, pfHandler);

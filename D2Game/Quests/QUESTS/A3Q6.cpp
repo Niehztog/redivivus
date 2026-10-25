@@ -185,7 +185,7 @@ BOOL __fastcall Q23_PlayerUpdateGuardianSteps(::SGAMEDATA * pGame, D2UnitStrc * 
 // JustCompleted(0xd) + Completed(0) + Step0x11(0x0b, "Act4 unlocked / quest finalized"), then calls
 // SetClientStatus(3) to flag the client as able-to-progress (the gate that opens travel to Pandemonium/Act4).
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q6.cpp
-void __stdcall Q23_SetGuardianQuestComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer) {
+static void __stdcall Q23_SetGuardianQuestComplete(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer) {
     D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheGuardian, QUESTSTATE_JustCompleted);
     D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheGuardian, QUESTSTATE_Completed);
     D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_TheGuardian, QUESTSTATE_Step0x11);
@@ -298,7 +298,7 @@ void __fastcall Q23_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
 
       nGossipLineIdx = 6;
     } else {
-      if (5 < pQuestData->nStateFlag) {
+      if (6 <= pQuestData->nStateFlag) {
         if (_bCompleted != 1) {
           return;
         }
@@ -311,7 +311,7 @@ void __fastcall Q23_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
       if (nGossipLineIdx == -1) {
         return;
       }
-      if (7 < nGossipLineIdx) {
+      if (8 <= nGossipLineIdx) {
         return;
       }
     }
@@ -323,7 +323,7 @@ void __fastcall Q23_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
 // Q23_SequenceFilter/Callback_03). When the generic NPC (classId 0xff) is interacted with and
 // bAcceptedQuest is set, broadcasts quest state 2 (QUEST_SetStateAndBroadcast(2)), clears bAcceptedQuest
 // and disarms itself. Advances the Mephisto-quest dialog past acceptance.
-void __fastcall Q23_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q23_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     if (!(pQuestArgs->pTarget && (short int)pQuestArgs->pTarget->nClassId == 0xff)) {
       return;
     }
@@ -346,7 +346,7 @@ void __fastcall Q23_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2Que
 // ids: >0x61 arms the slot[2] accept callback; 100/0x66 broadcast states 3/4. Branches pick journal
 // string ids (0x16c/0x170/0x194/0x1aa/0x1ae) by Lam Esen completion.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q6.cpp
-void __fastcall Q23_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q23_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     D2UnitDataPlayerStrc* pPlayerData;
     BOOL bQuestStateFlag;
     int nLamEsenDone;
@@ -359,7 +359,7 @@ void __fastcall Q23_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
     if (pQuestArgs->sQuestArgs.sNpcActivate.pTextControl == (D2GossipTextStrc*)0x4b) {
       D2BitBufferStrc* pBitBuffer;
       QUESTGUID_RemovePlayerFromQuest(pQuestData, pQuestArgs);
-      if (1 < pQuestData->nStateFlag && pQuestData->nStateFlag < 4) {
+      if (1 < pQuestData->nStateFlag && pQuestData->nStateFlag <= 3) {
         pGame = pQuestArgs->pGame;
         pPlayerData = D2Common::Units::GetPlayerData(pQuestArgs->pPlayer);
         pBitBuffer = pPlayerData->pQuestRecord[pGame->nDifficulty];
@@ -391,7 +391,7 @@ void __fastcall Q23_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
         UNIT::SUnit::IteratePlayerOrMonsterUnits(pQuestData->pGame, 0, nullptr, (::fpExecuteOnUnitFunction)Q23_PlayerUpdateGuardianSteps);
       }
     }
-    if (0x61 < nLamEsenDone2 && pQuestData->bIsNotIntroduction && !pQuestData->nStateFlag) {
+    if (0x62 <= nLamEsenDone2 && pQuestData->bIsNotIntroduction && !pQuestData->nStateFlag) {
       pQuestData->nStateFlag = 1;
       pQuestData->sStateFunctions.fpQuestStateHandler[2] = Q23_Callback02_NpcDeactivate;
     }
@@ -431,12 +431,12 @@ void __fastcall Q23_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
       }
 
       nLamEsenDone2 = QUEST_GetQuestRecordState(pQuestArgs->pGame, QUEST_LamEsensTome, 0xd);
-      if (nLamEsenDone2 != 1) {
-        nJournalStringId = 0x1ae;
-        nEventId = 5;
-      } else {
+      if (nLamEsenDone2 == 1) {
         nJournalStringId = 0x1aa;
         nEventId = 4;
+      } else {
+        nJournalStringId = 0x1ae;
+        nEventId = 5;
       }
     }
 
@@ -451,7 +451,7 @@ void __fastcall Q23_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
 // JustCompleted set, broadcast state 0xd, set flag 7 (str 0x1e7), then UnsetQuestState(Step0x11) and add
 // the player to the participation GUID list. Resends the NPC gossip packet.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a3q6.cpp
-void __fastcall Q23_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q23_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     bool _bQuestState;
     bool bQuestState;
     int32_t nPlayerGUID_00;
@@ -523,7 +523,7 @@ void __fastcall Q23_Callback10_PlayerLeavesGame(D2QuestDataStrc * pQuestData, D2
 // [The Guardian (Q23)] Quest timer callback (armed by Callback_08 after Mephisto dies). Broadcasts
 // quest state 4 if not already at stateFlagPrev 4, and clears the bBloodRavenKilled/scratch flag in the
 // A3Q6 quest-specific struct. Used to drive the post-kill cinematic/state settle.
-uint8_t __fastcall Q23_QuestUpdate(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
+static uint8_t __fastcall Q23_QuestUpdate(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
     D2QuestDataA3Q6Strc* pQuestSpecificData = pQuestData->pQuestSpecificData.pA3Q6;
     if (pQuestData->nStateFlagPrev != 4) {
       pQuestData->nQuestPacketFlags = '\0';

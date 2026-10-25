@@ -159,7 +159,7 @@ void __fastcall Q02_Callback02_NpcDeactivate(D2QuestDataStrc * pQuestData, D2Que
 
 // A1Q2 (Sisters' Burial Grounds) NPC-gossip callback slot 0xb, handling Kashya (NPC 0x96). Msg 0x51: player accepts the quest — sets bAcceptedQuest, advances stateFlag to 2, re-syncs all players' journal steps via Q02_SyncQuestStepToPlayer, sends gossip packet. Msg 0x5c: reward turn-in — only if RewardAwaits; broadcasts JustCompleted state, marks Completed, clears RewardAwaits, records the player GUID, and calls HireMercFromNpc(0x96) to grant the rogue mercenary reward.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q2.cpp
-void __fastcall Q02_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q02_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int32_t nErrorAddr;
     short int sVar1 = pQuestArgs->sQuestArgs.sNpcMessage.nNPCNo;
     ::SGAMEDATA* pGame = pQuestArgs->pGame;
@@ -426,7 +426,7 @@ BOOL __fastcall Q02_PropagateRewardToParty(::SGAMEDATA * pGame, D2UnitStrc * pUn
 //     set bBloodRavenKilled/bNotifiedCompletion
 //   - QUEST_SetQuestRecordState(JustCompleted=0xd) on the killing player's record.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q2.cpp
-void __fastcall Q02_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q02_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     int32_t nTargetGUID;
     if (!pQuestData->bIsNotIntroduction) {
       return;

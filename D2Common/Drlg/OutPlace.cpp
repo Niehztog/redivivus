@@ -431,10 +431,10 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
 
         nCornerPresetId = gaOutPlaceAdjacentRoadIndex[nCornerPresetId + nCurY * 9 + nDy + 0x28];
         if (nCornerPresetId != -1) {
-          if ((int)nRoadTypeB < 4) {
-            nCornerPresetId = gnOutdoorsGridWidthByLevel[nRoadTypeB + nCornerPresetId * 4 + 1];
-          } else {
+          if (!((int)nRoadTypeB < 4)) {
             nCornerPresetId = gRoadPresetIdLookupTable[nRoadTypeB - 6 + nCornerPresetId * 2];
+          } else {
+            nCornerPresetId = gnOutdoorsGridWidthByLevel[nRoadTypeB + nCornerPresetId * 4 + 1];
           }
 
           spawn_vertex_preset:
@@ -505,7 +505,7 @@ void __stdcall DRLGOUTPLACE_CalcSubLevelPlacement(int nHeight, int nWidth, D2Drl
 }
 
 // Server-side DRLG out-of-placement generator for the Spider Forest level (LEVEL_SpiderForest). Places three procedurally-connected sub-levels (ids 0x4c..0x4e) inside the forest using the drlg RNG seed: picks non-overlapping room placements (FreeRoomEx), allocates four scratch tile maps from the level memory pool, carves a maze of connecting paths/exits between sub-levels (flood/adjacency passes building per-cell connection-flag bitmasks 0x10/0x20/0x40/0x80), maps cell flags to tile codes via the gdwOutPlaceMap* lookup tables, writes the resulting grids back into each sub-level, sorts the three sub-levels, then GetLevelAndAllocs each and stores coords/size/automap. Frees the scratch maps and returns the last allocated sub-level. Halts via Fog ErrorManager on overflow/invalid tile. pLevel passed in EAX (custom convention); mutates pDrlg->nSeed throughout.
-D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel) {
+static D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel) {
     size_t nSize;
     int bNoOverlap;
     uint32_t nConnFlags;
@@ -580,7 +580,7 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
     aSubLevelRecords[3] = iVar3;
     do {
       int aSwapBuffer[14];
-      if ((int)nSubLevelCount < 1) {
+      if ((int)nSubLevelCount <= 0) {
         nRandIdx = 0;
       } else {
         nConnFlags = pDrlg->nSeed.nSeedLow;
@@ -598,7 +598,7 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
 
       sNewSeed = D2_SEED_NEXT(pDrlg->nSeed);
       pDrlg->nSeed = sNewSeed;
-      DRLGOUTPLACE_CalcSubLevelPlacement(iVar3, iVar5, pOutCoords, aSubLevelRecords + nRandIdx * 0xe, sNewSeed.nSeedLow + (int)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) / 5) * -5);
+      DRLGOUTPLACE_CalcSubLevelPlacement(iVar3, iVar5, pOutCoords, aSubLevelRecords + nRandIdx * 0xe, sNewSeed.nSeedLow % 5);
       nGridX = 0;
       if (0 < (int)nSubLevelCount) {
         pCoords1 = (D2DrlgCoordsStrc*)aSubLevelRecords;
@@ -627,12 +627,12 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
       }
 
       nGridX = pOutCoords->WorldPosition.x;
-      if (nGridX < nMinX) {
+      if (nMinX > nGridX) {
         nMinX = nGridX;
       }
 
       bNoOverlap = pOutCoords->WorldPosition.y;
-      if (bNoOverlap < nMinY) {
+      if (nMinY > bNoOverlap) {
         nMinY = bNoOverlap;
       }
 
@@ -644,7 +644,7 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
       nSubLevelCount++;
       pOutCoords = (D2DrlgCoordsStrc*)&pOutCoords[3].WorldSize;
       check_all_placed:
-      if (2 < (int)nSubLevelCount) {
+      if (3 <= (int)nSubLevelCount) {
         nConnFlags = nMaxX - nMinX;
         uVar4 = nConnFlags & 0x8000001f;
         bSwapped = !uVar4;
@@ -755,7 +755,7 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
 
                 pExitCount = 0;
                 nRandIdx = (uint32_t)(nSubIdx != 0);
-                if (bNoOverlap <= nBottomRow) {
+                if (nBottomRow >= bNoOverlap) {
                   nCellIdx = iVar5 * nBottomRow;
                   nAdjIdx = (nSubIdx + 1) * 100;
                   nRowIter = nBottomRow;
@@ -779,7 +779,7 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
                       sNewSeed = D2_SEED_NEXT(pDrlg->nSeed);
                       pDrlg->nSeed = sNewSeed;
                       nConnFlags = nFlipState;
-                      if (sNewSeed.nSeedLow + (int)(((uint64_t)d2_bits_of(sNewSeed) & 0xffffffff) / 3) * -3) {
+                      if (sNewSeed.nSeedLow % 3) {
                         goto step_up_row;
                       }
 
@@ -1312,7 +1312,7 @@ D2DrlgLevelStrc * DRLGLEVEL_FixDrlgLevelForSpiderForest(D2DrlgLevelStrc * pLevel
     } while (true);
 }
 
-int32_t __stdcall DRLGLEVEL_FixDrlgLevelForLowerKurast(D2DrlgLevelStrc * pLevel) {
+static int32_t __stdcall DRLGLEVEL_FixDrlgLevelForLowerKurast(D2DrlgLevelStrc * pLevel) {
     D2DrlgLevelStrc* pSubLevel;
     uint8_t byDifficulty;
     int nSubSizeX;

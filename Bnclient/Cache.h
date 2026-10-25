@@ -49,7 +49,6 @@ int __fastcall CACHE_FreeMem(void * pParam);
 // Opens the Fog cache file for reading/writing. Creates %APPDATA%\Blizzard Entertainment\Diablo II\bncache.dat if missing, reads hash table header, validates magic/version, allocates hash table memory. Sets ghCacheFileHandle to opened file handle or INVALID_HANDLE_VALUE on error.
 // @sourcefile .\CACHE.CPP
 int32_t __stdcall CACHE_Open();
-void __stdcall CACHE_Rebuild();
 // Reads cached data from bncache.dat using key lookup, validates CRC32, and returns decrypted data buffer
 // @sourcefile .\CACHE.CPP
 BOOL __fastcall CACHE_ReadData(char * szKey, uint32_t * pCrc32Out, uint32_t * * ppDataBuf, LPDWORD pDataSizeOut);

@@ -380,15 +380,12 @@ int * GetRenderStatistics();
 BOOL ActivateWindow();
 BOOL __fastcall SetOption(int32_t nOption, int32_t nValue);
 void __fastcall DirectDrawErrorHandler(char * szContext, int32_t nErrorCode);
-BOOL InternalOpenWindow(int32_t nResolutionMode);
-BOOL __stdcall InternalCutsceneWindow();
 BOOL __fastcall CreateWindow(HWND hWnd, int32_t nResolutionMode);
 void __fastcall PlayCutScene(char * szFile, int32_t nResolutionMode, void * fpFrame);
 BOOL __fastcall BeginScene(BOOL bClear, BYTE nRed, BYTE nGreen, BYTE nBlue);
 BOOL EndScene1();
 BOOL EndScene2();
 BOOL __fastcall GetBackBuffer(BYTE * pBuffer);
-void __stdcall InternalReleaseWindow();
 BOOL __stdcall BeginCutScene();
 BOOL __stdcall RENDERER_DDRAW_DestroyWindow();
 BOOL __fastcall ResizeWindow(HWND hWnd, BOOL bForceResize);
@@ -404,8 +401,6 @@ BYTE * __fastcall RENDERER_DIRECTDRAW_GetPalettePointer(int32_t nPaletteMode, ui
 void __fastcall RENDERER_DDRAW_SetHorizontalBounds(int32_t bWidescreen);
 // DirectDraw renderer internal helpers for sprite visibility testing, clip rect computation, debug font rendering, shadow quality query, pixel/line drawing primitives, and smacker video frame blitting.
 uint32_t __stdcall RENDERER_DDRAW_IsDC6OffScreen(int32_t nX, int32_t nY, int32_t bIsometric, struct DC6Block * pDC6Block);
-// DirectDraw renderer internal helpers for sprite visibility testing, clip rect computation, debug font rendering, shadow quality query, pixel/line drawing primitives, and smacker video frame blitting.
-BOOL __stdcall RENDERER_DDRAW_ComputeDC6ClipRect(int32_t nY, struct DC6Block * pDC6Block, int32_t nX, uint32_t * pOutClipRect, uint32_t * pInClipBounds);
 BOOL __fastcall DrawImage(struct D2GfxDataStrc * pData, int32_t nPosX, int32_t nPosY, DWORD dwGamma, int32_t nDrawMode, BYTE * pPalette);
 void __fastcall DrawShiftedImage(struct D2GfxDataStrc * pData, int32_t nPosX, int32_t nPosY, DWORD dwGamma, int32_t nDrawMode, int32_t nGlobalPaletteShift);
 void __fastcall DrawVerticalCropImage(struct D2GfxDataStrc * pData, int32_t nPosX, int32_t nPosY, int32_t nSkipLines, int32_t nDrawLines, int32_t nDrawMode);
@@ -418,8 +413,6 @@ void __fastcall DrawPerspectiveImage(struct D2GfxDataStrc * pData, int32_t nPosX
 void __stdcall D2ddDebugFont_Alloc();
 // @sourcefile .\Src\ddDebugFont.cpp
 void __stdcall D2ddDebugFont_Free();
-// DirectDraw renderer internal helpers for sprite visibility testing, clip rect computation, debug font rendering, shadow quality query, pixel/line drawing primitives, and smacker video frame blitting.
-LPINT __stdcall RENDERER_DDRAW_DrawDebugFontChar(int32_t nX, char cCharacter, int32_t nY);
 void __fastcall DrawString(int32_t nPosX, int32_t nPosY, char * szFormat, va_list va);
 void __fastcall DrawLight(DWORD * pLight, DWORD * pPlayerLight, int32_t nPosX, int32_t nPosY);
 // DirectDraw renderer internal helpers for sprite visibility testing, clip rect computation, debug font rendering, shadow quality query, pixel/line drawing primitives, and smacker video frame blitting.
@@ -443,8 +436,6 @@ BOOL __fastcall DrawWallTile(struct D2TileLibraryEntryStrc * pTile, int32_t nPos
 BOOL __fastcall DrawGroundTile(struct D2TileLibraryEntryStrc * pTile, struct D2GfxLightExStrc * pLight, int32_t nPosX, int32_t nPosY, int32_t nWorldXpos, int32_t nWorldYpos, BYTE nAlpha, int32_t nScreenPanels, void * pTileData);
 // @sourcefile .\Src\ddSmack.cpp
 void __fastcall CloseSmacker(struct D2SmackerContextStrc * pContext);
-// DirectDraw renderer internal helpers for sprite visibility testing, clip rect computation, debug font rendering, shadow quality query, pixel/line drawing primitives, and smacker video frame blitting.
-void __stdcall RENDERER_DDRAW_BlitSmackerFrame(int32_t nHeight, int32_t nWidth, struct D2SmackerContextStrc * pDestRect);
 // @sourcefile .\Src\ddSmack.cpp
 void __fastcall DecodeSmacker(char * szSmacker, struct D2SmackerContextStrc * pBuffer, int32_t nVersion);
 void __fastcall PlayerSmacker(struct D2SmackerContextStrc * pContext);

@@ -35,12 +35,6 @@ namespace D2CMP::SRC::FindTiles {
 int __fastcall FINDTILE_ComputeHash(char cParam1, char cParam2, char cTileSubType);
 struct D2TileLibraryHashStrc * __stdcall FINDTILE_AllocHashTable();
 void __fastcall FINDTILE_FreeHashTable(struct D2TileLibraryHashStrc * pHashTable);
-// Adds pTileData to the hash node's tile-ref chain unless it is already there: walks pHashNode->pRef by pNext, otherwise allocates an 8-byte D2TileLibraryHashRefStrc (FindTiles.cpp line 0x6e, halts on line 0x6f if the allocation fails) and links it in front of the old head.
-// Provenance: 1.14d asm 0060cea0..0060cef5.
-void FINDTILE_AddTileToChain(struct D2TileLibraryHashNodeStrc * pHashNode, struct D2TileLibraryEntryStrc * pTileData);
-// Allocates a 0x14-byte D2TileLibraryHashNodeStrc for pTileData's (nIndex, nSubIndex, nOrientation) key, links it in front of the bucket head *ppHashSlot, and gives it a one-entry tile-ref chain holding pTileData. Halts on line 0x83 or 0x8f if an allocation fails.
-// Provenance: 1.14d asm 0060cf00..0060cf90 (FindTiles.cpp lines 0x82..0x8f).
-void FINDTILE_AllocHashEntry(struct D2TileLibraryEntryStrc * pTileData, struct D2TileLibraryHashNodeStrc * * ppHashSlot);
 void __fastcall FINDTILE_Register(struct D2TileLibraryHashStrc * pHashTable, struct D2TileLibraryEntryStrc * pTileData);
 int32_t __fastcall FINDTILE_Lookup(int * * pHashTable, int32_t pResultArray, uint32_t nMaxResults, int32_t nTileType, int32_t nTileSubType, int32_t nParam4);
 

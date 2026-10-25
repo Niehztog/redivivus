@@ -127,9 +127,6 @@ void __fastcall PLAYER_InitBaseStats(::SGAMEDATA * pGame, struct D2UnitStrc * pU
 void __fastcall thunk_NET_D2GS_SERVER_Send_0x75_PlayerPartyInfo(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pOtherUnit);
 // Server-side level-up handler: recomputes pUnit's level from accumulated experience, updates UNITSTAT_level and UNITSTAT_nextexp, then — if the unit gained one or more levels — scales up max HP/mana/stamina (and restores them to max), awards stat points and skill points, refreshes NPC gamble inventories, broadcasts party info (0x75) to all players, recalculates equipped item stats, and calls the BattleNet UpdateGameInformation callback. Called from the SUnitMsg message-processing layer.
 void __fastcall UpdateGameInfo(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
-void PLAYER_AddEnergyStatPoints(struct D2UnitStrc * pUnit, int32_t nParam);
-// Spends nParam stat points into Vitality: decrements statpts by nParam, adds nParam to vitality, adds LifePerVitality*nParam*64 to maxhp (and to current HP if nParam>0, capped at maxhp), and adds StaminaPerVitality*nParam*64 to maxstamina (and stamina if nParam>0, capped). Uses CharStats.txt per-vitality multipliers.
-void PLAYER_AddVitalityStatPoints(int32_t nParam, struct D2UnitStrc * pUnit);
 void __fastcall ClearStats(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 BOOL __fastcall PLAYER_AssignStatPoint(struct D2UnitStrc * pUnit, uint32_t eStatType);
 // Send all active buff/debuff states for unit to client. Iterates state flags, encodes state list via bit buffer with per-state stat lists using ItemStatCost config. Sends via 0xA8 opcode.

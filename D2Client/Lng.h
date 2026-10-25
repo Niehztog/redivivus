@@ -11,7 +11,6 @@
 namespace D2Client::Lng {
 
 // Function declarations
-BOOL __stdcall LNG_FormatErrorMessageWithFallback(DWORD dwErrorCode, char * szBuffer, DWORD dwBufferSize);
 BOOL __stdcall CLIENT_LoadLNG();
 
 } // namespace D2Client::Lng

@@ -202,7 +202,7 @@ int32_t __stdcall GetNextPositon(D2BitBufferStrc * pBitBuffer) {
 
 void __stdcall WriteValueToBitBuffer(D2BitBufferStrc * pBitBuffer, int32_t nValue, int32_t nSizeInBits) {
     size_t nCapacityBits = pBitBuffer->nBitsInBuffer;
-    /* check if there is room */ if ((int)nCapacityBits < (int)(pBitBuffer->nBitsAtPos + pBitBuffer->nCurrentPos * 8 + nSizeInBits)) {
+    /* check if there is room */ if ((int)(pBitBuffer->nBitsAtPos + pBitBuffer->nCurrentPos * 8 + nSizeInBits) > (int)nCapacityBits) {
       pBitBuffer->bEnd = 1;
       pBitBuffer->nCurrentPos = (int)(nCapacityBits + ((int)nCapacityBits >> 0x1f & 7U)) >> 3;
       pBitBuffer->nBitsAtPos = 0;
@@ -214,12 +214,12 @@ void __stdcall WriteValueToBitBuffer(D2BitBufferStrc * pBitBuffer, int32_t nValu
 
     while (true) {
       int nBitsThisStep;
-      if (nSizeInBits < 1) {
+      if (nSizeInBits <= 0) {
         return;
       }
 
       nBitsThisStep = 8 - pBitBuffer->nBitsAtPos;
-      if (nSizeInBits < nBitsThisStep) {
+      if (nBitsThisStep > nSizeInBits) {
         nBitsThisStep = nSizeInBits;
       }
 
@@ -268,7 +268,7 @@ int32_t __stdcall Read(D2BitBufferStrc * pBitBuffer, int32_t nSize) {
     do {
       uint8_t byCurrent;
       nBitsThisStep = 8 - pBuf->nBitsAtPos;
-      if (nBitsRemaining < nBitsThisStep) {
+      if (nBitsThisStep > nBitsRemaining) {
         nBitsThisStep = nBitsRemaining;
       }
 

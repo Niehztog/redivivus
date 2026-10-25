@@ -41,7 +41,7 @@ void SavePersistentSetting(::IgnoreList * pThis, int32_t nPersistent) {
     Storm::Source::SReg::SRegSaveValue("Diablo II", "Persistent Ignore", 0, nPersistent);
 }
 
-int32_t AppendLineToFile(::IgnoreList * pThis, char * szLine) {
+static int32_t AppendLineToFile(::IgnoreList * pThis, char * szLine) {
     int32_t bIsEnabled;
     FILE* _File;
     uint32_t nStrLen;
@@ -66,12 +66,10 @@ int32_t AppendLineToFile(::IgnoreList * pThis, char * szLine) {
           uVar2 = (uint32_t)!iVar1;
         }
 
-        Fog::Debug::GuardStack();
         return uVar2;
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -83,12 +81,12 @@ int32_t SaveToFile(::IgnoreList * pThis) {
     }
 
     uint32_t uEntryOffset = pThis->tIgnoredPatterns.tFullList.m_terminator.m_next;
-    for (uEntryOffset = (int)uEntryOffset < 1 ? 0 : uEntryOffset; 0 < (int)uEntryOffset; uEntryOffset = *(uint32_t*)(pThis->tIgnoredPatterns.tFullList.m_linkoffset + uEntryOffset + 4)) {
+    for (uEntryOffset = (int)uEntryOffset <= 0 ? 0 : uEntryOffset; 0 < (int)uEntryOffset; uEntryOffset = *(uint32_t*)(pThis->tIgnoredPatterns.tFullList.m_linkoffset + uEntryOffset + 4)) {
       fprintf(pFile, "%s\n", *(uint32_t*)(uEntryOffset + 0x14));
     }
 
     uEntryOffset = pThis->tIgnoredAccounts.tFullList.m_terminator.m_next;
-    for (uEntryOffset = (int)uEntryOffset < 1 ? 0 : uEntryOffset; 0 < (int)uEntryOffset; uEntryOffset = *(uint32_t*)(pThis->tIgnoredAccounts.tFullList.m_linkoffset + uEntryOffset + 4)) {
+    for (uEntryOffset = (int)uEntryOffset <= 0 ? 0 : uEntryOffset; 0 < (int)uEntryOffset; uEntryOffset = *(uint32_t*)(pThis->tIgnoredAccounts.tFullList.m_linkoffset + uEntryOffset + 4)) {
       fprintf(pFile, "!%s\n", *(uint32_t*)(uEntryOffset + 0x14));
     }
 
@@ -126,14 +124,12 @@ int32_t RemoveByPattern(::IgnoreList * pThis, char * szPattern) {
           if (pEntry) {
             pThis->tIgnoredPatterns.Unlink(pEntry);
             IgnoreList::SaveToFile(pThis);
-            Fog::Debug::GuardStack();
             return 1;
           }
         }
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -176,10 +172,9 @@ int32_t CheckAccountNameIgnored(::IgnoreList * pThis, char * szAccountName) {
           Storm::Source::SSTR::SStrCopy(szAccountLower, szAccountName, 0x7fffffff);
           Storm::Source::SSTR::SStrLower(szAccountLower);
           uVar1 = pThis->tIgnoredAccounts.tFullList.m_terminator.m_next;
-          pCurEntry = (::StringEntryNode*)((int)uVar1 < 1 ? 0 : uVar1);
+          pCurEntry = (::StringEntryNode*)((int)uVar1 <= 0 ? 0 : uVar1);
           while (true) {
             if ((int)pCurEntry < 1) {
-              Fog::Debug::GuardStack();
               return 0;
             }
 
@@ -194,12 +189,10 @@ int32_t CheckAccountNameIgnored(::IgnoreList * pThis, char * szAccountName) {
           }
         }
 
-        Fog::Debug::GuardStack();
         return 1;
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -244,21 +237,18 @@ int32_t CheckIgnored(::IgnoreList * pThis, char * szPlayerName) {
           check_alternate_name:
           _bIsEnabled = CheckCharNameIgnored(pThis, szSuffix);
           if (_bIsEnabled) {
-            Fog::Debug::GuardStack();
             return 1;
           }
         }
         if (szPrefix[0] != '\0') {
           _bIsEnabled = CheckCharNameIgnored(pThis, szPrefix);
           if (_bIsEnabled) {
-            Fog::Debug::GuardStack();
             return 1;
           }
         }
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -308,13 +298,11 @@ int32_t AddByPattern(::IgnoreList * pThis, char * szPattern) {
             AppendLineToFile(pThis, szParsedPattern);
           }
 
-          Fog::Debug::GuardStack();
           return 1;
         }
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -344,12 +332,10 @@ int32_t AddByAccountName(::IgnoreList * pThis, char * szAccountName) {
           AppendLineToFile(pThis, &__frame0.cIgnorePrefix);
         }
 
-        Fog::Debug::GuardStack();
         return 1;
       }
     }
 
-    Fog::Debug::GuardStack();
     return 0;
 }
 
@@ -367,7 +353,7 @@ void LoadFromFile(::IgnoreList * pThis) {
       while (pszLine) {
         pszIter = 0;
         uVar1 = Storm::Source::SSTR::SStrLen(szLineBuf);
-        if (uVar1) {
+        if ((uint32_t)uVar1 > 0) {
           do {
             if (szLineBuf[pszIter] == '\r' || szLineBuf[pszIter] == '\n') {
               szLineBuf[pszIter] = '\0';
@@ -392,7 +378,6 @@ void LoadFromFile(::IgnoreList * pThis) {
       fclose(pFile);
     }
 
-    Fog::Debug::GuardStack();
 }
 
 ::IgnoreList * Constructor(::IgnoreList * pThis) {
@@ -432,7 +417,6 @@ void LoadFromFile(::IgnoreList * pThis) {
     pThis->nPersistentIgnore = __frame0.nPersistentIgnore;
     LoadFromFile(pThis);
     ExceptionList = __frame0.pPrevExceptionList;
-    Fog::Debug::GuardStack();
     return pThis;
 }
 

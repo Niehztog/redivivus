@@ -197,7 +197,7 @@ BOOL __fastcall Q06_SyncQuestStepToPlayer(::SGAMEDATA * pGame, D2UnitStrc * pUni
 
 // A1Q6 NPC-gossip dispatch callback (state slot 0xb). Routes by NPC classId/message: Cain(0x109)+msg0xa6 = accept quest (stateFlag 2, bQuestAccepted, sync all players, gossip); Cain+0xb8 / Akara(0x94)+0xb3 / Kashya(0x96)+0xb5 = remove player from that NPC's GUID list; Warriv(0x9b)+0xb7 = collect Act2-travel reward: if RewardAwaits&JustCompleted set stateFlag 0xd (JustCompleted) + flag 5 + SetQuestRecordState JustCompleted, then clear RewardAwaits / set Completed in player record and register player as participant.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q6.cpp
-void __fastcall Q06_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q06_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     D2BitBufferStrc* pBitBuffer;
     D2UnitDataPlayerStrc* pPlayerData;
     BOOL bQuestState;
@@ -268,7 +268,7 @@ void __fastcall Q06_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
 }
 
 // A1Q6 gossip-text builder (state slot 0). Reads player quest record (Completed/JustCompleted/RewardAwaits) and target NPC (Cain 0x109 / Akara 0x94 / Kashya 0x96), then picks which gossip line to queue via AddGossipMessageOnMonster: msg 3 if player already in that NPC's done-list, msg 4 if quest finished/participated, else maps server stateFlag through gdwQuestCallbackAddressQ41[] to a line index. Read-only on quest state; chooses dialogue.
-void __fastcall Q06_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q06_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     // Static local variables (originally global data)
     static int32_t gdwQuestCallbackAddressQ41[7] = { -0x1, 0x0, 0x1, 0x2, 0x3, 0x4, 0x0 };
 
@@ -386,7 +386,7 @@ void __fastcall Q06_Callback03_ChangedLevel(D2QuestDataStrc * pQuestData, D2Ques
     }
 
     bool bQuestState;
-    bQuestState = 2 < pQuestData->nStateFlag;
+    bQuestState = 3 <= pQuestData->nStateFlag;
     if (!bQuestState) {
       QUEST_SetStateFlag(pQuestData, 3, "d:\\diablo2\\Diablo2\\Source\\D2Game/Quests/a1q6.cpp", 0x166);
     }
@@ -434,7 +434,7 @@ BOOL __fastcall Q06_PlayCompletionSound(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
 
 // A1Q6 helper: mark Sisters-to-the-Slaughter complete + grant reward for one player. Sets JustCompleted and RewardAwaits in the player's quest record, then SetClientStatus(1, difficulty) to flag the act-progress/Act2-unlock client state. Called from Andariel-death and L4-entry paths.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q6.cpp
-void __stdcall Q06_SetQuestCompletedAndReward(::SGAMEDATA * pQuestControl, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer) {
+static void __stdcall Q06_SetQuestCompletedAndReward(::SGAMEDATA * pQuestControl, D2UnitStrc * pUnit, D2BitBufferStrc * pBitBuffer) {
     /* SetQuestState(JustCompleted): mark quest just-completed for self player
                          (drives completion sound + UI) */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_SistersToTheSlaughter, QUESTSTATE_JustCompleted);
     /* SetQuestState(RewardAwaits): flag reward pending so Warriv offers Act2
@@ -614,7 +614,7 @@ uint8_t __fastcall Q06_QuestUpdate(::SGAMEDATA * pGame, D2QuestDataStrc * pQuest
 
 // Already documented.
 // @sourcefile d:\diablo2\Diablo2\Source\D2Game/Quests/a1q6.cpp
-void __fastcall Q06_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
+static void __fastcall Q06_Callback08_MonsterKilled(D2QuestDataStrc * pQuestData, D2QuestArgStrc * pQuestArgs) {
     // Static local variables (originally global data)
     static uint32_t gaNpcGossipData_Q37[7] = { 0x20766367, 0x20726367, 0x20626367, 0x20796367, 0x20676367, 0x20776367, 0x20636b73 };
     static uint32_t gaNpcGossipData_Q06[7] = { 0x20767367, 0x20727367, 0x20627367, 0x20797367, 0x20677367, 0x20777367, 0x20756b73 };

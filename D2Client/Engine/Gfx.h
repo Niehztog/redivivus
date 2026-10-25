@@ -7238,42 +7238,23 @@ namespace D2Client::Engine::Gfx {
 
 // Function declarations
 struct D2InventoryStrc * __fastcall CLIENT_GetEffectiveInventory(struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
-uint32_t GFX_HashTextureName(struct D2ArchiveStrc * pArchive);
-void GFX_ExtractFilenameFromPath(uint32_t dwUnused, char * szPath, char * szOutFilename);
 void * __stdcall GFX_FindTextureInCache(void * pTextureCache, char * szPath);
 // @sourcefile .\ENGINE\Gfx.cpp
 void * __stdcall GFX_LoadCofFile(void * pTextureCache, char * szPath);
 // @sourcefile .\ENGINE\Gfx.cpp
 void __stdcall GFX_LoadAndHashCofArchive(char * szPath, int * pCache);
-void GFX_SyncStateOverlayPriority(int * pOverlay, int32_t pGfxInfo);
 void __stdcall GFX_RemoveStateOverlayAndReprioritize(struct D2UnitStrc * pUnit, int32_t pGfxInfo, int32_t pOverlay);
-// @sourcefile .\ENGINE\Gfx.cpp
-int32_t GFX_FreeUnusedCofEntries(void * pCacheTable);
 // @sourcefile .\ENGINE\Gfx.cpp
 void __fastcall GFX_FreePlayerCofCache(int32_t nParam);
 // @sourcefile .\ENGINE\Gfx.cpp
 int32_t GFX_FreeMonsterCofCache();
-void __stdcall GFX_BuildMonsterCofPath(uint32_t nModeId, LPSTR szOutputPath, int * pnComponentCode, int32_t nMonsterClassId);
-void __stdcall GFX_PrecacheMonsterCofSprites(struct D2MonStatsTxt * pMonStatsTxt, uint32_t nModeId, int32_t bSync, short * pComponentTable);
 void __fastcall GFX_PrecacheMonsterAllModes(int32_t nMonsterClassId, int32_t nFlags);
 int __stdcall GFX_GetCofCacheFlags();
 int __stdcall GFX_GetCofCacheMemUsage();
 int __stdcall GFX_GetGfxSystemFlags();
 int32_t __fastcall GFX_GetModeStatusEntry(int32_t nParam);
 // @sourcefile .\ENGINE\Gfx.cpp
-void GFX_LoadMonsterModeCofByState(struct D2UnitStrc * pUnit, uint32_t nAnimMode);
-// @sourcefile .\ENGINE\Gfx.cpp
 struct D2GfxInfoUnkStrc * __fastcall GFX_EnsureUnitCofLoaded(struct D2UnitStrc * pUnit, int32_t nAnimMode, int nWeaponClass);
-// Loads unit sprite COF and precaches sprites asynchronously. Returns GfxInfoUnk on success, 0 on failure, or 0xffffffff on cache miss. Custom convention: nAsyncBlockId (stack), pUnit (EAX), pWeaponClass (EBX) - already documented in this comment but never applied to the signature, so both registers reached the reconstruction as uninitialised locals.
-struct D2GfxInfoUnkStrc * __stdcall GFX_AsyncLoadUnitSprites(int32_t nAsyncBlockId, struct D2UnitStrc * pUnit, int nAnimMode);
-// @sourcefile .\ENGINE\Gfx.cpp
-void __stdcall GFX_AsyncLoadMonsterSprites(int32_t nAsyncBlockId, int * nModeIndex, struct D2UnitStrc * pUnit);
-void __stdcall GFX_PrecacheMonsterModeSprites(int32_t nAsyncBlockId, struct D2UnitStrc * pUnit);
-// @sourcefile .\ENGINE\Gfx.cpp
-void __stdcall GFX_AsyncLoadPlayerSprites(int32_t nAsyncBlockId, int32_t nModeIndex, struct D2UnitStrc * pUnit);
-// Iterate units in adjacent rooms; update gfx/anim state, may show loading UI while streaming.
-// @sourcefile .\ENGINE\Gfx.cpp
-void Gfx_UpdateNearbyUnitGfx(int32_t bShowLoadingUi);
 // @sourcefile .\ENGINE\Gfx.cpp
 void __fastcall GFX_InitCofSystem(int nSystemFlags);
 // @sourcefile .\ENGINE\Gfx.cpp
@@ -7302,8 +7283,6 @@ void __stdcall GFX_UpdateGfxThrottled();
 // @sourcefile .\ENGINE\Gfx.cpp
 void __fastcall ANIM_ResetMonsterFrameCache(struct D2UnitStrc * pUnit);
 void __fastcall GFX_UpdateOverlayAnimations(struct D2UnitStrc * pUnit);
-// @sourcefile .\ENGINE\Gfx.cpp
-struct D2GfxInfoUnkStrc * __stdcall GFX_DrawUnitComponents(int32_t nWorldX, uint32_t nLightColor, int32_t bTransparent, int32_t bDrawStates, int32_t nWorldY, struct D2UnitStrc * pUnit);
 // @sourcefile .\ENGINE\Gfx.cpp
 BOOL __fastcall GFX_DrawUnitShadow(struct D2UnitStrc * pUnit);
 // Draw shadow sprite layers for a unit. Skips hidden/dead units. Handles perspective view toggling for player unit. Returns 1 if shadow was drawn, 0 if skipped or off-screen.

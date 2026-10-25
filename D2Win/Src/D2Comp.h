@@ -27,25 +27,12 @@ struct D2CompCharacterCompositeItemStrc {
 namespace D2Win::Src::D2Comp {
 
 // Function declarations
-int32_t D2COMP_AssertNotNull(int32_t pValue);
-void * __stdcall D2COMP_LoadAndValidateCOFFile(char * szCOFFilePath, size_t * pnSize);
 void * __stdcall D2COMP_ValidateCOFLayerData(int32_t nLayerIndex, int32_t nFrameIndex, uint8_t * pbParam);
-int __stdcall D2COMP_FindOrAllocCOFCacheEntry(int32_t nPlayerClassId, char * szText, uint32_t dwWeaponClassToken, int32_t nAnimMode);
-void __stdcall D2COMP_ReleaseCOFCacheEntry(int32_t nParam, int * pnParam);
-void __stdcall D2COMP_BuildCOFFilePath(int32_t nAnimMode, uint32_t dwWeaponClassToken, char * pszDestPath, int32_t nPlayerClassId);
-int * D2COMP_FindCOFEntryByModeAndWeapon(int * * ppCOFList, int32_t nAnimMode, uint32_t dwWeaponClassToken);
-int32_t __stdcall D2COMP_GetOrLoadCOF(int * * ppCOFList, int32_t nPlayerClassId, int32_t nAnimMode, uint32_t dwWeaponClassToken);
 void __fastcall D2COMP_PopulateComponentFromCOF(int32_t pCOFData, struct D2GfxDataStrc * pGfxData);
-void __stdcall D2COMP_InitComponentEntry(int32_t nAnimMode, int32_t nWeaponClass, int32_t nCOFContext, uint8_t bComponentType, int32_t nCOFData, struct D2GfxDataStrc * pGfxData);
 uint8_t * __fastcall D2COMP_GetPaletteTransformTable(uint32_t nPaletteShift);
-uint32_t __stdcall D2COMP_ValidateComponentType(uint32_t dwComponentMask, uint8_t bComponentType);
-int32_t __stdcall D2COMP_LoadLayerSpritesAndCalcHeight(uint8_t * pbLayerCount, int32_t nLayerTypeArray, int * pnMaxHeight, uint8_t bPaletteShift, uint32_t nFrameNumber, int32_t nCOFContext);
 void __fastcall D2COMP_DrawUnitShadow(uint32_t * pCompUnit);
 void __fastcall D2COMP_DrawCompositeUnit(uint32_t * pCompUnit, int32_t nDrawColor);
 int32_t __stdcall D2COMP_TruncateStringToFitWidth(uint16_t * wszText, int32_t nMaxWidth);
-void __stdcall D2COMP_AddTextLineToLayout(uint16_t * wszText, uint8_t * pLayoutBase, int * pnLineCount, int * pnMaxWidth, int * pnTotalHeight);
-void __fastcall D2COMP_ZeroBuffer512(void * pBuffer);
-BOOL D2COMP_ValidateAndLoadCOFForUnit(struct D2CharSelCompStrc * pCompUnit);
 void __fastcall D2COMP_UnlinkCompositeUnit(struct D2CharSelStrc * pCharSel);
 void __stdcall D2COMP_AllocSmallClientBlock();
 void __stdcall D2COMP_DestroyCompositeUnit(struct D2CharSelStrc * pCharSel, int32_t bUnlink);
@@ -60,9 +47,7 @@ void * __stdcall LoadTxt(struct D2PoolManagerStrc * pMemory, char * szTxtName, s
 void __fastcall D2COMP_AllocTxt_Items(struct D2PoolManagerStrc * pMemory);
 void __fastcall D2COMP_LoadItemTypesTxt(struct D2PoolManagerStrc * pMemory);
 int32_t __stdcall D2COMP_IsItemTypeDescendant(int32_t nItemType, int32_t nAncestorType);
-int32_t __stdcall D2COMP_ResolveWeaponClass(int32_t nPlayerClassId, uint8_t * pEquipData);
 void __stdcall D2COMP_SetSelectionAndAuraImages(struct DC6 * pDC6, struct DC6 * pDC62);
-void D2COMP_ValidateEquippedItemForClass(int32_t nEquipSlot, uint8_t * pbyItemIndex);
 void __stdcall D2COMP_CreateCompositeUnit(uint32_t * pCompUnit, uint32_t nPlayerClassId, uint32_t nAnimMode, uint8_t * pbyEquipSlots, char * szText);
 void __stdcall D2COMP_FreeAllCompositeUnits();
 uint32_t * __stdcall D2COMP_GetCompositeUnitListHead();
@@ -80,7 +65,7 @@ void D2COMP_LoadItemPaletteFile(int32_t nPaletteSlot, char * szPaletteFilename);
 void __stdcall D2COMP_LoadAllItemPalettes();
 void __stdcall D2COMP_InitEmblemColorTables();
 char * __stdcall D2COMP_GetTitlePrefix(uint32_t nCharClass, uint32_t nTitleRank, int32_t nParam);
-void __fastcall D2COMP_DrawUnitNameAndTitle(uint32_t * pnParam);
+int __fastcall D2COMP_DrawUnitNameAndTitle(uint32_t * pnParam);
 void __fastcall DRAW_OOG_ChannelPlayers(struct D2QuestDataA3Q6Strc * pA3Q6Data);
 void __stdcall D2COMP_AllocTxt_EverythingItems();
 struct D2CharSelCompStrc * __stdcall AllocCharSelectComponent(uint32_t nPlayerClassId, int32_t nClassicExpansion, uint8_t * pbyEquipSlots, char * szText);

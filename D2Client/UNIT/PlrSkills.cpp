@@ -168,7 +168,7 @@ void __fastcall PLRSKILLS_DrawChargeTrailIfSecondary(D2UnitStrc * pUnit, uint32_
     ::D2Client::UNIT::PlrSkills::PLRSKILLS_DrawSkillTrail_Secondary(pUnit, nParam);
 }
 
-void __stdcall STATES_RemoveOverlayById(D2UnitStrc * pUnit, int32_t nParam) {
+static void __stdcall STATES_RemoveOverlayById(D2UnitStrc * pUnit, int32_t nParam) {
     if (nParam == -1) {
       return;
     }
@@ -185,8 +185,8 @@ void __stdcall STATES_RemoveOverlayById(D2UnitStrc * pUnit, int32_t nParam) {
     } while (i < nOverlayCount);
 }
 
-void __fastcall PLRSKILLS_StateSetFn01_ProgressiveCharge(D2UnitStrc * pUnit, eD2States eState) {
-    if (!(-1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+static void __fastcall PLRSKILLS_StateSetFn01_ProgressiveCharge(D2UnitStrc * pUnit, eD2States eState) {
+    if (!(0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -202,15 +202,15 @@ void __fastcall PLRSKILLS_StateSetFn01_ProgressiveCharge(D2UnitStrc * pUnit, eD2
     } while (i < 3);
 
     int nStatValue = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, (int)pDVar1->stat, 0);
-    if (nStatValue - 1U >= 3) {
+    if (nStatValue - 1U > 2) {
       return;
     }
 
     Engine::Gfx::GFX_AddOverlayToUnit(pUnit, pDVar1->pgsvoverlay - 1 + nStatValue, 3, 0, 0, 0, 0, 0);
 }
 
-void __fastcall PLRSKILLS_StateRemFn01_ProgressiveCharge(D2UnitStrc * pUnit, eD2States eState) {
-    if (!(-1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+static void __fastcall PLRSKILLS_StateRemFn01_ProgressiveCharge(D2UnitStrc * pUnit, eD2States eState) {
+    if (!(0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -226,7 +226,7 @@ void __fastcall PLRSKILLS_StateRemFn01_ProgressiveCharge(D2UnitStrc * pUnit, eD2
     } while (nOverlayIdx < 3);
 }
 
-void __fastcall PLRSKILLS_StateSetFn02_CloakOfShadows(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateSetFn02_CloakOfShadows(D2UnitStrc * pUnit, eD2States eState) {
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     if (!pRoom) {
       return;
@@ -239,7 +239,7 @@ void __fastcall PLRSKILLS_StateSetFn02_CloakOfShadows(D2UnitStrc * pUnit, eD2Sta
 
     eD2Skills eSkill = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_skill, 0);
     int nSkillLvl = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_level, 0);
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return;
     }
 
@@ -249,7 +249,7 @@ void __fastcall PLRSKILLS_StateSetFn02_CloakOfShadows(D2UnitStrc * pUnit, eD2Sta
 }
 
 // @sourcefile .\UNIT\PlrSkills.cpp
-void __fastcall PLRSKILLS_StateSetFn03_Blaze(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateSetFn03_Blaze(D2UnitStrc * pUnit, eD2States eState) {
     int nCurSkillLvl;
     D2UnitStrc* pPlayerUnit_lcl = Player::GetPlayerUnit_UI();
     if (pUnit == pPlayerUnit_lcl) {
@@ -274,7 +274,7 @@ void __fastcall PLRSKILLS_StateSetFn03_Blaze(D2UnitStrc * pUnit, eD2States eStat
     }
 
     int32_t nSkillLevel_00 = DataTbls::SKILL_GetMaxLevelForSkill(eSkill);
-    if (nSkillLevel_00 < nSkillLevel) {
+    if (nSkillLevel > nSkillLevel_00) {
       D2Common::Skills::AddSkill(pUnit, eSkill, nSkillLevel_00, 0, ".\\UNIT\\PlrSkills.cpp", 0x11b);
       D2Common::Skills::SKILLS_SetSkillLevelBonus(pUnit, eSkill, nSkillLevel - nSkillLevel_00);
       return;
@@ -283,7 +283,7 @@ void __fastcall PLRSKILLS_StateSetFn03_Blaze(D2UnitStrc * pUnit, eD2States eStat
     D2Common::Skills::AddSkill(pUnit, eSkill, nSkillLevel, 0, ".\\UNIT\\PlrSkills.cpp", 0x120);
 }
 
-void __fastcall PLRSKILLS_StateSetFn04_SourceUnit(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateSetFn04_SourceUnit(D2UnitStrc * pUnit, eD2States eState) {
     D2StatListExStrc* pStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, eState);
     if (!pStatList) {
       return;
@@ -302,7 +302,7 @@ void __fastcall PLRSKILLS_StateRemFn02_SourceUnit(D2UnitStrc * pUnit, eD2States 
     D2Common::Units::StoreOwner(pUnit, nullptr);
 }
 
-void __fastcall PLRSKILLS_StateSetFn05_ChangeClass(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateSetFn05_ChangeClass(D2UnitStrc * pUnit, eD2States eState) {
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER)) {
       return;
     }
@@ -347,7 +347,7 @@ int32_t __stdcall STATES_CalcDamageSeverityTier(int32_t nParam1, int32_t nParam2
 }
 
 // State removal callback (index 03) invoked when a buff/state expires on a unit. Reads the castoverlay and all four overlay IDs from the D2StatesTxt entry for eState, then calls STATES_RemoveOverlayById three times each for castoverlay, overlay[0], overlay[1] (triple removal, likely for multi-layer overlays), and once each for overlay[2] and overlay[3]. Skips any overlay with a negative (invalid) ID.
-void __fastcall PLRSKILLS_StateRemFn03_BoneArmor(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateRemFn03_BoneArmor(D2UnitStrc * pUnit, eD2States eState) {
     int32_t nCastOverlay;
     int nOverlay2;
     int nOverlay3;
@@ -366,20 +366,20 @@ void __fastcall PLRSKILLS_StateRemFn03_BoneArmor(D2UnitStrc * pUnit, eD2States e
     } else {
       nCastOverlay = (int32_t)pDVar1->castoverlay;
     }
-    if (pDVar1->overlay[0] < 0) {
-      nOverlay1 = -1;
-    } else {
+    if (!(pDVar1->overlay[0] < 0)) {
       nOverlay1 = (int)pDVar1->overlay[0];
+    } else {
+      nOverlay1 = -1;
     }
     if (pDVar1->overlay[1] < 0) {
       nOverlay2 = -1;
     } else {
       nOverlay2 = (int)pDVar1->overlay[1];
     }
-    if (pDVar1->overlay[2] < 0) {
-      nOverlay4 = -1;
-    } else {
+    if (!(pDVar1->overlay[2] < 0)) {
       nOverlay4 = (int)pDVar1->overlay[2];
+    } else {
+      nOverlay4 = -1;
     }
     if (pDVar1->overlay[3] < 0) {
       nOverlay3 = -1;
@@ -435,30 +435,30 @@ void __fastcall PLRSKILLS_StateSetFn06_BoneArmor(D2UnitStrc * pUnit, eD2States e
 
     int nBoneArmor = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_bonearmor, 0);
     int nBoneArmorMax = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_bonearmormax, 0);
-    if (pDVar1->castoverlay < 0) {
-      eCastOverlay = ~OVERLAY_null;
-    } else {
+    if (!(pDVar1->castoverlay < 0)) {
       eCastOverlay = (eOverlayId)pDVar1->castoverlay;
-    }
-    if (pDVar1->overlay[0] < 0) {
-      eOverlay1 = ~OVERLAY_null;
     } else {
+      eCastOverlay = ~OVERLAY_null;
+    }
+    if (!(pDVar1->overlay[0] < 0)) {
       eOverlay1 = (eOverlayId)pDVar1->overlay[0];
-    }
-    if (pDVar1->overlay[1] < 0) {
-      nOverlay2 = -1;
     } else {
+      eOverlay1 = ~OVERLAY_null;
+    }
+    if (!(pDVar1->overlay[1] < 0)) {
       nOverlay2 = (int)pDVar1->overlay[1];
-    }
-    if (pDVar1->overlay[2] < 0) {
-      eOverlay3 = ~OVERLAY_null;
     } else {
+      nOverlay2 = -1;
+    }
+    if (!(pDVar1->overlay[2] < 0)) {
       eOverlay3 = (eOverlayId)pDVar1->overlay[2];
-    }
-    if (pDVar1->overlay[3] < 0) {
-      eOverlay4 = ~OVERLAY_null;
     } else {
+      eOverlay3 = ~OVERLAY_null;
+    }
+    if (!(pDVar1->overlay[3] < 0)) {
       eOverlay4 = (eOverlayId)pDVar1->overlay[3];
+    } else {
+      eOverlay4 = ~OVERLAY_null;
     }
 
     int nPrevTier = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_shortparam1, 0);
@@ -473,10 +473,10 @@ void __fastcall PLRSKILLS_StateSetFn06_BoneArmor(D2UnitStrc * pUnit, eD2States e
     D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatList, UNITSTAT_shortparam1, nNewTier, 0);
     if (nPrevTier < nNewTier) {
       PLRSKILLS_StateRemFn03_BoneArmor(pUnit, eState);
-      if (eOverlay3 != ~OVERLAY_null && 2 < nNewTier) {
+      if (eOverlay3 != ~OVERLAY_null && 3 <= nNewTier) {
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay3, 7, 0, 0, 0, 0, 0);
       }
-      if (eOverlay4 != ~OVERLAY_null && 1 < nNewTier) {
+      if (eOverlay4 != ~OVERLAY_null && 2 <= nNewTier) {
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay4, 7, 0, 0, 0, 0, 0);
       }
       if (eCastOverlay != ~OVERLAY_null && eOverlay1 != ~OVERLAY_null && nOverlay2 != -1) {
@@ -507,11 +507,11 @@ int32_t __stdcall PLRSKILLS_CalcDamageSeverityTier_Unreferenced(int32_t nParam1,
 }
 
 // State-removal overlay cleanup: reads overlay[0..2] from the states.txt row for eState and removes each valid overlay (and overlay+1) from pUnit via STATES_RemoveOverlayById. Called as part of the state removal pipeline (RemFunc slot 5).
-void __fastcall PLRSKILLS_StateRemFn05_CycloneArmor(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateRemFn05_CycloneArmor(D2UnitStrc * pUnit, eD2States eState) {
     int32_t nOverlay1;
     int nOverlay3;
     int nOverlay2;
-    if (!(-1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -529,10 +529,10 @@ void __fastcall PLRSKILLS_StateRemFn05_CycloneArmor(D2UnitStrc * pUnit, eD2State
     } else {
       nOverlay2 = (int)pDVar1->overlay[1];
     }
-    if (pDVar1->overlay[2] < 0) {
-      nOverlay3 = -1;
-    } else {
+    if (!(pDVar1->overlay[2] < 0)) {
       nOverlay3 = (int)pDVar1->overlay[2];
+    } else {
+      nOverlay3 = -1;
     }
     if (nOverlay1 != -1) {
       STATES_RemoveOverlayById(pUnit, nOverlay1);
@@ -571,20 +571,20 @@ void __fastcall PLRSKILLS_StateSetFn08_CycloneArmor(D2UnitStrc * pUnit, eD2State
 
     int nBoneArmor = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_bonearmor, 0);
     int nBoneArmorMax = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_bonearmormax, 0);
-    if (pDVar1->overlay[0] < 0) {
-      eOverlay1 = ~OVERLAY_null;
-    } else {
+    if (!(pDVar1->overlay[0] < 0)) {
       eOverlay1 = (eOverlayId)pDVar1->overlay[0];
-    }
-    if (pDVar1->overlay[1] < 0) {
-      eOverlay2 = ~OVERLAY_null;
     } else {
+      eOverlay1 = ~OVERLAY_null;
+    }
+    if (!(pDVar1->overlay[1] < 0)) {
       eOverlay2 = (eOverlayId)pDVar1->overlay[1];
-    }
-    if (pDVar1->overlay[2] < 0) {
-      eOverlay3 = ~OVERLAY_null;
     } else {
+      eOverlay2 = ~OVERLAY_null;
+    }
+    if (!(pDVar1->overlay[2] < 0)) {
       eOverlay3 = (eOverlayId)pDVar1->overlay[2];
+    } else {
+      eOverlay3 = ~OVERLAY_null;
     }
 
     int nPrevTier = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_shortparam1, 0);
@@ -597,31 +597,31 @@ void __fastcall PLRSKILLS_StateSetFn08_CycloneArmor(D2UnitStrc * pUnit, eD2State
     }
 
     D2Common::Stats::StatsEx::D2AddStatToStatsListEx(pStatList, UNITSTAT_shortparam1, nValue, 0);
-    if (nPrevTier < nValue) {
+    if (nValue > nPrevTier) {
       PLRSKILLS_StateRemFn05_CycloneArmor(pUnit, eState);
-      if (eOverlay3 != ~OVERLAY_null && 2 < nValue) {
+      if (eOverlay3 != ~OVERLAY_null && 3 <= nValue) {
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay3, 3, 0, 0, 0, 0, 0);
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay3 + OVERLAY_lightning, 3, 0, 0, 0, 0, 0);
       }
-      if (eOverlay2 != ~OVERLAY_null && 1 < nValue) {
+      if (eOverlay2 != ~OVERLAY_null && 2 <= nValue) {
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay2, 3, 0, 0, 0, 0, 0);
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay2 + OVERLAY_lightning, 3, 0, 0, 0, 0, 0);
       }
-      if (eOverlay1 != ~OVERLAY_null && 0 < nValue) {
+      if (eOverlay1 != ~OVERLAY_null && 1 <= nValue) {
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay1, 3, 0, 0, 0, 0, 0);
         Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay1 + OVERLAY_lightning, 3, 0, 0, 0, 0, 0);
         return;
       }
     } else {
-      if (eOverlay3 != OVERLAY_null && nValue < 3) {
+      if (eOverlay3 != OVERLAY_null && nValue <= 2) {
         STATES_RemoveOverlayById(pUnit, eOverlay3);
         STATES_RemoveOverlayById(pUnit, eOverlay3 + OVERLAY_lightning);
       }
-      if (eOverlay2 != OVERLAY_null && nValue < 2) {
+      if (eOverlay2 != OVERLAY_null && nValue <= 1) {
         STATES_RemoveOverlayById(pUnit, eOverlay2);
         STATES_RemoveOverlayById(pUnit, eOverlay2 + OVERLAY_lightning);
       }
-      if (eOverlay1 != OVERLAY_null && (int)eOverlay1 < 2) {
+      if (eOverlay1 != OVERLAY_null && (int)eOverlay1 <= 1) {
         STATES_RemoveOverlayById(pUnit, eOverlay1);
         STATES_RemoveOverlayById(pUnit, eOverlay1 + OVERLAY_lightning);
       }
@@ -635,7 +635,7 @@ void __fastcall PLRSKILLS_StateSetFn07_Hurricane(D2UnitStrc * pUnit, eD2States e
     }
 
     eD2Skills eSkill = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_skill, 0);
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return;
     }
 
@@ -654,7 +654,7 @@ void __fastcall PLRSKILLS_StateRemFn04_Hurricane(D2UnitStrc * pUnit, eD2States e
     }
 
     eD2Skills eSkill = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_skill, 0);
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return;
     }
 
@@ -679,9 +679,9 @@ void __fastcall PLRSKILLS_StateRemFn06_ShrineSkill(D2UnitStrc * pUnit, eD2States
     D2Common::Skills::SKILLS_UpdateAllPassiveSkills(pUnit);
 }
 
-void __fastcall PLRSKILLS_StateSetFn10_Redeemed(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateSetFn10_Redeemed(D2UnitStrc * pUnit, eD2States eState) {
     D2SkillArgStrc sSkillArg;
-    if (!(-1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -691,7 +691,7 @@ void __fastcall PLRSKILLS_StateSetFn10_Redeemed(D2UnitStrc * pUnit, eD2States eS
     }
 
     eD2Skills eSkill = (eD2Skills)pDVar1->skill;
-    if (!((int)eSkill < sgptDataTable->nTxtSkillsCount && -1 < (int)eSkill)) {
+    if (!((int)eSkill < sgptDataTable->nTxtSkillsCount && 0 <= (int)eSkill)) {
       return;
     }
 
@@ -716,7 +716,7 @@ void __fastcall PLRSKILLS_StateSetFn10_Redeemed(D2UnitStrc * pUnit, eD2States eS
 }
 
 // @sourcefile .\UNIT\PlrSkills.cpp
-void __fastcall PLRSKILLS_StateRemFn07_Uninterruptable(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateRemFn07_Uninterruptable(D2UnitStrc * pUnit, eD2States eState) {
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER)) {
       return;
     }
@@ -793,7 +793,7 @@ void __fastcall PLRSKILLS_StateRemFn10_Pregnant(D2UnitStrc * pUnit) {
     ::D2Client::UNIT::MonUnique::MONUNIQUE_PregnantCorpseBurst(pUnit);
 }
 
-void __fastcall PLRSKILLS_StateSetFn14_Shapeshift(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateSetFn14_Shapeshift(D2UnitStrc * pUnit, eD2States eState) {
     // Frame slots -32..-4 are ONE object: &nPosX is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -815,21 +815,21 @@ void __fastcall PLRSKILLS_StateSetFn14_Shapeshift(D2UnitStrc * pUnit, eD2States 
     __frame0.nMsgParam3 = 0;
     __frame0.nMsgParam4 = 0;
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       __frame0.nPosX = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nPosX = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       __frame0.nPosX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      __frame0.nPosX = 0;
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       __frame0.nPosY = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      __frame0.nPosY = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       __frame0.nPosY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      __frame0.nPosY = 0;
     }
 
     UnitMode::HandleMessage(0x19, pUnit, (D2ServerMessageHandleStrc*)&__frame0.nPosX, 0);
@@ -846,10 +846,10 @@ void __fastcall PLRSKILLS_StateSetFn15_Revive(D2UnitStrc * pUnit, eD2States eSta
 }
 
 // State overlay update function for Frenzy (state func 16). Reads the Frenzy stack count (UNITSTAT_skill_frenzy) and calculates the maximum overlay count from the skill's calc[1] expression. Iterates overlay ranges from pTxtStates->overlay[0..1] and overlay[2..3], adding the correct overlay for the current stack tier and removing all others, so the visual effect steps proportionally with Frenzy stacks.
-void __fastcall PLRSKILLS_StateSetFn16_StackOverlay(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateSetFn16_StackOverlay(D2UnitStrc * pUnit, eD2States eState) {
     int bHasOverlay;
     int nOverlayIdx;
-    if (!(-1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -866,7 +866,7 @@ void __fastcall PLRSKILLS_StateSetFn16_StackOverlay(D2UnitStrc * pUnit, eD2State
     int nStackCount = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_skill_frenzy, 0);
     eD2Skills eSkill = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_skill, 0);
     int nSkillLvl = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_modifierlist_level, 0);
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return;
     }
 
@@ -877,13 +877,13 @@ void __fastcall PLRSKILLS_StateSetFn16_StackOverlay(D2UnitStrc * pUnit, eD2State
 
     eOverlayId eOverlay = (eOverlayId)pDVar1->overlay[0];
     nSkillLvl = (int)pDVar1->overlay[1] - eOverlay + 1;
-    if (nSkillLvl <= nMaxOverlays) {
+    if (nMaxOverlays >= nSkillLvl) {
       nMaxOverlays = nSkillLvl;
     }
-    if (nSkillLvl <= nStackCount) {
+    if (nStackCount >= nSkillLvl) {
       nStackCount = nSkillLvl;
     }
-    if (-1 < (int)eOverlay && (int)eOverlay <= (int)pDVar1->overlay[1]) {
+    if (0 <= (int)eOverlay && (int)pDVar1->overlay[1] >= (int)eOverlay) {
       BOOL BVar2;
       nOverlayIdx = 0;
       if (0 < nSkillLvl) {
@@ -904,7 +904,7 @@ void __fastcall PLRSKILLS_StateSetFn16_StackOverlay(D2UnitStrc * pUnit, eD2State
     }
 
     eOverlayId eOverlay_00 = (eOverlayId)pDVar1->overlay[2];
-    if (!(-1 < (int)eOverlay_00 && (int)eOverlay_00 <= (int)pDVar1->overlay[3])) {
+    if (!(0 <= (int)eOverlay_00 && (int)pDVar1->overlay[3] >= (int)eOverlay_00)) {
       return;
     }
 
@@ -930,7 +930,7 @@ void __fastcall PLRSKILLS_StateSetFn16_StackOverlay(D2UnitStrc * pUnit, eD2State
 }
 
 void __fastcall PLRSKILLS_StateRemFn11_StackOverlay(D2UnitStrc * pUnit, eD2States eState) {
-    if (!(-1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+    if (!(0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -941,7 +941,7 @@ void __fastcall PLRSKILLS_StateRemFn11_StackOverlay(D2UnitStrc * pUnit, eD2State
 
     short int nOverlayMax = pDVar1->overlay[1];
     int nOverlayIdx = (int)pDVar1->overlay[0];
-    if (-1 < nOverlayIdx) {
+    if (0 <= nOverlayIdx) {
       for (; nOverlayIdx <= nOverlayMax; nOverlayIdx++) {
         Engine::GfxInfo::GFX_RemoveOverlayById(nOverlayIdx, pUnit);
       }
@@ -949,7 +949,7 @@ void __fastcall PLRSKILLS_StateRemFn11_StackOverlay(D2UnitStrc * pUnit, eD2State
 
     int nOverlayId = (int)pDVar1->overlay[2];
     nOverlayMax = pDVar1->overlay[3];
-    if (-1 >= nOverlayId) {
+    if (0 > nOverlayId) {
       return;
     }
 
@@ -958,7 +958,7 @@ void __fastcall PLRSKILLS_StateRemFn11_StackOverlay(D2UnitStrc * pUnit, eD2State
     }
 }
 
-void __fastcall PLRSKILLS_StateSetFn17_RestInPeace(D2UnitStrc * pUnit, eD2States eState) {
+static void __fastcall PLRSKILLS_StateSetFn17_RestInPeace(D2UnitStrc * pUnit, eD2States eState) {
     D2SkillArgStrc sSkillArg;
     if (!(-1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
@@ -971,10 +971,10 @@ void __fastcall PLRSKILLS_StateSetFn17_RestInPeace(D2UnitStrc * pUnit, eD2States
 
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.nMissileTxtNo = (eMissilesId)pDVar1->missile;
-    if (pDVar1->skill < 0) {
-      sSkillArg.eSkillNo = SKILL_Attack;
-    } else {
+    if (!(pDVar1->skill < 0)) {
       sSkillArg.eSkillNo = (eD2Skills)pDVar1->skill;
+    } else {
+      sSkillArg.eSkillNo = SKILL_Attack;
     }
 
     sSkillArg.nSkillLevel = 1;
@@ -997,10 +997,10 @@ void __fastcall PLRSKILLS_StateSetFn18_CorpseExp(D2UnitStrc * pUnit, eD2States e
 
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.nMissileTxtNo = (eMissilesId)pDVar1->missile;
-    if (pDVar1->skill < 0) {
-      sSkillArg.eSkillNo = SKILL_Attack;
-    } else {
+    if (!(pDVar1->skill < 0)) {
       sSkillArg.eSkillNo = (eD2Skills)pDVar1->skill;
+    } else {
+      sSkillArg.eSkillNo = SKILL_Attack;
     }
 
     sSkillArg.nSkillLevel = 1;
@@ -1014,7 +1014,7 @@ void __fastcall PLRSKILLS_StateSetFn19RemFn12_SkillDelay(D2UnitStrc * pUnit, eD2
 }
 
 // Scans all active states on pUnit to find the highest-priority one with a non-zero colorshift overlay, then applies its color palette index to pUnit->uSideData.pClientSide.nPaletteIndex (skipping colorshift 'h' in windowed mode for the local player). If pUnit is the local player and has a light map, also calls SetRGB from the winning state's light_r/g/b fields. Resets palette to 0 and light to full white (0xFF,0xFF,0xFF) if no qualifying state is found.
-void __stdcall STATES_UpdateColorShiftAndLight(D2UnitStrc * pUnit) {
+static void __stdcall STATES_UpdateColorShiftAndLight(D2UnitStrc * pUnit) {
     D2LightMapStrc* pDVar2;
     eD2States eUnitState;
     D2UnitStrc* pLocalPlayerUnit;
@@ -1033,14 +1033,14 @@ void __stdcall STATES_UpdateColorShiftAndLight(D2UnitStrc * pUnit) {
       nTxtOffset = 0;
       pDataTable = sgptDataTable;
       do {
-        if (-1 < nStateIdx && nStateIdx < nTxtSize) {
+        if (0 <= nStateIdx && nStateIdx < nTxtSize) {
           nStateColorOffset = (int)pDataTable->pTxtStates->overlay + nTxtOffset - 2;
           if (nStateColorOffset) {
             eUnitState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, nStateIdx);
             pDataTable = sgptDataTable;
             if (eUnitState != STATE_none) {
               byColorPriority = *(uint8_t*)(nStateColorOffset + 0x20);
-              if (byBestPriority < byColorPriority) {
+              if (byColorPriority > byBestPriority) {
                 nBestStateIdx = nStateIdx;
                 byBestPriority = byColorPriority;
               }
@@ -1054,7 +1054,7 @@ void __stdcall STATES_UpdateColorShiftAndLight(D2UnitStrc * pUnit) {
       } while (nStateIdx < nTxtSize);
 
       if (0 < nBestStateIdx) {
-        if (nTxtSize <= nBestStateIdx) {
+        if (nBestStateIdx >= nTxtSize) {
           return;
         }
 
@@ -1119,10 +1119,10 @@ void __fastcall STATES_AddStateOverlays(D2UnitStrc * pUnit, eD2States eState) {
     } else {
       eCastOverlay = (eOverlayId)pDVar1->castoverlay;
     }
-    if (pDVar1->overlay[0] < 0) {
-      eOverlay = ~OVERLAY_null;
-    } else {
+    if (!(pDVar1->overlay[0] < 0)) {
       eOverlay = (eOverlayId)pDVar1->overlay[0];
+    } else {
+      eOverlay = ~OVERLAY_null;
     }
     if (pDVar1->overlay[1] < 0) {
       eOverlay2 = ~OVERLAY_null;
@@ -1166,12 +1166,12 @@ void __fastcall STATES_AddStateOverlays(D2UnitStrc * pUnit, eD2States eState) {
       return;
     }
     if (eOverlay != ~OVERLAY_null) {
-      if (!bIsLinkedState) {
-        eLinkedState = STATE_none;
-        nOverlayMode = 3;
-      } else {
+      if (bIsLinkedState) {
         nOverlayMode = 8;
         eLinkedState = eState;
+      } else {
+        eLinkedState = STATE_none;
+        nOverlayMode = 3;
       }
 
       Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay, nOverlayMode, 0, eLinkedState, 0, 0, 0);
@@ -1187,7 +1187,7 @@ void __fastcall STATES_AddStateOverlays(D2UnitStrc * pUnit, eD2States eState) {
     Engine::Gfx::GFX_AddOverlayToUnit(pUnit, eOverlay2, 3, 0, 0, 0, 0, 0);
 }
 
-void STATES_ResetUnitGfxAndMode(D2UnitStrc * pUnit) {
+static void STATES_ResetUnitGfxAndMode(D2UnitStrc * pUnit) {
     Engine::GfxInfo::GFX_FreeAllModesGfxInfo(pUnit);
     if (pUnit) {
       if (pUnit->eUnitType == UNIT_PLAYER) {
@@ -1211,7 +1211,7 @@ void STATES_ResetUnitGfxAndMode(D2UnitStrc * pUnit) {
 // Applies eState to pUnit: validates bounds, skips dead units if notondead is set, plays onsound, clears/reuses existing stat-list if noclear=0, sets the state bit, updates color-shift/light, adds overlays, and if the unit is active with a light-state sets NODRAW+DRAWSHADOW flags. If transform!=0, resets gfx/anim mode.
 void __fastcall STATES_SetStateOnUnit(D2UnitStrc * pUnit, eD2States eState) {
     int bActive;
-    if (!(pUnit && -1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+    if (!(pUnit && 0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -1225,15 +1225,15 @@ void __fastcall STATES_SetStateOnUnit(D2UnitStrc * pUnit, eD2States eState) {
     }
 
     eD2States eStateLinked = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, eState);
-    if (eStateLinked == STATE_none) {
-      if (-1 < pDVar1->onsound) {
-        Sound::SOUND_PlaySound((int)pDVar1->onsound, pUnit, 0, 0, 0);
-      }
-    } else {
+    if (eStateLinked != STATE_none) {
       D2StatListExStrc* pStatList;
       pStatList = D2Common::Stats::StatsEx::GetStatsByState(pUnit, eState);
       if (!pDVar1->noclear) {
         D2Common::Stats::StatsEx::STATLIST_FreeChildStatLists(pStatList);
+      }
+    } else {
+      if (-1 < pDVar1->onsound) {
+        Sound::SOUND_PlaySound((int)pDVar1->onsound, pUnit, 0, 0, 0);
       }
     }
 
@@ -1393,7 +1393,7 @@ void __fastcall STATES_DispatchSetFunc(D2UnitStrc * pUnit, eD2States eState) {
     nullptr
 };
 
-    if (!(pUnit && -1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+    if (!(pUnit && 0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -1406,7 +1406,7 @@ void __fastcall STATES_DispatchSetFunc(D2UnitStrc * pUnit, eD2States eState) {
     if (-1 < nSetFunc && nSetFunc < 0x1f && STATESSETFUNC[nSetFunc]) {
       (*STATESSETFUNC[nSetFunc])(pUnit, eState);
     }
-    if (-1 >= pDVar1->cltevent) {
+    if (0 > pDVar1->cltevent) {
       return;
     }
 
@@ -1456,7 +1456,7 @@ void __fastcall STATES_DispatchRemFunc(D2UnitStrc * pUnit, eD2States eState) {
     nullptr
 };
 
-    if (!(pUnit && -1 < (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
+    if (!(pUnit && 0 <= (int)eState && (int)eState < sgptDataTable->nTxtStatesSize)) {
       return;
     }
 
@@ -1469,7 +1469,7 @@ void __fastcall STATES_DispatchRemFunc(D2UnitStrc * pUnit, eD2States eState) {
     if (-1 < nRemFunc && nRemFunc < 0x1e && STATESREMFUNC[nRemFunc]) {
       (*STATESREMFUNC[nRemFunc])(pUnit, eState);
     }
-    if (-1 >= pDVar1->cltevent) {
+    if (0 > pDVar1->cltevent) {
       return;
     }
 

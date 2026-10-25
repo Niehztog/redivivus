@@ -241,7 +241,7 @@ void __fastcall Send_0x26_Chat(D2ClientStrc * pClient, char * * ppMessage) {
     GAME::SCmd::NET_D2GS_SERVER_Send_0x26_CHATSTART(pClient, (D2GSPacketSrv0x26*)*ppMessage);
 }
 
-void SendDebugMessageToEveryone(void * pThis, char * pMessage) {
+static void SendDebugMessageToEveryone(void * pThis, char * pMessage) {
     D2GSPacketSrv0x26 nMsgBuf;
     char cChar;
     nMsgBuf.szName[4] = '\0';
@@ -263,7 +263,6 @@ void SendDebugMessageToEveryone(void * pThis, char * pMessage) {
     *(uint8_t*)((char*)&nMsgBuf.nUnitGUID + 3) = 2;
     *(uint8_t*)((char*)&nMsgBuf.nUnitGUID + 1) = 1;
     GAME::Server::ForEachClient((::SGAMEDATA*)pThis, (fpForEachClientFn)Send_0x26_Chat, &nMsgBuf);
-    Fog::Debug::GuardStack();
 }
 
 void __fastcall Debug(::SGAMEDATA * pGame) {
@@ -286,7 +285,6 @@ void __fastcall Debug(::SGAMEDATA * pGame) {
     SendDebugMessageToEveryone(pGame, szMsgBuf);
     /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szMsgBuf, "%d rooms tried to place 1+ group(s); %d rooms w/no objs\n", (uint32_t)(uint16_t)nSecurityCookie2->aObjectTypeCount[0x61], (uint32_t)(uint16_t)nSecurityCookie2->aObjectTypeCount[0]);
     SendDebugMessageToEveryone(pGame, szMsgBuf);
-    Fog::Debug::GuardStack();
 }
 
 // @sourcefile .\OBJECTS\objrgn.cpp
@@ -295,7 +293,7 @@ void __fastcall AllocObjectControlSub0x1110(::SGAMEDATA * pGame, D2UnitStrc * pU
     D2ObjectControlStrc* pObjectControl = pGame->pObjectControl;
     D2ObjectControlSub0x1110* pNewSub = D2_NEW_POOL(pGame->pMemoryPool, D2ObjectControlSub0x1110);
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nCoord = pUnit->pPath.pStaticPath->nPosX;
     } else if (!pUnit->pPath.pDynamicPath) {
       nCoord = 0;
@@ -305,12 +303,12 @@ void __fastcall AllocObjectControlSub0x1110(::SGAMEDATA * pGame, D2UnitStrc * pU
 
     pNewSub->sCoords.x = nCoord;
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nCoord = pUnit->pPath.pStaticPath->nPosY;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nCoord = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nCoord = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nCoord = 0;
     }
 
     pNewSub->sCoords.y = nCoord;
@@ -521,7 +519,7 @@ int32_t __fastcall OBJECT_HandleObjectMode(D2ObjectModeArg * pObjectModeArg) {
     eD2LevelId eLevel = D2Common::DUNGEON::Dungeon::DRLGROOM_GetLevelIdFromRoom(pRoom);
     eAct eActNo = D2Common::Drlg::GetActNoFromLevelNumber(eLevel);
     __frame0.pLevelRng = pObjectModeArg->pGame->pObjectControl->aLevelsRng[eLevel];
-    if (!(__frame0.pLevelRng->nMonClassId < 0 || sgptDataTable->nTxtMonStatsSize <= __frame0.pLevelRng->nMonClassId)) {
+    if (!(__frame0.pLevelRng->nMonClassId < 0 || __frame0.pLevelRng->nMonClassId >= sgptDataTable->nTxtMonStatsSize)) {
       return __frame0.pLevelRng->nMonClassId;
     }
 

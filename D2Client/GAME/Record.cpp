@@ -55,8 +55,8 @@ void __stdcall AllocGameRecord() {
     gpCurrentGameRecord = pRecord;
 }
 
-void __stdcall AddGameEntry(uint32_t uMsg, WPARAM wParam, LPARAM lParam) {
-    if (499 < gpCurrentGameRecord->nEntrySize) {
+static void __stdcall AddGameEntry(uint32_t uMsg, WPARAM wParam, LPARAM lParam) {
+    if (500 <= gpCurrentGameRecord->nEntrySize) {
       AllocGameRecord();
     }
 
@@ -74,7 +74,7 @@ void __fastcall HandleWinProcMsg(uint32_t uMsg, WPARAM wParam, LPARAM lParam) {
     if (!SettedUp) {
       return;
     }
-    if (uMsg < 0x112) {
+    if (uMsg <= 0x111) {
       if (uMsg != 0x111) {
         switch (uMsg) {
           case 0x10:
@@ -203,7 +203,7 @@ void __stdcall LoadGameRecordFromFile() {
 
         /* LPOVERLAPPED lpOverlapped for ReadFile */ /* LPDWORD lpNumberOfBytesRead for ReadFile */ /* DWORD nNumberOfBytesToRead for ReadFile */ /* LPVOID lpBuffer for ReadFile */ /* HANDLE hFile for ReadFile */ ReadFile(hFile, gpCurrentGameRecord, gsGameRecordContext.nEntrySize << 4, &__frame0.dwBytesRead, (LPOVERLAPPED)0x0);
         nBlockIndex++;
-      } while (nBlockIndex < gnGameRecordCount);
+      } while ((int)nBlockIndex < (int)gnGameRecordCount);
     }
 
     /* HANDLE hObject for CloseHandle */ gpCurrentGameRecord = &gsGameRecordContext;
@@ -311,13 +311,13 @@ void __stdcall RecordCurrentStep() {
     }
 
     int32_t nEntryIndex = Game::GetEntryIndex();
-    if (gbRecordCurrentStep <= nEntryIndex) {
+    if (nEntryIndex >= gbRecordCurrentStep) {
       gbIsPlaybackActive = 0;
       return;
     }
 
     int nPlaybackPos = gpCurrentGameRecord->nPlaybackIndex;
-    if (499 < nPlaybackPos) {
+    if (500 <= nPlaybackPos) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x189);
       exit(-1);
     }
@@ -339,7 +339,7 @@ void __stdcall RecordCurrentStep() {
       if (!pNextBlock && pBlock->nEntrySize == pBlock->nPlaybackIndex) {
         break;
       }
-      if (499 < pBlock->nPlaybackIndex) {
+      if (500 <= pBlock->nPlaybackIndex) {
         pBlock = pNextBlock;
         gpCurrentGameRecord = pNextBlock;
       }
@@ -348,7 +348,7 @@ void __stdcall RecordCurrentStep() {
       }
 
       pEntry = pBlock->pEntry + pBlock->nPlaybackIndex;
-      if (nEntryIndex < pEntry->nGameIndex) {
+      if (pEntry->nGameIndex > nEntryIndex) {
         return;
       }
     }

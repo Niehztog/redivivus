@@ -213,7 +213,7 @@ D2AsyncData_Line0x128 * __fastcall STRUCT_AllocAsyncData_Line0x128(D2PoolManager
           exit(-1);
         }
       }
-      if ((int)nReadSize < 1) {
+      if ((int)nReadSize <= 0) {
         nReadSize = Source::SFile::ERRORMANAGER_FGetFileSize(pAsyncData->pFile, (LPDWORD)0x0);
       }
 
@@ -381,7 +381,10 @@ void __fastcall ASYNCDATA_WaitForCompletion(D2AsyncData_Line0x128 * pAsyncData) 
     if (!pAsyncData) {
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x232);
       exit(-1);
-    } else if ((pAsyncData->nFlags & 0xfffffff0U) == 0x41737960) {
+    } else if ((pAsyncData->nFlags & 0xfffffff0U) != 0x41737960) {
+      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x233);
+      exit(-1);
+    } else {
       bIsComplete = ASYNCDATA_IsComplete(pAsyncData);
       if (bIsComplete) {
         return;
@@ -389,16 +392,13 @@ void __fastcall ASYNCDATA_WaitForCompletion(D2AsyncData_Line0x128 * pAsyncData) 
 
       Storm::Source::SFile::SFILE_SetRequestPriorityByBuffer(pAsyncData->pReadBuffer, 1);
       /* DWORD dwMilliseconds for WaitForSingleObject */ /* HANDLE hHandle for WaitForSingleObject */ dwWaitResult = WaitForSingleObject(pAsyncData->pSlot->pHandle[0], -1);
-      if (!dwWaitResult) {
-        ASYNCDATA_CancelAndCleanup(pAsyncData);
-        return;
+      if (dwWaitResult) {
+        ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x248);
+        exit(-1);
       }
 
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x248);
-      exit(-1);
-    } else {
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x233);
-      exit(-1);
+      ASYNCDATA_CancelAndCleanup(pAsyncData);
+      return;
     }
 }
 
@@ -406,19 +406,19 @@ void * __fastcall ASYNCDATA_GetResult(D2AsyncData_Line0x128 * pAsyncData) {
     if (!pAsyncData) {
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x25f);
       exit(-1);
-    } else if ((pAsyncData->nFlags & 0xfffffff0U) == 0x41737960) {
+    } else if ((pAsyncData->nFlags & 0xfffffff0U) != 0x41737960) {
+      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x260);
+      exit(-1);
+    } else {
       if (!(pAsyncData->nFlags & 1U)) {
         ASYNCDATA_WaitForCompletion(pAsyncData);
       }
-      if (pAsyncData->nFlags & 1) {
-        return pAsyncData->pReadBuffer;
+      if (!(pAsyncData->nFlags & 1)) {
+        ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x266);
+        exit(-1);
       }
 
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x266);
-      exit(-1);
-    } else {
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x260);
-      exit(-1);
+      return pAsyncData->pReadBuffer;
     }
 }
 
@@ -429,12 +429,12 @@ size_t __fastcall ASYNCDATA_GetReadSize(D2AsyncData_Line0x128 * pAsyncData) {
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x271);
       exit(-1);
     } else {
-      if ((pAsyncData->nFlags & 0xfffffff0U) == 0x41737960) {
-        return pAsyncData->nReadSize;
+      if ((pAsyncData->nFlags & 0xfffffff0U) != 0x41737960) {
+        ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x272);
+        exit(-1);
       }
 
-      ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x272);
-      exit(-1);
+      return pAsyncData->nReadSize;
     }
 }
 
@@ -456,6 +456,16 @@ void __fastcall ASYNCDATA_SetResult(D2AsyncData_Line0x128 * pAsyncData, void * p
     } else {
       ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x27f);
       exit(-1);
+    } else {
+      if (!(pAsyncData->nFlags & 1U)) {
+        ErrorManager::ERROR_UnrecoverableInternalError_Halt("", ErrorManager::GetInstructionPointer(), 0x281);
+        exit(-1);
+      }
+
+      Memory::FreeServerMemory(pAsyncData->pMemory, pAsyncData->pReadBuffer, ".\\Src\\AsyncData.cpp", 0x284, 0);
+      pAsyncData->pReadBuffer = pNewBuffer;
+      pAsyncData->nReadSize = nNewSize;
+      return;
     }
 }
 

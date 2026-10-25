@@ -72,11 +72,12 @@ void __fastcall BNMESSQUEUE_EnqueueBytes(int32_t nEventType, char * pBytes, size
       /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ nLobbyChatCurrentMessage = pFirstMessage;
       nLobbyChatQueueMessages = pNewMessage;
       LeaveCriticalSection(&lpCriticalSection_00882004);
-      return;
+      return 1;
     }
 
     Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x44);
     exit(-1);
+    return 1;
 }
 
 uint32_t __fastcall BNMESSQUEUE_EnqueueString(int32_t nEventType, char * szMessage) {
@@ -127,7 +128,7 @@ size_t __fastcall BNMESSQUEUE_DequeueMessage(int * pMessageTypeOut, void * pBuff
     return 0;
 }
 
-void __stdcall BNMESSQUEUE_ClearAll() {
+int __stdcall BNMESSQUEUE_ClearAll() {
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_00882004);
     while (nLobbyChatCurrentMessage) {
       ::BnMessQueue* pBVar1;
@@ -137,6 +138,7 @@ void __stdcall BNMESSQUEUE_ClearAll() {
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00882004);
+    return 1;
 }
 
 uint32_t __fastcall BNMESSQUEUE_SetStateIfZero(int32_t nState) {
@@ -149,7 +151,7 @@ uint32_t __fastcall BNMESSQUEUE_SetStateIfZero(int32_t nState) {
     return 1;
 }
 
-void __fastcall BNMESSQUEUE_SetStateWithString(int32_t nState, char * szMessage) {
+int __fastcall BNMESSQUEUE_SetStateWithString(int32_t nState, char * szMessage) {
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_00882004);
     if (!g_nBattleNetConnectionState) {
       g_nBattleNetConnectionState = nState;
@@ -157,6 +159,7 @@ void __fastcall BNMESSQUEUE_SetStateWithString(int32_t nState, char * szMessage)
     }
 
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00882004);
+    return 1;
 }
 
 uint32_t __fastcall SID_SetStateFlag1(uint32_t nState) {
@@ -166,10 +169,11 @@ uint32_t __fastcall SID_SetStateFlag1(uint32_t nState) {
     return 1;
 }
 
-void __fastcall SID_SetStateFlag2(uint32_t nData) {
+int __fastcall SID_SetStateFlag2(uint32_t nData) {
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&lpCriticalSection_00882004);
     g_nBattleNetConnectionData = nData;
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00882004);
+    return 1;
 }
 
 } // namespace Bnclient

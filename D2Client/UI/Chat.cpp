@@ -399,7 +399,7 @@ void __stdcall CHAT_ShutdownIME() {
     gpIMECandidateList = (LPCANDIDATELIST)0x0;
 }
 
-int32_t __stdcall CHAT_CompareCaseInsensitive(char * szText1, char * szText2) {
+static int32_t __stdcall CHAT_CompareCaseInsensitive(char * szText1, char * szText2) {
     int nUpper1;
     int nUpper2;
     char cCur;
@@ -407,7 +407,7 @@ int32_t __stdcall CHAT_CompareCaseInsensitive(char * szText1, char * szText2) {
     pScan1 = pScan1 + strlen(pScan1) + 1;
     char* pScan2 = szText2;
     pScan2 = pScan2 + strlen(pScan2) + 1;
-    if ((uint32_t)((int)pScan2 - (int)(szText2 + 1)) > (uint32_t)((int)pScan1 - (int)(szText1 + 1))) {
+    if ((uint32_t)((int)pScan1 - (int)(szText1 + 1)) < (uint32_t)((int)pScan2 - (int)(szText2 + 1))) {
       return -1;
     }
 
@@ -433,7 +433,7 @@ int32_t __stdcall CHAT_CompareCaseInsensitive(char * szText1, char * szText2) {
     return (uint32_t)(nUpper1 != nUpper2 && -1 < nUpper1 - nUpper2) * 2 - 1;
 }
 
-void CHAT_DrawCursor(int32_t nPosY, int32_t nPosX, int32_t nColor) {
+static void CHAT_DrawCursor(int32_t nPosY, int32_t nPosX, int32_t nColor) {
     // Static local variables (originally global data)
     static uint16_t gnIMECursorBlinkDuration = 0x1f4;
     static uint32_t gnIMECursorVisible = 0x1;
@@ -448,7 +448,7 @@ void CHAT_DrawCursor(int32_t nPosY, int32_t nPosX, int32_t nColor) {
     }
 
     DWORD dwTickCount = GetTickCount();
-    if ((uint32_t)gnIMECursorBlinkDuration >= dwTickCount - gnIMECursorBlinkTime) {
+    if (dwTickCount - gnIMECursorBlinkTime <= (uint32_t)gnIMECursorBlinkDuration) {
       return;
     }
 
@@ -487,7 +487,7 @@ void __stdcall CHAT_DrawIMEComposition(int32_t nPosX, int32_t nPosY) {
     nLen = D2Win::Src::D2WinFont::DRAW_text0(gwcIMECompositionString);
     int32_t nLenString = D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(gwcIMECompositionString);
     if (nLenString) {
-      if (ScreenSizeX - 0x109 < nLen + nPosX - 0x83 + nWidthComposition) {
+      if (nLen + nPosX - 0x83 + nWidthComposition > ScreenSizeX - 0x109) {
         nPosX = 0x83;
         nPosY += 0xf;
       }
@@ -498,7 +498,7 @@ void __stdcall CHAT_DrawIMEComposition(int32_t nPosX, int32_t nPosY) {
     CHAT_DrawCursor(nPosY, nLen + nPosX - 0x83 + nWidthComposition, 4);
 }
 
-void __stdcall CHAT_DrawIMECandidates() {
+static void __stdcall CHAT_DrawIMECandidates() {
     int nWideCount;
     DWORD dwOffset;
     uint16_t wszCandidate[256];
@@ -514,7 +514,7 @@ void __stdcall CHAT_DrawIMECandidates() {
     if (!gpIMECandidateList->dwPageSize) {
       nEndIndex = gpIMECandidateList->dwCount;
       dwOffset = 0;
-      if (0x13 < nEndIndex) {
+      if (0x14 <= nEndIndex) {
         nEndIndex = 0x14;
       }
     } else {
@@ -690,7 +690,7 @@ void __stdcall DRAW_UI_ChatInput() {
     D2Win::Src::D2WinFont::SetAndReturnLastFont(nPrevFont);
 }
 
-void __stdcall CHAT_RestoreFromHistory() {
+static void __stdcall CHAT_RestoreFromHistory() {
     int i;
     int iVar1 = gnChatHistoryScrollIndex * 0x202;
     uint16_t* pwSrc = (uint16_t*)(gaChatHistoryBuffer + iVar1);
@@ -707,14 +707,7 @@ void __stdcall CHAT_RestoreFromHistory() {
 
 void __fastcall CHAT_AddToHistory(int32_t nUnused, uint16_t * pwSrc) {
     int nCopyCount;
-    if (gnChatHistoryFillCount == 8) {
-      nCopyCount = gnChatHistoryWriteIndex - 1;
-      gnChatHistoryReadIndex = gnChatHistoryWriteIndex;
-      gnChatHistoryWriteIndex = nCopyCount;
-      if (nCopyCount < 0) {
-        gnChatHistoryWriteIndex = 7;
-      }
-    } else {
+    if (gnChatHistoryFillCount != 8) {
       if (gnChatHistoryFillCount) {
         gnChatHistoryReadIndex--;
         if (gnChatHistoryReadIndex < 0) {
@@ -723,6 +716,13 @@ void __fastcall CHAT_AddToHistory(int32_t nUnused, uint16_t * pwSrc) {
       }
 
       gnChatHistoryFillCount++;
+    } else {
+      nCopyCount = gnChatHistoryWriteIndex - 1;
+      gnChatHistoryReadIndex = gnChatHistoryWriteIndex;
+      gnChatHistoryWriteIndex = nCopyCount;
+      if (nCopyCount < 0) {
+        gnChatHistoryWriteIndex = 7;
+      }
     }
 
     uint16_t* pwDst = (uint16_t*)(gaChatHistoryBuffer + gnChatHistoryReadIndex * 0x202);
@@ -738,12 +738,12 @@ void __fastcall CHAT_AddToHistory(int32_t nUnused, uint16_t * pwSrc) {
 
 void __stdcall CHAT_ScrollHistory(int32_t nDirection) {
     int nNewIndex = gnChatHistoryScrollIndex + nDirection;
-    if (nNewIndex < 8) {
+    if (!(nNewIndex < 8)) {
+      nNewIndex = 0;
+    } else {
       if (nNewIndex < 0) {
         nNewIndex = 7;
       }
-    } else {
-      nNewIndex = 0;
     }
     if (gnChatHistoryFillCount < 7 && (int)(uint32_t)gnChatHistoryFillCount < 8 - nNewIndex) {
       nNewIndex = gnChatHistoryScrollIndex;
@@ -791,14 +791,14 @@ BOOL __stdcall CHAT_ParseCommand(char * * ppszText, uint8_t * pbCommandType, cha
       nCmdLen = Storm::Source::SSTR::SStrLen(gaChatCommandTable[nCmdIndex].pszCommand);
       if (gaChatCommandTable[nCmdIndex].bAllowedInSinglePlayer || (eGameType = GAME::Game::CLIENT_GetD2GSGameType() , eGameType != GAMETYPE_SINGLEPLAYER)) {
         if (gaChatCommandTable[nCmdIndex].nCommandType == 3) {
-          if ((int)nCmdLen <= (int)nInputLen) {
+          if ((int)nInputLen >= (int)nCmdLen) {
             nCompareResult = Storm::Source::SSTR::SStrCmpI(pszCursor, gaChatCommandTable[nCmdIndex].pszCommand, nCmdLen);
             if (!nCompareResult) {
               *pbCommandType = (char)gaChatCommandTable[nCmdIndex].nCommandType;
               return 1;
             }
           }
-        } else if ((int)nCmdLen < (int)nInputLen && (nCompareResult = Storm::Source::SSTR::SStrCmpI(pszCursor, gaChatCommandTable[nCmdIndex].pszCommand, nCmdLen) , !nCompareResult) && pszCursor[nCmdLen] != '\0') {
+        } else if ((int)nInputLen > (int)nCmdLen && (nCompareResult = Storm::Source::SSTR::SStrCmpI(pszCursor, gaChatCommandTable[nCmdIndex].pszCommand, nCmdLen) , !nCompareResult) && pszCursor[nCmdLen] != '\0') {
           pszCursor += nCmdLen;
           if (!gaChatCommandTable[nCmdIndex].bTakesParameter) {
             *ppszText += nCmdLen;
@@ -836,7 +836,7 @@ BOOL __stdcall CHAT_ParseCommand(char * * ppszText, uint8_t * pbCommandType, cha
 }
 
 void __stdcall CHAT_CheckChatboxBounds(int32_t nParam) {
-    if (ScreenSizeY - 0x31 >= (int)(uint32_t)*(uint16_t*)(nParam + 0xe)) {
+    if ((int)(uint32_t)*(uint16_t*)(nParam + 0xe) <= ScreenSizeY - 0x31) {
       return;
     }
 
@@ -850,13 +850,18 @@ void __stdcall INPUT_HandleChatScroll(D2UIMouseMsgStrc * pMsg) {
     if (pMsg->uLParam.nLParam & 0x40000000U) {
       return;
     }
-    if (pMsg->nWParam == 0x26) {
+    switch (pMsg->nWParam) {
+    case 0x26: {
       CHAT_RestoreFromHistory();
       CHAT_ScrollHistory(1);
-    } else if (pMsg->nWParam == 0x28) {
+      break;
+    }
+    case 0x28: {
       CHAT_ScrollHistory(-1);
       CHAT_RestoreFromHistory();
       return;
+      break;
+    }
     }
 }
 
@@ -887,7 +892,7 @@ void __stdcall CHAT_InitHistoryIndices() {
     gnChatInputTextCursorPosition = 0;
 }
 
-char * CHAT_ExtractWhisperTarget(char * szText) {
+static char * CHAT_ExtractWhisperTarget(char * szText) {
     char* pszWhisperName;
     char* pszStarPos = Storm::Source::SSTR::SStrChr(szText, '*');
     if (!(!pszStarPos || (pszWhisperName = pszStarPos + 1 , pszStarPos[1] == '\0'))) {
@@ -898,7 +903,7 @@ char * CHAT_ExtractWhisperTarget(char * szText) {
     return pszWhisperName;
 }
 
-void CHAT_ExtractWhisperPrefix(char * szInput, char * szOutPrefix) {
+static void CHAT_ExtractWhisperPrefix(char * szInput, char * szOutPrefix) {
     if (*szInput != '*') {
       char* pStar;
       pStar = Storm::Source::SSTR::SStrChr(szInput, '*');
@@ -1059,7 +1064,7 @@ void __stdcall CHAT_ProcessBattleNetMessage() {
     Text::TEXT_PrintGameString(wszPrefixW, 3);
 }
 
-BOOL CHAT_HandleResignCommand(char * szCommandName, char * szInput) {
+static BOOL CHAT_HandleResignCommand(char * szCommandName, char * szInput) {
     char szUsageMessage[256];
     MessageStrc MStack_124;
     char szDelimiter[4];
@@ -1078,7 +1083,7 @@ BOOL CHAT_HandleResignCommand(char * szCommandName, char * szInput) {
     if (pScan) {
       D2BNetClientCallbacksStrc* pCallbacks;
       do {
-        if (1 < nCopyCount) {
+        if (2 <= nCopyCount) {
           break;
         }
 
@@ -1112,7 +1117,7 @@ BOOL CHAT_HandleResignCommand(char * szCommandName, char * szInput) {
     return 1;
 }
 
-BOOL __stdcall CHAT_HandleWhisperCommand(int32_t bInGame, char * szCommandName, char * szInput) {
+static BOOL __stdcall CHAT_HandleWhisperCommand(int32_t bInGame, char * szCommandName, char * szInput) {
     // Static local variables (originally global data)
     static char gszChatWhisperTargetName[2] = " ";
 
@@ -1221,7 +1226,7 @@ BOOL __stdcall CHAT_HandleWhisperCommand(int32_t bInGame, char * szCommandName, 
     return 1;
 }
 
-void __stdcall CHAT_ExtractCommandParameter(int32_t nMaxLength, char * szInput, char * szOutParam) {
+static void __stdcall CHAT_ExtractCommandParameter(int32_t nMaxLength, char * szInput, char * szOutParam) {
     char* pSpace = Storm::Source::SSTR::SStrChr(szInput, ' ');
     if (pSpace) {
       Storm::Source::SSTR::SStrCopy(szOutParam, pSpace + 1, nMaxLength);
@@ -1233,7 +1238,7 @@ void __stdcall CHAT_ExtractCommandParameter(int32_t nMaxLength, char * szInput, 
 
 // Process chat commands (/fps, /framerate, /players, /nopickup, /ignore, /unignore, /filtermsg, /msg, /help, etc.). Parses command, checks game state, executes handler or sends message via NET_D2GS_CLIENT_Send_Chat.
 // Stack[0x8] nInputOffset is reused as the parse cursor: it is overwritten with pszInputBase + nInputOffset (asm 0047c44c..45b); the caller passes the count of leading spaces it skipped.
-void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * pszInputBase, int32_t nInputOffset) {
+static void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * pszInputBase, int32_t nInputOffset) {
     // Frame slots -368..-365 are ONE object: &byChatPacketType is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {
@@ -1298,7 +1303,7 @@ void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * pszInputBa
       nPlayerCount = atol(pszInput + 8);
       if ((int)nPlayerCount < 2) {
         nPlayerCount = 1;
-      } else if (7 < (int)nPlayerCount) {
+      } else if (8 <= (int)nPlayerCount) {
         nPlayerCount = 8;
       }
 
@@ -1469,9 +1474,6 @@ void __stdcall ChatCommandProcessor(uint16_t * pwInputMessage, char * pszInputBa
           format_ignore_error:
           pwLocaleString = wszAccountName;
           pwFormatArg = D2Lang::StrTable::strtable::GetLocaleString(wStringId);
-        } else {
-          pwLocaleString = wszAccountName;
-          pwFormatArg = D2Lang::StrTable::strtable::GetLocaleString(0x2ba5);
         }
 
         D2Lang::Unicode::UNISYS::UNICODE_FormatWideString(0x208, wszMsgBuffer3, pwFormatArg, (uint16_t*)pwLocaleString);
@@ -1550,7 +1552,7 @@ void __stdcall INPUT_HandleChatCharInput(D2UIMouseMsgStrc * pMsg) {
           }
 
           D2Win::Src::D2WinFont::D2WINFONT_FreeWordWrapList((void**)&pWrapList->wszLine);
-          if (nWrapLineCount < 4 && (nWrapLineCount != 3 || nLineWidth <= ScreenSizeX - 0x113)) {
+          if (nWrapLineCount <= 3 && (nWrapLineCount != 3 || nLineWidth <= ScreenSizeX - 0x113)) {
             nLineWidth = ScreenSizeX - 0x109;
             gwszChatInputText[nTextLength] = *(uint16_t*)&pMsg->nWParam;
             pWrapList = D2Win::Src::D2WinFont::D2WINFONT_WordWrapString(gwszChatInputText, (int*)&nWrapLineCount, nLineWidth);

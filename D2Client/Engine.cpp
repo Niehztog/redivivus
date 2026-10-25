@@ -72,10 +72,10 @@ BOOL __stdcall UI_IsMouseInRect(int32_t nRectLeftX, int32_t nRectBottomY, int32_
 void __stdcall DrawPopupOk(int32_t nParam) {
     D2GfxDataStrc sGfxData;
     memset(&sGfxData, 0, 0x48);
-    if (!nParam) {
-      sGfxData.pDC6 = (DC6*)IMG_popupok_ConnLost;
-    } else {
+    if (nParam) {
       sGfxData.pDC6 = (DC6*)IMG_popupok_DiscPrompt;
+    } else {
+      sGfxData.pDC6 = (DC6*)IMG_popupok_ConnLost;
     }
 
     sGfxData.nDirection = 0;
@@ -496,16 +496,16 @@ void __stdcall CLIENT_SetAnimModeAndMoveToCurrentPos(eD2PlayerAnimMode nAnimMode
     }
 
     eD2UnitType eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nX = pUnit->pPath.pStaticPath->nPosX;
-    } else if (!pUnit->pPath.pDynamicPath) {
-      nX = 0;
-    } else {
+    } else if (pUnit->pPath.pDynamicPath) {
       nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nX = 0;
     }
 
     eUnitType = pUnit->eUnitType;
-    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType < 6) {
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
       nY = pUnit->pPath.pStaticPath->nPosY;
     } else if (!pUnit->pPath.pDynamicPath) {
       nY = 0;
@@ -586,7 +586,7 @@ void __fastcall CLIENT_UpdateUnitLightRadius(D2UnitStrc * pUnit, int32_t nRadius
     }
 
     nLightRadius += nRadiusBonus;
-    Draw::LightMap::LIGHTMAP_SetRadius(pLightMap, (int)nLightRadius < 1 ? 0 : nLightRadius);
+    Draw::LightMap::LIGHTMAP_SetRadius(pLightMap, (int)nLightRadius <= 0 ? 0 : nLightRadius);
 }
 
 void __fastcall CLIENT_SetUnitLightColor(D2UnitStrc * pUnit, int32_t dwRGB) {

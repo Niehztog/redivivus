@@ -18,11 +18,8 @@ void __stdcall SetGlobalAlwaysRun();
 void __stdcall UpdateGlobalAlwaysRun();
 void MINIPANEL_DrawBackground(int32_t nPanelSection);
 void __stdcall MINIPANEL_DrawButton(int32_t nParam1, int32_t nParam2, int32_t nParam3);
-void MINIPANEL_CalculateButtonPositions(int32_t bIsExpansion);
-void __stdcall MINIPANEL_DrawAllButtons(int32_t bVisible);
 BOOL __stdcall IsLeftScreenOpen();
 BOOL __stdcall IsRightScreenOpen();
-void MINIPANEL_HandleButtonClick(int32_t nButtonId);
 void __stdcall INPUT_MiniPanelMouseUp(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall INPUT_MiniPanelMouseDown(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall MINIPANEL_Init();
@@ -30,8 +27,6 @@ void __stdcall MINIPANEL_Shutdown();
 BOOL __fastcall MINIPANEL_IsMouseInArea(int32_t nParam1, int32_t nParam2);
 void __stdcall SetupMiniPanel();
 BOOL __stdcall WAYPOINT_IsMouseInMiniPanel();
-void __stdcall MINIPANEL_ShowTooltip(int32_t nX, int32_t nY, int32_t nButtonFrame);
-void MINIPANEL_HandleMouseHover(int32_t nLayout);
 void __stdcall DRAW_UI_MiniPanel();
 
 } // namespace D2Client::UI::MiniPanel

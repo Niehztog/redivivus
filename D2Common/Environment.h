@@ -19,10 +19,7 @@ namespace D2Common::Environment {
 
 // Function declarations
 // Per-tick update of the environment's global light intensity (nGlobalLightIntensity). Act 3 (Hell): clamps intensity toward a level-specific cap (Pandemonium=0x80, Outer Steppes=0x40, etc.) by ±1 per tick, resets to cap if it reaches 0. Other acts: during eclipse, ramps down toward 0x20 by 8 per tick; otherwise computes a day/night cosine curve and scales between day and night light values from the environment txt, capped at 0xFF (0xAA in Act 4). Special case: Arreat Summit is fixed at 200.
-void DRLGENV_UpdateLightIntensity(eD2LevelId eLevel, struct D2DrlgEnvironmentStrc * pDrlgEnvironment, int32_t nActNo);
-void __stdcall DRLGENV_UpdateLightColor(int32_t nActNo, struct D2DrlgEnvironmentStrc * pDrlgEnvironment);
 // Initializes a DRLG environment cycle from the current time index. Sets the environment data type and tick count from lookup tables, using eclipse-specific tables when pEclipse is active.
-void DRLGENV_InitEnvironmentCycle(struct D2DrlgEnvironmentStrc * pDrlgEnvironment);
 struct D2DrlgEnvironmentStrc * __fastcall DRLGENV_AllocEnvironment(struct D2PoolManagerStrc * pMemory);
 void __fastcall DRLGENV_FreeEnvironment(struct D2PoolManagerStrc * pMemory, struct D2DrlgEnvironmentStrc * pDrlgEnvironment);
 // Advances the day/night environment cycle by one tick. Act 2 and 3 have accelerated cycle rates. Updates phase index and intensity when thresholds are crossed.

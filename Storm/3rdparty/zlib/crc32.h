@@ -12,10 +12,8 @@ namespace Storm::_3rdparty::zlib::crc32 {
 
 // Function declarations
 uint32_t * get_crc_table();
-uint32_t crc32_little(uint8_t * pbBuf, uint32_t nLen, uint32_t nCrc);
 int32_t __stdcall crc32_big(uint32_t nLength, uint32_t dwInitialCrc, uint8_t * pbParam);
 uint32_t __fastcall gf2_matrix_times(uint32_t dwVec, uint32_t * pdwMat);
-void gf2_matrix_square(uint32_t * pdwMatA, uint32_t * pdwMatB);
 uint32_t __stdcall crc32_combine_(uint32_t dwCrc, uint32_t dwFinalXor, int32_t nLengthLo, int32_t nLengthHi);
 void __fastcall crc32_combine(uint32_t nParam1, uint32_t nParam2, int32_t nExp);
 void __fastcall crc32_combine64(uint32_t nParam1, uint32_t nParam2, int32_t nExpLo, int32_t nExpHi);

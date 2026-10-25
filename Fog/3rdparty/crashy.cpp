@@ -97,7 +97,7 @@ uint32_t __stdcall SYSTEM_GetStackRegion(LPCVOID * ppStackBase, LPCVOID pAddress
 
     pVqResult = (LPCVOID)(mbi.RegionSize + (int)mbi.BaseAddress);
     *ppStackTop = pVqResult;
-    if (pAddress >= pVqResult) {
+    if (pVqResult <= pAddress) {
       return (uint32_t)pVqResult & -256;
     }
 
@@ -156,7 +156,6 @@ char __stdcall SYSTEM_CaptureThreadContext(int * pnStackTop, DWORD dwThreadId, i
         /* HANDLE hObject for CloseHandle */ CloseHandle(hThread);
       }
 
-      Debug::GuardStack();
       return (char)dwStackRegionResult;
     }
 
@@ -174,7 +173,6 @@ char __stdcall SYSTEM_CaptureThreadContext(int * pnStackTop, DWORD dwThreadId, i
       }
     }
 
-    Debug::GuardStack();
     return '\0';
 }
 
@@ -203,7 +201,6 @@ bool __stdcall InternalCheckCorp() {
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     int nWsaStartupResult = WSAStartup(0x202, &wsaData);
     if (nWsaStartupResult) {
-      Debug::GuardStack();
       return false;
     }
 
@@ -214,7 +211,6 @@ bool __stdcall InternalCheckCorp() {
     }
 
     WSACleanup();
-    Debug::GuardStack();
     return bIsBlizzardHost;
 }
 

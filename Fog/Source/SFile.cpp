@@ -112,7 +112,6 @@ int __fastcall SafeCreateDirectoryTree(char * szPath) {
     uint32_t dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     int bFailed = 1;
     if (!szPath || *szPath == '\0') {
-      Debug::GuardStack();
       return 0;
     }
 
@@ -133,7 +132,6 @@ int __fastcall SafeCreateDirectoryTree(char * szPath) {
 
         pNextSep = Storm::Source::SSTR::SStrChr(pNextSep + 1, '\\');
         if (!pNextSep) {
-          Debug::GuardStack();
           return 1;
         }
       }
@@ -141,7 +139,6 @@ int __fastcall SafeCreateDirectoryTree(char * szPath) {
       bFailed = 0;
     }
 
-    Debug::GuardStack();
     return bFailed;
 }
 
@@ -236,7 +233,6 @@ int __fastcall SFILE_GetBlizzardAppDataPath(char * szOutPath, uint32_t nMaxLen) 
         nSrcPathLen = Storm::Source::SSTR::SStrLen(cAppDataPath);
         if (!nSrcPathLen || cAppDataPath[nSrcPathLen - 1] != '\\') {
           if (nSrcPathLen + 1 == nMaxLen) {
-            Debug::GuardStack();
             return 0;
           }
 
@@ -249,13 +245,11 @@ int __fastcall SFILE_GetBlizzardAppDataPath(char * szOutPath, uint32_t nMaxLen) 
           Storm::Source::SSTR::SStrCopy(szOutPath, cAppDataPath, nMaxLen);
           nSrcPathLen = Storm::Source::SSTR::SStrLen(szOutPath);
           nDstPathLen = Storm::Source::SSTR::SStrLen(cAppDataPath);
-          Debug::GuardStack();
           return (uint32_t)(nSrcPathLen == nDstPathLen);
         }
       }
     }
 
-    Debug::GuardStack();
     return 0;
 }
 
@@ -263,12 +257,11 @@ BOOL __stdcall GetUseDirectCommand() {
     return D2Ini_bUseDirect;
 }
 
-bool SFILE_GetSaveGamePath(LPSTR szOutPath, uint32_t nMaxLen) {
+static bool SFILE_GetSaveGamePath(LPSTR szOutPath, uint32_t nMaxLen) {
     int iVar1;
     char szAppDataPath[260];
     char* pszSubPath;
     if (!nMaxLen) {
-      Debug::GuardStack();
       return false;
     }
     if (!szOutPath) {
@@ -277,26 +270,24 @@ bool SFILE_GetSaveGamePath(LPSTR szOutPath, uint32_t nMaxLen) {
     }
 
     uint32_t bKnownFolderOk = Engine::Application::PATH_GetKnownFolderPath(szOutPath, nMaxLen);
-    if ((char)bKnownFolderOk == '\0') {
+    if ((char)bKnownFolderOk != '\0') {
+      SFILE_EnsurePathEndsWithBackslash(szOutPath, nMaxLen);
+      pszSubPath = "Diablo II";
+    } else {
       iVar1 = SHGetFolderPathA(0, 5, 0, 0, szAppDataPath);
       if (iVar1) {
-        Debug::GuardStack();
         return false;
       }
 
       SFILE_EnsurePathEndsWithBackslash(szOutPath, nMaxLen);
       pszSubPath = "Diablo II\\Save";
-    } else {
-      SFILE_EnsurePathEndsWithBackslash(szOutPath, nMaxLen);
-      pszSubPath = "Diablo II";
     }
 
     Storm::Source::SSTR::SStrPack(szOutPath, pszSubPath, nMaxLen);
-    Debug::GuardStack();
     return true;
 }
 
-int __fastcall SFILE_MoveDirectoryRecursive(LPCSTR szSrcRoot, LPCSTR szDstRoot) {
+static int __fastcall SFILE_MoveDirectoryRecursive(LPCSTR szSrcRoot, LPCSTR szDstRoot) {
     uint32_t uVar1;
     size_t nSrcGlobLen;
     size_t nDstDirLen;
@@ -317,14 +308,12 @@ int __fastcall SFILE_MoveDirectoryRecursive(LPCSTR szSrcRoot, LPCSTR szDstRoot) 
     /* LPCSTR lpNewFileName for MoveFileA */ /* LPCSTR lpExistingFileName for MoveFileA */ pcVar8[1] = cSaved2;
     BOOL bSuccess = MoveFileA(szSrcRoot, szDstRoot);
     if (bSuccess) {
-      Debug::GuardStack();
       return 2;
     }
 
     DWORD dwAttributes = GetFileAttributesA(szSrcRoot);
     if (dwAttributes == -1) {
       dwAttributes = GetLastError();
-      Debug::GuardStack();
       return 2 - (uint32_t)(dwAttributes != 2);
     }
     /* LPCSTR lpFileName for GetFileAttributesA */ if (dwAttributes & 0x10) {
@@ -333,7 +322,6 @@ int __fastcall SFILE_MoveDirectoryRecursive(LPCSTR szSrcRoot, LPCSTR szDstRoot) 
         if (dwAttributes == -1) {
           dwAttributes = GetLastError();
           if (dwAttributes != 2) {
-            Debug::GuardStack();
             return 1;
           }
 
@@ -369,12 +357,10 @@ int __fastcall SFILE_MoveDirectoryRecursive(LPCSTR szSrcRoot, LPCSTR szDstRoot) 
 
         /* HANDLE hFindFile for FindClose */ FindClose(hFindFile);
         /* LPCSTR lpPathName for RemoveDirectoryA */ RemoveDirectoryA(szSrcRoot);
-        Debug::GuardStack();
         return nRecursiveResult;
       }
     }
 
-    Debug::GuardStack();
     return 1;
 }
 
@@ -526,7 +512,7 @@ void __fastcall SFILE_GregorianCalendarFromJulian(int32_t nJulianDay, int * pYea
     int fpTmp4;
     int uVar2;
     int nTmp2;
-    if (0x8fc1c < nJulianDay) {
+    if (0x8fc1d <= nJulianDay) {
       nYearsSinceEpoch = (int)(((double)(nJulianDay - 0x1c7dd0) - 0.25) / 36524.25);
       nJulianDay = nYearsSinceEpoch - (int)((double)nYearsSinceEpoch * 0.25) + 1 + nJulianDay;
     }
@@ -579,7 +565,6 @@ void __fastcall SFILE_DeleteOldLogFiles(char * szLogPrefix) {
       iCount--;
     } while (iCount);
 
-    Debug::GuardStack();
 }
 
 void __stdcall LOGFILE_StoreGameStartupInfo() {
@@ -658,7 +643,6 @@ void __stdcall LOGFILE_StoreGameStartupInfo() {
     Src::LogManager::LOGFILE_WriteStringToFile("Computer name: %s", szComputerName);
     Src::LogManager::LOGFILE_WriteStringToFile("------------------------------------------------------");
     Src::LogManager::LOGFILE_WriteStringToFile("");
-    Debug::GuardStack();
 }
 
 // JMP thunk

@@ -45,10 +45,6 @@ void __fastcall D2WINBUTTON_SetImageIndex(::D2WinButton * pButton, int32_t nImag
 BOOL __fastcall D2WINBUTTON_HandleMouseWheel(::D2WinButton * pButton, int32_t nWheelDelta);
 // Sets custom user data field (field 0x9c) for application-specific button state.
 void __fastcall D2WINBUTTON_SetCustomData(::D2WinButton * pButton, int32_t nCustomData);
-// Hit test for button bounds accounting for vertical offset (field 0x18). Returns TRUE if (x,y) falls within button rectangle.
-BOOL D2WINBUTTON_IsPointInside(::D2WinButton * pButton, int32_t nX, int32_t nY);
-// Renders button text with centering and optional dual-label display. Handles hotkey text (flag 0x40), text offset when images loaded, font selection (field 0x60), and color (field 0x264). Draws main label plus optional secondary string (field 0x270).
-void __stdcall D2WINBUTTON_DrawText(::D2WinButton * pButton, int nOffsetY);
 BOOL __fastcall Draw(::D2WinButton * pButton);
 BOOL __stdcall Push(struct D2ControlMsg * pControlMsg);
 BOOL __stdcall Mouse(struct D2ControlMsg * pControlMsg);

@@ -113,10 +113,10 @@ void __fastcall CUNITEVENT_RemoveByTypeAndState(D2UnitStrc * pUnit, int32_t nEve
 
       pvVar1 = pMemoryToFree->pPrev;
       if (pMemoryToFree->nEventType == nEventType && pMemoryToFree->nEventState == nEventState) {
-        if (!pMemoryToFree->pNext) {
-          pUnit->uSideData.pClientSide.pCUnitEventList = pvVar1;
-        } else {
+        if (pMemoryToFree->pNext) {
           pMemoryToFree->pNext->pPrev = pvVar1;
+        } else {
+          pUnit->uSideData.pClientSide.pCUnitEventList = pvVar1;
         }
         if (pMemoryToFree->pPrev) {
           pMemoryToFree->pPrev->pNext = pMemoryToFree->pNext;

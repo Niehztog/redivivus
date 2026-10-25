@@ -268,7 +268,7 @@ void __stdcall INPUT_HelpCloseButtonDown(D2UIMouseMsgStrc * pMsg) {
     } else {
       nRelX -= 0x20d;
     }
-    if (nRelX < 0x21 && (uint32_t)(nMouseY - 0x18) < 0x21) {
+    if (nRelX <= 0x20 && (nMouseY >= 0x18 && nMouseY <= 0x38)) {
       gpHelpCloseButton = 1;
       pMsg->bHandled = 1;
       pMsg->dwResult = 0;
@@ -301,7 +301,7 @@ BOOL __stdcall MouseIsInRange(int32_t nSizeX, int32_t nSizeY, int32_t nX, int32_
     return 1;
 }
 
-void __stdcall HELP_DrawHelpButtonTooltip() {
+static void __stdcall HELP_DrawHelpButtonTooltip() {
     uint16_t* pWVar2;
     int i;
     uint16_t wszTooltip[200];
@@ -1272,7 +1272,7 @@ void __stdcall INPUT_HelpCloseButtonUp(D2UIMouseMsgStrc * pMsg) {
       } else {
         nRelX -= 0x20d;
       }
-      if (nRelX < 0x21 && (uint32_t)(nMouseY - 0x18) < 0x21) {
+      if (nRelX <= 0x20 && (nMouseY >= 0x18 && nMouseY <= 0x38)) {
         Draw::SetUIFlag(UI_HELPSCREEN, UI_TOGGLE, 0);
         HELP_HideMiniPanel();
         goto consume_click;

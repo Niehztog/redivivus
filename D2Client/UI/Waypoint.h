@@ -28,8 +28,6 @@ void __stdcall FreeUiImages();
 void __stdcall InitializeWaypoints();
 void __stdcall WAYPOINT_SendClosePacket();
 void __stdcall WAYPOINT_Shutdown();
-void Waypoint_SetWaypointArea(int32_t nAct);
-void __stdcall WAYPOINT_PopulateList();
 void __stdcall DRAW_UI_Waypoint();
 void __stdcall INPUT_WaypointTravel(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall WAYPOINT_SendOpenPacket();

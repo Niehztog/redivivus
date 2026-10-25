@@ -41,7 +41,6 @@ void __fastcall SKILLEMONST_DetachFromHost(::SGAMEDATA * pGame, struct D2UnitStr
 // SrvDoFunc 129: parasite attach/detach dispatch. If unit already has an owner, relocates it to target coords and calls SKILLEMONST_DetachFromHost. If no target exists, falls back to SrvDoFunc_098 teleport. Otherwise relocates unit onto the target and calls SKILLEMONST_AttachToHost.
 BOOL __fastcall Skills_SrvDoFunc_129_AttachOrDetachFromHost(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall SKILLEMONST_SrvStFn61_SelfResurrect(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
-void __stdcall SKILLSOR_GetMeteorSubMissileCount(eMissilesId pParam, eD2Skills eSkill, int32_t nSkillLvl, ::SGAMEDATA * pGame, int32_t nCount, struct D2UnitStrc * pUnit);
 BOOL __fastcall Skills_SrvDoFunc_130_SpawnSubMissiles(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 void __stdcall SKILLEMONST_ApplyAuraBuff(struct D2UnitStrc * pUnit, struct D2UnitStrc * pTarget, eD2Skills eSkill, int32_t nSkillLvl);
 // Transforms a target monster into a new class derived from the skill's summon monster class (difficulty-scaled). Calls MONSTER_TransformMonsterClass, reattaches AI, fires lifecycle transition, applies STATE_changeclass, attaches a stat list (UNITSTAT_shortparam1 = new class id), and initialises sumumod umod slots on the target.

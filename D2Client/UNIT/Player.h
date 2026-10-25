@@ -80,69 +80,28 @@ namespace D2Client::UNIT::Player {
 // Function declarations
 // Client-side reaction handler invoked when a unit stat changes; dwStatIdAndSubIndex packs the stat id (high 16 bits, eD2UnitStat) and a sub-index (low 16 bits), nValue is the new value. Dispatches on stat id: item_lightradius/item_lightcolor update the unit's rendered light; item_nonclassskill/item_singleskill add or remove a granted skill on a player (AddSkill when newly granted and class-eligible, SKILL_RemoveSkillCallback when value drops to 0 and skill level is gone); item_charged_skill adds/removes a charged item skill (decoding charge level/max from the sub-index and item charge count, gated on the item owner matching the player). All other stats are no-ops here. Player/UI-side only.
 // @sourcefile .\UNIT\Player.cpp
-void __fastcall CLIENT_OnStatChanged(uint32_t dwUnused, struct D2UnitStrc * pUnit, struct D2UnitStrc * pItem, uint32_t dwStatIdAndSubIndex, uint32_t dwUnused2, int32_t nValue);
 // Initialises a player unit entering a room on the client side: registers the unit in the active slot, allocates a dynamic path, creates inventory and skill list, allocates stat list with base rates at 100, sets unit flags, handles dead/corpse collision state, allocates a light map (dimmed for other players), seeds the RNG direction for non-local players, and preloads adjacent-room monster COFs.
 void __fastcall JoinRoomSetup(struct D2UnitStrc * pUnit, struct D2RoomStrc * pRoom, int32_t nX, int32_t nY);
 void __fastcall CLIENT_FreePlayerUnit(struct D2UnitStrc * pUnit);
-void CLIENT_UpdateUnitRoomPops(struct D2UnitStrc * pUnit);
-void CLIENT_OnPlayerEnterRoom(struct D2UnitStrc * pUnit);
-// Client-side collision check for a player unit in Neutral or TownNeutral anim mode. Reads the unit's current tile position, tests for solid-blocking collision via CheckCollision_BlockAll_Type, and if blocked calls GetFreeCoordinates_WithNeighboorRooms + CLIENT_TeleportUnitToPosition to push the unit to the nearest free tile.
-void CLIENT_ResolvePlayerCollision(struct D2UnitStrc * pUnit);
-void CLIENT_HandlePlayerDeath(struct D2UnitStrc * pUnit);
-void __stdcall CLIENT_PlayIndexedUnitSound(struct D2UnitStrc * pUnit, int32_t nSoundIndex);
 uint32_t __stdcall PLAYER_CheckSkillUsability(int * pnUsabilityCode, struct D2UnitStrc * pUnit, struct D2SkillStrc * * ppSkill);
 // @sourcefile .\UNIT\Player.cpp
 uint32_t __stdcall PLAYER_ValidateSkillMessage(int * pnUsabilityCode, struct D2UnitStrc * pUnit, struct D2ServerMessageHandleStrc * pServerMessageHandle);
-void __stdcall PLAYER_ApplyCurrentSkillFlags(int32_t bIsLocalPlayer, struct D2UnitStrc * pUnit);
 // Client-side player message/command dispatcher: applies a queued action (nMessageType) to a player unit from a D2ServerMessageHandleStrc. Frees any active light map and clears the current skill (except for type 0x13), restores path velocity, and resolves town vs non-town neutral mode. Switches on the message type to: set move/attack/interact targets (0/1/2/0x17/0x18), play a get-hit (6) / block (0x12) / cold-hit overlay+sound (0x13) / knockback (0x14) reaction, run skill cast/validate paths (0x15/0x16) , handle death (8/9) including closing panels and clearing trade/selection, and set run/skill anim modes (0x19). Returns 1 on success; on a failed skill/target it falls through to CLIENT_SetAnimModeAndMoveToCurrentPos and returns 0. Halts via Fog ErrorManager on an invalid message type.
 BOOL __fastcall PlayerMessage(int32_t nMessageType, struct D2UnitStrc * pUnit, struct D2ServerMessageHandleStrc * pMessage, int32_t eNeutralMode);
-// Dispatches a buffered skill command (pSkillCmd) to the appropriate UNITMODE_ExecuteSkillAction overload based on click type and modifier flags. Ignores input if the mouse is below the bottom UI panel. For unit-targeted commands (nActionContext==1) resolves target GUID and unit type from pSkillCmd[2], then picks left/right x normal/shift/run variants (UNITMODEACTION_LEFTSKILL_UNIT 1-4, RIGHTSKILL_UNIT 1-4). For ground-targeted commands uses LEFTSKILL_COORD/RIGHTSKILL_COORD variants with pSkillCmd[3]/[4] as X/Y.
-void __stdcall PLAYER_ExecuteModeBasedAction(int32_t nActionContext, struct D2UnderMouseStrc * pUnderMouse);
 BOOL __stdcall CLIENT_MovePlayerToPosition(struct D2UnitStrc * pUnit, int16_t nX, int16_t nY, int32_t nSkillActionMode);
-// Client-side handler for a player attempting to interact with a world object (by unit ID nParam1). Looks up the object, checks the just_portaled curse state for waypoints (classId 0x3b). If within range and line-of-sight, executes UNITMODEACTION_ITEM_INTERACT; otherwise moves the player toward the object's tile position. Stores last skill hit via D2Client for the interaction. Returns without action if object not found.
-void __stdcall PLAYER_InteractWithObject(int32_t nParam1, struct D2UnderMouseStrc * pUnderMouse);
-void PLAYER_InteractWithUnit(int32_t nParam1, struct D2UnderMouseStrc * pUnderMouse);
 void __fastcall PLAYER_InteractAtTarget(int32_t nParam);
 uint32_t __fastcall SKILL_CheckAuraRange(struct D2SkillStrc * pSkill, struct D2UnitStrc * pUnit, int * pnMinX, int * pnMinY);
-// Client-side aura movement handler: checks SKILL_CheckAuraRange for the active aura skill; if the caster is in range, records last skill hits for unk1 and unk3|Poison aura types, then interpolates the caster's position along the remaining steps toward the target and calls CLIENT_MovePlayerToPosition. Falls back to PLAYER_ExecuteModeBasedAction if the caster has left range.
-void PLAYER_ExecuteSkillWithAura(int32_t nTargetGUID, eD2UnitType eTargetUnitType, struct D2UnderMouseStrc * pUnderMouse);
-// Client-side skill execution targeting a specific unit GUID. Verifies skill usability, resolves the target unit, checks melee range, and dispatches via aura path (srvdofunc==0x13), ranged/bow path (StoreLastSkillHit), or the general PLAYER_ExecuteModeBasedAction depending on weapon class and range.
-void __stdcall PLAYER_ExecuteSkillAtUnit(eD2UnitType eTargetUnitType, int32_t nTargetGUID, struct D2UnderMouseStrc * pUnderMouse);
 BOOL __stdcall PLAYER_CheckPendingInteraction(int32_t nTargetType, int32_t nTargetGUID);
-// Client-side: resolve and act on the local player's pending interaction with a target unit, dispatching on the target's unit type. PLAYER: if out of melee range or blocked, walk toward it (ExecuteSkillAction), else attack. MONSTER: NPCs (interact/npc flag) send the 0x59 NPC-interact request and face the player; non-interactive monsters fall through to a generic ranged/melee skill action with range 5. OBJECT: range/collision-checked interaction (with a special just_portaled guard for type-0x3B objects), moving the player into range or executing the interact skill. ITEM: pickup-range interact or move-to. WARP: rate-limited (500-tick cooldown via GAMEDATA_Get/SetValue007a04c8) move-or-use-portal. Common path issues NET_D2GS_CLIENT skill/interact messages and StoreLastSkillHit. Param: pSkillCtx (EAX) carries the interacting unit (dwStartLight), target (nPaletteIndex), and skill ticks. __thiscall-ish custom-reg convention.
-void __stdcall PLAYER_InteractWithUnitByType(eD2UnitType eTargetUnitType, int32_t nTargetGUID, struct D2UnderMouseStrc * pUnderMouse);
-// Client-side skill-action validator called before queuing a skill use. Checks town restrictions (plays sound 0x18 and returns 0 if skill disallowed in town), sets move/attack action-type codes on pUnderMouse (1/2 or 3/4 based on shift flag), clears any pending trade or interact queue state, then calls SKILL_ValidateTarget to resolve the final target and coordinates. Drops cursor item to ground if item-type is 6. Returns 1 if the action is valid, 0 otherwise.
-uint32_t INPUT_ValidateSkillAction(struct D2UnderMouseStrc * pUnderMouse);
-void INPUT_ContinuePlayerMovement(struct D2UnderMouseStrc * pMouse);
-// Computes the effective movement target for a player unit given the current mouse context. Reads the player's current tile position (static or dynamic path), computes the X/Y delta to the mouse cursor, clamps the minimum step distance based on mouse context flags (e.g. run/walk/attack modifiers), and writes the adjusted target back into pMouseCtx. Returns 1 if the movement should be committed (delta large enough and run-frame throttle not exceeded), 0 otherwise.
-BOOL __stdcall PLAYER_CalculateMovementTarget(struct D2UnitStrc * pPlayerUnit, struct D2UnderMouseStrc * pMouseCtx);
-// @sourcefile .\UNIT\Player.cpp
-uint32_t SKILL_IsPassiveSkill(struct D2SkillStrc * pSkill);
-// Client-side dispatcher for a left/right-click skill action gathered in pUnderMouse (player, target unit, selected skill, flags). After INPUT_ValidateSkillAction, resolves the right behavior for the target: interact with object/NPC/warp, talk in town, force-cast a skill at a unit/tile, attack a monster, or walk to the clicked position. Honors skill flags4 (force-hostile, usable-while-interact), weapon class, town rules, and shift/force modifiers; issues PLAYER_ExecuteSkillAtUnit / PLAYER_InteractWith* / PLAYER_ExecuteModeBasedAction / CLIENT_MovePlayerToPosition accordingly.
-// @sourcefile .\UNIT\Player.cpp
-void INPUT_ExecuteSkillCommand(struct D2UnderMouseStrc * pUnderMouse);
 void __stdcall PLAYER_ClearRecursionClick();
 BOOL __fastcall IsUnitNotMoving(struct D2UnderMouseStrc * pUnderMouse);
-BOOL INPUT_HandleLeftClickRepeat(struct D2UnderMouseStrc * pUnderMouse);
-// Player input handler that issues a walk/move command toward the coordinate or unit under the cursor (pMouse is the under-mouse input context). Bails if the player is already moving or cannot be interrupted. Computes the player's run/walk velocity (scaled by velocitypercent) and detects a run/walk toggle mismatch against the current path velocity and the input flags. If a target unit is set and it differs from the confirmed target (or a velocity mismatch), it retargets the dynamic path and re-issues the skill command; otherwise it flags the move and runs INPUT_ExecuteSkillCommand. Returns 1. Custom-register convention (pMouse in EDI).
-uint32_t WalkToCoordOrUnit(struct D2UnderMouseStrc * pMouse);
-BOOL INPUT_HandleLeftClickWithPet(struct D2UnderMouseStrc * pUnderMouse);
-// @sourcefile .\UNIT\Player.cpp
-BOOL ClickMapRightSkill(struct D2UnderMouseStrc * pUnderMouse);
-// @sourcefile .\UNIT\Player.cpp
-BOOL INPUT_HandleRightClickRepeat(struct D2UnderMouseStrc * pUnderMouse);
-BOOL INPUT_HandleRightClickWithPet(struct D2UnderMouseStrc * pUnderMouse);
 // Client input dispatcher for map clicks. Converts raw screen coordinates to perspective-view world coords, builds a D2UnderMouseStrc with the player and currently selected unit, sets run/walk and force-move flags from mouseEventFlags, then dispatches to the appropriate handler based on clickType (0=left-down, 1=left-hold, 2=left-up, 3=right-down, 4=right-hold, 5=right-up). Guards against re-entrant calls and ESC-menu-open state.
 int __fastcall ClickMap(int32_t clickType, int32_t nX, int32_t nY, uint8_t mouseEventFlags);
-uint8_t __stdcall PLAYER_GetWeaponTypeForAnimation(struct D2UnitStrc * pPlayerUnit, struct D2UnitStrc * pUnit);
 // Client-side handler for a player-death message (msg ptr arg: type byte at +1, dead-unit GUID at +2, killer GUID at +6). Locates the dead player unit; if inactive sets its anim mode to Death. If the dead unit is the local player, finds the killer unit, makes the corpse non-colliding (width 5), and copies the dead unit's position/facing onto the corpse. Then walks the dead unit's inventory unequipping each equipped (grid type 3) item: swaps primary weapon, clears weapon anim mode flags, removes item stats, reloads the unit COF, and drops the item from the client object table.
 void __fastcall PLAYER_HandlePlayerDeath(int32_t pDeathMsg);
 uint32_t __fastcall PLAYER_GetAppearanceBytes(uint32_t * pAppearanceOut, uint32_t nBufSize);
 uint32_t __fastcall PLAYER_GetMercAppearanceBytes(uint32_t * pAppearanceOut, uint32_t nBufSize);
 // Teleports a player unit to a new room/position (via PATH_CheckCollisionFlags) and, if the unit was in a movement mode, re-issues the appropriate walk/run PlayerMessage to resume movement toward the previous target unit or coordinates.
 void __fastcall CLIENT_WarpPlayerAndContinueMove(struct D2UnitStrc * pUnit, struct D2RoomStrc * pRoom, uint16_t nNewX, uint16_t nNewY);
-// Client-side stamina-depletion handler for the local player. When the player's stamina hits 0, cancels any active run/walk: if chasing a unit target, re-issues a follow message; otherwise captures the current destination, frees any pending light map, resets the current skill, and transitions the unit to Walk or TownWalk mode (or falls back to CLIENT_SetAnimModeAndMoveToCurrentPos if no valid path target). No-ops for non-local or non-zero stamina units.
-void CLIENT_CancelRunAndWalk(struct D2UnitStrc * pUnit);
 // Per-frame client-side state machine driving a player unit's current animation mode. Uses gaPlayerInitStats[playerMode] flag columns to decide behavior: steps the path and plays footstep sounds for moving modes, advances/handles the skill cast step (setting skill flags and re-issuing the current skill) for action modes, and advances or clamps the animation frame per the mode's loop/freeze attribute. On animation completion it transitions the mode: KnockBack restores position/velocity and reverts to GetHit; players with a queued skill set a pending-interact flag; otherwise it clears the current skill, frees the light map, and reverts to Neutral/TownNeutral. Also reloads the COF when needed, handles room-change updates, interpolates facing direction, cancels run/walk, applies active damage-state skill effects, and resolves player collision.
 // @blizzard UnitProcessPlayerModeSimulation
 void __fastcall PLAYER_ProcessPlayerModeSimulation(struct D2UnitStrc * pUnit);

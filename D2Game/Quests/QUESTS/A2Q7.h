@@ -74,8 +74,6 @@ BOOL __fastcall Q14_GetTyraelSpawnCoords(::SGAMEDATA * pGame, POINT * pPoint, st
 void __fastcall Q14_SetTyraelState(int nParam, char cParam);
 // Q15 (Act2Guard4Gossip / Jerhyn gossip pseudo-quest) state-2 handler. When the kill/target unit is Jerhyn (classId 0x179) and the one-shot bBloodRavenKilled-style flag is set, clears it and unhooks itself (handler[2]=null). One-time post-trigger cleanup; no quest-record write.
 void __fastcall Q15_Callback02_NpcDeactivate(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
-// Q15 (Act2Guard4Gossip / Jerhyn gossip) message-handler. On a dialog with Jerhyn (NPC 0x179): for the special intro lines 0x3b/0x3c set the gossip record to JustCompleted and arm the state-2 cleanup handler; for any other line set it to Completed. This records "player has spoken to Jerhyn" in the quest-record bitbuffer.
-void __fastcall Q15_Callback11_ScrollMessage(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // Q15 (Act2Guard4Gossip / Jerhyn gossip) primary dialog-select handler for Jerhyn (NPC 0x179). Chooses which gossip text to play based on Radament's Lair progress: if the Jerhyn-spoke record is unset and Radament is done/in-progress it picks a "post-Radament" line; otherwise a generic seeded line. Read-only on quest records (only Gets); advances the player RNG seed when speaking. Drives Jerhyn's act-progression chatter, not a real quest.
 void __fastcall Q15_Callback00_NpcActivate(struct D2QuestDataStrc * pQuestData, struct D2QuestArgStrc * pQuestArgs);
 // Q15 (Act2Guard4Gossip) state-8 handler: empty stub. No behavior.

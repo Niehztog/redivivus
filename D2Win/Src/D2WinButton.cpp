@@ -197,7 +197,7 @@ void __fastcall D2WINBUTTON_SetCustomData(::D2WinButton * pButton, int32_t nCust
 }
 
 // Hit test for button bounds accounting for vertical offset (field 0x18). Returns TRUE if (x,y) falls within button rectangle.
-BOOL D2WINBUTTON_IsPointInside(::D2WinButton * pButton, int32_t nX, int32_t nY) {
+static BOOL D2WINBUTTON_IsPointInside(::D2WinButton * pButton, int32_t nX, int32_t nY) {
     int nButtonX = pButton->sControl.dwPosX;
     int nButtonY = pButton->sControl.dwPosY;
     if (!(nButtonX <= nX && nButtonY - pButton->sControl.dwSizeY <= nY && nX < pButton->sControl.dwSizeX + nButtonX && nY < nButtonY)) {
@@ -208,7 +208,7 @@ BOOL D2WINBUTTON_IsPointInside(::D2WinButton * pButton, int32_t nX, int32_t nY) 
 }
 
 // Renders button text with centering and optional dual-label display. Handles hotkey text (flag 0x40), text offset when images loaded, font selection (field 0x60), and color (field 0x264). Draws main label plus optional secondary string (field 0x270).
-void __stdcall D2WINBUTTON_DrawText(::D2WinButton * pButton, int nOffsetY) {
+static void __stdcall D2WINBUTTON_DrawText(::D2WinButton * pButton, int nOffsetY) {
     GLOBALPALLETE eGlobalPalette;
     int32_t bDrawBackground;
     int32_t nSecondaryXCenter;
@@ -302,13 +302,13 @@ BOOL __fastcall Draw(::D2WinButton * pButton) {
           goto draw_button;
         }
       } else {
-        if (!(pButton->nButtonFlags & 3)) {
+        if (pButton->nButtonFlags & 3) {
+          pButton->bPressedInside = 1;
+        } else {
           bIsPointInside = D2WINBUTTON_IsPointInside(pButton, D2Client::Mouse::nPosX, D2Client::Mouse::nPosY);
           nFrameOffset = pButton->bPressed;
           dwState = pButton->sControl.dwState;
           pButton->bPressedInside = bIsPointInside;
-        } else {
-          pButton->bPressedInside = 1;
         }
         if (!nFrameOffset || !pButton->bPressedInside) {
           goto not_hovered;
@@ -354,7 +354,7 @@ BOOL __fastcall Draw(::D2WinButton * pButton) {
           nTileRows--;
         } while (nTileRows);
       }
-      if (-1 < nLastTileRow) {
+      if (0 <= nLastTileRow) {
         nFrameOffset = 0;
         if (0 < nTileCols) {
           nRowFrame = nTileRowCount;
@@ -397,7 +397,9 @@ BOOL __fastcall Draw(::D2WinButton * pButton) {
     }
 
     pActiveFormImage = D2WinMain::D2WINMAIN_GetFormImage();
-    if (!pActiveFormImage) {
+    if (pActiveFormImage) {
+      pButton->bMouseOver = 0;
+    } else {
       nFrameOffset = pButton->sControl.dwPosX;
       nPosY = pButton->sControl.dwPosY;
       if (D2Client::Mouse::nPosX < nFrameOffset || D2Client::Mouse::nPosY < nPosY - pButton->sControl.dwSizeY || pButton->sControl.dwSizeX + nFrameOffset <= D2Client::Mouse::nPosX || nPosY <= D2Client::Mouse::nPosY) {
@@ -407,8 +409,6 @@ BOOL __fastcall Draw(::D2WinButton * pButton) {
       }
 
       pButton->bMouseOver = nFrameOffset;
-    } else {
-      pButton->bMouseOver = 0;
     }
 
     *(uint32_t*)((char*)&sHoverMsg + 12) = pButton->bMouseOver;
@@ -430,16 +430,16 @@ BOOL __stdcall Push(D2ControlMsg * pControlMsg) {
     if (!(uVar1 & 4) || !(uVar1 & 1)) {
       return 0;
     }
-    if (!(pButton->nButtonFlags & 2U)) {
+    if (pButton->nButtonFlags & 2U) {
+      pButton->bPressed = (uint32_t)!pButton->bPressed;
+      pButton->bPressedInside = (uint32_t)!pButton->bPressedInside;
+    } else {
       if (pButton->bPressed && pButton->bPressedInside) {
         return 1;
       }
 
       pButton->bPressed = 1;
       pButton->bPressedInside = 1;
-    } else {
-      pButton->bPressed = (uint32_t)!pButton->bPressed;
-      pButton->bPressedInside = (uint32_t)!pButton->bPressedInside;
     }
     if (!(pButton->nButtonFlags & 4U)) {
       D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\button.wav");
@@ -452,7 +452,7 @@ BOOL __stdcall Push(D2ControlMsg * pControlMsg) {
     if (!pOVar2) {
       return 1;
     }
-    if (gnFormControlCount < 1) {
+    if (gnFormControlCount <= 0) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x221);
       exit(-1);
     }

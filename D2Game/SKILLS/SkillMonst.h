@@ -52,8 +52,6 @@ BOOL __fastcall SKILLMONST_SrvStFn51_Submerge(::SGAMEDATA * pGame, struct D2Unit
 BOOL __fastcall Skills_SrvDoFunc_094_ResetAnimFrame(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall SKILLMONST_SrvStFn52_Emerge(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall SKILLMONST_SrvStFn53_MonInferno(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
-void __stdcall SKILLASSN_GetTrapHealthBonus(uint32_t dwUnused, eD2Skills eSkill, struct D2UnitStrc * pUnit, int32_t nSkillLvl, struct D2UnitStrc * pMissileUnit);
-void SKILLMONST_TriggerModeChange(struct D2UnitStrc * pUnit, ::SGAMEDATA * pGame);
 void __fastcall SKILLASSN_GetShadowHealthBonus(struct D2SkillsTxt * pSkillsTxt, struct D2UnitStrc * pUnit);
 // SrvDoFunc #95: server-side trap/sentry skill handler that spawns one missile from the caster unit toward the target cursor. Looks up srvmissilea from the skill's txt row, computes velocity from VelLev×level/8+Vel, builds a D2SkillArgStrc, and calls CreatingMissile. On success, applies trap health bonuses, checks the inferno state to optionally reschedule the next fire frame via SetEvent, otherwise triggers a mode-change. Returns 0 if the skill, missile id, or target position is invalid.
 BOOL __fastcall Skills_SrvDoFunc_095_SpawnTrapMissile(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
@@ -62,7 +60,7 @@ BOOL __fastcall Skills_SrvDoFunc_152_SpawnTrapMissileVariant(::SGAMEDATA * pGame
 // SrvDoFunc 96: heals the target by a random percentage between calc[0] and calc[1] of its max HP (clamped 0-100%), adds the result to current HP, and clamps to max HP. Sets UNITFLAG_SKSRVDOFUNC on caster. Returns FALSE if no valid target or skill record.
 BOOL __fastcall Skills_SrvDoFunc_096_HealTarget(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 // Resurrects a dead monster or player unit: restores HP to max, sets ISVALIDTARGET/CANBEATTACKED/TARGETABLE flags, and re-registers collision in the room. For monsters also sets NOXP+NOTC flags, triggers AI think, decrements kill count, attaches quest hooks, and sets monster collision type. Returns 1 on success, 0 if the unit has no room.
-void __fastcall SKILLMONST_ResurrectUnit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
+int __fastcall SKILLMONST_ResurrectUnit(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 // Server-side skill do-func (index 097) that resurrects the caster's targeted dead monster. Validates the target is dead and not immune, checks collision at the corpse's tile, calls SKILLMONST_ResurrectUnit, triggers the revived monster's AI lifecycle transition (MONSTERAI_ExecuteLifecycleTransition), and applies the skill's srvoverlay visual. Returns 1 on success, 0 on any validation failure.
 BOOL __fastcall Skills_SrvDoFunc_097_ResurrectDeadMonster(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
 BOOL __fastcall Skills_SrvDoFunc_098_TeleportToStoredPosition(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl);
