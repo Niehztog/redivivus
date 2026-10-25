@@ -58,6 +58,7 @@
 #include "D2Client/UNIT/Missile.h"
 #include "D2Common/D2SeedStrc.h"
 #include "D2Game/Monster/AI/AI.h"
+#include "D2Common/Environment.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -75,6 +76,76 @@ static_assert(sizeof(void*) != 4 || sizeof(::D2UnitDataObjectStrc) == 0x38, "D2_
 #define D2_FREE(p) Fog::Memory::FreeClientMemory((p), __FILE__, __LINE__, 0)
 #endif
 
+
+namespace D2Client {
+
+static void __stdcall OBJECT_SetLightRGB(uint8_t byRed, uint8_t byGreen, uint8_t byBlue, uint16_t nRadius, D2UnitStrc * pUnit) {
+    D2LightMapStrc* pLightMap = pUnit->uSideData.pClientSide.pLight;
+    if (!nRadius) {
+      if (pLightMap) {
+        UNIT::CUnit::FreeLightMap(pUnit);
+        return;
+      }
+    } else {
+      if (!pLightMap) {
+        pLightMap = Draw::LightMap::AllocLightMap(pUnit, 2, (uint32_t)(nRadius >> 1), 0xff, byRed, byGreen, byBlue);
+        pUnit->uSideData.pClientSide.pLight = pLightMap;
+        if (!pLightMap) {
+          return;
+        }
+      }
+
+      Draw::LightMap::SetRadiusY(pLightMap, (uint32_t)(nRadius >> 1));
+    }
+}
+
+BOOL __fastcall OBJECT_CheckAutoLight(D2UnitStrc * pUnit, int32_t bSkipCofLoad) {
+    D2ObjectsTxt* pTxtLine = pUnit->pUnitData.pUnitDataObject->pTxtObjectsLine;
+    if (!pTxtLine->EnvEffect) {
+      return 0;
+    }
+
+    int32_t nErrAddr = D2Common::Environment::DRLGENV_GetPeriodOfDayFromAct(sgpDrlgAct, nullptr);
+    if (nErrAddr) {
+      if (nErrAddr - 1U <= 2) {
+        if (pUnit->eAnimMode.ePlayerMode == Death) {
+          pUnit->eAnimMode.ePlayerMode = eD2PlayerAnimMode_ns::Neutral;
+          if (!bSkipCofLoad) {
+            Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
+          }
+
+          D2Common::Units::InitAnimMode(pUnit);
+          UNIT::SetMonsterFlags(pUnit, UNITFLAG_TARGETABLE, (uint32_t)pTxtLine->Selectable[pUnit->eAnimMode.ePlayerMode]);
+        }
+
+        OBJECT_SetLightRGB(pTxtLine->Red, pTxtLine->Green, pTxtLine->Blue, (uint16_t)(uint8_t)pTxtLine->Lit[pUnit->eAnimMode.ePlayerMode], pUnit);
+        return 1;
+      }
+
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x66);
+      exit(-1);
+    }
+    if (!(pUnit->eAnimMode.ePlayerMode == Walk || pUnit->eAnimMode.ePlayerMode == eD2PlayerAnimMode_ns::Neutral)) {
+      return 0;
+    }
+
+    pUnit->eAnimMode.ePlayerMode = Death;
+    if (!bSkipCofLoad) {
+      Engine::Gfx::GFX_LoadUnitModeCof(pUnit, 0);
+    }
+
+    D2Common::Units::InitAnimMode(pUnit);
+    OBJECT_SetLightRGB(pTxtLine->Red, pTxtLine->Green, pTxtLine->Blue, (uint16_t)(uint8_t)pTxtLine->Lit[pUnit->eAnimMode.ePlayerMode], pUnit);
+    if (pTxtLine->Selectable[pUnit->eAnimMode.ePlayerMode]) {
+      pUnit->eUnitFlags |= UNITFLAG_TARGETABLE;
+      return 1;
+    }
+
+    pUnit->eUnitFlags &= ~UNITFLAG_TARGETABLE;
+    return 1;
+}
+
+} // namespace D2Client
 
 namespace D2Client::UNIT::Object {
 

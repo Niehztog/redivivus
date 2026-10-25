@@ -119,7 +119,6 @@ struct D2UnitStrc * __fastcall UNITS_FindServerSideUnit(int32_t nUnitGUID, eD2Un
 struct D2UnitStrc * __fastcall MISSILE_GetOwnerUnit(struct D2UnitStrc * pUnit);
 // Inserts pUnit into the appropriate global unit hash table (server-side or client-side, selected by UNITFLAG bit 0x21). Computes bucket from nUnitGUID &amp; 0x7f and inserts in ascending GUID order. Halts (ERROR_UnrecoverableInternalError_Halt) if the unit already exists in the table. Returns 1 on successful insert, 0 if the unit was already present (duplicate path).
 uint32_t InsertIntoHashTable(struct D2UnitStrc * pUnit);
-void CLIENT_SendIdlePlayerMessage(struct D2UnitStrc * pUnit);
 void __stdcall PLAYER_PlaceUnitInRoom(int32_t nParam1, struct D2RoomStrc * pRoom, struct D2UnitStrc * pUnit, int32_t nParam2);
 void __fastcall CLIENT_UpdateMonsterAllegiance(struct D2UnitStrc * pUnit, char byOldAllegiance, char byNewAllegiance);
 void __stdcall CLIENT_ClearServerAndClientUnitLists();

@@ -11,6 +11,12 @@
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
 
+namespace Fog::File {
+
+static int STRING_FormatVarArgs(char * szFormat, char * szDest, int32_t nDestSize, ...);
+
+} // namespace Fog::File
+
 namespace Fog::_3rdparty::crashy {
 
 ::Report * Constructor(::Report * pThis) {
@@ -189,3 +195,13 @@ int32_t Printf(::Report * pThis, char * szFormat, ...) {
 }
 
 } // namespace Fog::_3rdparty::crashy
+
+namespace Fog::File {
+
+static int STRING_FormatVarArgs(char * szFormat, char * szDest, int32_t nDestSize, ...) {
+    int iVar1 = __vsnprintf(szDest, nDestSize - 1, szFormat, (va_list)((uint8_t*)&szFormat + 4));
+    szDest[nDestSize - 1] = '\0';
+    return iVar1;
+}
+
+} // namespace Fog::File

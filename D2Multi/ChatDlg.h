@@ -53,9 +53,6 @@ int __fastcall FORMS_DisplayBattleNetNews(uint16_t * wszText);
 // Shows gpCtlChannelOkButton only while gpCtlChannelNameEditBox holds a non-empty name: D2WINMAIN_SetControlVisible(gpCtlChannelOkButton, name non-empty). Run by that edit box's change callback and once at the end of OOGUTIL_OpenChannelDialog.
 // Provenance: asm 0043e660..0043e6b6; change callback installed at 00441097, tail jump at 004411d7.
 void __stdcall CHATDLG_UpdateChannelOkButtonState();
-int32_t __stdcall someStrCompare(char * szText1, char * szText2);
-BOOL CHATDLG_HandleNotifyCommand(char * szCommand, char * szInput);
-BOOL __stdcall CHATDLG_FindSubstringMatch(int32_t nTargetHash, int32_t nWordLen, char * szText);
 BOOL __stdcall CHATDLG_DetectCDKeyInString(char * szText);
 struct D2ControlStrc * FORMS_CreateAnyFormFromListEx(int32_t nFormIndex);
 void __stdcall FORMS_DestroyListEx();
@@ -107,7 +104,6 @@ BOOL __stdcall CHATDLG_OnPressLadderDruid(struct D2ControlMsg * pControlMsg);
 // Provenance: asm 0043f470 (RET 4), OnPress field of form record #117 (0070e460); UIMENU_LadderBoard_PrintClassButtonLabels (0043ed60) labels button form 0x75 "ASN".
 BOOL __stdcall CHATDLG_OnPressLadderAssassin(struct D2ControlMsg * pControlMsg);
 void __stdcall CHATDLG_ClearChatHistory();
-void CHATDLG_AppendChatToHistory(char * szText);
 void __fastcall CHATDLG_SetControlParent(struct D2ControlStrc * pControl);
 // Message-pump callback for CHATDLG_ReadUserProfile: asks pfnGetStoredReadUserData for the 3 profile keys of 1 account into gapszProfileReadBuffers with buffer sizes {8, 40, 200}, and ends the message loop once the reply is stored or the wait was cancelled. Always returns 1.
 // Provenance: asm 0043f5a4..0043f5d7.
@@ -121,7 +117,6 @@ void __stdcall CHATDLG_RefreshGameNameDisplay();
 // @sourcefile .\Src\ChatDlg.cpp
 void __stdcall CHATDLG_FreePlayerNameList();
 int __stdcall CHATDLG_CancelGameCreate();
-void __stdcall CHATDLG_ParseCommandArgument(int32_t nMaxLen, char * szSource, char * szDest);
 void __stdcall SafeDefaultChannel(char * pszChannel);
 void __stdcall CHATDLG_DestroyAllForms();
 uint32_t __stdcall CHATDLG_SetDestroyCallback(uint32_t dwUnused, ChatDlgCallback pfnCallback);

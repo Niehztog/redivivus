@@ -308,7 +308,7 @@ void __fastcall Q11_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, D2Quest
 // QUEST_SetStateAndBroadcast w/ Q11_NotifyTaintedSunComplete), bumps stateFlag to 1 on first run, then if
 // Act 2 DRLG is loaded calls DRLGENV_TaintedSunBegin() (darkens the act) and iterates players sending
 // Q11_SendDarknessPacket. Returns nonzero(low byte 1) on success; 0 if act not yet loaded (deferred).
-uint8_t __stdcall Q11_BeginTaintedSun(D2QuestDataStrc * pQuestData) {
+static uint8_t __stdcall Q11_BeginTaintedSun(D2QuestDataStrc * pQuestData) {
     pQuestData->nQuestPacketFlags = '\0';
     QUEST_SetStateAndBroadcast(pQuestData, 1, nullptr, (::fpExecuteOnUnitFunction)Q11_NotifyTaintedSunComplete, true);
     if (!pQuestData->nStateFlag) {
@@ -863,6 +863,32 @@ void __fastcall Q11_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
       }
     }
 }
+
+} // namespace D2Game::Quests::QUESTS::A2Q3
+
+namespace D2Game {
+
+uint8_t __fastcall Q11_TimerCheckDarkness(::SGAMEDATA * pGame, D2QuestDataStrc * pQuestData) {
+    D2QuestDataA2Q3Strc* pA2Q3Data = pQuestData->pQuestSpecificData.pA2Q3;
+    pA2Q3Data->field_0x01 = 0;
+    if (pA2Q3Data->bSunDarkened) {
+      return '\x01';
+    }
+
+    bool nResult = (bool)Quests::QUESTS::A2Q3::Q11_BeginTaintedSun(pQuestData);
+    if (!nResult) {
+      pA2Q3Data->bViperAmuletInitPending = true;
+      return '\x01';
+    }
+
+    pA2Q3Data->bSunDarkened = true;
+    UNIT::SUnit::IteratePlayerOrMonsterUnits(pQuestData->pGame, 0, nullptr, (::fpExecuteOnUnitFunction)Quests::QUESTS::A2Q3::Q11_UpdateQuestRecord);
+    return '\x01';
+}
+
+} // namespace D2Game
+
+namespace D2Game::Quests::QUESTS::A2Q3 {
 
 // A2Q3 - Q11_StartDarknessTimer (custom register calling convention): if darkness not yet started, rolls a
 // random 15-17 tick delay (SEED_RollRange) and arms Q11_TimerCheckDarkness via AddQuestTimer, setting the

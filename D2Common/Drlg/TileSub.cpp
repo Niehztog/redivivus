@@ -14,9 +14,43 @@
 #include "globals/globals.h"
 #include "D2Common/Drlg/D2DrlgStrc.h"
 #include "Fog/D2PoolManagerStrc.h"
+#include "D2Client/Archive.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
+
+namespace D2Common::Drlg {
+
+static void __stdcall DRLGOUTDOOR_ApplySubstitutionGroup(D2UnkOutdoorStrc * pUnkOutdoor, D2LvlSubTxt * pLvlSub) {
+    D2DrlgFileStrc* pFile = pLvlSub->pDrlgFile;
+    uint32_t nModulo = pFile->nSubstGroups;
+    int nGroupIter = 0;
+    uint32_t nRandStartGroup = 0;
+    if (!nModulo) {
+      return;
+    }
+    if (pUnkOutdoor->nPrevBorderPresetId == -1) {
+      pUnkOutdoor->nPrevBorderPresetId = 0x3e;
+    }
+    if (!pLvlSub->BordType) {
+      nRandStartGroup = D2Client::Archive::RANDOM_RandomNumberSelector(&pUnkOutdoor->pLevel->sSeed, nModulo);
+    }
+    if (0 >= (int)nModulo) {
+      return;
+    }
+
+    do {
+      BOOL bPlaced;
+      bPlaced = DRLGOUTDOOR_PlaceRandomBorderSubTiles(pUnkOutdoor, (int32_t)pLvlSub, (int*)(pFile->pSubstGroups + (int)(nRandStartGroup + nGroupIter) % (int)nModulo));
+      if (bPlaced && !pLvlSub->BordType) {
+        return;
+      }
+
+      nGroupIter++;
+    } while (nGroupIter < (int)nModulo);
+}
+
+} // namespace D2Common::Drlg
 
 namespace D2Common::Drlg::TileSub {
 

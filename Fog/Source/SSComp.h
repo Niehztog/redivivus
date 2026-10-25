@@ -31,6 +31,5 @@ void __fastcall COMPRESS_HeapSiftDown(int32_t * pArray, int32_t nCount, int32_t 
 void __fastcall COMPRESS_HeapSort(int32_t * pArray, int32_t nCount);
 void __fastcall COMPRESS_BuildHuffmanTree(int * pWeights, int32_t nCount);
 void __fastcall COMPRESS_BuildHuffmanDecodeTable(uint8_t * pCodeLengths);
-void __stdcall COMPRESS_Implode(void * pAddress, char * szModulePath, int * pnSectionIndex, void * * ppSectionOffset, int nBufferSize);
 
 } // namespace Fog::Source::SSComp

@@ -31,11 +31,7 @@ void __stdcall DRLGOUTROOM_PlaceAct5BorderPresets(struct D2DrlgLevelStrc * pLeve
 void __stdcall DRLGOUTROOM_PlaceAct5RoadPath(struct D2DrlgLevelStrc * pLevel);
 // Walks grid perimeter spawning cliff/wall border presets. Adds corner caps.
 void __stdcall DRLGOUTROOM_PlaceAct5OuterWalls(struct D2DrlgLevelStrc * pLevel);
-// Sets up secondary border decoration callbacks and calls AddSecondaryBorder.
-void DRLGOUTROOM_PlaceAct5SecondaryBorder(struct D2DrlgLevelStrc * pLevel);
 // Places random scenery presets for Act5 outdoor levels from static table.
 void __stdcall DRLGOUTROOM_PlaceAct5SceneryPresets(struct D2DrlgLevelStrc * pLevel);
-// Places random decorative presets in Act 5 Bloody Foothills (level 0x6F). Tries up to 90 random positions to place up to 3 presets on empty grid cells, using seed-based random offsets and grid wrapping.
-void DRLGOUTPLACE_PlaceAct5BloodyFoothillsRandomPresets(struct D2DrlgLevelStrc * pLevel);
 
 } // namespace D2Common::Drlg::OutPlace::Act5

@@ -15,6 +15,5 @@ namespace D2Common::Drlg::Maze::Act1::Barracks {
 
 // Function declarations
 // DRLG Act1 maze generator for the Barracks level. Resolves the parent Jail level (id 0x1b) and its exit variant (0/1/2), allocates the connector room in the matching direction (SW/NW/SE) via DRLGMAZE_AllocRoomExAndPickPreset + AllocDrlgOrth, and computes the X/Y offset needed to align the Barracks to that jail exit. Then seed-rolls to pick one of two replacement-room sets (gaDrlgBarracksReplacements_A/_B) and applies both via ReplaceRoom. Translates every room in the level by the computed offset, recomputes the level's bounding box (GetMinAndMaxCoordinatesFromLevel) and stores its world position/size. Mutates pDrlgLevelStrc->sSeed and room coords. Calls an indirect dispatch (gapfnBarracksFindEdgeRoom) to pick the jail exit room.
-void __stdcall DRLGMAZE_GenerateBarracksLayout(struct D2DrlgLevelStrc * pDrlgLevelStrc);
 
 } // namespace D2Common::Drlg::Maze::Act1::Barracks

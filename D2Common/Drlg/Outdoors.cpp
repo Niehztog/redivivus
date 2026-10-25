@@ -209,85 +209,6 @@ int __stdcall DRLGOUTDOOR_ApplySubTileToGrid(int nBaseX, int nBaseY, D2UnkOutdoo
     return nResult;
 }
 
-// Paste preset units from a LvlSub definition into the active outdoor room. Converts bounds to world coordinates, then for each preset check if it falls inside the sub-rect and spawn a new preset unit offset into the room’s local space.
-void __stdcall DRLGOUTDOOR_CopyPresetUnitsFromSubTxt(int32_t roomX, int32_t roomY, D2DrlgWallLayerGridsStrc * pRoomCtx, D2PoolManagerStrc * pMemory, D2LvlSubTxt * pLvlSub, int * pRect) {
-    uint32_t* pCurrentPreset;
-    int presetY1;
-    int rectX0 = *pRect;
-    int rectY0 = pRect[1];
-    int rectX1 = pRect[2];
-    int rectY1 = pRect[3];
-    int worldYBase = roomX;
-    int worldXBase = roomY;
-    Transform::CoordsRoomToWorld(&worldYBase, &worldXBase);
-    Transform::CoordsRoomToWorld(&rectX0, &rectY0);
-    Transform::CoordsRoomToWorld(&rectX1, &rectY1);
-    int presetY0 = rectY0;
-    int presetX0 = rectX0;
-    for (pCurrentPreset = (uint32_t*)&pLvlSub->pDrlgFile->pPresetUnit->nMode; pCurrentPreset; pCurrentPreset = (uint32_t*)pCurrentPreset[3]) {
-      int presetX1;
-      presetX1 = pCurrentPreset[2];
-      if (presetX1 > presetX0) {
-        presetY1 = pCurrentPreset[6];
-        if (presetY0 < presetY1 && presetX1 < rectX1 + presetX0 && presetY1 < rectY1 + presetY0) {
-          DrlgRoom::AllocPresetUnit(pRoomCtx->pRoomEx, pMemory, pCurrentPreset[5], pCurrentPreset[1], *pCurrentPreset, presetX1 - presetX0 + worldYBase, presetY1 - presetY0 + worldXBase);
-          presetX0 = rectX0;
-          presetY0 = rectY0;
-        }
-      }
-    }
-}
-
-// Checks that applying the LvlSub patch doesn’t conflict with existing floor/wall/shadow cells; returns false if any flagged tiles overlap and existing grids already set the same flags.
-BOOL __stdcall DRLGOUTDOOR_CheckSubTileOverlap(int32_t nParam1, int32_t nParam2, D2DrlgWallLayerGridsStrc * pDrlgUnkn, int * pnParam, D2LvlSubTxt * pLvlSubTxt) {
-    uint32_t uFlags;
-    int nWallLayerIter;
-    D2DrlgGridStrc** ppWallGrid;
-    int nWallLayerCount = pDrlgUnkn->nWallLayerCount;
-    int dy = 0;
-    if (0 >= pnParam[3]) {
-      return 1;
-    }
-
-    do {
-      int dx;
-      dx = 0;
-      if (0 < pnParam[2]) {
-        do {
-          uFlags = DrlgGrid::GetGridFlags(&pLvlSubTxt->pFloorGrid, *pnParam + dx, pnParam[1] + dy);
-          if (uFlags & 2 || pLvlSubTxt->pWallGrid[0].nWidth && (uFlags = DrlgGrid::GetGridFlags(pLvlSubTxt->pWallGrid, *pnParam + dx, pnParam[1] + dy) , (uFlags & 1) != 0)) {
-            uFlags = DrlgGrid::GetGridFlags(pDrlgUnkn->pFloorGrid, dx + nParam1, dy + nParam2);
-            if (uFlags & 0x3f0ff00 || !(uFlags & 2)) {
-              return 0;
-            }
-
-            nWallLayerIter = 0;
-            if (0 < nWallLayerCount) {
-              ppWallGrid = pDrlgUnkn->apWallGrids;
-              do {
-                if (*ppWallGrid) {
-                  uFlags = DrlgGrid::GetGridFlags(*ppWallGrid, dx + nParam1, dy + nParam2);
-                  if (uFlags & 1) {
-                    return 0;
-                  }
-                }
-
-                ppWallGrid++;
-                nWallLayerIter++;
-              } while (nWallLayerIter < nWallLayerCount);
-            }
-          }
-
-          dx++;
-        } while (dx < pnParam[2]);
-      }
-
-      dy++;
-    } while (dy < pnParam[3]);
-
-    return 1;
-}
-
 // Checks whether a DS1 sub-tile strip can be placed at a given offset in an outdoor level room. For each cell in the strip, compares tile-type flags from the sub-tile grid against those of the destination room grids; if floor or wall special bits differ the function returns 0 (no match), otherwise 1. Called during outdoor level generation to validate sub-tile placement before objects are applied.
 BOOL __stdcall DRLGOUTDOOR_MatchSubTileTypes(int32_t nParam1, int32_t nParam2, D2DrlgWallLayerGridsStrc * pDrlgUnkn, D2LvlSubTxt * pLvlSubTxt, int * pnParam) {
     int nSubTileType;
@@ -1427,6 +1348,63 @@ void __fastcall DRLGOUTDOOR_FreeOutdoorLevelData(D2DrlgLevelStrc * pLevel, BOOL 
     pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData = 0;
 }
 
+} // namespace D2Common::Drlg::Outdoors
+
+namespace D2Common::Drlg::Outdoors::Act4 {
+
+// Spawns outdoor presets for Act4 City of Damned / Plains of Despair.
+static void DRLGOUTDOOR_SpawnAct4OutdoorPresets(D2DrlgLevelStrc * pLevel) {
+    // 0067e6c3 is LEA EAX,[EAX*0x4 + 0xfffffe60] and the loads are [EAX + 0x6f22b0] and
+    // [EAX + 0x6f22a4]. The -416 folds 104*4 out of the base so the loads index by a raw
+    // level id, and 0x6f22a4..0x6f22bf was unclaimed .rdata, so the decompiler rebased both
+    // onto the unrelated scalars sitting 416 bytes earlier and emitted (&scalar)[eD2LevelId]
+    // with eD2LevelId 105 or 106 - a read ~420 bytes past a single int.
+    // Ghidra v939 labels the real tables (aAct4OutdoorPresetBaseByLevel @0x6f22b0,
+    // aAct4OutdoorSceneryBaseByLevel @0x6f22a4) but its decompiler still prefers the earlier
+    // symbol for a folded base, so it cannot express this. Retire when the generator's
+    // interior-address pass rebases a folded base onto the symbol that owns the target range.
+    static const int aAct4OutdoorPresetBaseByLevel[3]  = {0x32c, 0x331, 0x337};
+    static const int aAct4OutdoorSceneryBaseByLevel[3] = {0x33c, 0x340, 0x340};
+
+    if (pLevel->eD2LevelId == 0x6a) {
+      SpawnOutdoorLevelPreset(pLevel, 0x32b, -1, 0, '\x0f');
+    }
+
+    int nLevelIndex = (int)pLevel->eD2LevelId - 104;
+    int nPresetBaseA = aAct4OutdoorPresetBaseByLevel[nLevelIndex];
+    int nPresetBaseB = aAct4OutdoorSceneryBaseByLevel[nLevelIndex];
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA + 1, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA + 1, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA + 2, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA + 2, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA + 3, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA + 3, -1, 0, '\x0f');
+    if (pLevel->eD2LevelId == 0x69) {
+      SpawnOutdoorLevelPreset(pLevel, 0x336, -1, 0, '\x0f');
+    }
+
+    nPresetBaseA += 4;
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseA, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseB, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseB + 1, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseB + 1, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseB + 2, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseB + 2, -1, 0, '\x0f');
+    nPresetBaseB += 3;
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseB, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseB, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseB, -1, 0, '\x0f');
+    SpawnOutdoorLevelPreset(pLevel, nPresetBaseB, -1, 0, '\x0f');
+}
+
+} // namespace D2Common::Drlg::Outdoors::Act4
+
+namespace D2Common::Drlg::Outdoors {
+
 // Places river of flame presets in Act 4 outdoor levels. Checks level data flags (0x400000 and 0x800000) to conditionally spawn LvlPrest 0x31E at two different Y positions (1 and 4).
 void DRLGOUTPLACE_PlaceAct4SpecialPresets(D2DrlgLevelStrc * pLevel) {
     D2DrlgLevelDataWildernessLevel* pDVar1 = pLevel->pDrlgLevelData.pDrlgLevelOutdoorsData;
@@ -1499,12 +1477,6 @@ void __fastcall InitAct4OutdoorLevel(D2DrlgLevelStrc * pLevel) {
       /* chaos */ BuildChaosSanctuary(pLevel);
       return;
     }
-}
-
-void AddAct124SecondaryBorderSubId213(D2DrlgLevelStrc * pLevel) {
-    AddAct124SecondaryBorder(pLevel, 2, 0x16c);
-    AddAct124SecondaryBorder(pLevel, 1, 0x16c);
-    AddAct124SecondaryBorder(pLevel, 3, 0x16c);
 }
 
 } // namespace D2Common::Drlg::Outdoors

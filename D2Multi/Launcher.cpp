@@ -418,26 +418,6 @@ BOOL __stdcall LAUNCHER_GenerateJoinGameRequestId(uint32_t pCallbackArg) {
     return 1;
 }
 
-uint32_t __stdcall LAUNCHER_ReadRegistryValue(LPCSTR szSubKey, LPCSTR szValueName, LPBYTE pbData, DWORD dwDataSize, LPDWORD pdwDataSize) {
-    DWORD dwValueType;
-    HKEY hKey;
-    /* PHKEY phkResult for RegOpenKeyExA */ /* REGSAM samDesired for RegOpenKeyExA */ /* DWORD ulOptions for RegOpenKeyExA */ /* LPCSTR lpSubKey for RegOpenKeyExA */ /* HKEY hKey for RegOpenKeyExA */ *pdwDataSize = 0;
-    LSTATUS lStatus = RegOpenKeyExA((HKEY)0x80000002, szSubKey, 0, 0x20019, &hKey);
-    if (lStatus) {
-      return 0;
-    }
-
-    /* LPDWORD lpcbData for RegQueryValueExA */ /* LPBYTE lpData for RegQueryValueExA */ /* LPDWORD lpType for RegQueryValueExA */ *pdwDataSize = dwDataSize;
-    /* LPDWORD lpReserved for RegQueryValueExA */ /* LPCSTR lpValueName for RegQueryValueExA */ /* HKEY hKey for RegQueryValueExA */ lStatus = RegQueryValueExA(hKey, szValueName, (LPDWORD)0x0, &dwValueType, pbData, pdwDataSize);
-    if (!lStatus) {
-      /* HKEY hKey for RegCloseKey */ lStatus = RegCloseKey(hKey);
-      return (uint32_t)!lStatus;
-    }
-
-    /* HKEY hKey for RegCloseKey */ RegCloseKey(hKey);
-    return 0;
-}
-
 // Sets the active state of the game-list cache control pGameListCache via D2WINMAIN_SetControlActive. Returns TRUE (MOV EAX,1 at 0043dadd); the caller ignores it.
 // Provenance: asm 0043dad0; one caller, UIMENU_WaitInLine.
 BOOL __fastcall LAUNCHER_SetGameListCacheActive(BOOL bActive) {
@@ -477,27 +457,6 @@ int __stdcall isServerDown() {
     }
 
     return -1;
-}
-
-void LAUNCHER_AllocCharSelectComponent(int32_t pCharInfo) {
-    int32_t nComponentMode = 5;
-    if (*(uint16_t*)(pCharInfo + 0x3cb) & 4 && !(*(uint16_t*)(pCharInfo + 0x3cb) & 8)) {
-      BOOL bIsExpansion;
-      bIsExpansion = Fog::D2CheckExpansionGame();
-      if (bIsExpansion || *(uint8_t*)(pCharInfo + 0x1ee) < 5) {
-        nComponentMode = 1;
-      }
-    }
-
-    gpChatDlgCharSelCompositeUnit = D2Win::Src::D2Comp::AllocCharSelectComponent((uint32_t)*(uint8_t*)(pCharInfo + 0x1ee), nComponentMode, (uint8_t*)(pCharInfo + 0x3a1), (char*)(pCharInfo + 0x3b1));
-    if (!gpChatDlgCharSelCompositeUnit) {
-      return;
-    }
-
-    D2Win::Src::D2Comp::D2COMP_SetScreenX(gpChatDlgCharSelCompositeUnit, 0x42);
-    D2Win::Src::D2Comp::D2COMP_SetScreenY(gpChatDlgCharSelCompositeUnit, 0x23b);
-    D2Win::Src::D2Comp::D2COMP_SetAnimationSpeed(gpChatDlgCharSelCompositeUnit, 0);
-    D2Win::Src::D2Comp::D2COMP_SetCurrentFrame(gpChatDlgCharSelCompositeUnit, 0);
 }
 
 static void LAUNCHER_GetDifficultyNameStringId(int32_t nDifficulty, uint16_t * wszText) {
@@ -681,55 +640,6 @@ void __stdcall CHATDLG_DestroyAllForms() {
 
     D2Win::Src::D2WinMain::FORMS_DestroyAnyForm((D2ControlStrc**)&gpCtlConfirmDialog);
     gpCtlConfirmDialog = 0;
-}
-
-void __stdcall CHATDLG_AddMultiLineText(::D2WinTextBox * pTextBox, int32_t bAddBlankLine, char * szText, int32_t nColor) {
-    char* pcNextLine;
-    char* pcNewlinePos;
-    char cCur;
-    char* pcCur = szText;
-    pcCur = pcCur + strlen(pcCur) + 1;
-    if (pcCur == szText + 1 || (int)pcCur - (int)(szText + 1) < 0) {
-      D2Win::Src::D2WinImage::D2WINTEXTBOX_SetTextFromAnsi(pTextBox, "", nColor);
-    } else if (*szText != '\0') {
-      do {
-        pcCur = szText;
-        if (*szText == '\n') {
-          *pcCur = '\0';
-          pcNextLine = pcCur + 1;
-          pcNewlinePos = pcCur;
-        } else {
-          do {
-            if (*pcCur == '\0') {
-              break;
-            }
-
-            pcCur++;
-          } while (*pcCur != '\n');
-
-          pcNextLine = pcCur;
-          pcNewlinePos = 0;
-          if (*pcCur == '\n') {
-            *pcCur = '\0';
-            pcNextLine = pcCur + 1;
-            pcNewlinePos = pcCur;
-          }
-        }
-
-        D2Win::Src::D2WinImage::D2WINTEXTBOX_SetTextFromAnsi(pTextBox, szText, nColor);
-        if (bAddBlankLine) {
-          D2Win::Src::D2WinImage::D2WINTEXTBOX_SetTextFromAnsi(pTextBox, "", nColor);
-        }
-        if (pcNewlinePos) {
-          *pcNewlinePos = '\n';
-        }
-
-        szText = pcNextLine;
-        if (*pcNextLine == '\0') {
-          return;
-        }
-      } while (true);
-    }
 }
 
 } // namespace D2Multi::Launcher

@@ -104,8 +104,6 @@ void __stdcall CMD_SetHoldAlt();
 void __stdcall CMD_StopRun();
 void __stdcall CMD_ClearClickModifier();
 void __stdcall CMD_ReleaseHoldAltAndClearSelection();
-// Validates whether a command can be bound to mouse buttons (0x103-0x104). Returns false if command handler exists and button is left/right click, true otherwise. Used during key binding setup to prevent invalid mouse button assignments.
-BOOL CMD_ValidateMouseButtonBinding(int32_t nCmdIndex, uint16_t * pErrorCode, uint32_t nMouseButton);
 int32_t SORT_CompareInts(int * pA, int * pB);
 // Rebuilds derived mouse button bindings (0x100-0x104) from command table. Scans all key bindings and populates gKeyBindingTable slots for left/right/middle/scroll/forward mouse buttons. Invalidates bindings (sets 0xFFFF) if command has no handler or conflicts with mouse-specific restrictions.
 void __stdcall CMD_RebuildDerivedBindings();
@@ -134,7 +132,6 @@ void __stdcall INPUT_HandleIMEEndComposition(struct D2UIMouseMsgStrc * pMsg);
 void __fastcall AUTOMAP_UpdatePartyNamesCallback(struct D2EscMenuItemStrc * pItem, struct D2UIMouseMsgStrc * pMsg);
 BOOL __stdcall UNITMODE_TryInteractWithObject(struct D2UnitStrc * pUnit, D2PathPointStrc pathPoint, int32_t nActionType, struct D2UnitStrc * pTargetUnit, int32_t nTargetGUID);
 void __fastcall UNITMODE_ExecuteDeferredAction(struct D2UnitStrc * pUnit);
-void SOUNDHDR_CompleteAsyncLoad(int32_t pSoundHdr);
 // The ECX slot that carries a function pointer was one variable holding three callees with two
 // different conventions - fpRequiredUserAction (bool __cdecl(void)), UI_ShowPopupDialog and
 // NET_D2GS_CLIENT_Send_0x6D_PING (void __stdcall(void)). Typing it void * split it into two register
@@ -169,7 +166,6 @@ void __fastcall thunk_ExitGamePlayCutScene(int32_t nParam);
 // Handles GS→client packet 0x89: forwards byte pBytes[1] (subcommand/type) to Storm::Source::ClientEngine::HandleIncoming0x89 for game-state update processing.
 void __fastcall NET_D2GS_CLIENT_Incoming0x89_QUESTEVENTTRIGGER(char * pBytes);
 int32_t __fastcall SEED_RollRange(struct D2SeedStrc * pSeed, int32_t nMin, int32_t nMax);
-void __stdcall OBJECT_SetLightRGB(uint8_t byRed, uint8_t byGreen, uint8_t byBlue, uint16_t nRadius, struct D2UnitStrc * pUnit);
 BOOL __fastcall OBJECT_CheckAutoLight(struct D2UnitStrc * pUnit, int32_t bSkipCofLoad);
 int __stdcall TEXT_EmptyCallback();
 void __stdcall TEXT_InitializeTextSystem();

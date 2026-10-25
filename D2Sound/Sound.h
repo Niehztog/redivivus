@@ -44,7 +44,6 @@ void __stdcall SOUND_ReleaseEAXInterfaces();
 void __fastcall SOUND_ApplyEAXEnvironment(float fParam);
 void __stdcall SOUND_ShutdownDirectSound();
 void __fastcall SOUND_Initialize(uint32_t dwLanguageCode, HWND hWnd);
-int * SOUND_GetAmbientSoundEntry(int32_t nIndex);
 void __fastcall SOUND_InitMusicBuffer(uint32_t dwHwnd);
 void __stdcall SOUND_FreeMusicBuffer();
 void __stdcall SOUND_StopSoundThread();

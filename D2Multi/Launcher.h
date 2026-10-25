@@ -35,16 +35,13 @@ void __stdcall IMAGE_LoadPredefinedImagesExEx();
 void __stdcall LAUNCHER_FreeLauncherImages();
 void __stdcall LAUNCHER_RestoreFocusToControl();
 BOOL __stdcall LAUNCHER_GenerateJoinGameRequestId(uint32_t pCallbackArg);
-uint32_t __stdcall LAUNCHER_ReadRegistryValue(LPCSTR szSubKey, LPCSTR szValueName, LPBYTE pbData, DWORD dwDataSize, LPDWORD pdwDataSize);
 // Sets the active state of the game-list cache control pGameListCache via D2WINMAIN_SetControlActive. Returns TRUE (MOV EAX,1 at 0043dadd); the caller ignores it.
 // Provenance: asm 0043dad0; one caller, UIMENU_WaitInLine.
 BOOL __fastcall LAUNCHER_SetGameListCacheActive(BOOL bActive);
 BOOL __stdcall CHATDLG_IsLobbyInitialized();
 void __stdcall LAUNCHER_DestroyLauncherForms();
 int __stdcall isServerDown();
-void LAUNCHER_AllocCharSelectComponent(int32_t pCharInfo);
 void __stdcall UIMENU_CantTestItBeacuseItCrash();
 void __stdcall CHATDLG_DestroyAllForms();
-void __stdcall CHATDLG_AddMultiLineText(::D2WinTextBox * pTextBox, int32_t bAddBlankLine, char * szText, int32_t nColor);
 
 } // namespace D2Multi::Launcher

@@ -50,6 +50,84 @@ static_assert(sizeof(void*) != 4 || sizeof(::D2DialogStrc) == 0xb10, "D2_NEW(D2D
 typedef int (__stdcall *fpDialogFunc)();
 #endif
 
+namespace D2Client::UI::ui {
+
+static void UI_ScrollNpcMenuList(int32_t nParam1, D2DialogStrc * pDialog) {
+    if (1 >= pDialog->nClickableCount) {
+      return;
+    }
+
+    int iSelectedIndex = pDialog->nSelectedLine;
+    do {
+      iSelectedIndex += nParam1;
+      if (!(iSelectedIndex < pDialog->nSubCounter)) {
+        iSelectedIndex = 0;
+      } else {
+        if (iSelectedIndex < 0) {
+          iSelectedIndex = pDialog->nSubCounter - 1;
+        }
+      }
+    } while (!pDialog->aStringData[iSelectedIndex].nCallbackParam);
+
+    Sound::SOUND_PlaySound(SOUND_CURSOR_PASS, nullptr, 0, 0, 0);
+    pDialog->nSelectedLine = iSelectedIndex;
+}
+
+static int32_t DIALOG_HandleMouseUpEvent(D2DialogStrc * pDialog, D2UIMouseMsgStrc * pMsg) {
+    int nEntryY;
+    if (!pDialog) {
+      return -1;
+    }
+
+    int32_t uMouseY = (int32_t)pMsg->uLParam.sMousePos.nMouseY;
+    uint32_t uVar1 = (uint32_t)pMsg->uLParam.sMousePos.nMouseX;
+    int nItemIndex = 0;
+    int nScrollOffset = 0;
+    if (0 >= pDialog->nSubCounter) {
+      return -1;
+    }
+
+    int32_t* pEntry = &pDialog->aStringData[0].nYPos;
+    do {
+      if (pEntry[7] == 1) {
+        nEntryY = pDialog->pCoords2.x;
+        if (nEntryY + 0xf < (int)uVar1 && (int)uVar1 < pDialog->nBackgroundWidth - 0xf + nEntryY) {
+          nEntryY = pDialog->pCoords2.y + *pEntry + nScrollOffset;
+          if (nEntryY - 0xb < uMouseY && uMouseY < nEntryY + 4) {
+            return nItemIndex;
+          }
+        }
+      }
+
+      nScrollOffset += *pEntry;
+      nItemIndex++;
+      pEntry += 0x44;
+    } while (nItemIndex < pDialog->nSubCounter);
+
+    return -1;
+}
+
+static int __stdcall DIALOG_HandleMouseDownEvent(D2DialogStrc * pDialog, D2UIMouseMsgStrc * pMsg) {
+    int32_t nHitIndex;
+    if (!pDialog) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xe1);
+      exit(-1);
+    }
+
+    int nPrevHighlight = pDialog->nSelectedLine;
+    nHitIndex = DIALOG_HandleMouseUpEvent(pDialog, pMsg);
+    pDialog->nSelectedLine = nHitIndex;
+    pDialog->nHighlightFrame = nHitIndex;
+    if (!(nHitIndex != nPrevHighlight && nHitIndex != -1)) {
+      return 0;
+    }
+
+    Sound::SOUND_PlaySound(SOUND_CURSOR_PASS, nullptr, 0, 0, 0);
+    return 1;
+}
+
+} // namespace D2Client::UI::ui
+
 namespace D2Client::UI::Dialog {
 
 void __stdcall INPUT_DialogClickHandler(D2UIMouseMsgStrc * pMsg) {

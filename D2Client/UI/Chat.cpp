@@ -1607,32 +1607,6 @@ int UI_SLIDER_GetValueFromPosition(int32_t nCurrentPos, int32_t nMinPos, D2EscMe
     return nResultValue;
 }
 
-int UI_SLIDER_GetPositionFromValue(int32_t nMinPos, D2EscMenuItemStrc * pSliderItem, int32_t nMaxPos) {
-    float fRange = (float)(nMaxPos - nMinPos);
-    if (nMaxPos - nMinPos < 0) {
-      fRange += 4.2949673e+09;
-    }
-
-    int nSteps = pSliderItem->nSubImageCount - 1;
-    float fStepCount = (float)nSteps;
-    if (nSteps < 0) {
-      fStepCount += 4.2949673e+09;
-    }
-
-    float fCurrentValue = (float)pSliderItem->nImageIndex;
-    if (pSliderItem->nImageIndex < 0) {
-      fCurrentValue += 4.2949673e+09;
-    }
-
-    float fBasePos = (float)nMinPos;
-    if (nMinPos < 0) {
-      fBasePos += 4.2949673e+09;
-    }
-
-    int32_t nResultPos = (int32_t)(int64_t)std::nearbyint(fBasePos + fCurrentValue * (fRange / fStepCount));
-    return nResultPos;
-}
-
 void __fastcall UI_SLIDER_ApplyMasterVolume(D2EscMenuItemStrc * pItem, D2UIMouseMsgStrc * pMsg) {
     int nCurrentVolume = D2Sound::Src::D2SoundFast::SOUND_GetMasterVolume();
     int32_t nSliderValue = UI_SLIDER_GetValueFromPosition(100, 0, pItem, nCurrentVolume);

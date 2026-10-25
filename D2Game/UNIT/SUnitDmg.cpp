@@ -2904,6 +2904,137 @@ void __fastcall DAMAGE_CalculateAndApplyDamage(::SGAMEDATA * pGame, D2UnitStrc *
     DAMAGE_AddDamageListEntry((int32_t)pGame, &pDamage->dwHitFlags, (int*)pUnit, (int*)pVictim);
 }
 
+} // namespace D2Game::UNIT::SUnitDmg
+
+namespace D2Common::Unit::SUnitDmg {
+
+// Rolls a unit's passive defensive avoidance against an incoming attack. For players in Run/Walk mode (or matching monster mode) rolls passive_evade; otherwise checks dodge (passive_dodge) when nParam==0 or avoid (passive_avoid) when nParam!=0, plus a weapon-class-0xD parry/block path keyed on DAMAGE_GetSkillDamageBonus. Uses the unit RNG seed (advances pUnit->sSeed). Returns a result bitcode: 0x10 (block/parry), 8 (evade), 4 (dodge), 2 (avoid), or 0 (none). __fastcall with pUnit in ESI, attacker pUnit2 in EDI.
+static uint32_t __stdcall DAMAGE_CheckDefenseEvasion(int32_t nParam, D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+    int32_t nParryBonus;
+    uint32_t nRandRoll;
+    int nDodgeChance;
+    uint32_t nEvadeRoll;
+    int nAvoidChance;
+    uint32_t nWeaponClass3;
+    int32_t nDebugAddr;
+    uint32_t dwSeedLow;
+    eD2PlayerAnimMode eAnimMode;
+    char* nSeedMod;
+    int32_t nSkillBonus;
+    D2UnitStrc* pDefender;
+    uint32_t nWeaponClass2;
+    nWeaponClass2 = 0;
+    if (pUnit) {
+      D2SeedStrc DVar1;
+      eAnimMode = pUnit->eAnimMode.ePlayerMode;
+      if (pUnit->eUnitType == UNIT_PLAYER) {
+        if (eAnimMode == eD2PlayerAnimMode_ns::Run || eAnimMode == Walk) {
+          nParam = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_passive_evade, 0);
+          if (nParam < 1) {
+            return 0;
+          }
+
+          dwSeedLow = pUnit->sSeed.nSeedLow;
+          roll_evade:
+          DVar1 = D2_SEED_NEXT(pUnit->sSeed);
+          pUnit->sSeed = DVar1;
+          nAvoidChance = DVar1.nSeedLow % 100;
+          nSeedMod = "evades";
+          nParryBonus = nParam;
+          nDodgeChance = nAvoidChance;
+          D2Game::UNIT::SUnit::GetGamePointer(pUnit2);
+          D2Game::nullsub_4Arg(pUnit, nParryBonus, nDodgeChance, (uint32_t)nSeedMod);
+          nRandRoll = 8;
+          if (nParam > nAvoidChance) {
+            return nRandRoll;
+          }
+
+          nRandRoll = nWeaponClass2;
+          return nRandRoll;
+        }
+
+        nParryBonus = D2Game::UNIT::SUnitDmg::DAMAGE_GetSkillDamageBonus(pUnit);
+        if (0 < nParryBonus) {
+          COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pUnit->pInventory, &nWeaponClass2, -1, 1);
+          if (nWeaponClass2 == 0xd) {
+            nRandRoll = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 100);
+            nDebugAddr = (int32_t)s_block_006e1730;
+            pDefender = pUnit;
+            nSkillBonus = nParryBonus;
+            nWeaponClass3 = nRandRoll;
+            D2Game::UNIT::SUnit::GetGamePointer(pUnit2);
+            D2Game::nullsub_4Arg(pDefender, nSkillBonus, nRandRoll, nDebugAddr);
+            if ((int)nWeaponClass3 < nParryBonus) {
+              return 0x10;
+            }
+          }
+        }
+
+        goto roll_dodge_or_avoid;
+      }
+      if (eAnimMode == eD2PlayerAnimMode_ns::Skill3 || eAnimMode == Walk) {
+        nParam = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_passive_evade, 0);
+        if (nParam < 1) {
+          return 0;
+        }
+
+        dwSeedLow = pUnit->sSeed.nSeedLow;
+        goto roll_evade;
+      }
+    }
+
+    nParryBonus = D2Game::UNIT::SUnitDmg::DAMAGE_GetSkillDamageBonus(pUnit);
+    if (0 < nParryBonus) {
+      COMPOSIT::Composit::COMPOSIT_GetWeaponClassWithTransform(pUnit, pUnit->pInventory, &nWeaponClass3, -1, 1);
+      if (nWeaponClass3 == 0xd) {
+        nRandRoll = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 100);
+        nSeedMod = "block";
+        pDefender = pUnit;
+        nSkillBonus = nParryBonus;
+        nWeaponClass2 = nRandRoll;
+        D2Game::UNIT::SUnit::GetGamePointer(pUnit2);
+        D2Game::nullsub_4Arg(pDefender, nSkillBonus, nRandRoll, (uint32_t)nSeedMod);
+        if ((int)nWeaponClass2 < nParryBonus) {
+          return 0x10;
+        }
+      }
+    }
+
+    roll_dodge_or_avoid:
+    if (!nParam) {
+      nDodgeChance = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_passive_dodge, 0);
+      if (0 < nDodgeChance) {
+        nEvadeRoll = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 100);
+        nSeedMod = "dodges";
+        nAvoidChance = nDodgeChance;
+        nRandRoll = nEvadeRoll;
+        D2Game::UNIT::SUnit::GetGamePointer(pUnit2);
+        D2Game::nullsub_4Arg(pUnit, nAvoidChance, nRandRoll, (uint32_t)nSeedMod);
+        if ((int)nEvadeRoll < nDodgeChance) {
+          return 4;
+        }
+      }
+    } else {
+      nDodgeChance = Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_passive_avoid, 0);
+      if (0 < nDodgeChance) {
+        nEvadeRoll = D2Client::Archive::UNIT_GetModuloFromSeed(&pUnit->sSeed, 100);
+        nSeedMod = "avoids";
+        nAvoidChance = nDodgeChance;
+        nRandRoll = nEvadeRoll;
+        D2Game::UNIT::SUnit::GetGamePointer(pUnit2);
+        D2Game::nullsub_4Arg(pUnit, nAvoidChance, nRandRoll, (uint32_t)nSeedMod);
+        if ((int)nEvadeRoll < nDodgeChance) {
+          return 2;
+        }
+      }
+    }
+    return 0;
+}
+
+} // namespace D2Common::Unit::SUnitDmg
+
+namespace D2Game::UNIT::SUnitDmg {
+
 // Returns the highest weapon-type-conditional skill damage bonus (stat 0x15C) applicable to the unit's currently equipped weapons (left and right arm slots). Iterates all bonus entries; an entry with ITEMTYPE_None1 matches unconditionally. Returns 0 if unit is null or no matching bonus is found.
 int32_t DAMAGE_GetSkillDamageBonus(D2UnitStrc * pUnit) {
     eD2ItemTypes eItemType;

@@ -57,6 +57,74 @@
 static_assert(sizeof(void*) != 4 || sizeof(::D2DrlgLevelLinkNodeStrc) == 0x10, "D2_NEW(D2DrlgLevelLinkNodeStrc): the 32-bit layout must be the 0x10 bytes 1.14d allocates");
 
 
+namespace D2Common::Drlg {
+
+// Positions a replacement DRLG room adjacent to an existing room in one of 8 directions (0-7: W, N, E, S, and the four diagonals) by computing the new room's world position from the source room's position and size, then validates the placement: walks the source room's orth (adjacency) list calling FreeRoomEx, and returns the Manhattan-distance-based fitness from ComputeRectanglesManhattanDistance. Returns 0/false (as a float-derived bool) if any adjacency check fails or direction is out of range. Mutates pNewRoom's coords in place. (pRoomExStrc passed in ESI.)
+int __stdcall ReplaceRoomWithNewRoom(int nDirection, D2RoomExStrc * pNewRoom, D2RoomExStrc * pRoomExStrc) {
+    int nCoordVal;
+    BOOL fManhattanDist;
+    D2DrlgOrthStrc* pRoomData;
+    D2DrlgCoordsStrc* pCoords;
+    pCoords = &pNewRoom->sCoords;
+    switch (nDirection) {
+      case 0:
+        pCoords->WorldPosition.x = pRoomExStrc->sCoords.WorldPosition.x - pRoomExStrc->sCoords.WorldSize.x;
+      nCoordVal = pRoomExStrc->sCoords.WorldPosition.y;
+      break;
+      case 1:
+        pCoords->WorldPosition.x = pRoomExStrc->sCoords.WorldPosition.x;
+      nCoordVal = pRoomExStrc->sCoords.WorldPosition.y - pRoomExStrc->sCoords.WorldSize.y;
+      break;
+      case 2:
+        pCoords->WorldPosition.x = pRoomExStrc->sCoords.WorldSize.x + pRoomExStrc->sCoords.WorldPosition.x;
+      nCoordVal = pRoomExStrc->sCoords.WorldPosition.y;
+      break;
+      case 3:
+        nCoordVal = pRoomExStrc->sCoords.WorldPosition.x;
+      goto set_x_and_y_below;
+      case 4:
+        pCoords->WorldPosition.x = pRoomExStrc->sCoords.WorldPosition.x - pRoomExStrc->sCoords.WorldSize.x;
+      nCoordVal = pRoomExStrc->sCoords.WorldPosition.y - pRoomExStrc->sCoords.WorldSize.y;
+      break;
+      case 5:
+        pCoords->WorldPosition.x = pRoomExStrc->sCoords.WorldSize.x + pRoomExStrc->sCoords.WorldPosition.x;
+      nCoordVal = pRoomExStrc->sCoords.WorldPosition.y - pRoomExStrc->sCoords.WorldSize.y;
+      break;
+      case 6:
+        nCoordVal = pRoomExStrc->sCoords.WorldSize.x + pRoomExStrc->sCoords.WorldPosition.x;
+      goto set_x_and_y_below;
+      case 7:
+        nCoordVal = pRoomExStrc->sCoords.WorldPosition.x - pRoomExStrc->sCoords.WorldSize.x;
+      set_x_and_y_below:
+      pCoords->WorldPosition.x = nCoordVal;
+      nCoordVal = pRoomExStrc->sCoords.WorldSize.y + pRoomExStrc->sCoords.WorldPosition.y;
+      break;
+      default:
+        goto check_orth_overlap;
+    }
+
+    pNewRoom->sCoords.WorldPosition.y = nCoordVal;
+    check_orth_overlap:
+    pRoomData = pRoomExStrc->pOrth;
+    while (true) {
+      if (!pRoomData) {
+        fManhattanDist = DrlgRoom::ComputeRectanglesManhattanDistance(pNewRoom->pLevel, pNewRoom, pRoomExStrc, 0);
+        return fManhattanDist;
+      }
+
+      nCoordVal = DrlgRoom::DRLGROOM_CoordsWithinDistance(pCoords, pRoomData->psCoordinatesAndSize, 0);
+      if (!nCoordVal) {
+        break;
+      }
+
+      pRoomData = pRoomData->pNext;
+    }
+
+    return 0;
+}
+
+} // namespace D2Common::Drlg
+
 namespace D2Common::Drlg::Maze {
 
 // Selects the maze/preset .ds1 room file for a DRLG room based on its connectivity and level type. Walks the room's orth (connection) list to build a 4-bit direction bitmask (SE=1,SW=2,NW=4,NE=8), then maps that mask to a global preset index using the room's level-type: most level types add a fixed base offset to the mask, while special types (0xE,0xF,0x17,0x20,0x23) index gaMazePresetLookup/gaMazePresetLookupExt tables, with extra per-eD2LevelId overrides (e.g. specific Worldstone/Throne rooms). Writes the chosen preset index and variant into pRoomEx->pRoomExData[0]/[1] and sets a placement flag in [3]. Returns pRoomEx.
@@ -322,7 +390,7 @@ static D2RoomExStrc * __stdcall AllocateRoomEx(D2RoomExStrc * pSourceRoom, eDrlg
     return pDrlgRoomExAllocated;
 }
 
-D2RoomExStrc * __stdcall DRLGMAZE_AllocRoomExAndPickPreset(eDrlgDirection eDir, D2RoomExStrc * pSourceRoom, uint32_t argPresetIndex, uint32_t argVariant, int32_t argPickSource) {
+static D2RoomExStrc * __stdcall DRLGMAZE_AllocRoomExAndPickPreset(eDrlgDirection eDir, D2RoomExStrc * pSourceRoom, uint32_t argPresetIndex, uint32_t argVariant, int32_t argPickSource) {
     bool _bReplaceOk;
     bool bReplaceOk;
     D2RoomExStrc* pNewRoom = DrlgRoom::DRLGROOMEX_AllocRoomEx(pSourceRoom->pLevel, 2);
@@ -372,7 +440,7 @@ D2RoomExStrc * __stdcall DRLGMAZE_AllocRoomAndPickPreset(eDrlgDirection eDirecti
 }
 
 // Scans the level's room list for the first non-preset room, allocates a new RoomEx at the maze tile size, attempts to place it adjacent in nDirection via ReplaceRoomWithNewRoom, and on success links both rooms, adds the new room to the level, assigns nPresetIndex/nVariant, and marks it as having a preset DS1. Returns the new room pointer or NULL on failure.
-D2RoomExStrc * __stdcall ReplaceRoomWith(int32_t nDirection, int32_t nPresetIndex, int32_t nVariant, D2DrlgLevelStrc * pLevel) {
+static D2RoomExStrc * __stdcall ReplaceRoomWith(int32_t nDirection, int32_t nPresetIndex, int32_t nVariant, D2DrlgLevelStrc * pLevel) {
     D2DrlgPresetRoomStrc* pDVar1;
     BOOL bReplaceOk;
     D2LvlMazeTxt* pMazeTxt;
@@ -592,7 +660,7 @@ static void __stdcall ActualLevelGeneration(D2DrlgLevelStrc * pLevel) {
 
 // Iterates all rooms in pLevel and attempts to expand each non-skipped room in all 8 directions. For each successful expansion, allocates a new room with pDrlgLevelData dimensions, links it via DRLGROOMEX_AllocNodesForBothRoomEx, and marks its preset data with the 'has preset' flag. Frees the temp room pointer array after processing. Source: .\DRLG\Maze.cpp line 0x288.
 // @sourcefile .\DRLG\Maze.cpp
-void __stdcall DRLGMAZE_ExpandRoomsWithPresets(D2DrlgLevelStrc * pLevel, uint32_t argDefaultPresetId, D2RoomExStrc * argSkipRoom) {
+static void __stdcall DRLGMAZE_ExpandRoomsWithPresets(D2DrlgLevelStrc * pLevel, uint32_t argDefaultPresetId, D2RoomExStrc * argSkipRoom) {
     int bReplaced;
     D2RoomExStrc** pRoomPtr;
     D2LvlMazeTxt* pLvlMazeTxt;
@@ -801,7 +869,7 @@ static BOOL DRLGMAZE_CanPlaceRoomInDirection(eDrlgDirection param_eax, int * pRo
 }
 
 // Finds the top-most room in the level by iterating RoomEx list and comparing Y coordinates.
-D2RoomExStrc * DRLGMAZE_FindTopMostRoom(D2DrlgLevelStrc * pLevel) {
+static D2RoomExStrc * DRLGMAZE_FindTopMostRoom(D2DrlgLevelStrc * pLevel) {
     BOOL bCanPlace;
     D2RoomExStrc* pRoomEx;
     D2RoomExStrc* pTopMost = 0;
@@ -903,6 +971,1299 @@ uint32_t * __stdcall ReplaceRoom(D2DrlgReplaceRoomStrc * pDrlgReplaceRoom, D2Drl
     *pRoll = nNextRoll;
     return pRoll;
 }
+
+} // namespace D2Common::Drlg::Maze
+
+namespace D2Common::Drlg::Maze::Act1 {
+
+// DRLG maze room-placement routine for the Act 1 Caves level family. Advances the level RNG seed and derives a 0-3 roll, then applies up to several ReplaceRoom passes from per-level replacement tables: a base pass (gaDrlgCavesReplacements_A) plus a level-specific pass (table B for eD2LevelId 8, else C), and extra passes for level 9 (table D) and level 10 (table E). Mutates pLevel's room layout in place. __fastcall with pLevel in ESI.
+static void Caves(D2DrlgLevelStrc * pLevel) {
+    // Static local variables (originally global data)
+    static D2DrlgReplaceRoomStrc gaDrlgCavesReplacements_A[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x3c,
+        /* .nDestLevelPrestId = */ 0x56,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x36,
+        /* .nDestLevelPrestId = */ 0x54,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x38,
+        /* .nDestLevelPrestId = */ 0x55,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x35,
+        /* .nDestLevelPrestId = */ 0x53,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgCavesReplacements_B[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x3c,
+        /* .nDestLevelPrestId = */ 0x62,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x36,
+        /* .nDestLevelPrestId = */ 0x60,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x38,
+        /* .nDestLevelPrestId = */ 0x61,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x35,
+        /* .nDestLevelPrestId = */ 0x5f,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgCavesReplacements_C[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x3c,
+        /* .nDestLevelPrestId = */ 0x5e,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x36,
+        /* .nDestLevelPrestId = */ 0x5c,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x38,
+        /* .nDestLevelPrestId = */ 0x5d,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x35,
+        /* .nDestLevelPrestId = */ 0x5b,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgCavesReplacements_D[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x3c,
+        /* .nDestLevelPrestId = */ 0x66,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x36,
+        /* .nDestLevelPrestId = */ 0x64,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x38,
+        /* .nDestLevelPrestId = */ 0x65,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x35,
+        /* .nDestLevelPrestId = */ 0x63,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgCavesReplacements_E[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x3c,
+        /* .nDestLevelPrestId = */ 0x5a,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x36,
+        /* .nDestLevelPrestId = */ 0x58,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x38,
+        /* .nDestLevelPrestId = */ 0x59,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x35,
+        /* .nDestLevelPrestId = */ 0x57,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+
+    D2DrlgReplaceRoomStrc* pReplaceTable;
+    D2SeedStrc sNewSeed = D2_SEED_NEXT(pLevel->sSeed);
+    pLevel->sSeed = sNewSeed;
+    uint32_t nRoll = sNewSeed.nSeedLow & 3;
+    ReplaceRoom(gaDrlgCavesReplacements_A + nRoll, pLevel, &nRoll);
+    if (pLevel->eD2LevelId == 8) {
+      pReplaceTable = gaDrlgCavesReplacements_B;
+    } else {
+      pReplaceTable = gaDrlgCavesReplacements_C;
+    }
+
+    ReplaceRoom(pReplaceTable + nRoll, pLevel, &nRoll);
+    if (pLevel->eD2LevelId == 9) {
+      ReplaceRoom(gaDrlgCavesReplacements_D + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId != 10) {
+      return;
+    }
+
+    ReplaceRoom(gaDrlgCavesReplacements_E + nRoll, pLevel, &nRoll);
+}
+
+// DRLG maze layout pass for Act 1 Crypt/Mausoleum tombs. Advances the level's LCG seed once, derives a 2-bit roll (seed &amp; 3), and applies room-replacement templates from the gaDrlgCryptReplacements_A..D tables keyed by that roll. Which extra template set applies depends on eD2LevelId: set B for level 0x12 (Crypt), set C for 0x13/0x85 (Mausoleum/special), set D for the 0x15..0x18 range. Mutates pLevel->sSeed and selects rooms in place.
+static void Crypt(D2DrlgLevelStrc * pLevel) {
+    // Static local variables (originally global data)
+    static D2DrlgReplaceRoomStrc gaDrlgCryptReplacements_A[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x74,
+        /* .nDestLevelPrestId = */ 0x8e,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x6e,
+        /* .nDestLevelPrestId = */ 0x8c,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x70,
+        /* .nDestLevelPrestId = */ 0x8d,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x6d,
+        /* .nDestLevelPrestId = */ 0x8b,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgCryptReplacements_B[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x74,
+        /* .nDestLevelPrestId = */ 0x96,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x6e,
+        /* .nDestLevelPrestId = */ 0x94,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x70,
+        /* .nDestLevelPrestId = */ 0x95,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x6d,
+        /* .nDestLevelPrestId = */ 0x93,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgCryptReplacements_C[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x74,
+        /* .nDestLevelPrestId = */ 0x9a,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x6e,
+        /* .nDestLevelPrestId = */ 0x98,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x70,
+        /* .nDestLevelPrestId = */ 0x99,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x6d,
+        /* .nDestLevelPrestId = */ 0x97,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgCryptReplacements_D[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x74,
+        /* .nDestLevelPrestId = */ 0x92,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x6e,
+        /* .nDestLevelPrestId = */ 0x90,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x70,
+        /* .nDestLevelPrestId = */ 0x91,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x6d,
+        /* .nDestLevelPrestId = */ 0x8f,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+
+    D2SeedStrc DVar1 = D2_SEED_NEXT(pLevel->sSeed);
+    pLevel->sSeed = DVar1;
+    uint32_t nRoll = DVar1.nSeedLow & 3;
+    ReplaceRoom(gaDrlgCryptReplacements_A + nRoll, pLevel, &nRoll);
+    if (pLevel->eD2LevelId == 0x12) {
+      ReplaceRoom(gaDrlgCryptReplacements_B + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId == 0x13 || pLevel->eD2LevelId == 0x85) {
+      ReplaceRoom(gaDrlgCryptReplacements_C + nRoll, pLevel, &nRoll);
+    }
+    if (!(0x15 <= pLevel->eD2LevelId && pLevel->eD2LevelId <= 0x18)) {
+      return;
+    }
+
+    ReplaceRoom(gaDrlgCryptReplacements_D + nRoll, pLevel, &nRoll);
+}
+
+} // namespace D2Common::Drlg::Maze::Act1
+
+namespace D2Common::Drlg::Maze::Act1::Catacombs {
+
+// Randomly selects and places variant rooms for the Act 1 Catacombs level during maze generation. Advances the level seed (LCG step), picks a variant index (seed & 3) from gaDrlgCatacombsReplacements_A, and calls ReplaceRoom. For level 0x23 (Catacombs 4), also applies a second replacement set (gaDrlgCatacombsReplacements_B) for the special room layout.
+static void DRLGMAZE_ReplaceCatacombsRooms(D2DrlgLevelStrc * pDrlgLevelStrc) {
+    // Static local variables (originally global data)
+    static D2DrlgReplaceRoomStrc gaDrlgCatacombsReplacements_A[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x109,
+        /* .nDestLevelPrestId = */ 0x126,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x103,
+        /* .nDestLevelPrestId = */ 0x124,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x105,
+        /* .nDestLevelPrestId = */ 0x125,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x102,
+        /* .nDestLevelPrestId = */ 0x123,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgCatacombsReplacements_B[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x109,
+        /* .nDestLevelPrestId = */ 0x12a,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x103,
+        /* .nDestLevelPrestId = */ 0x128,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x105,
+        /* .nDestLevelPrestId = */ 0x129,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x102,
+        /* .nDestLevelPrestId = */ 0x127,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+
+    D2SeedStrc sNewSeed = D2_SEED_NEXT(pDrlgLevelStrc->sSeed);
+    pDrlgLevelStrc->sSeed = sNewSeed;
+    uint32_t nVariant = sNewSeed.nSeedLow & 3;
+    ReplaceRoom(gaDrlgCatacombsReplacements_A + nVariant, pDrlgLevelStrc, &nVariant);
+    if (pDrlgLevelStrc->eD2LevelId != 0x23) {
+      return;
+    }
+
+    ReplaceRoom(gaDrlgCatacombsReplacements_B + nVariant, pDrlgLevelStrc, &nVariant);
+}
+
+} // namespace D2Common::Drlg::Maze::Act1::Catacombs
+
+namespace D2Common::Drlg::Maze::Act2::Sewer {
+
+// DRLG maze generator for the Act 2 Sewers level group. Advances the level seed twice to pick a random connection direction and a 0-3 layout variant. Dispatches on eD2LevelId: for the main sewer level (0x2F) it builds the room chain by allocating RoomEx rooms from the top-most and right-most anchor rooms, sizing each from its DrlgLevelData, replacing/linking them (ReplaceRoomWithNewRoom + AllocNodesForBothRoomEx), picking presets, and appending extra rooms in the chosen directions, finishing with a variant-selected ReplaceRoom from gaDrlgSewerReplacements_C. The other levels (0x30/0x31/0x41) just apply variant-indexed ReplaceRoom table entries (area + A/B/C/D replacement tables) to stamp the maze layout. No return value.
+static void DRLGMAZE_GenerateSewerLevel(D2DrlgLevelStrc * pDrlgLevelStrc) {
+    // Static local variables (originally global data)
+    static D2DrlgReplaceRoomStrc gaDrlgSewerAreaReplacements[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x135,
+        /* .nDestLevelPrestId = */ 0x14f,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12f,
+        /* .nDestLevelPrestId = */ 0x14d,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x131,
+        /* .nDestLevelPrestId = */ 0x14e,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12e,
+        /* .nDestLevelPrestId = */ 0x14c,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgSewerReplacements_C[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x135,
+        /* .nDestLevelPrestId = */ 0x154,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12f,
+        /* .nDestLevelPrestId = */ 0x152,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x131,
+        /* .nDestLevelPrestId = */ 0x153,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12e,
+        /* .nDestLevelPrestId = */ 0x151,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgSewerReplacements_D[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x135,
+        /* .nDestLevelPrestId = */ 0x15c,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12f,
+        /* .nDestLevelPrestId = */ 0x15a,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x131,
+        /* .nDestLevelPrestId = */ 0x15b,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12e,
+        /* .nDestLevelPrestId = */ 0x159,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgSewerReplacements_A[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x135,
+        /* .nDestLevelPrestId = */ 0x158,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12f,
+        /* .nDestLevelPrestId = */ 0x156,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x131,
+        /* .nDestLevelPrestId = */ 0x157,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12e,
+        /* .nDestLevelPrestId = */ 0x155,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgSewerReplacements_B[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x135,
+        /* .nDestLevelPrestId = */ 0x160,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12f,
+        /* .nDestLevelPrestId = */ 0x15e,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x131,
+        /* .nDestLevelPrestId = */ 0x15f,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x12e,
+        /* .nDestLevelPrestId = */ 0x15d,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+
+    D2RoomExStrc* pNewRoom;
+    int fReplaceResult;
+    int iVar1;
+    D2RoomExStrc* pRoomEx;
+    D2RoomExStrc* pTempRoom;
+    D2LvlMazeTxt* pLvlMazeTxt;
+    D2LvlMazeTxt* pLvlData;
+    D2SeedStrc sNewSeed = D2_SEED_NEXT(pDrlgLevelStrc->sSeed);
+    pDrlgLevelStrc->sSeed = sNewSeed;
+    eDrlgDirection eDir = (sNewSeed.nSeedLow & 1) * 2 | DIRECTION_NORTHEAST;
+    sNewSeed = D2_SEED_NEXT(pDrlgLevelStrc->sSeed);
+    pDrlgLevelStrc->sSeed = sNewSeed;
+    uint32_t nVariant = sNewSeed.nSeedLow & 3;
+    switch (pDrlgLevelStrc->eD2LevelId) {
+      case 0x2f:
+        pNewRoom = DRLGMAZE_FindTopMostRoom(pDrlgLevelStrc);
+      pTempRoom = DrlgRoom::DRLGROOMEX_AllocRoomEx(pNewRoom->pLevel, 2);
+      pLvlMazeTxt = pTempRoom->pLevel->pDrlgLevelData.pTxtLvlMaze;
+      pTempRoom->sCoords.WorldSize.x = pLvlMazeTxt->SizeX;
+      pTempRoom->sCoords.WorldSize.y = pLvlMazeTxt->SizeY;
+      fReplaceResult = ReplaceRoomWithNewRoom(1, pTempRoom, pNewRoom);
+      if (!fReplaceResult) {
+        DrlgRoom::DRLGROOMEX_FreeDrlgRoomEx(pTempRoom);
+        pTempRoom = 0;
+      } else {
+        DrlgRoom::DRLGROOMEX_AllocNodesForBothRoomEx(pNewRoom, pTempRoom, 1);
+        DRLGMAZE_PickRoomPresets(pTempRoom);
+        DrlgRoom::AddRoomExToLevel(pNewRoom->pLevel, pTempRoom);
+        DRLGMAZE_PickRoomPreset(pNewRoom, 1);
+        DRLGMAZE_PickRoomPreset(pTempRoom, 1);
+      }
+
+      pNewRoom = DrlgRoom::DRLGROOMEX_AllocRoomEx(pTempRoom->pLevel, 2);
+      pLvlData = pNewRoom->pLevel->pDrlgLevelData.pTxtLvlMaze;
+      pNewRoom->sCoords.WorldSize.x = pLvlData->SizeX;
+      pNewRoom->sCoords.WorldSize.y = pLvlData->SizeY;
+      iVar1 = ReplaceRoomWithNewRoom(1, pNewRoom, pTempRoom);
+      if (!iVar1) {
+        DrlgRoom::DRLGROOMEX_FreeDrlgRoomEx(pNewRoom);
+        pNewRoom = 0;
+      } else {
+        DrlgRoom::DRLGROOMEX_AllocNodesForBothRoomEx(pTempRoom, pNewRoom, 1);
+        DRLGMAZE_PickRoomPresets(pNewRoom);
+        DrlgRoom::AddRoomExToLevel(pTempRoom->pLevel, pNewRoom);
+        DRLGMAZE_PickRoomPreset(pTempRoom, 1);
+        DRLGMAZE_PickRoomPreset(pNewRoom, 1);
+      }
+
+      DRLGMAZE_AllocRoomExAndPickPreset(DIRECTION_SOUTHEAST, pNewRoom, 0x14d, 0, 1);
+      pNewRoom = DRLGMAZE_FindRightMostRoom(pDrlgLevelStrc);
+      pTempRoom = DrlgRoom::DRLGROOMEX_AllocRoomEx(pNewRoom->pLevel, 2);
+      pLvlData = pTempRoom->pLevel->pDrlgLevelData.pTxtLvlMaze;
+      pTempRoom->sCoords.WorldSize.x = pLvlData->SizeX;
+      pTempRoom->sCoords.WorldSize.y = pLvlData->SizeY;
+      iVar1 = ReplaceRoomWithNewRoom(2, pTempRoom, pNewRoom);
+      if (!iVar1) {
+        DrlgRoom::DRLGROOMEX_FreeDrlgRoomEx(pTempRoom);
+        pTempRoom = 0;
+      } else {
+        DrlgRoom::DRLGROOMEX_AllocNodesForBothRoomEx(pNewRoom, pTempRoom, 2);
+        DRLGMAZE_PickRoomPresets(pTempRoom);
+        DrlgRoom::AddRoomExToLevel(pNewRoom->pLevel, pTempRoom);
+        DRLGMAZE_PickRoomPreset(pNewRoom, 1);
+        DRLGMAZE_PickRoomPreset(pTempRoom, 1);
+      }
+
+      pNewRoom = DrlgRoom::DRLGROOMEX_AllocRoomEx(pTempRoom->pLevel, 2);
+      pLvlData = pNewRoom->pLevel->pDrlgLevelData.pTxtLvlMaze;
+      pNewRoom->sCoords.WorldSize.x = pLvlData->SizeX;
+      pNewRoom->sCoords.WorldSize.y = pLvlData->SizeY;
+      iVar1 = ReplaceRoomWithNewRoom(2, pNewRoom, pTempRoom);
+      if (!iVar1) {
+        DrlgRoom::DRLGROOMEX_FreeDrlgRoomEx(pNewRoom);
+        pNewRoom = 0;
+      } else {
+        DrlgRoom::DRLGROOMEX_AllocNodesForBothRoomEx(pTempRoom, pNewRoom, 2);
+        DRLGMAZE_PickRoomPresets(pNewRoom);
+        DrlgRoom::AddRoomExToLevel(pTempRoom->pLevel, pNewRoom);
+        DRLGMAZE_PickRoomPreset(pTempRoom, 1);
+        DRLGMAZE_PickRoomPreset(pNewRoom, 1);
+      }
+
+      pNewRoom = DRLGMAZE_AllocRoomExAndPickPreset(eDir, pNewRoom, 0x150, 0, 1);
+      pRoomEx = DrlgRoom::DRLGROOMEX_AllocRoomEx(pNewRoom->pLevel, 2);
+      pLvlData = pRoomEx->pLevel->pDrlgLevelData.pTxtLvlMaze;
+      pRoomEx->sCoords.WorldSize.x = pLvlData->SizeX;
+      pRoomEx->sCoords.WorldSize.y = pLvlData->SizeY;
+      iVar1 = ReplaceRoomWithNewRoom(eDir, pRoomEx, pNewRoom);
+      if (!iVar1) {
+        DrlgRoom::DRLGROOMEX_FreeDrlgRoomEx(pRoomEx);
+      } else {
+        DrlgRoom::DRLGROOMEX_AllocNodesForBothRoomEx(pNewRoom, pRoomEx, eDir);
+        DrlgRoom::AddRoomExToLevel(pNewRoom->pLevel, pRoomEx);
+        DRLGMAZE_PickRoomPreset(pRoomEx, 1);
+      }
+
+      ReplaceRoom(gaDrlgSewerReplacements_C + nVariant, pDrlgLevelStrc, &nVariant);
+      return;
+      case 0x30:
+        ReplaceRoom(gaDrlgSewerAreaReplacements + nVariant, pDrlgLevelStrc, &nVariant);
+      ReplaceRoom(gaDrlgSewerReplacements_D + nVariant, pDrlgLevelStrc, &nVariant);
+      ReplaceRoom(gaDrlgSewerReplacements_C + nVariant, pDrlgLevelStrc, &nVariant);
+      return;
+      case 0x31:
+        ReplaceRoom(gaDrlgSewerAreaReplacements + nVariant, pDrlgLevelStrc, &nVariant);
+      ReplaceRoom(gaDrlgSewerReplacements_A + nVariant, pDrlgLevelStrc, &nVariant);
+      return;
+      case 0x41:
+        ReplaceRoom(gaDrlgSewerAreaReplacements + nVariant, pDrlgLevelStrc, &nVariant);
+      ReplaceRoom(gaDrlgSewerReplacements_B + nVariant, pDrlgLevelStrc, &nVariant);
+    }
+}
+
+} // namespace D2Common::Drlg::Maze::Act2::Sewer
+
+namespace D2Common::Drlg::Maze::Act2::Tombs {
+
+// Act 2 Tombs DRLG post-pass: rotates and swaps in the special area rooms for a generated tomb level. Scans the level's RoomEx list for the orientation marker room (id 0x1bc-0x1bf) and maps it to a rotation index nRoll (0-3). Then, keyed on the level's eD2LevelId, replaces tile rooms by indexing the appropriate gaDrlg*ReplaceAreas_* room tables (offset by nRoll) via ReplaceRoom - handling the false tombs (0x37-0x3a), Tal Rasha's chamber/Canyon variants (0x39/0x3b/0x3c/0x3d), the orifice room in the real Tomb (nAct2_RealTombLevel), and the big-tomb (nAct2_BigTomb) special. Halts via Fog ErrorManager if no valid orientation room is found. Mutates pLevel's rooms in place; no return. pLevel passed in ESI.
+static void ReplaceAreas(D2DrlgLevelStrc * pLevel) {
+    // Static local variables (originally global data)
+    static D2DrlgReplaceRoomStrc gaDrlgReplaceAreas_A[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x1a5,
+        /* .nDestLevelPrestId = */ 0x1c3,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19f,
+        /* .nDestLevelPrestId = */ 0x1c1,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x1a1,
+        /* .nDestLevelPrestId = */ 0x1c2,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19e,
+        /* .nDestLevelPrestId = */ 0x1c0,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgReplaceAreas_B[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x1a5,
+        /* .nDestLevelPrestId = */ 0x1df,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19f,
+        /* .nDestLevelPrestId = */ 0x1dd,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x1a1,
+        /* .nDestLevelPrestId = */ 0x1de,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19e,
+        /* .nDestLevelPrestId = */ 0x1dc,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgAreaReplacementsB[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x1a5,
+        /* .nDestLevelPrestId = */ 0x1db,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19f,
+        /* .nDestLevelPrestId = */ 0x1d9,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x1a1,
+        /* .nDestLevelPrestId = */ 0x1da,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19e,
+        /* .nDestLevelPrestId = */ 0x1d8,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgReplaceAreas_C[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x1a5,
+        /* .nDestLevelPrestId = */ 0x1d3,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19f,
+        /* .nDestLevelPrestId = */ 0x1d1,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x1a1,
+        /* .nDestLevelPrestId = */ 0x1d2,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19e,
+        /* .nDestLevelPrestId = */ 0x1d0,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgReplaceAreas_D[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x1a5,
+        /* .nDestLevelPrestId = */ 0x1cb,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19f,
+        /* .nDestLevelPrestId = */ 0x1c9,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x1a1,
+        /* .nDestLevelPrestId = */ 0x1ca,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19e,
+        /* .nDestLevelPrestId = */ 0x1c8,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgReplaceAreas_E[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x1a5,
+        /* .nDestLevelPrestId = */ 0x1c7,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19f,
+        /* .nDestLevelPrestId = */ 0x1c5,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x1a1,
+        /* .nDestLevelPrestId = */ 0x1c6,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19e,
+        /* .nDestLevelPrestId = */ 0x1c4,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgReplaceAreas_F[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x1a5,
+        /* .nDestLevelPrestId = */ 0x1cf,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19f,
+        /* .nDestLevelPrestId = */ 0x1cd,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x1a1,
+        /* .nDestLevelPrestId = */ 0x1ce,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19e,
+        /* .nDestLevelPrestId = */ 0x1cc,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgReplaceAreas_G[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x1a5,
+        /* .nDestLevelPrestId = */ 0x1d7,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19f,
+        /* .nDestLevelPrestId = */ 0x1d5,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x1a1,
+        /* .nDestLevelPrestId = */ 0x1d6,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x19e,
+        /* .nDestLevelPrestId = */ 0x1d4,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+
+    uint32_t nRoll;
+    int32_t nErrorLine;
+    D2RoomExStrc* pRoomEx = pLevel->pRoomExFirst;
+    D2DrlgPresetRoomStrc* pRoomData = 0;
+    while (true) {
+      if (!pRoomEx) {
+        break;
+      }
+
+      pRoomData = pRoomEx->pRoomExData.pRoomExDataPreset;
+      if (pRoomData->nLevelPrest > 0x1ac) {
+        break;
+      }
+
+      pRoomEx = pRoomEx->pRoomExNext;
+    }
+
+    switch (pRoomData->nLevelPrest) {
+      case 0x1be:
+        nRoll = 0;
+      break;
+      case 0x1bd:
+        nRoll = 1;
+      break;
+      case 0x1bf:
+        nRoll = 2;
+      break;
+      case 0x1bc:
+        nRoll = 3;
+      break;
+      default:
+        nErrorLine = 0x519;
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), nErrorLine);
+      exit(-1);
+    }
+
+    if (0x37 <= pLevel->eD2LevelId && pLevel->eD2LevelId <= 0x3a) {
+      ReplaceRoom(gaDrlgReplaceAreas_A + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId == 0x39) {
+      ReplaceRoom(gaDrlgReplaceAreas_B + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId == 0x3b || pLevel->eD2LevelId == 0x3d) {
+      ReplaceRoom(gaDrlgAreaReplacementsB + nRoll, pLevel, &nRoll);
+    }
+
+    eD2LevelId nLevelId = pLevel->eD2LevelId;
+    if (0x41 < (int)nLevelId && (int)nLevelId < 0x49 && nLevelId != pLevel->pDrlg->nStaffTombLevel) {
+      ReplaceRoom(gaDrlgAreaReplacementsB + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId == 0x3b) {
+      ReplaceRoom(gaDrlgReplaceAreas_C + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId == 0x3c) {
+      ReplaceRoom(gaDrlgReplaceAreas_D + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId == 0x3b || pLevel->eD2LevelId == 0x3d) {
+      ReplaceRoom(gaDrlgReplaceAreas_E + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId == pLevel->pDrlg->nStaffTombLevel) {
+      /* Put orfice stuff here */ ReplaceRoom(gaDrlgReplaceAreas_F + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId != pLevel->pDrlg->nBossTombLevel) {
+      return;
+    }
+
+    ReplaceRoom(gaDrlgReplaceAreas_G + nRoll, pLevel, &nRoll);
+}
+
+} // namespace D2Common::Drlg::Maze::Act2::Tombs
+
+namespace D2Common::Drlg::Maze::Act3::Durance {
+
+// Selects and places the variant room tiles for the Durance of Hate maze (Act 3, levels 0x65/100). Advances the level RNG seed, uses the low 2 bits to pick among 4 entry-tile variants, then calls ReplaceRoom for entry (always), waypoint+exit (level 0x65 only), or exit only (level 100). Controls which pre-set room template is placed in the generated dungeon layout.
+static void ReplaceRooms(D2DrlgLevelStrc * pLevel) {
+    // Static local variables (originally global data)
+    static D2DrlgReplaceRoomStrc DRLG_DURA_ENTRY[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x2f9,
+        /* .nDestLevelPrestId = */ 0x313,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x2f3,
+        /* .nDestLevelPrestId = */ 0x311,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x2f5,
+        /* .nDestLevelPrestId = */ 0x312,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x2f2,
+        /* .nDestLevelPrestId = */ 0x310,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc DRLG_DURA_WAYPOINT[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x2f9,
+        /* .nDestLevelPrestId = */ 0x31b,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x2f3,
+        /* .nDestLevelPrestId = */ 0x319,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x2f5,
+        /* .nDestLevelPrestId = */ 0x31a,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x2f2,
+        /* .nDestLevelPrestId = */ 0x318,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc DRLG_DURA_EXIT[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x2f9,
+        /* .nDestLevelPrestId = */ 0x317,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x2f3,
+        /* .nDestLevelPrestId = */ 0x315,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x2f5,
+        /* .nDestLevelPrestId = */ 0x316,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x2f2,
+        /* .nDestLevelPrestId = */ 0x314,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+
+    D2SeedStrc DVar1 = D2_SEED_NEXT(pLevel->sSeed);
+    pLevel->sSeed = DVar1;
+    uint32_t nRoll = DVar1.nSeedLow & 3;
+    ReplaceRoom(DRLG_DURA_ENTRY + nRoll, pLevel, &nRoll);
+    if (pLevel->eD2LevelId == 0x65) {
+      ReplaceRoom(DRLG_DURA_WAYPOINT + nRoll, pLevel, &nRoll);
+      ReplaceRoom(DRLG_DURA_EXIT + nRoll, pLevel, &nRoll);
+    }
+    if (pLevel->eD2LevelId != 100) {
+      return;
+    }
+
+    ReplaceRoom(DRLG_DURA_EXIT + nRoll, pLevel, &nRoll);
+}
+
+} // namespace D2Common::Drlg::Maze::Act3::Durance
+
+namespace D2Common::Drlg::Maze::Act5::Worldstone {
+
+// Places the red portal / next-level room presets for Act 5 Worldstone levels during maze generation. Advances the level seed (LCG step), picks a variant (seed & 3) from DRLG_WORLDSTONE_REPLACEMENT, calls ReplaceRoom. For level 0x81 (Worldstone Keep 3), also places waypoint rooms from DRLG_WORLDSTONE_WAYPOINT_ROOMS.
+static void PutRedNextLevelAreasInPlace(D2DrlgLevelStrc * pLevel) {
+    // Static local variables (originally global data)
+    static D2DrlgReplaceRoomStrc DRLG_WORLDSTONE_REPLACEMENT[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x42a,
+        /* .nDestLevelPrestId = */ 0x436,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x424,
+        /* .nDestLevelPrestId = */ 0x438,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x426,
+        /* .nDestLevelPrestId = */ 0x437,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x423,
+        /* .nDestLevelPrestId = */ 0x439,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc DRLG_WORLDSTONE_WAYPOINT_ROOMS[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x42a,
+        /* .nDestLevelPrestId = */ 0x43a,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x424,
+        /* .nDestLevelPrestId = */ 0x43c,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x426,
+        /* .nDestLevelPrestId = */ 0x43b,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x423,
+        /* .nDestLevelPrestId = */ 0x43d,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+
+    D2SeedStrc DVar1 = D2_SEED_NEXT(pLevel->sSeed);
+    pLevel->sSeed = DVar1;
+    uint32_t nRoll = DVar1.nSeedLow & 3;
+    ReplaceRoom(DRLG_WORLDSTONE_REPLACEMENT + nRoll, pLevel, &nRoll);
+    if (pLevel->eD2LevelId != 0x81) {
+      return;
+    }
+
+    ReplaceRoom(DRLG_WORLDSTONE_WAYPOINT_ROOMS + nRoll, pLevel, &nRoll);
+}
+
+} // namespace D2Common::Drlg::Maze::Act5::Worldstone
+
+namespace D2Common::Drlg::Maze::Act1::Barracks {
+
+// DRLG Act1 maze generator for the Barracks level. Resolves the parent Jail level (id 0x1b) and its exit variant (0/1/2), allocates the connector room in the matching direction (SW/NW/SE) via DRLGMAZE_AllocRoomExAndPickPreset + AllocDrlgOrth, and computes the X/Y offset needed to align the Barracks to that jail exit. Then seed-rolls to pick one of two replacement-room sets (gaDrlgBarracksReplacements_A/_B) and applies both via ReplaceRoom. Translates every room in the level by the computed offset, recomputes the level's bounding box (GetMinAndMaxCoordinatesFromLevel) and stores its world position/size. Mutates pDrlgLevelStrc->sSeed and room coords. Calls an indirect dispatch (gapfnBarracksFindEdgeRoom) to pick the jail exit room.
+static void __stdcall DRLGMAZE_GenerateBarracksLayout(D2DrlgLevelStrc * pDrlgLevelStrc) {
+    // Static local variables (originally global data)
+    static D2DrlgReplaceRoomStrc gaDrlgBarracksReplacements_A[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0xaf,
+        /* .nDestLevelPrestId = */ 0xc9,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0xa9,
+        /* .nDestLevelPrestId = */ 0xc7,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0xab,
+        /* .nDestLevelPrestId = */ 0xc8,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0xa8,
+        /* .nDestLevelPrestId = */ 0xc6,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static D2DrlgReplaceRoomStrc gaDrlgBarracksReplacements_B[4] = {
+    {
+        /* .nSourceLevelPrestId = */ 0xaf,
+        /* .nDestLevelPrestId = */ 0xcd,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x3
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0xa9,
+        /* .nDestLevelPrestId = */ 0xcb,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0xab,
+        /* .nDestLevelPrestId = */ 0xcc,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x1
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0xa8,
+        /* .nDestLevelPrestId = */ 0xca,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    }
+};
+    static fpDrlgMazeFindEdgeRoom gapfnBarracksFindEdgeRoom[3] = { &D2Common::Drlg::Maze::DRLGMAZE_FindRightMostRoom, &D2Common::Drlg::Maze::DRLGMAZE_FindBottomMostRoom, &D2Common::Drlg::Maze::DRLGMAZE_FindLeftMostRoom };
+
+    uint32_t nExitDir;
+    D2DrlgReplaceRoomStrc* pReplaceData;
+    D2RoomExStrc* pConnectorRoom;
+    int64_t lSeedProduct;
+    uint32_t nSizeY;
+    int* pLevelData;
+    D2DrlgLevelStrc* pBarracksLevel = GetLevelAndAlloc(pDrlgLevelStrc->pDrlg, 0x1b);
+    uint32_t nJailExitVariant = pBarracksLevel->pDrlgLevelData.pTxtLvlMaze->Rooms[0];
+    D2RoomExStrc* pJailRoom = (*gapfnBarracksFindEdgeRoom[nJailExitVariant])(pDrlgLevelStrc);
+    int nOffsetY = pBarracksLevel->sCoordinatesAndSize.WorldPosition.y;
+    int nOffsetX = pBarracksLevel->sCoordinatesAndSize.WorldPosition.x;
+    D2LvlMazeTxt* pLvlMazeTxt = pDrlgLevelStrc->pDrlgLevelData.pTxtLvlMaze;
+    switch (nJailExitVariant) {
+      case 0:
+        {
+          pConnectorRoom = DRLGMAZE_AllocRoomExAndPickPreset(DIRECTION_SOUTHWEST, pJailRoom, 0xa7, 0, 1);
+          DrlgRoom::AllocDrlgOrth(pConnectorRoom, pBarracksLevel, DIRECTION_SOUTHWEST, 0);
+          nOffsetX -= pConnectorRoom->sCoords.WorldPosition.x + pLvlMazeTxt->SizeX;
+          nOffsetY += pBarracksLevel->sCoordinatesAndSize.WorldSize.y / 2 - pConnectorRoom->sCoords.WorldPosition.y;
+          break;
+        }
+      case 1:
+        {
+          pConnectorRoom = DRLGMAZE_AllocRoomExAndPickPreset(DIRECTION_NORTHWEST, pJailRoom, 0xa7, 1, 1);
+          DrlgRoom::AllocDrlgOrth(pConnectorRoom, pBarracksLevel, DIRECTION_NORTHWEST, 0);
+          nOffsetX = nOffsetX - 6 + (pBarracksLevel->sCoordinatesAndSize.WorldSize.x / 2 - pConnectorRoom->sCoords.WorldPosition.x);
+          nOffsetY -= pConnectorRoom->sCoords.WorldPosition.y + pLvlMazeTxt->SizeY;
+          break;
+        }
+      case 2:
+        {
+          pConnectorRoom = DRLGMAZE_AllocRoomExAndPickPreset(DIRECTION_SOUTHEAST, pJailRoom, 0xa7, 2, 1);
+          DrlgRoom::AllocDrlgOrth(pConnectorRoom, pBarracksLevel, DIRECTION_SOUTHEAST, 0);
+          nOffsetX += pBarracksLevel->sCoordinatesAndSize.WorldSize.x - pConnectorRoom->sCoords.WorldPosition.x;
+          nOffsetY = nOffsetY + 1 + (pBarracksLevel->sCoordinatesAndSize.WorldSize.y / 2 - pConnectorRoom->sCoords.WorldPosition.y);
+          break;
+        }
+    }
+
+    D2SeedStrc DVar1 = D2_SEED_NEXT(pDrlgLevelStrc->sSeed);
+    pDrlgLevelStrc->sSeed = DVar1;
+    if (!(DVar1.nSeedLow & 1)) {
+      ReplaceRoom(gaDrlgBarracksReplacements_B + nJailExitVariant, pDrlgLevelStrc, &nJailExitVariant);
+      pReplaceData = gaDrlgBarracksReplacements_A + nJailExitVariant;
+    } else {
+      ReplaceRoom(gaDrlgBarracksReplacements_A + nJailExitVariant, pDrlgLevelStrc, &nJailExitVariant);
+      pReplaceData = gaDrlgBarracksReplacements_B + nJailExitVariant;
+    }
+
+    ReplaceRoom(pReplaceData, pDrlgLevelStrc, &nJailExitVariant);
+    for (pJailRoom = pDrlgLevelStrc->pRoomExFirst; pJailRoom; pJailRoom = pJailRoom->pRoomExNext) {
+      int64_t* pWorldPosY;
+      pJailRoom->sCoords.WorldPosition.x += nOffsetX;
+      pWorldPosY = (int64_t*)&pJailRoom->sCoords.WorldPosition.y;
+      *(int*)pWorldPosY = (int)*pWorldPosY + nOffsetY;
+    }
+
+    int nMinX = 0;
+    int nMinY = 0;
+    int nMaxY = 0;
+    int nMaxX = 0;
+    GetMinAndMaxCoordinatesFromLevel(pDrlgLevelStrc, &nMinX, &nMinY, &nMaxY, &nMaxX);
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldPosition.x = nMinX;
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldPosition.y = nMinY;
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldSize.x = nMaxY - nMinX;
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldSize.y = nMaxX - nMinY;
+}
+
+} // namespace D2Common::Drlg::Maze::Act1::Barracks
+
+namespace D2Common::Drlg::Maze::Act4::RiverOfFlames {
+
+// Generates the Act 4 River of Flames level layout. Skips if already in Act 4. Finds the bottom-most and top-most maze rooms, allocates two connector RoomEx entries linked to the adjacent Chaos Sanctuary (level 0x6C), picks one of two predefined replacement room sets (seeded RNG), expands preset rooms, then translates all room world coordinates so the RoF grid aligns with the Chaos Sanctuary. Finally recalculates and writes the level's bounding box from the updated room positions.
+static void DRLGMAZE_GenerateRiverOfFlames(D2DrlgLevelStrc * pDrlgLevelStrc) {
+    // Static local variables (originally global data)
+    static D2DrlgReplaceRoomStrc gaDrlgRiverOfFlamesReplacements[2] = {
+    {
+        /* .nSourceLevelPrestId = */ 0x345,
+        /* .nDestLevelPrestId = */ 0x355,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x2
+    },
+    {
+        /* .nSourceLevelPrestId = */ 0x346,
+        /* .nDestLevelPrestId = */ 0x356,
+        /* .nDestPickedFile = */ -0x1,
+        /* .nDirection = */ 0x0
+    }
+};
+
+    D2DrlgPresetRoomStrc* pRoomExDataInner;
+    LONG* pWorldPosY;
+    if (pDrlgLevelStrc->pDrlg->nActNo == 4) {
+      return;
+    }
+
+    D2DrlgLevelStrc* pChaosLevel = GetLevelAndAlloc(pDrlgLevelStrc->pDrlg, 0x6c);
+    D2RoomExStrc* pNewRoom = DRLGMAZE_FindBottomMostRoom(pDrlgLevelStrc);
+    DRLGMAZE_AllocRoomExAndPickPreset(DIRECTION_NORTHWEST, pNewRoom, 0x354, -1, 1);
+    pNewRoom = DRLGMAZE_FindTopMostRoom(pDrlgLevelStrc);
+    pNewRoom = DRLGMAZE_AllocRoomExAndPickPreset(DIRECTION_NORTHEAST, pNewRoom, 0x357, -1, 1);
+    D2RoomExStrc* pRoomEx = DrlgRoom::DRLGROOMEX_AllocRoomEx(pNewRoom->pLevel, 2);
+    D2LvlMazeTxt* pLvlMazeTxt = pRoomEx->pLevel->pDrlgLevelData.pTxtLvlMaze;
+    pRoomEx->sCoords.WorldSize.x = pLvlMazeTxt->SizeX;
+    pRoomEx->sCoords.WorldSize.y = pLvlMazeTxt->SizeY;
+    int fReplaceResult = ReplaceRoomWithNewRoom(1, pRoomEx, pNewRoom);
+    if (!fReplaceResult) {
+      DrlgRoom::DRLGROOMEX_FreeDrlgRoomEx(pRoomEx);
+      pRoomEx = 0;
+    } else {
+      D2DrlgPresetRoomStrc* pDVar1;
+      DrlgRoom::DRLGROOMEX_AllocNodesForBothRoomEx(pNewRoom, pRoomEx, 1);
+      DrlgRoom::AddRoomExToLevel(pNewRoom->pLevel, pRoomEx);
+      pDVar1 = pRoomEx->pRoomExData.pRoomExDataPreset;
+      pDVar1->nFlags |= 2;
+      pDVar1->nLevelPrest = 0x358;
+      pDVar1->nPickedFile = -1;
+    }
+
+    pNewRoom = DrlgRoom::DRLGROOMEX_AllocRoomEx(pRoomEx->pLevel, 2);
+    pLvlMazeTxt = pNewRoom->pLevel->pDrlgLevelData.pTxtLvlMaze;
+    pNewRoom->sCoords.WorldSize.x = pLvlMazeTxt->SizeX;
+    pNewRoom->sCoords.WorldSize.y = pLvlMazeTxt->SizeY;
+    fReplaceResult = ReplaceRoomWithNewRoom(1, pNewRoom, pRoomEx);
+    if (!fReplaceResult) {
+      DrlgRoom::DRLGROOMEX_FreeDrlgRoomEx(pNewRoom);
+      pNewRoom = 0;
+    } else {
+      DrlgRoom::DRLGROOMEX_AllocNodesForBothRoomEx(pRoomEx, pNewRoom, 1);
+      DrlgRoom::AddRoomExToLevel(pRoomEx->pLevel, pNewRoom);
+      pRoomExDataInner = pNewRoom->pRoomExData.pRoomExDataPreset;
+      pRoomExDataInner->nFlags |= 2;
+      pRoomExDataInner->nLevelPrest = 0x358;
+      pRoomExDataInner->nPickedFile = -1;
+    }
+
+    DrlgRoom::AllocDrlgOrth(pNewRoom, pChaosLevel, DIRECTION_NORTHEAST, 0);
+    fReplaceResult = pChaosLevel->sCoordinatesAndSize.WorldSize.y;
+    int nRoomPosY = pNewRoom->sCoords.WorldPosition.y;
+    int nRoomSizeX = pNewRoom->sCoords.WorldSize.x;
+    int nChaosLevelY = pChaosLevel->sCoordinatesAndSize.WorldPosition.y;
+    int nRoomPosX = pNewRoom->sCoords.WorldPosition.x;
+    int nChaosLevelX = pChaosLevel->sCoordinatesAndSize.WorldPosition.x;
+    D2SeedStrc DVar2 = D2_SEED_NEXT(pDrlgLevelStrc->sSeed);
+    pDrlgLevelStrc->sSeed = DVar2;
+    ReplaceRoom(gaDrlgRiverOfFlamesReplacements + (DVar2.nSeedLow & 1), pDrlgLevelStrc, nullptr);
+    DRLGMAZE_ExpandRoomsWithPresets(pDrlgLevelStrc, 0x344, pNewRoom);
+    for (pNewRoom = pDrlgLevelStrc->pRoomExFirst; pNewRoom; pNewRoom = pNewRoom->pRoomExNext) {
+      pNewRoom->sCoords.WorldPosition.x = pNewRoom->sCoords.WorldPosition.x + (nRoomSizeX * 2 - nRoomPosX) + nChaosLevelX;
+      pWorldPosY = &pNewRoom->sCoords.WorldPosition.y;
+      *pWorldPosY = *pWorldPosY + (fReplaceResult - nRoomPosY) + nChaosLevelY;
+    }
+
+    int nMinX = 0;
+    int nMinY = 0;
+    int nMaxY = 0;
+    int nMaxX = 0;
+    GetMinAndMaxCoordinatesFromLevel(pDrlgLevelStrc, &nMinX, &nMinY, &nMaxY, &nMaxX);
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldPosition.x = nMinX;
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldPosition.y = nMinY;
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldSize.x = nMaxY - nMinX;
+    pDrlgLevelStrc->sCoordinatesAndSize.WorldSize.y = nMaxX - nMinY;
+}
+
+} // namespace D2Common::Drlg::Maze::Act4::RiverOfFlames
+
+namespace D2Common::Drlg::Maze {
 
 // DRLG maze generation: for special-room levels (selected by nLevelType, mapping to a base preset-file offset), randomly marks a fraction (~roomCount/5, min 2) of the level's RoomEx entries with a chosen preset variant. Uses the level's LCG seed to Fisher-Yates shuffle a 15-entry index table, then walks RoomEx rooms matching a target file index and rewrites their room-data fields (sets bit 2, replaces the file id, sets field[1]=-1). Skips eD2LevelId 8 (Den of Evil), hence the name. Mutates pLevel->sSeed as it consumes randoms.
 void __fastcall ForAllButDenOfEvil(D2DrlgLevelStrc * pLevel) {

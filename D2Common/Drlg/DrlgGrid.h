@@ -21,8 +21,6 @@ namespace D2Common::Drlg::DrlgGrid {
 // Function declarations
 // Recursive 4-directional flood-fill on grid cells.
 void __fastcall DRLGGRID_FloodFillGridCoords(int * pFloodFillContext, int nX, int nY, int nDirection);
-// Iterates grid cells, builds coord entries for each non-flagged cell.
-void DRLGLOGIC_PopulateGridCoordIndices(int * pnParam);
 void __fastcall OverwriteFlag(int * pFlag, int32_t nFlag);
 void __fastcall OrFlag(int * pFlag, int32_t nFlag);
 void __fastcall AndFlag(int * pFlag, int32_t nFlag);

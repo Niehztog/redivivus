@@ -15,6 +15,5 @@ namespace D2Common::Drlg::Maze::Act4::RiverOfFlames {
 
 // Function declarations
 // Generates the Act 4 River of Flames level layout. Skips if already in Act 4. Finds the bottom-most and top-most maze rooms, allocates two connector RoomEx entries linked to the adjacent Chaos Sanctuary (level 0x6C), picks one of two predefined replacement room sets (seeded RNG), expands preset rooms, then translates all room world coordinates so the RoF grid aligns with the Chaos Sanctuary. Finally recalculates and writes the level's bounding box from the updated room positions.
-void DRLGMAZE_GenerateRiverOfFlames(struct D2DrlgLevelStrc * pDrlgLevelStrc);
 
 } // namespace D2Common::Drlg::Maze::Act4::RiverOfFlames

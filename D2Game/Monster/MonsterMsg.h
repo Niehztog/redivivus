@@ -16,6 +16,5 @@ namespace D2Game::Monster::MonsterMsg {
 
 // Function declarations
 // Sends a skill-cast network message (0x4C or 0x4D) to pClient for a monster (pMonster) casting its current skill. If pTarget is near the client, sends 0x4C (unit-targeted cast) with target GUID; otherwise sends 0x4D (XY-targeted cast) using pMonster's SP1 path position. Skill ID and level are read from pMonster's active skill. EDI is callee-saved here (PUSH EDI on entry, then overwritten), not a parameter.
-void __stdcall SendCastSkillMsg(struct D2ClientStrc * pClient, struct D2UnitStrc * pTarget, struct D2UnitStrc * pMonster);
 
 } // namespace D2Game::Monster::MonsterMsg

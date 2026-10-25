@@ -22,14 +22,8 @@ void __fastcall ResetEngagedCombatAndStats(struct D2UnitStrc * pUnit);
 void __fastcall MONSTERMODE_GetStoredPosition(int32_t pMonData, int32_t * pOutStoredX, int32_t * pOutStoredY, uint8_t * pOutStoredFlags);
 void __fastcall SetCombatAndMonStats(struct D2MonsterPathParamStrc * pPathParam, int32_t nPathType, int32_t nVelocity, uint8_t nSteps);
 // @sourcefile .\MONSTER\MonsterMode.cpp
-void MONSTER_SetVelocityPercent(struct D2MonsterPathParamStrc * pPathParam, struct D2UnitStrc * pUnit);
-// Updates per-game path-use counters (pGame->nPathCount[n] and nPathCountCount) after resolving the effective path type and velocity from pPathParam overrides. Calls GetPathCount to compute the path, sets nDistanceToTarget=10 if a target unit exists and the path succeeded, resets pPathParam combat/stat fields. Central accounting point for monster movement pathfinding statistics.
-void __stdcall AddGamePathCount(struct D2MonsterPathParamStrc * pPathParam, int32_t ePathTypeOrEngaged, ::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, int32_t nMonStatOrVelocity, uint8_t byMonStat2OrDist);
-// @sourcefile .\MONSTER\MonsterMode.cpp
 struct D2MonsterPathParamStrc * __fastcall AllocAiParam(::SGAMEDATA * pGame);
 // @sourcefile .\MONSTER\MonsterMode.cpp
 void __fastcall MONSTERDATA_FreeMonsterMode(::SGAMEDATA * pGame, struct D2MonsterPathParamStrc * pPathParam);
-// Death transition handler for a monster unit. Frees hover-text, calls RemoveMinionsFromAiIfFlag1Set2Not, clears targeting flags (ISVALIDTARGET, CANBEATTACKED), recalculates stats, filters states by boss context, removes light state targetability, optionally enables corpse collision (if deadCol flag not set in MonStats2), sets final facing direction, and starts regen timers via MONSTER_StartAiAndRegenTimers.
-void __stdcall MONSTERMODE_OnDeath(uint8_t bParam, ::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 
 } // namespace D2Game::Monster::MonsterMode

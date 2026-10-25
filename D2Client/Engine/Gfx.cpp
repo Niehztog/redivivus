@@ -79,6 +79,7 @@
 #include "D2Common/PATH/DynamicPath.h"
 #include "D2Game/Monster/AI/AI.h"
 #include "D2Win/Src/D2WinFont.h"
+#include "D2Client/SRC/CelCmp.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -247,7 +248,7 @@ void * __stdcall GFX_LoadCofFile(void * pTextureCache, char * szPath) {
 }
 
 // @sourcefile .\ENGINE\Gfx.cpp
-void __stdcall GFX_LoadAndHashCofArchive(char * szPath, int * pCache) {
+static void __stdcall GFX_LoadAndHashCofArchive(char * szPath, int * pCache) {
     int iVar1;
     int* pNameEnd;
     uint32_t uVar2;
@@ -324,7 +325,7 @@ static void GFX_SyncStateOverlayPriority(int * pOverlay, int32_t pGfxInfo) {
     } while (true);
 }
 
-void __stdcall GFX_RemoveStateOverlayAndReprioritize(D2UnitStrc * pUnit, int32_t pGfxInfo, int32_t pOverlay) {
+static void __stdcall GFX_RemoveStateOverlayAndReprioritize(D2UnitStrc * pUnit, int32_t pGfxInfo, int32_t pOverlay) {
     bool _bHasHideState;
     bool bHasHideState;
     int32_t nStateUnused;
@@ -398,6 +399,75 @@ void __stdcall GFX_RemoveStateOverlayAndReprioritize(D2UnitStrc * pUnit, int32_t
       }
     }
 }
+
+} // namespace D2Client::Engine::Gfx
+
+namespace D2Client::Engine::GfxInfo {
+
+// @sourcefile .\ENGINE\Gfx.cpp
+void __stdcall GFX_RemoveOverlayFromUnit(D2UnitStrc * pUnit, int * pOverlay) {
+    int* pMemoryToFree;
+    D2GfxInfoStrc* pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
+    if (!pGfxInfo) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1bf);
+      exit(-1);
+    }
+
+    int* pPrev = 0;
+    int* pCur = (int*)pGfxInfo->pOverlayList;
+    if (!pGfxInfo->pOverlayList) {
+      return;
+    }
+
+    while (true) {
+      pMemoryToFree = pCur;
+      if (pMemoryToFree == pOverlay) {
+        break;
+      }
+
+      pCur = (int*)pMemoryToFree[0x29];
+      pPrev = pMemoryToFree;
+      if (!(int*)pMemoryToFree[0x29]) {
+        return;
+      }
+    }
+
+    if (!pMemoryToFree) {
+      return;
+    }
+    if ((D2LightMapStrc*)pMemoryToFree[0x10]) {
+      Draw::LightMap::FreeLightMap((D2LightMapStrc*)pMemoryToFree[0x10]);
+      pMemoryToFree[0x10] = 0;
+    }
+    if (pPrev) {
+      pPrev[0x29] = pMemoryToFree[0x29];
+    } else {
+      pGfxInfo->pOverlayList = (void*)pMemoryToFree[0x29];
+    }
+    if (*pMemoryToFree == 8) {
+      Gfx::GFX_RemoveStateOverlayAndReprioritize(pUnit, (int32_t)pGfxInfo, (int32_t)pMemoryToFree);
+    }
+
+    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0x1e1, 0);
+}
+
+} // namespace D2Client::Engine::GfxInfo
+
+namespace D2Client::SRC::CelCmp {
+
+// Builds the COF archive path for a monster COF name index and loads it. The index is a single byte: the prologue does MOVZX EAX, CL before indexing the name table at 0x6d6c30, so the upper 24 bits of ECX are dead.
+void __fastcall GFX_LoadMonsterCofArchive(uint8_t nCofNameIndex) {
+    // Static local variables (originally global data)
+    static char * gpszMonsterCofNameTable[5] = { s_cmncof_a1_d2_006d6c44, s_cmncof_a2_d2_006d6c54, s_cmncof_a3_d2_006d6c64, s_cmncof_a4_d2_006d6c74, s_cmncof_a6_d2_006d6c84 };
+
+    char szCofPath[260];
+    /* LPCSTR param_2 for wsprintfA */ /* LPSTR param_1 for wsprintfA */ wsprintfA(szCofPath, "%s\\%s", "DATA\\GLOBAL", gpszMonsterCofNameTable[nCofNameIndex]);
+    Engine::Gfx::GFX_LoadAndHashCofArchive(szCofPath, &gMonsterCofCache.nFrameCount);
+}
+
+} // namespace D2Client::SRC::CelCmp
+
+namespace D2Client::Engine::Gfx {
 
 // @sourcefile .\ENGINE\Gfx.cpp
 static int32_t GFX_FreeUnusedCofEntries(void * pCacheTable) {

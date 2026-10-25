@@ -60,7 +60,6 @@ void __stdcall CHAT_ClearInput();
 void __stdcall CHAT_ProcessBattleNetMessage();
 void __stdcall INPUT_HandleChatCharInput(struct D2UIMouseMsgStrc * pMsg);
 int UI_SLIDER_GetValueFromPosition(int32_t nCurrentPos, int32_t nMinPos, struct D2EscMenuItemStrc * pSliderItem, int32_t nMaxPos);
-int UI_SLIDER_GetPositionFromValue(int32_t nMinPos, struct D2EscMenuItemStrc * pSliderItem, int32_t nMaxPos);
 void __fastcall UI_SLIDER_ApplyMasterVolume(struct D2EscMenuItemStrc * pItem, struct D2UIMouseMsgStrc * pMsg);
 void __fastcall UI_SLIDER_ApplyMusicVolume(struct D2EscMenuItemStrc * pItem, struct D2UIMouseMsgStrc * pMsg);
 void __fastcall ESCMENU_Init3DSoundItem(struct D2EscMenuItemStrc * pItem, struct D2UIMouseMsgStrc * pMsg);

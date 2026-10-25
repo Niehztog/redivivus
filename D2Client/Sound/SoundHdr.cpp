@@ -55,6 +55,25 @@
 #endif
 
 
+namespace D2Client {
+
+static void SOUNDHDR_CompleteAsyncLoad(int32_t pSoundHdr) {
+    if (*(int*)(pSoundHdr + 0x86) != 1) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x40);
+      exit(-1);
+    }
+
+    void* pResult = Fog::Src::AsyncData::ASYNCDATA_GetResult(*(D2AsyncData_Line0x128**)(pSoundHdr + 0x82));
+    *(void**)(pSoundHdr + 0x6c) = (void*)pResult;
+    size_t nReadSize = Fog::Src::AsyncData::ASYNCDATA_GetReadSize(*(D2AsyncData_Line0x128**)(pSoundHdr + 0x82));
+    *(size_t*)(pSoundHdr + 0x70) = nReadSize;
+    *(uint32_t*)(pSoundHdr + 0x86) = 2;
+    GAME::Sound::SOUND_ParseStreamWavHeader(pSoundHdr);
+    gnSoundAsyncLoadCount--;
+}
+
+} // namespace D2Client
+
 namespace D2Client::Sound::SoundHdr {
 
 static float FLOAT_006d9108 = 400;

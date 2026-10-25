@@ -271,6 +271,20 @@ static void PlaceCliffs(D2DrlgLevelStrc * pLevel) {
     } while (nEntriesLeft);
 }
 
+} // namespace D2Common::Drlg::OutDesr
+
+namespace D2Common::Drlg::Outdoors {
+
+static void AddAct124SecondaryBorderSubId213(D2DrlgLevelStrc * pLevel) {
+    AddAct124SecondaryBorder(pLevel, 2, 0x16c);
+    AddAct124SecondaryBorder(pLevel, 1, 0x16c);
+    AddAct124SecondaryBorder(pLevel, 3, 0x16c);
+}
+
+} // namespace D2Common::Drlg::Outdoors
+
+namespace D2Common::Drlg::OutDesr {
+
 void __fastcall AddExits(D2DrlgLevelStrc * pLevel) {
     int32_t nExitPresetId;
     switch (pLevel->eD2LevelId) {

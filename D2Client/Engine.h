@@ -56,7 +56,6 @@ uint32_t __fastcall ENGINE_RunDrawModeGameLoop(int32_t nDrawMode);
 uint32_t ENGINE_RunDrawModeGameLoopAlt(int32_t nDrawMode, uint32_t dwRetVal);
 void __fastcall CLIENT_SetUnitFlag(struct D2UnitStrc * pUnit, uint16_t wFlag, BOOL bSet);
 void __fastcall StoreLastSkillHit(eSkillEType pSkill, struct D2UnitStrc * pUnit, eD2UnitType nUnitType, uint32_t nUid);
-void __stdcall CLIENT_SetAnimModeAndMoveToCurrentPos(eD2PlayerAnimMode nAnimMode, BOOL bMovePlayerUnit, struct D2UnitStrc * pUnit);
 void __stdcall CLIENT_PreloadMonsterCofsInAdjacentRooms();
 void __fastcall CLIENT_UpdateUnitLightRadius(struct D2UnitStrc * pUnit, int32_t nRadiusBonus);
 void __fastcall CLIENT_SetUnitLightColor(struct D2UnitStrc * pUnit, int32_t dwRGB);

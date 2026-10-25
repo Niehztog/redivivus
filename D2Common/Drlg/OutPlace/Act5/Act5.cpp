@@ -21,6 +21,7 @@
 #include "Fog/Src/ErrorManager.h"
 #include "globals/globals.h"
 #include "D2Common/Drlg/D2DrlgCoordsStrc.h"
+#include "D2Common/Drlg/OutPlace/Act5/BloodyFoothills.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -266,7 +267,7 @@ void __stdcall DRLGOUTROOM_PlaceAct5OuterWalls(D2DrlgLevelStrc * pLevel) {
 }
 
 // Sets up secondary border decoration callbacks and calls AddSecondaryBorder.
-void DRLGOUTROOM_PlaceAct5SecondaryBorder(D2DrlgLevelStrc * pLevel) {
+static void DRLGOUTROOM_PlaceAct5SecondaryBorder(D2DrlgLevelStrc * pLevel) {
     D2UnkOutdoorStrc sUnkOutdoorStrc;
     if (pLevel->eD2LevelId == 0x6e) {
       return;
@@ -335,7 +336,7 @@ void __stdcall DRLGOUTROOM_PlaceAct5SceneryPresets(D2DrlgLevelStrc * pLevel) {
 }
 
 // Places random decorative presets in Act 5 Bloody Foothills (level 0x6F). Tries up to 90 random positions to place up to 3 presets on empty grid cells, using seed-based random offsets and grid wrapping.
-void DRLGOUTPLACE_PlaceAct5BloodyFoothillsRandomPresets(D2DrlgLevelStrc * pLevel) {
+static void DRLGOUTPLACE_PlaceAct5BloodyFoothillsRandomPresets(D2DrlgLevelStrc * pLevel) {
     int32_t nPresetId;
     uint32_t nGridX;
     uint32_t nGridY;
@@ -450,3 +451,27 @@ void DRLGOUTPLACE_PlaceAct5BloodyFoothillsRandomPresets(D2DrlgLevelStrc * pLevel
 }
 
 } // namespace D2Common::Drlg::OutPlace::Act5
+
+namespace D2Common::Drlg::OutSiege {
+
+void __fastcall InitAct5OutdoorLevel(D2DrlgLevelStrc * pLevel) {
+    if (pLevel->eD2LevelId == 0x6e) {
+      OutPlace::Act5::BloodyFoothills::DRLGOUTPLACE_PlaceAct5WallPresets(pLevel);
+      return;
+    }
+
+    OutPlace::SetOutGridLinkFlags(pLevel);
+    OutPlace::Act5::DRLGOUTROOM_PlaceAct5RoadPath(pLevel);
+    OutPlace::Act5::DRLGOUTROOM_PlaceAct5OuterWalls(pLevel);
+    OutPlace::Act5::DRLGOUTROOM_PlaceAct5BorderPresets(pLevel);
+    OutPlace::Act5::DRLGOUTROOM_PlaceAct5SpecialPresets(pLevel);
+    if (pLevel->eD2LevelId == 0x6f) {
+      OutPlace::Act5::BloodyFoothills::DRLGOUTPLACE_PlaceAct5SiegePresets(pLevel);
+    }
+
+    OutPlace::Act5::DRLGOUTROOM_PlaceAct5SecondaryBorder(pLevel);
+    OutPlace::Act5::DRLGOUTPLACE_PlaceAct5BloodyFoothillsRandomPresets(pLevel);
+    OutPlace::Act5::DRLGOUTROOM_PlaceAct5SceneryPresets(pLevel);
+}
+
+} // namespace D2Common::Drlg::OutSiege

@@ -7242,9 +7242,6 @@ void * __stdcall GFX_FindTextureInCache(void * pTextureCache, char * szPath);
 // @sourcefile .\ENGINE\Gfx.cpp
 void * __stdcall GFX_LoadCofFile(void * pTextureCache, char * szPath);
 // @sourcefile .\ENGINE\Gfx.cpp
-void __stdcall GFX_LoadAndHashCofArchive(char * szPath, int * pCache);
-void __stdcall GFX_RemoveStateOverlayAndReprioritize(struct D2UnitStrc * pUnit, int32_t pGfxInfo, int32_t pOverlay);
-// @sourcefile .\ENGINE\Gfx.cpp
 void __fastcall GFX_FreePlayerCofCache(int32_t nParam);
 // @sourcefile .\ENGINE\Gfx.cpp
 int32_t GFX_FreeMonsterCofCache();

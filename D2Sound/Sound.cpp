@@ -350,31 +350,6 @@ void __fastcall SOUND_Initialize(uint32_t dwLanguageCode, HWND hWnd) {
     Fog::Src::LogManager::LOGFILE_WriteStringToFile("\tCouldn\'t initialize DirectSound");
 }
 
-int * SOUND_GetAmbientSoundEntry(int32_t nIndex) {
-    if (!gbAmbientSoundLangInitialized) {
-      gbAmbientSoundLangInitialized = 1;
-      gnAmbientSoundLanguageCode = SOUND_GetLanguageCode();
-    }
-    if (gaAmbientSoundFlags != gnAmbientSoundCount) {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x52);
-      exit(-1);
-    } else {
-      int* pAmbientEntry;
-      if (!(nIndex < gaAmbientSoundFlags)) {
-        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x53);
-        exit(-1);
-      }
-
-      pAmbientEntry = gaAmbientSoundEntryTable + nIndex * 2;
-      if (gnAmbientSoundLanguageCode) {
-        return pAmbientEntry;
-      }
-
-      pAmbientEntry = gAmbientSoundTable + nIndex * 2;
-      return pAmbientEntry;
-    }
-}
-
 void __fastcall SOUND_InitMusicBuffer(uint32_t dwHwnd) {
     // Static local variables (originally global data)
     static uint32_t gnMusicBufferSize;

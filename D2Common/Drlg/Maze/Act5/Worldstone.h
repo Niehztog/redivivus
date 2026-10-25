@@ -15,6 +15,5 @@ namespace D2Common::Drlg::Maze::Act5::Worldstone {
 
 // Function declarations
 // Places the red portal / next-level room presets for Act 5 Worldstone levels during maze generation. Advances the level seed (LCG step), picks a variant (seed & 3) from DRLG_WORLDSTONE_REPLACEMENT, calls ReplaceRoom. For level 0x81 (Worldstone Keep 3), also places waypoint rooms from DRLG_WORLDSTONE_WAYPOINT_ROOMS.
-void PutRedNextLevelAreasInPlace(struct D2DrlgLevelStrc * pLevel);
 
 } // namespace D2Common::Drlg::Maze::Act5::Worldstone

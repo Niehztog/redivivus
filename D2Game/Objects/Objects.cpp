@@ -943,7 +943,7 @@ void __fastcall Objects_InitFn51(D2ObjectInitFnArg * pInitArg) {
     GAME::Event::SetEvent(pInitArg->pGame, pUnit, 9, pInitArg->pGame->dwGameFrame + 0x23, 0, 0);
 }
 
-BOOL __stdcall ROOM_CheckSpawnCollision(D2RoomStrc * pRoom, uint32_t nParam1, int * pnParam1, uint32_t nParam2, int * pnParam2) {
+static BOOL __stdcall ROOM_CheckSpawnCollision(D2RoomStrc * pRoom, uint32_t nParam1, int * pnParam1, uint32_t nParam2, int * pnParam2) {
     if (!(pnParam2[2] >= (int)(nParam2 + 2) && pnParam2[3] >= (int)(nParam1 + 2))) {
       return 0;
     }
@@ -2432,6 +2432,98 @@ int32_t __fastcall OBJECT_PopulateGridItems(::SGAMEDATA * pGame, D2RoomStrc * pR
 
     return 1;
 }
+
+} // namespace D2Game::Objects
+
+namespace D2Game::Objects::ArmorWeapon {
+
+// Populates a room region with armor/weapon rack objects of the given nRackType. Uses the game's control seed to pick a rack variant (even/odd), looks up the Objects.txt entry for size, then sweeps the DRLG coordinate space (horizontally for even variant, vertically for odd) calling ROOM_CheckSpawnCollision and CreateUnit at each valid grid position. Aborts with a fatal error if pRoom is null at spawn time.
+void __stdcall Roll(::SGAMEDATA * pGame, D2RoomStrc * pRoom, D2DrlgCoordsStrc * pDrlgCoords, int32_t nRackType) {
+    // Static local variables (originally global data)
+    static int RackType[4] = { 0x68, 0x69, 0x6a, 0x6b };
+    static int RackTypeCount = 0x2;
+
+    // Frame slots -32..-4 are ONE object: &nSpawnX is passed out and the callee reaches the rest by byte offset.
+    // Separate locals let the compiler reorder them, so the run is one struct.
+    struct __frame0_t {
+      uint32_t nSpawnX;
+      uint32_t nSpawnY;
+      uint32_t nYEnd;
+      uint32_t nEvenRackIdx;
+      uint32_t nRackIdx;
+      D2ObjectsTxt* pObjectsTxt;
+      uint32_t nRackVariant;
+    };
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 28, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
+    BOOL nCollisionResultX;
+    if (nRackType >= RackTypeCount) {
+      return;
+    }
+
+    D2SeedStrc* pCtrlSeed = ObjectsRgn::GetObjectControlSeed(pGame, pRoom);
+    D2SeedStrc seedNew = D2_SEED_NEXT(*pCtrlSeed);
+    __frame0.nRackVariant = seedNew.nSeedLow & 1;
+    *pCtrlSeed = seedNew;
+    __frame0.nEvenRackIdx = nRackType * 2;
+    __frame0.nRackIdx = __frame0.nRackVariant + __frame0.nEvenRackIdx;
+    __frame0.pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(RackType[__frame0.nRackIdx]);
+    uint32_t nObjSizeX = __frame0.pObjectsTxt->SizeX;
+    int iVar1 = pDrlgCoords->WorldPosition.x;
+    int iVar2 = pDrlgCoords->WorldPosition.y;
+    int nXEnd = pDrlgCoords->WorldSize.x - nObjSizeX;
+    uint32_t nObjSizeY = __frame0.pObjectsTxt->SizeY;
+    __frame0.nYEnd = pDrlgCoords->WorldSize.y - nObjSizeY + iVar2;
+    if (!__frame0.nRackVariant) {
+      __frame0.nSpawnY = iVar2 + 1;
+      __frame0.nSpawnX = pDrlgCoords->WorldPosition.x + nObjSizeX;
+      __frame0.nRackIdx = __frame0.nSpawnY;
+      while (__frame0.nSpawnX < (uint32_t)(nXEnd + iVar1)) {
+        __frame0.nRackVariant = __frame0.nSpawnX;
+        nCollisionResultX = ROOM_CheckSpawnCollision(pRoom, __frame0.pObjectsTxt->SizeY, (int*)&__frame0.nSpawnX, nObjSizeX, (int*)pDrlgCoords);
+        if (nCollisionResultX == 1) {
+          if (!pRoom) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb12);
+            exit(-1);
+          }
+
+          UNIT::SUnit::CreateUnit(UNIT_OBJECT, RackType[__frame0.nEvenRackIdx], __frame0.nRackVariant, __frame0.nRackIdx, pGame, pRoom, 1, 0, nullptr);
+        }
+
+        nObjSizeX = __frame0.pObjectsTxt->SizeX;
+        __frame0.nSpawnX = __frame0.nRackVariant + nObjSizeX * 2;
+      }
+    } else {
+      uint32_t nCurY;
+      __frame0.nSpawnX = pDrlgCoords->WorldPosition.x + 1;
+      nCurY = iVar2 + nObjSizeY;
+      __frame0.nEvenRackIdx = __frame0.nSpawnX;
+      if (nCurY < __frame0.nYEnd) {
+        do {
+          __frame0.nSpawnY = nCurY;
+          nCollisionResultX = ROOM_CheckSpawnCollision(pRoom, nObjSizeY, (int*)&__frame0.nSpawnX, __frame0.pObjectsTxt->SizeX, (int*)pDrlgCoords);
+          if (nCollisionResultX == 1) {
+            if (!pRoom) {
+              Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0xb25);
+              exit(-1);
+            }
+
+            UNIT::SUnit::CreateUnit(UNIT_OBJECT, RackType[__frame0.nRackIdx], __frame0.nEvenRackIdx, nCurY, pGame, pRoom, 1, 0, nullptr);
+          }
+
+          nObjSizeY = __frame0.pObjectsTxt->SizeY;
+          nCurY += nObjSizeY * 2;
+          if (nCurY >= __frame0.nYEnd) {
+            return;
+          }
+        } while (true);
+      }
+    }
+}
+
+} // namespace D2Game::Objects::ArmorWeapon
+
+namespace D2Game::Objects {
 
 // Decides whether and which object-populate sub-function to run for a room. Returns 0 immediately if the room area fails a minimum-density threshold (objRng[2] < objRng[3]*10). Rolls the object-control seed to get a base chance, adjusts a density bonus (+5/+10) based on room fill ratio, and skips if the roll exceeds the density+12 threshold. Collects enabled populate-type indices from dwPopulateMask bits, randomly picks one, then dispatches to the corresponding function pointer from the global populate-function table at 0x731e68, passing &sRoomCoords.
 static int32_t __stdcall OBJECT_RollAndDispatchPopulateFn(::SGAMEDATA * pGame, D2RoomStrc * pRoom, uint32_t dwPopulateMask, int32_t pObjRng) {

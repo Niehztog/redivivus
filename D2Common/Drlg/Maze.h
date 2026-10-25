@@ -23,7 +23,6 @@ struct D2RoomExStrc * __stdcall DRLGMAZE_PickRoomPreset(struct D2RoomExStrc * pR
 int __stdcall DRLGMAZE_FindAndReplacePreset(int pCtx, int nPresetId, int nNewPresetId, int nNewArg1, int nEnableFlag);
 // Iterates every room in pRoomEx's level and, for eligible non-preset neighbor pairs that are adjacent but not already linked, rolls the neighbor's seed against LvlMazeTxt.Merge to decide whether to merge them. On a hit, allocates orthogonal link nodes between the two rooms and calls DRLGMAZE_PickRoomPreset on the neighbor.
 void __stdcall DRLGMAZE_PickRoomPresets(struct D2RoomExStrc * pRoomEx);
-struct D2RoomExStrc * __stdcall DRLGMAZE_AllocRoomExAndPickPreset(eDrlgDirection eDir, struct D2RoomExStrc * pSourceRoom, uint32_t argPresetIndex, uint32_t argVariant, int32_t argPickSource);
 // DRLGMAZE_AllocRoomAndPickPreset - Maze.cpp
 // Allocates a new RoomEx adjacent to the given room in the specified
 // direction by calling AllocateRoomEx. If allocation succeeds:
@@ -35,15 +34,8 @@ struct D2RoomExStrc * __stdcall DRLGMAZE_AllocRoomExAndPickPreset(eDrlgDirection
 // No call, jump or stored address reaches 00670e70 in 1.14d (byte scan for
 // the absolute and rel32 forms); only its sibling 00670de0 is called.
 struct D2RoomExStrc * __stdcall DRLGMAZE_AllocRoomAndPickPreset(eDrlgDirection eDirection, struct D2RoomExStrc * pSourceRoom, int bPickPresets);
-// Scans the level's room list for the first non-preset room, allocates a new RoomEx at the maze tile size, attempts to place it adjacent in nDirection via ReplaceRoomWithNewRoom, and on success links both rooms, adds the new room to the level, assigns nPresetIndex/nVariant, and marks it as having a preset DS1. Returns the new room pointer or NULL on failure.
-struct D2RoomExStrc * __stdcall ReplaceRoomWith(int32_t nDirection, int32_t nPresetIndex, int32_t nVariant, struct D2DrlgLevelStrc * pLevel);
-// Iterates all rooms in pLevel and attempts to expand each non-skipped room in all 8 directions. For each successful expansion, allocates a new room with pDrlgLevelData dimensions, links it via DRLGROOMEX_AllocNodesForBothRoomEx, and marks its preset data with the 'has preset' flag. Frees the temp room pointer array after processing. Source: .\DRLG\Maze.cpp line 0x288.
-// @sourcefile .\DRLG\Maze.cpp
-void __stdcall DRLGMAZE_ExpandRoomsWithPresets(struct D2DrlgLevelStrc * pLevel, uint32_t argDefaultPresetId, struct D2RoomExStrc * argSkipRoom);
 // Generates the Worldstone Keep or Tal Rasha's Tombs special rooms within a maze-type DRLG level. Iterates 3 times, allocating a new RoomEx per iteration and attempting to splice it into the level via ReplaceRoomWithNewRoom at a seed-derived roll position (0-3). Successful placements get nodes allocated and presets picked; failed allocations are freed. For level types 0x11 and 0x22, additionally patches the first room's data fields to mark a specific room variant and clear its predecessor link.
 void __stdcall GenerateWolrdstoneAndTombs(struct D2DrlgLevelStrc * pLevel);
-// Finds the top-most room in the level by iterating RoomEx list and comparing Y coordinates.
-struct D2RoomExStrc * DRLGMAZE_FindTopMostRoom(struct D2DrlgLevelStrc * pLevel);
 // Finds room with smallest X position that can expand NE.
 struct D2RoomExStrc * __fastcall DRLGMAZE_FindLeftMostRoom(struct D2DrlgLevelStrc * pLevel);
 // Finds room with largest X position that can expand SW.

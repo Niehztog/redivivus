@@ -15,6 +15,5 @@ namespace D2Common::Drlg::Maze::Act2::Sewer {
 
 // Function declarations
 // DRLG maze generator for the Act 2 Sewers level group. Advances the level seed twice to pick a random connection direction and a 0-3 layout variant. Dispatches on eD2LevelId: for the main sewer level (0x2F) it builds the room chain by allocating RoomEx rooms from the top-most and right-most anchor rooms, sizing each from its DrlgLevelData, replacing/linking them (ReplaceRoomWithNewRoom + AllocNodesForBothRoomEx), picking presets, and appending extra rooms in the chosen directions, finishing with a variant-selected ReplaceRoom from gaDrlgSewerReplacements_C. The other levels (0x30/0x31/0x41) just apply variant-indexed ReplaceRoom table entries (area + A/B/C/D replacement tables) to stamp the maze layout. No return value.
-void DRLGMAZE_GenerateSewerLevel(struct D2DrlgLevelStrc * pDrlgLevelStrc);
 
 } // namespace D2Common::Drlg::Maze::Act2::Sewer

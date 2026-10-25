@@ -350,9 +350,6 @@ void __fastcall DRLGANIM_PropagateAnimationData(struct D2RoomExStrc * pRoomExSrc
 // Looks up tile library entry by type/index/subindex, randomly selects variant.
 // @blizzard FindHTile
 int __fastcall DRLG_FindHTile(struct D2RoomExStrc * pRoomEx, int nTileType, uint32_t nGridFlags);
-// Sets wall tile flags on the tile data based on the tile type (orientation, transparency, etc). Decodes raw DS1 tile flags bitfield into semantic nFlags bits. Register arguments: pTileData in EDI, nTileType in EBX, pRoomEx in ECX, nWorldX in EAX; nRawTileFlags and nWorldY on the stack.
-// All three call sites (0066dce9 in DRLGROOMTILE_CreateWallTileData, 0066e776 and 0066e92e in DRLGROOMTILE_UpdateTileType) do MOV ECX,ESI with ESI holding the room. nWorldX and nWorldY are forwarded to CreatesPresets.
-void __stdcall DRLGROOMTILE_SetWallTileFlags(struct D2DrlgTileDataStrc * pTileData, int nTileType, struct D2RoomExStrc * pRoomEx, int nWorldX, uint32_t nRawTileFlags, int nWorldY);
 // Converts world tile coordinates to screen position and room-relative offsets. Output: [0]=screenX, [1]=screenY+40, [2]=relativeX (world-roomOrigin), [3]=relativeY. Calls CoordsMiniMapToScreen for isometric transform.
 void __stdcall DRLGROOMTILE_WorldToTileScreenPos(int * pOutCoords, struct D2RoomExStrc * pRoomEx, int nWorldX, int nWorldY);
 // Allocates the next wall tile slot in pRoomEx's tile grid, links it into the *ppTileHead list, converts minimap coords to screen coords, sets colour/type/flags, then recursively creates a shadow tile (type 4) when nTileType==3 and propagates nGridFlags bits into that shadow tile's flags.
@@ -372,7 +369,6 @@ void __fastcall DRLGROOMEX_InitTileData(struct D2RoomExStrc * pRoomEx);
 int __stdcall DRLGOUTDOOR_GetSecondaryFloorGridFlags(int * pLevelCtx, int32_t nGridY, int32_t nGridX);
 // Shuffles candidate border subtile positions using current level seed, then tries each until `ValidateSubTilePlacement` approves and calls `ApplySubTileToGrid`. Defaults to random variant (pRect[5]) and returns as soon as a placement succeeds when the level flag indicates only one patch per run.
 BOOL __stdcall DRLGOUTDOOR_PlaceRandomBorderSubTiles(struct D2UnkOutdoorStrc * pOutdoorCtx, int32_t pLevelPtr, int * pRect);
-void __stdcall DRLGOUTDOOR_ApplySubstitutionGroup(struct D2UnkOutdoorStrc * pUnkOutdoor, struct D2LvlSubTxt * pLvlSub);
 // Applies a LvlSub DS1 patch to the outdoor room: copies floor/wall/shadow flags into the room’s grids, grows the room tile array for flagged shadow tiles, and spawns shadow tiles plus preset units from the sub file.
 void __stdcall DRLGOUTDOOR_ApplyLvlSubTileData(struct D2PoolManagerStrc * pMemory, int32_t baseX, int32_t baseY, struct D2DrlgWallLayerGridsStrc * pRoomCtx, int * pRect, struct D2LvlSubTxt * pSubTxt, int32_t rectOffsetY);
 // Iterates all substitution groups in a DRLG level-sub file and attempts to place each group's tile pattern on the outdoor room grid. Act 1: sweeps interior grid positions, applies overlap-checked tiles directly. Act 2: matches tile types and applies a randomly selected variant (using pSubTxt probability and the room seed) at each matching grid cell. Writes tile data via DRLGOUTDOOR_ApplyLvlSubTileData.
@@ -447,8 +443,6 @@ int32_t __fastcall PATH_FindPathSingleStep(struct D2PathTypeArg * pPathTypeArg);
 int32_t __fastcall PATH_FindPathForceMove(struct D2PathTypeArg * pPathTypeArg);
 // Pathfinding callback that computes a knockback destination for a unit. Derives displacement from source to target using the dominant-axis normalisation scaled by half the path's nDist, then raycasts (Bresenham) the resulting endpoint back through collision geometry. Writes the final reachable point into pDynamicPath->PathPoints[0] and sets dwPathPoints=1. Returns 1 if the unit actually moved, 0 if blocked at source.
 int32_t __fastcall PATH_FindPathKnockback(struct D2PathTypeArg * pPathTypeArg);
-// A*/IDA* pathfinding expansion step over the DRLG room path grid. Walks the open chain from the current node toward the target coords; for each node it tests the 8 directional neighbors, skips out-of-bounds and collision-blocked cells (Collision::CheckCollision_BlockPlayer_Type with the unit width and collision pattern), computes G (2 straight / 3 diagonal), Manhattan-style H and F costs, and links/allocates child nodes (capacity 0x384) from the path memory pool, deriving each child's facing direction (DRLGPATH_GetPathDirectionPacked with optional seeded RNG). Returns a pointer to the reached/best node's nFCost field, or NULL if no path (target unreached, cost over nMaxCost, pool exhausted, or >10000 iterations). Uses ppPathMemory (EDI) as both the node arena and the path-state header.
-struct D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, struct D2PathTypeArg * pPathTypeArg, struct D2DrlgAStarContextStrc * pAStarCtx);
 // Wrapper that computes the bounding box for A* search by merging the current room and (optionally) the next room extents, padding 10 tiles on any axis that didn't change, then delegates to DRLGPATH_FindPathAStar. nIdaStarVariable is doubled on entry (IDA* depth scaling). Returns the path length from the inner call.
 int32_t __fastcall PATH_FindPathAStar(struct D2PathTypeArg * pPathTypeArg);
 // Fallback A* used when the greedy directional search does not reach the destination and the squared distance is under 0x145. The whole search state is ONE 0x32EC-byte frame object whose base is handed to every helper, which then reach the rest by byte offset: DRLGPATH_AllocPathNode takes the pool count at base+0x2FC4 and node n at base+0x404+n*0x38; DRLGPATH_InsertNodeSorted and PopBestNodeFromOpenList use the closed buckets at base+0x200 and the sorted head at base+0x400; DRLGPATH_PropagateNodeCosts uses the queue at base+0x2FC8 and its count at base+0x32E8. Split into separate locals the helpers wrote nodes over unrelated stack and read the list head out of garbage, which faulted on every player move long enough to need the A* fallback and on NPC paths.
@@ -497,20 +491,14 @@ void DRLGOUTPLACE_PlaceAct2DesertVariants(struct D2DrlgLevelStrc * pLevel);
 void __fastcall DRLGOUTROOM_FindLeftExitPosition(struct D2DrlgLevelStrc * pLevel, int * pOutX, int * pOutY);
 // Finds an exit point at the near-full-width column of the outdoor level. Wrapper around FindExitPointOnColumn that passes X = level width - 2.
 void __fastcall DRLGOUTROOM_FindRightExitPosition(struct D2DrlgLevelStrc * pLevel, int * pOutX, int * pOutY);
-// Checks whether the entire grid column at nX is empty (no flags set), returns TRUE if empty.
-BOOL DRLGOUTROOM_IsGridColumnEmpty(struct D2DrlgLevelStrc * pLevel, int nX);
 // Returns a preset variant index from a grid cell's flags and preset type. For type 0, checks bit 0x100 to choose variant 0 or 3. For type 7 with flags matching 0x30000, returns variant 3. Otherwise indexes into the variant lookup table at data_006f2680, choosing between two columns based on the bAlternate stack arg.
 int __stdcall DRLGOUTROOM_GetPresetVariantFromGridCell(uint32_t nGridFlags, int nPresetType, int dwParam3);
 // Spawns border column presets (0x1A and 0x1B) for two adjacent columns. Iterates all Y rows, determining the preset orientation from grid flags using lookup tables. If the level has road flags (0x14), also places a road transition preset. Called by FillBorderCornersAndPresets and SpawnTownTransitionsAndCaves.
 void __stdcall DRLGOUTROOM_SpawnVerticalBorderPresets(struct D2DrlgLevelStrc * pLevel, int32_t nColumn);
-// Marks contiguous border spans where rooms meet at corners.
-void DRLGOUTROOM_MarkBorderJunctions(struct D2DrlgLevelStrc * pLevel);
 // Spawns a corner fill preset at grid coordinates (nX, nY) to fill gaps in outdoor room layouts.
 BOOL __stdcall DRLGOUTROOM_SpawnCornerFillPreset(int nY, int nX, struct D2DrlgLevelStrc * dwParam3);
 // Outdoor DRLG finalization for a wilderness level (skips eD2LevelId 0x27). Driven by the level data's dwFlags: optionally spawns vertical border presets along the second-to-last grid column (if that column is empty); seed-randomly iterates the grid in row- or column-major order placing corner-fill presets (SpawnCornerFillPreset), halting via Fog ErrorManager if the grid loop completes without success; and finally (flags &0x1c, not &0x40) picks a seed-random edge position and spawns one outdoor level preset (SpawnOutdoorLevelPresetEx), then sets the 0x40 done-flag. Consumes pLevel->sSeed for randomness.
 void __stdcall DRLGOUTROOM_FillBorderCornersAndPresets(struct D2DrlgLevelStrc * pLevel);
-// Switch on level ID spawning Act1 level-specific presets (BloodMoor through MooMooFarm).
-void DRLGOUTROOM_SpawnAct1LevelPresets(struct D2DrlgLevelStrc * pLevel);
 // Shifts 3x3 neighbor buffer up one row and reads new values.
 void __stdcall DRLGOUTROOM_SlideGridNeighborBuffer(struct D2DrlgGridStrc * pGrid, int32_t nRow, int32_t nCol, int * pNeighborBuffer);
 // Orchestrator: initializes grid, clips vertices, computes wall orientations for Act1 outdoor rooms.

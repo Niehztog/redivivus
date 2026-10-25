@@ -94,8 +94,6 @@ char * __stdcall GetPreferedRealm();
 void __stdcall CHARSEL_DestroySelectedChar();
 void __stdcall DRAW_LocalCharsInSelectionScreen0();
 // @sourcefile .\Src\CharSel.cpp
-BOOL __stdcall SAVEFILE_ParseSaveData(char * szRealmName, char * szCharacterName, char * aSaveData, uint32_t dwRealmParam, FILETIME ftLastWriteTime);
-// @sourcefile .\Src\CharSel.cpp
 void __stdcall CHARSEL_DestroyAllCharEntries();
 void __stdcall CHARSEL_EnumerateLocalSaves();
 // @sourcefile .\Src\CharSel.cpp
@@ -114,7 +112,6 @@ BOOL __stdcall CHARSEL_OnPressScrollCharListDown(struct D2ControlMsg * pControlM
 void __stdcall CHARSEL_ScrollCharList(int32_t nScrollDelta);
 BOOL __stdcall CHARSEL_HandleKeyNavExpansion(int32_t pKeyMsg);
 BOOL __stdcall CHARSEL_HandleKeyNavClassic(int32_t pKeyMsg);
-void CHARSEL_SetStatusMessage(int32_t nStatusCode);
 void __stdcall CHARSEL_ShowWaitTimeout();
 BOOL __stdcall CHARSEL_InitRealmSelection();
 // @sourcefile .\Src\CharSel.cpp

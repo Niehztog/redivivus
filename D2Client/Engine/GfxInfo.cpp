@@ -76,53 +76,6 @@ static_assert(sizeof(void*) != 4 || sizeof(::D2GfxInfoStrc) == 0x3c, "D2_NEW(D2G
 namespace D2Client::Engine::GfxInfo {
 static void __stdcall DRAW_UNIT_States_HaltTail(int nLine);
 
-// @sourcefile .\ENGINE\Gfx.cpp
-void __stdcall GFX_RemoveOverlayFromUnit(D2UnitStrc * pUnit, int * pOverlay) {
-    int* pMemoryToFree;
-    D2GfxInfoStrc* pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
-    if (!pGfxInfo) {
-      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x1bf);
-      exit(-1);
-    }
-
-    int* pPrev = 0;
-    int* pCur = (int*)pGfxInfo->pOverlayList;
-    if (!pGfxInfo->pOverlayList) {
-      return;
-    }
-
-    while (true) {
-      pMemoryToFree = pCur;
-      if (pMemoryToFree == pOverlay) {
-        break;
-      }
-
-      pCur = (int*)pMemoryToFree[0x29];
-      pPrev = pMemoryToFree;
-      if (!(int*)pMemoryToFree[0x29]) {
-        return;
-      }
-    }
-
-    if (!pMemoryToFree) {
-      return;
-    }
-    if ((D2LightMapStrc*)pMemoryToFree[0x10]) {
-      Draw::LightMap::FreeLightMap((D2LightMapStrc*)pMemoryToFree[0x10]);
-      pMemoryToFree[0x10] = 0;
-    }
-    if (pPrev) {
-      pPrev[0x29] = pMemoryToFree[0x29];
-    } else {
-      pGfxInfo->pOverlayList = (void*)pMemoryToFree[0x29];
-    }
-    if (*pMemoryToFree == 8) {
-      Gfx::GFX_RemoveStateOverlayAndReprioritize(pUnit, (int32_t)pGfxInfo, (int32_t)pMemoryToFree);
-    }
-
-    Fog::Memory::FreeClientMemory(pMemoryToFree, ".\\ENGINE\\Gfx.cpp", 0x1e1, 0);
-}
-
 BOOL __fastcall GFX_HasOverlayOfType(D2UnitStrc * pUnit, int32_t nOverlayType) {
     D2GfxInfoStrc* pGfxInfo = UNIT::CUnit::GetGfxInfo(pUnit);
     if (!pGfxInfo) {

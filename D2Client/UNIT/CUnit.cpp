@@ -114,6 +114,24 @@
 typedef void (__fastcall *fnUnitIterCallback)(void * pUnit);
 #endif
 
+namespace D2Client::UNIT::Player {
+
+static void CLIENT_SendIdlePlayerMessage(D2UnitStrc * pUnit) {
+    if (!(pUnit && pUnit->eUnitType == UNIT_PLAYER)) {
+      return;
+    }
+
+    eD2PlayerAnimMode eAnimMode = pUnit->eAnimMode.ePlayerMode;
+    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
+    if (!(pRoom && (eAnimMode == eD2PlayerAnimMode_ns::Neutral || eAnimMode == TownNeutral))) {
+      return;
+    }
+
+    PlayerMessage(7, pUnit, nullptr, 1);
+}
+
+} // namespace D2Client::UNIT::Player
+
 namespace D2Client::UNIT::CUnit {
 
 static D2UnitStrc * ClientSideUnitHashTables_21__2_[128][6] = { 0 };

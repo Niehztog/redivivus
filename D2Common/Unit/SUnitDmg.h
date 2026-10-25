@@ -15,6 +15,5 @@ namespace D2Common::Unit::SUnitDmg {
 
 // Function declarations
 // Rolls a unit's passive defensive avoidance against an incoming attack. For players in Run/Walk mode (or matching monster mode) rolls passive_evade; otherwise checks dodge (passive_dodge) when nParam==0 or avoid (passive_avoid) when nParam!=0, plus a weapon-class-0xD parry/block path keyed on DAMAGE_GetSkillDamageBonus. Uses the unit RNG seed (advances pUnit->sSeed). Returns a result bitcode: 0x10 (block/parry), 8 (evade), 4 (dodge), 2 (avoid), or 0 (none). __fastcall with pUnit in ESI, attacker pUnit2 in EDI.
-uint32_t __stdcall DAMAGE_CheckDefenseEvasion(int32_t nParam, struct D2UnitStrc * pUnit, struct D2UnitStrc * pUnit2);
 
 } // namespace D2Common::Unit::SUnitDmg

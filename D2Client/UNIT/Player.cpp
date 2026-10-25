@@ -99,6 +99,47 @@ typedef void (__fastcall *fpStatListExChangeCb)(::SGAMEDATA * pGame, D2UnitStrc 
 typedef void (__fastcall *fnUnitIterCallback)(void * pUnit);
 #endif
 
+namespace D2Client::Engine {
+
+static void __stdcall CLIENT_SetAnimModeAndMoveToCurrentPos(eD2PlayerAnimMode nAnimMode, BOOL bMovePlayerUnit, D2UnitStrc * pUnit) {
+    int nX;
+    int nY;
+    UNIT::UnitMode::UNITMODE_SetAnimMode(pUnit, nAnimMode);
+    if (!bMovePlayerUnit) {
+      return;
+    }
+
+    D2UnitStrc* pPlayerUnit_lcl = UNIT::Player::GetPlayerUnit_Net();
+    if (pUnit != pPlayerUnit_lcl) {
+      return;
+    }
+
+    eD2UnitType eUnitType = pUnit->eUnitType;
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+      nX = pUnit->pPath.pStaticPath->nPosX;
+    } else if (pUnit->pPath.pDynamicPath) {
+      nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+    } else {
+      nX = 0;
+    }
+
+    eUnitType = pUnit->eUnitType;
+    if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+      nY = pUnit->pPath.pStaticPath->nPosY;
+    } else if (!pUnit->pPath.pDynamicPath) {
+      nY = 0;
+    } else {
+      nY = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+    }
+    if (!(nX && nY)) {
+      return;
+    }
+
+    UNIT::Path::PATH_MoveUnitToPoint(pUnit, (uint16_t)nX, nY, 0, 0, 0);
+}
+
+} // namespace D2Client::Engine
+
 namespace D2Client::UNIT::Player {
 
 // Client-side reaction handler invoked when a unit stat changes; dwStatIdAndSubIndex packs the stat id (high 16 bits, eD2UnitStat) and a sub-index (low 16 bits), nValue is the new value. Dispatches on stat id: item_lightradius/item_lightcolor update the unit's rendered light; item_nonclassskill/item_singleskill add or remove a granted skill on a player (AddSkill when newly granted and class-eligible, SKILL_RemoveSkillCallback when value drops to 0 and skill level is gone); item_charged_skill adds/removes a charged item skill (decoding charge level/max from the sub-index and item charge count, gated on the item owner matching the player). All other stats are no-ops here. Player/UI-side only.
@@ -2906,20 +2947,6 @@ uint32_t InsertIntoHashTable(D2UnitStrc * pUnit) {
     }
 
     return 0;
-}
-
-void CLIENT_SendIdlePlayerMessage(D2UnitStrc * pUnit) {
-    if (!(pUnit && pUnit->eUnitType == UNIT_PLAYER)) {
-      return;
-    }
-
-    eD2PlayerAnimMode eAnimMode = pUnit->eAnimMode.ePlayerMode;
-    D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-    if (!(pRoom && (eAnimMode == eD2PlayerAnimMode_ns::Neutral || eAnimMode == TownNeutral))) {
-      return;
-    }
-
-    PlayerMessage(7, pUnit, nullptr, 1);
 }
 
 void __stdcall PLAYER_PlaceUnitInRoom(int32_t nParam1, D2RoomStrc * pRoom, D2UnitStrc * pUnit, int32_t nParam2) {

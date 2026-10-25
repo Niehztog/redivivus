@@ -25,10 +25,6 @@ int __stdcall DRLGOUTDOOR_GetPrimaryWallGridFlags(int * pLevelCtx, int32_t nGrid
 // Already documented — existing description is accurate and meaningful.
 int __stdcall DRLGOUTDOOR_ValidateSubTilePlacement(struct D2UnkOutdoorStrc * pOutdoorCtx, int pBaseGridX, int pBaseGridY, struct D2DrlgCoordStrc * pSubRect, struct D2LvlSubTxt * pSubLvl);
 int __stdcall DRLGOUTDOOR_ApplySubTileToGrid(int nBaseX, int nBaseY, struct D2UnkOutdoorStrc * pOutdoorCtx, struct D2DrlgCoordStrc * pCoords, struct D2LvlSubTxt * pLvlSub, int nOffset);
-// Paste preset units from a LvlSub definition into the active outdoor room. Converts bounds to world coordinates, then for each preset check if it falls inside the sub-rect and spawn a new preset unit offset into the room’s local space.
-void __stdcall DRLGOUTDOOR_CopyPresetUnitsFromSubTxt(int32_t roomX, int32_t roomY, struct D2DrlgWallLayerGridsStrc * pRoomCtx, struct D2PoolManagerStrc * pMemory, struct D2LvlSubTxt * pLvlSub, int * pRect);
-// Checks that applying the LvlSub patch doesn’t conflict with existing floor/wall/shadow cells; returns false if any flagged tiles overlap and existing grids already set the same flags.
-BOOL __stdcall DRLGOUTDOOR_CheckSubTileOverlap(int32_t nParam1, int32_t nParam2, struct D2DrlgWallLayerGridsStrc * pDrlgUnkn, int * pnParam, struct D2LvlSubTxt * pLvlSubTxt);
 // Checks whether a DS1 sub-tile strip can be placed at a given offset in an outdoor level room. For each cell in the strip, compares tile-type flags from the sub-tile grid against those of the destination room grids; if floor or wall special bits differ the function returns 0 (no match), otherwise 1. Called during outdoor level generation to validate sub-tile placement before objects are applied.
 BOOL __stdcall DRLGOUTDOOR_MatchSubTileTypes(int32_t nParam1, int32_t nParam2, struct D2DrlgWallLayerGridsStrc * pDrlgUnkn, struct D2LvlSubTxt * pLvlSubTxt, int * pnParam);
 // Finds adjacent level in vis array, returns bitmask (1 shifted by index+4).
@@ -72,6 +68,5 @@ void __fastcall DRLGOUTDOOR_FreeOutdoorLevelData(struct D2DrlgLevelStrc * pLevel
 void DRLGOUTPLACE_PlaceAct4SpecialPresets(struct D2DrlgLevelStrc * pLevel);
 void BuildChaosSanctuary(struct D2DrlgLevelStrc * pLevel);
 void __fastcall InitAct4OutdoorLevel(struct D2DrlgLevelStrc * pLevel);
-void AddAct124SecondaryBorderSubId213(struct D2DrlgLevelStrc * pLevel);
 
 } // namespace D2Common::Drlg::Outdoors

@@ -17,7 +17,6 @@ namespace D2Game::GAME::Event::Dispatch {
 
 // Function declarations
 // Recycles a timer back to the free pool. Unlinks the timer from three data structures: unit timer list (pNextTimerOnUnit chain), dispatch bucket (pActiveTimersByType[nFrame & 0x3F]), and immediate list (pTimerListByType). Sets flag 0x8 if timer is currently executing (defer removal), otherwise immediately returns to pFirstList free pool.
-void EVENT_RemoveAndRecycleTimer(struct D2TimerStrc * pTimer, ::SGAMEDATA * pGame);
 // Dispatches player timers, immediate or frame-matched.
 // The per-timer callback (D2TimerStrc+0x2C) is fpTimerFunctionUnit, NOT fpTimerFunction:
 // both indirect call sites here push three dwords before CALL EAX with pGame in ECX and
@@ -29,14 +28,9 @@ void EVENT_RemoveAndRecycleTimer(struct D2TimerStrc * pTimer, ::SGAMEDATA * pGam
 // Object::pTimerMethods and Item::pTimerMethods are called at 00586b19 and 00562de9 with
 // MOV EDX / MOV ECX and NO pushes. One typedef was covering both records; do not merge
 // them again.
-void __stdcall EVENT_DispatchPlayerTimers(struct D2TimerQueueStrc * pTimerQueue, ::SGAMEDATA * pGame, struct D2TimerStrc * pTimer, BOOL bImmediate);
 // Dispatches monster timers using the same two-mode mechanism as player dispatch (immediate vs frame-matched bucket hash). Calls MONSTEREVENT_DefaultCallback or custom fpTimerFunction for each timer. Drives monster AI state machine, skill casting, regeneration, and death timers.
-void __stdcall EVENT_DispatchMonsterTimers(struct D2TimerQueueStrc * pTimerQueue, ::SGAMEDATA * pGame, struct D2TimerStrc * pTimer, BOOL bImmediate);
 // Dispatches object timers (shrines, chests, doors, portals) with the dual immediate/frame-scheduled mode. Calls OBJECTEVENT_DefaultCallback or custom function. Objects use fewer timer types than players/monsters (mainly animation state and interaction cooldowns).
-void __stdcall EVENT_DispatchObjectTimers(struct D2TimerQueueStrc * pTimerQueue, ::SGAMEDATA * pGame, struct D2TimerStrc * pTimer, BOOL bImmediate);
 // Dispatches missile timers which drive projectile physics every frame. Calls MISSILEEVENT_DefaultCallback (→MissileSrvDo mode dispatcher → velocity, collision, hit functions). This is the combat system's firing mechanism. Missiles nearly always use immediate dispatch mode.
-void __stdcall EVENT_DispatchMissileTimers(struct D2TimerQueueStrc * pTimerQueue, ::SGAMEDATA * pGame, struct D2TimerStrc * pTimer, BOOL bImmediate);
 // Dispatches item timers for ground items and equipped items. Calls ITEMEVENT_DefaultCallback or custom handler. Item timers handle durability refresh, quantity refresh (arrows/bolts), and item destruction countdowns.
-void __stdcall EVENT_DispatchItemTimers(struct D2TimerQueueStrc * pTimerQueue, ::SGAMEDATA * pGame, struct D2TimerStrc * pTimer, BOOL bImmediate);
 
 } // namespace D2Game::GAME::Event::Dispatch

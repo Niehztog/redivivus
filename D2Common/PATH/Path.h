@@ -21,12 +21,7 @@ namespace D2Common::PATH::Path {
 // Function declarations
 void __fastcall PATH_CheckPathPointsInRoom(struct D2DynamicPathStrc * pPath);
 void __stdcall PATH_GetTargetCoordinates(int32_t nDirIndex, int32_t * pnOutX, int32_t * pnOutY, int32_t nStepIndex);
-// PATH_ExtendPathEndpoint - Nudges a path endpoint further in the direction of movement, stepping up to 5 subtiles as long as no collision is encountered. Used to extend paths past obstacles for smoother movement.
-void PATH_ExtendPathEndpoint(struct D2PathTypeArg * pPathData);
-// PATH_FindAlternateAroundObstacle - Attempts to find an alternate path around an obstacle using directional triplets (left/right alternatives). Checks primary, secondary, and tertiary directions until a collision-free direction is found. Returns 1 if an alternate path was found.
-BOOL PATH_FindAlternateAroundObstacle(struct D2PathTypeArg * pPathState);
 void __stdcall PATH_GetScreenVelocity(struct D2UnitStrc * pUnit, int * pnParam1, int * pnParam2);
-uint32_t PATH_CanMonsterPathInArea(struct D2UnitStrc * pUnit, uint16_t * pPathData);
 void __stdcall STRUCT_FreePath(struct D2PoolManagerStrc * pMemory, void * pPath);
 uint32_t __stdcall PATH_CalculateDistance(uint32_t nFromXfp, uint32_t nFromYfp, uint32_t nToXfp, uint32_t nToYfp);
 // Tests whether a single path step from nParam2 to nParam1 is passable for pDynamicPath's owner. If the path has flag 0x4 (teleport/move-collision update), directly calls UpdateCollision_Type and returns 1. Otherwise calls RemoveGetCollision_Type or RemoveGetCollision_Width (based on bbox flag 0x40000), accumulates the result into eCollisionFlag, and returns 1 (passable) or 0 (blocked) depending on collision bits 0x1/0x4.
@@ -41,7 +36,6 @@ void __stdcall PATH_SetPathTarget(struct D2UnitStrc * pUnit, struct D2UnitStrc *
 // Advances a dynamic path one sub-tile step. Calls PATH_ComputeDirectMovementVector to get the delta, adds it to the current sub-tile position, then calls PATH_TraceCollisionPath if the integer tile cell changed. On collision: if a mover monster owns the path, calls PATH_RecalculatePath; otherwise snaps direction registers. Writes the new sub-tile X/Y into pnOutX[0]/[1]. Returns true if the path is still in motion, false if stopped or collided without rerouting.
 bool __stdcall PATH_ComputeMovementStep(uint32_t * pnOutX, uint32_t * pnOutY, struct D2SkillsTxt * pSkillsTxt);
 BOOL __stdcall PATH_AdvanceUnitAlongPath(struct D2UnitStrc * pUnit, struct D2DynamicPathStrc * pExternalPath);
-int __stdcall PATH_MoveObjectToPosition(struct D2RoomStrc * pRoom, uint32_t nTargetPos, uint32_t * pPath);
 BOOL __stdcall PATH_GetCollisionMaskAt(struct D2DynamicPathStrc * pDynamicPath, struct D2UnitStrc * pUnit, struct D2RoomStrc * pRoom, uint16_t wPosX, uint16_t wPosY);
 int32_t __stdcall PATH_GetCollisionTypeAt(uint32_t * pDynamicPath, struct D2UnitStrc * dwUnused, struct D2RoomStrc * pRoom, uint16_t wPosX, uint16_t wPosY);
 void __stdcall PATH_CheckCollisionFlags(struct D2DynamicPathStrc * pDynamicPath, uint32_t dwUnused, struct D2RoomStrc * pRoom, uint16_t wPosX, uint16_t wPosY);

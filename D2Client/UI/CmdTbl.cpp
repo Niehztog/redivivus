@@ -34,6 +34,7 @@
 #include "D2Common/Drlg/Drlg.h"
 #include "D2Common/Unit/D2UnitStrc.h"
 #include "D2Launch/MainMenus.h"
+#include "Storm/Source/SSTR.h"
 
 #define DEFAULT_SECURITY_COOKIE 0xBB40E64E
 
@@ -304,6 +305,125 @@ void __fastcall CMD_InvokeCallbackByParam(int32_t nParam) {
       return;
     }
 }
+
+} // namespace D2Client::UI::CmdTbl
+
+namespace D2Client {
+
+// Validates whether a command can be bound to mouse buttons (0x103-0x104). Returns false if command handler exists and button is left/right click, true otherwise. Used during key binding setup to prevent invalid mouse button assignments.
+static BOOL CMD_ValidateMouseButtonBinding(int32_t nCmdIndex, uint16_t * pErrorCode, uint32_t nMouseButton) {
+    if (!((nMouseButton & 0xffff) - 0x103 <= 1 && gaCmdBindings[nCmdIndex].pfnAltHandler)) {
+      return 1;
+    }
+    if (!pErrorCode) {
+      return 0;
+    }
+
+    *pErrorCode = 0xf8a;
+    return 0;
+}
+
+} // namespace D2Client
+
+namespace D2Client::Save {
+
+// Opens (or creates) the per-character .key save file used for realm character locking. If a realm name is set, first tries the realm subdirectory path (&lt;savepath&gt;\&lt;realm&gt;\&lt;char&gt;.key); on failure falls back to the base save path (&lt;savepath&gt;\&lt;char&gt;.key). Calls Storm CreateFileA with caller-supplied dwDesiredAccess and dwCreationDisposition. Returns the file HANDLE, or INVALID_HANDLE_VALUE if both paths fail.
+static HANDLE GetKeyFileHandle(DWORD dwCreationDisposition, DWORD dwDesiredAccess) {
+    HANDLE hFile;
+    char szPath[260];
+    char szRealmDir[260];
+    char szKeyFilePath[260];
+    szPath[0] = '\0';
+    for (int i = 0x1; i < 0x104; i++) szPath[i] = 0;
+    szKeyFilePath[0] = '\0';
+    for (int i = 0x1; i < 0x104; i++) szKeyFilePath[i] = 0;
+    szRealmDir[0] = '\0';
+    for (int i = 0x1; i < 0x104; i++) szRealmDir[i] = 0;
+    Fog::Source::SFile::GetAndCreateSavePath(szPath, 0x104);
+    if (RealmName[0] != '\0') {
+      Storm::Source::SSTR::SStrPrintf(szRealmDir, 0x104, "%s%s\\", szPath, RealmName);
+      Fog::Source::SFile::SafeCreateDirectoryTree(szRealmDir);
+      Storm::Source::SSTR::SStrPrintf(szKeyFilePath, 0x104, "%s%s.key", szRealmDir, D2Game::Save::szSaveCharacterName);
+      hFile = Fog::Source::SFile::thunk_CreateFileA(szKeyFilePath, dwDesiredAccess, 0, (LPSECURITY_ATTRIBUTES)0x0, dwCreationDisposition, 0x80, (HANDLE)0x0);
+      if (hFile != (HANDLE)-1) {
+        return hFile;
+      }
+    }
+
+    Storm::Source::SSTR::SStrPrintf(szKeyFilePath, 0x104, "%s%s.key", szPath, D2Game::Save::szSaveCharacterName);
+    hFile = Fog::Source::SFile::thunk_CreateFileA(szKeyFilePath, dwDesiredAccess, 0, (LPSECURITY_ATTRIBUTES)0x0, dwCreationDisposition, 0x80, (HANDLE)0x0);
+    return hFile;
+}
+
+// Serializes the global key-bindings table (g_KeyBindingsTable, 0x474 bytes, 0x11d entries) to two files: the user's active key file (via GetKeyFileHandle) and the install-directory "default.key" fallback. Writes a header with signature 0x5357 and version 0x25 before the binding data.
+void __stdcall CMD_WriteKeyFile() {
+    // Frame slots -16..-4 are ONE object: &wSignature is passed out and the callee reaches the rest by byte offset.
+    // Separate locals let the compiler reorder them, so the run is one struct.
+    struct __frame0_t {
+      uint16_t wSignature;
+      uint16_t wVersion;
+      uint16_t wFileSize;
+      uint8_t __pad6[2];
+      DWORD nWritten;
+    };
+    static_assert(sizeof(void*) != 4 || sizeof(__frame0_t) == 12, "frame group __frame0_t must reproduce the Ghidra frame layout");
+    __frame0_t __frame0;
+    char* pEnd;
+    char szBuffer[1142];
+    char cStack_115;
+    char szInstallPath[260];
+    HANDLE hFile = GetKeyFileHandle(2, 0x40000000);
+    if (hFile == (HANDLE)-1) {
+      return;
+    }
+
+    for (int i = 0x2; i < 0x476; i++) szBuffer[i] = 0;
+    __frame0.nWritten = 0;
+    szBuffer[0] = '%';
+    szBuffer[1] = '\0';
+    char* pDst = szBuffer + 6;
+    int nCount = 0x72;
+    do {
+      pDst[0] = -1;
+      pDst[1] = -1;
+      pDst += 10;
+      nCount--;
+    } while (nCount);
+
+    D2KeyBindStrc* pSrc = g_KeyBindingsTable;
+    int32_t* puVar5 = (int32_t*)(szBuffer + 2);
+    for (nCount = 0x11d; nCount; nCount--) {
+      *puVar5 = pSrc->nCmdIndex;
+      pSrc = (D2KeyBindStrc*)&pSrc->wKeyCode;
+      puVar5++;
+    }
+
+    Fog::Source::SFile::thunk_WriteFile(hFile, (LPCVOID)szBuffer, 0x476, &__frame0.nWritten, (LPOVERLAPPED)0x0);
+    Fog::Source::SFile::SFILE_Win32CloseHandle(hFile);
+    Fog::Source::SFile::SFILE_GetInstallPath(szInstallPath, 0xdc);
+    pDst = &cStack_115;
+    do {
+      pEnd = pDst;
+      pDst = pEnd + 1;
+    } while (pEnd[1] != '\0');
+
+    memcpy(pEnd + 1, "default.key", 0xc);
+    hFile = Fog::Source::SFile::thunk_CreateFileA(szInstallPath, 0x40000000, 0, (LPSECURITY_ATTRIBUTES)0x0, 2, 0x80, (HANDLE)0x0);
+    if (hFile == (HANDLE)-1) {
+      return;
+    }
+
+    __frame0.wSignature = 0x5357;
+    __frame0.wVersion = 0x25;
+    __frame0.wFileSize = 0x47a;
+    Fog::Source::SFile::thunk_WriteFile(hFile, (LPCVOID)&__frame0.wSignature, 6, &__frame0.nWritten, (LPOVERLAPPED)0x0);
+    Fog::Source::SFile::thunk_WriteFile(hFile, (LPCVOID)g_KeyBindingsTable, 0x474, &__frame0.nWritten, (LPOVERLAPPED)0x0);
+    Fog::Source::SFile::SFILE_Win32CloseHandle(hFile);
+}
+
+} // namespace D2Client::Save
+
+namespace D2Client::UI::CmdTbl {
 
 // @sourcefile .\UI\CmdTbl.cpp
 void __stdcall CMD_LoadDefaultKeyBindings(DWORD dwParam) {

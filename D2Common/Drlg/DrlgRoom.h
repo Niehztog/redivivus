@@ -145,13 +145,8 @@ eD2LevelId __fastcall DRLGWARP_GetWarpDestinationLevel(struct D2RoomExStrc * pRo
 eD2LevelId __fastcall GetLevelIdFromPopulatedRoomEx(struct D2RoomExStrc * pRoomEx);
 BOOL __fastcall HasWaypoint(struct D2RoomExStrc * pRoomEx);
 char * __fastcall GetPickedLevelPrestFilePathFromRoomEx(struct D2RoomExStrc * pRoomEx);
-// Builds the ppDrlgRoomsExNear neighbour list for a single RoomEx. Iterates all rooms in the level and collects those whose world bounding box lies within 6 tiles (X and Y) of pRoomEx. Passes the raw list through ReorderNearRoomList, then allocates server memory for the final pointer array and copies it into pRoomEx->ppDrlgRoomsExNear / nDrlgRoomsExNearCount.
-// @sourcefile .\DRLG\DrlgRoom.cpp
-void __stdcall DefineRoomsNear(struct D2PoolManagerStrc * pMemory, struct D2RoomExStrc * pRoomEx);
 int32_t __fastcall GetRoomsNearCount(struct D2RoomExStrc * pRoomEx);
 int32_t __fastcall GetRealRoomsNearCount(struct D2RoomExStrc * pRoomEx, struct D2RoomStrc * * ppRoomList);
-// If this room’s level is not a town, check adjacent RoomEx list; if any neighbor is in a town level, set eRoomExFlags bit 0x800000.
-void DRLGROOM_FlagRoomExBorderingTown(struct D2RoomExStrc * pRoomEx);
 // Searches dst level rooms for a matching warp flag bit (dstVisSlot+4). If warpDestLevel is valid, immediately link rooms and allocate a room tile. Otherwise, link only if room bounding boxes are within 6 tiles in X/Y. Returns 1 if link added, else 0.
 BOOL __stdcall DRLGROOMEX_LinkNearRoomByDirection(uint8_t dstVisSlot, struct D2RoomExStrc * pRoomEx, struct D2PoolManagerStrc * pMemory, uint8_t srcVisSlot, int32_t warpDestLevel, struct D2RoomExStrc * pDstRoomExIter);
 // Allocates a D2PresetUnitStrc, initializes fields, and optionally links it into pRoomEx->pPresetUnit list.

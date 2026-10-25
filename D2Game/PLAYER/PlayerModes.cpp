@@ -469,7 +469,7 @@ void __fastcall SERVERUNIT_GoldAmmountForDeadBody(::SGAMEDATA * pGame, D2UnitStr
 }
 
 // Removes an equipped item (pUnit2) from the player's body at nBodyLoc and prepares it for dropping. Swaps primary weapon if needed, nulls the body-loc slot, handles belt removal for belt-type items, unequips item stats, marks item as REMOVED, issues ITEMCMD_DELETE and ITEMCMD_BODYLOC_TAKE_ITEM, refreshes inventory. Halts with error if item doesn't belong to the player's inventory.
-void __stdcall PLRMODES_UnequipAndPrepareItemForDrop(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pUnit2, int32_t nBodyLoc) {
+static void __stdcall PLRMODES_UnequipAndPrepareItemForDrop(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pUnit2, int32_t nBodyLoc) {
     D2InventoryStrc* pInventory = pUnit->pInventory;
     int32_t bShouldReturnItem = D2Common::ITEMS::Items::ReturnFalse(pUnit, pUnit2);
     D2Common::INVENTORY::Inventory::INVENTORY_SwapPrimaryWeaponOnRemoval(pInventory, pUnit2);
@@ -507,7 +507,7 @@ void __stdcall PLRMODES_UnequipAndPrepareItemForDrop(::SGAMEDATA * pGame, D2Unit
 }
 
 // @sourcefile .\PLAYER\PlrModes.cpp
-void PLRMODES_ClearCursorAndDeleteItem(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
+static void PLRMODES_ClearCursorAndDeleteItem(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) {
     D2InventoryStrc* pInventory = pUnit->pInventory;
     D2ClientStrc* pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrModes.cpp", 0x27d);
     GAME::SCmd::NET_D2GS_SERVER_Send_0x42_DESTROYHANDITEM(pClient, pUnit);
@@ -519,7 +519,7 @@ void PLRMODES_ClearCursorAndDeleteItem(D2UnitStrc * pUnit, D2UnitStrc * pUnit2) 
 
 // Drops all equipped items (body locations -1 through 12) and all carried gold from pUnit onto the ground, typically called on player death. Cursor item (body loc -1) is cleared from inventory and deleted before dropping. Each body-loc item is unequipped via PLRMODES_UnequipAndPrepareItemForDrop, cloned from serialised data, and placed at the nearest free ground spot via FindBestSpotToSpawnItem/DropItem. After equipment, drains UNITSTAT_gold to 0 and calls GOLD_DropGoldFromInventory.
 // @sourcefile .\PLAYER\PlrModes.cpp
-void __stdcall PLRMODES_DropAllEquipmentAndGold(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
+static void __stdcall PLRMODES_DropAllEquipmentAndGold(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
     D2ClientStrc* pClient;
     D2RoomStrc* pSpawnRoom;
     int nBodyLoc_00;
@@ -580,7 +580,7 @@ void __stdcall PLRMODES_DropAllEquipmentAndGold(::SGAMEDATA * pGame, D2UnitStrc 
     Player::GOLD_DropGoldFromInventory(pGame, pUnit, pUnit->nUnitGUID, nGoldAmount);
 }
 
-int32_t __stdcall PLRMODES_CleanupInvalidCorpses(::SGAMEDATA * pGame, D2UnitStrc * pUnitRaw) {
+static int32_t __stdcall PLRMODES_CleanupInvalidCorpses(::SGAMEDATA * pGame, D2UnitStrc * pUnitRaw) {
     uint32_t dwFindGUID;
     D2UnitStrc* pFoundUnit;
     D2InventoryStrc* pInventory = pUnitRaw->pInventory;
@@ -605,6 +605,207 @@ int32_t __stdcall PLRMODES_CleanupInvalidCorpses(::SGAMEDATA * pGame, D2UnitStrc
 
     return nCorpseCount;
 }
+
+} // namespace D2Game::PLAYER::PlayerModes
+
+namespace D2Game {
+
+// @sourcefile .\PLAYER\PlrModes.cpp
+D2UnitStrc * __fastcall PLRMODES_CreateDeadBody(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nX, int32_t nY, D2UnitStrc * pRoom) {
+    D2RoomStrc* pSpawnRoom;
+    D2UnitStrc* pUnit_00;
+    D2ClientStrc* pClient;
+    char* szName;
+    D2UnitStrc* pItemUnit;
+    int* pGridSlot;
+    BOOL BVar2;
+    uint32_t dwParam;
+    uint32_t uVar3;
+    int iVar4;
+    int nExpQuotient;
+    int64_t lExpTimes75;
+    POINT* pNewPosition;
+    uint8_t nMaxSearchRadius;
+    int32_t iVar5;
+    POINT sUnitCoords;
+    POINT sDropCoords;
+    D2UnitStrc* pSavedBodyUnit;
+    int32_t nBodyLocIndex;
+    D2InventoryStrc* pCorpseInventory;
+    D2UnitStrc* pSlotItem;
+    pSlotItem = pRoom;
+    D2UnitStrc* pOrigUnit;
+    pOrigUnit = pUnit;
+    ::SGAMEDATA* pSavedGame;
+    pSavedGame = pGame;
+    PLAYER::PlayerModes::PLRMODES_CleanupInvalidCorpses(pGame, pUnit);
+    D2InventoryStrc* pPlayerInventory;
+    pPlayerInventory = pUnit->pInventory;
+    uint32_t uVar1;
+    uVar1 = D2Common::INVENTORY::Inventory::INVENTORY_GetCorpseCount(pPlayerInventory);
+    if (0xf < uVar1) {
+      PLAYER::PlayerModes::PLRMODES_DropAllEquipmentAndGold(pGame, pUnit);
+      return nullptr;
+    }
+    if (!pRoom) {
+      Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2fd);
+      exit(-1);
+    } else {
+      ::SGAMEDATA* pGame_00;
+      pSpawnRoom = D2Client::UNIT::Player::DRLGROOM_FindBetterNearbyRoom((D2RoomStrc*)pSlotItem, nX, nY);
+      if (!pSpawnRoom) {
+        Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2ff);
+        exit(-1);
+      } else {
+        pUnit_00 = UNIT::SUnit::CreateUnit(UNIT_PLAYER, pUnit->nClassId, nX, nY, pGame, pSpawnRoom, 1, 0x11, nullptr);
+        pSavedBodyUnit = pUnit_00;
+        if (!pUnit_00) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x304);
+          exit(-1);
+        } else {
+          pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrModes.cpp", 0x306);
+          pUnit_00->eUnitFlags &= ~UNITFLAG_CANBEATTACKED;
+          UNIT::SUnit::SetClient(pUnit_00, pClient);
+          szName = GAME::Clients::GetCharName(pClient);
+          D2Common::Units::SetNameInPlayerData(pUnit_00, szName);
+          UNIT::SUnit::SetSeed(pUnit_00, &pSavedGame->pGameSeed);
+          D2Common::Units::SetupUpdateFlag(pUnit_00, 0x11);
+          D2Common::DATATBLS::ItemStats::SetState(pUnit_00, STATE_playerbody, 1);
+          pUnit_00->eUnitFlagsEx |= UNITFLAGEX_ISCORPSE;
+          pUnit_00->eUnitFlags |= UNITFLAG_TARGETABLE;
+          uVar1 = GAME::Clients::GetExperience(pClient);
+          if ((int)uVar1 < 0x100001) {
+            iVar4 = (int)(uVar1 * 0x4b) >> 0x1f;
+            nExpQuotient = (int)(uVar1 * 0x4b) / 100 + iVar4;
+            lExpTimes75 = (uint64_t)((uint64_t)(uint32_t)nExpQuotient << 32 | (uint64_t)(uint32_t)(nExpQuotient - iVar4));
+          } else {
+            iVar4 = (int)uVar1 >> 0x1f;
+            if ((int)(uVar1 & -16) < 0x640) {
+              lExpTimes75 = __allmul(uVar1, iVar4, 0x4b, 0);
+              lExpTimes75 = (int64_t)lExpTimes75 / 100;
+            } else {
+              nExpQuotient = (int)uVar1 / 100 + iVar4;
+              lExpTimes75 = (uint64_t)((uint64_t)(uint32_t)nExpQuotient << 32 | (uint64_t)(uint32_t)((nExpQuotient - iVar4) * 0x4b));
+            }
+          }
+
+          pCorpseInventory = (D2InventoryStrc*)lExpTimes75;
+          GAME::Clients::SetExperience(pClient, 0);
+          D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit_00, UNITSTAT_experience, (int32_t)pCorpseInventory, 0);
+          D2Common::INVENTORY::Inventory::INVENTORY_AddCorpse(pPlayerInventory, pUnit_00->nUnitGUID, 0, UNIT_MONSTER);
+          pCorpseInventory = pUnit_00->pInventory;
+          if (pUnit_00->nUnitGUID == pUnit->nUnitGUID) {
+            Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x31a);
+            exit(-1);
+          }
+
+          D2Common::INVENTORY::Inventory::INVENTORY_SetOwnerGUID(pCorpseInventory, pUnit->nUnitGUID);
+          nBodyLocIndex = -1;
+          do {
+            iVar5 = nBodyLocIndex;
+            if (nBodyLocIndex == -1) {
+              pSlotItem = D2Common::INVENTORY::Inventory::INVENTORY_GetHandItem(pPlayerInventory);
+            } else {
+              pSlotItem = D2Common::INVENTORY::Inventory::INVENTORY_GetItemByGridOffset(pPlayerInventory, nBodyLocIndex);
+            }
+            if (pSlotItem) {
+              if (iVar5 == -1) {
+                PLAYER::PlayerModes::PLRMODES_ClearCursorAndDeleteItem(pUnit, pSlotItem);
+                pUnit = pOrigUnit;
+              } else {
+                if (pSlotItem->eAnimMode.ePlayerMode != eD2PlayerAnimMode_ns::Neutral) {
+                  Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x339);
+                  exit(-1);
+                }
+                PLAYER::PlayerModes::PLRMODES_UnequipAndPrepareItemForDrop(pSavedGame, pUnit, pSlotItem, iVar5);
+                pUnit_00 = pSavedBodyUnit;
+              }
+              pItemUnit = pSlotItem;
+              D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pSlotItem, INVPAGE_INVENTORY);
+              pItemUnit = ITEMS::Items::Drop::ITEM_CloneFromSerializedData(pSavedGame, pItemUnit, pUnit, 1);
+              if (nBodyLocIndex == -1) {
+                iVar5 = D2Common::Units::GetInventoryPage(pUnit_00, 0, pSavedGame->bExpansion);
+                pGridSlot = D2Common::INVENTORY::Inventory::INVENTORY_AutoPlaceItemInGrid(pCorpseInventory, pItemUnit, iVar5, 0, 0, ".\\PLAYER\\PlrModes.cpp", 0x349);
+                if (pGridSlot) {
+                  BVar2 = D2Common::INVENTORY::Inventory::PutItemInInventory(pCorpseInventory, pItemUnit, 1);
+                  if (BVar2) {
+                    if (pItemUnit) {
+                      pItemUnit->eUnitFlags &= ~UNITFLAG_TARGETABLE;
+                    }
+                    D2Common::Units::SetupUpdateFlag(pItemUnit, 0);
+                    if (pItemUnit) {
+                      pItemUnit->eUnitFlags &= ~UNITFLAG_ISRESURRECT;
+                    }
+                    D2Common::ITEMS::Items::ITEM_EditItemData_eD2ItemCmd(pItemUnit, ITEMCMD_INVENTORY_PUT_ITEM, 1);
+                    break;
+                  }
+                }
+              } else {
+                BVar2 = D2Common::INVENTORY::Inventory::INVENTORY_GetItemAtBodyLoc(pCorpseInventory, pItemUnit, nBodyLocIndex);
+                if (BVar2) {
+                  dwParam = 3;
+                  if (nBodyLocIndex == 0xb || nBodyLocIndex == 0xc) {
+                    dwParam = 4;
+                  }
+
+                  BVar2 = D2Common::INVENTORY::Inventory::PutItemInInventory(pCorpseInventory, pItemUnit, dwParam);
+                  if (BVar2) {
+                    D2Common::ITEMS::Items::SetBodyLoc(pItemUnit, (eD2BodyLoc)nBodyLocIndex);
+                    if (pItemUnit) {
+                      pItemUnit->eUnitFlags &= ~UNITFLAG_TARGETABLE;
+                    }
+
+                    D2Common::Units::SetupUpdateFlag(pItemUnit, 1);
+                    D2Common::ITEMS::Items::ITEM_SetItemData_ePage(pItemUnit, INVPAGE_None);
+                    D2Common::ITEMS::Items::ITEM_EditItemData_eD2ItemCmd(pItemUnit, ITEMCMD_BODYLOC_PUT_ITEM, 1);
+                    if (pItemUnit) {
+                      pItemUnit->eUnitFlags &= ~UNITFLAG_ISRESURRECT;
+                    }
+
+                    break;
+                  }
+                }
+              }
+
+              D2Common::Units::GetCoords(pUnit, &sUnitCoords);
+              nMaxSearchRadius = 1;
+              uVar3 = 1;
+              pNewPosition = &sDropCoords;
+              pSpawnRoom = D2Common::Units::UNITS_GetRoom(pUnit);
+              pSpawnRoom = ITEMS::Items::Drop::FindBestSpotToSpawnItem(pSpawnRoom, &sUnitCoords, pNewPosition, uVar3, nMaxSearchRadius);
+              ITEMS::Items::Drop::DropItem(pSavedGame, (int32_t)pUnit, pItemUnit, pSpawnRoom, sDropCoords.x, sDropCoords.y);
+              iVar5 = nBodyLocIndex;
+            }
+
+            next_body_loc:
+            nBodyLocIndex = iVar5 + 1;
+            if (0xc < nBodyLocIndex) {
+              uVar3 = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
+              if (pUnit->eUnitType == UNIT_PLAYER) {
+                D2Common::Units::GetInventoryGoldLimit(pUnit);
+              }
+
+              D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_gold, 0, 0);
+              pGame_00 = pSavedGame;
+              PLAYER::PlayerModes::SERVERUNIT_GoldAmmountForDeadBody(pSavedGame, pUnit, pUnit_00, uVar3, 1);
+              GAME::SCmd::NET_D2GS_SERVER_Send_0x8E_CorpseAssign_Sender(pGame_00, pUnit->nUnitGUID, pUnit_00->nUnitGUID, 1);
+              return pUnit_00;
+            }
+          } while (true);
+
+          D2Common::INVENTORY::Inventory::UpsertToUpdateList(pCorpseInventory, pItemUnit);
+          D2Common::Units::RefreshInventory(pUnit_00, 1);
+          Quests::QUESTS::QUEST_OnItemPickedUp(pSavedGame, pUnit_00, pItemUnit);
+          iVar5 = nBodyLocIndex;
+          goto next_body_loc;
+        }
+      }
+    }
+}
+
+} // namespace D2Game
+
+namespace D2Game::PLAYER::PlayerModes {
 
 static uint32_t __stdcall PLRMODES_IsCorpseOwnedByPlayer(::SGAMEDATA * pGame, D2UnitStrc * pCorpseUnitRaw, D2UnitStrc * pUnit) {
     D2UnitStrc* pCorpseOwner;

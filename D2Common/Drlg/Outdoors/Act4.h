@@ -15,6 +15,5 @@ namespace D2Common::Drlg::Outdoors::Act4 {
 
 // Function declarations
 // Spawns outdoor presets for Act4 City of Damned / Plains of Despair.
-void DRLGOUTDOOR_SpawnAct4OutdoorPresets(struct D2DrlgLevelStrc * pLevel);
 
 } // namespace D2Common::Drlg::Outdoors::Act4

@@ -21,24 +21,4 @@ int32_t __fastcall DRLGOUTROOM_GetGridDivisionSize(D2DrlgLevelStrc * pLevel) {
     return (pLevel->eD2LevelId == 0x75) + 4;
 }
 
-void __fastcall InitAct5OutdoorLevel(D2DrlgLevelStrc * pLevel) {
-    if (pLevel->eD2LevelId == 0x6e) {
-      OutPlace::Act5::BloodyFoothills::DRLGOUTPLACE_PlaceAct5WallPresets(pLevel);
-      return;
-    }
-
-    OutPlace::SetOutGridLinkFlags(pLevel);
-    OutPlace::Act5::DRLGOUTROOM_PlaceAct5RoadPath(pLevel);
-    OutPlace::Act5::DRLGOUTROOM_PlaceAct5OuterWalls(pLevel);
-    OutPlace::Act5::DRLGOUTROOM_PlaceAct5BorderPresets(pLevel);
-    OutPlace::Act5::DRLGOUTROOM_PlaceAct5SpecialPresets(pLevel);
-    if (pLevel->eD2LevelId == 0x6f) {
-      OutPlace::Act5::BloodyFoothills::DRLGOUTPLACE_PlaceAct5SiegePresets(pLevel);
-    }
-
-    OutPlace::Act5::DRLGOUTROOM_PlaceAct5SecondaryBorder(pLevel);
-    OutPlace::Act5::DRLGOUTPLACE_PlaceAct5BloodyFoothillsRandomPresets(pLevel);
-    OutPlace::Act5::DRLGOUTROOM_PlaceAct5SceneryPresets(pLevel);
-}
-
 } // namespace D2Common::Drlg::OutSiege
