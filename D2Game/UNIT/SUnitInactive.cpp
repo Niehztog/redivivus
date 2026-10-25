@@ -1345,7 +1345,7 @@ void __fastcall SUNITINACTIVE_FreeAllInactiveLists(::SGAMEDATA * pGame) {
 
 // Removes a single inactive unit record from the per-act inactive list by unit type and class ID. For monsters (nUnitType==1) delegates to SUNITINACTIVE_RemoveInactiveMonsterByClassId; for other types walks the linked list and frees the matching D2InactiveUnitRecordStrc from the game memory pool.
 // @sourcefile .\UNIT\SUnitInactive.cpp
-void __stdcall SUNITINACTIVE_RemoveInactiveUnitByTypeAndId(::SGAMEDATA * pGame, uint16_t nUnitType, uint32_t nClassId, uint8_t byActNo) {
+void __fastcall SUNITINACTIVE_RemoveInactiveUnitByTypeAndId(::SGAMEDATA * pGame, uint16_t nUnitType, uint32_t nClassId, uint8_t byActNo) {
     D2InactiveUnitRecordStrc* pCurRecord;
     D2InactiveUnitRecordStrc* pNextRecord;
     if (nUnitType == 1) {
@@ -1521,20 +1521,6 @@ void __fastcall SERVER_GAME_UNIT_method(::SGAMEDATA * pGame, D2UnitStrc * pUnit)
     if (!false) {
       uint8_t bVar1;
       switch (eUnitType) {
-        case UNIT_PLAYER:
-          eState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_playerbody);
-        if (eState != STATE_none) {
-          save_and_unlink:
-          GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_ENDANIM, 0);
-          pUnit->eUnitFlagsEx |= UNITFLAGEX_HASBEENDELETED;
-          SUNITINACTIVE_SaveInactiveUnit(pGame, pUnit);
-          D2Common::Unit::DRLGROOM_ClearUnitRoomLink(pUnit);
-          return;
-        }
-
-        break;
-        default:
-          goto free_unit;
         case UNIT_OBJECT:
           if (nClassId == 0x3b || nClassId == 0x3c) {
             goto save_and_unlink;
@@ -1548,6 +1534,19 @@ void __fastcall SERVER_GAME_UNIT_method(::SGAMEDATA * pGame, D2UnitStrc * pUnit)
         }
 
         GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_ENDANIM, 0);
+        break;
+        default:
+          goto free_unit;
+        case UNIT_PLAYER:
+          eState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_playerbody);
+        if (eState != STATE_none) {
+          save_and_unlink:
+          GAME::Event::EVENT_RemoveUnitTimersByType(pGame, pUnit, UNITEVENTCALLBACK_ENDANIM, 0);
+          pUnit->eUnitFlagsEx |= UNITFLAGEX_HASBEENDELETED;
+          SUNITINACTIVE_SaveInactiveUnit(pGame, pUnit);
+          D2Common::Unit::DRLGROOM_ClearUnitRoomLink(pUnit);
+          return;
+        }
         break;
         case UNIT_ITEM:
 

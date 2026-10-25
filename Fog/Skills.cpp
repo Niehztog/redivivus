@@ -38,7 +38,7 @@ static void __fastcall SKILLS_PushValue(int * pStack, int value) {
     pStack[0x40]++;
 }
 
-static int SKILLS_PopValue(int * pValueStack) {
+static int __fastcall SKILLS_PopValue(int * pValueStack) {
     if (pValueStack[0x40] <= 0) {
       return 0;
     }
@@ -86,6 +86,67 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
                          (AST_Parenthesis_Open=2, AST_Callback_Param_Separator=3, AST_Ternary_Colon=23
                          are
                          compile-time-only markers, never executed here.) */ switch (*pbReadPtr) {
+        case 4:
+          if (!pFunction) {
+            return 0;
+          }
+        if ((int)pbNext2 - (int)pdwParam >= nParam) {
+          return 0;
+        }
+        nArgCount = (*pFunction)((uint32_t)*pbNext2, dwParam);
+        goto push_and_skip_byte_operand;
+        default:
+          goto return_top_of_stack;
+        case 5:
+          if (!pFunction) {
+            return 0;
+          }
+        if ((int)pbNext2 - (int)pdwParam >= nParam) {
+          return 0;
+        }
+        nArgCount = (*pFunction)((int)*(short int*)pbNext2, dwParam);
+        SKILLS_PushValue(aFormulaValueStack, nArgCount);
+        pbNext2 = pbReadPtr + 3;
+        nArgCount = aFormulaValueStack[0x40];
+        break;
+        case 6:
+          if (!pFunction) {
+            return 0;
+          }
+        if ((int)pbNext2 - (int)pdwParam >= nParam) {
+          return 0;
+        }
+        uFuncResult = (*pFunction)(*(int32_t*)pbNext2, dwParam);
+        SKILLS_PushValue(aFormulaValueStack, uFuncResult);
+        pbNext2 = pbReadPtr + 5;
+        nArgCount = aFormulaValueStack[0x40];
+        break;
+        case 7:
+          if ((int)pbNext2 - (int)pdwParam >= nParam) {
+            return 0;
+          }
+        nArgCount = (int)(char)*pbNext2;
+        push_and_skip_byte_operand:
+        SKILLS_PushValue(aFormulaValueStack, nArgCount);
+        pbNext2 = pbReadPtr + 2;
+        nArgCount = aFormulaValueStack[0x40];
+        break;
+        case 8:
+          if ((int)pbNext2 - (int)pdwParam >= nParam) {
+            return 0;
+          }
+        SKILLS_PushValue(aFormulaValueStack, (int)*(short int*)pbNext2);
+        pbNext2 = pbReadPtr + 3;
+        nArgCount = aFormulaValueStack[0x40];
+        break;
+        case 9:
+          if ((int)pbNext2 - (int)pdwParam >= nParam) {
+            return 0;
+          }
+        SKILLS_PushValue(aFormulaValueStack, *(uint32_t*)pbNext2);
+        pbNext2 = pbReadPtr + 5;
+        nArgCount = aFormulaValueStack[0x40];
+        break;
         case 1:
           uVar1 = (uint32_t)*pbNext2;
         pbNext2 = pbReadPtr + 2;
@@ -125,200 +186,6 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
             aFormulaValueStack[nArgCount] = 0;
             goto commit_push;
           }
-        }
-
-        break;
-        default:
-          goto return_top_of_stack;
-        case 4:
-          if (!pFunction) {
-            return 0;
-          }
-        if (nParam <= (int)pbNext2 - (int)pdwParam) {
-          return 0;
-        }
-
-        nArgCount = (*pFunction)((uint32_t)*pbNext2, dwParam);
-        goto push_and_skip_byte_operand;
-        case 5:
-          if (!pFunction) {
-            return 0;
-          }
-        if (nParam <= (int)pbNext2 - (int)pdwParam) {
-          return 0;
-        }
-
-        nArgCount = (*pFunction)((int)*(short int*)pbNext2, dwParam);
-        SKILLS_PushValue(aFormulaValueStack, nArgCount);
-        pbNext2 = pbReadPtr + 3;
-        nArgCount = aFormulaValueStack[0x40];
-        break;
-        case 6:
-          if (!pFunction) {
-            return 0;
-          }
-        if (nParam <= (int)pbNext2 - (int)pdwParam) {
-          return 0;
-        }
-
-        uFuncResult = (*pFunction)(*(int32_t*)pbNext2, dwParam);
-        SKILLS_PushValue(aFormulaValueStack, uFuncResult);
-        pbNext2 = pbReadPtr + 5;
-        nArgCount = aFormulaValueStack[0x40];
-        break;
-        case 7:
-          if (nParam <= (int)pbNext2 - (int)pdwParam) {
-            return 0;
-          }
-        nArgCount = (int)(char)*pbNext2;
-        push_and_skip_byte_operand:
-        SKILLS_PushValue(aFormulaValueStack, nArgCount);
-        pbNext2 = pbReadPtr + 2;
-        nArgCount = aFormulaValueStack[0x40];
-        break;
-        case 8:
-          if (nParam <= (int)pbNext2 - (int)pdwParam) {
-            return 0;
-          }
-        SKILLS_PushValue(aFormulaValueStack, (int)*(short int*)pbNext2);
-        pbNext2 = pbReadPtr + 3;
-        nArgCount = aFormulaValueStack[0x40];
-        break;
-        case 9:
-          if (nParam <= (int)pbNext2 - (int)pdwParam) {
-            return 0;
-          }
-        SKILLS_PushValue(aFormulaValueStack, *(uint32_t*)pbNext2);
-        pbNext2 = pbReadPtr + 5;
-        nArgCount = aFormulaValueStack[0x40];
-        break;
-        case 10:
-          if (nArgCount < 1) {
-            nIntResult = 0;
-          } else {
-            nArgCount--;
-            aFormulaValueStack[0x40] = nArgCount;
-            nIntResult = aFormulaValueStack[nArgCount];
-          }
-        if (nArgCount < 1) {
-          uOperandB = 0;
-        } else {
-          nArgCount--;
-          aFormulaValueStack[0x40] = nArgCount;
-          uOperandB = aFormulaValueStack[nArgCount];
-        }
-        if (nArgCount < 0x40) {
-          uVar1 = (uint32_t)(uOperandB < nIntResult);
-          push_comparison_result:
-          aFormulaValueStack[nArgCount] = uVar1;
-          commit_push:
-          aFormulaValueStack[0x40]++;
-          nArgCount = aFormulaValueStack[0x40];
-        }
-
-        break;
-        case 0xb:
-          if (nArgCount < 1) {
-            nIntResult = 0;
-          } else {
-            nArgCount--;
-            aFormulaValueStack[0x40] = nArgCount;
-            nIntResult = aFormulaValueStack[nArgCount];
-          }
-        if (nArgCount < 1) {
-          uOperandB = 0;
-        } else {
-          nArgCount--;
-          aFormulaValueStack[0x40] = nArgCount;
-          uOperandB = aFormulaValueStack[nArgCount];
-        }
-        if (nArgCount < 0x40) {
-          uVar1 = (uint32_t)(nIntResult < uOperandB);
-          goto push_comparison_result;
-        }
-
-        break;
-        case 0xc:
-          if (nArgCount < 1) {
-            nIntResult = 0;
-          } else {
-            nArgCount--;
-            aFormulaValueStack[0x40] = nArgCount;
-            nIntResult = aFormulaValueStack[nArgCount];
-          }
-        if (nArgCount < 1) {
-          uOperandB = 0;
-        } else {
-          nArgCount--;
-          aFormulaValueStack[0x40] = nArgCount;
-          uOperandB = aFormulaValueStack[nArgCount];
-        }
-        if (nArgCount < 0x40) {
-          uVar1 = (uint32_t)(uOperandB <= nIntResult);
-          goto push_comparison_result;
-        }
-
-        break;
-        case 0xd:
-          if (nArgCount < 1) {
-            nIntResult = 0;
-          } else {
-            nArgCount--;
-            aFormulaValueStack[0x40] = nArgCount;
-            nIntResult = aFormulaValueStack[nArgCount];
-          }
-        if (nArgCount < 1) {
-          uOperandB = 0;
-        } else {
-          nArgCount--;
-          aFormulaValueStack[0x40] = nArgCount;
-          uOperandB = aFormulaValueStack[nArgCount];
-        }
-        if (nArgCount < 0x40) {
-          uVar1 = (uint32_t)(nIntResult <= uOperandB);
-          goto push_comparison_result;
-        }
-
-        break;
-        case 0xe:
-          if (nArgCount < 1) {
-            nIntResult = 0;
-          } else {
-            nArgCount--;
-            aFormulaValueStack[0x40] = nArgCount;
-            nIntResult = aFormulaValueStack[nArgCount];
-          }
-        if (nArgCount < 1) {
-          uOperandB = 0;
-        } else {
-          nArgCount--;
-          aFormulaValueStack[0x40] = nArgCount;
-          uOperandB = aFormulaValueStack[nArgCount];
-        }
-        if (nArgCount < 0x40) {
-          uVar1 = (uint32_t)(uOperandB == nIntResult);
-          goto push_comparison_result;
-        }
-
-        break;
-        case 0xf:
-          if (nArgCount < 1) {
-            nIntResult = 0;
-          } else {
-            nArgCount--;
-            aFormulaValueStack[0x40] = nArgCount;
-            nIntResult = aFormulaValueStack[nArgCount];
-          }
-        if (nArgCount < 1) {
-          uOperandB = 0;
-        } else {
-          nArgCount--;
-          aFormulaValueStack[0x40] = nArgCount;
-          uOperandB = aFormulaValueStack[nArgCount];
-        }
-        if (nArgCount < 0x40) {
-          uVar1 = (uint32_t)(uOperandB != nIntResult);
-          goto push_comparison_result;
         }
 
         break;
@@ -408,41 +275,8 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
         SKILLS_PushValue(aFormulaValueStack, uOperandB);
         nArgCount = aFormulaValueStack[0x40];
         break;
-        case 0x14:
-          if (nArgCount <= 0) {
-            nIntResult = 0;
-          } else {
-            nArgCount--;
-            aFormulaValueStack[0x40] = nArgCount;
-            nIntResult = aFormulaValueStack[nArgCount];
-          }
-        if (nArgCount < 1) {
-          uOperandB = 0;
-        } else {
-          nArgCount--;
-          aFormulaValueStack[0x40] = nArgCount;
-          uOperandB = aFormulaValueStack[nArgCount];
-        }
-        if (nIntResult < 1) {
-          uOperandA = 1;
-        } else {
-          uOperandA = uOperandB;
-          if (1 < nIntResult) {
-            nIntResult--;
-            do {
-              uOperandA *= uOperandB;
-              nIntResult--;
-            } while (nIntResult);
-          }
-        }
-        if (nArgCount < 0x40) {
-          aFormulaValueStack[nArgCount] = uOperandA;
-          goto commit_push;
-        }
-
-        break;
         case 0x15:
-          if (nArgCount < 1) {
+          if (nArgCount <= 0) {
             nIntResult = 0;
           } else {
             nArgCount--;
@@ -482,7 +316,163 @@ uint32_t __stdcall SKILLS_CompileSkillFormula(uint32_t * pdwParam, int nParam, f
         if (nArgCount < 0x40) {
           aFormulaValueStack[nArgCount] = uOperandB;
           goto commit_push;
+        } break;
+        case 0x14:
+          if (nArgCount <= 0) {
+            nIntResult = 0;
+          } else {
+            nArgCount--;
+            aFormulaValueStack[0x40] = nArgCount;
+            nIntResult = aFormulaValueStack[nArgCount];
+          }
+        if (nArgCount <= 0) {
+          uOperandB = 0;
+        } else {
+          nArgCount--;
+          aFormulaValueStack[0x40] = nArgCount;
+          uOperandB = aFormulaValueStack[nArgCount];
         }
+        if (nIntResult < 1) {
+          uOperandA = 1;
+        } else {
+          uOperandA = uOperandB;
+          if (1 < nIntResult) {
+            nIntResult--;
+            do {
+              uOperandA *= uOperandB;
+              nIntResult--;
+            } while (nIntResult);
+          }
+        }
+        if (nArgCount < 0x40) {
+          aFormulaValueStack[nArgCount] = uOperandA;
+          goto commit_push;
+        }
+        break;
+        case 10:
+          if (nArgCount <= 0) {
+            nIntResult = 0;
+          } else {
+            nArgCount--;
+            aFormulaValueStack[0x40] = nArgCount;
+            nIntResult = aFormulaValueStack[nArgCount];
+          }
+        if (nArgCount <= 0) {
+          uOperandB = 0;
+        } else {
+          nArgCount--;
+          aFormulaValueStack[0x40] = nArgCount;
+          uOperandB = aFormulaValueStack[nArgCount];
+        }
+        if (nArgCount < 0x40) {
+          uVar1 = (uint32_t)(uOperandB < nIntResult);
+          push_comparison_result:
+          aFormulaValueStack[nArgCount] = uVar1;
+          commit_push:
+          aFormulaValueStack[0x40]++;
+          nArgCount = aFormulaValueStack[0x40];
+        }
+        break;
+        case 0xc:
+          if (nArgCount <= 0) {
+            nIntResult = 0;
+          } else {
+            nArgCount--;
+            aFormulaValueStack[0x40] = nArgCount;
+            nIntResult = aFormulaValueStack[nArgCount];
+          }
+        if (nArgCount <= 0) {
+          uOperandB = 0;
+        } else {
+          nArgCount--;
+          aFormulaValueStack[0x40] = nArgCount;
+          uOperandB = aFormulaValueStack[nArgCount];
+        }
+        if (nArgCount < 0x40) {
+          uVar1 = (uint32_t)(uOperandB <= nIntResult);
+          goto push_comparison_result;
+        }
+        break;
+        case 0xb:
+          if (nArgCount <= 0) {
+            nIntResult = 0;
+          } else {
+            nArgCount--;
+            aFormulaValueStack[0x40] = nArgCount;
+            nIntResult = aFormulaValueStack[nArgCount];
+          }
+        if (nArgCount <= 0) {
+          uOperandB = 0;
+        } else {
+          nArgCount--;
+          aFormulaValueStack[0x40] = nArgCount;
+          uOperandB = aFormulaValueStack[nArgCount];
+        }
+        if (nArgCount < 0x40) {
+          uVar1 = (uint32_t)(uOperandB > nIntResult);
+          goto push_comparison_result;
+        }
+        break;
+        case 0xd:
+          if (nArgCount <= 0) {
+            nIntResult = 0;
+          } else {
+            nArgCount--;
+            aFormulaValueStack[0x40] = nArgCount;
+            nIntResult = aFormulaValueStack[nArgCount];
+          }
+        if (nArgCount <= 0) {
+          uOperandB = 0;
+        } else {
+          nArgCount--;
+          aFormulaValueStack[0x40] = nArgCount;
+          uOperandB = aFormulaValueStack[nArgCount];
+        }
+        if (nArgCount < 0x40) {
+          uVar1 = (uint32_t)(uOperandB >= nIntResult);
+          goto push_comparison_result;
+        }
+        break;
+        case 0xe:
+          if (nArgCount <= 0) {
+            nIntResult = 0;
+          } else {
+            nArgCount--;
+            aFormulaValueStack[0x40] = nArgCount;
+            nIntResult = aFormulaValueStack[nArgCount];
+          }
+        if (nArgCount <= 0) {
+          uOperandB = 0;
+        } else {
+          nArgCount--;
+          aFormulaValueStack[0x40] = nArgCount;
+          uOperandB = aFormulaValueStack[nArgCount];
+        }
+        if (nArgCount < 0x40) {
+          uVar1 = (uint32_t)(uOperandB == nIntResult);
+          goto push_comparison_result;
+        }
+        break;
+        case 0xf:
+          if (nArgCount <= 0) {
+            nIntResult = 0;
+          } else {
+            nArgCount--;
+            aFormulaValueStack[0x40] = nArgCount;
+            nIntResult = aFormulaValueStack[nArgCount];
+          }
+        if (nArgCount <= 0) {
+          uOperandB = 0;
+        } else {
+          nArgCount--;
+          aFormulaValueStack[0x40] = nArgCount;
+          uOperandB = aFormulaValueStack[nArgCount];
+        }
+        if (nArgCount < 0x40) {
+          uVar1 = (uint32_t)(uOperandB != nIntResult);
+          goto push_comparison_result;
+        }
+        break;
       }
 
       pbReadPtr = pbNext2;

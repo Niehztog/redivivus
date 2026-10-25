@@ -343,7 +343,7 @@ D2SkillStrc * __fastcall GetSkillByIdAndOwner(D2UnitStrc * pUnit, eD2Skills eSki
 }
 
 // Thin wrapper around UNIT_GetSkill. Takes (eSkill, pUnit) in fastcall register order and calls UNIT_GetSkill(pUnit, eSkill). Called from 82+ sites including skill spawn, hit calculation, etc.
-D2SkillStrc * SKILLS_GetSkillByEnum(eD2Skills eSkill, D2UnitStrc * pUnit) {
+D2SkillStrc * __fastcall SKILLS_GetSkillByEnum(eD2Skills eSkill, D2UnitStrc * pUnit) {
     D2SkillStrc* pSkill = GetSkill(pUnit, eSkill);
     return pSkill;
 }
@@ -1656,8 +1656,12 @@ int __stdcall SKILLS_ValidateAnimModeForMonster(int32_t eAnimMode, int32_t nMonI
       switch (uAnimFlag) {
         case 1:
           return uAnimFlag;
-        default:
-          uAnimFlag = 1;
+        case 0xf:
+          uAnimFlag = 2; break;
+        case 9:
+        case 10:
+        case 0xb:
+          uAnimFlag = 8;
         break;
         case 5:
 
@@ -1667,15 +1671,9 @@ int __stdcall SKILLS_ValidateAnimModeForMonster(int32_t eAnimMode, int32_t nMonI
         case 6:
           uAnimFlag = 3;
         break;
-        case 9:
-
-        case 10:
-
-        case 0xb:
-          uAnimFlag = 8;
+        default:
+          uAnimFlag = 1;
         break;
-        case 0xf:
-          uAnimFlag = 2;
       }
     }
 
@@ -1994,7 +1992,7 @@ int32_t __stdcall SKILL_GetThrownWeaponBonus(D2UnitStrc * pUnit, D2UnitStrc * pU
         }
 
         nIdx++;
-      } while (_bIsThrowable > nIdx);
+      } while (nIdx < _bIsThrowable);
     }
     if (!pUnit2) {
       return nBestThrowBonus;

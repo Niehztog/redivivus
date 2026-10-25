@@ -493,7 +493,7 @@ static BOOL __stdcall SFILE_CheckForCdRom(char * szText) {
 }
 
 // @blizzard ConvertRelativePathName (SFILE.CPP)
-static void __stdcall SFILE_ConvertRelativePathName(int32_t bStripDir, char * szFileName, char * szOutPath) {
+static void __fastcall SFILE_ConvertRelativePathName(int32_t bStripDir, char * szFileName, char * szOutPath) {
     char* pLastSlash;
     char szTmpPath[260];
     uint32_t dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
@@ -4711,7 +4711,7 @@ int __stdcall SFileReadFileEx2(D2MPQFileStrc * pFileHandle, void * pOutputBuffer
 
             nChunkOffset += nChunkCount;
             nChunkIndex++;
-          } while (nChunkIndex < nChunkBytes);
+          } while (nChunkBytes > nChunkIndex);
         }
 
         /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection(&lpCriticalSection_00779068);

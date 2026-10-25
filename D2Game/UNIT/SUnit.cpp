@@ -1487,7 +1487,7 @@ void __fastcall UNITS_UpdateRoomClientVisibility(::SGAMEDATA * pGame, D2UnitStrc
 
         pClient = ppCurrentClientList[nOldClientIdx];
         pClient_00 = (D2ClientStrc*)pRoom->nLastDeadGUIDs[nNewClientIdx - 0xe];
-        if (pClient < pClient_00) {
+        if (pClient_00 > pClient) {
           pOwnerUnit = GAME::Clients::CLIENTS_GetControlUnit(pClient, 0);
           if (pUnit != pOwnerUnit) {
             SUnitMsg::SERVER_SendInitUnitPacket(pGame, pUnit, ppCurrentClientList[nOldClientIdx]);
@@ -1559,9 +1559,6 @@ void __fastcall UNITS_PlaceUnitInRoom(D2UnitStrc * pUnit, int32_t nY, int32_t nX
 
       D2Common::Unit::DRLGROOM_AddUnitToRoom(pUnit, pRoom);
       break;
-      case UNIT_MISSILE:
-        D2Common::PATH::DynamicPath::AllocDynamicPath(pGame->pMemoryPool, pRoom, nY, nX, pUnit, 0);
-      break;
       case UNIT_ITEM:
         if (pUnit->eAnimMode.ePlayerMode == eD2PlayerAnimMode_ns::Run) {
           D2Common::Units::InitializeStaticPath(pUnit, pRoom, nY, nX);
@@ -1570,6 +1567,9 @@ void __fastcall UNITS_PlaceUnitInRoom(D2UnitStrc * pUnit, int32_t nY, int32_t nX
             D2Common::Unit::DRLGROOM_AddUnitToRoomList(pUnit, pRoom, UNIT_PLAYER);
           }
         }
+      break;
+      case UNIT_MISSILE:
+        D2Common::PATH::DynamicPath::AllocDynamicPath(pGame->pMemoryPool, pRoom, nY, nX, pUnit, 0);
       break;
       case UNIT_WARP:
         D2Common::Units::InitializeStaticPath(pUnit, pRoom, nY, nX);
@@ -2075,11 +2075,6 @@ D2UnitStrc * __fastcall CreateUnit(eD2UnitType eUnitType, int32_t nClassId, int3
         D2Common::Units::AllocStaticPath(pAllocUnit);
         Objects::OBJECT_InitializeObject(pGame, pAllocUnit, (int32_t)pMonsterData, pRoom, nPosX, nPosY);
         break;
-        case UNIT_MISSILE:
-          /* Jump-table branch of CreateUnit for UNIT_MISSILE (dispatched via
-                         UNIT_FillFunctions[eUnitType]). */ pAllocUnit->eAnimMode.ePlayerMode = nInitialMode;
-        MISSILES::Missiles::STRUCT_FillDataMissile(pGame, pAllocUnit, (int32_t)pMonsterData);
-        break;
         case UNIT_ITEM:
           /* Jump-table branch of CreateUnit for UNIT_ITEM (dispatched via
                          UNIT_FillFunctions[eUnitType]). Sets initial anim mode, allocates a static
@@ -2088,6 +2083,11 @@ D2UnitStrc * __fastcall CreateUnit(eD2UnitType eUnitType, int32_t nClassId, int3
                          variants). */ pAllocUnit->eAnimMode.ePlayerMode = nInitialMode;
         D2Common::Units::AllocStaticPath(pAllocUnit);
         ITEMS::Items::Drop::ITEM_InitializeDroppedItem(pAllocUnit, pGame, (int32_t)pMonsterData, (uint32_t)pRoom);
+        break;
+        case UNIT_MISSILE:
+          /* Jump-table branch of CreateUnit for UNIT_MISSILE (dispatched via
+                         UNIT_FillFunctions[eUnitType]). */ pAllocUnit->eAnimMode.ePlayerMode = nInitialMode;
+        MISSILES::Missiles::STRUCT_FillDataMissile(pGame, pAllocUnit, (int32_t)pMonsterData);
         break;
         case UNIT_WARP:
           /* Jump-table branch of CreateUnit for UNIT_WARP (dispatched via

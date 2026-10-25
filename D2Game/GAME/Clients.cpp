@@ -2437,7 +2437,7 @@ void __fastcall SendAdjacentRoomUpdates(::SGAMEDATA * pGame, D2RoomStrc * pRoom,
 
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, (D2RoomStrc***)&pGameSave, (int*)&pClient);
     D2ClientStrc* pRoomIdx = 0;
-    if (!pClient) {
+    if ((uint32_t)pClient <= 0) {
       return;
     }
 
@@ -2514,7 +2514,7 @@ void __fastcall GAME_SendRemoveObjectsForAdjacentRooms(D2RoomStrc * pRoom, D2Cli
       ePlayerUnitType = pPlayerUnit_lcl->eUnitType;
       nPlayerGUID = pPlayerUnit_lcl->nUnitGUID;
       nRoomIdx = 0;
-      if (!nRoomCount) {
+      if ((uint32_t)nRoomCount <= 0) {
         return;
       }
 
@@ -2652,7 +2652,7 @@ void __fastcall CLIENT_BroadcastMovementToAdjacentRooms(::SGAMEDATA * pGame, D2R
     uint32_t nRoomIdx;
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     nRoomIdx = 0;
-    if (!nRoomCount) {
+    if ((uint32_t)nRoomCount <= 0) {
       return;
     }
 
@@ -2673,7 +2673,7 @@ void __fastcall CLIENT_RemoveFromAdjacentRooms(D2RoomStrc * pRoom, int32_t nClie
 
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     uint32_t nRoomIdx = 0;
-    if (!nRoomCount) {
+    if ((uint32_t)nRoomCount <= 0) {
       return;
     }
 

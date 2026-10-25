@@ -73,7 +73,7 @@ static int32_t AppendLineToFile(::IgnoreList * pThis, char * szLine) {
 }
 
 // Writes the ignore list to its file: one ignored name pattern per line, then each ignored account prefixed with '!'.
-int32_t SaveToFile(::IgnoreList * pThis) {
+int32_t __fastcall SaveToFile(::IgnoreList * pThis) {
     FILE* pFile = fopen(pThis->szIgnoreFilePath, "w");
     if (!pFile) {
       return 0;
@@ -342,7 +342,7 @@ int32_t AddByAccountName(::IgnoreList * pThis, char * szAccountName) {
     return 0;
 }
 
-void LoadFromFile(::IgnoreList * pThis) {
+void __fastcall LoadFromFile(::IgnoreList * pThis) {
     uint32_t uVar1;
     TSHashTable<::StringEntryNode, ::HASHKEY_STRI>* pHashTable;
     uint32_t pszIter;

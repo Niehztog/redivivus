@@ -166,7 +166,7 @@ void DrawScrollbar(::ListBoxImplementation * pThis) {
     pThis->field_0x180756 = nScrollStart;
 }
 
-static int GetVisibleItemCount(::ListBoxImplementation * pThis) {
+static int __fastcall GetVisibleItemCount(::ListBoxImplementation * pThis) {
     uint32_t nTotalItems = (uint32_t)pThis->nItemCount;
     int nAccumHeight = 0;
     int i = 0;
@@ -352,7 +352,7 @@ int OnMouseWheel(::ListBoxImplementation * pThis, D2UIMouseMsgStrc * pMsg) {
     return 1;
 }
 
-static void EnsureSelectionVisible(::ListBoxImplementation * pThis) {
+static void __fastcall EnsureSelectionVisible(::ListBoxImplementation * pThis) {
     uint32_t nSelIdx = pThis->nSelectedIndex;
     if ((int)nSelIdx < (int)pThis->nFirstVisibleIndex) {
       pThis->nFirstVisibleIndex = nSelIdx;
@@ -524,7 +524,7 @@ uint32_t GetItemUserData(::ListBoxImplementation * pThis, int nIndex) {
     }
 }
 
-void Draw(::ListBoxImplementation * pThis) {
+void __fastcall Draw(::ListBoxImplementation * pThis) {
     uint32_t nFontId;
     ListBoxImplementation_OnUpArrow pfnScroll;
     D2UIMouseMsgStrc aMouseMsgBuf;

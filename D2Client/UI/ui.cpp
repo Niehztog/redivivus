@@ -355,9 +355,9 @@ void __fastcall UI_StoreGlobalTooltipText(uint16_t * wszText, int32_t nScreenX, 
     }
 
     D2Lang::Unicode::UNISYS::STRING_CopyWideString(UNICODE_007a2c80, wszText);
+    gnTooltipScreenX = nScreenX;
     gnTooltipScreenY = nScreenY;
     gnTooltipHpBarValue = nHpBarValue;
-    gnTooltipScreenX = nScreenX;
 }
 
 void __fastcall UI_SetTooltipAttributesWithCustomField(uint16_t * wszText, int32_t nParam1, int32_t nParam2, int32_t nParam3, int32_t nParam4, int32_t nParam5) {
@@ -568,23 +568,23 @@ void __fastcall UI_FormatItemNameWithQuality(D2UnitStrc * pUnit, uint16_t * wszT
     nColorCode = 0;
     nQuality = D2Common::ITEMS::Items::GetItemQuality(pUnit);
     switch (nQuality) {
-      case 4:
-        nColorCode = 3;
-      break;
-      case 5:
-        nColorCode = 2;
-      break;
       case 6:
         nColorCode = 9;
-      break;
-      case 7:
-        nColorCode = 4;
       break;
       case 8:
         nColorCode = 8;
       break;
       case 9:
         nColorCode = 10;
+      break;
+      case 4:
+        nColorCode = 3;
+      break;
+      case 5:
+        nColorCode = 2;
+      break;
+      case 7:
+        nColorCode = 4;
       break;
       default:
         bHasFlag = D2Common::ITEMS::Items::CheckItemFlag(pUnit, ITEMFLAG_SOCKETED, 0x5aa, ".\\UI\\ui.cpp");
@@ -1381,18 +1381,18 @@ uint32_t UI_HandleKeyInputAndDismiss(int32_t nKeyAction, int32_t nUIFlagToCheck)
         switch (*(uint32_t*)(gUIFlagDismissModeTable[eCurrentUI]->aHeader + nUIFlagToCheck * 4)) {
           case 0:
             break;
-          case 1:
-            Draw::SetUIFlag(eCurrentUI, UI_RESET, 0);
-          break;
-          case 2:
-            return 0;
-          default:
-            goto default_case;
           case 4:
             bGotInteractGuid = npcmenu::GetInteractedUnitGuid(&nInteractGuid);
           if (bGotInteractGuid) {
             npcmenu::NPCMENU_CloseNpcInteraction(nInteractGuid);
-          }
+          } break;
+          case 2:
+            return 0;
+          default:
+            goto default_case;
+          case 1:
+            Draw::SetUIFlag(eCurrentUI, UI_RESET, 0);
+          break;
         }
       }
 
@@ -1725,11 +1725,11 @@ int UI_GoldDialogConfirmCallback() {
       case 2:
         TRADE_SendGoldToPartner(gnGoldDialogTransactionMode);
       goto play_confirm_sound;
-      case 3:
-        nButtonId = 0x14;
-      break;
       case 4:
         nButtonId = 0x13;
+      break;
+      case 3:
+        nButtonId = 0x14;
       break;
       default:
         return 1;

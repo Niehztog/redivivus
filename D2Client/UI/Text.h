@@ -80,7 +80,7 @@ void __fastcall TEXT_SetScrollCompleteCallback(pfnTextScrollComplete pfnCallback
 void __stdcall TEXT_SetTextBoxExclusionRect();
 struct D2UnitStrc * __stdcall TEXT_GetOverheadSpeakerUnit();
 // Handles the 0x5a event message packet: switches on pMessageCtx->nMessageType, formats the localized message from the packet's names and argument, and prints it in pMessageCtx->nColor. pEventData is the format argument for message type 0x12, which also shakes the view and plays sound 0x1220.
-void TEXT_HandleEventMessagePacket(struct D2Packet0x5aEventStructure * pMessageCtx, short * pEventData);
+void __fastcall TEXT_HandleEventMessagePacket(struct D2Packet0x5aEventStructure * pMessageCtx, short * pEventData);
 void __fastcall TEXT_FreeHoverText(struct D2HoverTextStrc * pHover);
 // Converts and displays game message - handles player names, ignore lists, colored text formatting
 void __fastcall TEXT_ProcessChatMessage(struct MessageStrc * pMessage);

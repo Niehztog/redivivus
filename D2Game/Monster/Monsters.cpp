@@ -2485,22 +2485,8 @@ D2UnitStrc * __fastcall SERVER_SpawnMonster(::SGAMEDATA * pGame, D2RoomStrc * pR
         D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_corpse_noselect, 1);
       Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_ForgottenTower);
       return pUnit;
-      case SUPERUNIQUE_ISMAIL_VILEHAND:
-
-      case SUPERUNIQUE_GELEB_FLAMEFINGER:
-
-      case SUPERUNIQUE_TOORC_ICEFIST:
-        Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_TheBlackenedTemple);
-      return pUnit;
-      case SUPERUNIQUE_INFECTOR_OF_SOULS:
-
-      case SUPERUNIQUE_LORD_DE_SEIS:
-
-      case SUPERUNIQUE_GRAND_VIZIER_OF_CHAOS:
-        Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_TerrorsEnd);
-      break;
-      case SUPERUNIQUE_THE_COW_KING:
-        Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_TheSearchForCain);
+      case SUPERUNIQUE_NIHLATHAK_BOSS:
+        Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_BetrayalOfHaggorath);
       return pUnit;
       case SUPERUNIQUE_SIEGE_BOSS:
         D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_corpse_noselect, 1);
@@ -2513,9 +2499,19 @@ D2UnitStrc * __fastcall SERVER_SpawnMonster(::SGAMEDATA * pGame, D2RoomStrc * pR
       case SUPERUNIQUE_ANCIENT_BARBARIAN_3:
         Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_RiteOfPassage);
       return pUnit;
-      case SUPERUNIQUE_NIHLATHAK_BOSS:
-        Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_BetrayalOfHaggorath);
+      case SUPERUNIQUE_ISMAIL_VILEHAND:
+      case SUPERUNIQUE_GELEB_FLAMEFINGER:
+      case SUPERUNIQUE_TOORC_ICEFIST:
+        Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_TheBlackenedTemple);
       return pUnit;
+      case SUPERUNIQUE_THE_COW_KING:
+        Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_TheSearchForCain);
+      return pUnit;
+      case SUPERUNIQUE_INFECTOR_OF_SOULS:
+      case SUPERUNIQUE_LORD_DE_SEIS:
+      case SUPERUNIQUE_GRAND_VIZIER_OF_CHAOS:
+        Quests::QUESTS::QUEST_AttachToUnitByQuestId(pGame, pUnit, QUESTINT_TerrorsEnd);
+      break;
     }
 
     return pUnit;

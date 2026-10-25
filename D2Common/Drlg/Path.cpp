@@ -1680,7 +1680,7 @@ BOOL __stdcall DRLGPATH_RaycastBresenhamLine(uint32_t nPackedSrc, uint32_t * pnP
     uint16_t nDstX = (uint16_t)nPackedDst;
     uint16_t nDstY = (uint16_t)(nPackedDst >> 0x10);
     uint16_t nIterCoord = nDstY;
-    if (nStepsX > nStepsY) {
+    if (nStepsY < nStepsX) {
       if (!nDeltaX) {
         if (nCurY != nDstY) {
           while (true) {

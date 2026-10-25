@@ -2772,16 +2772,15 @@ static void __stdcall RENDERER_DIRECT3D_DrawPalettedQuad(int * pTextureInfo, int
 // Sets blend mode based on draw mode enum (0-7) and returns the appropriate alpha value. Mode 0=25%, 1=50%, 2=75%, 3=additive, 4=modulate, 5/7=opaque, default=100% alpha.
 uint8_t __stdcall SetDrawModeAndGetAlpha(int nDrawMode) {
     switch (nDrawMode) {
+      case 5:
+      case 7:
+        SetBlendMode(1);
+      return 0xff;
       case 3:
         SetBlendMode(2);
       return 0xff;
       case 4:
         SetBlendMode(3);
-      return 0xff;
-      case 5:
-
-      case 7:
-        SetBlendMode(1);
       return 0xff;
     }
 
@@ -3785,7 +3784,7 @@ void __fastcall DrawRect(RECT * pRect, DWORD nPaletteIndex) {
       nYEnd = nHeight + nYStart;
       nXStart = (nWidth >> 1) + nXEnd;
       nYEnd_00 = (nHeight >> 1) + nYStart;
-      if (!(-1 < nXEnd_00 && nXEnd <= RENDERER_nWindowWidth && -1 < nYEnd && nYStart <= RENDERER_nWindowHeight)) {
+      if (!(0 <= nXEnd_00 && nXEnd <= RENDERER_nWindowWidth && 0 <= nYEnd && nYStart <= RENDERER_nWindowHeight)) {
         return;
       }
       Renderer::DrawLine(nXStart, nYStart, nXEnd_00, nYEnd_00, nPaletteIndex, 0xff);

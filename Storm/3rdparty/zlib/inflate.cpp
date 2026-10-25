@@ -878,7 +878,7 @@ int32_t __fastcall inflate(z_stream * pInflateStream, int32_t nFlush) {
         pState->ndist = eState;
         pState->ncode = (nScratch & 0xf) + 4;
         pHere = nHold;
-        if (pState->nlen < 0x11f && eState < 0x1f) {
+        if (pState->nlen <= 0x11e && eState <= 0x1e) {
           pState->have = 0;
           pState->mode = 0x11;
           goto case_LENLENS;
@@ -1507,7 +1507,7 @@ int __fastcall inflateGetHeader(z_stream * pStream, gz_header * pHead) {
 static uint32_t __stdcall syncsearch(uint32_t * pnMatchState, uint32_t nLen, uint8_t * pBuf) {
     uint32_t nGot = *pnMatchState;
     uint32_t i = 0;
-    if (nLen) {
+    if ((uint32_t)nLen > 0) {
       do {
         if (4 <= nGot) {
           break;

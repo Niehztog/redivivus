@@ -522,7 +522,7 @@ void __fastcall D2WINFONT_DrawVerticalCroppedText(uint16_t * wszText, int32_t nX
     uint16_t* pNextChar;
     int nNextIdx;
     D2GfxDataStrc sGfxData;
-    if (-1 >= nCropStartY) {
+    if (0 > nCropStartY) {
       return;
     }
 
@@ -932,7 +932,7 @@ void __fastcall IMAGE_DrawDC6ImageOnScreen(DC6 * pDC6, int32_t nPosX, int32_t nP
     }
 
     nTotalWidth = 0;
-    if (!nFrameCount) {
+    if ((uint32_t)nFrameCount <= 0) {
       return;
     }
 
@@ -1170,7 +1170,7 @@ D2TextLineStrc * __fastcall D2WINFONT_WordWrapString(uint16_t * wszText, int * p
 
         goto next_segment;
       }
-      if (nFitPixelWidth > nMaxWidth) {
+      if (nMaxWidth < nFitPixelWidth) {
         nSegEnd = nStrLen;
         if (nSegStart < nStrLen) {
           do {
@@ -1256,6 +1256,15 @@ void __stdcall D2WINFONT_InitFontSystem() {
       gnFontIdLarge = 0x10;
     } else {
       switch (nLangCode) {
+        case 0xc:
+          gbFontIsKoreanChatMode = 1;
+        memcpy(_FONT::sLanguageCode, "LATI", 4);
+        _FONT::sLanguageCode[4] = 'N';
+        _FONT::sLanguageCode[5] = '\\';
+        _FONT::sLanguageCode[6] = '\0';
+        *(uint32_t*)((char*)&_FONT::sLanguageCode + 4) = (uint32_t)((uint32_t)(uint8_t)byFontCacheByte << 24 | (uint32_t)((uint32_t)d2_load24((char*)&_FONT::sLanguageCode + 4) & 0xffffffu));
+        gpfnFontGetCharWidth = FONT_GetCharWidthCallback;
+        goto load_font_images;
         case 6:
           gnFontIdSmall = 0xe;
         gnFontIdLarge = 0xf;
@@ -1289,15 +1298,6 @@ void __stdcall D2WINFONT_InitFontSystem() {
           memcpy(_FONT::sLanguageCode, "CYR\\", 4);
         *(uint32_t*)((char*)&_FONT::sLanguageCode + 4) = (uint32_t)((uint32_t)d2_load24((char*)&_FONT::sLanguageCode + 5) & 0xffffffu) << 8;
         break;
-        case 0xc:
-          gbFontIsKoreanChatMode = 1;
-        memcpy(_FONT::sLanguageCode, "LATI", 4);
-        _FONT::sLanguageCode[4] = 'N';
-        _FONT::sLanguageCode[5] = '\\';
-        _FONT::sLanguageCode[6] = '\0';
-        *(uint32_t*)((char*)&_FONT::sLanguageCode + 4) = (uint32_t)((uint32_t)(uint8_t)byFontCacheByte << 24 | (uint32_t)((uint32_t)d2_load24((char*)&_FONT::sLanguageCode + 4) & 0xffffffu));
-        gpfnFontGetCharWidth = FONT_GetCharWidthCallback;
-        goto load_font_images;
         default:
           _FONT::sLanguageCode[0] = 'L';
         _FONT::sLanguageCode[1] = 'a';

@@ -3227,17 +3227,17 @@ int __stdcall ClickOnClassCreate(D2ControlMsg * pControlMsg) {
         case 0:
           pszSoundFile = "data\\global\\sfx\\cursor\\intro\\amazon deselect.wav";
         break;
-        case 1:
-          pszSoundFile = "data\\global\\sfx\\cursor\\intro\\sorceress deselect.wav";
-        break;
-        case 2:
-          pszSoundFile = "data\\global\\sfx\\cursor\\intro\\necromancer deselect.wav";
+        case 4:
+          pszSoundFile = "data\\global\\sfx\\cursor\\intro\\barbarian deselect.wav";
         break;
         case 3:
           pszSoundFile = "data\\global\\sfx\\cursor\\intro\\paladin deselect.wav";
         break;
-        case 4:
-          pszSoundFile = "data\\global\\sfx\\cursor\\intro\\barbarian deselect.wav";
+        case 2:
+          pszSoundFile = "data\\global\\sfx\\cursor\\intro\\necromancer deselect.wav";
+        break;
+        case 1:
+          pszSoundFile = "data\\global\\sfx\\cursor\\intro\\sorceress deselect.wav";
         break;
         case 5:
           pszSoundFile = "data\\global\\sfx\\cursor\\intro\\druid deselect.wav";
@@ -3285,23 +3285,23 @@ int __stdcall ClickOnClassCreate(D2ControlMsg * pControlMsg) {
         case 0:
           D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\amazon select.wav");
         break;
-        case 1:
-          D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\sorceress select.wav");
-        break;
-        case 2:
-          D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\necromancer select.wav");
+        case 4:
+          D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\barbarian select.wav");
         break;
         case 3:
           D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\paladin select.wav");
         break;
-        case 4:
-          D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\barbarian select.wav");
+        case 2:
+          D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\necromancer select.wav");
         break;
+        case 1:
+          D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\sorceress select.wav");
+        break;
+        case 6:
+          D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\assassin select.wav"); break;
         case 5:
           D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\druid select.wav");
         break;
-        case 6:
-          D2Sound::Src::D2SoundFast::SOUND_PlaySoundEffect((uint8_t*)"data\\global\\sfx\\cursor\\intro\\assassin select.wav");
       }
 
       gnClassDescriptionTooltipState = nNewClassId;

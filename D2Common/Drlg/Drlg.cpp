@@ -4404,7 +4404,7 @@ D2DrlgRoomAStarNodeStrc * __stdcall DRLGPATH_AStarExpandNode(int32_t nMaxCost, D
       }
 
       nMinDelta = nHashIdx;
-      if (nHashIdx >= nDirIndex) {
+      if (nDirIndex <= nHashIdx) {
         nMinDelta = nDirIndex;
         if (nDirIndex < nHashIdx) {
           nDirIndex = nHashIdx;
@@ -5806,7 +5806,7 @@ static int DRLGOUTROOM_SnapVertexToGrid(D2DrlgLevelStrc * pLevel, int * pOutCoor
 }
 
 // Builds the wilderness outdoor-level exit-point array. For levels with linked orth (sub-level) data, emits one exit per orth link (positioned by DrlgDirection NE/NW/SE/SW or special 0x1a), setting eType from the direction. For grid-based levels, scans the level's preset + outdoor grid cells, classifying each cell's GetGridFlags preset code (4/5/6/7/0x18/0x19/0x1c/0x33/0x34) into an exit eType (0..3, 4=none) and recording world X/Y. Increments pDrlgLevelData->nExitCount per emitted exit (into aExitPoints1), then snaps each vertex to the grid via DRLGOUTROOM_SnapVertexToGrid. Side effect: populates the level's exit-point table used for connecting adjacent wilderness levels.
-static void __stdcall DRLGOUTROOM_BuildExitPointArray(D2DrlgLevelStrc * pLevel) {
+void __stdcall DRLGOUTROOM_BuildExitPointArray(D2DrlgLevelStrc * pLevel) {
     int nGridY;
     int nPresetType;
     uint32_t nOutdoorGridFlags;
@@ -5952,7 +5952,7 @@ static void __stdcall DRLGOUTROOM_BuildExitPointArray(D2DrlgLevelStrc * pLevel) 
 }
 
 // DRLG outdoor wilderness level generation: computes target positions for each of a level's exits, writing into the wilderness level data's aExitPoints4 array. If the level has the left-exit flag (0x10) and DRLGOUTROOM_FindLeftExitPosition yields a valid cell, all exits are placed along that left edge (eType 0 or 2 by X comparison). Otherwise it averages the existing exit grid positions (or uses the grid center for a single exit) and does an 8-ring spiral search (gaExitSpiralOffsetX/Y) for the first empty grid cell via DRLGOUTDOOR_IsGridCellEmpty, placing exit 0 there (eType 4) and copying it to the rest. Finally snaps every exit vertex to the grid via DRLGOUTROOM_SnapVertexToGrid.
-static void __stdcall DRLGOUTROOM_ComputeExitTargetPositions(D2DrlgLevelStrc * pLevel) {
+void __stdcall DRLGOUTROOM_ComputeExitTargetPositions(D2DrlgLevelStrc * pLevel) {
     // Static local variables (originally global data)
     static uint32_t gaExitSpiralOffsetY[4] = { 0x0, 0x1, 0xffffffff, 0x0 };
     static uint32_t gaExitSpiralOffsetX[4] = { 0xffffffff, 0x0, 0x0, 0x1 };
@@ -6312,7 +6312,7 @@ int * __stdcall DRLGOUTROOM_PathSearchStep(int * * ppNodeList, int32_t nMaxFCost
         }
 
         nHMin = nFCost;
-        if (nFCost >= nHCost) {
+        if (nHCost <= nFCost) {
           nHMin = nHCost;
           if (nHCost < nFCost) {
             nHCost = nFCost;

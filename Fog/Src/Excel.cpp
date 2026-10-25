@@ -245,7 +245,7 @@ int32_t __stdcall GetClassIdFromName(D2TxtLinkStrc * pTxtLink, uint32_t pItemsTx
       uint32_t dwCode;
       nMid = (nHigh - nLow) / 2 + nLow;
       dwCode = *(uint32_t*)pTxtLink->pTxtLinkSub0x08[nMid].szItemCode;
-      if (pItemsTxt > dwCode) {
+      if (dwCode < pItemsTxt) {
         nLow = nMid + 1;
         nMid = nHigh;
       } else if (dwCode <= pItemsTxt) {

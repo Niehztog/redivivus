@@ -1169,9 +1169,9 @@ D2UnitStrc * __fastcall MISSILE_CreateFromUnitWithOffset(D2UnitStrc * pUnit, eMi
     sSkillArg.nUnitX = nTargetX;
     sSkillArg.nUnitY = nTargetY;
     sSkillArg.eSkillNo = eSkill;
+    sSkillArg.nParticleParam = nParticleRange;
     sSkillArg.nSkillLevel = nSkillLevel;
     sSkillArg.nMissileTxtNo = nMissileId;
-    sSkillArg.nParticleParam = nParticleRange;
     pOwner = Missile::MakeMissile(&sSkillArg);
     return pOwner;
 }
@@ -1202,9 +1202,9 @@ D2UnitStrc * __fastcall MISSILE_CreateAtOwnerCoords(D2UnitStrc * pUnit, eMissile
     sSkillArg.nFlags = 0x420;
     sSkillArg.nUnitY = nTargetY;
     sSkillArg.eSkillNo = eSkill;
-    sSkillArg.nSkillLevel = nSkillLevel;
     sSkillArg.pOwner = pOwner;
     sSkillArg.pMissile = pUnit;
+    sSkillArg.nSkillLevel = nSkillLevel;
     sSkillArg.nMissileTxtNo = nMissileId;
     pOwner = Missile::MakeMissile(&sSkillArg);
     return pOwner;
@@ -10583,6 +10583,72 @@ static D2BaalFxSpiritSpawnStrc gaBaalFxSpiritSpawnSchedule[5] = {
 
     D2Common::Units::Missile::SetTargetX(pUnit, nNearbyMonPosX);
     switch (nCurrentFrame) {
+      case 0x1c2:
+        eUnitType = pUnit->eUnitType;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+        nPosYTmp = pUnit->pPath.pStaticPath->nPosY;
+      } else if (!pUnit->pPath.pDynamicPath) {
+        nPosYTmp = 0;
+      } else {
+        nPosYTmp = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      }
+      eUnitType = pUnit->eUnitType;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+        nPosXTmp = pUnit->pPath.pStaticPath->nPosX;
+      } else if (!pUnit->pPath.pDynamicPath) {
+        nPosXTmp = 0;
+      } else {
+        nPosXTmp = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      }
+      nSkillLevel = D2Common::Units::Missile::GetLevel(pUnit);
+      eSkill = D2Common::Units::Missile::GetSkillId(pUnit);
+      nNearbyMonPosX = nPosYTmp + 1;
+      nX = nPosXTmp + 1;
+      nMissileId = MISSILE_BaalfxBaalHeadAppear; break;
+      default:
+        goto spawn_debris;
+      case 0x1a9:
+        eUnitType = pUnit->eUnitType;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+        nNearbyMonPosX = pUnit->pPath.pStaticPath->nPosY;
+      } else if (!pUnit->pPath.pDynamicPath) {
+        nNearbyMonPosX = 0;
+      } else {
+        nNearbyMonPosX = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      }
+      eUnitType = pUnit->eUnitType;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+        nX = pUnit->pPath.pStaticPath->nPosX;
+      } else if (!pUnit->pPath.pDynamicPath) {
+        nX = 0;
+      } else {
+        nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      }
+      nSkillLevel = D2Common::Units::Missile::GetLevel(pUnit);
+      eSkill = D2Common::Units::Missile::GetSkillId(pUnit);
+      nMissileId = MISSILE_BaalfxBaalHead1;
+      break;
+      case 0x177:
+        eUnitType = pUnit->eUnitType;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+        nNearbyMonPosX = pUnit->pPath.pStaticPath->nPosY;
+      } else if (!pUnit->pPath.pDynamicPath) {
+        nNearbyMonPosX = 0;
+      } else {
+        nNearbyMonPosX = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
+      }
+      eUnitType = pUnit->eUnitType;
+      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
+        nX = pUnit->pPath.pStaticPath->nPosX;
+      } else if (!pUnit->pPath.pDynamicPath) {
+        nX = 0;
+      } else {
+        nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
+      }
+      nSkillLevel = D2Common::Units::Missile::GetLevel(pUnit);
+      eSkill = D2Common::Units::Missile::GetSkillId(pUnit);
+      nMissileId = MISSILE_BaalfxBaalHead2;
+      break;
       case 0x145:
         eUnitType = pUnit->eUnitType;
       if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
@@ -10606,78 +10672,6 @@ static D2BaalFxSpiritSpawnStrc gaBaalFxSpiritSpawnSchedule[5] = {
       eSkill = D2Common::Units::Missile::GetSkillId(pUnit);
       nMissileId = MISSILE_BaalfxBaalHead3;
       break;
-      default:
-        goto spawn_debris;
-      case 0x177:
-        eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-        nNearbyMonPosX = pUnit->pPath.pStaticPath->nPosY;
-      } else if (!pUnit->pPath.pDynamicPath) {
-        nNearbyMonPosX = 0;
-      } else {
-        nNearbyMonPosX = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
-      }
-
-      eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-        nX = pUnit->pPath.pStaticPath->nPosX;
-      } else if (!pUnit->pPath.pDynamicPath) {
-        nX = 0;
-      } else {
-        nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
-      }
-
-      nSkillLevel = D2Common::Units::Missile::GetLevel(pUnit);
-      eSkill = D2Common::Units::Missile::GetSkillId(pUnit);
-      nMissileId = MISSILE_BaalfxBaalHead2;
-      break;
-      case 0x1a9:
-        eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-        nNearbyMonPosX = pUnit->pPath.pStaticPath->nPosY;
-      } else if (!pUnit->pPath.pDynamicPath) {
-        nNearbyMonPosX = 0;
-      } else {
-        nNearbyMonPosX = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
-      }
-
-      eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-        nX = pUnit->pPath.pStaticPath->nPosX;
-      } else if (!pUnit->pPath.pDynamicPath) {
-        nX = 0;
-      } else {
-        nX = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
-      }
-
-      nSkillLevel = D2Common::Units::Missile::GetLevel(pUnit);
-      eSkill = D2Common::Units::Missile::GetSkillId(pUnit);
-      nMissileId = MISSILE_BaalfxBaalHead1;
-      break;
-      case 0x1c2:
-        eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-        nPosYTmp = pUnit->pPath.pStaticPath->nPosY;
-      } else if (!pUnit->pPath.pDynamicPath) {
-        nPosYTmp = 0;
-      } else {
-        nPosYTmp = D2Common::PATH::DynamicPath::GetYPos(pUnit->pPath.pDynamicPath);
-      }
-
-      eUnitType = pUnit->eUnitType;
-      if (eUnitType == UNIT_OBJECT || 3 < (int)eUnitType && (int)eUnitType <= 5) {
-        nPosXTmp = pUnit->pPath.pStaticPath->nPosX;
-      } else if (!pUnit->pPath.pDynamicPath) {
-        nPosXTmp = 0;
-      } else {
-        nPosXTmp = D2Common::PATH::DynamicPath::GetXPos(pUnit->pPath.pDynamicPath);
-      }
-
-      nSkillLevel = D2Common::Units::Missile::GetLevel(pUnit);
-      eSkill = D2Common::Units::Missile::GetSkillId(pUnit);
-      nNearbyMonPosX = nPosYTmp + 1;
-      nX = nPosXTmp + 1;
-      nMissileId = MISSILE_BaalfxBaalHeadAppear;
     }
 
     CastAttack(pOwner, nMissileId, nX, nNearbyMonPosX, eSkill, nSkillLevel);

@@ -868,7 +868,7 @@ static uint32_t QUESTLOG_GetDrawPosition(int32_t nBorderType) {
     return 3;
 }
 
-static int __stdcall QUESTLOG_IsPointInQuestLog(int32_t nX, int32_t nY) {
+int __stdcall QUESTLOG_IsPointInQuestLog(int32_t nX, int32_t nY) {
     int nOffsetX;
     int nOffsetX2;
     uint32_t nBorderType = Path::DRAW_GetTypeOfBorder();

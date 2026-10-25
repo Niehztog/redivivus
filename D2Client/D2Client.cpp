@@ -238,7 +238,7 @@ int __fastcall SKILL_SelectProc_IsConvertibleCorpse(D2UnitStrc * pUnit, D2UnitSt
     }
 
     int32_t nMonStatsId = UNIT::Player::TXT_MonStats_GetBaseId(pTargetUnit);
-    if (!(nMonStatsId < 0 || sgptDataTable->nTxtMonStatsSize <= nMonStatsId || nMonStatsId != 0x4e)) {
+    if (!(nMonStatsId < 0 || nMonStatsId >= sgptDataTable->nTxtMonStatsSize || nMonStatsId != 0x4e)) {
       return 0;
     }
 
@@ -1503,27 +1503,27 @@ void __fastcall MONUNIQUE_DispatchDeathEffect(D2UnitStrc * pUnit, int32_t nUMod,
         }
       } else {
         switch (uVar1) {
-          case 0x2d:
-            if (pUnit->eAnimMode.ePlayerMode == Death) {
-              Source::ClientEngine::CLIENT_SpawnTowerMistEffect(pUnit);
-              return;
-            }
-          break;
           case 0x9c:
             if (pUnit->eAnimMode.ePlayerMode == Death) {
               Source::ClientEngine::CLIENT_BossDeath_Andariel(pUnit);
               return;
             }
           break;
-          case 0xd3:
+          case 0x2d:
             if (pUnit->eAnimMode.ePlayerMode == Death) {
-              Source::ClientEngine::CLIENT_BossDeath_Duriel(pUnit);
+              Source::ClientEngine::CLIENT_SpawnTowerMistEffect(pUnit);
               return;
             }
           break;
           case 0xe5:
             if (pUnit->eAnimMode.ePlayerMode == Death) {
               Source::ClientEngine::CLIENT_BossDeath_Radament(pUnit);
+              return;
+            }
+          break;
+          case 0xd3:
+            if (pUnit->eAnimMode.ePlayerMode == Death) {
+              Source::ClientEngine::CLIENT_BossDeath_Duriel(pUnit);
               return;
             }
           break;
@@ -1702,11 +1702,14 @@ void __stdcall SHOP_CleanupAssets() {
 
 void __fastcall NET_D2GS_CLIENT_Handle0x50_QuestSpecial(int32_t nParam) {
     switch (*(uint16_t*)(nParam + 1)) {
-      case 1:
-        UI::QuestLog::QUESTLOG_HandleSpecialPacket(nParam);
+      case 0x24:
+        UI::QuestLog::QUESTLOG_SetZooSpawnFlag((uint32_t)*(uint16_t*)(nParam + 3));
       return;
       case 2:
         UI::npcmenu::Merc::NPCMENU_SetSelectedMercIndex(*(int16_t*)(nParam + 3));
+      return;
+      case 1:
+        UI::QuestLog::QUESTLOG_HandleSpecialPacket(nParam);
       return;
       case 3:
 
@@ -1723,9 +1726,6 @@ void __fastcall NET_D2GS_CLIENT_Handle0x50_QuestSpecial(int32_t nParam) {
       ClientModeInGame::D2CLIENT_SetExitVar1(0);
       GAME::Game::D2CLIENT_SetExitVar2(1);
       GAME::Game::D2CLIENT_SetExitVar3ToTrue();
-      return;
-      case 0x24:
-        UI::QuestLog::QUESTLOG_SetZooSpawnFlag((uint32_t)*(uint16_t*)(nParam + 3));
       return;
     }
 }
@@ -4223,7 +4223,7 @@ uint32_t __fastcall WARDEN_DecryptModule(uint32_t * * ppInput, uint32_t nInputSi
           __frame0.nRelocationCount = 0;
           while (true) {
             __frame0.pModuleBase = *ppuVar1;
-            if (__frame0.nRelocationCount >= __frame0.pModuleBase[3]) {
+            if (__frame0.pModuleBase[3] <= __frame0.nRelocationCount) {
               break;
             }
 

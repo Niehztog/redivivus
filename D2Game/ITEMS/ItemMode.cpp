@@ -1032,7 +1032,7 @@ static void __stdcall ITEMMODE_GetItemPageForUnit(int16_t nParam, D2UnitStrc * p
     UNIT::SUnit::SetupUpdateEvent_AttachEventSound(pUnit, _nParam, pUnit);
 }
 
-uint32_t ITEMMODE_CheckQuestItemCodePair(D2ItemsTxt * pItemsTxt1, D2ItemsTxt * pItemsTxt2, int32_t nCode1, int32_t nCode2) {
+uint32_t __fastcall ITEMMODE_CheckQuestItemCodePair(D2ItemsTxt * pItemsTxt1, D2ItemsTxt * pItemsTxt2, int32_t nCode1, int32_t nCode2) {
     if (!((pItemsTxt1->dwCode != nCode1 || pItemsTxt2->dwCode != nCode2) && (pItemsTxt1->dwCode != nCode2 || pItemsTxt2->dwCode != nCode1))) {
       return 1;
     }
@@ -3119,7 +3119,7 @@ BOOL __fastcall ITEMMODE_CheckEquipRestrictions(::SGAMEDATA * pGame, D2UnitStrc 
 }
 
 // Maps a body location to its alternate (weapon-swap) slot. Fifty-four bytes: a pure ECX jump table writing only EAX, so EDX survives. ITEMMODE_EquipCorpseItems holds the main body item in EDX across this call and reads it back afterwards; with EDX declared killed the pointer was lost and corpse reclaim resolved the wrong item. The parameter arrives in a whole register - typing it from the single byte the body reads made the decompiler splice the indeterminate upper bytes back in as an uninitialised local.
-static int ITEMMODE_GetAlternateBodyLoc(eD2BodyLocDWORD dwParam) {
+static int __fastcall ITEMMODE_GetAlternateBodyLoc(eD2BodyLocDWORD dwParam) {
     switch (dwParam) {
       case BODYLOC_R_ARM:
         return 5;

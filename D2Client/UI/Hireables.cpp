@@ -172,16 +172,12 @@ void __stdcall FreeHireablesList() {
 
     int nIconCount = sgptDataTable->nTxtPetTypeSize * 5;
     D2HireablesListStrc* pMemoryToFree = gpHireablesList;
-    if (0 < nIconCount) {
-      int nIconIdx = 0;
-      do {
+    for (int nIconIdx = 0; nIconIdx < nIconCount; nIconIdx++) {
         if ((&pMemoryToFree->pIcon)[nIconIdx]) {
           Core::Archive::DC6_FreeAndDelete((&pMemoryToFree->pIcon)[nIconIdx]);
           pMemoryToFree = gpHireablesList;
         }
 
-        nIconIdx++;
-      } while (nIconIdx < nIconCount);
     }
 
     Fog::Memory::FreeServerMemory(nullptr, pMemoryToFree, ".\\UI\\Hireables.cpp", 0xb7, 0);
@@ -864,20 +860,20 @@ static BOOL __stdcall UI_DrawPartyMembersHirelingIcons(int * pnY, int * pnYOffse
             case 1:
               pClassIcon = ClassIcons[1];
             break;
-            case 2:
-              pClassIcon = ClassIcons[4];
+            case 4:
+              pClassIcon = ClassIcons[2];
             break;
             case 3:
               pClassIcon = ClassIcons[3];
             break;
-            case 4:
-              pClassIcon = ClassIcons[2];
-            break;
-            case 5:
-              pClassIcon = ClassIcons[6];
+            case 2:
+              pClassIcon = ClassIcons[4];
             break;
             case 6:
               pClassIcon = ClassIcons[5];
+            break;
+            case 5:
+              pClassIcon = ClassIcons[6];
             break;
             default:
               continue;

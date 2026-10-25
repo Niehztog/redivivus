@@ -49,7 +49,7 @@ BOOL SBMP_DecodeTGAPalette(void * pThis, int nPaletteDataSize, uint32_t * pPalet
 // @sourcefile .\SOURCE\SBMP.CPP
 int __fastcall SBMP_ReadTGA(struct D2PoolManagerStrc * hFile, uint32_t * pWidth, void * palette, uint8_t * pixels, int nMaxPixelBytes, uint32_t * pHeight, uint32_t * pBpp);
 int __stdcall SBMP_LoadFromMemory(uint8_t * pData, uint32_t dataSize, uint32_t * pPaletteOut, uint8_t * pixels, int nMaxPixelBytes, uint32_t * pWidth, uint32_t * pHeight, uint32_t * pBpp);
-int SBMP_WriteTGA(void * pPixels, void * hFile, int nPalettePtr, int width, int height, int bpp, uint32_t stride);
+int __fastcall SBMP_WriteTGA(void * pPixels, void * hFile, int nPalettePtr, int width, int height, int bpp, uint32_t stride);
 // @blizzard FlushPacket (SBMP.CPP)
 void __stdcall SBMP_FlushPacket(int * pState, int * ppOutput);
 // @blizzard Output (SBMP.CPP)
@@ -60,7 +60,7 @@ void __fastcall SBMP_CompressPcxRow(int count, int * ppInput, int * ppOutput);
 // @blizzard DecodeBmpMem (SBMP.CPP)
 int __fastcall SBMP_DecodeBmpMem(int * pWidth, int * pHeight, uint32_t * pBpp, uint8_t * pData, int palette, void * pixels, int dstSize);
 // @blizzard EncodeBmp256File (SBMP.CPP)
-int __stdcall SBMP_EncodeBmp256File(int nPalettePtr, uint32_t nSrcStride, HANDLE hFile, void * pixels, int height);
+int __fastcall SBMP_EncodeBmp256File(int nPalettePtr, uint32_t nSrcStride, HANDLE hFile, void * pixels, int height);
 // @blizzard CompressGifImage (SBMP.CPP)
 int __fastcall SBMP_CompressGifImage(int nSrcLen, uint8_t * pSrcPixels, int pDstBuf);
 // Decodes an image already held in memory. With nFormat 0 it sniffs the first two bytes via SBMP_DetectFormat, then dispatches to SBMP_LoadBMPFromMemory / SBMP_LoadGIFFromMemory / SBMP_LoadFromMemory (TGA).

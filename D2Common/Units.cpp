@@ -864,10 +864,10 @@ int32_t __stdcall GetInventoryPage(D2UnitStrc * pUnit, int32_t nInvPage, BOOL bL
           return 6;
         case 2:
           return 7;
+        case 4:
+          /* Lod/Classic inventory sizes decide */ return (uint32_t)(bLoD != 0) * 4 + 8; break;
         case 3:
           return 9;
-        case 4:
-          /* Lod/Classic inventory sizes decide */ return (uint32_t)(bLoD != 0) * 4 + 8;
       }
 
       i = 0;
@@ -3685,6 +3685,18 @@ void __stdcall InitAnimMode(D2UnitStrc * pUnitArg) {
         }
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x98a);
       exit(-1);
+      case UNIT_ITEM:
+        if (pUnitArg == (D2UnitStrc*)0x3) {
+          pUnit_00->nAnimSpeed = 0;
+          pUnit_00->nFrameCount = 0x1100;
+          pUnit_00->nGfxCurrentFrame = 0x1000;
+          return;
+        }
+      if (pUnitArg == (D2UnitStrc*)0x5) {
+        pUnit_00->nAnimSpeed = 0x100;
+        pUnit_00->nFrameCount = 0x1100;
+        return;
+      } break;
       case UNIT_MISSILE:
         pMissileTxt = D2Client::GetMissleById(pUnit_00->nClassId);
       if (!pMissileTxt) {
@@ -3704,18 +3716,6 @@ void __stdcall InitAnimMode(D2UnitStrc * pUnitArg) {
       pUnit_00->nAnimSpeed = wAnimSpeed;
       pUnit_00->nFrameCount = (uint32_t)(uint8_t)pMissileTxt->AnimLen << 8;
       break;
-      case UNIT_ITEM:
-        if (pUnitArg == (D2UnitStrc*)0x3) {
-          pUnit_00->nAnimSpeed = 0;
-          pUnit_00->nFrameCount = 0x1100;
-          pUnit_00->nGfxCurrentFrame = 0x1000;
-          return;
-        }
-      if (pUnitArg == (D2UnitStrc*)0x5) {
-        pUnit_00->nAnimSpeed = 0x100;
-        pUnit_00->nFrameCount = 0x1100;
-        return;
-      }
     }
 
     return;

@@ -28,7 +28,7 @@ void __stdcall UI_FormatNumberWithCommas(uint16_t * wszText, int32_t nParam1, in
     int nDigitIdx;
     __frame0.dwStackCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
     __frame0.nCommaCounter = 0;
-    if (nParam2 < 3) {
+    if (nParam2 <= 2) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x4b9);
       exit(-1);
     }
@@ -53,7 +53,7 @@ void __stdcall UI_FormatNumberWithCommas(uint16_t * wszText, int32_t nParam1, in
           __frame0.nCommaCounter++;
           nWritePos = nFormattedLen - 1;
           wszText[nWritePos] = (short int)__frame0.aDigitBuffer[nDigitIdx];
-          if (2 < __frame0.nCommaCounter) {
+          if (3 <= __frame0.nCommaCounter) {
             pcDigitPtr = __frame0.aDigitBuffer;
             pcDigitPtr = pcDigitPtr + strlen(pcDigitPtr) + 1;
             if (3 < (uint32_t)((int)pcDigitPtr - (int)(__frame0.aDigitBuffer + 1))) {

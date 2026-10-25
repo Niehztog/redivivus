@@ -966,12 +966,12 @@ void __fastcall Q28_TimerCallback_DropForgeRunes(D2QuestDataStrc * pQuestData, D
     do {
       D2UnitStrc* pDroppedGem;
       switch (pQuestSpecificData->nGemQuality) {
-        case 1:
+        case 4:
           pSeed = GetQuestControlSeed(pQuestData->pGame);
         sSeedNext = D2_SEED_NEXT(*pSeed);
         nRngMod = (int)(sSeedNext.nSeedLow / 7);
         *pSeed = sSeedNext;
-        aRuneCode = Q28_aForgeRuneCodesAct3[((sSeedNext.nSeedLow - nRngMod >> 1) + nRngMod >> 2) * -7 + sSeedNext.nSeedLow];
+        aRuneCode = Q28_aForgeRuneCodesAct1[((sSeedNext.nSeedLow - nRngMod >> 1) + nRngMod >> 2) * -7 + sSeedNext.nSeedLow];
         break;
         case 2:
 
@@ -982,12 +982,12 @@ void __fastcall Q28_TimerCallback_DropForgeRunes(D2QuestDataStrc * pQuestData, D
         *pSeed = sSeedNext;
         aRuneCode = Q28_aForgeRuneCodesAct2[((sSeedNext.nSeedLow - nRngMod >> 1) + nRngMod >> 2) * -7 + sSeedNext.nSeedLow];
         break;
-        case 4:
+        case 1:
           pSeed = GetQuestControlSeed(pQuestData->pGame);
         sSeedNext = D2_SEED_NEXT(*pSeed);
         nRngMod = (int)(sSeedNext.nSeedLow / 7);
         *pSeed = sSeedNext;
-        aRuneCode = Q28_aForgeRuneCodesAct1[((sSeedNext.nSeedLow - nRngMod >> 1) + nRngMod >> 2) * -7 + sSeedNext.nSeedLow];
+        aRuneCode = Q28_aForgeRuneCodesAct3[((sSeedNext.nSeedLow - nRngMod >> 1) + nRngMod >> 2) * -7 + sSeedNext.nSeedLow];
         break;
         default:
           return;

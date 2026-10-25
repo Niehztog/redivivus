@@ -451,17 +451,13 @@ void __fastcall TEXT_DrawTextBoxAtPosition(D2TextBoxStrc * pTextBox, int32_t nSc
 
     Engine::GfxInfo::D2GFX_DrawSolidRectExBySize(nScreenX, nScreenY + 4, (uint32_t)pTextBox->nWidth, pTextBox->nHeight - 5, 0, DRAW_TRANSPARENT);
     int32_t nSavedFont = D2Win::Src::D2WinFont::SetAndReturnLastFont(0xd);
-    if (0 < nLineCount) {
-      int nLineIdx = 0;
-      do {
+    for (int nLineIdx = 0; nLineIdx < nLineCount; nLineIdx++) {
         if (!pCurLine) {
           break;
         }
 
         D2Win::Src::D2WinFont::DRAW_text(pCurLine->wszLine, nScreenX + 10, (nLineIdx - nLineCount + pTextBox->nLineCount) * 0xf + 0x12 + nScreenY, 0, 0);
         pCurLine = pCurLine->pNext;
-        nLineIdx++;
-      } while (nLineIdx < nLineCount);
     }
 
     D2Win::Src::D2WinFont::SetAndReturnLastFont(nSavedFont);
@@ -845,7 +841,7 @@ static uint32_t __stdcall TEXT_FindNonOverlappingRect(int32_t nExistingRectCount
                     rcCandidate.top = pRect->top + gaTextNonOverlapRects[nDirIdx] * (int)pExistingRect;
                     rcCandidate.right = rcCandidate.left + 400;
                     rcCandidate.bottom = rcCandidate.top + 0x118;
-                    if (-1 < rcCandidate.left && rcCandidate.right <= ScreenSizeX && -1 < rcCandidate.top && rcCandidate.bottom <= ScreenSizeY) {
+                    if (0 <= rcCandidate.left && rcCandidate.right <= ScreenSizeX && 0 <= rcCandidate.top && rcCandidate.bottom <= ScreenSizeY) {
                       bOverlaps = '\0';
                       pCheckRect = gnTextBoxExclusionLeft;
                       nRemaining = nExistingRectCount;
@@ -873,7 +869,7 @@ static uint32_t __stdcall TEXT_FindNonOverlappingRect(int32_t nExistingRectCount
                     }
 
                     nDirIdx++;
-                  } while (nDirIdx < gnTextNonOverlapRectCount);
+                  } while ((int)nDirIdx < (int)gnTextNonOverlapRectCount);
                 }
 
                 pExistingRect = (RECT*)((int)pExistingRect + 0x23);
@@ -1327,7 +1323,7 @@ static BOOL TEXT_FormatEventMessage(int32_t pEventData, uint16_t * wszText) {
 }
 
 // Handles the 0x5a event message packet: switches on pMessageCtx->nMessageType, formats the localized message from the packet's names and argument, and prints it in pMessageCtx->nColor. pEventData is the format argument for message type 0x12, which also shakes the view and plays sound 0x1220.
-void TEXT_HandleEventMessagePacket(D2Packet0x5aEventStructure * pMessageCtx, short * pEventData) {
+void __fastcall TEXT_HandleEventMessagePacket(D2Packet0x5aEventStructure * pMessageCtx, short * pEventData) {
     D2UnitStrc* pPlayerUnit_lcl;
     uint8_t* pszMyName;
     uint16_t* pWVar1;
@@ -4062,9 +4058,9 @@ static void __stdcall TEXT_DrawScrollBackground() {
 
     DC6* pScrollBgImage = gpQuestScrollImageBg;
     memset(&sGfxData, 0, 0x48);
+    sGfxData.pDC6 = pScrollBgImage;
     sGfxData.nDirection = 0;
     sGfxData.nFrameNumber = 0;
-    sGfxData.pDC6 = pScrollBgImage;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, gnPanelOffsetX, gnPanelOffsetY - 0x6d + ScreenSizeY, -1, DRAW_SOLID, nullptr);
     sGfxData.nFrameNumber = 1;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, gnPanelOffsetX + 0x100, gnPanelOffsetY - 0x6d + ScreenSizeY, -1, DRAW_SOLID, nullptr);

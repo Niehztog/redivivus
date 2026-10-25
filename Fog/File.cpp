@@ -303,9 +303,6 @@ static void CRASH_GetExceptionName(char * szText, DWORD dwExceptionCode) {
       }
 
       switch (dwExceptionCode) {
-        case 0x80000001:
-          _strncpy_s(szText, 0x100, "GUARD_PAGE", -1);
-        return;
         case 0x80000002:
           _strncpy_s(szText, 0x100, "DATATYPE_MISALIGNMENT", -1);
         return;
@@ -315,24 +312,12 @@ static void CRASH_GetExceptionName(char * szText, DWORD dwExceptionCode) {
         case 0x80000004:
           _strncpy_s(szText, 0x100, "SINGLE_STEP", -1);
         return;
+        case 0x80000001:
+          _strncpy_s(szText, 0x100, "GUARD_PAGE", -1);
+        return;
       }
     } else {
       switch (dwExceptionCode) {
-        case 0xc0000006:
-          _strncpy_s(szText, 0x100, "IN_PAGE_ERROR", -1);
-        return;
-        case 0xc0000008:
-          _strncpy_s(szText, 0x100, "INVALID_HANDLE", -1);
-        return;
-        case 0xc000001d:
-          _strncpy_s(szText, 0x100, "ILLEGAL_INSTRUCTION", -1);
-        return;
-        case 0xc0000025:
-          _strncpy_s(szText, 0x100, "NONCONTINUABLE_EXCEPTION", -1);
-        return;
-        case 0xc0000026:
-          _strncpy_s(szText, 0x100, "INVALID_DISPOSITION", -1);
-        return;
         case 0xc000008c:
           _strncpy_s(szText, 0x100, "ARRAY_BOUNDS_EXCEEDED", -1);
         return;
@@ -366,8 +351,23 @@ static void CRASH_GetExceptionName(char * szText, DWORD dwExceptionCode) {
         case 0xc0000096:
           _strncpy_s(szText, 0x100, "PRIV_INSTRUCTION", -1);
         return;
+        case 0xc0000006:
+          _strncpy_s(szText, 0x100, "IN_PAGE_ERROR", -1);
+        return;
+        case 0xc000001d:
+          _strncpy_s(szText, 0x100, "ILLEGAL_INSTRUCTION", -1);
+        return;
+        case 0xc0000025:
+          _strncpy_s(szText, 0x100, "NONCONTINUABLE_EXCEPTION", -1);
+        return;
         case 0xc00000fd:
           _strncpy_s(szText, 0x100, "STACK_OVERFLOW", -1);
+        return;
+        case 0xc0000026:
+          _strncpy_s(szText, 0x100, "INVALID_DISPOSITION", -1);
+        return;
+        case 0xc0000008:
+          _strncpy_s(szText, 0x100, "INVALID_HANDLE", -1);
         return;
       }
     }

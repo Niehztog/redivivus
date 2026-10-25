@@ -1177,8 +1177,8 @@ void __fastcall BaalCrabAi_ResetInfernoAndReattach(::SGAMEDATA * pGame, D2UnitSt
     if (!pInfernoCommand && storedCommandArg1 && storedCommandArg2) {
       D2AiCmdArgumentsStrc cmdArgs;
       cmdArgs.nCmdId = 10;
-      cmdArgs.nCmdArg2 = storedCommandArg2;
       cmdArgs.nCmdArg1 = storedCommandArg1;
+      cmdArgs.nCmdArg2 = storedCommandArg2;
       Ai::AiGeneral::CreateAiCmdAndFill(pGame, pUnit, &cmdArgs);
     }
 

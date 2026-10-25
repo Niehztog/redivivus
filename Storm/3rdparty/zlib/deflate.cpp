@@ -400,7 +400,7 @@ static char * __stdcall longest_match(uint32_t nCurMatch, deflate_state * pDefla
     uint8_t cScanEnd1 = (pBestLen - 1)[(int)pScanStart];
     uint8_t cScanEnd2 = pBestLen[(int)pScanStart];
     uint8_t* pScanEnd = pScanStart + 0x102;
-    if ((uint8_t*)pDeflateState->good_match <= pBestLen) {
+    if (pBestLen >= (uint8_t*)pDeflateState->good_match) {
       nChainLen >>= 2;
     }
 

@@ -2931,9 +2931,9 @@ void __fastcall TXT_AllocTxt_qualityitems(D2PoolManagerStrc * pMemory) {
     D2BinFieldInputStrc qualityitems[22];
     qualityitems[1].eType = FIELDTYPE_NAME_INT;
     qualityitems[1].fpLinker = &sgtDataTable.pTxtPropertiesLink;
-    qualityitems[2].eType = FIELDTYPE_NAME_INT;
     qualityitems[0].szName = "nummods";
     qualityitems[0].eType = FIELDTYPE_CHAR;
+    qualityitems[2].eType = FIELDTYPE_NAME_INT;
     qualityitems[2].fpLinker = &sgtDataTable.pTxtPropertiesLink;
     qualityitems[0].nSize = 0;
     qualityitems[0].nOffset = 10;
@@ -4545,7 +4545,7 @@ int * __stdcall GetGambleTableSize() {
 }
 
 // Breadth-first traversal of the itemtypes.txt equiv1/equiv2 parent-type tree to test whether nItemTypeId is a subtype of nTargetTypeId. Returns 1 if nTargetTypeId &lt; 1 (wildcard), 1 if target found in the type hierarchy, 0 if out-of-range or stack depth exceeds 124. Used by item-type membership checks.
-static BOOL ITEMTBLS_CheckItemTypeRecursive(int32_t nItemTypeId, int32_t nTargetTypeId) {
+static BOOL __fastcall ITEMTBLS_CheckItemTypeRecursive(int32_t nItemTypeId, int32_t nTargetTypeId) {
     int nNewStackSize;
     int anTypeStack[128];
     short int wEquiv2;

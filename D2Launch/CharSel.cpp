@@ -322,15 +322,15 @@ static void __stdcall DRAW_LocalCharsInSelectionScreen() {
         D2Win::Src::D2WinTextBox::D2WINTEXTBOX_ClearAllLines(gaCharSelScreenSlotControls[nCharacterIndex]);
         nLanguageCode = D2Lang::StrTable::strtable::MISC_GetLanguageCode();
         switch (nLanguageCode) {
+          case 7:
+            nTextLine = -7;
+          break;
           case 6:
 
           case 9:
 
           case 10:
             nTextLine = -2;
-          break;
-          case 7:
-            nTextLine = -7;
           break;
           default:
             continue;
@@ -1713,7 +1713,7 @@ BOOL __stdcall CHARSEL_OnPressScrollCharListUp(D2ControlMsg * pControlMsg) {
     if (0 < g_nCharSelNavigationIndex) {
       g_nCharSelNavigationIndex--;
     }
-    if (0 < D2Client::CharScreen::nSelectedCharIndex) {
+    if (0 < (int)D2Client::CharScreen::nSelectedCharIndex) {
       D2Client::CharScreen::nSelectedCharIndex--;
     }
 
@@ -1750,33 +1750,35 @@ BOOL __stdcall CHARSEL_HandleKeyNavExpansion(int32_t pKeyMsg) {
     }
 
     switch (*(uint32_t*)(pKeyMsg + 8)) {
-      case 0x23:
-        if (gnCharSelScreenSlotCount < D2Client::CharScreen::TotalCurrentChars) {
-          g_nCharSelNavigationIndex = D2Client::CharScreen::TotalCurrentChars - gnCharSelScreenSlotCount;
-        }
-      D2Client::CharScreen::nSelectedCharIndex = D2Client::CharScreen::TotalCurrentChars - 1;
-      break;
-      case 0x24:
-        D2Client::CharScreen::nSelectedCharIndex = 0;
-      g_nCharSelNavigationIndex = 0;
-      break;
-      case 0x25:
-        if ((int)D2Client::CharScreen::nSelectedCharIndex <= 0) {
-          break;
-        }
-      nNewSelectedIndex = D2Client::CharScreen::nSelectedCharIndex & 0x80000001;
-      bIsEvenColumn = !nNewSelectedIndex;
-      if ((int)nNewSelectedIndex < 0) {
-        bIsEvenColumn = (nNewSelectedIndex - 1 | -2) == -1;
-      }
-      if (bIsEvenColumn) {
-        break;
-      }
+      case 0x28:
+        if ((int)D2Client::CharScreen::nSelectedCharIndex < D2Client::CharScreen::TotalCurrentChars - 1 && (nNewSelectedIndex = D2Client::CharScreen::nSelectedCharIndex + 2 , (int)nNewSelectedIndex <= D2Client::CharScreen::TotalCurrentChars - 1)) {
+          D2Client::CharScreen::nSelectedCharIndex = nNewSelectedIndex;
+          if ((int)nNewSelectedIndex < g_nCharSelNavigationIndex) {
+            goto scroll_view_to;
+          }
+          if ((int)nNewSelectedIndex > gnCharSelScreenSlotCount - 1 + g_nCharSelNavigationIndex) {
+            nCandidateIndex = nNewSelectedIndex & 0x80000001;
+            bIsEvenColumn = !nCandidateIndex;
+            if ((int)nCandidateIndex < 0) {
+              bIsEvenColumn = (nCandidateIndex - 1 | -2) == -1;
+            }
+            if (!bIsEvenColumn) {
+              g_nCharSelNavigationIndex = nNewSelectedIndex - gnCharSelScreenSlotCount + 1;
+              CHARSEL_ScrollCharList(1);
+              DRAW_LocalCharsInSelectionScreen0();
+              CHARSEL_UpdateSelectedCharDisplay();
+              return 1;
+            }
 
-      nNewSelectedIndex = D2Client::CharScreen::nSelectedCharIndex - 1;
-      goto select_and_scroll_into_view;
+            g_nCharSelNavigationIndex = nNewSelectedIndex - gnCharSelScreenSlotCount + 2;
+            CHARSEL_ScrollCharList(1);
+            DRAW_LocalCharsInSelectionScreen0();
+            CHARSEL_UpdateSelectedCharDisplay();
+            return 1;
+          }
+        } break;
       case 0x26:
-        if ((int)D2Client::CharScreen::nSelectedCharIndex < 1 || (nCandidateIndex = D2Client::CharScreen::nSelectedCharIndex - 2 , (int)nCandidateIndex < 0)) {
+        if ((int)D2Client::CharScreen::nSelectedCharIndex <= 0 || (nCandidateIndex = D2Client::CharScreen::nSelectedCharIndex - 2 , (int)nCandidateIndex < 0)) {
           break;
         }
       if ((int)nCandidateIndex < g_nCharSelNavigationIndex) {
@@ -1836,33 +1838,31 @@ BOOL __stdcall CHARSEL_HandleKeyNavExpansion(int32_t pKeyMsg) {
       }
 
       break;
-      case 0x28:
-        if ((int)D2Client::CharScreen::nSelectedCharIndex < D2Client::CharScreen::TotalCurrentChars - 1 && (nNewSelectedIndex = D2Client::CharScreen::nSelectedCharIndex + 2 , (int)nNewSelectedIndex <= D2Client::CharScreen::TotalCurrentChars - 1)) {
-          D2Client::CharScreen::nSelectedCharIndex = nNewSelectedIndex;
-          if ((int)nNewSelectedIndex < g_nCharSelNavigationIndex) {
-            goto scroll_view_to;
-          }
-          if (gnCharSelScreenSlotCount - 1 + g_nCharSelNavigationIndex < (int)nNewSelectedIndex) {
-            nCandidateIndex = nNewSelectedIndex & 0x80000001;
-            bIsEvenColumn = !nCandidateIndex;
-            if ((int)nCandidateIndex < 0) {
-              bIsEvenColumn = (nCandidateIndex - 1 | -2) == -1;
-            }
-            if (!bIsEvenColumn) {
-              g_nCharSelNavigationIndex = nNewSelectedIndex - gnCharSelScreenSlotCount + 1;
-              CHARSEL_ScrollCharList(1);
-              DRAW_LocalCharsInSelectionScreen0();
-              CHARSEL_UpdateSelectedCharDisplay();
-              return 1;
-            }
-
-            g_nCharSelNavigationIndex = nNewSelectedIndex - gnCharSelScreenSlotCount + 2;
-            CHARSEL_ScrollCharList(1);
-            DRAW_LocalCharsInSelectionScreen0();
-            CHARSEL_UpdateSelectedCharDisplay();
-            return 1;
-          }
+      case 0x25:
+        if ((int)D2Client::CharScreen::nSelectedCharIndex <= 0) {
+          break;
         }
+      nNewSelectedIndex = D2Client::CharScreen::nSelectedCharIndex & 0x80000001;
+      bIsEvenColumn = !nNewSelectedIndex;
+      if ((int)nNewSelectedIndex < 0) {
+        bIsEvenColumn = (nNewSelectedIndex - 1 | -2) == -1;
+      }
+      if (bIsEvenColumn) {
+        break;
+      }
+
+      nNewSelectedIndex = D2Client::CharScreen::nSelectedCharIndex - 1;
+      goto select_and_scroll_into_view;
+      case 0x24:
+        D2Client::CharScreen::nSelectedCharIndex = 0;
+      g_nCharSelNavigationIndex = 0;
+      break;
+      case 0x23:
+        if (gnCharSelScreenSlotCount < D2Client::CharScreen::TotalCurrentChars) {
+          g_nCharSelNavigationIndex = D2Client::CharScreen::TotalCurrentChars - gnCharSelScreenSlotCount;
+        }
+      D2Client::CharScreen::nSelectedCharIndex = D2Client::CharScreen::TotalCurrentChars - 1;
+      break;
     }
 
     DRAW_LocalCharsInSelectionScreen0();

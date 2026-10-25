@@ -1793,16 +1793,12 @@ void __fastcall NET_D2GS_SERVER_Send_0x4C_UnitCastSkill_Target_0x4D_UnitCastSkil
       int iRoom;
       D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &pRoomList, &nRoomCount);
       pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
-      if (0 < nRoomCount) {
-        iRoom = 0;
-        do {
+      for (iRoom = 0; iRoom < nRoomCount; iRoom++) {
           if (pRoom == pRoomList[iRoom]) {
             ((uint8_t*)&aPacket)[1] = byAttackerTypeLo;
             goto send_cast_on_target;
           }
 
-          iRoom++;
-        } while (iRoom < nRoomCount);
       }
     }
 

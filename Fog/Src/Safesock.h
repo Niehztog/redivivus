@@ -69,7 +69,7 @@ int32_t __fastcall WSASocket2_Send(struct D2NetDataStrc * pNetData, char * pByte
 int32_t __fastcall WSASocket2_SendOrCloseOnTimeout(struct D2NetDataStrc * pNetData, char * pBytes, size_t nSize);
 void __fastcall SAFESOCK_EnterCriticalSection(struct D2NetDataStrc * pNetData);
 // Leaves the critical section embedded at offset 0xC within the safesock structure. Thin wrapper around Win32 LeaveCriticalSection.
-void __stdcall LeaveCriticalSection_Safesock(void * pSafesockStrc);
+void __fastcall LeaveCriticalSection_Safesock(void * pSafesockStrc);
 int __fastcall Safesock_PollReadReady(struct D2NetDataStrc * pNetData);
 int32_t __fastcall GetPeerNameDoesReturn(struct D2NetDataStrc * pNetData, sockaddr * pName, int * pNameLen);
 uint32_t __fastcall GetSockNameDoesReturn(struct D2NetDataStrc * pNetData, sockaddr * pName, int * pNameLen);

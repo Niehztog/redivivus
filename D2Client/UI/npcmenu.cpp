@@ -3086,6 +3086,20 @@ static void __stdcall NPCMENU_HandleTradeAccepted() {
     }
 
     switch (D2GSPacketSrv0x2A_007c0d87.nResult) {
+      case 0xf:
+        nErrorStringId = 0xd23;
+      break;
+      case 0x10:
+        nErrorStringId = 0xd1d; break;
+      case 0xc:
+        nErrorStringId = 0xd22;
+      break;
+      case 10:
+        nErrorStringId = 0xd1c;
+      break;
+      case 0xb:
+        nErrorStringId = 0xd20;
+      break;
       case 7:
 
       case 8:
@@ -3094,20 +3108,6 @@ static void __stdcall NPCMENU_HandleTradeAccepted() {
       default:
         nErrorStringId = 0xd21;
       break;
-      case 10:
-        nErrorStringId = 0xd1c;
-      break;
-      case 0xb:
-        nErrorStringId = 0xd20;
-      break;
-      case 0xc:
-        nErrorStringId = 0xd22;
-      break;
-      case 0xf:
-        nErrorStringId = 0xd23;
-      break;
-      case 0x10:
-        nErrorStringId = 0xd1d;
     }
 
     if (_Interaction::geNpcUiState == NPCUI_TRANSACTION_PENDING) {

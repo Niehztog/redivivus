@@ -749,7 +749,7 @@ static uint16_t gaZlibLengthExtraBitsTable[31] = {
         byCurBits = (uint8_t)nCurBits;
         byOpBits = byCurLength - byCurBits;
         uVar1 = *pSortedCode;
-        if (nMatchLimit > (int)(uint32_t)uVar1) {
+        if ((int)(uint32_t)uVar1 < nMatchLimit) {
           dwTableEntry = (uint32_t)(uint32_t)((uint32_t)((uint32_t)(uint16_t)uVar1 << 8 | (uint32_t)(uint8_t)byOpBits) & 0xffffffu) << 8;
         } else if (nMatchLimit < (int)(uint32_t)uVar1) {
           dwTableEntry = (uint32_t)((uint32_t)(uint16_t)pBaseTable[*pSortedCode] << 16 | (uint32_t)(uint16_t)((uint16_t)(uint8_t)byOpBits << 8 | (uint16_t)(uint8_t)(char)pExtraTable[*pSortedCode]));

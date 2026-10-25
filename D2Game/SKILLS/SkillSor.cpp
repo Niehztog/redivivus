@@ -116,7 +116,7 @@ BOOL __fastcall INFERNO_CastInfernoTick(::SGAMEDATA * pGame, D2UnitStrc * pUnit,
     int32_t nCalcDuration;
     uint32_t nTargetY;
     uint32_t nTargetX;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -465,7 +465,7 @@ static void __fastcall SetFrozenArmorState(D2UnitStrc * pUnit, eD2States eState,
 BOOL __fastcall Skills_SrvDoFunc_018_Armor(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
     D2StateExArgStrc sStateArgs;
     int iAuraEvent;
-    /* Set State (Armor buff), set Auratarget event, event, event func */ if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    /* Set State (Armor buff), set Auratarget event, event, event func */ if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -898,7 +898,7 @@ void __fastcall BlazePath(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
 BOOL __fastcall Skills_SrvDoFunc_024_FireWall(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
     uint32_t nTargetY;
     D2SkillArgStrc sSkillArg;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -1418,7 +1418,7 @@ BOOL __fastcall Skills_SrvDoFunc_144_Hydra(::SGAMEDATA * pGame, D2UnitStrc * pUn
     uint32_t nSpawnY;
     uint32_t nSpawnX;
     eD2Skills eSkillOrig = iHydraIdx;
-    if (!(-1 < (int)iHydraIdx && (int)iHydraIdx < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)iHydraIdx && (int)iHydraIdx < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 

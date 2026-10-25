@@ -966,7 +966,7 @@ void __fastcall SPELLSEL_DrawSkillRequirementTooltip(short * pwSkillId, int32_t 
     D2Win::Src::D2WinFont::TEXT_TooltipSetAttributes(wszTooltip, nScreenX, nBoxBottomY - 0x32, bMouseOver, 1);
 }
 
-static void __fastcall SPELLSEL_DrawSkillGrid(D2UnitStrc * pUnit, int32_t nGridStartX, BOOL bWeaponSwap, BOOL bShowTooltips, BOOL bChargedOnly) {
+void __fastcall SPELLSEL_DrawSkillGrid(D2UnitStrc * pUnit, int32_t nGridStartX, BOOL bWeaponSwap, BOOL bShowTooltips, BOOL bChargedOnly) {
     // Static local variables (originally global data)
     static int gnSpellSelGridDrawX1;
     static int gnSpellSelGridDrawX2;

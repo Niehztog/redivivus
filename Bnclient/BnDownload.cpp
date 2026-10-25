@@ -1189,7 +1189,7 @@ void __fastcall NET_BNFTP_CLIENT_ProcessFile(uint32_t eFileType, int32_t nOpcode
           }
 
           Storm::Source::SFile::SFileAuthenticateArchive(pArchiveHandle, &__frame0.dwAuthResult);
-          if (!__frame0.dwAuthResult || 4 < __frame0.dwAuthResult) {
+          if (!__frame0.dwAuthResult || 5 <= __frame0.dwAuthResult) {
             bCopyDllOk = NET_CopyDllFromArchive(pArchiveHandle, szDestPath, &__frame3.cTempDllPath);
             if (!(uint32_t)((uint32_t)((uint32_t)bCopyExtended & 0xffffffu) << 8 | (uint32_t)(uint8_t)bCopyDllOk)) {
               Debug::DEBUG_UnusedDebugFunction("<ERROR: Failed to extract ExtraWork DLL!>");

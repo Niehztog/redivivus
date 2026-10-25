@@ -2185,6 +2185,10 @@ int32_t __stdcall ITEMS_ModifyPotionSellValueByDifficulty(D2UnitStrc * pNpc, int
     }
 
     switch (pNpc->nClassId) {
+      case 1:
+      case 2:
+      case 5:
+        return nValue * 2;
       case 0:
 
       case 3:
@@ -2192,12 +2196,6 @@ int32_t __stdcall ITEMS_ModifyPotionSellValueByDifficulty(D2UnitStrc * pNpc, int
       case 6:
         nValue = (nValue >> 1) + nValue;
       break;
-      case 1:
-
-      case 2:
-
-      case 5:
-        return nValue * 2;
     }
 
     return nValue;
@@ -2571,13 +2569,6 @@ static void __stdcall ITEMS_DeserializeSingleStat(uint32_t nFileVersion, eD2Unit
           nSaveAdd = 0x14;
         }
       break;
-      case UNITSTAT_item_levelreq:
-
-      case UNITSTAT_item_levelreqpct:
-        if (nFileVersion < 0x5d) {
-          eUnitStat = UNITSTAT_item_fasterattackrate;
-        }
-      break;
       case UNITSTAT_item_fasterattackrate:
 
       case UNITSTAT_item_fastermovevelocity:
@@ -2587,8 +2578,14 @@ static void __stdcall ITEMS_DeserializeSingleStat(uint32_t nFileVersion, eD2Unit
       case UNITSTAT_item_fasterblockrate:
 
       case UNITSTAT_item_fastercastrate:
-        if (nFileVersion < 0x58) {
+        if (nFileVersion <= 0x57) {
           nSaveBits = 6;
+        }
+      break;
+      case UNITSTAT_item_levelreq:
+      case UNITSTAT_item_levelreqpct:
+        if (nFileVersion < 0x5d) {
+          eUnitStat = UNITSTAT_item_fasterattackrate;
         }
       break;
       case UNITSTAT_lastblockframe:
@@ -3059,15 +3056,6 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
       nIdx = ITEMS_nullsub(nIdx, pSuffixTxt, pUnit2);
       nMaxLvlReqTmp = ITEMS_nullsub(nIdx, pAffixTxt, pUnit2);
       break;
-      case QUALITY_SET:
-        nIdx = ITEM_GetItemData_nFileIndex(pUnit);
-      pSetItemTxt = D2Client::DataTbls::GetSetItemsLine(nIdx);
-      if (!pSetItemTxt) {
-        goto apply_common_requirements;
-      }
-
-      nMaxLvlReqTmp = (uint32_t)pSetItemTxt->lvlReq;
-      goto use_lvlreq_if_valid;
       case QUALITY_RARE:
         nAffixByteOffset = 0x3e;
       do {
@@ -3131,36 +3119,6 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
       }
 
       break;
-      case QUALITY_UNIQUE:
-        nIdx = ITEM_GetItemData_nFileIndex(pUnit);
-      if (nIdx < 0) {
-        goto apply_common_requirements;
-      }
-
-      nIdx = ITEM_GetItemData_nFileIndex(pUnit);
-      pUniqueTxt = D2Client::DataTbls::INV_GetUniqueItemsTxtLine(nIdx);
-      if (!pUniqueTxt) {
-        goto apply_common_requirements;
-      }
-      if (!pUnit2) {
-        nMaxLvlReqTmp = (uint32_t)pUniqueTxt->lvlReq;
-      } else {
-        nClassId = D2Client::UNIT::Player::CheckFlagWithMask(pUnit2, 0x2000000);
-        if (!nClassId) {
-          wItemVersion = ITEM_GetItemData_wItemVersion(pUnit);
-          if (!wItemVersion) {
-            goto apply_common_requirements;
-          }
-        }
-
-        nMaxLvlReqTmp = (uint32_t)pUniqueTxt->lvlReq;
-      }
-
-      use_lvlreq_if_valid:
-      if ((int)nMaxLvlReqTmp < 0) {
-        goto apply_common_requirements;
-      }
-      break;
       case QUALITY_CRAFTED:
         nAffixByteOffset = 10;
       nIdx = 0x3e;
@@ -3217,6 +3175,41 @@ uint32_t __fastcall ITEM_CalcRequiredLevel(D2UnitStrc * pUnit, D2UnitStrc * pUni
       }
 
       break;
+      case QUALITY_UNIQUE:
+        nIdx = ITEM_GetItemData_nFileIndex(pUnit);
+      if (nIdx < 0) {
+        goto apply_common_requirements;
+      }
+      nIdx = ITEM_GetItemData_nFileIndex(pUnit);
+      pUniqueTxt = D2Client::DataTbls::INV_GetUniqueItemsTxtLine(nIdx);
+      if (!pUniqueTxt) {
+        goto apply_common_requirements;
+      }
+      if (!pUnit2) {
+        nMaxLvlReqTmp = (uint32_t)pUniqueTxt->lvlReq;
+      } else {
+        nClassId = D2Client::UNIT::Player::CheckFlagWithMask(pUnit2, 0x2000000);
+        if (!nClassId) {
+          wItemVersion = ITEM_GetItemData_wItemVersion(pUnit);
+          if (!wItemVersion) {
+            goto apply_common_requirements;
+          }
+        }
+        nMaxLvlReqTmp = (uint32_t)pUniqueTxt->lvlReq;
+      }
+      use_lvlreq_if_valid:
+      if ((int)nMaxLvlReqTmp < 0) {
+        goto apply_common_requirements;
+      }
+      break;
+      case QUALITY_SET:
+        nIdx = ITEM_GetItemData_nFileIndex(pUnit);
+      pSetItemTxt = D2Client::DataTbls::GetSetItemsLine(nIdx);
+      if (!pSetItemTxt) {
+        goto apply_common_requirements;
+      }
+      nMaxLvlReqTmp = (uint32_t)pSetItemTxt->lvlReq;
+      goto use_lvlreq_if_valid;
       default:
         goto apply_common_requirements;
     }
@@ -3453,11 +3446,6 @@ void __stdcall ITEM_RollSocketCount(D2UnitStrc * pUnit, uint32_t nMaxSocksRandom
 
     nSocketArea = nMaxSocksRandom;
     switch (nQuality) {
-      case QUALITY_MAGIC:
-        if (3 < nMaxAllowed) {
-          nMaxAllowed = 4;
-        }
-      break;
       case QUALITY_SET:
 
       case QUALITY_UNIQUE:
@@ -3473,6 +3461,11 @@ void __stdcall ITEM_RollSocketCount(D2UnitStrc * pUnit, uint32_t nMaxSocksRandom
       case QUALITY_RARE:
         if (1 < nMaxAllowed) {
           nMaxAllowed = 2;
+        }
+      break;
+      case QUALITY_MAGIC:
+        if (3 < nMaxAllowed) {
+          nMaxAllowed = 4;
         }
       break;
       case QUALITY_CRAFTED:
@@ -3814,35 +3807,6 @@ int32_t __stdcall GetItemColor(D2UnitStrc * pUnit, D2UnitStrc * pItem, char * pC
         goto check_affix_color;
       }
       break;
-      case QUALITY_SET:
-        pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pItem->nClassId);
-      if (!pItemsTxt) {
-        return 0;
-      }
-
-      nStateOrAffixIdx = ITEM_GetItemData_nFileIndex(pItem);
-      pSetItemTxt = D2Client::DataTbls::GetSetItemsLine(nStateOrAffixIdx);
-      if (!pSetItemTxt) {
-        return 0;
-      }
-      if (!nTransType) {
-        if (pSetItemTxt->chrtransform < '\0') {
-          return 0;
-        }
-
-        bValidColor = ITEMS_ValidateItemQualityCode((int)pSetItemTxt->chrtransform, (uint32_t)(uint8_t)pItemsTxt->bTransform);
-        *pColor = bValidColor;
-        pPaletteResult = D2CMP::Pallete::PALETTE_GetItemPalette((uint32_t)(uint8_t)pItemsTxt->bTransform, (int)pSetItemTxt->chrtransform);
-        return (int32_t)pPaletteResult;
-      }
-      if (pSetItemTxt->invtransform < '\0') {
-        return 0;
-      }
-
-      bValidColor = ITEMS_ValidateItemQualityCode((int)pSetItemTxt->chrtransform, (uint32_t)(uint8_t)pItemsTxt->bTransform);
-      *pColor = bValidColor;
-      pPaletteResult = D2CMP::Pallete::PALETTE_GetItemPalette((uint32_t)(uint8_t)pItemsTxt->bInvTrans, (int)pSetItemTxt->invtransform);
-      return (int32_t)pPaletteResult;
       case QUALITY_UNIQUE:
         pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pItem->nClassId);
       if (!pItemsTxt) {
@@ -3876,6 +3840,32 @@ int32_t __stdcall GetItemColor(D2UnitStrc * pUnit, D2UnitStrc * pItem, char * pC
       bValidColor = ITEMS_ValidateItemQualityCode((int)pUniqueTxt->chrtransform, (uint32_t)(uint8_t)pItemsTxt->bTransform);
       *pColor = bValidColor;
       pPaletteResult = D2CMP::Pallete::PALETTE_GetItemPalette((uint32_t)(uint8_t)pItemsTxt->bTransform, (int)pUniqueTxt->chrtransform);
+      return (int32_t)pPaletteResult;
+      case QUALITY_SET:
+        pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pItem->nClassId);
+      if (!pItemsTxt) {
+        return 0;
+      }
+      nStateOrAffixIdx = ITEM_GetItemData_nFileIndex(pItem);
+      pSetItemTxt = D2Client::DataTbls::GetSetItemsLine(nStateOrAffixIdx);
+      if (!pSetItemTxt) {
+        return 0;
+      }
+      if (!nTransType) {
+        if (pSetItemTxt->chrtransform < '\0') {
+          return 0;
+        }
+        bValidColor = ITEMS_ValidateItemQualityCode((int)pSetItemTxt->chrtransform, (uint32_t)(uint8_t)pItemsTxt->bTransform);
+        *pColor = bValidColor;
+        pPaletteResult = D2CMP::Pallete::PALETTE_GetItemPalette((uint32_t)(uint8_t)pItemsTxt->bTransform, (int)pSetItemTxt->chrtransform);
+        return (int32_t)pPaletteResult;
+      }
+      if (pSetItemTxt->invtransform < '\0') {
+        return 0;
+      }
+      bValidColor = ITEMS_ValidateItemQualityCode((int)pSetItemTxt->chrtransform, (uint32_t)(uint8_t)pItemsTxt->bTransform);
+      *pColor = bValidColor;
+      pPaletteResult = D2CMP::Pallete::PALETTE_GetItemPalette((uint32_t)(uint8_t)pItemsTxt->bInvTrans, (int)pSetItemTxt->invtransform);
       return (int32_t)pPaletteResult;
       default:
         if (pItem->eUnitType != UNIT_ITEM || (pItemsTxt = DATATBLS::ItemTbls::TXT_Items_GetLine(pItem->nClassId) , !pItemsTxt) || !pItemsTxt->bHasInv || (bValidColor = ITEM_GetMaxSockCount(pItem) , bValidColor == '\0')) {

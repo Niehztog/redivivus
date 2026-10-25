@@ -582,6 +582,14 @@ static void __stdcall DRLGROOMTILE_ProcessTile(eD2GridCellFlags nFlags, D2RoomEx
     }
     if ((nFlags & CELLFLAGS_0x80000000) != CELLFLAGS_NONE) {
       switch (nOtherFlags) {
+        case CELLFLAGS_0x08 | CELLFLAGS_0x02:
+        case CELLFLAGS_0x08 | CELLFLAGS_0x02 | CELLFLAGS_0x01:
+          if (8 <= nMainIndex) {
+            return;
+          }
+        DRLGROOMTILE_CreateExitWarp(nFlags, nX, nOtherFlags, nSizeMaybe, pRoom);
+        DRLGROOMTILE_InitWarpCacheTiles(nFlags, pRoom, nX, nSizeMaybe, nOtherFlags);
+        return;
         case CELLFLAGS_0x08:
 
         case CELLFLAGS_0x08 | CELLFLAGS_0x01:
@@ -592,15 +600,6 @@ static void __stdcall DRLGROOMTILE_ProcessTile(eD2GridCellFlags nFlags, D2RoomEx
         }
 
         break;
-        case CELLFLAGS_0x08 | CELLFLAGS_0x02:
-
-        case CELLFLAGS_0x08 | CELLFLAGS_0x02 | CELLFLAGS_0x01:
-          if (7 < nMainIndex) {
-            return;
-          }
-        DRLGROOMTILE_CreateExitWarp(nFlags, nX, nOtherFlags, nSizeMaybe, pRoom);
-        DRLGROOMTILE_InitWarpCacheTiles(nFlags, pRoom, nX, nSizeMaybe, nOtherFlags);
-        return;
       }
     }
     if ((nFlags & CELLFLAGS_0x04) != CELLFLAGS_NONE) {

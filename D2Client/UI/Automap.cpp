@@ -1459,7 +1459,7 @@ void __stdcall AUTOMAP_Update() {
     nLayer = pLevelDefs->Layer;
     pAutomapLayer = AUTOMAP_AddLayer(nLayer);
     i = 0;
-    if (!nRoomCount) {
+    if ((uint32_t)nRoomCount <= 0) {
       return;
     }
     do {

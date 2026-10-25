@@ -603,11 +603,11 @@ int32_t __stdcall fAPPMODE_client_ReturnAppMode(HMODULE hModule, D2IniConfigStrc
     gbQuitGame = 1;
     do {
       gdwAppMode = (*pfModes[gdwAppMode])();
-      if (6 < (int)gdwAppMode) {
+      if (7 <= (int)gdwAppMode) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x28e);
         exit(-1);
       }
-      if ((int)gdwAppMode < 1) {
+      if ((int)gdwAppMode <= 0) {
         Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x28f);
         exit(-1);
       }

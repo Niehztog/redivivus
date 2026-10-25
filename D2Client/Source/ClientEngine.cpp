@@ -516,9 +516,9 @@ void __fastcall CLIENT_BossDeath_BloodRaven(D2UnitStrc * pUnit) {
     D2SkillArgStrc sSkillArg;
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.nMissileTxtNo = MISSILE_Brdeathcontrol;
-    sSkillArg.nSkillLevel = 1;
     sSkillArg.pOwner = pUnit;
     sSkillArg.pMissile = pUnit;
+    sSkillArg.nSkillLevel = 1;
     D2UnitStrc* pMissile = UNIT::Missile::MakeMissile(&sSkillArg);
     if (pMissile) {
       D2Common::Units::Missile::SetTargetX(pMissile, 0x32);
@@ -667,9 +667,9 @@ void __fastcall CLIENT_BossDeath_Mephisto(D2UnitStrc * pUnit) {
     D2SkillArgStrc sSkillArg;
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.nMissileTxtNo = MISSILE_Mephistodeathcontrol;
-    sSkillArg.nSkillLevel = 1;
     sSkillArg.pOwner = pUnit;
     sSkillArg.pMissile = pUnit;
+    sSkillArg.nSkillLevel = 1;
     D2UnitStrc* pMissile = UNIT::Missile::MakeMissile(&sSkillArg);
     if (pMissile) {
       D2Common::Units::Missile::SetTargetX(pMissile, 0x4b);
@@ -694,9 +694,9 @@ void __fastcall CLIENT_BossDeath_Andariel(D2UnitStrc * pUnit) {
     D2SkillArgStrc sSkillArg;
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.nMissileTxtNo = MISSILE_Andycontrol0;
-    sSkillArg.nSkillLevel = 1;
     sSkillArg.pOwner = pUnit;
     sSkillArg.pMissile = pUnit;
+    sSkillArg.nSkillLevel = 1;
     UNIT::Missile::MakeMissile(&sSkillArg);
 }
 
@@ -780,9 +780,9 @@ void __fastcall CLIENT_BossDeath_Izual(D2UnitStrc * pUnit) {
     GAME::Wall2::WALL2_ScheduleSoundSequence(0x1253, 0, 0xfa, 0, 0, 0, 0);
     memset(&sSkillArg, 0, 0x5c);
     sSkillArg.nMissileTxtNo = MISSILE_IzualControl;
-    sSkillArg.nSkillLevel = 1;
     sSkillArg.pOwner = pUnit;
     sSkillArg.pMissile = pUnit;
+    sSkillArg.nSkillLevel = 1;
     UNIT::Missile::MakeMissile(&sSkillArg);
 }
 
@@ -1469,9 +1469,9 @@ static void __stdcall CLIENT_SendMonsterMoveToRandomNearbyPosMessage(uint32_t nO
 static void __stdcall CLIENT_SendMonsterMoveToTargetMessage(int32_t nTargetX, int32_t nTargetY, int32_t nSenderId, int32_t nSkillLvl, D2UnitStrc * pUnit) {
     D2ServerMessageHandleStrc sMsg;
     D2DynamicPathStrc* pDynamicPath = pUnit->pPath.pDynamicPath;
-    sMsg.nTargetUnitType = 0;
     sMsg.nSkillId = nTargetX;
     sMsg.nItemId = nTargetY;
+    sMsg.nTargetUnitType = 0;
     sMsg.nTargetUnitId = D2Common::PATH::DynamicPath::GetPathType(pDynamicPath);
     sMsg.nSkillLvl = nSkillLvl;
     uint8_t byMaxDistance = D2Common::PATH::DynamicPath::GetMaxDistance(pDynamicPath);

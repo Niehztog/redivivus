@@ -252,17 +252,17 @@ void ReplaceAreas(D2DrlgLevelStrc * pLevel) {
     }
 
     switch (pRoomData->nLevelPrest) {
-      case 0x1bc:
-        nRoll = 3;
+      case 0x1be:
+        nRoll = 0;
       break;
       case 0x1bd:
         nRoll = 1;
       break;
-      case 0x1be:
-        nRoll = 0;
-      break;
       case 0x1bf:
         nRoll = 2;
+      break;
+      case 0x1bc:
+        nRoll = 3;
       break;
       default:
         nErrorLine = 0x519;

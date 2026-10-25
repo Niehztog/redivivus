@@ -960,6 +960,16 @@ static void __stdcall ITEM_ApplySpecialTypeProperties(D2UnitStrc * pUnit, ::SGAM
     int32_t nSuffixParam;
     eD2ItemTypes eItemType = D2Common::ITEMS::Items::ITEM_GetItemData_wType(pUnit);
     switch (eItemType) {
+      case ITEMTYPE_Charm:
+        ITEM_RollForcedMagicAffix(pItemGenContext, pUnit);
+      return;
+      case ITEMTYPE_BodyPart:
+        dwFileIndex_00 = pItemGenContext->dwFileIndex;
+      if (pItemGenContext->pUnit) {
+        dwFileIndex_00 = pItemGenContext->pUnit->nClassId;
+      }
+      D2Common::ITEMS::Items::ITEM_SetItemData_nFileIndex(pUnit, dwFileIndex_00);
+      return;
       case ITEMTYPE_PlayerBodyPart:
         dwFileIndex = pItemGenContext->dwFileIndex;
       if (pItemGenContext->pUnit) {
@@ -969,26 +979,15 @@ static void __stdcall ITEM_ApplySpecialTypeProperties(D2UnitStrc * pUnit, ::SGAM
       D2Common::ITEMS::Items::ITEM_SetItemData_nFileIndex(pUnit, dwFileIndex);
       D2Common::ITEMS::Items::ITEM_EditItemData_eItemFlag(pUnit, ITEMFLAG_BODYPART, 1);
       return;
-      case ITEMTYPE_Charm:
-        ITEM_RollForcedMagicAffix(pItemGenContext, pUnit);
-      return;
-      case ITEMTYPE_Book:
-        nIndex = 0;
-      nScrollIdx = SKILLS::Items::ITEMMOD_GetScrollBookIndex(pUnit, 0);
-      D2Common::ITEMS::Items::SetMagicSuffix(pUnit, (int16_t)nScrollIdx, nIndex);
-      return;
       case ITEMTYPE_Scroll:
         nSuffixParam = 0;
       nScrollBookIdx = SKILLS::Items::ITEMMOD_GetScrollBookIndex(pUnit, 1);
       D2Common::ITEMS::Items::SetMagicSuffix(pUnit, (int16_t)nScrollBookIdx, nSuffixParam);
       return;
-      case ITEMTYPE_BodyPart:
-        dwFileIndex_00 = pItemGenContext->dwFileIndex;
-      if (pItemGenContext->pUnit) {
-        dwFileIndex_00 = pItemGenContext->pUnit->nClassId;
-      }
-
-      D2Common::ITEMS::Items::ITEM_SetItemData_nFileIndex(pUnit, dwFileIndex_00);
+      case ITEMTYPE_Book:
+        nIndex = 0;
+      nScrollIdx = SKILLS::Items::ITEMMOD_GetScrollBookIndex(pUnit, 0);
+      D2Common::ITEMS::Items::SetMagicSuffix(pUnit, (int16_t)nScrollIdx, nIndex);
       return;
     }
 
@@ -1126,10 +1125,21 @@ static uint32_t __stdcall ITEM_RollItemQuality(D2UnitStrc * pUnit, D2ItemGenCont
           nTierTableOffset = 0;
           do {
             switch ((uint32_t)gaItemQualityTierTable[nTierTableOffset]) {
-              case 2:
-                nItemClassId = pQualityRatioRow[0xe];
-              nMFDivisor = nItemLevelAdj / pQualityRatioRow[0xf];
-              eResultQuality = 2;
+              case 7:
+                nItemClassId = *pQualityRatioRow - nItemLevelAdj;
+              eResultQuality = 7; break;
+              case 6:
+                nItemClassId = pQualityRatioRow[3] - nItemLevelAdj;
+              eResultQuality = 6;
+              break;
+              case 5:
+                nItemClassId = pQualityRatioRow[6] - nItemLevelAdj;
+              eResultQuality = 5;
+              break;
+              case 4:
+                nItemClassId = pQualityRatioRow[9];
+              nMFDivisor = nItemLevelAdj / pQualityRatioRow[10];
+              eResultQuality = 4;
               nItemClassId -= nMFDivisor;
               break;
               case 3:
@@ -1138,23 +1148,12 @@ static uint32_t __stdcall ITEM_RollItemQuality(D2UnitStrc * pUnit, D2ItemGenCont
               eResultQuality = 3;
               nItemClassId -= nMFDivisor;
               break;
-              case 4:
-                nItemClassId = pQualityRatioRow[9];
-              nMFDivisor = nItemLevelAdj / pQualityRatioRow[10];
-              eResultQuality = 4;
+              case 2:
+                nItemClassId = pQualityRatioRow[0xe];
+              nMFDivisor = nItemLevelAdj / pQualityRatioRow[0xf];
+              eResultQuality = 2;
               nItemClassId -= nMFDivisor;
               break;
-              case 5:
-                nItemClassId = pQualityRatioRow[6] - nItemLevelAdj;
-              eResultQuality = 5;
-              break;
-              case 6:
-                nItemClassId = pQualityRatioRow[3] - nItemLevelAdj;
-              eResultQuality = 6;
-              break;
-              case 7:
-                nItemClassId = *pQualityRatioRow - nItemLevelAdj;
-              eResultQuality = 7;
             }
             if ((int)nItemClassId < 1) {
               nItemClassId = 1;
@@ -1170,42 +1169,42 @@ static uint32_t __stdcall ITEM_RollItemQuality(D2UnitStrc * pUnit, D2ItemGenCont
           nTierTableOffset = 0;
           do {
             switch ((uint32_t)gaItemQualityTierTable[nTierTableOffset]) {
-              case 2:
-                iVar1 = pQualityRatioRow[0xe];
-              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[0xf];
-              eResultQuality = 2;
-              break;
-              case 3:
-                iVar1 = pQualityRatioRow[0xc];
-              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[0xd];
-              eResultQuality = 3;
-              break;
-              case 4:
-                iVar1 = pQualityRatioRow[9];
-              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[10];
-              eResultQuality = 4;
-              break;
-              case 5:
-                iVar1 = pQualityRatioRow[6];
-              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[7];
-              eResultQuality = 5;
+              case 7:
+                iVar1 = *pQualityRatioRow;
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[1];
+              eResultQuality = 7;
               break;
               case 6:
                 iVar1 = pQualityRatioRow[3];
               nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[4];
               eResultQuality = 6;
               break;
-              case 7:
-                iVar1 = *pQualityRatioRow;
-              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[1];
-              eResultQuality = 7;
+              case 5:
+                iVar1 = pQualityRatioRow[6];
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[7];
+              eResultQuality = 5;
+              break;
+              case 4:
+                iVar1 = pQualityRatioRow[9];
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[10];
+              eResultQuality = 4;
+              break;
+              case 3:
+                iVar1 = pQualityRatioRow[0xc];
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[0xd];
+              eResultQuality = 3;
+              break;
+              case 2:
+                iVar1 = pQualityRatioRow[0xe];
+              nMFDivisorExp = nItemLevelAdj / pQualityRatioRow[0xf];
+              eResultQuality = 2;
               break;
               default:
                 goto roll_quality_tier;
             }
             nItemClassId = iVar1 - nMFDivisorExp;
             roll_quality_tier:
-            if ((int)nItemClassId < 1) {
+            if ((int)nItemClassId <= 0) {
               return eResultQuality;
             }
             pSeed = D2Common::ITEMS::Items::GetItemSeed(pUnit);
@@ -3246,7 +3245,7 @@ D2UnitStrc * __fastcall ITEM_CreateFromTemplate(D2UnitStrc * pUnit, int32_t nIte
     eD2LevelId eLevel;
     ::SGAMEDATA* pUnitGame;
     D2ItemGenContextStrc sItemGenCtx;
-    if (nItemLevel < 1) {
+    if (nItemLevel <= 0) {
       nItemLevel = 1;
     }
 
@@ -3288,7 +3287,7 @@ D2UnitStrc * __fastcall ITEM_CreateFromTemplate(D2UnitStrc * pUnit, int32_t nIte
 
     create_item:
     sItemGenCtx.nItemLevel = nItemLevel;
-    if (nItemLevel < 1) {
+    if (nItemLevel <= 0) {
       sItemGenCtx.nItemLevel = 1;
     }
 

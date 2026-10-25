@@ -316,7 +316,7 @@ void __stdcall SMemResetHeapStats() {
     static uint32_t g_SMemHeapStatsCount;
 
     int nStatsRemaining;
-    if (g_SMemHeapStatsCount) {
+    if ((uint32_t)g_SMemHeapStatsCount > 0) {
       int* pStatEntry;
       pStatEntry = &gaSMemHeapStats[0].nIntervalStat0;
       nStatsRemaining = g_SMemHeapStatsCount;

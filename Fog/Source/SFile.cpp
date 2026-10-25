@@ -30,8 +30,8 @@ void __fastcall SFILE_InitializeFileSystem(BOOL bResult, uint32_t dwParam) {
     Storm::Source::SFile::SFileEnableDirectAccess(bResult);
     Storm::Source::SFile::SFileSetIoErrorMode(0, nullptr);
     Storm::Source::SFile::SFileEnableSeekOptimization(dwParam);
-    dwSysOptionBuf[0] = 0x8000;
     D2Ini_bUseDirect = bResult;
+    dwSysOptionBuf[0] = 0x8000;
     Storm::Source::SSystem::SSYSTEM_SetSystemOption(2, dwSysOptionBuf, 4);
     dwSysOptionBuf[1] = 1;
     Storm::Source::SSystem::SSYSTEM_SetSystemOption(1, dwSysOptionBuf + 1, 4);
@@ -548,9 +548,9 @@ void __fastcall SFILE_DeleteOldLogFiles(char * szLogPrefix) {
       SafeCreateDirectoryTree(szLogDir);
     }
 
-    uint32_t nDay = (uint32_t)systemTime.wDay;
     uint32_t nYear = (uint32_t)systemTime.wYear;
     uint32_t nMonth = (uint32_t)systemTime.wMonth;
+    uint32_t nDay = (uint32_t)systemTime.wDay;
     int32_t nTodayJulian = SFILE_JulianDayNumber(nYear, nMonth, nDay);
     int nJulianDay = nTodayJulian - 5;
     int iCount = 10;

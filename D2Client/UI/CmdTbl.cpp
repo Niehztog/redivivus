@@ -1084,17 +1084,23 @@ uint16_t * __fastcall CMD_GetKeyDescForCommand(int32_t nCmdIndex, int32_t nSlot)
         describe_key:
         {
           switch (wKeyCode) {
-            case 8:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf2c);
+            case 0x100:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf15);
             return pWVar1;
-            case 0x10:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf2f);
+            case 0x101:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf16);
+            return pWVar1;
+            case 0x102:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf17);
+            return pWVar1;
+            case 0x103:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf18);
+            return pWVar1;
+            case 0x104:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf19);
             return pWVar1;
             case 0x11:
               pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf30);
-            return pWVar1;
-            case 0x1b:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf1e);
             return pWVar1;
             case 0x21:
               pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf34);
@@ -1102,14 +1108,17 @@ uint16_t * __fastcall CMD_GetKeyDescForCommand(int32_t nCmdIndex, int32_t nSlot)
             case 0x22:
               pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf35);
             return pWVar1;
-            case 0x2c:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf37);
+            case 0x1b:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf1e);
             return pWVar1;
-            case 0x2d:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf38);
+            case 0x90:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf2b);
             return pWVar1;
-            case 0x2e:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf39);
+            case 8:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf2c);
+            return pWVar1;
+            case 0x10:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf2f);
             return pWVar1;
             case 0x60:
               pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf3b);
@@ -1156,26 +1165,17 @@ uint16_t * __fastcall CMD_GetKeyDescForCommand(int32_t nCmdIndex, int32_t nSlot)
             case 0x6f:
               pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf49);
             return pWVar1;
-            case 0x90:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf2b);
-            return pWVar1;
             case 0x91:
               pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf4a);
             return pWVar1;
-            case 0x100:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf15);
+            case 0x2c:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf37);
             return pWVar1;
-            case 0x101:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf16);
+            case 0x2d:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf38);
             return pWVar1;
-            case 0x102:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf17);
-            return pWVar1;
-            case 0x103:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf18);
-            return pWVar1;
-            case 0x104:
-              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf19);
+            case 0x2e:
+              pWVar1 = D2Lang::StrTable::strtable::GetLocaleString(0xf39);
             return pWVar1;
           }
         }

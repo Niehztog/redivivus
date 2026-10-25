@@ -68,7 +68,7 @@ void __stdcall SEVT_CopyIdHashTable(uint32_t * * pDstTable, int * pSrcTable) {
 static void SEVT_DeleteIdHashTable(void * * pTable) {
     void* pObject;
     void* nBucket = 0;
-    if (pTable[1]) {
+    if ((uint32_t)pTable[1] > 0) {
       void* pBuckets;
       pBuckets = *pTable;
       do {
@@ -118,7 +118,7 @@ uint32_t SEvtDestroy() {
     EnterCriticalSection(&lpCriticalSection_0077930c);
     void* pvVar1 = 0;
     void* pObject_00 = gpEventHashBuckets;
-    if (gaEventRegistryHead) {
+    if ((uint32_t)gaEventRegistryHead > 0) {
       void* pObject;
       do {
         pObject = *(void**)((int)pObject_00 + (int)pvVar1 * 4);

@@ -259,7 +259,7 @@ static void __stdcall SRP_ComputeServerProof(void * pParam1, void * pParam2, voi
     SHA::SHA1_Final((uint8_t*)nParam, sha1Ctx);
 }
 
-static BOOL SRP_IsContextInitialized(D2Srp * pSrp) {
+static BOOL __fastcall SRP_IsContextInitialized(D2Srp * pSrp) {
     return (uint32_t)(pSrp->bInitialized != 0);
 }
 

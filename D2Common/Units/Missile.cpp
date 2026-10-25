@@ -1036,7 +1036,7 @@ int32_t __fastcall GetRandomNumberInRange(int32_t nMin, int32_t nMax, int32_t nU
     if (!pCalc) {
       return 0;
     }
-    if (nMax <= nMin) {
+    if (nMin >= nMax) {
       return nMin;
     }
 

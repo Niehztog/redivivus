@@ -963,56 +963,6 @@ int __fastcall ShowOogErrorDialog(D2OogErrorDataStrc * pErrorData) {
       nBodyStrId = 0x1445;
       nPopupType = 2;
       break;
-      case OOG_ERROR_MAIN_MENU:
-        nTitleStrId = 0x147c;
-      nBodyStrId = 0x1458;
-      nPopupType = 1;
-      bDisconnectOnClose = 0;
-      pfnOnClose = MainMenus::UIMENU_MainMenuAgain;
-      break;
-      case OOG_ERROR_BNET_ACCOUNT_CHECK:
-        nErrorAddress = Storm::Source::SSTR::SStrCmp(gszOogLastIniStringCache, D2IniData_launcher->szLastBnetAccount, 0x7fffffff);
-      if (!nErrorAddress) {
-        gnBnetAccountLoginFailCount++;
-      } else {
-        gnBnetAccountLoginFailCount = 1;
-        Storm::Source::SSTR::SStrCopy(gszOogLastIniStringCache, D2IniData_launcher->szLastBnetAccount, 0x10);
-      }
-
-      nTitleStrId = 0x147c;
-      nPopupType = 1;
-      bDisconnectOnClose = 0;
-      pfnOnClose = MainMenus::UIMENU_MainMenuAgain;
-      if (gnBnetAccountLoginFailCount < 2) {
-        nBodyStrId = 0x1457;
-      } else {
-        nBodyStrId = 0x2b63;
-        MainMenus::MAINMENU_SetGlobalValue3(1);
-      }
-
-      break;
-      case OOG_ERROR_15:
-        nTitleStrId = 0x147c;
-      nBodyStrId = 0x1459;
-      nPopupType = 1;
-      bDisconnectOnClose = 0;
-      pfnOnClose = MainMenus::UIMENU_MainMenuAgain;
-      break;
-      case OOG_ERROR_CONNECT_16:
-        nTitleStrId = 0x1480;
-      nBodyStrId = 0x14e5;
-      nPopupType = 1;
-      break;
-      case OOG_ERROR_CONNECT_17:
-        nTitleStrId = 0x1480;
-      nBodyStrId = 0x14ea;
-      nPopupType = 1;
-      break;
-      case OOG_ERROR_CONNECT_18:
-        nTitleStrId = 0x1480;
-      nBodyStrId = 0x14e3;
-      nPopupType = 1;
-      break;
       case OOG_ERROR_CREATE_ACCOUNT_1:
         nTitleStrId = 0x1481;
       nBodyStrId = 0x146f;
@@ -1068,6 +1018,54 @@ int __fastcall ShowOogErrorDialog(D2OogErrorDataStrc * pErrorData) {
       nPopupType = 1;
       pfnOnClose = MainMenus::UIMENU_CreateBattleNetAccount;
       bDisconnectOnClose = 0;
+      break;
+      case OOG_ERROR_MAIN_MENU:
+        nTitleStrId = 0x147c;
+      nBodyStrId = 0x1458;
+      nPopupType = 1;
+      bDisconnectOnClose = 0;
+      pfnOnClose = MainMenus::UIMENU_MainMenuAgain;
+      break;
+      case OOG_ERROR_BNET_ACCOUNT_CHECK:
+        nErrorAddress = Storm::Source::SSTR::SStrCmp(gszOogLastIniStringCache, D2IniData_launcher->szLastBnetAccount, 0x7fffffff);
+      if (!nErrorAddress) {
+        gnBnetAccountLoginFailCount++;
+      } else {
+        gnBnetAccountLoginFailCount = 1;
+        Storm::Source::SSTR::SStrCopy(gszOogLastIniStringCache, D2IniData_launcher->szLastBnetAccount, 0x10);
+      }
+      nTitleStrId = 0x147c;
+      nPopupType = 1;
+      bDisconnectOnClose = 0;
+      pfnOnClose = MainMenus::UIMENU_MainMenuAgain;
+      if (gnBnetAccountLoginFailCount < 2) {
+        nBodyStrId = 0x1457;
+      } else {
+        nBodyStrId = 0x2b63;
+        MainMenus::MAINMENU_SetGlobalValue3(1);
+      }
+      break;
+      case OOG_ERROR_15:
+        nTitleStrId = 0x147c;
+      nBodyStrId = 0x1459;
+      nPopupType = 1;
+      bDisconnectOnClose = 0;
+      pfnOnClose = MainMenus::UIMENU_MainMenuAgain;
+      break;
+      case OOG_ERROR_CONNECT_16:
+        nTitleStrId = 0x1480;
+      nBodyStrId = 0x14e5;
+      nPopupType = 1;
+      break;
+      case OOG_ERROR_CONNECT_17:
+        nTitleStrId = 0x1480;
+      nBodyStrId = 0x14ea;
+      nPopupType = 1;
+      break;
+      case OOG_ERROR_CONNECT_18:
+        nTitleStrId = 0x1480;
+      nBodyStrId = 0x14e3;
+      nPopupType = 1;
       break;
       case OOG_ERROR_CUSTOM_MESSAGE:
         D2Lang::Unicode::UNISYS::STRING_ConvertCharToWchar(awszBody, (char*)pErrorData->pCustomData, 0x200);

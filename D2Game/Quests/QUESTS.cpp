@@ -309,7 +309,7 @@ D2SeedStrc * __fastcall GetQuestControlSeed(::SGAMEDATA * pGame) {
     exit(-1);
 }
 
-void __stdcall QUEST_DispatchBroadcast(bool bFlag1, bool bFlag2, D2QuestArgStrc * pQuestArg) {
+static void __stdcall QUEST_DispatchBroadcast(bool bFlag1, bool bFlag2, D2QuestArgStrc * pQuestArg) {
     eD2LevelId eLevelId;
     BOOL bIsBadPtr;
     D2QuestControlStrc* pQuestControl = pQuestArg->pGame->pQuestControl;
@@ -452,7 +452,7 @@ void __fastcall QUEST_OnMonsterKilled(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D
     QUEST_DispatchToUnit(pKiller, &questArg2);
 }
 
-void __stdcall QUEST_OnPlayerEnteredArea(::SGAMEDATA * pGame, int32_t ePreviousLevelId, int32_t eEnteredLevelId, D2UnitStrc * pUnit) {
+void __fastcall QUEST_OnPlayerEnteredArea(::SGAMEDATA * pGame, int32_t ePreviousLevelId, int32_t eEnteredLevelId, D2UnitStrc * pUnit) {
     D2QuestArgStrc questArg;
     // Zeroed deliberately. Every one of these builders leaves part of the struct unwritten
     // and QUEST_DispatchBroadcast dereferences pGame and pPlayer - it crashed in UNITS_GetRoom on a
@@ -567,7 +567,7 @@ void __fastcall QUEST_OnNpcInteraction(D2ClientStrc * pClient, D2UnitStrc * pUni
 //   MOV [EBP-0x14],EAX  -> questArg.pTarget (the one stack argument, [EBP+8])
 //   MOV [EBP-0x10],EDX  -> questArg.pPlayer (EDX)
 // Declaring only the stack argument left pGame and pPlayer as uninitialised locals and split the struct into loose dwTmp slots, so the broadcast received a garbage game pointer and a garbage player.
-void __stdcall QUEST_OnNpcDeactivate(::SGAMEDATA * pGame, D2UnitStrc * pPlayer, D2UnitStrc * pTarget) {
+void __fastcall QUEST_OnNpcDeactivate(::SGAMEDATA * pGame, D2UnitStrc * pPlayer, D2UnitStrc * pTarget) {
     D2QuestArgStrc DStack_20;
     DStack_20.pTarget = pTarget;
     DStack_20.nEvent = 2;
@@ -1872,7 +1872,7 @@ void __fastcall QUEST_SetSuccessFinishStates(::SGAMEDATA * pGame, D2QuestGUIDStr
     BOOL bQuestState;
     D2BitBufferStrc* pBitBuffer;
     int nPlayerIdx = 0;
-    if (!pQuestGUID->nPlayerCount) {
+    if ((uint32_t)pQuestGUID->nPlayerCount <= 0) {
       return;
     }
 

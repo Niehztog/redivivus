@@ -1244,7 +1244,7 @@ static void __stdcall PLAYER_InteractWithUnitByType(eD2UnitType eTargetUnitType,
       use_default_range:
       nInteractRange = 5;
       approach_or_interact:
-      if (pTargetUnit && pTargetUnit->eUnitType == UNIT_MONSTER && pTargetUnit && (nClassId = pTargetUnit->nClassId , -1 < nClassId && nClassId < sgptDataTable->nTxtMonStatsSize) && sgptDataTable->pTxtMonStats + nClassId && sgptDataTable->pTxtMonStats[nClassId].interact && sgptDataTable->pTxtMonStats[nClassId].npc) {
+      if (pTargetUnit && pTargetUnit->eUnitType == UNIT_MONSTER && pTargetUnit && (nClassId = pTargetUnit->nClassId , 0 <= nClassId && nClassId < sgptDataTable->nTxtMonStatsSize) && sgptDataTable->pTxtMonStats + nClassId && sgptDataTable->pTxtMonStats[nClassId].interact && sgptDataTable->pTxtMonStats[nClassId].npc) {
         if (pTargetUnit->pPath.pDynamicPath) {
           D2Common::PATH::DynamicPath::ZeroPathPointsSize(pTargetUnit->pPath.pDynamicPath);
         }
@@ -1296,28 +1296,6 @@ static void __stdcall PLAYER_InteractWithUnitByType(eD2UnitType eTargetUnitType,
       UnitMode::UNITMODE_ExecuteSkillAction(UNITMODEACTION_ITEM_INTERACT, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID, 0);
     } else {
       switch (pTargetUnit->eUnitType) {
-        case UNIT_PLAYER:
-          nTargetY = D2Common::Collision::GetDistanceBetweenUnits(pTargetUnit, pUnderMouse->pPlayer);
-        if (4 < nTargetY || (bCollides = D2Common::Units::TestCollisionBetweenInteractingUnits(pUnderMouse->pPlayer, pUnderMouse->pTarget, 0x804) , bCollides != 0)) {
-          UnitMode::UNITMODE_ExecuteSkillAction(pUnderMouse->nAttackActionType, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID, 0);
-          Engine::StoreLastSkillHit(0x13, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID);
-          return;
-        }
-
-        UnitMode::UNITMODE_ExecuteSkillAction(UNITMODEACTION_ITEM_INTERACT, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID, 0);
-        break;
-        case UNIT_MONSTER:
-          if (!pTargetUnit) {
-            nClassId = -1;
-          } else {
-            nClassId = pTargetUnit->nClassId;
-          }
-        pMonStatsTxt = DataTbls::MonsterTbls::TXT_MonStats_GetLine(nClassId);
-        if (!pMonStatsTxt || (nInteractRange = 2 , !pMonStatsTxt->interact)) {
-          goto use_default_range;
-        }
-
-        goto approach_or_interact;
         case UNIT_OBJECT:
           if (!(*(uint8_t*)&pUnderMouse->flags & 8)) {
             if (!pTargetUnit) {
@@ -1355,8 +1333,6 @@ static void __stdcall PLAYER_InteractWithUnitByType(eD2UnitType eTargetUnitType,
             }
           }
         break;
-        default:
-          goto use_default_range;
         case UNIT_ITEM:
           if (!(*(uint8_t*)&pUnderMouse->flags & 8)) {
             nTargetY = D2Common::Collision::GetDistanceBetweenUnits(pTargetUnit, pUnderMouse->pPlayer);
@@ -1378,6 +1354,17 @@ static void __stdcall PLAYER_InteractWithUnitByType(eD2UnitType eTargetUnitType,
             }
           }
         break;
+        case UNIT_PLAYER:
+          nTargetY = D2Common::Collision::GetDistanceBetweenUnits(pTargetUnit, pUnderMouse->pPlayer);
+        if (4 < nTargetY || (bCollides = D2Common::Units::TestCollisionBetweenInteractingUnits(pUnderMouse->pPlayer, pUnderMouse->pTarget, 0x804) , bCollides != 0)) {
+          UnitMode::UNITMODE_ExecuteSkillAction(pUnderMouse->nAttackActionType, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID, 0);
+          Engine::StoreLastSkillHit(0x13, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID);
+          return;
+        }
+        UnitMode::UNITMODE_ExecuteSkillAction(UNITMODEACTION_ITEM_INTERACT, pUnderMouse->pPlayer, eTargetUnitType, nTargetGUID, 0);
+        break;
+        default:
+          goto use_default_range;
         case UNIT_WARP:
           nNowTick = GAME::Game::GAMEDATA_GetGlobalTickCount();
         nNextAllowedTick = GAME::Game::GAME_GetSyncTickCount();
@@ -1393,7 +1380,18 @@ static void __stdcall PLAYER_InteractWithUnitByType(eD2UnitType eTargetUnitType,
           nNowTick = GAME::Game::GAMEDATA_GetGlobalTickCount();
           GAME::Game::GAME_SetSyncTickCount(nNowTick + 500);
           return;
+        } break;
+        case UNIT_MONSTER:
+          if (!pTargetUnit) {
+            nClassId = -1;
+          } else {
+            nClassId = pTargetUnit->nClassId;
+          }
+        pMonStatsTxt = DataTbls::MonsterTbls::TXT_MonStats_GetLine(nClassId);
+        if (!pMonStatsTxt || (nInteractRange = 2 , !pMonStatsTxt->interact)) {
+          goto use_default_range;
         }
+        goto approach_or_interact;
       }
     }
 }
@@ -2287,7 +2285,7 @@ void __fastcall CLIENT_WarpPlayerAndContinueMove(D2UnitStrc * pUnit, D2RoomStrc 
     int32_t nDestX = 0;
     int32_t nDestY = 0;
     D2RoomStrc* pTargetRoom = pRoom;
-    if (1 < (int)eAnimMode && ((int)eAnimMode <= 3 || eAnimMode == TownWalk)) {
+    if (2 <= (int)eAnimMode && ((int)eAnimMode <= 3 || eAnimMode == TownWalk)) {
       bWasMoveMode = 1;
       pTargetUnit = CUnit::GetConfirmedTargetUnit(pUnit);
       if (!pTargetUnit) {

@@ -739,7 +739,7 @@ void __fastcall Objects_InitFn27(D2ObjectInitFnArg * pInitArg) {
     D2SeedStrc DVar2 = D2_SEED_NEXT(*pDVar1);
     *pDVar1 = DVar2;
     char byMode = '\x03';
-    if (0x14c < (int)(DVar2.nSeedLow % 1000)) {
+    if (0x14d <= (int)(DVar2.nSeedLow % 1000)) {
       byMode = '\0';
     }
 
@@ -831,14 +831,17 @@ void __fastcall Objects_InitFn12(D2ObjectInitFnArg * pInitArg) {
         return;
         default:
           goto default_case;
-        case LEVEL_StonyField:
-          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = '&';
+        case LEVEL_MooMooFarm:
+          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = '\x01';
         return;
         case LEVEL_Tristram:
           pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = '\x04';
         return;
-        case LEVEL_MooMooFarm:
-          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = '\x01';
+        case LEVEL_StonyField:
+          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = '&';
+        return;
+        case LEVEL_ArcaneSanctuary:
+          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = '.';
         return;
         case LEVEL_CanyonOfTheMagi:
           pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'J';
@@ -846,11 +849,20 @@ void __fastcall Objects_InitFn12(D2ObjectInitFnArg * pInitArg) {
         case LEVEL_DurielsLair:
           pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = (char)eHoradricTombLevelId;
         return;
-        case LEVEL_ArcaneSanctuary:
-          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = '.';
+        case LEVEL_NihlathaksTemple:
+          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'm';
         return;
         case LEVEL_Harrogath:
           pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'y';
+        return;
+        case LEVEL_Abaddon:
+          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'o';
+        return;
+        case LEVEL_PitOfAcheron:
+          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'p';
+        return;
+        case LEVEL_InfernalPit:
+          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'u';
         return;
         case LEVEL_FrigidHighlands:
           pUnitData = pInitArg->pObject->pUnitData.pUnitDataPlayer;
@@ -867,18 +879,6 @@ void __fastcall Objects_InitFn12(D2ObjectInitFnArg * pInitArg) {
           pUnitData = pInitArg->pObject->pUnitData.pUnitDataPlayer;
         byPortalFrameVal = '\x7f';
         break;
-        case LEVEL_NihlathaksTemple:
-          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'm';
-        return;
-        case LEVEL_Abaddon:
-          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'o';
-        return;
-        case LEVEL_PitOfAcheron:
-          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'p';
-        return;
-        case LEVEL_InfernalPit:
-          pInitArg->pObject->pUnitData.pUnitDataPlayer->szCharName[4] = 'u';
-        return;
       }
 
       if (pUnitData->szCharName[4] != byPortalFrameVal) {

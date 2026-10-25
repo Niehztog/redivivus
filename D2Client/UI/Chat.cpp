@@ -314,6 +314,19 @@ void __stdcall CHAT_InitIME() {
         }
 
         break;
+        case 9:
+          /* DWORD idThread for GetKeyboardLayout */ gaChatInputBuffer = '\0';
+        gbChatInputEnabled = 1;
+        hKeyboardLayout = GetKeyboardLayout(0);
+        /* HKL param_1 for ImmIsIME */ bResult = ImmIsIME(hKeyboardLayout);
+        if (!bResult) {
+          /* DWORD param_2 for ImmSimulateHotKey */ dwHotKeyId = 0x70;
+          hWnd = D2gfx::D2GFX::GetHwnd();
+          /* HWND param_1 for ImmSimulateHotKey */ ImmSimulateHotKey(hWnd, dwHotKeyId);
+        }
+        /* BOOL param_2 for ImmSetOpenStatus */ /* HIMC param_1 for ImmSetOpenStatus */ ImmSetOpenStatus(hIMC, 1);
+        gnIMEInputMode = 4;
+        break;
         case 8:
           /* DWORD idThread for GetKeyboardLayout */ gaChatInputBuffer = '\0';
         gbChatInputEnabled = 1;
@@ -327,20 +340,6 @@ void __stdcall CHAT_InitIME() {
 
         /* BOOL param_2 for ImmSetOpenStatus */ /* HIMC param_1 for ImmSetOpenStatus */ ImmSetOpenStatus(hIMC, 1);
         gnIMEInputMode = 5;
-        break;
-        case 9:
-          /* DWORD idThread for GetKeyboardLayout */ gaChatInputBuffer = '\0';
-        gbChatInputEnabled = 1;
-        hKeyboardLayout = GetKeyboardLayout(0);
-        /* HKL param_1 for ImmIsIME */ bResult = ImmIsIME(hKeyboardLayout);
-        if (!bResult) {
-          /* DWORD param_2 for ImmSimulateHotKey */ dwHotKeyId = 0x70;
-          hWnd = D2gfx::D2GFX::GetHwnd();
-          /* HWND param_1 for ImmSimulateHotKey */ ImmSimulateHotKey(hWnd, dwHotKeyId);
-        }
-
-        /* BOOL param_2 for ImmSetOpenStatus */ /* HIMC param_1 for ImmSetOpenStatus */ ImmSetOpenStatus(hIMC, 1);
-        gnIMEInputMode = 4;
         break;
         default:
           goto release_ime_context;

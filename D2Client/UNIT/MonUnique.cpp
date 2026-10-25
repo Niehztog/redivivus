@@ -290,14 +290,14 @@ static void __fastcall DefineSuperMonster(D2UnitStrc * pUnit, int32_t eModifier,
       }
     } else {
       switch (iVar3) {
+        case 0x2c4:
+          set_name_duriel:
+          pLocaleName = D2Lang::StrTable::strtable::GetLocaleString(0xbee);
+        D2Common::Monsters::MONSTERS::SetSuperUniqueName(pUnit, pLocaleName);
+        return;
         case 0x2c0:
           set_name_mephisto:
           pLocaleName = D2Lang::StrTable::strtable::GetLocaleString(0xbf6);
-        D2Common::Monsters::MONSTERS::SetSuperUniqueName(pUnit, pLocaleName);
-        return;
-        case 0x2c1:
-          set_name_diablo:
-          pLocaleName = D2Lang::StrTable::strtable::GetLocaleString(0xbf4);
         D2Common::Monsters::MONSTERS::SetSuperUniqueName(pUnit, pLocaleName);
         return;
         case 0x2c2:
@@ -305,13 +305,13 @@ static void __fastcall DefineSuperMonster(D2UnitStrc * pUnit, int32_t eModifier,
           pLocaleName = D2Lang::StrTable::strtable::GetLocaleString(0x3f6);
         D2Common::Monsters::MONSTERS::SetSuperUniqueName(pUnit, pLocaleName);
         return;
-        case 0x2c3:
-          pLocaleName = D2Lang::StrTable::strtable::GetLocaleString(0x2b92);
+        case 0x2c1:
+          set_name_diablo:
+          pLocaleName = D2Lang::StrTable::strtable::GetLocaleString(0xbf4);
         D2Common::Monsters::MONSTERS::SetSuperUniqueName(pUnit, pLocaleName);
         return;
-        case 0x2c4:
-          set_name_duriel:
-          pLocaleName = D2Lang::StrTable::strtable::GetLocaleString(0xbee);
+        case 0x2c3:
+          pLocaleName = D2Lang::StrTable::strtable::GetLocaleString(0x2b92);
         D2Common::Monsters::MONSTERS::SetSuperUniqueName(pUnit, pLocaleName);
         return;
         case 0x2c5:

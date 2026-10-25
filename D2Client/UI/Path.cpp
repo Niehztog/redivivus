@@ -251,7 +251,7 @@ void __stdcall DEBUG_DrawWarpUnitBounds() {
 
     D2Common::DUNGEON::Dungeon::DRLGROOM_GetAdjacentRoomsList(pRoom, &ppAdjacentRooms, (int*)&nRoomCount);
     uint32_t i = 0;
-    if (!nRoomCount) {
+    if ((uint32_t)nRoomCount <= 0) {
       return;
     }
 
@@ -313,8 +313,8 @@ void __stdcall DRAW_DrawRoomCollisionGrid(D2RoomStrc * pRoom) {
       nX = nXStart + 3;
       while (nX < nXEnd) {
         nGridIndex = D2Common::DUNGEON::Dungeon::GetGridIndex(pRoom, nX, nY);
-        nScreenY = nY;
         nScreenX = nX;
+        nScreenY = nY;
         D2Common::Drlg::Transform::CoordsMapToScreen(&nScreenX, &nScreenY);
         rect.left = nScreenX - MouseXOffset - 0x10;
         rect.right = nScreenX - MouseXOffset + 0x10;

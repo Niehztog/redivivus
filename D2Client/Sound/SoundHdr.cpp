@@ -1090,23 +1090,23 @@ void __fastcall SOUNDHDR_UpdateRegistryVersion(int32_t nSoundHeaderIndex) {
     }
 
     switch (byRequiredVersionFlag) {
-      case 2:
-        __frame0.dwVersionBuild = 0x26;
-      break;
-      case 3:
-        __frame0.dwVersionBuild = 0x62;
+      case 7:
+        __frame0.dwVersionBuild = 0x23; break;
+      case 5:
+        __frame0.dwVersionBuild = 0xb2;
       break;
       case 4:
         __frame0.dwVersionBuild = 0x2a;
       break;
-      case 5:
-        __frame0.dwVersionBuild = 0xb2;
+      case 3:
+        __frame0.dwVersionBuild = 0x62;
+      break;
+      case 2:
+        __frame0.dwVersionBuild = 0x26;
       break;
       default:
         __frame0.dwVersionBuild = 0x22;
       break;
-      case 7:
-        __frame0.dwVersionBuild = 0x23;
     }
 
     sprintf(szVersionString, "%d.%d.%d.%d", 0xd8, 0x94, 0xf6, __frame0.dwVersionBuild);

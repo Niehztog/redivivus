@@ -311,7 +311,7 @@ void __fastcall ITEM_ClearFlagsAndCommands(::SGAMEDATA * pGameStrc, D2UnitStrc *
     }
 
     uint32_t nIdx = 0;
-    if (gnItemClearCommandCount) {
+    if ((uint32_t)gnItemClearCommandCount > 0) {
       do {
         D2Common::ITEMS::Items::ITEM_EditItemData_eD2ItemCmd(pUnit, gaItemClearCommandTable[nIdx], 0);
         nIdx++;
@@ -319,7 +319,7 @@ void __fastcall ITEM_ClearFlagsAndCommands(::SGAMEDATA * pGameStrc, D2UnitStrc *
     }
 
     nIdx = 0;
-    if (!gnItemClearFlagCount) {
+    if ((uint32_t)gnItemClearFlagCount <= 0) {
       return;
     }
 
@@ -668,12 +668,26 @@ void __fastcall MONSTER_SendUpdateToClient(::SGAMEDATA * pGame, D2UnitStrc * pUn
       }
     } else {
       switch (eAnimMode) {
+        case TownWalk:
+          if (!pTargetUnit) {
+            wTargetX = 0;
+            nTargetY = -1;
+          }
+        break;
+        default:
+          goto default_case;
         case Death:
           byMoveParam1 = D2Common::PATH::DynamicPath::GetDirection(pDynamicPath);
         byLastHitClass = (uint8_t)pUnit->dwLastHitClass;
         break;
-        default:
-          goto default_case;
+        case Kick:
+          byMoveParam1 = D2Common::PATH::DynamicPath::GetDirection(pDynamicPath);
+        break;
+        case eD2PlayerAnimMode_ns::Skill1:
+          byDistance = D2Common::PATH::DynamicPath::GetDistance(pDynamicPath);
+        uVar1 = Monsters::MONSTER_GetHpPercent128(pUnit);
+        byExtraParam = (uint8_t)pUnit->dwLastHitClass;
+        goto send_path_ex_packet;
         case eD2PlayerAnimMode_ns::Run:
           byMoveParam1 = Monsters::MONSTER_GetHpPercent128(pUnit);
         if (1 < byMoveParam1) {
@@ -687,20 +701,6 @@ void __fastcall MONSTER_SendUpdateToClient(::SGAMEDATA * pGame, D2UnitStrc * pUn
 
         byLastHitClass = (uint8_t)pUnit->dwLastHitClass;
         break;
-        case TownWalk:
-          if (!pTargetUnit) {
-            wTargetX = 0;
-            nTargetY = -1;
-          }
-        break;
-        case Kick:
-          byMoveParam1 = D2Common::PATH::DynamicPath::GetDirection(pDynamicPath);
-        break;
-        case eD2PlayerAnimMode_ns::Skill1:
-          byDistance = D2Common::PATH::DynamicPath::GetDistance(pDynamicPath);
-        uVar1 = Monsters::MONSTER_GetHpPercent128(pUnit);
-        byExtraParam = (uint8_t)pUnit->dwLastHitClass;
-        goto send_path_ex_packet;
       }
     }
 

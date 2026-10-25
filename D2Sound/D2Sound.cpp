@@ -142,16 +142,16 @@ char * __fastcall SOUND_GetDirectSoundErrorString(int hResult) {
       }
 
       switch (hResult) {
+        case -0x7787ff9c:
+          return "DSERR_BADFORMAT";
         case -0x7787ffe2:
           return "DSERR_CONTROLUNAVAIL";
         case -0x7787ffce:
           return "DSERR_INVALIDCALL";
-        case -0x7787ffba:
-          return "DSERR_PRIOLEVELNEEDED";
-        case -0x7787ff9c:
-          return "DSERR_BADFORMAT";
         case -0x7787ff88:
           return "DSERR_NODRIVER";
+        case -0x7787ffba:
+          return "DSERR_PRIOLEVELNEEDED";
       }
     } else if (hResult <= -0x7787ff56) {
       if (hResult == -0x7787ff56) {

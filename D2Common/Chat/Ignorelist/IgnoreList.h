@@ -95,7 +95,7 @@ int32_t CloseAppendFile(::IgnoreList * pThis);
 int32_t GetPersistentSetting(::IgnoreList * pThis);
 void SavePersistentSetting(::IgnoreList * pThis, int32_t nPersistent);
 // Writes the ignore list to its file: one ignored name pattern per line, then each ignored account prefixed with '!'.
-int32_t SaveToFile(::IgnoreList * pThis);
+int32_t __fastcall SaveToFile(::IgnoreList * pThis);
 void ClearAccountMappings(::IgnoreList * pThis);
 int32_t GetMappedValue(::IgnoreList * pThis, char * szKey, char * szOut, int32_t nOutSize);
 int32_t RemoveByPattern(::IgnoreList * pThis, char * szPattern);
@@ -111,7 +111,7 @@ void Destructor(::IgnoreList * pThis);
 int32_t AddByPattern(::IgnoreList * pThis, char * szPattern);
 // Adds an account name to the ignore list and returns the result. Tail-calls Fog::Debug::GuardStack, which returns its argument, so the value is already in EAX; typed void the reconstruction dropped it.
 int32_t AddByAccountName(::IgnoreList * pThis, char * szAccountName);
-void LoadFromFile(::IgnoreList * pThis);
+void __fastcall LoadFromFile(::IgnoreList * pThis);
 ::IgnoreList * Constructor(::IgnoreList * pThis);
 // @sourcefile .\Chat\Ignorelist.cpp
 void AddAccountMapping(::IgnoreList * pThis, char * szRaw, int32_t nRawLen);

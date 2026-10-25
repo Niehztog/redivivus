@@ -1042,15 +1042,15 @@ void __fastcall NET_D2GS_CLIENT_Incoming0xA5_FORCESTOPSKILL(char * pBytes) {
         SKILLS::SkillsPal::SKILL_StopAndClearUninterruptable(pUnit, eSkill);
       D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_skill_move, 0);
       return;
-      case 0x4c:
-        SKILLS::SkillsBar::SKILL_StopAndClearSound(pUnit, eSkill);
-      break;
       case 0x4d:
 
       case 0x4e:
         SKILLS::SkillsBar::SKILL_HandleTeleportLanding(pUnit);
       D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_skill_move, 0);
       return;
+      case 0x4c:
+        SKILLS::SkillsBar::SKILL_StopAndClearSound(pUnit, eSkill);
+      break;
     }
 
     D2Common::DATATBLS::ItemStats::SetState(pUnit, STATE_skill_move, 0);
@@ -2125,21 +2125,6 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x9C_ITEMEX(uint8_t * pBytes) {
     }
 
     switch (pBytesCopy[1]) {
-      case 0:
-        UNIT::HandleItemAddToGround(pBytesCopy);
-      return;
-      case 1:
-        UNIT::HandleItemPickedFromGround(pBytesCopy);
-      return;
-      case 2:
-        UNIT::HandleItemDroppedToGround(pBytesCopy);
-      return;
-      case 3:
-        UNIT::HandleItemOnGround(pBytesCopy);
-      return;
-      case 4:
-        UNIT::HandleItemPutInContainer(pBytesCopy);
-      return;
       case 5:
 
       case 6:
@@ -2164,14 +2149,24 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x9C_ITEMEX(uint8_t * pBytes) {
         nLine = 0xf6d;
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), nLine);
       exit(-1);
+      case 0:
+        UNIT::HandleItemAddToGround(pBytesCopy);
+      return;
+      case 1:
+        UNIT::HandleItemPickedFromGround(pBytesCopy);
+      return;
+      case 2:
+        UNIT::HandleItemDroppedToGround(pBytesCopy);
+      return;
+      case 3:
+        UNIT::HandleItemOnGround(pBytesCopy);
+      return;
+      case 4:
+        UNIT::HandleItemPutInContainer(pBytesCopy);
+      return;
       case 10:
         UNIT::NET_D2GS_CLIENT_HandleItemAddQuantity(pBytesCopy);
       return;
-      case 0xb:
-
-      case 0xc:
-        UNIT::HandleItemInShop(pBytesCopy);
-      break;
       case 0xd:
         UNIT::HandleItemSwapInContainer(pBytesCopy);
       return;
@@ -2187,6 +2182,10 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x9C_ITEMEX(uint8_t * pBytes) {
       case 0x12:
         UNIT::HandleItemToCursor(pBytesCopy);
       return;
+      case 0xb:
+      case 0xc:
+        UNIT::HandleItemInShop(pBytesCopy);
+      break;
     }
 }
 
@@ -2247,6 +2246,9 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x9D(uint8_t * pBytes) {
       case 9:
         UNIT::HandleItemSwapBodyItem(pBytesCopy);
       return;
+      case 0x17:
+        UNIT::HandleItemWeaponSwitch(pBytesCopy);
+      return;
       case 0x11:
         UNIT::HandleItemAutoUnequip(pBytesCopy);
       return;
@@ -2262,9 +2264,6 @@ void __fastcall NET_D2GS_CLIENT_Incoming0x9D(uint8_t * pBytes) {
       case 0x16:
         UNIT::ITEM_HandleItemCopyToCursor(pBytesCopy);
       break;
-      case 0x17:
-        UNIT::HandleItemWeaponSwitch(pBytesCopy);
-      return;
     }
 }
 
@@ -2826,11 +2825,6 @@ void __fastcall NET_D2GS_CLIENT_PacketHandle_to0xAF(char * pBytes, size_t nSize)
             }
           }
           switch (nPacketId) {
-            case 0xd:
-              if (pBytes[1] == 1) {
-                UNIT::Player::UNITS_FindClientSideUnit(*(int32_t*)(pBytes + 2), UNIT_MONSTER);
-              }
-            break;
             case 0x18:
               DecodeIncoming0x18((D2GSPacket0x18Decoded*)decodeBuffer, pBytes);
             break;
@@ -2838,7 +2832,12 @@ void __fastcall NET_D2GS_CLIENT_PacketHandle_to0xAF(char * pBytes, size_t nSize)
               DecodeIncoming0x95((D2GSPacket0x95Decoded*)decodeBuffer, pBytes);
             break;
             case 0x96:
-              DecodeIncoming0x96((D2GSPacket0x96Decoded*)(decodeBuffer + 4), pBytes);
+              DecodeIncoming0x96((D2GSPacket0x96Decoded*)(decodeBuffer + 4), pBytes); break;
+            case 0xd:
+              if (pBytes[1] == 1) {
+                UNIT::Player::UNITS_FindClientSideUnit(*(int32_t*)(pBytes + 2), UNIT_MONSTER);
+              }
+            break;
           }
 
           if (pTableEntry->fpIncomingHandler) {

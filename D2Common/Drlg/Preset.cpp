@@ -143,7 +143,7 @@ void __fastcall ParsePresetsOfDrlgFile(D2DrlgFileStrc * pFile, D2PoolManagerStrc
     uint32_t nActId;
     nActId = 0;
     pFile->nHeight = *(int*)pDs1File->szArchivePath;
-    if (7 < (int)__frame0.nDs1Version) {
+    if (8 <= (int)__frame0.nDs1Version) {
       nActId = *(uint32_t*)pCursor;
       pCursor = pDs1File->szArchivePath + 8;
       if (4 < (int)nActId) {
@@ -1161,7 +1161,7 @@ static void __stdcall DRLGPRESET_InitDrlgMapPopLocations(int32_t nPopCount, D2Dr
       nX0 = *pPos;
       nPopIndex++;
       *pPos = ((int)(nX0 + (nX0 >> 0x1f & 3U)) >> 2) - 1;
-    } while (nPopIndex < nPopCount);
+    } while (nPopCount > nPopIndex);
 }
 
 void __fastcall DRLGPRESET_SetPickedFileInDrlgMap(D2DrlgMapStrc * pDrlgMap, int32_t nPickedFile) {

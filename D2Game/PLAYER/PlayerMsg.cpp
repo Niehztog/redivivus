@@ -691,6 +691,98 @@ eD2ServerIncomingStatus __fastcall SERVER_InteractOrPick(D2UnitStrc * pUnit, eD2
     uint8_t byNpcInteractFlag;
     ::SGAMEDATA* pGameTmp = pGame;
     switch (eUnitType) {
+      case UNIT_OBJECT:
+        pTargetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_OBJECT, uuid);
+      if (pTargetUnit) {
+        pObjectTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pTargetUnit->nClassId);
+        if (!pObjectTxt) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2bf);
+          exit(-1);
+        }
+        if (8 <= (int)pTargetUnit->eAnimMode.ePlayerMode) {
+          return SERVERSTATUS_BAD_PARAMS;
+        }
+        nDist = D2Common::Collision::GetDistanceBetweenUnits(pUnit, pTargetUnit);
+        if (nDist <= 0x32) {
+          bInRange = D2Common::Units::IsObjectInInteractRange(pUnit, pTargetUnit);
+          if (!bInRange || (bInRange = D2Common::Units::TestCollisionBetweenInteractingUnits(pUnit, pTargetUnit, 0x804) , bInRange != 0)) {
+            StartModeID(~SKILL_Attack - (bSetting != 0), pGame, UNIT_OBJECT, pUnit, uuid);
+          } else {
+            D2Common::PATH::DynamicPath::ZeroPathPointsSize(pUnit->pPath.pDynamicPath);
+            pGameTmp = Objects::ObjectsMode::Interact(pGame, pUnit, 2, uuid);
+            if (!pGameTmp) {
+              return SERVERSTATUS_BAD_PARAMS;
+            }
+          }
+          return SERVERSTATUS_OK;
+        }
+      }
+      break;
+      case UNIT_WARP:
+        pTargetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_WARP, uuid);
+      if (pTargetUnit) {
+        nDist = D2Common::Collision::GetDistanceBetweenUnits(pUnit, pTargetUnit);
+        if (nDist <= 0x32) {
+          if (4 < nDist) {
+            StartModeID(~SKILL_Attack - (bSetting != 0), pGame, UNIT_WARP, pUnit, uuid);
+            return SERVERSTATUS_OK;
+          }
+          UNIT::SUnit::TakeStairs(pGame, pUnit, pTargetUnit);
+          return SERVERSTATUS_OK;
+        }
+      } break;
+      case UNIT_ITEM:
+        pTargetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_ITEM, uuid);
+      if (pTargetUnit && pTargetUnit->eAnimMode.ePlayerMode == eD2PlayerAnimMode_ns::Run) {
+        nDist = D2Common::Collision::GetDistanceBetweenUnits(pUnit, pTargetUnit);
+        if (nDist <= 0x32) {
+          if (nDist <= 4 && (bInRange = D2Common::Units::TestCollisionBetweenInteractingUnits(pUnit, pTargetUnit, 0x804) , !bInRange)) {
+            if (!bSetting) {
+              ITEMS::ItemMode::SERVER_PickToInventory(pGame, pUnit, uuid, (uint32_t*)&pGame);
+            } else {
+              ITEMS::ItemMode::SERVER_PickToCursor(pGame, pUnit, uuid, (uint32_t*)&pGame);
+            }
+            if (pGame) {
+              return SERVERSTATUS_BAD_PARAMS;
+            }
+          } else {
+            StartModeID(~SKILL_Attack - (bSetting != 0), pGame, UNIT_ITEM, pUnit, uuid);
+          }
+          return SERVERSTATUS_OK;
+        }
+      }
+      break;
+      case UNIT_MONSTER:
+        pTargetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_MONSTER, uuid);
+      if (pTargetUnit) {
+        nDist = D2Common::Collision::GetDistanceBetweenUnits(pUnit, pTargetUnit);
+        if (nDist <= 0x32) {
+          pMonTxt = D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetLine(pTargetUnit->nClassId);
+          if (pMonTxt && pMonTxt->interact && pMonTxt->npc) {
+            D2Common::PATH::DynamicPath::ZeroPathPointsSize(pTargetUnit->pPath.pDynamicPath);
+            Ai::AiGeneral::SetAiArgument(pTargetUnit, 1, 0x28);
+            GAME::Event::EVENT_RemoveUnitTimersByType(pGameTmp, pTargetUnit, UNITEVENTCALLBACK_AITHINK, 0);
+            GAME::Event::SetEvent(pGameTmp, pTargetUnit, 2, pGameTmp->dwGameFrame + 1, 0, 0);
+          }
+          if (6 < nDist) {
+            if (9 <= nDist) {
+              return SERVERSTATUS_OK;
+            }
+            StartModeID(~SKILL_Attack - (bSetting != 0), pGame, UNIT_MONSTER, pUnit, uuid);
+            return SERVERSTATUS_OK;
+          }
+          nDist = Player::GetPlayerTradeTickOrBusy(pUnit);
+          if (nDist) {
+            return SERVERSTATUS_OK;
+          }
+          D2Common::PATH::DynamicPath::ZeroPathPointsSize(pUnit->pPath.pDynamicPath);
+          byNpcInteractFlag = 0;
+          pMonAi = UNIT::sunitproxy::GetMonsterAI(pTargetUnit);
+          Monster::MonsterAI::NPC_BeginInteractionFromUnit(pGameTmp, pUnit, pTargetUnit, pMonAi, byNpcInteractFlag);
+          return SERVERSTATUS_OK;
+        }
+      }
+      break;
       case UNIT_PLAYER:
         pTargetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_PLAYER, uuid);
       if (pTargetUnit) {
@@ -717,108 +809,6 @@ eD2ServerIncomingStatus __fastcall SERVER_InteractOrPick(D2UnitStrc * pUnit, eD2
       }
 
       break;
-      case UNIT_MONSTER:
-        pTargetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_MONSTER, uuid);
-      if (pTargetUnit) {
-        nDist = D2Common::Collision::GetDistanceBetweenUnits(pUnit, pTargetUnit);
-        if (nDist < 0x33) {
-          pMonTxt = D2Client::DataTbls::MonsterTbls::TXT_MonStats_GetLine(pTargetUnit->nClassId);
-          if (pMonTxt && pMonTxt->interact && pMonTxt->npc) {
-            D2Common::PATH::DynamicPath::ZeroPathPointsSize(pTargetUnit->pPath.pDynamicPath);
-            Ai::AiGeneral::SetAiArgument(pTargetUnit, 1, 0x28);
-            GAME::Event::EVENT_RemoveUnitTimersByType(pGameTmp, pTargetUnit, UNITEVENTCALLBACK_AITHINK, 0);
-            GAME::Event::SetEvent(pGameTmp, pTargetUnit, 2, pGameTmp->dwGameFrame + 1, 0, 0);
-          }
-          if (6 < nDist) {
-            if (8 < nDist) {
-              return SERVERSTATUS_OK;
-            }
-
-            StartModeID(~SKILL_Attack - (bSetting != 0), pGame, UNIT_MONSTER, pUnit, uuid);
-            return SERVERSTATUS_OK;
-          }
-
-          nDist = Player::GetPlayerTradeTickOrBusy(pUnit);
-          if (nDist) {
-            return SERVERSTATUS_OK;
-          }
-
-          D2Common::PATH::DynamicPath::ZeroPathPointsSize(pUnit->pPath.pDynamicPath);
-          byNpcInteractFlag = 0;
-          pMonAi = UNIT::sunitproxy::GetMonsterAI(pTargetUnit);
-          Monster::MonsterAI::NPC_BeginInteractionFromUnit(pGameTmp, pUnit, pTargetUnit, pMonAi, byNpcInteractFlag);
-          return SERVERSTATUS_OK;
-        }
-      }
-
-      break;
-      case UNIT_OBJECT:
-        pTargetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_OBJECT, uuid);
-      if (pTargetUnit) {
-        pObjectTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pTargetUnit->nClassId);
-        if (!pObjectTxt) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x2bf);
-          exit(-1);
-        }
-        if (7 < (int)pTargetUnit->eAnimMode.ePlayerMode) {
-          return SERVERSTATUS_BAD_PARAMS;
-        }
-
-        nDist = D2Common::Collision::GetDistanceBetweenUnits(pUnit, pTargetUnit);
-        if (nDist < 0x33) {
-          bInRange = D2Common::Units::IsObjectInInteractRange(pUnit, pTargetUnit);
-          if (!bInRange || (bInRange = D2Common::Units::TestCollisionBetweenInteractingUnits(pUnit, pTargetUnit, 0x804) , bInRange != 0)) {
-            StartModeID(~SKILL_Attack - (bSetting != 0), pGame, UNIT_OBJECT, pUnit, uuid);
-          } else {
-            D2Common::PATH::DynamicPath::ZeroPathPointsSize(pUnit->pPath.pDynamicPath);
-            pGameTmp = Objects::ObjectsMode::Interact(pGame, pUnit, 2, uuid);
-            if (!pGameTmp) {
-              return SERVERSTATUS_BAD_PARAMS;
-            }
-          }
-
-          return SERVERSTATUS_OK;
-        }
-      }
-
-      break;
-      case UNIT_ITEM:
-        pTargetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_ITEM, uuid);
-      if (pTargetUnit && pTargetUnit->eAnimMode.ePlayerMode == eD2PlayerAnimMode_ns::Run) {
-        nDist = D2Common::Collision::GetDistanceBetweenUnits(pUnit, pTargetUnit);
-        if (nDist < 0x33) {
-          if (nDist < 5 && (bInRange = D2Common::Units::TestCollisionBetweenInteractingUnits(pUnit, pTargetUnit, 0x804) , !bInRange)) {
-            if (!bSetting) {
-              ITEMS::ItemMode::SERVER_PickToInventory(pGame, pUnit, uuid, (uint32_t*)&pGame);
-            } else {
-              ITEMS::ItemMode::SERVER_PickToCursor(pGame, pUnit, uuid, (uint32_t*)&pGame);
-            }
-            if (pGame) {
-              return SERVERSTATUS_BAD_PARAMS;
-            }
-          } else {
-            StartModeID(~SKILL_Attack - (bSetting != 0), pGame, UNIT_ITEM, pUnit, uuid);
-          }
-
-          return SERVERSTATUS_OK;
-        }
-      }
-
-      break;
-      case UNIT_WARP:
-        pTargetUnit = UNIT::SUnit::FindUnitFromTable(pGame, UNIT_WARP, uuid);
-      if (pTargetUnit) {
-        nDist = D2Common::Collision::GetDistanceBetweenUnits(pUnit, pTargetUnit);
-        if (nDist < 0x33) {
-          if (4 < nDist) {
-            StartModeID(~SKILL_Attack - (bSetting != 0), pGame, UNIT_WARP, pUnit, uuid);
-            return SERVERSTATUS_OK;
-          }
-
-          UNIT::SUnit::TakeStairs(pGame, pUnit, pTargetUnit);
-          return SERVERSTATUS_OK;
-        }
-      }
     }
 
     return SERVERSTATUS_BAD_TARGET;
@@ -1040,19 +1030,6 @@ static uint32_t __stdcall IsAccessableCheck(DWORD nItemGid, ::SGAMEDATA * pGame,
       nResult = SERVERSTATUS_BAD_TARGET;
     } else {
       switch (pItem->eAnimMode.ePlayerMode) {
-        case Death:
-
-        case eD2PlayerAnimMode_ns::Neutral:
-
-        case Walk:
-
-        case eD2PlayerAnimMode_ns::GetHit:
-          nResult = ItemIsOfPlayerAndNotOnCursor(nItemGid, pUnit, pGame);
-        if (nResult == SERVERSTATUS_OK) {
-          return 0;
-        }
-
-        break;
         case eD2PlayerAnimMode_ns::Run:
           nResult = IsOtherAct(pItem, pUnit);
         if (nResult == SERVERSTATUS_OK) {
@@ -1063,6 +1040,15 @@ static uint32_t __stdcall IsAccessableCheck(DWORD nItemGid, ::SGAMEDATA * pGame,
             return nResult;
           }
 
+          return 0;
+        }
+        break;
+        case Death:
+        case eD2PlayerAnimMode_ns::Neutral:
+        case Walk:
+        case eD2PlayerAnimMode_ns::GetHit:
+          nResult = ItemIsOfPlayerAndNotOnCursor(nItemGid, pUnit, pGame);
+        if (nResult == SERVERSTATUS_OK) {
           return 0;
         }
 

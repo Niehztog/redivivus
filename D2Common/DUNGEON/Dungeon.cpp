@@ -459,7 +459,7 @@ void __stdcall CallRoomCallback(D2RoomStrc * pRoom, ROOMCALLBACKFN pfnRoomCallba
         exit(-1);
       }
       nRoomIdx = 0;
-      if (!pRoom->nRoomListCount) {
+      if ((uint32_t)pRoom->nRoomListCount <= 0) {
         return;
       }
       do {

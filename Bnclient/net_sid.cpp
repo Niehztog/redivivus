@@ -520,17 +520,17 @@ BOOL __fastcall NET_SID_CLIENT_Incoming_CDKey3(char * pBytes, size_t nSize) {
       case 3:
         SID_SetStateFlag1(3);
       return 1;
+      case 6:
+        SID_SetStateFlag1(5);
+      return 1;
+      case 5:
+        SID_SetStateFlag1(4);
+      return 1;
       case 4:
         SID_SetStateFlag1(6);
       Storm::Source::SSTR::SStrCopy(gszCDKeyInUseByUsername, pBytes + 4, 0x100);
       SID_SetStateFlag2((uint32_t)gszCDKeyInUseByUsername);
       break;
-      case 5:
-        SID_SetStateFlag1(4);
-      return 1;
-      case 6:
-        SID_SetStateFlag1(5);
-      return 1;
     }
 
     return 1;
@@ -711,7 +711,7 @@ static BOOL __fastcall NET_SID_CLIENT_Incoming_AuthCheck(SID_S2C_AuthCheck * pPa
     uint32_t dwResultCode;
     FILETIME szAdditionalInfo;
     __frame0.dwSecurityCookie = DEFAULT_SECURITY_COOKIE ^ (uintptr_t)0;
-    if (4 < nPacketSize && *(char*)((int)pPacketData + (nPacketSize - 1)) == '\0') {
+    if (5 <= nPacketSize && *(char*)((int)pPacketData + (nPacketSize - 1)) == '\0') {
       nByteIndex = 4;
       nNullCount = 0;
       if (4 < nPacketSize - 1) {

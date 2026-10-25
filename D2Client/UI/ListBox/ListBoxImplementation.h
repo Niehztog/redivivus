@@ -37,7 +37,7 @@ int OnMouseMove(::ListBoxImplementation * pThis, struct D2UIMouseMsgStrc * pMsg)
 int OnChar(::ListBoxImplementation * pThis, struct D2UIMouseMsgStrc * pMsg);
 int GetValue(::ListBoxImplementation * pThis);
 uint32_t GetItemUserData(::ListBoxImplementation * pThis, int nIndex);
-void Draw(::ListBoxImplementation * pThis);
+void __fastcall Draw(::ListBoxImplementation * pThis);
 int OnMouseDown(::ListBoxImplementation * pThis, struct D2UIMouseMsgStrc * pMsg);
 int OnMouseUp(::ListBoxImplementation * pThis, struct D2UIMouseMsgStrc * pMsg);
 ::ListBoxImplementation * Constructor(::ListBoxImplementation * pThis, int nPosX, int nPosY, int nWidth, int nHeight, int nItemSpacing, int nDefaultColor, int nDefaultFont, fpListBoxItemActivated pfnOnItemActivated, bool bTallRows);

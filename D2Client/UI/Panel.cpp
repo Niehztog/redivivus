@@ -836,16 +836,15 @@ uint32_t __stdcall PANEL_GetBeltSlotHoverFlag() {
 
 int __stdcall PANEL_CheckBeltUseBlocked() {
     switch (gnBeltPanelState) {
+      case 2:
+        return 1;
+      case 1:
+      case 4:
+        return 2;
       case 0:
 
       case 5:
         return 3;
-      case 1:
-
-      case 4:
-        return 2;
-      case 2:
-        return 1;
     }
 
     return 4;
@@ -1371,9 +1370,9 @@ static void PANEL_DrawCharacterInfo(int32_t nPanelOffsetY) {
       _00CtrlPnl7 = ui::ARCHIVE_LoadOverlayImageUsedInGame("Panel\\800CtrlPnl7");
     }
 
+    sGfxData.pDC6 = _00CtrlPnl7;
     sGfxData.nDirection = 0;
     sGfxData.nFrameNumber = 0;
-    sGfxData.pDC6 = _00CtrlPnl7;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, 0, ScreenSizeY - nPanelOffsetY, -1, DRAW_SOLID, nullptr);
     sGfxData.nFrameNumber = 1;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, ScreenSizeX / 2 - 0xeb, ScreenSizeY, -1, DRAW_SOLID, nullptr);
@@ -1394,9 +1393,9 @@ void __stdcall DRAW_UI_BorderLeft() {
       _00BorderFrame = ui::ARCHIVE_LoadOverlayImageUsedInGame("Panel\\800BorderFrame");
     }
 
+    sGfxData.pDC6 = _00BorderFrame;
     sGfxData.nDirection = 0;
     sGfxData.nFrameNumber = 0;
-    sGfxData.pDC6 = _00BorderFrame;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, 0, 0xfd, -1, DRAW_SOLID, nullptr);
     sGfxData.nFrameNumber = 1;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, 0x100, 0x3f, -1, DRAW_SOLID, nullptr);
@@ -1416,9 +1415,9 @@ void __stdcall DRAW_UI_BorderRight() {
 
     DC6* pDVar1 = _00BorderFrame;
     memset(&sGfxData, 0, 0x48);
+    sGfxData.pDC6 = pDVar1;
     sGfxData.nDirection = 0;
     sGfxData.nFrameNumber = 5;
-    sGfxData.pDC6 = pDVar1;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, 400, 0x3f, -1, DRAW_SOLID, nullptr);
     sGfxData.nFrameNumber = 6;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, 0x220, 0xfd, -1, DRAW_SOLID, nullptr);

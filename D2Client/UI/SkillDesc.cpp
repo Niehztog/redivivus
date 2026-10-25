@@ -798,32 +798,6 @@ static void __stdcall SKILLDESC_BuildStatListDesc(D2UnitStrc * pUnit, D2StatList
         eUnitStat = *pLayoutEntry;
         if (eUnitStat != ~UNITSTAT_strength && true) {
           switch (eUnitStat) {
-            case UNITSTAT_item_maxdamage_percent:
-              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
-            pnParam[7] = iVar1;
-            break;
-            case UNITSTAT_item_mindamage_percent:
-              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
-            pnParam[6] = iVar1;
-            break;
-            case UNITSTAT_mindamage:
-              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
-            *pnParam = iVar1;
-            if (!iVar1) {
-              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_secondary_mindamage, 0);
-              *pnParam = iVar1;
-            }
-
-            break;
-            case UNITSTAT_maxdamage:
-              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
-            pnParam[1] = iVar1;
-            if (!iVar1) {
-              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_secondary_maxdamage, 0);
-              pnParam[1] = iVar1;
-            }
-
-            break;
             case UNITSTAT_firemindam:
               iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
             pnParam[0x18] = iVar1;
@@ -868,7 +842,31 @@ static void __stdcall SKILLDESC_BuildStatListDesc(D2UnitStrc * pUnit, D2StatList
               iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
             pnParam[0x20] = iVar1;
             iVar1 = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_poison_count, 0);
-            pnParam[0x21] = iVar1;
+            pnParam[0x21] = iVar1; break;
+            case UNITSTAT_mindamage:
+              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
+            *pnParam = iVar1;
+            if (!iVar1) {
+              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_secondary_mindamage, 0);
+              *pnParam = iVar1;
+            }
+            break;
+            case UNITSTAT_maxdamage:
+              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
+            pnParam[1] = iVar1;
+            if (!iVar1) {
+              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, UNITSTAT_secondary_maxdamage, 0);
+              pnParam[1] = iVar1;
+            }
+            break;
+            case UNITSTAT_item_mindamage_percent:
+              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
+            pnParam[6] = iVar1;
+            break;
+            case UNITSTAT_item_maxdamage_percent:
+              iVar1 = D2Common::Stats::StatsEx::STATLIST_GetBaseStatValue(pStatList, eUnitStat, 0);
+            pnParam[7] = iVar1;
+            break;
           }
         }
 
@@ -3579,18 +3577,18 @@ static void AdjustDamageByType(D2UnitStrc * pUnit, int * pMinDamage, int * pMaxD
       nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_lightmaxdam, 0);
       *pMaxDamage += nStatVal;
       return;
-      case 3:
-        nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_magicmindam, 0);
-      *pMinDamage += nStatVal;
-      nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_magicmaxdam, 0);
-      *pMaxDamage += nStatVal;
-      return;
       case 4:
 
       case 0xc:
         nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_coldmindam, 0);
       *pMinDamage += nStatVal;
       nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_coldmaxdam, 0);
+      *pMaxDamage += nStatVal;
+      return;
+      case 3:
+        nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_magicmindam, 0);
+      *pMinDamage += nStatVal;
+      nStatVal = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_magicmaxdam, 0);
       *pMaxDamage += nStatVal;
       return;
       case 5:
@@ -4510,26 +4508,25 @@ static void __fastcall SKILLDESC_CalcAuraDamageRange(D2UnitStrc * pUnit, int * p
     uint8_t byElemType;
     byElemType = D2Common::Units::Missile::GetElemTypeFromMissileId(uIsMissilePotion);
     switch (byElemType) {
+      case 5:
+        *pElemType = 2;
+      nMinDmgTmp = D2Common::Units::Missile::GetElementalLength(0, pUnit, uIsMissilePotion, 1);
+      nStatTmp = nMinDmgTmp / 0x19;
+      if (nStatTmp <= 0) {
+        nStatTmp = 1;
+      }
+      pUnit2 = (D2UnitStrc*)((int)pUnit2 / nStatTmp);
+      nStrDexBonus /= nStatTmp;
+      goto store_damage_range;
+      case 4:
+        *pElemType = 3;
+      break;
       case 1:
         *pElemType = 1;
       break;
       case 2:
         *pElemType = 4;
       break;
-      case 4:
-        *pElemType = 3;
-      break;
-      case 5:
-        *pElemType = 2;
-      nMinDmgTmp = D2Common::Units::Missile::GetElementalLength(0, pUnit, uIsMissilePotion, 1);
-      nStatTmp = nMinDmgTmp / 0x19;
-      if (nStatTmp < 1) {
-        nStatTmp = 1;
-      }
-
-      pUnit2 = (D2UnitStrc*)((int)pUnit2 / nStatTmp);
-      nStrDexBonus /= nStatTmp;
-      goto store_damage_range;
     }
 
     store_damage_range:

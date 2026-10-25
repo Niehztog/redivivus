@@ -164,7 +164,7 @@ void __fastcall FreeQuestControl(::SGAMEDATA * pGame);
 struct D2SeedStrc * __fastcall GetQuestControlSeed(::SGAMEDATA * pGame);
 // Called server-side when any monster dies. Resolves the effective killer (falls back to the first client in SP if killer is null, or traces a minion back to its owner). Checks if the dead monster is a super-unique with a quest-relevant hcIdx or a special class ID (Diablo seal infectors 0xF2/0xF3, Baal 0x220, super-unique 0x187), then dispatches a QUEST_EVENT=8 (monster killed) to the resolved player unit via QUEST_DispatchToUnit.
 void __fastcall QUEST_OnMonsterKilled(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit, struct D2UnitStrc * pKiller);
-void __stdcall QUEST_OnPlayerEnteredArea(::SGAMEDATA * pGame, int32_t ePreviousLevelId, int32_t eEnteredLevelId, struct D2UnitStrc * pUnit);
+void __fastcall QUEST_OnPlayerEnteredArea(::SGAMEDATA * pGame, int32_t ePreviousLevelId, int32_t eEnteredLevelId, struct D2UnitStrc * pUnit);
 // Quest system hook called when a player disconnects. Iterates all items in the player's inventory looking for carried quest items (pItemTxt-&gt;bQuest != 0); for each found quest item fires fpQuestStateHandler[9] (the disconnect event handler) of the matching quest data node, validating the callback pointer with IsBadCodePtr first (halts on bad ptr). After the item loop, broadcasts quest event 10 (QUEST_EVENT_DISCONNECT_POST) to all quests via QUEST_DispatchBroadcast.
 void __fastcall QUEST_OnPlayerDisconnect(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer);
 void __fastcall QUEST_OnUnitInteraction_Unused(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pUnit);
@@ -176,7 +176,7 @@ void __fastcall QUEST_OnNpcInteraction(struct D2ClientStrc * pClient, struct D2U
 //   MOV [EBP-0x14],EAX  -> questArg.pTarget (the one stack argument, [EBP+8])
 //   MOV [EBP-0x10],EDX  -> questArg.pPlayer (EDX)
 // Declaring only the stack argument left pGame and pPlayer as uninitialised locals and split the struct into loose dwTmp slots, so the broadcast received a garbage game pointer and a garbage player.
-void __stdcall QUEST_OnNpcDeactivate(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pTarget);
+void __fastcall QUEST_OnNpcDeactivate(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pTarget);
 void __fastcall QUEST_OnItemPickedUp(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pUnit);
 void __fastcall QUEST_OnItemDropped(::SGAMEDATA * pGame, struct D2UnitStrc * pPlayer, struct D2UnitStrc * pUnit);
 void __fastcall QUEST_OnItemEvent_Unused(::SGAMEDATA * pGame, struct D2UnitStrc * pTarget);

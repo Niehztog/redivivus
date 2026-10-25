@@ -112,7 +112,7 @@ void __stdcall SUNITINACTIVE_SaveInactiveUnit(::SGAMEDATA * pGame, struct D2Unit
 void __fastcall SUNITINACTIVE_FreeAllInactiveLists(::SGAMEDATA * pGame);
 // Removes a single inactive unit record from the per-act inactive list by unit type and class ID. For monsters (nUnitType==1) delegates to SUNITINACTIVE_RemoveInactiveMonsterByClassId; for other types walks the linked list and frees the matching D2InactiveUnitRecordStrc from the game memory pool.
 // @sourcefile .\UNIT\SUnitInactive.cpp
-void __stdcall SUNITINACTIVE_RemoveInactiveUnitByTypeAndId(::SGAMEDATA * pGame, uint16_t nUnitType, uint32_t nClassId, uint8_t byActNo);
+void __fastcall SUNITINACTIVE_RemoveInactiveUnitByTypeAndId(::SGAMEDATA * pGame, uint16_t nUnitType, uint32_t nClassId, uint8_t byActNo);
 // Server-side inactive/dead unit processor. Dispatches by unit type: monsters go to UNITS_ProcessDeadOrInactiveMonster; players in body state get saved and deleted; objects are conditionally saved based on Restore/RestoreVirgins txt flags and sparkly-chest state; items and warps are always saved. Fires UNITEVENTCALLBACK_ENDANIM timer trigger for players and objects, then frees non-item units via FreeServerUnit.
 void __fastcall SERVER_GAME_UNIT_method(::SGAMEDATA * pGame, struct D2UnitStrc * pUnit);
 

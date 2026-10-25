@@ -2661,6 +2661,32 @@ eD2ServerIncomingStatus __fastcall ClickButton(::SGAMEDATA * pGame, D2UnitStrc *
       }
 
       goto send_trade_action;
+      case 8:
+        nCurrentGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
+      if (dwParam > nCurrentGold) {
+        bHasInteractInfo = UNIT::ITEM_HasPendingInventoryUpdates(pGame01, pUnit);
+        if (!bHasInteractInfo) {
+          bHasInteractInfo = UNIT::ITEM_HasPendingInventoryUpdates(pGame01, pTradePartner);
+          if (!bHasInteractInfo) {
+            PLRTRADE_CancelTradeAndCleanup(pGame01, pUnit, pTradePartner, pPlayerData, pPartnerData, 9);
+          }
+        }
+      } else {
+        pPartnerUnit = (D2UnitStrc*)D2Common::Units::GetInventoryGoldLimit(pTradePartner);
+        iVar2 = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pTradePartner, UNITSTAT_gold, 0);
+        if ((D2UnitStrc*)(iVar2 + dwParam) > pPartnerUnit) {
+          dwParam = (int)pPartnerUnit - iVar2;
+        }
+        if (pPlayerData->pTradeCopyInventory) {
+          byGoldSide = '\0';
+          pPlayerData->pTradeCopyInventory->nTradeStatus = dwParam;
+          pClient = UNIT::SUnit::SUNIT_GetClient(pTradePartner, ".\\PLAYER\\PlrTrade.cpp", 0xbc3);
+          GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, dwParam, byGoldSide);
+          nTradeId = '\x01';
+          pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xbc4);
+          GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, dwParam, nTradeId);
+        }
+      } break;
       case 4:
         bHasInteractInfo = UNIT::ITEM_HasPendingInventoryUpdates(pGame01, pUnit);
       if (!bHasInteractInfo && (bHasInteractInfo = UNIT::ITEM_HasPendingInventoryUpdates(pGame01, pTradePartner) , !bHasInteractInfo)) {
@@ -2715,32 +2741,6 @@ eD2ServerIncomingStatus __fastcall ClickButton(::SGAMEDATA * pGame, D2UnitStrc *
       send_trade_action:
       GAME::SCmd::NET_D2GS_SERVER_Send_0x77_TRADEREQUEST(pClient, byTradeAction);
       break;
-      case 8:
-        nCurrentGold = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pUnit, UNITSTAT_gold, 0);
-      if (dwParam > nCurrentGold) {
-        bHasInteractInfo = UNIT::ITEM_HasPendingInventoryUpdates(pGame01, pUnit);
-        if (!bHasInteractInfo) {
-          bHasInteractInfo = UNIT::ITEM_HasPendingInventoryUpdates(pGame01, pTradePartner);
-          if (!bHasInteractInfo) {
-            PLRTRADE_CancelTradeAndCleanup(pGame01, pUnit, pTradePartner, pPlayerData, pPartnerData, 9);
-          }
-        }
-      } else {
-        pPartnerUnit = (D2UnitStrc*)D2Common::Units::GetInventoryGoldLimit(pTradePartner);
-        iVar2 = D2Common::Stats::StatsEx::STATSEX_GetCurrentStat(pTradePartner, UNITSTAT_gold, 0);
-        if ((D2UnitStrc*)(iVar2 + dwParam) > pPartnerUnit) {
-          dwParam = (int)pPartnerUnit - iVar2;
-        }
-        if (pPlayerData->pTradeCopyInventory) {
-          byGoldSide = '\0';
-          pPlayerData->pTradeCopyInventory->nTradeStatus = dwParam;
-          pClient = UNIT::SUnit::SUNIT_GetClient(pTradePartner, ".\\PLAYER\\PlrTrade.cpp", 0xbc3);
-          GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, dwParam, byGoldSide);
-          nTradeId = '\x01';
-          pClient = UNIT::SUnit::SUNIT_GetClient(pUnit, ".\\PLAYER\\PlrTrade.cpp", 0xbc4);
-          GAME::SCmd::NET_D2GS_SERVER_Send_0x79_TRADEGOLD(pClient, dwParam, nTradeId);
-        }
-      }
     }
 
     return SERVERSTATUS_OK;

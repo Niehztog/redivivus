@@ -1308,17 +1308,16 @@ static void RENDERER_GLIDE_SetDrawMode(int32_t nParam) {
     }
 
     switch (nParam) {
+      case 5:
+      case 7:
+        RENDERER_GLIDE_SetAlphaBlendMode(1);
+      return;
       case 3:
         nBlendModeArg = 2;
       break;
       case 4:
         nBlendModeArg = 3;
       break;
-      case 5:
-
-      case 7:
-        RENDERER_GLIDE_SetAlphaBlendMode(1);
-      return;
       default:
         goto default_case;
     }

@@ -365,10 +365,10 @@ void __fastcall SKILLS_ClampHpManaStamina(D2UnitStrc * pUnit) {
 
 void __fastcall SKILLS_InvokeCallbackNoTarget(::SGAMEDATA * pGame, D2UnitStrc * pUnit, pfnSkillNoTargetCb pfnCallback, void * pCallbackArg) {
     D2SkillCallbackContextStrc sContext;
-    sContext.pCallbackArg = pCallbackArg;
-    sContext.nHitCount = 0;
     sContext.pGame = pGame;
     sContext.pUnit = pUnit;
+    sContext.pCallbackArg = pCallbackArg;
+    sContext.nHitCount = 0;
     (*pfnCallback)(&sContext, pUnit);
 }
 
@@ -837,10 +837,10 @@ D2UnitFindDataStrc * __fastcall SKILLS_FindUnitsInRange(int32_t nParam1, D2UnitS
     D2UnitFindDataStrc* pUnitFindData = ((D2UnitFindDataStrc*)Fog::Memory::AllocServerMemory(*(D2PoolManagerStrc**)(nParam1 + 0x1c), sizeof(D2UnitFindDataStrc), ".\\SKILLS\\Skills.cpp", 0x44b, 0));
     memset(&sUnitFindArg, 0, 0x38);
     sUnitFindArg.nFlags = 1411;
+    sUnitFindArg.pAttacker = pUnit;
     sUnitFindArg.nX = nX;
     sUnitFindArg.nY = nY;
     sUnitFindArg.nDistance = nRange;
-    sUnitFindArg.pAttacker = pUnit;
     D2RoomStrc* pRoom = D2Common::Units::UNITS_GetRoom(pUnit);
     D2Common::Units::UnitFinds::InitializeUnitFindData(*(::SGAMEDATA**)(nParam1 + 0x1c), pUnitFindData, pRoom, nX, nY, nRange, nullptr, &sUnitFindArg);
     D2Common::Units::UnitFinds::UNITFINDS_FindCullRange(pUnitFindData);
@@ -2895,9 +2895,9 @@ D2UnitStrc * __fastcall SKILLS_FindNearbyCorpse(D2UnitStrc * pUnit, D2UnitStrc *
     int32_t nY = D2Client::Units::GetYPosFromDynamicPathUnit(pUnit2);
     memset(&sUnitFindArg, 0, 0x38);
     sUnitFindArg.nFlags = 0x1002;
-    sUnitFindArg.nDistance = 10;
     sUnitFindArg.nX = nX;
     sUnitFindArg.nY = nY;
+    sUnitFindArg.nDistance = 10;
     ::SGAMEDATA* pGame = UNIT::SUnit::GetGamePointer(pCaster);
     D2UnitFindArgStrc* pFindArgPtr = &sUnitFindArg;
     UNITFINDTEST fpCorpseTestCallback = (UNITFINDTEST)SKILLS_UnitFindTestCallback;
@@ -3486,10 +3486,10 @@ D2UnitStrc * __fastcall SKILLS_CreateMissileAtTarget(::SGAMEDATA * pGame, D2Unit
     sSkillArg.eSkillNo = eSkill;
     sSkillArg.nSkillLevel = nSkillLvl;
     sSkillArg.nFlags = 1;
-    sSkillArg.nMissileTxtNo = nMissileId;
     sSkillArg.pOwner = pUnit;
     sSkillArg.nX = nSrcX;
     sSkillArg.nY = nTargetX;
+    sSkillArg.nMissileTxtNo = nMissileId;
     D2UnitStrc* pMissile = MISSILES::Missiles::CreatingMissile(pGame, &sSkillArg);
     return pMissile;
 }
@@ -3572,7 +3572,7 @@ static void __stdcall SetTimeoutEffect(::SGAMEDATA * pGame, int32_t timeoutFrame
 }
 
 void __fastcall SKILLS_ApplySkillDelay(::SGAMEDATA * pGame, D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + eSkill)) {
       return;
     }
 
@@ -4263,7 +4263,7 @@ void __fastcall SKILLS_PeriodicSkillsCallback(::SGAMEDATA * pGame, D2UnitStrc * 
 void __fastcall SKILLS_PeriodicStatsCallback(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nArg1, int32_t nArg2) {
     int nAuraLevel;
     short int nAuraState;
-    if (-1 < nArg2 && nArg2 < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + nArg2) {
+    if (0 <= nArg2 && nArg2 < sgptDataTable->nTxtSkillsCount && sgptDataTable->pTxtSkills + nArg2) {
       BOOL bModeZeroDeath;
       nAuraState = sgptDataTable->pTxtSkills[nArg2].aurastate;
       if (0 <= nAuraState && (int)nAuraState < sgptDataTable->nTxtStatesSize) {
@@ -4602,7 +4602,7 @@ void __fastcall SKILL_StunExpireAndRestoreAi(D2UnitStrc * pUnit, eD2States eStat
 D2UnitStrc * __fastcall SKILL_CreateTimedAuraStatList(::SGAMEDATA * pGame, D2UnitStrc * pUnit, D2UnitStrc * pTargetUnit, eD2States eState, eD2Skills eSkill, int32_t nParam) {
     int32_t dwCasterGUID;
     eD2UnitType eCasterUnitType;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return nullptr;
     }
 

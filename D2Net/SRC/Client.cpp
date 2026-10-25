@@ -834,7 +834,7 @@ void __fastcall NET_D2GS_CLIENT_HandleIncomingBufferAndCreatePacket(char * pByte
     char* nPacketSize = pBytes;
     while (true) {
       D2OnePacketClientStrc* pNewPacket;
-      if ((int)pBytesSize < 1) {
+      if ((int)pBytesSize <= 0) {
         return;
       }
 

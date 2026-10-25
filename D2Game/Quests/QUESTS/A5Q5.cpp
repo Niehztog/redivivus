@@ -451,27 +451,6 @@ static void __fastcall Q35_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData
         }
       eQuestState = QUESTSTATE_Step0x05;
       break;
-      case 0x200:
-        if (nMessageIndex != 0x4ec6) {
-          return;
-        }
-      eQuestState = QUESTSTATE_Step0x07;
-      break;
-      case 0x201:
-        if (nMessageIndex != 0x4ec8) {
-          return;
-        }
-      nQuestId = pQuestData->nQuestIdReal;
-      eQuestState = QUESTSTATE_Step0x08;
-      goto set_npc_told_step;
-      default:
-        return;
-      case 0x203:
-        if (nMessageIndex != 0x4ec4) {
-          return;
-        }
-      eQuestState = QUESTSTATE_Step0x09;
-      break;
       case 0x208:
         if (nMessageIndex != 0x4ec5) {
           return;
@@ -479,6 +458,27 @@ static void __fastcall Q35_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData
       nQuestId = pQuestData->nQuestIdReal;
       eQuestState = QUESTSTATE_Step0x06;
       goto set_npc_told_step;
+      case 0x200:
+        if (nMessageIndex != 0x4ec6) {
+          return;
+        }
+      eQuestState = QUESTSTATE_Step0x07;
+      break;
+      default:
+        return;
+      case 0x201:
+        if (nMessageIndex != 0x4ec8) {
+          return;
+        }
+      nQuestId = pQuestData->nQuestIdReal;
+      eQuestState = QUESTSTATE_Step0x08;
+      goto set_npc_told_step;
+      case 0x203:
+        if (nMessageIndex != 0x4ec4) {
+          return;
+        }
+      eQuestState = QUESTSTATE_Step0x09;
+      break;
     }
 
     nQuestId = pQuestData->nQuestIdReal;
@@ -535,23 +535,23 @@ static void __fastcall Q35_Callback00_NpcActivate(D2QuestDataStrc * pQuestData, 
         eQuestState = QUESTSTATE_Step0x05;
       nQuestId = pQuestData->nQuestIdReal;
       break;
+      case MonsterUnitDeckardCain6:
+        nQuestId = pQuestData->nQuestIdReal;
+      eQuestState = QUESTSTATE_Step0x06; break;
       case MonsterUnitDrehya1:
         nQuestId = pQuestData->nQuestIdReal;
       eQuestState = QUESTSTATE_Step0x07;
       break;
+      default:
+        return;
       case MonsterUnitMalah:
         eQuestState = QUESTSTATE_Step0x08;
       nQuestId = pQuestData->nQuestIdReal;
       break;
-      default:
-        return;
       case MonsterUnitQualkehk:
         nQuestId = pQuestData->nQuestIdReal;
       eQuestState = QUESTSTATE_Step0x09;
       break;
-      case MonsterUnitDeckardCain6:
-        nQuestId = pQuestData->nQuestIdReal;
-      eQuestState = QUESTSTATE_Step0x06;
     }
 
     BOOL bNpcTalkFlagSet = D2Common::QuestRecord::GetQuestState(pBitBuffer, nQuestId, eQuestState);

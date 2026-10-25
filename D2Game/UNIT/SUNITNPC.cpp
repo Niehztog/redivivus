@@ -1138,7 +1138,7 @@ void __fastcall SUNITNPC_ValidateGambleItem(::SGAMEDATA * pGame, D2UnitStrc * pU
     PLAYER::PlayerPets::PETS_ManagePetsByType(pGame, pUnit, (uint16_t)pUnit->pPath.pStaticPath->nPosX, wPosY);
 }
 
-static void __fastcall SUNITNPC_ProcessGambleResult(D2UnitStrc * pUnit) {
+void __fastcall SUNITNPC_ProcessGambleResult(D2UnitStrc * pUnit) {
     D2UnitStrc* pCarriedItem;
     if (!(pUnit && pUnit->pInventory)) {
       return;

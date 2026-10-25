@@ -128,13 +128,13 @@ void __fastcall Q19_Callback11_ScrollMessage(D2QuestDataStrc * pQuestData, D2Que
       pQuestData->pQuestSpecificData.pA3Q2->bQuestCompleted = true;
       pQuestData->sStateFunctions.fpQuestStateHandler[2] = Q19_Callback02_NpcDeactivate;
       return;
-      case 0x220:
-        /* SetQuestState(KhalimsWill, Step0x06): dialog 0x220 -> Khalim's Heart step
-                         discussed/turned in */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_KhalimsWill, QUESTSTATE_Step0x06);
-      return;
       case 0x221:
         /* SetQuestState(KhalimsWill, Step0x03): dialog 0x221 -> Khalim's Eye step
                          discussed/turned in */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_KhalimsWill, QUESTSTATE_Step0x03);
+      return;
+      case 0x220:
+        /* SetQuestState(KhalimsWill, Step0x06): dialog 0x220 -> Khalim's Heart step
+                         discussed/turned in */ D2Common::QuestRecord::SetQuestState(pBitBuffer, QUEST_KhalimsWill, QUESTSTATE_Step0x06);
       return;
       case 0x222:
         /* SetQuestState(KhalimsWill, Step0x04): dialog 0x222 -> Khalim's Brain step

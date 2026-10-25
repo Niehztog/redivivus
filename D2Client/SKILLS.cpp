@@ -114,7 +114,7 @@ BOOL __fastcall Skills_CltDoFunc_BaalCorpseExplosion(D2UnitStrc * pUnit, eD2Skil
     int32_t nCorpseIdx;
     D2SkillsTxt* pSkillTxt;
     D2SeedStrc seedNext;
-    if (sgptDataTable->nTxtSkillsCount < 0x11e || (pSkillTxt = sgptDataTable->pTxtSkills , pSkillTxt == (D2SkillsTxt*)-163020)) {
+    if (sgptDataTable->nTxtSkillsCount <= 0x11d || (pSkillTxt = sgptDataTable->pTxtSkills , pSkillTxt == (D2SkillsTxt*)-163020)) {
       nExplosionRadius = 0;
     } else if (nSkillLvl < 1) {
       nExplosionRadius = 0;

@@ -2640,15 +2640,6 @@ void __stdcall szPrintfBuffer(D2UnitStrc * pUnit, uint16_t * wszText) {
     ui::AppendAsWideChar(wszDamageTextBuf, '\0');
     bColorCode = D2Common::Units::Missile::GetElemTypeFromMissileId(nMinDamage);
     switch (bColorCode) {
-      case 1:
-        *(uint8_t*)(char*)&pUnit = '\x01';
-      break;
-      case 2:
-        *(uint8_t*)(char*)&pUnit = '\x04';
-      break;
-      case 4:
-        *(uint8_t*)(char*)&pUnit = '\x03';
-      break;
       case 5:
         *(uint8_t*)(char*)&pUnit = '\x02';
       nElemDuration = D2Common::Units::Missile::GetElementalLength(0, pPlayerUnit_lcl, nMinDamage, 1);
@@ -2658,7 +2649,16 @@ void __stdcall szPrintfBuffer(D2UnitStrc * pUnit, uint16_t * wszText) {
       }
 
       nElemMinDamage /= iDurationFrames;
-      nMaxDamage /= iDurationFrames;
+      nMaxDamage /= iDurationFrames; break;
+      case 4:
+        *(uint8_t*)(char*)&pUnit = '\x03';
+      break;
+      case 1:
+        *(uint8_t*)(char*)&pUnit = '\x01';
+      break;
+      case 2:
+        *(uint8_t*)(char*)&pUnit = '\x04';
+      break;
     }
 
     nElemDuration = D2Common::Units::Missile::GetMinDamage(nullptr, pPlayerUnit_lcl, nMinDamage, 1);
@@ -7283,9 +7283,9 @@ void __stdcall INV_DrawRecipeScroll() {
 
     DC6* pScrollImage = gpInvCubeRecipeScrollImage;
     memset(&sGfxData, 0, 0x48);
+    sGfxData.pDC6 = pScrollImage;
     sGfxData.nDirection = 0;
     sGfxData.nFrameNumber = 0;
-    sGfxData.pDC6 = pScrollImage;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, gnPanelOffsetX, gnPanelOffsetY - 0xe0 + ScreenSizeY, -1, DRAW_SOLID, nullptr);
     sGfxData.nFrameNumber = 1;
     D2gfx::D2GFX::D2GFX_DrawImage(&sGfxData, gnPanelOffsetX + 0x100, gnPanelOffsetY - 0xe0 + ScreenSizeY, -1, DRAW_SOLID, nullptr);
@@ -10405,6 +10405,29 @@ uint32_t __fastcall EQUIP_ItemRight(D2UnitStrc * pUnit, D2InventoryStrc * pInven
       }
 
       goto send_equip_packet;
+      case 7:
+        BVar1 = UNIT::PlayerIsUnInterruptable(pItem);
+      if (!BVar1) {
+        BVar1 = UNIT::PlayerIsUnInterruptable(pRightArmItem);
+        if (!BVar1) {
+          BVar1 = UNIT::PlayerIsUnInterruptable(pLeftArmItem);
+          if (!BVar1) {
+            nResult = INV_CheckActionThrottle();
+            if (nResult) {
+              if (!pItem) {
+                nResult = -1;
+              } else {
+                nResult = pItem->nUnitGUID;
+              }
+              GAME::Msg::NET_D2GS_CLIENT_Send_INT_INT(0x1e, nResult, 4);
+              UNIT::ITEM_RemoveClientSide(pItem);
+              UNIT::ITEM_RemoveClientSide(pRightArmItem);
+              UNIT::ITEM_RemoveClientSide(pLeftArmItem);
+              return 1;
+            }
+          }
+        }
+      } break;
       case 6:
         BVar1 = UNIT::PlayerIsUnInterruptable(pItem);
       if (BVar1) {
@@ -10440,30 +10463,6 @@ uint32_t __fastcall EQUIP_ItemRight(D2UnitStrc * pUnit, D2InventoryStrc * pInven
       Sound::SOUND_PlaySound(eSoundId, nullptr, nEquipAction, nSoundParam1, nSoundParam2);
       bReturnValue = 1;
       break;
-      case 7:
-        BVar1 = UNIT::PlayerIsUnInterruptable(pItem);
-      if (!BVar1) {
-        BVar1 = UNIT::PlayerIsUnInterruptable(pRightArmItem);
-        if (!BVar1) {
-          BVar1 = UNIT::PlayerIsUnInterruptable(pLeftArmItem);
-          if (!BVar1) {
-            nResult = INV_CheckActionThrottle();
-            if (nResult) {
-              if (!pItem) {
-                nResult = -1;
-              } else {
-                nResult = pItem->nUnitGUID;
-              }
-
-              GAME::Msg::NET_D2GS_CLIENT_Send_INT_INT(0x1e, nResult, 4);
-              UNIT::ITEM_RemoveClientSide(pItem);
-              UNIT::ITEM_RemoveClientSide(pRightArmItem);
-              UNIT::ITEM_RemoveClientSide(pLeftArmItem);
-              return 1;
-            }
-          }
-        }
-      }
     }
 
     /* Remove body item */ return bReturnValue;

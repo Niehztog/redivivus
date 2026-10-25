@@ -47,7 +47,7 @@ void __fastcall SetCurrentSkill(struct D2SkillListStrc * pPlayerSkills, struct D
 struct D2SkillStrc * __fastcall GetCurrentSkill(struct D2SkillListStrc * pSkillsList);
 struct D2SkillStrc * __fastcall GetSkillByIdAndOwner(struct D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nOwnerGUID);
 // Thin wrapper around UNIT_GetSkill. Takes (eSkill, pUnit) in fastcall register order and calls UNIT_GetSkill(pUnit, eSkill). Called from 82+ sites including skill spawn, hit calculation, etc.
-struct D2SkillStrc * SKILLS_GetSkillByEnum(eD2Skills eSkill, struct D2UnitStrc * pUnit);
+struct D2SkillStrc * __fastcall SKILLS_GetSkillByEnum(eD2Skills eSkill, struct D2UnitStrc * pUnit);
 struct D2LightMapStrc * __stdcall SwapLightMap(struct D2UnitStrc * pUnit, struct D2LightMapStrc * pLight);
 uint32_t __stdcall SKILLS_GetUnitField0xa8_0x14(struct D2UnitStrc * pUnit);
 // Frees the entire skill list on a unit. Iterates through pFirstSkill linked list, freeing each D2SkillStrc, then frees the D2SkillListStrc itself. Sets pUnit->pSkillsList to NULL. Called by FreeUnit.

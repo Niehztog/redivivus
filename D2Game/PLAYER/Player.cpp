@@ -564,16 +564,16 @@ void __fastcall PLAYER_EndInteraction(::SGAMEDATA * pGame, D2UnitStrc * pUnit) {
       pInteractUnit = UNIT::SUnit::FindUnitFromTable(pGame, eInteractUnitType, nInteractUnitId);
       if (pInteractUnit) {
         switch (eInteractUnitType) {
-          case UNIT_PLAYER:
-            PlayerTrade::thunk_TRADE_CompleteTrade(pGame, pUnit);
-          Quests::QUESTS::A5Q5::Q35_OnPlayerLeavesSummit(pGame, pUnit);
-          return;
           case UNIT_MONSTER:
             UNIT::SUNITNPC::SUNITNPC_CloseNpcInteraction(pGame, pUnit, pInteractUnit);
           Quests::QUESTS::A5Q5::Q35_OnPlayerLeavesSummit(pGame, pUnit);
           return;
           case UNIT_OBJECT:
             Objects::ObjectsMode::OBJMODE_HandleObjectDeactivation(pGame, pUnit, pInteractUnit);
+          Quests::QUESTS::A5Q5::Q35_OnPlayerLeavesSummit(pGame, pUnit);
+          return;
+          case UNIT_PLAYER:
+            PlayerTrade::thunk_TRADE_CompleteTrade(pGame, pUnit);
           Quests::QUESTS::A5Q5::Q35_OnPlayerLeavesSummit(pGame, pUnit);
           return;
           case UNIT_ITEM:
@@ -607,9 +607,6 @@ void __fastcall PLAYER_CancelInteraction(::SGAMEDATA * pGame, D2UnitStrc * pUnit
     } else {
       D2ItemsTxt* pItemTxt;
       switch (eInteractUnitType) {
-        case UNIT_PLAYER:
-          PlayerTrade::ClickButton(pGame, pUnit, 6, 0);
-        return;
         case UNIT_MONSTER:
           UNIT::SUNITNPC::SUNITNPC_CloseNpcInteraction(pGame, pUnit, pInteractUnit);
         nInteractGUID = pInteractUnit->nUnitGUID;
@@ -622,6 +619,9 @@ void __fastcall PLAYER_CancelInteraction(::SGAMEDATA * pGame, D2UnitStrc * pUnit
         byPacketUnitType = '\x02';
         nLine = 0x206;
         break;
+        case UNIT_PLAYER:
+          PlayerTrade::ClickButton(pGame, pUnit, 6, 0);
+        return;
         default:
           goto no_interact_target;
         case UNIT_ITEM:
@@ -921,7 +921,7 @@ static void __stdcall PLAYER_ApplyGoldPenaltyOnDeath(::SGAMEDATA * pGame, D2Unit
     nTotalGold = nBankGold + nGold;
     int nLevelCap;
     nLevelCap = nLevel;
-    if (0x13 < nLevel) {
+    if (0x14 <= nLevel) {
       nLevelCap = 0x14;
     }
 

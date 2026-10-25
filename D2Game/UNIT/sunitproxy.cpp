@@ -572,31 +572,23 @@ void __fastcall SUNITPROXY_AllocNpcControl(::SGAMEDATA * pGame) {
                       ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->flags0x0C = 1;
                     } else {
                       switch (iVar1) {
-                        case 0x93:
-                          nTradeItemIdx = 1;
-                        goto init_trade_with_all_flags;
-                        case 0x94:
-                          SUNITPROXY_InitNpcTradeItems(0, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
+                        case 0x101:
+                          SUNITPROXY_InitNpcTradeItems(0xc, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
+                        ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x04 = 1;
+                        ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x05 = 1; break;
+                        case 0xfe:
+                          SUNITPROXY_InitNpcTradeItems(7, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
+                        ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->flags0x0C = 1;
                         break;
                         case 0x9a:
                           SUNITPROXY_InitNpcTradeItems(2, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
                         ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x04 = 1;
                         ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x05 = 1;
                         break;
-                        case 0xb1:
-                          SUNITPROXY_InitNpcTradeItems(5, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
-                        break;
                         case 0xb2:
                           SUNITPROXY_InitNpcTradeItems(3, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
                         ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x04 = 1;
                         ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x05 = 1;
-                        break;
-                        case 199:
-                          SUNITPROXY_InitNpcTradeItems(9, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
-                        ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->flags0x0C = 1;
-                        break;
-                        case 0xca:
-                          SUNITPROXY_InitNpcTradeItems(4, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
                         break;
                         case 0xfc:
                           SUNITPROXY_InitNpcTradeItems(10, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
@@ -608,17 +600,25 @@ void __fastcall SUNITPROXY_AllocNpcControl(::SGAMEDATA * pGame) {
                         ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x04 = 1;
                         ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x05 = 1;
                         break;
-                        case 0xfe:
-                          SUNITPROXY_InitNpcTradeItems(7, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
-                        ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->flags0x0C = 1;
+                        case 0x94:
+                          SUNITPROXY_InitNpcTradeItems(0, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
+                        break;
+                        case 0xb1:
+                          SUNITPROXY_InitNpcTradeItems(5, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
+                        break;
+                        case 0xca:
+                          SUNITPROXY_InitNpcTradeItems(4, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
                         break;
                         case 0xff:
                           SUNITPROXY_InitNpcTradeItems(8, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
                         break;
-                        case 0x101:
-                          SUNITPROXY_InitNpcTradeItems(0xc, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
-                        ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x04 = 1;
-                        ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x05 = 1;
+                        case 0x93:
+                          nTradeItemIdx = 1;
+                        goto init_trade_with_all_flags;
+                        case 199:
+                          SUNITPROXY_InitNpcTradeItems(9, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
+                        ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->flags0x0C = 1;
+                        break;
                       }
                     }
                   } else {
@@ -628,15 +628,15 @@ void __fastcall SUNITPROXY_AllocNpcControl(::SGAMEDATA * pGame) {
                       ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x04 = 1;
                       ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.unk0x05 = 1;
                       break;
+                      case 0x202:
+                        SUNITPROXY_InitNpcTradeItems(0xf, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
+                      ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->flags0x0C = 1; break;
                       case 0x200:
                         nTradeItemIdx = 0x10;
                       goto init_trade_with_all_flags;
                       case 0x201:
                         SUNITPROXY_InitNpcTradeItems(0xe, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
                       break;
-                      case 0x202:
-                        SUNITPROXY_InitNpcTradeItems(0xf, pGame, &((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->sTrade.pTradeList1);
-                      ((D2GameNpcStrc*)((char*)pNpcEntry - 0x14))->flags0x0C = 1;
                     }
                   }
                 } else {
@@ -1235,28 +1235,18 @@ void __stdcall SUNITPROXY_InitAllNpcItemTables() {
             SUNITPROXY_BuildNpcItemTables(nNpcTableIdx);
           } else {
             switch (nMonIdx) {
-              case MonsterUnitGheed:
-                nNpcTableIdx = 1;
-              break;
-              case MonsterUnitAkara:
-                nNpcTableIdx = 0;
+              case MonsterUnitHalbu:
+                nNpcTableIdx = 0xc; break;
+              case MonsterUnitAlkor:
+                nNpcTableIdx = 7;
               break;
               default:
                 goto next_monster;
               case MonsterUnitCharsi:
                 nNpcTableIdx = 2;
               break;
-              case MonsterUnitDrognan:
-                nNpcTableIdx = 5;
-              break;
               case MonsterUnitFara:
                 nNpcTableIdx = 3;
-              break;
-              case MonsterUnitElzix:
-                nNpcTableIdx = 9;
-              break;
-              case MonsterUnitLysander:
-                nNpcTableIdx = 4;
               break;
               case MonsterUnitAsheara:
                 nNpcTableIdx = 10;
@@ -1264,23 +1254,30 @@ void __stdcall SUNITPROXY_InitAllNpcItemTables() {
               case MonsterUnitHratli:
                 nNpcTableIdx = 6;
               break;
-              case MonsterUnitAlkor:
-                nNpcTableIdx = 7;
+              case MonsterUnitAkara:
+                nNpcTableIdx = 0;
+              break;
+              case MonsterUnitDrognan:
+                nNpcTableIdx = 5;
+              break;
+              case MonsterUnitLysander:
+                nNpcTableIdx = 4;
               break;
               case MonsterUnitOrmus:
                 nNpcTableIdx = 8;
               break;
-              case MonsterUnitHalbu:
-                nNpcTableIdx = 0xc;
+              case MonsterUnitGheed:
+                nNpcTableIdx = 1;
+              break;
+              case MonsterUnitElzix:
+                nNpcTableIdx = 9;
+              break;
             }
 
             SUNITPROXY_BuildNpcItemTables(nNpcTableIdx);
           }
         } else {
           switch (nMonIdx) {
-            case MonsterUnitLarzuk:
-              nNpcTableIdx = 0xf;
-            break;
             case MonsterUnitDrehya1:
 
             case MonsterUnitTown:
@@ -1288,6 +1285,9 @@ void __stdcall SUNITPROXY_InitAllNpcItemTables() {
             break;
             case MonsterUnitMalah:
               nNpcTableIdx = 0xe;
+            break;
+            case MonsterUnitLarzuk:
+              nNpcTableIdx = 0xf;
             break;
             default:
               goto next_monster;

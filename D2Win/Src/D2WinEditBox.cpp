@@ -1639,52 +1639,6 @@ BOOL __fastcall D2WINEDITBOX_HandleKeyPress(::D2WinEditBox * pEditBox, uint8_t b
     nHasText2 = pEditBox->nCursorIndex;
     uint16_t* pwszCursor = __frame0.awszEditBuffer + nHasText2;
     switch (__frame0.abKeyBuffer[0]) {
-      case 1:
-        D2WINEDITBOX_SelectAll(pEditBox);
-      break;
-      default:
-        if (nCallbackResult >= (int)(pEditBox->nMaxLength - 1)) {
-          return 0;
-        }
-      if (nCallbackResult < 0xff) {
-        if (__frame0.abKeyBuffer[0] == 0xd) {
-          D2Lang::Unicode::UNISYS::UNICODE_WideToMultiByte(__frame0.szConvertBuffer + 2, (uint16_t*)pwszCursor, 0x100);
-          __frame0.szConvertBuffer[0] = '\r';
-          __frame0.szConvertBuffer[1] = '\n';
-          D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(pwszCursor, __frame0.szConvertBuffer, 0x100);
-          pwszCursor = __frame0.awszEditBuffer + 2;
-        } else {
-          D2Lang::Unicode::UNISYS::UNICODE_WideToMultiByte(__frame0.szConvertBuffer + 1, (uint16_t*)pwszCursor, 0x100);
-          __frame0.szConvertBuffer[0] = __frame0.abKeyBuffer[0];
-          D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(pwszCursor, __frame0.szConvertBuffer, 0x100);
-          pwszCursor = __frame0.awszEditBuffer + 1;
-        }
-
-        pwszCursor += nHasText2;
-        D2WINEDITBOX_ClearSelection(pEditBox);
-      }
-
-      break;
-      case 3:
-        bHasCopySelection = D2WINEDITBOX_HasSelection(pEditBox);
-      if (bHasCopySelection) {
-        nHasText2 = pEditBox->nSelAnchor;
-        iVar2 = pEditBox->nSelCursor;
-        nFilterResult = nHasText2;
-        if (nHasText2 < iVar2 || (nFilterResult = iVar2 , nHasText2 <= iVar2)) {
-          nHasText2 = iVar2;
-        }
-
-        nCallbackResult = nHasText2 - nFilterResult + 1;
-        if (nCallbackResult <= 2) {
-          nCallbackResult = 2;
-        }
-
-        D2Lang::Unicode::UNISYS::UNICODE_WideToMultiByte(__frame0.szConvertBuffer, (uint16_t*)(__frame0.awszEditBuffer + nFilterResult), nCallbackResult);
-        D2WINEDITBOX_ValidateInput(__frame0.szConvertBuffer);
-      }
-
-      break;
       case 0x16:
         pbClipSrc = (uint8_t*)D2WINEDITBOX_GetTextBuffer();
       pbClipEnd = pbClipSrc;
@@ -1772,6 +1726,23 @@ BOOL __fastcall D2WINEDITBOX_HandleKeyPress(::D2WinEditBox * pEditBox, uint8_t b
       pbClipEnd = pbClipEnd + strlen((char*)pbClipEnd) + 1;
       pwszCursor = (uint16_t*)((int)pbClipEnd * 2 - 0x25e + nSelStart * 2 - (uintptr_t)((uint8_t*)&__frame0 + 2980));
       break;
+      case 3:
+        bHasCopySelection = D2WINEDITBOX_HasSelection(pEditBox);
+      if (bHasCopySelection) {
+        nHasText2 = pEditBox->nSelAnchor;
+        iVar2 = pEditBox->nSelCursor;
+        nFilterResult = nHasText2;
+        if (nHasText2 < iVar2 || (nFilterResult = iVar2 , nHasText2 <= iVar2)) {
+          nHasText2 = iVar2;
+        }
+        nCallbackResult = nHasText2 - nFilterResult + 1;
+        if (nCallbackResult <= 2) {
+          nCallbackResult = 2;
+        }
+        D2Lang::Unicode::UNISYS::UNICODE_WideToMultiByte(__frame0.szConvertBuffer, (uint16_t*)(__frame0.awszEditBuffer + nFilterResult), nCallbackResult);
+        D2WINEDITBOX_ValidateInput(__frame0.szConvertBuffer);
+      }
+      break;
       case 0x18:
         bHasCutSelection = D2WINEDITBOX_HasSelection(pEditBox);
       if (bHasCutSelection) {
@@ -1793,7 +1764,31 @@ BOOL __fastcall D2WINEDITBOX_HandleKeyPress(::D2WinEditBox * pEditBox, uint8_t b
         D2WINEDITBOX_HandleDelete(pEditBox);
         D2Lang::Unicode::UNISYS::STRING_GetWideStringLength(wszString);
         D2Lang::Unicode::UNISYS::STRING_CopyWideString(__frame0.awszEditBuffer, wszString);
+      } break;
+      case 1:
+        D2WINEDITBOX_SelectAll(pEditBox);
+      break;
+      default:
+        if (nCallbackResult >= (int)(pEditBox->nMaxLength - 1)) {
+          return 0;
+        }
+      if (nCallbackResult < 0xff) {
+        if (__frame0.abKeyBuffer[0] == 0xd) {
+          D2Lang::Unicode::UNISYS::UNICODE_WideToMultiByte(__frame0.szConvertBuffer + 2, (uint16_t*)pwszCursor, 0x100);
+          __frame0.szConvertBuffer[0] = '\r';
+          __frame0.szConvertBuffer[1] = '\n';
+          D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(pwszCursor, __frame0.szConvertBuffer, 0x100);
+          pwszCursor = __frame0.awszEditBuffer + 2;
+        } else {
+          D2Lang::Unicode::UNISYS::UNICODE_WideToMultiByte(__frame0.szConvertBuffer + 1, (uint16_t*)pwszCursor, 0x100);
+          __frame0.szConvertBuffer[0] = __frame0.abKeyBuffer[0];
+          D2Lang::Unicode::UNISYS::STRING_CopyCharToWCharWithSetMaxSize(pwszCursor, __frame0.szConvertBuffer, 0x100);
+          pwszCursor = __frame0.awszEditBuffer + 1;
+        }
+        pwszCursor += nHasText2;
+        D2WINEDITBOX_ClearSelection(pEditBox);
       }
+      break;
     }
 
     nHasText2 = pEditBox->nInsetY;
@@ -2230,7 +2225,7 @@ BOOL __fastcall Draw(::D2WinEditBox * pEditBox) {
     }
 
     do {
-      if (iVar2 <= nYEnd_00 - nYEnd) {
+      if (nYEnd_00 - nYEnd >= iVar2) {
         return 1;
       }
 

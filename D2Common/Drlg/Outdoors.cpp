@@ -500,9 +500,7 @@ BOOL __fastcall TestOutdoorLevelPreset(D2DrlgLevelStrc * pLevel, int32_t nX, int
 
     nSizeX += nY;
     while (nY < nSizeX) {
-      if (nX0 < nSizeY + nX0) {
-        nXIter = nX0;
-        do {
+      for (nXIter = nX0; nXIter < nSizeY + nX0; nXIter++) {
           bIsInGrid = DrlgGrid::IsPointInsideGridArea(&pLevelData->sGridOutdoor, nXIter, nY);
           if (!bIsInGrid) {
             return 0;
@@ -513,8 +511,6 @@ BOOL __fastcall TestOutdoorLevelPreset(D2DrlgLevelStrc * pLevel, int32_t nX, int
             return 0;
           }
 
-          nXIter++;
-        } while (nXIter < nSizeY + nX0);
       }
 
       nY++;

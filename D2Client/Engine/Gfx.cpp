@@ -1631,6 +1631,12 @@ void __fastcall GFX_UpdateOverlayAnimations(D2UnitStrc * pUnit) {
             pEffectiveAnimMode = Source::ClientEngine::CLIENT_GetEffectiveAnimMode(pUnit);
           bKeepOverlay = pEffectiveAnimMode == pOverlayCur[2];
           goto remove_unless_kept;
+          case 2:
+            if (pOverlayCur[2]) {
+              break;
+            }
+          GfxInfo::GFX_RemoveOverlayFromUnit(pUnit, pOverlayCur);
+          continue;
           case 1:
             bKeepOverlay = pOverlayCur[2] != 0;
           pOverlayCur[2]--;
@@ -1638,12 +1644,6 @@ void __fastcall GFX_UpdateOverlayAnimations(D2UnitStrc * pUnit) {
           if (bKeepOverlay) {
             break;
           }
-          GfxInfo::GFX_RemoveOverlayFromUnit(pUnit, pOverlayCur);
-          continue;
-          case 2:
-            if (pOverlayCur[2]) {
-              break;
-            }
           GfxInfo::GFX_RemoveOverlayFromUnit(pUnit, pOverlayCur);
           continue;
           case 6:
@@ -1678,12 +1678,10 @@ void __fastcall GFX_UpdateOverlayAnimations(D2UnitStrc * pUnit) {
       nOverlayAnimRate = pOverlayCur[7];
       if (nOverlayAnimRate <= pEffectiveAnimMode) {
         switch (*pOverlayCur) {
-          case 1:
-
-          case 3:
-
-          case 8:
-            pOverlayCur[6] = pEffectiveAnimMode - nOverlayAnimRate;
+          case 5:
+            pOverlayCur[5] = 0;
+          pOverlayCur[6] = nOverlayAnimRate - 1;
+          pOverlayCur[2] = 1;
           break;
           case 2:
             pOverlayCur[2] = 0;
@@ -1700,21 +1698,6 @@ void __fastcall GFX_UpdateOverlayAnimations(D2UnitStrc * pUnit) {
           }
 
           break;
-          case 5:
-            pOverlayCur[5] = 0;
-          pOverlayCur[6] = nOverlayAnimRate - 1;
-          pOverlayCur[2] = 1;
-          break;
-          case 6:
-            pOverlayCur[6] = pEffectiveAnimMode - nOverlayAnimRate;
-          pOverlayCur[2] = 0;
-          nTickCount2 = GetTickCount();
-          pOverlayCur[0xc] = nTickCount2;
-          break;
-          case 7:
-            GfxInfo::GFX_RemoveOverlayFromUnit(pUnit, pOverlayCur);
-          GFX_AddOverlayToUnit(pUnit, OVERLAY_bonearmor_cast, 4, 0, 0x8d, 0x8e, 0, 0);
-          break;
           case 9:
             eOverlayA = pOverlayCur[2];
           eOverlayB = pOverlayCur[3];
@@ -1728,7 +1711,22 @@ void __fastcall GFX_UpdateOverlayAnimations(D2UnitStrc * pUnit) {
             if (eOverlayB != ~OVERLAY_null) {
               GFX_AddOverlayToUnit(pUnit, eOverlayB, 8, 0, eUnitState, 0, 0, 0);
             }
-          }
+          } break;
+          case 1:
+          case 3:
+          case 8:
+            pOverlayCur[6] = pEffectiveAnimMode - nOverlayAnimRate;
+          break;
+          case 6:
+            pOverlayCur[6] = pEffectiveAnimMode - nOverlayAnimRate;
+          pOverlayCur[2] = 0;
+          nTickCount2 = GetTickCount();
+          pOverlayCur[0xc] = nTickCount2;
+          break;
+          case 7:
+            GfxInfo::GFX_RemoveOverlayFromUnit(pUnit, pOverlayCur);
+          GFX_AddOverlayToUnit(pUnit, OVERLAY_bonearmor_cast, 4, 0, 0x8d, 0x8e, 0, 0);
+          break;
         }
       }
     }

@@ -518,7 +518,7 @@ static void __stdcall DRLGMAZE_BuildRoomGrid(int32_t nGridSize, D2DrlgLevelStrc 
     DRLGMAZE_PickRoomPreset(pFirstRoom, 1);
 }
 
-static D2RoomExStrc * GetRandomRoomExFromLevel(D2DrlgLevelStrc * pLevel) {
+static D2RoomExStrc * __fastcall GetRandomRoomExFromLevel(D2DrlgLevelStrc * pLevel) {
     uint32_t nSeedLowOld;
     D2SeedStrc sSeed;
     uint32_t nSelectedRoom = pLevel->nRoomExCount;

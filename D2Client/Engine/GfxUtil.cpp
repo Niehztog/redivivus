@@ -90,7 +90,7 @@ void GFXUTIL_PadTokenString(uint32_t dwParam, char * szText1, char * szText2) {
     szText2[3] = ' ';
 }
 
-static uint8_t GFXUTIL_GetCompositePaletteIndex(D2UnitStrc * pUnit, uint8_t byComponent) {
+static uint8_t __fastcall GFXUTIL_GetCompositePaletteIndex(D2UnitStrc * pUnit, uint8_t byComponent) {
     if (!(pUnit && pUnit->eUnitType == UNIT_MONSTER && byComponent < 0x10 && pUnit->pUnitData.pUnitDataMonster)) {
       return 0;
     }

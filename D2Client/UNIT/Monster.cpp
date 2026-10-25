@@ -1726,14 +1726,32 @@ static void MONSTER_HandleSkillAnimEnd(D2UnitStrc * pUnit) {
     if (!(pMonStats->SplClientEnd == '\0' || false)) {
       bool bLoopAnimMode;
       switch (pUnit->eAnimMode.ePlayerMode) {
+        case eD2PlayerAnimMode_ns::Attack2:
+          if (nMonBaseClassId == 0x6e) {
+            return;
+          }
+        goto trapped_soul_to_skill1;
+        default:
+          goto return_to_neutral;
+        case eD2PlayerAnimMode_ns::Cast:
+          if (nMonBaseClassId == 0x88) {
+            UnitMode::UNITMODE_SetAnimMode(pUnit, Throw);
+            D2Common::Units::InitAnimMode(pUnit);
+            return;
+          }
+        goto return_to_neutral;
+        case TownNeutral:
+        case eD2PlayerAnimMode_ns::Block:
+          goto trapped_soul_to_skill1;
+        case Throw:
+          bLoopAnimMode = nMonBaseClassId == 0x88;
+        break;
         case Walk:
           if (nMonBaseClassId == 0xe7) {
             return;
           }
         bLoopAnimMode = nMonBaseClassId == 0x76;
         break;
-        default:
-          goto return_to_neutral;
         case eD2PlayerAnimMode_ns::GetHit:
           if (nMonBaseClassId != 0x193 && nMonBaseClassId != 0x194) {
             if (nMonBaseClassId == 0x1f1) {
@@ -1746,30 +1764,11 @@ static void MONSTER_HandleSkillAnimEnd(D2UnitStrc * pUnit) {
         UnitMode::UNITMODE_SetAnimMode(pUnit, eD2PlayerAnimMode_ns::Attack2);
         D2Common::Units::InitAnimMode(pUnit);
         return;
-        case TownNeutral:
-
-        case eD2PlayerAnimMode_ns::Block:
-          goto trapped_soul_to_skill1;
-        case eD2PlayerAnimMode_ns::Attack2:
-          if (nMonBaseClassId == 0x6e) {
-            return;
-          }
-        goto trapped_soul_to_skill1;
-        case eD2PlayerAnimMode_ns::Cast:
-          if (nMonBaseClassId == 0x88) {
-            UnitMode::UNITMODE_SetAnimMode(pUnit, Throw);
-            D2Common::Units::InitAnimMode(pUnit);
-            return;
-          }
-        goto return_to_neutral;
-        case Throw:
-          bLoopAnimMode = nMonBaseClassId == 0x88;
-        break;
+        case eD2PlayerAnimMode_ns::Skill2:
+          bLoopAnimMode = nMonBaseClassId == 0xf7; break;
         case Kick:
           bLoopAnimMode = nMonBaseClassId == 0x11c;
         break;
-        case eD2PlayerAnimMode_ns::Skill2:
-          bLoopAnimMode = nMonBaseClassId == 0xf7;
       }
 
       if (bLoopAnimMode) {
@@ -2257,6 +2256,22 @@ void __fastcall MonsterMessage(int32_t nParam, D2UnitStrc * pUnit, D2ServerMessa
     }
 
     switch (nMsgType) {
+      case 1:
+      case 0x17:
+        if (!pMessage) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6e2);
+          exit(-1);
+        }
+      D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 1);
+      bPathCalcResult = MONSTER_GetNameModifierStringId(pUnit, 1);
+      if (!bPathCalcResult) {
+        bPathCalcResult = Path::PATH_SetTargetAndCalculate(pUnit, (int16_t)pMessage->nSkillId, (int16_t)pMessage->nItemId);
+        if (bPathCalcResult) {
+          bIsWalkMsg = nMsgType == 1;
+          goto start_move_anim;
+        }
+      }
+      goto fall_back_to_neutral;
       case 0:
 
       case 0x18:
@@ -2283,62 +2298,8 @@ void __fastcall MonsterMessage(int32_t nParam, D2UnitStrc * pUnit, D2ServerMessa
       }
 
       goto fall_back_to_neutral;
-      case 1:
-
-      case 0x17:
-        if (!pMessage) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x6e2);
-          exit(-1);
-        }
-      D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 1);
-      bPathCalcResult = MONSTER_GetNameModifierStringId(pUnit, 1);
-      if (!bPathCalcResult) {
-        bPathCalcResult = Path::PATH_SetTargetAndCalculate(pUnit, (int16_t)pMessage->nSkillId, (int16_t)pMessage->nItemId);
-        if (bPathCalcResult) {
-          bIsWalkMsg = nMsgType == 1;
-          goto start_move_anim;
-        }
-      }
-
-      goto fall_back_to_neutral;
       default:
         goto default_case;
-      case 4:
-
-      case 0xb:
-
-      case 0xc:
-
-      case 0xe:
-
-      case 0x11:
-
-      case 0x1a:
-
-      case 0x1c:
-        if (!pMessage) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x741);
-          exit(-1);
-        }
-      D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
-      D2Common::Units::SetTargetUnitForDynamicUnit(pUnit, nullptr);
-      if (pMessage->nSkillId || pMessage->nItemId) {
-        nBaseId = Units::GetXPosFromDynamicPathUnit(pUnit);
-        if (pMessage->nSkillId != nBaseId || (nBaseId = Units::GetYPosFromDynamicPathUnit(pUnit) , pMessage->nItemId != nBaseId)) {
-          D2Common::Units::UpdateDirectionAndSpeed(pUnit, pMessage->nSkillId, pMessage->nItemId);
-        }
-      }
-
-      UnitMode::UNITMODE_SetAnimMode(pUnit, pAnimModeEntry->eMode);
-      bPathCalcResult = MONSTER_IsModeMoveFlagSet(pUnit, pAnimModeEntry);
-      if (bPathCalcResult) {
-        Path::PATH_SetTargetAndCalculate(pUnit, (int16_t)pMessage->nSkillId, (int16_t)pMessage->nItemId);
-      }
-      if (nClassId == 0x6e) {
-        MONSTER_HandleBurrowTransition(pUnit, nMsgType);
-      }
-
-      break;
       case 5:
 
       case 10:
@@ -2400,6 +2361,34 @@ void __fastcall MonsterMessage(int32_t nParam, D2UnitStrc * pUnit, D2ServerMessa
       }
 
       break;
+      case 4:
+      case 0xb:
+      case 0xc:
+      case 0xe:
+      case 0x11:
+      case 0x1a:
+      case 0x1c:
+        if (!pMessage) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x741);
+          exit(-1);
+        }
+      D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
+      D2Common::Units::SetTargetUnitForDynamicUnit(pUnit, nullptr);
+      if (pMessage->nSkillId || pMessage->nItemId) {
+        nBaseId = Units::GetXPosFromDynamicPathUnit(pUnit);
+        if (pMessage->nSkillId != nBaseId || (nBaseId = Units::GetYPosFromDynamicPathUnit(pUnit) , pMessage->nItemId != nBaseId)) {
+          D2Common::Units::UpdateDirectionAndSpeed(pUnit, pMessage->nSkillId, pMessage->nItemId);
+        }
+      }
+      UnitMode::UNITMODE_SetAnimMode(pUnit, pAnimModeEntry->eMode);
+      bPathCalcResult = MONSTER_IsModeMoveFlagSet(pUnit, pAnimModeEntry);
+      if (bPathCalcResult) {
+        Path::PATH_SetTargetAndCalculate(pUnit, (int16_t)pMessage->nSkillId, (int16_t)pMessage->nItemId);
+      }
+      if (nClassId == 0x6e) {
+        MONSTER_HandleBurrowTransition(pUnit, nMsgType);
+      }
+      break;
       case 6:
         if (pMessage) {
           MonUnique::MONSTER_SetUniqueMonsterFlag0x100(pUnit, pMessage->nTargetUnitType & 0x80);
@@ -2430,57 +2419,56 @@ void __fastcall MonsterMessage(int32_t nParam, D2UnitStrc * pUnit, D2ServerMessa
           MONUNIQUE_DispatchModDeath(pUnit);
         }
       break;
-      case 7:
-        D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
-      if (pMessage && pMessage->nTargetUnitType) {
-        D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_hitpoints, pMessage->nTargetUnitType << 8, 0);
+      case 0x13:
+        if (!pMessage) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x781);
+          exit(-1);
+        }
+      MonUnique::MONSTER_SetUniqueMonsterFlag0x100(pUnit, pMessage->nItemId & 0x80);
+      pMessage->nItemId &= 0x7f;
+      if (1 < (int)pMessage->nItemId) {
+        pMessage->nItemId++;
+      }
+      if (pMessage->nItemId) {
+        D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_hitpoints, pMessage->nItemId << 8, 0);
       }
 
-      bPathCalcResult = CheckFlags(pUnit, UNITFLAG_ISMERC);
-      if (!bPathCalcResult) {
-        SetMonsterFlags(pUnit, UNITFLAG_TARGETABLE, (uint8_t)*((uint8_t*)pMonStats2 + 0x4) & 8);
-      } else {
-        pUnit->eUnitFlags |= UNITFLAG_TARGETABLE;
+      pUnit->dwLastHitClass = pMessage->nSkillId;
+      MONSTER_SpawnBloodParticles(pUnit, (D2MonStats2Txt*)0x1, 1);
+      CUnit::CUNIT_SetUnitFlag3((int32_t)pUnit);
+      UnitMode::UNITMODE_ShowElementalHitOverlay(pUnit, 0xd);
+      UnitSnd::UNITSND_DispatchModeChangeSound(pUnit, 0xd, 1);
+      MONUNIQUE_DispatchModDeath(pUnit);
+      break;
+      case 0x14:
+        if (!pMessage) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x79a);
+          exit(-1);
+        }
+      if (pMessage->nMaxDistance) {
+        D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_hitpoints, pMessage->nMaxDistance << 8, 0);
       }
 
-      SetMonsterFlags(pUnit, UNITFLAG_DRAWSHADOW, (uint32_t)!pMonStats2->shadow);
-      CUnit::IsAttackable(pUnit);
-      if (pMessage) {
-        Path::PATH_MoveUnitToPoint(pUnit, *(uint16_t*)&pMessage->nSkillId, (uint32_t)*(uint16_t*)&pMessage->nItemId, 0, 0, 0);
-        nBaseId = Units::GetXPosFromDynamicPathUnit(pUnit);
-        nClassId = nBaseId - pMessage->nSkillId;
-        if (nClassId < 0) {
-          nClassId = -nClassId;
+      pUnit->dwLastHitClass = pMessage->nTargetX;
+      D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
+      pDynPathCur = pDynPath;
+      D2Common::PATH::Path::PATH_SnapPositionToTile(pDynPath);
+      D2Common::PATH::DynamicPath::PATH_SetPathType(pDynPathCur, 0xb);
+      D2Common::PATH::DynamicPath::SetDistance(pDynPathCur, *(uint8_t*)&pMessage->nTargetUnitType);
+      D2Common::PATH::DynamicPath::SetSP1(pDynPathCur, *(int16_t*)&pMessage->nSkillId, *(int16_t*)&pMessage->nItemId);
+      D2Common::PATH::DynamicPath::PATH_CalculatePath(pDynPathCur, pUnit, 0);
+      UnitMode::UNITMODE_SetAnimMode(pUnit, eD2PlayerAnimMode_ns::Skill1);
+      break;
+      case 0x12:
+        if (!pMessage) {
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x7b0);
+          exit(-1);
         }
-        if (nClassId < 2) {
-          nBaseId = Units::GetYPosFromDynamicPathUnit(pUnit);
-          nClassId = nBaseId - pMessage->nItemId;
-          if (nClassId < 0) {
-            nClassId = -nClassId;
-          }
-          if (nClassId < 2) {
-            goto fall_back_to_neutral;
-          }
-        }
-
-        bPathCalcResult = MONSTER_GetNameModifierStringId(pUnit, 1);
-        if (!bPathCalcResult) {
-          bPathCalcResult = Path::PATH_SetTargetAndCalculate(pUnit, (int16_t)pMessage->nSkillId, (int16_t)pMessage->nItemId);
-          if (bPathCalcResult) {
-            eAttachedState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_attached);
-            if (eAttachedState == STATE_none) {
-              bPathCalcResult = Source::ClientEngine::GetSomeMonsterStatFlag(pUnit->nClassId, 2);
-              if (bPathCalcResult) {
-                UnitMode::UNITMODE_SetAnimMode(pUnit, Walk);
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      fall_back_to_neutral:
-      MONSTER_ResetToNeutralFacingTarget(pUnit);
+      D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
+      D2Common::PATH::Path::PATH_SnapPositionToTile(pDynPath);
+      CUnit::SetTargetByTypeAndGUID(pUnit, pMessage->nSkillId, pMessage->nItemId);
+      CUnit::FaceTarget(pUnit, 0);
+      UnitMode::UNITMODE_SetAnimMode(pUnit, TownWalk);
       break;
       case 8:
         D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
@@ -2762,57 +2750,72 @@ void __fastcall MonsterMessage(int32_t nParam, D2UnitStrc * pUnit, D2ServerMessa
 
       CUnit::FreeLightMap(pUnit);
       break;
-      case 0x12:
+      case 7:
+        D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
+      if (pMessage && pMessage->nTargetUnitType) {
+        D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_hitpoints, pMessage->nTargetUnitType << 8, 0);
+      }
+      bPathCalcResult = CheckFlags(pUnit, UNITFLAG_ISMERC);
+      if (!bPathCalcResult) {
+        SetMonsterFlags(pUnit, UNITFLAG_TARGETABLE, (uint8_t)*((uint8_t*)pMonStats2 + 0x4) & 8);
+      } else {
+        pUnit->eUnitFlags |= UNITFLAG_TARGETABLE;
+      }
+      SetMonsterFlags(pUnit, UNITFLAG_DRAWSHADOW, (uint32_t)!pMonStats2->shadow);
+      CUnit::IsAttackable(pUnit);
+      if (pMessage) {
+        Path::PATH_MoveUnitToPoint(pUnit, *(uint16_t*)&pMessage->nSkillId, (uint32_t)*(uint16_t*)&pMessage->nItemId, 0, 0, 0);
+        nBaseId = Units::GetXPosFromDynamicPathUnit(pUnit);
+        nClassId = nBaseId - pMessage->nSkillId;
+        if (nClassId < 0) {
+          nClassId = -nClassId;
+        }
+        if (nClassId < 2) {
+          nBaseId = Units::GetYPosFromDynamicPathUnit(pUnit);
+          nClassId = nBaseId - pMessage->nItemId;
+          if (nClassId < 0) {
+            nClassId = -nClassId;
+          }
+          if (nClassId < 2) {
+            goto fall_back_to_neutral;
+          }
+        }
+        bPathCalcResult = MONSTER_GetNameModifierStringId(pUnit, 1);
+        if (!bPathCalcResult) {
+          bPathCalcResult = Path::PATH_SetTargetAndCalculate(pUnit, (int16_t)pMessage->nSkillId, (int16_t)pMessage->nItemId);
+          if (bPathCalcResult) {
+            eAttachedState = D2Common::DATATBLS::ItemStats::UNIT_GetUnitState(pUnit, STATE_attached);
+            if (eAttachedState == STATE_none) {
+              bPathCalcResult = Source::ClientEngine::GetSomeMonsterStatFlag(pUnit->nClassId, 2);
+              if (bPathCalcResult) {
+                UnitMode::UNITMODE_SetAnimMode(pUnit, Walk);
+                break;
+              }
+            }
+          }
+        }
+      }
+      fall_back_to_neutral:
+      MONSTER_ResetToNeutralFacingTarget(pUnit);
+      break;
+      case 0x16:
         if (!pMessage) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x7b0);
+          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x911);
           exit(-1);
         }
       D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
-      D2Common::PATH::Path::PATH_SnapPositionToTile(pDynPath);
-      CUnit::SetTargetByTypeAndGUID(pUnit, pMessage->nSkillId, pMessage->nItemId);
-      CUnit::FaceTarget(pUnit, 0);
-      UnitMode::UNITMODE_SetAnimMode(pUnit, TownWalk);
-      break;
-      case 0x13:
-        if (!pMessage) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x781);
-          exit(-1);
-        }
-      MonUnique::MONSTER_SetUniqueMonsterFlag0x100(pUnit, pMessage->nItemId & 0x80);
-      pMessage->nItemId &= 0x7f;
-      if (1 < (int)pMessage->nItemId) {
-        pMessage->nItemId++;
-      }
-      if (pMessage->nItemId) {
-        D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_hitpoints, pMessage->nItemId << 8, 0);
+      eDeathSkill = pMessage->nSkillId;
+      D2Common::Skills::AddSkill(pUnit, eDeathSkill, pMessage->nSkillLvl, 0, ".\\UNIT\\Monster.cpp", 0x914);
+      pCurrentSkill = D2Common::Skills::SKILLS_GetSkillByEnum(eDeathSkill, pUnit);
+      D2Common::Units::SetCurrentSkill(pUnit, pCurrentSkill);
+      eDeathMode = D2Common::Skills::GetSkillMode(pUnit, pCurrentSkill);
+      if (eDeathMode == eD2PlayerAnimMode_ns::Skill2) {
+        MONSTER_PreloadSequenceAnimations(pUnit);
       }
 
-      pUnit->dwLastHitClass = pMessage->nSkillId;
-      MONSTER_SpawnBloodParticles(pUnit, (D2MonStats2Txt*)0x1, 1);
-      CUnit::CUNIT_SetUnitFlag3((int32_t)pUnit);
-      UnitMode::UNITMODE_ShowElementalHitOverlay(pUnit, 0xd);
-      UnitSnd::UNITSND_DispatchModeChangeSound(pUnit, 0xd, 1);
-      MONUNIQUE_DispatchModDeath(pUnit);
-      break;
-      case 0x14:
-        if (!pMessage) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x79a);
-          exit(-1);
-        }
-      if (pMessage->nMaxDistance) {
-        D2Common::Stats::StatsEx::STATLIST_SetUnitStat(pUnit, UNITSTAT_hitpoints, pMessage->nMaxDistance << 8, 0);
-      }
-
-      pUnit->dwLastHitClass = pMessage->nTargetX;
-      D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
-      pDynPathCur = pDynPath;
-      D2Common::PATH::Path::PATH_SnapPositionToTile(pDynPath);
-      D2Common::PATH::DynamicPath::PATH_SetPathType(pDynPathCur, 0xb);
-      D2Common::PATH::DynamicPath::SetDistance(pDynPathCur, *(uint8_t*)&pMessage->nTargetUnitType);
-      D2Common::PATH::DynamicPath::SetSP1(pDynPathCur, *(int16_t*)&pMessage->nSkillId, *(int16_t*)&pMessage->nItemId);
-      D2Common::PATH::DynamicPath::PATH_CalculatePath(pDynPathCur, pUnit, 0);
-      UnitMode::UNITMODE_SetAnimMode(pUnit, eD2PlayerAnimMode_ns::Skill1);
-      break;
+      pMessage->nItemId = -1;
+      UnitMode::UNITMODE_SetAnimMode(pUnit, eDeathMode);
+      SKILLS::Skills::SKILLS_CltStartSkillCast((D2DynamicPathStrc*)pUnit, (int*)pMessage); break;
       case 0x15:
         if (!pMessage) {
           Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x924);
@@ -2833,24 +2836,6 @@ void __fastcall MonsterMessage(int32_t nParam, D2UnitStrc * pUnit, D2ServerMessa
       UnitMode::UNITMODE_SetAnimMode(pUnit, eDeathMode);
       SKILLS::Skills::SKILL_ProcessCastFromPacket(pUnit, (int*)pMessage);
       break;
-      case 0x16:
-        if (!pMessage) {
-          Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x911);
-          exit(-1);
-        }
-      D2Common::PATH::DynamicPath::PATH_SetOrClearFlag0x2000((D2DynamicPathStrc*)pUnit, 0);
-      eDeathSkill = pMessage->nSkillId;
-      D2Common::Skills::AddSkill(pUnit, eDeathSkill, pMessage->nSkillLvl, 0, ".\\UNIT\\Monster.cpp", 0x914);
-      pCurrentSkill = D2Common::Skills::SKILLS_GetSkillByEnum(eDeathSkill, pUnit);
-      D2Common::Units::SetCurrentSkill(pUnit, pCurrentSkill);
-      eDeathMode = D2Common::Skills::GetSkillMode(pUnit, pCurrentSkill);
-      if (eDeathMode == eD2PlayerAnimMode_ns::Skill2) {
-        MONSTER_PreloadSequenceAnimations(pUnit);
-      }
-
-      pMessage->nItemId = -1;
-      UnitMode::UNITMODE_SetAnimMode(pUnit, eDeathMode);
-      SKILLS::Skills::SKILLS_CltStartSkillCast((D2DynamicPathStrc*)pUnit, (int*)pMessage);
     }
 
     post_message_update:

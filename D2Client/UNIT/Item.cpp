@@ -801,6 +801,21 @@ void __fastcall ITEM_UpdateItemAnimation(D2UnitStrc * pUnit) {
 
     uint32_t bAtEndOfCycle;
     switch (pUnit->eAnimMode.ePlayerMode) {
+      case TownNeutral:
+        bAtEndOfCycle = D2Common::Units::IsAtEndOfFrameCycle(pUnit);
+      if (!bAtEndOfCycle) {
+        D2Common::Units::UpdateFrame(pUnit);
+        return;
+      }
+      pUnit->eAnimMode.ePlayerMode = eD2PlayerAnimMode_ns::Run;
+      break;
+      case eD2PlayerAnimMode_ns::Run:
+        pUnit->eUnitFlags |= UNITFLAG_TARGETABLE;
+      bHasOverlay = Engine::GfxInfo::GFX_HasOverlayOfType(pUnit, 0x46);
+      if (bHasOverlay) {
+        return;
+      }
+      break;
       case Death:
 
       case eD2PlayerAnimMode_ns::Neutral:
@@ -811,22 +826,6 @@ void __fastcall ITEM_UpdateItemAnimation(D2UnitStrc * pUnit) {
       case TownWalk:
         pUnit->eUnitFlags &= ~UNITFLAG_TARGETABLE;
       return;
-      case eD2PlayerAnimMode_ns::Run:
-        pUnit->eUnitFlags |= UNITFLAG_TARGETABLE;
-      bHasOverlay = Engine::GfxInfo::GFX_HasOverlayOfType(pUnit, 0x46);
-      if (bHasOverlay) {
-        return;
-      }
-
-      break;
-      case TownNeutral:
-        bAtEndOfCycle = D2Common::Units::IsAtEndOfFrameCycle(pUnit);
-      if (!bAtEndOfCycle) {
-        D2Common::Units::UpdateFrame(pUnit);
-        return;
-      }
-      pUnit->eAnimMode.ePlayerMode = eD2PlayerAnimMode_ns::Run;
-      break;
       default:
         nLine = 0x362;
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), nLine);
@@ -3021,7 +3020,7 @@ void __fastcall ITEM_HandleItemCursorAssign(int32_t nParam) {
     uint32_t nTypeIdx;
     if (*(short int*)(nParam + 6) != -1) {
       nTypeIdx = 0;
-      if (gnCursorAutoOpenInventoryTypeCount) {
+      if ((uint32_t)gnCursorAutoOpenInventoryTypeCount > 0) {
         do {
           if ((uint32_t)*(uint8_t*)(nParam + 1) == gaaCursorAutoOpenInventoryTypes[nTypeIdx]) {
             bInventoryOpen = UI::ui::UI_GetFlag(UI_INVENTORY);
@@ -3053,7 +3052,7 @@ void __fastcall ITEM_HandleItemCursorAssign(int32_t nParam) {
       }
 
       nTypeIdx = 0;
-      if (gnCursorAutoOpenInventoryTypeCount) {
+      if ((uint32_t)gnCursorAutoOpenInventoryTypeCount > 0) {
         do {
           if ((uint32_t)*(uint8_t*)(nParam + 1) == gaaCursorAutoOpenInventoryTypes[nTypeIdx]) {
             bInventoryOpen = UI::ui::UI_GetFlag(UI_INVENTORY);

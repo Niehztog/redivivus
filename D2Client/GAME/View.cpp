@@ -894,9 +894,9 @@ void __fastcall SetShake(int32_t nAmplitude, int32_t nArg3, int32_t nArg1, int32
     }
 
     SHAKE_StartTickcount = GetTickCount();
+    SHAKE_Arg3 = nArg3;
     SHAKE_Arg1 = nArg1;
     SHAKE_Arg2 = nArg2;
-    SHAKE_Arg3 = nArg3;
     SHAKE_Amplitude = nAmplitude;
 }
 

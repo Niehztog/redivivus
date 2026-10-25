@@ -36,7 +36,7 @@ namespace Fog::_3rdparty::crashy {
     return pThis;
 }
 
-void Destructor(::Report * pThis) {
+void __fastcall Destructor(::Report * pThis) {
     pThis->_vfptr = (ReportVtable*)(void*)crashy::vftable;
     if (!pThis->pFile) {
       return;
@@ -86,7 +86,7 @@ int8_t Open(::Report * pThis, char * szFileName) {
     return pFile != 0;
 }
 
-int8_t Close(::Report * pThis) {
+int8_t __fastcall Close(::Report * pThis) {
     if (!pThis->pFile) {
       return '\x01';
     }
@@ -96,7 +96,7 @@ int8_t Close(::Report * pThis) {
     return '\x01';
 }
 
-int8_t IsOpen(::Report * pThis) {
+int8_t __fastcall IsOpen(::Report * pThis) {
     return pThis->pFile != 0;
 }
 

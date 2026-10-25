@@ -258,7 +258,7 @@ void __fastcall SAFESOCK_EnterCriticalSection(D2NetDataStrc * pNetData) {
 }
 
 // Leaves the critical section embedded at offset 0xC within the safesock structure. Thin wrapper around Win32 LeaveCriticalSection.
-void __stdcall LeaveCriticalSection_Safesock(void * pSafesockStrc) {
+void __fastcall LeaveCriticalSection_Safesock(void * pSafesockStrc) {
     /* LPCRITICAL_SECTION lpCriticalSection for LeaveCriticalSection */ LeaveCriticalSection((LPCRITICAL_SECTION)((int)pSafesockStrc + 0xc));
 }
 

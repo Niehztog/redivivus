@@ -122,7 +122,7 @@ BOOL __fastcall Skills_CltDoFunc_EMon_FallingMissileWithZ(D2UnitStrc * pUnit, eD
     int32_t nDestY;
     int32_t nDestX;
     int32_t nTmp;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 
@@ -405,9 +405,9 @@ static int __stdcall SKILLSEMON_CltSetReviveGfx(eMissilesId pParam, eD2Skills eS
     sSkillArg.eSkillNo = eSkill;
     sSkillArg.nSkillLevel = nParam1;
     sSkillArg.nFlags = 3;
+    sSkillArg.pOwner = pUnit;
     sSkillArg.nMissileTxtNo = pParam;
     sSkillArg.fpFunction = SkillsMon::SKILLSMON_SetMissilePathLinear;
-    sSkillArg.pOwner = pUnit;
     BOOL bGotCoords = Skills::GetCooordinates(pUnit, &sSkillArg.nX, &sSkillArg.nY);
     if (!bGotCoords) {
       return 0;
@@ -663,7 +663,7 @@ BOOL __fastcall Skills_CltStFunc_SetTimedDurationAndInfernoState(D2UnitStrc * pU
 // Client DoFunc for EMon Inferno-style skills with Z elevation. Checks the skill's Param1 against the current game entry index to decide whether to clear the STATE_inferno state or create an inferno missile via SKILLSSOR_CltCreateInfernoMissile. If created, sets particle Z from cltcalc[0] and enables reverse direction. Clears UNITFLAG_SKSRVDOFUNC on success.
 BOOL __fastcall Skills_CltDoFunc_EMon_InfernoWithZ(D2UnitStrc * pUnit, eD2Skills eSkill, int32_t nSkillLvl) {
     int32_t nPosZ;
-    if (!(-1 < (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
+    if (!(0 <= (int)eSkill && (int)eSkill < sgptDataTable->nTxtSkillsCount)) {
       return 0;
     }
 

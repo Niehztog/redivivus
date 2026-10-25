@@ -124,7 +124,7 @@ int32_t __stdcall CACHE_Open() {
       gpCacheBufferPoolFirst = pHashTableBuf;
       gpCacheFileHeader->dwHashTableOffset = 0x2c;
       pHeaderBuf->nHashTableSize = 0x400;
-      if (nCrc32 < 0x402d) {
+      if (nCrc32 <= 0x402c) {
         nCrc32 = 0x402c;
       }
 

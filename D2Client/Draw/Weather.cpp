@@ -668,19 +668,19 @@ static void WEATHER_SpawnParticle(D2SeedStrc * pSeed) {
     nLineIndex = sNextSeed.nSeedLow % 0xc;
     nRoll = D2Common::Environment::DRLGENV_GetPeriodOfDayFromAct(sgpDrlgAct, nullptr);
     switch (nRoll) {
-      case 0:
-        pParticleArray[nParticleSlotIndex].nColor = gWeatherPaletteDayColors[nLineIndex];
-      pParticleArray[nParticleSlotIndex].nAlpha = '\x7f';
-      break;
+      case 2:
+        pParticleArray[nParticleSlotIndex].nColor = gWeatherPaletteMudDuskColors[nLineIndex];
+      pParticleArray[nParticleSlotIndex].nAlpha = 0xff; break;
       case 1:
 
       case 3:
         pParticleArray[nParticleSlotIndex].nColor = gWeatherPaletteRain1Colors[nLineIndex];
       pParticleArray[nParticleSlotIndex].nAlpha = 0xff;
       break;
-      case 2:
-        pParticleArray[nParticleSlotIndex].nColor = gWeatherPaletteMudDuskColors[nLineIndex];
-      pParticleArray[nParticleSlotIndex].nAlpha = 0xff;
+      case 0:
+        pParticleArray[nParticleSlotIndex].nColor = gWeatherPaletteDayColors[nLineIndex];
+      pParticleArray[nParticleSlotIndex].nAlpha = '\x7f';
+      break;
     }
 
     pParticleArray[nParticleSlotIndex].nLineIndex = 4 - (int)(fVar1 * -8.0);
@@ -872,7 +872,7 @@ static int WEATHER_UpdateParticleCount(D2SeedStrc * pSeed) {
     }
 
     int nChangeRate = 2 - (uint32_t)(nWeatherParticleCountAct5 != 0);
-    if (gnWeatherRngParam < gnWeatherParticleOffsetYModulo) {
+    if (gnWeatherParticleOffsetYModulo > gnWeatherRngParam) {
       gnWeatherParticleOffsetYModulo -= nChangeRate;
       if (gnWeatherRngParam > gnWeatherParticleOffsetYModulo) {
         gnWeatherParticleOffsetYModulo = gnWeatherRngParam;

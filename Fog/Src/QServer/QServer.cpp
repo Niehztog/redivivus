@@ -771,7 +771,7 @@ static void FreeHacklistBuckets(D2QServerStrc * pQServer) {
     D2QServerHacklistEntryStrc* pNext;
     /* LPCRITICAL_SECTION lpCriticalSection for EnterCriticalSection */ EnterCriticalSection(&pQServer->csHacklist);
     uint32_t nBucketIndex = 0;
-    if (pQServer->nHacklistBucketCount) {
+    if ((uint32_t)pQServer->nHacklistBucketCount > 0) {
       D2QServerHacklistEntryStrc* pMemoryToFree;
       do {
         pMemoryToFree = pQServer->ppHacklistBuckets[nBucketIndex];

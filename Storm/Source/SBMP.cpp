@@ -391,7 +391,7 @@ int __stdcall SBMP_LoadFromMemory(uint8_t * pData, uint32_t dataSize, uint32_t *
     return 0;
 }
 
-int SBMP_WriteTGA(void * pPixels, void * hFile, int nPalettePtr, int width, int height, int bpp, uint32_t stride) {
+int __fastcall SBMP_WriteTGA(void * pPixels, void * hFile, int nPalettePtr, int width, int height, int bpp, uint32_t stride) {
     // Frame slots -800..-775 are ONE object: &dwBytesWritten is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     #pragma pack(push, 1)
@@ -942,7 +942,7 @@ int __fastcall SBMP_DecodeBmpMem(int * pWidth, int * pHeight, uint32_t * pBpp, u
 }
 
 // @blizzard EncodeBmp256File (SBMP.CPP)
-int __stdcall SBMP_EncodeBmp256File(int nPalettePtr, uint32_t nSrcStride, HANDLE hFile, void * pixels, int height) {
+int __fastcall SBMP_EncodeBmp256File(int nPalettePtr, uint32_t nSrcStride, HANDLE hFile, void * pixels, int height) {
     // Frame slots -24..-4 are ONE object: &wBmpMagic is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     #pragma pack(push, 1)
@@ -1125,7 +1125,7 @@ int __fastcall SBMP_CompressGifImage(int nSrcLen, uint8_t * pSrcPixels, int pDst
 }
 
 // @blizzard EncodeGif256File (SBMP.CPP)
-static int SBMP_EncodeGif256File(int width, void * hFile, int palette, uint8_t * pixels, int height) {
+static int __fastcall SBMP_EncodeGif256File(int width, void * hFile, int palette, uint8_t * pixels, int height) {
     // Frame slots -40..-4 are ONE object: &dwBytesWritten is passed out and the callee reaches the rest by byte offset.
     // Separate locals let the compiler reorder them, so the run is one struct.
     struct __frame0_t {

@@ -256,6 +256,9 @@ D2ControlStrc * __stdcall FORMS_CreateAnyForm(FORMS_PredefinedFormStrc * pForm) 
     void* pAccountList;
     DC6* pBackgroundDC6 = !pForm->pDC6 ? 0 : (DC6*)pForm->pDC6->nVersion;
     switch (pForm->neD2FormType) {
+      case FORM_TextBox:
+        pTextBox = D2WinTextBox::D2WinTextBox(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pForm->nExtraParam, pForm->nLabelAsLocaleStringId, pBackgroundDC6, pForm->fpOnPressCallback, pForm->nFlagsOrType, (int*)pForm->pTypeArg2, (int*)pForm->pTypeArg1);
+      return (D2ControlStrc*)pTextBox;
       case FORM_EditBox:
         pEditBox = D2WinEditBox::D2WinEditBox(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pForm->nExtraParam, pForm->nLabelAsLocaleStringId, pBackgroundDC6, (fpD2WinEditBoxSubmit)pForm->pTypeArg1, pForm->fpOnPressCallback, pForm->nFlagsOrType, (uint32_t*)pForm->pTypeArg2);
       return (D2ControlStrc*)pEditBox;
@@ -265,9 +268,9 @@ D2ControlStrc * __stdcall FORMS_CreateAnyForm(FORMS_PredefinedFormStrc * pForm) 
       case FORM_AnimImage:
         pAnimImage = D2WinAnimImage(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pBackgroundDC6, pForm->nExtraParam, pForm->fpOnPressCallback, (FORMS_AnimFrameStrc*)pForm->pTypeArg1, pForm->nLabelAsLocaleStringId, (fpD2WinAnimImageNotify)pForm->pTypeArg2);
       return (D2ControlStrc*)pAnimImage;
-      case FORM_TextBox:
-        pTextBox = D2WinTextBox::D2WinTextBox(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pForm->nExtraParam, pForm->nLabelAsLocaleStringId, pBackgroundDC6, pForm->fpOnPressCallback, pForm->nFlagsOrType, (int*)pForm->pTypeArg2, (int*)pForm->pTypeArg1);
-      return (D2ControlStrc*)pTextBox;
+      case FORM_ImageEx:
+        pImageEx = Forms::D2WinImageEx(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pBackgroundDC6, pForm->nExtraParam, pForm->nLabelAsLocaleStringId);
+      return (D2ControlStrc*)pImageEx;
       case FORM_Scrollbar:
         pScrollbar = D2WinScrollbar::D2WinScrollbar(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pBackgroundDC6, pForm->fpOnPressCallback);
       return (D2ControlStrc*)pScrollbar;
@@ -289,9 +292,6 @@ D2ControlStrc * __stdcall FORMS_CreateAnyForm(FORMS_PredefinedFormStrc * pForm) 
       case FORM_AccountList:
         pAccountList = D2WinAccountList::D2WinAccountList(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pForm->nFlagsOrType, (uint32_t*)pForm->pTypeArg2);
       return (D2ControlStrc*)pAccountList;
-      case FORM_ImageEx:
-        pImageEx = Forms::D2WinImageEx(pForm->aParams[0], pForm->aParams[1], pForm->aParams[2], pForm->aParams[3], pBackgroundDC6, pForm->nExtraParam, pForm->nLabelAsLocaleStringId);
-      return (D2ControlStrc*)pImageEx;
     }
 
     return nullptr;
@@ -309,6 +309,10 @@ void __stdcall FORMS_DestroyAnyForm(D2ControlStrc * * pForm) {
     }
 
     switch (pWinEditBox_00->sControl.neD2FormType) {
+      case FORM_TextBox:
+        D2WinTextBox::FORMS_DestroyD2WinTextBox((::D2WinTextBox*)pWinEditBox_00);
+      *pForm = 0;
+      return;
       case FORM_EditBox:
         D2WinEditBox::FORMS_DestroyD2WinEditBox(pWinEditBox_00);
       *pForm = 0;
@@ -317,12 +321,12 @@ void __stdcall FORMS_DestroyAnyForm(D2ControlStrc * * pForm) {
         D2WinImage::FORMS_DestroyD2WinImage((::D2WinImage*)pWinEditBox_00);
       *pForm = 0;
       return;
-      case FORM_AnimImage:
-        FORMS_DestroyD2WinAnimImage((::D2WinAnimImage*)pWinEditBox_00);
+      case FORM_ImageEx:
+        D2WinImage::FORMS_DestroyD2WinImageEx((::D2WinImageEx*)pWinEditBox_00);
       *pForm = 0;
       return;
-      case FORM_TextBox:
-        D2WinTextBox::FORMS_DestroyD2WinTextBox((::D2WinTextBox*)pWinEditBox_00);
+      case FORM_AnimImage:
+        FORMS_DestroyD2WinAnimImage((::D2WinAnimImage*)pWinEditBox_00);
       *pForm = 0;
       return;
       case FORM_Scrollbar:
@@ -351,10 +355,6 @@ void __stdcall FORMS_DestroyAnyForm(D2ControlStrc * * pForm) {
       return;
       case FORM_AccountList:
         D2WinAccountList::FORMS_DestroyD2WinAccountList((::D2WinAccountList*)pWinEditBox_00);
-      *pForm = 0;
-      return;
-      case FORM_ImageEx:
-        D2WinImage::FORMS_DestroyD2WinImageEx((::D2WinImageEx*)pWinEditBox_00);
       *pForm = 0;
       return;
     }

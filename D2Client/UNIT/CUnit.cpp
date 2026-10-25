@@ -532,6 +532,9 @@ BOOL __fastcall PlayerCanBeInterrupted(D2UnitStrc * pUnit, D2SkillStrc * pSkill)
 
       case KnockBack:
         return 0;
+      case eD2PlayerAnimMode_ns::Sequence:
+        bSeqReady = SKILL_IsSequenceInputReady(pUnit, pSkill);
+      return bSeqReady;
       case eD2PlayerAnimMode_ns::Skill1:
         if (pUnit->nClassId == CLASS_PALADIN) {
           return 0;
@@ -557,9 +560,6 @@ BOOL __fastcall PlayerCanBeInterrupted(D2UnitStrc * pUnit, D2SkillStrc * pSkill)
       }
 
       return 1;
-      case eD2PlayerAnimMode_ns::Sequence:
-        bSeqReady = SKILL_IsSequenceInputReady(pUnit, pSkill);
-      return bSeqReady;
     }
 
     return 1;
@@ -691,11 +691,14 @@ int32_t __fastcall IsAlive(D2UnitStrc * pUnit) {
 
     eD2PlayerAnimMode nAnimMode = pUnit->eAnimMode.ePlayerMode;
     switch (pUnit->eUnitType) {
-      case UNIT_PLAYER:
-        if (nAnimMode == eD2PlayerAnimMode_ns::Dead) {
-          return 1;
-        }
+      case UNIT_OBJECT:
+        pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pUnit->nClassId);
+      if (pObjectsTxt->DrawUnder & 2U || nAnimMode == Walk && pObjectsTxt->DrawUnder & 1U) {
+        return 1;
+      }
       break;
+      case UNIT_ITEM:
+        return (uint32_t)(nAnimMode == eD2PlayerAnimMode_ns::Run);
       case UNIT_MONSTER:
         _bIsUnflatDead = Player::TXT_MonStats_MonStats2_GetFlagsByBitOffset(pUnit->nClassId, unflatDead);
       if (!_bIsUnflatDead && nAnimMode == Kick) {
@@ -703,20 +706,16 @@ int32_t __fastcall IsAlive(D2UnitStrc * pUnit) {
       }
 
       break;
-      case UNIT_OBJECT:
-        pObjectsTxt = D2Common::DATATBLS::ObjectTbls::TXT_Objects_GetLine(pUnit->nClassId);
-      if (pObjectsTxt->DrawUnder & 2U || nAnimMode == Walk && pObjectsTxt->DrawUnder & 1U) {
-        return 1;
-      }
-
+      case UNIT_PLAYER:
+        if (nAnimMode == eD2PlayerAnimMode_ns::Dead) {
+          return 1;
+        }
       break;
       case UNIT_MISSILE:
         if (pUnit->eUnitFlags & UNITFLAG_ISDEAD) {
           return 1;
         }
       break;
-      case UNIT_ITEM:
-        return (uint32_t)(nAnimMode == eD2PlayerAnimMode_ns::Run);
     }
 
     return 0;
@@ -1238,21 +1237,6 @@ static void __fastcall CLIENT_SyncPathFromServer(D2DynamicPathStrc * pDynamicPat
         }
       } else {
         switch (nAnimMode) {
-          case eD2PlayerAnimMode_ns::Neutral:
-
-          case TownNeutral:
-            if (eNewMode < Walk || eD2PlayerAnimMode_ns::Run < eNewMode && eNewMode != TownWalk) {
-              goto clear_path_flag;
-            }
-          pRoom = D2Common::Units::UNITS_GetRoom((D2UnitStrc*)pDynamicPath);
-          bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pRoom);
-          if (!bIsInTown) {
-            nAnimMode = eD2PlayerAnimMode_ns::Neutral;
-            break;
-          }
-
-          nAnimMode = TownNeutral;
-          break;
           case Walk:
 
           case TownWalk:
@@ -1273,6 +1257,19 @@ static void __fastcall CLIENT_SyncPathFromServer(D2DynamicPathStrc * pDynamicPat
               goto clear_path_flag;
             }
           nAnimMode = eD2PlayerAnimMode_ns::Run;
+          break;
+          case eD2PlayerAnimMode_ns::Neutral:
+          case TownNeutral:
+            if (eNewMode < Walk || eD2PlayerAnimMode_ns::Run < eNewMode && eNewMode != TownWalk) {
+              goto clear_path_flag;
+            }
+          pRoom = D2Common::Units::UNITS_GetRoom((D2UnitStrc*)pDynamicPath);
+          bIsInTown = D2Common::DUNGEON::Dungeon::DRLGROOM_IsRoomInTown(pRoom);
+          if (!bIsInTown) {
+            nAnimMode = eD2PlayerAnimMode_ns::Neutral;
+            break;
+          }
+          nAnimMode = TownNeutral;
           break;
           default:
             if (eNewMode != KnockBack) {
@@ -1546,6 +1543,11 @@ static void FreeAny(D2UnitStrc * pUnit) {
       Monster::FreeMonster(pUnit);
       UnitSnd::IterateUnitSfxData(pUnit, 1);
       break;
+      case UNIT_ITEM:
+        ITEM_FreeItemUnit(pUnit);
+      D2Common::ITEMS::Items::ITEMDATA_Free(nullptr, pUnit);
+      D2Common::Units::FreeStaticPath(pUnit);
+      break;
       case UNIT_OBJECT:
         if (pUnit->pHoverText) {
           UI::Text::TEXT_FreeHoverText(pUnit->pHoverText);
@@ -1557,11 +1559,6 @@ static void FreeAny(D2UnitStrc * pUnit) {
       break;
       case UNIT_MISSILE:
         Missile::MISSILE_FreeClientMissile(pUnit);
-      break;
-      case UNIT_ITEM:
-        ITEM_FreeItemUnit(pUnit);
-      D2Common::ITEMS::Items::ITEMDATA_Free(nullptr, pUnit);
-      D2Common::Units::FreeStaticPath(pUnit);
       break;
       case UNIT_WARP:
         if (sgpDrlgAct) {
@@ -1958,12 +1955,12 @@ static D2UnitStrc * __stdcall InitCommonData(D2UnitStrc * pUnit, int32_t nUnitGU
         D2Common::Units::AllocStaticPath(pUnit);
       Object::AllocObjectData(pUnit, pRoom, nX, nY, nClassId, nObjectAnimMode);
       break;
-      case UNIT_MISSILE:
-        Missile::MISSILE_InitMissileUnit(pUnit, pRoom, nX, nY, nClassId);
-      break;
       case UNIT_ITEM:
         D2Common::Units::AllocStaticPath(pUnit);
       ITEM_SetAnimModeAndPlace(pUnit, pRoom, nX, nY, nItemAnimMode, 1);
+      break;
+      case UNIT_MISSILE:
+        Missile::MISSILE_InitMissileUnit(pUnit, pRoom, nX, nY, nClassId);
       break;
       case UNIT_WARP:
         D2Common::Units::AllocStaticPath(pUnit);

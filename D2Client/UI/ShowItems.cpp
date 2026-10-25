@@ -218,20 +218,20 @@ void __stdcall DRAW_AltItems() {
                       case 4:
                         nColorIdx = 3;
                       break;
-                      case 5:
-                        nColorIdx = 2;
-                      break;
                       case 6:
                         nColorIdx = 9;
-                      break;
-                      case 7:
-                        nColorIdx = 4;
                       break;
                       case 8:
                         nColorIdx = 8;
                       break;
                       case 9:
                         nColorIdx = 10;
+                      break;
+                      case 7:
+                        nColorIdx = 4;
+                      break;
+                      case 5:
+                        nColorIdx = 2;
                       break;
                       default:
                         bSocketedFlag = D2Common::ITEMS::Items::CheckItemFlag(pItem, ITEMFLAG_SOCKETED, 0x106, ".\\UI\\showitems.cpp");

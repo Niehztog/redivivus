@@ -42,10 +42,10 @@ namespace Fog::_3rdparty::crashy {
 // Function declarations
 ::Report * Constructor(::Report * pThis);
 ::Report * ScalarDeletingDestructor(::Report * pThis, uint32_t nFlags);
-void Destructor(::Report * pThis);
+void __fastcall Destructor(::Report * pThis);
 int8_t Open(::Report * pThis, char * szFileName);
-int8_t Close(::Report * pThis);
-int8_t IsOpen(::Report * pThis);
+int8_t __fastcall Close(::Report * pThis);
+int8_t __fastcall IsOpen(::Report * pThis);
 int8_t AddAttachment(::Report * pThis, char * szPath, int8_t bCopyToReportDir);
 int32_t Printf(::Report * pThis, char * szFormat, ...);
 

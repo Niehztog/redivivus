@@ -159,7 +159,7 @@ static void __fastcall MONSTER_OnCreateAttachQuests(::SGAMEDATA * pQuestEventArg
     pGame = (::SGAMEDATA*)pQuestEventArg->m_hashval;
     int nBaseId;
     nBaseId = (int)pTVar1;
-    if (-1 < (int)pTVar1 && (int)pTVar1 < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + (int)pTVar1) {
+    if (0 <= (int)pTVar1 && (int)pTVar1 < sgptDataTable->nTxtMonStatsSize && sgptDataTable->pTxtMonStats + (int)pTVar1) {
       nBaseId = (int)(int)sgptDataTable->pTxtMonStats[(int)pTVar1].BaseId;
     }
     if (0 <= nBaseId && nBaseId < sgptDataTable->nTxtMonStatsSize) {
@@ -360,11 +360,11 @@ static void MONSTER_ApplySpecialUmods(D2UnitStrc * pUnit, D2UnknownCreateMonster
         return;
         default:
           break;
-        case 0x1b4:
-          Monsters::InitUmods(pGame, pUnit, 0x22, 0);
-        return;
         case 0x1cd:
           Monsters::InitUmods(pGame, pUnit, 0x21, 0);
+        return;
+        case 0x1b4:
+          Monsters::InitUmods(pGame, pUnit, 0x22, 0);
         return;
         case 0x1f5:
           Monsters::InitUmods(pGame, pUnit, 0x23, 0);

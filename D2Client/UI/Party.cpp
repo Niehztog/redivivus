@@ -323,9 +323,6 @@ static void __fastcall UI_DrawPartyButtonLabelText(int32_t eButtonType, int32_t 
     int32_t nTextFlags = 0;
     int nX = 0xbe;
     switch (eButtonType) {
-      case 0:
-        nLocaleId = 0x1036;
-      break;
       case 1:
         if (nPartyId == -1) {
           return;
@@ -340,6 +337,9 @@ static void __fastcall UI_DrawPartyButtonLabelText(int32_t eButtonType, int32_t 
         nX = 0xaf;
       }
 
+      break;
+      case 0:
+        nLocaleId = 0x1036;
       break;
       case 2:
         nLocaleId = 0x1037;

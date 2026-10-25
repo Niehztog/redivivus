@@ -294,23 +294,6 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
           }
 
           break;
-          case ACT_II:
-            nCornerPresetId = pNextVertex->nPosX;
-          if (pCurVertex->nPosX < pNextVertex->nPosX) {
-            nCornerPresetId = pCurVertex->nPosX;
-          }
-
-          nCornerPresetId = park_1c * park_24 / 2 + nCornerPresetId;
-          nCurY = pCurVertex->nPosY;
-          if (pNextVertex->nPosY <= pCurVertex->nPosY) {
-            nCurY = pNextVertex->nPosY;
-          }
-
-          nCurY = park_1c * park_2c / 2 + nCurY;
-          nPresetId = nDx + 2 + nDy * 2;
-          Outdoors::SpawnOutdoorLevelPresetEx(park_18, nCornerPresetId, nCurY, gnOutPlaceGridHeightByAct[nPresetId * 2], -1, 0);
-          Outdoors::SpawnOutdoorLevelPresetEx(park_18, nCornerPresetId + park_24, nCurY + park_2c, gnOutPlaceGridHeightByAct[nPresetId * 2 + 1], -1, 0);
-          break;
           case ACT_IV:
             nCornerPresetId = pNextVertex->nPosX;
           if (pCurVertex->nPosX < pNextVertex->nPosX) {
@@ -326,7 +309,22 @@ void __fastcall PlaceAct1245OutdoorBorders(D2DrlgLevelStrc * pLevel) {
           nCurY = park_1c * park_2c / 2 + nCurY;
           pPresetGrid = &park_28->sGridOutdoor;
           DrlgGrid::AlterGridFlag(pPresetGrid, nCornerPresetId, nCurY, 0xf0000, 5);
-          DrlgGrid::AlterGridFlag(pPresetGrid, nCornerPresetId, nCurY, 0x30400, 0);
+          DrlgGrid::AlterGridFlag(pPresetGrid, nCornerPresetId, nCurY, 0x30400, 0); break;
+          case ACT_II:
+            nCornerPresetId = pNextVertex->nPosX;
+          if (pCurVertex->nPosX < pNextVertex->nPosX) {
+            nCornerPresetId = pCurVertex->nPosX;
+          }
+          nCornerPresetId = park_1c * park_24 / 2 + nCornerPresetId;
+          nCurY = pCurVertex->nPosY;
+          if (pCurVertex->nPosY >= pNextVertex->nPosY) {
+            nCurY = pNextVertex->nPosY;
+          }
+          nCurY = park_1c * park_2c / 2 + nCurY;
+          nPresetId = nDx + 2 + nDy * 2;
+          Outdoors::SpawnOutdoorLevelPresetEx(park_18, nCornerPresetId, nCurY, gnOutPlaceGridHeightByAct[nPresetId * 2], -1, 0);
+          Outdoors::SpawnOutdoorLevelPresetEx(park_18, nCornerPresetId + park_24, nCurY + park_2c, gnOutPlaceGridHeightByAct[nPresetId * 2 + 1], -1, 0);
+          break;
         }
       }
       if (park_5 || (park_5 = pNextVertex->nDirection , park_5 != 0)) {

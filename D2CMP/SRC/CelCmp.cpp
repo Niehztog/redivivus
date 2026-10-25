@@ -1350,7 +1350,7 @@ void __stdcall CELCMP_ApplyPaletteToAllFrames(DC6 * pDCC, uint8_t * pPalette) {
 
     uint32_t nNumFrames;
     nDirIndex = 0;
-    if (!pDCC->nDirections) {
+    if ((uint32_t)pDCC->nDirections <= 0) {
       return;
     }
 
@@ -1378,7 +1378,7 @@ uint32_t __stdcall CELCMP_SerializeCelFileToMemory(uint32_t * pDCCSrc, uint32_t 
     D2InventoryGridStrc* pFrameStrc;
     uint32_t nFrameCount = pDCCSrc[5] * pDCCSrc[4];
     size_t nTotalSize = nFrameCount * 4 + 0x18;
-    if (nFrameCount) {
+    if ((uint32_t)nFrameCount > 0) {
       uint32_t* pSrcFrameSlot;
       pSrcFrameSlot = pDCCSrc + 6;
       iFrame = nFrameCount;
@@ -1402,7 +1402,7 @@ uint32_t __stdcall CELCMP_SerializeCelFileToMemory(uint32_t * pDCCSrc, uint32_t 
     pWriteCursor[1] = pWriteCursor[1] & -3 | 1;
     void* pColorShiftFreeSrc = 0;
     iFrame = 0;
-    if (nFrameCount) {
+    if ((uint32_t)nFrameCount > 0) {
       do {
         _Size = *(int*)(pDCCSrc[iFrame + 6] + 0x1c) + 0x23;
         pWriteCursor[iFrame + 6] = (int)pDstFrameCursor - (int)pWriteCursor;

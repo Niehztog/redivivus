@@ -739,6 +739,9 @@ D2UnitStrc * __fastcall SpawnMonster(::SGAMEDATA * pGame, D2RoomStrc * pRoom, in
         case LEVEL_FlayerJungle:
           nResolvedClassId = 1;
         break;
+        case LEVEL_A3SewersLevel1:
+        case LEVEL_A3SewersLevel2:
+          nResolvedClassId = 2; break;
         case LEVEL_SwampyPitLevel1:
 
         case LEVEL_SwampyPitLevel2:
@@ -752,10 +755,6 @@ D2UnitStrc * __fastcall SpawnMonster(::SGAMEDATA * pGame, D2RoomStrc * pRoom, in
         case LEVEL_FlayerDungeonLevel3:
           nResolvedClassId = 0;
         break;
-        case LEVEL_A3SewersLevel1:
-
-        case LEVEL_A3SewersLevel2:
-          nResolvedClassId = 2;
       }
 
       uVar9 = MONSTER_GetMonsterClassByDifficulty(0x105 < sgptDataTable->nTxtMonStatsSize ? 0x105 : -1, nResolvedClassId);

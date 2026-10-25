@@ -1950,7 +1950,7 @@ static void __fastcall SHRINE_OnStaminaExpire(D2UnitStrc * pUnit, eD2States eSta
 void __fastcall Shrines_StaminaBoostFunction(D2ObjectOperateFnArg * pArguments, D2ShrinesTxt * pTxtShrines) {
     int32_t nMaxStamina;
     uint32_t uShrineCode = (uint32_t)pTxtShrines->nCode;
-    if (SHRINESCOUNT <= (int)uShrineCode) {
+    if ((int)uShrineCode >= SHRINESCOUNT) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x9e7);
       exit(-1);
     }

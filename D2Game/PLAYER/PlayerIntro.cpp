@@ -50,16 +50,12 @@ static int gaNPCSpokenBitIndexMap_1__0_[35][2] = { 0 };
 
 void __fastcall PLAYER_SetSpokenWithNPC(D2UnitStrc * pUnit, ::SGAMEDATA * pGame, int32_t nMonStatsId) {
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-    if (0 < gnNPCSpokenBitIndexMapCount) {
-      int i = 0;
-      do {
+    for (int i = 0; i < gnNPCSpokenBitIndexMapCount; i++) {
         if (gaNPCSpokenBitIndexMap[i][0] == nMonStatsId) {
           Fog::BitBuffer::SetBitAtOffset((char*)pPlayerData->pInteractedNPCs[pGame->nDifficulty]->pIntro->pBuffer, gaNPCSpokenBitIndexMap[i][1]);
           return;
         }
 
-        i++;
-      } while (i < gnNPCSpokenBitIndexMapCount);
     }
 
     Fog::BitBuffer::SetBitAtOffset((char*)pPlayerData->pInteractedNPCs[pGame->nDifficulty]->pIntro->pBuffer, 0);
@@ -68,16 +64,12 @@ void __fastcall PLAYER_SetSpokenWithNPC(D2UnitStrc * pUnit, ::SGAMEDATA * pGame,
 BOOL __fastcall PLAYER_CheckIfSpokenWithNPC(D2UnitStrc * pUnit, ::SGAMEDATA * pGame, int32_t nMonStatsId) {
     BOOL bSpoken;
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-    if (0 < gnNPCSpokenBitIndexMapCount) {
-      int i = 0;
-      do {
+    for (int i = 0; i < gnNPCSpokenBitIndexMapCount; i++) {
         if (gaNPCSpokenBitIndexMap[i][0] == nMonStatsId) {
           bSpoken = Fog::BitBuffer::CheckBitAtOffset((char*)pPlayerData->pInteractedNPCs[pGame->nDifficulty]->pIntro->pBuffer, gaNPCSpokenBitIndexMap[i][1]);
           return bSpoken;
         }
 
-        i++;
-      } while (i < gnNPCSpokenBitIndexMapCount);
     }
 
     bSpoken = Fog::BitBuffer::CheckBitAtOffset((char*)pPlayerData->pInteractedNPCs[pGame->nDifficulty]->pIntro->pBuffer, 0);
@@ -85,16 +77,12 @@ BOOL __fastcall PLAYER_CheckIfSpokenWithNPC(D2UnitStrc * pUnit, ::SGAMEDATA * pG
 }
 
 void __fastcall INTRONPC_SetSpokenWithNPC_Intro2(D2UnitDataPlayerInteractedNPCStrc * pInteractedNPCs, int32_t nMonStatsId) {
-    if (0 < gnNPCSpokenBitIndexMapCount) {
-      int i = 0;
-      do {
+    for (int i = 0; i < gnNPCSpokenBitIndexMapCount; i++) {
         if (gaNPCSpokenBitIndexMap[i][0] == nMonStatsId) {
           Fog::BitBuffer::SetBitAtOffset((char*)pInteractedNPCs->pIntro2->pBuffer, gaNPCSpokenBitIndexMap[i][1]);
           return;
         }
 
-        i++;
-      } while (i < gnNPCSpokenBitIndexMapCount);
     }
 
     Fog::BitBuffer::SetBitAtOffset((char*)pInteractedNPCs->pIntro2->pBuffer, 0);
@@ -102,16 +90,12 @@ void __fastcall INTRONPC_SetSpokenWithNPC_Intro2(D2UnitDataPlayerInteractedNPCSt
 
 BOOL __fastcall INTRONPC_CheckIfSpokenWithNPC_Intro2(D2UnitDataPlayerInteractedNPCStrc * pInteractedNPCs, int32_t nMonStatsId) {
     BOOL bSpoken;
-    if (0 < gnNPCSpokenBitIndexMapCount) {
-      int i = 0;
-      do {
+    for (int i = 0; i < gnNPCSpokenBitIndexMapCount; i++) {
         if (gaNPCSpokenBitIndexMap[i][0] == nMonStatsId) {
           bSpoken = Fog::BitBuffer::CheckBitAtOffset((char*)pInteractedNPCs->pIntro2->pBuffer, gaNPCSpokenBitIndexMap[i][1]);
           return bSpoken;
         }
 
-        i++;
-      } while (i < gnNPCSpokenBitIndexMapCount);
     }
 
     bSpoken = Fog::BitBuffer::CheckBitAtOffset((char*)pInteractedNPCs->pIntro2->pBuffer, 0);
@@ -120,16 +104,12 @@ BOOL __fastcall INTRONPC_CheckIfSpokenWithNPC_Intro2(D2UnitDataPlayerInteractedN
 
 void __fastcall PLAYER_UnsetSpokenWithNPC_Intro2(::SGAMEDATA * pGame, D2UnitStrc * pUnit, int32_t nMonStatsId) {
     D2UnitDataPlayerStrc* pPlayerData = D2Common::Units::GetPlayerData(pUnit);
-    if (0 < gnNPCSpokenBitIndexMapCount) {
-      int i = 0;
-      do {
+    for (int i = 0; i < gnNPCSpokenBitIndexMapCount; i++) {
         if (gaNPCSpokenBitIndexMap[i][0] == nMonStatsId) {
           Fog::BitBuffer::UnsetBitAtOffset((char*)pPlayerData->pInteractedNPCs[pGame->nDifficulty]->pIntro2->pBuffer, gaNPCSpokenBitIndexMap[i][1]);
           return;
         }
 
-        i++;
-      } while (i < gnNPCSpokenBitIndexMapCount);
     }
 
     Fog::BitBuffer::UnsetBitAtOffset((char*)pPlayerData->pInteractedNPCs[pGame->nDifficulty]->pIntro2->pBuffer, 0);

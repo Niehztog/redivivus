@@ -60,7 +60,7 @@ int __fastcall BNMESSQUEUE_EnqueueBytes(int32_t nEventType, char * pBytes, size_
     pNewMessage->nDataSize = nSize;
     pNewMessage->nZero = nEventType;
     pNewMessage->pNext = 0;
-    if (!(nSize < 0x121)) {
+    if (!(nSize <= 0x120)) {
       Fog::Src::ErrorManager::ERROR_UnrecoverableInternalError_Halt("", Fog::Src::ErrorManager::GetInstructionPointer(), 0x44);
       exit(-1);
     }

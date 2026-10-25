@@ -76,12 +76,8 @@ void __stdcall InitPal() {
     gpMonsterPalShiftList = pPalShiftList;
     memset(pPalShiftList, 0, nAllocSize);
     int nMonStatsCount = sgptDataTable->nTxtMonStatsSize;
-    if (0 < nMonStatsCount) {
-      int i = 0;
-      do {
+    for (int i = 0; i < nMonStatsCount; i++) {
         *(int*)((int)pPalShiftList + i * 8) = i;
-        i++;
-      } while (i < nMonStatsCount);
     }
 
     gpPalShiftEntryListHead = 0;
@@ -275,12 +271,8 @@ void __stdcall PALSHIFT_InitPalShiftTable() {
 
     pPalShiftList = gpMonsterPalShiftList;
     memset(gpMonsterPalShiftList, 0, nTxtMonStatsCount * 8);
-    if (0 < nTxtMonStatsCount) {
-      int i = 0;
-      do {
+    for (int i = 0; i < nTxtMonStatsCount; i++) {
         *(int*)((int)pPalShiftList + i * 8) = i;
-        i++;
-      } while (i < nTxtMonStatsCount);
     }
 
     PALSHIFT_LoadMonsterPalShift(0x16b);

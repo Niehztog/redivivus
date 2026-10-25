@@ -881,15 +881,15 @@ void __fastcall ClickParty_i(D2RosterStrc * pRoster) {
       case 2:
         nActionType = 8;
       break;
-      case 3:
-        nActionType = 9;
-      break;
       case 4:
         *(uint32_t*)&pRoster->bInParty = 0;
       Msg::NET_D2GS_CLIENT_Send_0x5E(7, pRoster->nRosterGUID);
       ROSTER_RebuildPlayerParty();
       UI::Party::ResetPartyUi();
       return;
+      case 3:
+        nActionType = 9;
+      break;
       default:
         goto send_party_action;
     }

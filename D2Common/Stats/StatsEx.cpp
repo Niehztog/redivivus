@@ -96,7 +96,7 @@ static int32_t STATLIST_BinarySearchInsertPos(int32_t nParam, int * pnParam) {
       int nEntryKey;
       nMid = (nCount - nLo) / 2 + nLo;
       nEntryKey = *(int*)(*pnParam + nMid * 8);
-      if (nParam > nEntryKey) {
+      if (nEntryKey < nParam) {
         nLo = nMid + 1;
         nMid = nCount;
       } else if (nEntryKey <= nParam) {
@@ -195,7 +195,7 @@ static int32_t STATLIST_BinarySearchChangedInsertPos(D2StatInfoStrc * pStatInfo,
       int nEntryKey;
       nMid = (nCount - nLo) / 2 + nLo;
       nEntryKey = *(int*)(&pStatInfo->pStatInfo->wSubIndex + nMid * 2);
-      if (nParam > nEntryKey) {
+      if (nEntryKey < nParam) {
         nLo = nMid + 1;
         nMid = nCount;
       } else if (nEntryKey <= nParam) {

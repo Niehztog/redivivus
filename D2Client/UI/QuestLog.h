@@ -99,6 +99,7 @@ int __fastcall QUESTLOG_ScrollCompleteCallback_ClearButton(void * pUserParam, ui
 void __stdcall QUESTLOG_OnCloseClick(struct D2UIMouseMsgStrc * pMsg);
 void __fastcall QUESTLOG_HandleSpecialPacket(int32_t nParam);
 void __stdcall QUESTLOG_CloseAndFreeImages();
+int __stdcall QUESTLOG_IsPointInQuestLog(int32_t nX, int32_t nY);
 void __stdcall QUESTLOG_OnQuestLogMouseDown(struct D2UIMouseMsgStrc * pMsg);
 void __stdcall QUESTLOG_DrawQuestLogButton();
 void __fastcall QUESTLOG_SelectQuestByIndex(int32_t nQuestId);

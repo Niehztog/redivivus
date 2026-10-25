@@ -824,7 +824,7 @@ void __fastcall Q05_SetCompletionForTrackedPlayers(::SGAMEDATA * pGame, D2QuestG
     BOOL bCompleted;
     D2BitBufferStrc* pBitBuffer;
     int i = 0;
-    if (!pQuestGUIDBase->nPlayerCount) {
+    if ((uint32_t)pQuestGUIDBase->nPlayerCount <= 0) {
       return;
     }
 

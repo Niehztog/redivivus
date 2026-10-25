@@ -320,7 +320,7 @@ int __fastcall PLRSAVE_RestoreItemToUnit(::SGAMEDATA * pGame, D2UnitStrc * pUnit
 
 // Server-side: re-instates one saved item onto a loaded player during character load. Recreates the item via PLRSAVE_CreateItemFromSaveData, then by the item's animMode places it: Death=drop to ground at recorded pos (SERVER_ItemToInventory); Neutral=equip to its saved body-loc (validates via INVENTORY_GetItemAtBodyLoc, puts in inv slot 3, or 4 for swapped weapon set, clears TARGETABLE/ISRESURRECT, refreshes inv, fires QUEST_OnItemPickedUp); TownWalk=nest into a container item (PutItemInItem). Returns 0 on success, 0xd on any failure. Writes the placed item back into pGame2->nToken (container cursor) and the storage-type byte into *pnParam.
 // @sourcefile .\PLAYER\PlrSave.cpp
-int __stdcall PLRSAVE_RestoreEquippedItem(::SGAMEDATA * pGame, D2UnknownItemRelatedStruct * pItemUnknownStructure, ::SGAMEDATA * pGame2, uint32_t * pnParam, D2UnitStrc * pUnit) {
+int __fastcall PLRSAVE_RestoreEquippedItem(::SGAMEDATA * pGame, D2UnknownItemRelatedStruct * pItemUnknownStructure, ::SGAMEDATA * pGame2, uint32_t * pnParam, D2UnitStrc * pUnit) {
     int32_t nItemGUID;
     eD2BodyLoc eBodyLoc;
     BOOL bPlaceResult;
@@ -799,7 +799,7 @@ int32_t __fastcall PLAYERSAVE_ByteToHexChar(uint8_t * pszHexOut, uint32_t nByteV
 
 uint8_t * __fastcall PLAYERSAVE_ByteArrayToHexString(uint8_t * pParam, uint8_t * pbParam, int32_t nLength) {
     uint8_t* pBytesCursor = pbParam;
-    if (nLength < 1) {
+    if (nLength <= 0) {
       return nullptr;
     }
 
